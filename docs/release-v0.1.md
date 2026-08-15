@@ -141,7 +141,7 @@ bun autoshow write ./output/demo/text --prompt rockSong
 
 ### Step 4: tts
 
-[`tts`](./commands/process-steps/step-4-tts/text-to-speech.md) generates speech audio from local `.md` or `.txt` files.
+[`tts`](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md) generates speech audio from local `.md` or `.txt` files.
 
 - Primary inputs/providers:
   - local Markdown or plaintext files: `.md` and `.txt`
@@ -373,7 +373,7 @@ bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper
 
 ### voice
 
-[`voice`](./commands/process-steps/step-4-tts/voice-management.md) manages durable provider voice registrations separately from speech synthesis.
+[`voice`](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md#voice) manages durable provider voice registrations separately from speech synthesis.
 
 - Primary inputs/providers:
   - authored character voice briefs in `input/characters/character-voices.json`

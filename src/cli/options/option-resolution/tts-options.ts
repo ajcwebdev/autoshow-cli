@@ -1,4 +1,4 @@
-import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateInworldTtsVoice, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateReplicateTtsVoice, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateInworldTtsVoice, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost,   validateFalTtsVoice, validateReplicateTtsVoice, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsLegacyCreationDiagnosticOptions, TtsOptionResolutionAuthority, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalOccurrenceStringFlag, readOptionalStringFlag, readOptionalStringListFlag, readStringFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
@@ -99,7 +99,7 @@ export const TTS_MODEL_KEYS = [
   'speechifyTtsModels', 'speechifyTtsModel', 'humeTtsModels', 'humeTtsModel',
   'cartesiaTtsModels', 'cartesiaTtsModel', 'fishTtsModels', 'fishTtsModel',
   'inworldTtsModels', 'inworldTtsModel', 'deepinfraTtsModels', 'deepinfraTtsModel',
-  'replicateTtsModels', 'replicateTtsModel'
+  'replicateTtsModels', 'replicateTtsModel', 'falTtsModels', 'falTtsModel'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
 export const buildTtsOptions = (
@@ -229,6 +229,15 @@ export const buildTtsOptions = (
       if (modelOptions.deepinfraTtsModels === undefined) return value
       return validateCliValue(validateDeepinfraTtsVoice, value)
     })(),
+    falTtsModels: modelOptions.falTtsModels,
+    falTtsModel: modelOptions.falTtsModel,
+    falTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'fal-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.falTtsModels === undefined) return value
+      return validateCliValue(validateFalTtsVoice, value)
+    })(),
+    falTtsInstructions: readOptionalStringFlag(flags, 'fal-tts-instructions'),
     replicateTtsModels: modelOptions.replicateTtsModels,
     replicateTtsModel: modelOptions.replicateTtsModel,
     replicateTtsVoice: (() => {

@@ -68,6 +68,7 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'inworld-tts',
   'deepinfra-tts',
   'replicate-tts',
+  'fal-tts',
   'deepgram-tts',
   'gemini-image',
   'openai-image',

@@ -18,6 +18,7 @@ const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy
   inworld: 'segment-and-concat',
   deepinfra: 'segment-and-concat',
   replicate: 'segment-and-concat',
+  fal: 'segment-and-concat',
 }
 
 const REF_AUDIO_PROVIDERS = new Set<TtsProvider>(['mistral'])

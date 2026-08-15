@@ -55,6 +55,7 @@ import {
   validateInworldTtsModel,
   validateDeepinfraTtsModel,
   validateReplicateTtsModel,
+  validateFalTtsModel,
   validateElevenlabsMusicModel,
   validateMinimaxMusicModel,
   validateGeminiMusicModel,
@@ -203,6 +204,7 @@ export const readRuntimeModelOptions = (
   const inworldTtsModels = readValidatedMany('inworld-tts', validateInworldTtsModel)
   const deepinfraTtsModels = readValidatedMany('deepinfra-tts', validateDeepinfraTtsModel)
   const replicateTtsModels = readValidatedMany('replicate-tts', validateReplicateTtsModel)
+  const falTtsModels = readValidatedMany('fal-tts', validateFalTtsModel)
   const hasExplicitTtsEngine = [
     kittenTtsModels,
     elevenlabsTtsModels,
@@ -220,6 +222,7 @@ export const readRuntimeModelOptions = (
     inworldTtsModels,
     deepinfraTtsModels,
     replicateTtsModels,
+    falTtsModels,
   ].some((value) => value !== undefined && value.length > 0)
   const kittenTtsModelValues = defaults.defaultTtsEngine === 'kitten' && !hasExplicitTtsEngine
     ? [DEFAULT_KITTEN_TTS_MODEL]
@@ -357,6 +360,8 @@ export const readRuntimeModelOptions = (
     deepinfraTtsModel: first(deepinfraTtsModels),
     replicateTtsModels,
     replicateTtsModel: first(replicateTtsModels),
+    falTtsModels,
+    falTtsModel: first(falTtsModels),
     geminiImageModels,
     geminiImageModel: first(geminiImageModels),
     openaiImageModels,

@@ -8,7 +8,7 @@ import {
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, KittenTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
+import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, KittenTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
 
 export const SUPPORTED_KITTEN_TTS_MODELS = [
   'kitten-tts-mini',
@@ -704,6 +704,22 @@ export const SUPPORTED_REPLICATE_TTS_VOICES = [
 ] as const satisfies readonly string[]
 
 export const REPLICATE_DEFAULT_TTS_VOICE = 'af_bella'
+
+export const SUPPORTED_FAL_TTS_MODELS = [
+  'fal-ai/bytedance/seed-speech/tts/v2',
+  'fal-ai/maya',
+  'async/tts-pro/v1.0'
+] as const satisfies readonly string[]
+
+export const validateFalTtsModel = createModelValidator<FalTtsModel>(SUPPORTED_FAL_TTS_MODELS, 'fal-tts')
+
+export const validateFalTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --fal-voice value. Expected a non-empty fal.ai voice ID or voice description.')
+  }
+  return normalized
+}
 
 export const validateReplicateTtsModel = createModelValidator<ReplicateTtsModel>(SUPPORTED_REPLICATE_TTS_MODELS, 'replicate-tts')
 

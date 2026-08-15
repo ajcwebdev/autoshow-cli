@@ -97,4 +97,9 @@ export const ttsRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/validation/media-generation/replicate-tts-adapter-contracts.test.ts', [
     command('tts-replicate-kokoro-82m', 'tts-replicate-kokoro-82m', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'replicate=jaaari/kokoro-82m', '--price']),
   ]),
+  ...exact('test/test-cases/validation/media-generation/fal-tts-adapter-contracts.test.ts', [
+    command('tts-fal-seed-speech-v2', 'tts-fal-seed-speech-v2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fal=fal-ai/bytedance/seed-speech/tts/v2', '--price']),
+    command('tts-fal-maya', 'tts-fal-maya', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fal=fal-ai/maya', '--price']),
+    command('tts-fal-async-tts-pro', 'tts-fal-async-tts-pro', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'fal=async/tts-pro/v1.0', '--price']),
+  ]),
 ]

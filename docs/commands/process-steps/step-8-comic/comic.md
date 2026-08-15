@@ -285,7 +285,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--provider <provider[=model]>` | Select a TTS provider/model; repeatable | `kitten` |
-| `--sfx-provider <provider=model>` | Select the dedicated authored sound-effect target; accepts `elevenlabs=eleven_text_to_sound_v2` or `replicate=sepal/audiogen@<pinned-version>` | none |
+| `--sfx-provider <provider=model>` | Select the dedicated authored sound-effect target; accepts `elevenlabs=eleven_text_to_sound_v2`, `replicate=sepal/audiogen@<pinned-version>`, or `stability=stable-audio-3` | none |
 | `--sfx-license-use <classification>` | Declare intended use for license-restricted SFX targets: `noncommercial`, `commercial`, or `unknown`; required for AudioGen and never inferred from model selection | none |
 | `--sfx-concurrency <count>` | Bound parallel sound-effect requests independently from dialogue generation | `2` |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted dialogue and sound-effect caps from one request per provider/account lane (`ramp`) or start at the configured caps (`immediate`) | `ramp` |

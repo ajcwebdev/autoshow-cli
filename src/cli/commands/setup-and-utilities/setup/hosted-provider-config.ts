@@ -87,8 +87,13 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'FAL_API_KEY',
-    label: 'fal.ai image/video',
+    label: 'fal.ai image/video/TTS',
     configPaths: ['defaults.post.image.falImage', 'defaults.post.video.falVideo']
+  },
+  {
+    envVar: 'STABILITY_API_KEY',
+    label: 'Stability AI sound effects',
+    configPaths: []
   },
   {
     envVar: 'RECRAFT_API_TOKEN',

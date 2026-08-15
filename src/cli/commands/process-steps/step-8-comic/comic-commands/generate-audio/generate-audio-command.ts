@@ -129,6 +129,7 @@ const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   inworldTtsVoice: undefined,
   deepinfraTtsVoice: undefined,
   replicateTtsVoice: undefined,
+  falTtsVoice: undefined,
 })
 
 export const buildTargetExecution = (input: {

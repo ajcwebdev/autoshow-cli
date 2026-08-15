@@ -22,7 +22,8 @@ const HOSTED_TTS_CREDENTIALS = {
   fish: { env: 'FISH_API_KEY', label: 'Fish Audio TTS' },
   inworld: { env: 'INWORLD_API_KEY', label: 'Inworld AI TTS' },
   deepinfra: { env: 'DEEPINFRA_API_KEY', label: 'DeepInfra TTS' },
-  replicate: { env: 'REPLICATE_API_TOKEN', label: 'Replicate TTS' }
+  replicate: { env: 'REPLICATE_API_TOKEN', label: 'Replicate TTS' },
+  fal: { env: 'FAL_API_KEY', label: 'fal.ai TTS' }
 } as const satisfies Record<Exclude<TtsProvider, 'kitten'>, { env: string, label: string }>
 
 export type TtsExecutionReadinessObservation = Readonly<{

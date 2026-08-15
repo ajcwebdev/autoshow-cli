@@ -20,6 +20,7 @@ export const TTS_CHUNK_CHARACTER_LIMITS = {
   inworld: 2000,
   deepinfra: 2000,
   replicate: 2000,
+  fal: 2000,
 } as const satisfies Record<TtsProvider, number | undefined>
 
 export const resolveTtsChunkCharacterLimit = (

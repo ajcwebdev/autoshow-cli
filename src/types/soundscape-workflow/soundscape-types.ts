@@ -122,7 +122,7 @@ export type ResolvedSoundscapeAnchorResolution = {
   errorBoundMs: number
 }
 
-export type SoundEffectProvider = 'elevenlabs' | 'replicate'
+export type SoundEffectProvider = 'elevenlabs' | 'replicate' | 'stability'
 export type SoundEffectLicenseUseClassification = 'noncommercial' | 'commercial' | 'unknown'
 export type SoundEffectDispatchAvailability = 'available' | 'unavailable' | 'retired'
 export type SoundEffectCommunityLifecycle = 'official' | 'community-unofficial'

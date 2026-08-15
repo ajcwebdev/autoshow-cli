@@ -13,6 +13,7 @@ import {
   serializeReplicateAudioGenRequest,
   validateReplicateAudioGenTask,
 } from './replicate-audiogen-adapter'
+import { serializeStabilitySoundEffectRequest, validateStabilitySoundEffectTask } from './stability-stable-audio-adapter'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { inspectSoundscapeAudio } from './soundscape-audio'
 import { routeSoundscapeSynthesisTasks } from './soundscape-routing'
@@ -177,10 +178,13 @@ const writeAdmissionTerminal = async (rootDir: string, plan: SoundEffectRenderPl
 const serializeSoundEffectRequest = (task: SoundEffectRenderTask, target: SoundEffectTarget) =>
   target.provider === 'replicate'
     ? serializeReplicateAudioGenRequest(task, target)
-    : serializeElevenLabsSoundEffectRequest(task, target)
+    : target.provider === 'stability'
+      ? serializeStabilitySoundEffectRequest(task, target)
+      : serializeElevenLabsSoundEffectRequest(task, target)
 
 const validateSoundEffectTask = (task: SoundEffectRenderTask, target: SoundEffectTarget): void => {
   if (target.provider === 'replicate') validateReplicateAudioGenTask(task, target)
+  else if (target.provider === 'stability') validateStabilitySoundEffectTask(task, target)
   else validateElevenLabsSoundEffectTask(task, target)
 }
 

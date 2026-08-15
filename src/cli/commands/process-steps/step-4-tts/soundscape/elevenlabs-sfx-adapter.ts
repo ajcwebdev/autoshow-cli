@@ -2,6 +2,7 @@ import type { SoundEffectCapabilityFixture, SoundEffectGenerationResponse, Sound
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { resolveReplicateAudioGenTarget } from './replicate-audiogen-adapter'
+import { resolveStabilitySoundEffectTarget } from './stability-stable-audio-adapter'
 import { SoundEffectProviderError } from './sound-effect-errors'
 
 export { SoundEffectProviderError } from './sound-effect-errors'
@@ -74,7 +75,8 @@ export const resolveSoundEffectTarget = (selector: string, options: { outputForm
   const provider = match[1].toLowerCase()
   const model = match[2]
   if (provider === 'replicate') return resolveReplicateAudioGenTarget(model, options)
-  if (provider !== 'elevenlabs') throw CLIUsageError(`Unsupported sound-effect provider ${provider}; expected elevenlabs or replicate.`)
+  if (provider === 'stability') return resolveStabilitySoundEffectTarget(model, options)
+  if (provider !== 'elevenlabs') throw CLIUsageError(`Unsupported sound-effect provider ${provider}; expected elevenlabs, replicate, or stability.`)
   if (model !== ELEVENLABS_SFX_CAPABILITY_FIXTURE.model) throw CLIUsageError(`Unsupported ElevenLabs sound-effect model ${model}; expected ${ELEVENLABS_SFX_CAPABILITY_FIXTURE.model}.`)
   const outputFormat = options.outputFormat ?? 'mp3_44100_128'
   if (!ELEVENLABS_SFX_CAPABILITY_FIXTURE.constraints.outputFormats.includes(outputFormat)) throw CLIUsageError(`Unsupported ElevenLabs sound-effect output format ${outputFormat}.`)

@@ -27,6 +27,7 @@ const TTS_GENERIC_OPTION_TARGETS = {
       inworld: 'inworld-voice',
       deepinfra: 'deepinfra-voice',
       replicate: 'replicate-voice',
+      fal: 'fal-voice',
       minimax: 'minimax-tts-voice',
       elevenlabs: 'elevenlabs-voice'
     }
@@ -88,7 +89,8 @@ const TTS_GENERIC_OPTION_TARGETS = {
   'tts-instructions': {
     voiceIdentity: false,
     targets: {
-      openai: 'openai-tts-instructions'
+      openai: 'openai-tts-instructions',
+      fal: 'fal-tts-instructions'
     }
   },
   'tts-output-format': {

@@ -24,6 +24,7 @@ import {
   SUPPORTED_INWORLD_TTS_MODELS,
   SUPPORTED_DEEPINFRA_TTS_MODELS,
   SUPPORTED_REPLICATE_TTS_MODELS,
+  SUPPORTED_FAL_TTS_MODELS,
   SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_GEMINI_TTS_MODELS,
@@ -85,6 +86,7 @@ export type FishTtsModel = typeof SUPPORTED_FISH_TTS_MODELS[number]
 export type InworldTtsModel = typeof SUPPORTED_INWORLD_TTS_MODELS[number]
 export type DeepinfraTtsModel = typeof SUPPORTED_DEEPINFRA_TTS_MODELS[number]
 export type ReplicateTtsModel = typeof SUPPORTED_REPLICATE_TTS_MODELS[number]
+export type FalTtsModel = typeof SUPPORTED_FAL_TTS_MODELS[number]
 export type ElevenlabsMusicModel = typeof SUPPORTED_ELEVENLABS_MUSIC_MODELS[number]
 export type MinimaxMusicModel = typeof SUPPORTED_MINIMAX_MUSIC_MODELS[number]
 export type GeminiMusicModel = typeof SUPPORTED_GEMINI_MUSIC_MODELS[number]

@@ -720,16 +720,18 @@ The following providers remain usable through the dialogue subsystem but are exc
 
 To prevent duplicate integration effort, fal.ai-hosted models already covered by primary or partner endpoints in committed phases—ElevenLabs, MiniMax, Inworld, Resemble Chatterbox and Qwen3-TTS via DeepInfra, and Dia via Replicate—were omitted from the fal.ai evaluation. The remaining candidates stay deferred until a phase commits them with exact endpoint, schema, pricing, and lifecycle evidence.
 
-| Candidate | Disposition |
-|---|---|
-| [ByteDance Seed Speech v2](https://fal.ai/models/bytedance/seed-speech/tts/v2) (fal.ai) | Large-scale speech model for expressive synthesis, stylized delivery, and lip-sync alignment; candidate for fal.ai speech adapter expansion. |
-| [Maya Research Maya1](https://fal.ai/models/maya) (fal.ai) | Expressive voice generation for human emotion capture and prompt-based voice design in batch and streaming modes. |
-| [Zyphra Zonos2](https://fal.ai/models/zonos2) (fal.ai) | Zero-shot voice cloning from short samples across multiple languages with natural prosody. |
-| [Microsoft VibeVoice 7B](https://fal.ai/models/vibevoice) (fal.ai) | Multi-voice long-form speech synthesis for multi-speaker script and dialogue rendering. |
-| [Async TTS Pro](https://fal.ai/models/async/tts-pro/v1.0) (fal.ai) | Text-based control over pauses, timing, and emphasis using curated voice IDs. |
-| [hexgrad Kokoro-82M on DeepInfra](https://deepinfra.com/hexgrad/Kokoro-82M) | Apache-licensed 82M open-weight model hosted at $0.62/1M characters; cost-efficient candidate for low-cost dialogue baselines beyond the pinned Replicate deployment in Phase 5. |
-| [Stability AI Stable Audio 3](https://platform.stability.ai/docs/api-reference) | Documents text-to-audio and audio-to-audio generation at 44.1 kHz stereo with requested durations up to 380 seconds, but its distinct pricing, polling, moderation, and lifecycle contracts are outside the committed phases. An earlier description of this API as "uncapped" was incorrect. |
-| LOVO Genny | No retained official technical API reference established a public standalone SFX endpoint with a complete request, pricing, and access contract; product-level sound-effects functionality is insufficient for an adapter commitment. |
+Registered fal.ai TTS selectors are `fal=fal-ai/bytedance/seed-speech/tts/v2`, `fal=fal-ai/maya`, and `fal=async/tts-pro/v1.0`. Stability Stable Audio 3 is registered as `--sfx-provider stability=stable-audio-3`. The remaining candidates stay deferred.
+
+| Candidate | Status | Stock voices | Expansive catalog | Design | Instant clone | Native multi-speaker | Natural-language prompts | Specific selectors |
+|---|---|---|---|---|---|---|---|---|
+| [ByteDance Seed Speech v2](https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2) (fal.ai) | Registered TTS | ✅ 41 named presets | ❌ Not exposed | ❌ Not exposed | ❌ Not exposed | ❌ No; single-voice request | ✅ `voice_instruction` delivery steering | ⚠️ Speed, volume, and pitch |
+| [Maya Research Maya1](https://fal.ai/models/fal-ai/maya) (fal.ai) | Registered TTS | ❌ Not exposed | ❌ Not exposed | ✅ Per-request voice-description prompt | ❌ Not exposed | ❌ No; single-voice request | ✅ Voice-description prompt | ✅ In-text emotion tags such as `<excited>` and `<laugh>` |
+| [Async TTS Pro](https://fal.ai/models/async/tts-pro/v1.0) (fal.ai) | Registered TTS | ⚠️ Curated Async voice-library IDs | ❌ Not exposed | ❌ Not exposed | ❌ Not exposed | ❌ No; single-voice request | ⚠️ In-text pause, emphasis, and timing markup | ❌ Not exposed |
+| [Stability AI Stable Audio 3](https://platform.stability.ai/docs/api-reference) | Registered SFX | ❌ Not a speech catalog | ❌ Not exposed | ❌ Not exposed | ❌ Not exposed | ❌ Not speech synthesis | ❌ Not exposed | ❌ Not exposed |
+| [Zyphra Zonos2](https://fal.ai/models/fal-ai/zonos2) (fal.ai) | Deferred | ❌ Not exposed | ❌ Not exposed | ❌ Not exposed | ✅ Short reference-audio clone | ❌ No; single-voice request | ❌ Not exposed | ❌ Not exposed |
+| [Microsoft VibeVoice 7B](https://fal.ai/models/fal-ai/vibevoice/7b) (fal.ai) | Deferred | ⚠️ Named presets such as Frank and Carter | ❌ Not exposed | ❌ Not exposed | ⚠️ Optional per-speaker reference audio; not a durable clone port | ✅ Native multi-speaker scripts, up to four speakers | ❌ Not exposed | ❌ Not exposed |
+| [hexgrad Kokoro-82M on DeepInfra](https://deepinfra.com/hexgrad/Kokoro-82M) | Deferred | ✅ 54 upstream stock voices | ❌ Not exposed | ❌ Not exposed | ❌ Not exposed | ❌ No; segmented rendering | ❌ Not exposed | ❌ Not exposed |
+| LOVO Genny | Deferred | ❌ No retained public API | ❌ No retained public API | ❌ No retained public API | ❌ No retained public API | ❌ No retained public API | ❌ No retained public API | ❌ No retained public API |
 
 ### Superseded report claims
 

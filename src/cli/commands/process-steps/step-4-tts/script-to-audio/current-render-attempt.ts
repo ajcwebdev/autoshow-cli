@@ -8,6 +8,7 @@ import type {
   CanonicalAudioProviderProjection,
   CanonicalBatchProgress,
   CanonicalDialogueTurn,
+  FalTtsModel,
   ComicDialoguePlan,
   ComicTtsRenderContext,
   GenericTtsDialoguePlan,
@@ -69,6 +70,7 @@ import {
 } from '../tts-services/fish/fish-tts-request'
 import { prepareDeepinfraChatterboxText } from '../tts-services/tts-deepinfra/deepinfra-text-preparation'
 import { DEEPINFRA_TTS_SERIALIZER_VERSION, resolveDeepinfraTtsRequestControls, resolveDeepinfraTtsVoiceField } from '../tts-services/tts-deepinfra/deepinfra-tts-request'
+import { FAL_TTS_SERIALIZER_VERSION, resolveFalTtsVoiceField } from '../tts-services/tts-fal/fal-tts-request'
 import { INWORLD_TTS_SERIALIZER_VERSION } from '../tts-services/inworld/inworld-tts-request'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import {
@@ -129,6 +131,11 @@ const CAPABILITY_SOURCE_REFS: Record<TtsTarget['service'], string[]> = {
   inworld: ['https://docs.inworld.ai/'],
   deepinfra: ['https://docs.deepinfra.com/apis/text-to-speech'],
   replicate: ['https://replicate.com/docs'],
+  fal: [
+    'https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2',
+    'https://fal.ai/models/fal-ai/maya',
+    'https://fal.ai/models/async/tts-pro/v1.0',
+  ],
   kitten: ['https://github.com/KittenML/KittenTTS']
 }
 
@@ -427,6 +434,8 @@ const resolveEffectiveInvocationControls = (
       return resolveTtsTargetInvocationControls('deepinfra', invocation, {})
     case 'replicate':
       return resolveTtsTargetInvocationControls('replicate', invocation, {})
+    case 'fal':
+      return resolveTtsTargetInvocationControls('fal', invocation, { voiceInstruction: selection.falInstructions })
   }
 }
 
@@ -474,6 +483,8 @@ const serializerContract = (
       return { endpointKind: 'inference', serializerVersion: DEEPINFRA_TTS_SERIALIZER_VERSION, controls: resolveDeepinfraTtsRequestControls(target.model, stringValue('promptInstructions')) }
     case 'replicate':
       return { endpointKind: 'predictions', serializerVersion: 'replicate.kokoro.v1', controls: { format: 'wav', ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
+    case 'fal':
+      return { endpointKind: 'queue', serializerVersion: FAL_TTS_SERIALIZER_VERSION, controls: { format: 'wav', ...(stringValue('voiceInstruction') ? { voiceInstruction: stringValue('voiceInstruction') } : {}) } }
     case 'elevenlabs': {
       if (strategy === 'native-dialogue') return {
         endpointKind: 'text-to-dialogue-with-timestamps',
@@ -548,6 +559,7 @@ const serializerVoiceField = (
     case 'inworld': return 'voiceId'
     case 'deepinfra': return resolveDeepinfraTtsVoiceField(target.model)
     case 'replicate': return 'input.voice'
+    case 'fal': return resolveFalTtsVoiceField(target.model as FalTtsModel)
   }
 }
 

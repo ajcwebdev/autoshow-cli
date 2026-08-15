@@ -81,6 +81,10 @@ export type TtsRuntimeOptions = {
   replicateTtsModels: string[] | undefined
   replicateTtsModel: string | undefined
   replicateTtsVoice: string | undefined
+  falTtsModels: string[] | undefined
+  falTtsModel: string | undefined
+  falTtsVoice: string | undefined
+  falTtsInstructions: string | undefined
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions

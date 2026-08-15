@@ -17,6 +17,7 @@ export type TtsTargetSelection = {
   inworldModels: string[]
   deepinfraModels: string[]
   replicateModels: string[]
+  falModels: string[]
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
   multiSpeakerRequested: boolean
   minimaxVoiceId: string | undefined
@@ -58,6 +59,8 @@ export type TtsTargetSelection = {
   inworldVoiceId: string | undefined
   deepinfraVoiceId: string | undefined
   replicateVoiceId: string | undefined
+  falVoiceId: string | undefined
+  falInstructions: string | undefined
   groqVoiceId: string | undefined
   grokVoiceId: string | undefined
   grokLanguage: string | undefined

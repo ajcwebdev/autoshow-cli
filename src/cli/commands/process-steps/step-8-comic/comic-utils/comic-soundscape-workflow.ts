@@ -7,6 +7,7 @@ import { CLIUsageError } from '~/utils/error-handler'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '../../step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import { assertAudioGenDispatchEligible, assertAudioGenLicenseEligible, createReplicateAudioGenAdapter, createSoundEffectLicenseUse } from '../../step-4-tts/soundscape/replicate-audiogen-adapter'
+import { createStabilitySoundEffectAdapter } from '../../step-4-tts/soundscape/stability-stable-audio-adapter'
 import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, type SoundEffectAdapter, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
 import { mixSoundscape } from '../../step-4-tts/soundscape/soundscape-mixer'
 import { resolveSoundscapeTimeline } from '../../step-4-tts/soundscape/soundscape-timeline'
@@ -141,6 +142,8 @@ export const assertComicSoundscapeExecutionReady = async (rootDir: string, rende
       assertAudioGenDispatchEligible(renderPlan.target.capabilityFixture)
       assertAudioGenLicenseEligible(renderPlan.licenseUse, renderPlan.target.capabilityFixture)
       requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation')
+    } else if (renderPlan.target.provider === 'stability') {
+      requireApiKey('STABILITY_API_KEY', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation')
     } else {
       requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation')
     }
@@ -178,7 +181,9 @@ export const runComicSoundscape = async (input: {
     const liveAdapter = input.adapter ?? (estimate.unresolvedTaskCount > 0
       ? (input.renderPlan.target.provider === 'replicate'
           ? createReplicateAudioGenAdapter({ apiToken: requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation') })
-          : createElevenLabsSoundEffectAdapter({ apiKey: requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation') }))
+          : input.renderPlan.target.provider === 'stability'
+            ? createStabilitySoundEffectAdapter({ apiKey: requireApiKey('STABILITY_API_KEY', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation') })
+            : createElevenLabsSoundEffectAdapter({ apiKey: requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation') }))
       : { generate: async (): Promise<never> => { throw CLIUsageError('Verified sound-effect resume planning unexpectedly attempted provider dispatch.') } })
     const executed = await executeSoundEffectRenderPlan({ rootDir: input.rootDir, plan: input.renderPlan, adapter: liveAdapter, concurrency: input.concurrency, cancellation: input.cancellation, hostedConcurrencyCoordinator: input.hostedConcurrencyCoordinator })
     renderResult = executed.result

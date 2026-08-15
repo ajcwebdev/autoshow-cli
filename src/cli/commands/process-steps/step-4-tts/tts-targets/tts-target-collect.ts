@@ -6,6 +6,7 @@ import { collectFishTtsTargets } from '../tts-services/fish/fish-tts-targets'
 import { collectInworldTtsTargets } from '../tts-services/inworld/inworld-tts-targets'
 import { collectDeepinfraTtsTargets } from '../tts-services/tts-deepinfra/deepinfra-tts-targets'
 import { collectReplicateTtsTargets } from '../tts-services/tts-replicate/replicate-tts-targets'
+import { collectFalTtsTargets } from '../tts-services/tts-fal/fal-tts-targets'
 import { collectGeminiTtsTargets } from '../tts-services/tts-gemini/gemini-tts-targets'
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
 import { collectGroqTtsTargets } from '../tts-services/tts-groq/groq-tts-targets'
@@ -64,7 +65,8 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
     ...collectFishTtsTargets(selection),
     ...collectInworldTtsTargets(selection),
     ...collectDeepinfraTtsTargets(selection),
-    ...collectReplicateTtsTargets(selection)
+    ...collectReplicateTtsTargets(selection),
+    ...collectFalTtsTargets(selection)
   ]
 
   const targets = collected.map((target): TtsTarget => {

@@ -284,8 +284,8 @@ bun as links --help
 - `download`: [download](./commands/process-steps/step-1-download/download-file.md) — downloads or stages media, documents, articles, and X Space audio before extraction.
 - `extract`: [extract](./commands/process-steps/step-2-extract/01-extract.md) — routes media to STT, documents/images to OCR, article HTML to URL extraction, and X/Twitter Space or post links to the X API.
 - `write`: [command](./commands/process-steps/step-3-write/write-text.md) | [setup](./commands/process-steps/step-3-write/write-text.md#setup)
-- `tts`: [command](./commands/process-steps/step-4-tts/text-to-speech.md) | [setup](./commands/process-steps/step-4-tts/text-to-speech.md#setup)
-- `voice`: [voice](./commands/process-steps/step-4-tts/voice-management.md) — manages durable provider voice registrations separately from speech synthesis.
+- `tts`: [command](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md) | [setup](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md#setup)
+- `voice`: [voice](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md#voice) — manages durable provider voice registrations separately from speech synthesis.
 - `image`: [command](./commands/process-steps/step-5-image/text-to-image.md) | [setup](./commands/process-steps/step-5-image/text-to-image.md#setup)
 - `video`: [video](./commands/process-steps/step-6-video/text-to-video-services.md)
 - `music`: [music](./commands/process-steps/step-7-music/text-to-music-services.md)

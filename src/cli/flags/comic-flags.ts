@@ -101,7 +101,7 @@ const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
 ])
 
 const comicSoundscapeSelectionFlags = {
-  'sfx-provider': strFlag(colorizeHelpDescription('Dedicated sound-effect target as provider=model; accepts elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen@<pinned-version> and has no hosted default')),
+  'sfx-provider': strFlag(colorizeHelpDescription('Dedicated sound-effect target as provider=model; accepts elevenlabs=eleven_text_to_sound_v2, replicate=sepal/audiogen@<pinned-version>, or stability=stable-audio-3 and has no hosted default')),
   'sfx-license-use': strFlag(colorizeHelpDescription('Required intended-use declaration for license-restricted SFX targets: noncommercial|commercial|unknown; never inferred from model selection')),
   'sfx-concurrency': strFlag(colorizeHelpDescription('Bounded parallel sound-effect requests (default: 2)')),
   'soundscape-timing-policy': strFlag(colorizeHelpDescription('Inline cue timing: strict|proportional; proportional records its estimate and error bound (default: strict)')),

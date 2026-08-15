@@ -38,7 +38,7 @@ import { reconcileFishModelRegistration } from './fish-voice-reconciliation'
 import { FISH_VOICE_DESIGN_MODEL } from '../tts-services/fish/fish-tts-request'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
-const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate'] as const
+const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'] as const
 const CONSENT_ACTIONS: VoiceConsentAction[] = ['upload', 'new-synthesis', 'cache-reuse', 'resume', 'export', 'retention', 'deletion']
 const VOICE_ORIGINS = ['provider-stock', 'designed', 'remixed', 'instant-clone', 'professional-clone', 'imported-custom', 'saved-reference'] as const
 const PROFILE_DEFAULT = 'default'

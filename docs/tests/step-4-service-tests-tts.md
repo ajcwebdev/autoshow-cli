@@ -38,4 +38,4 @@ The Kitten pipeline mapping is selected via `bun t test/test-cases/e2e/service/s
 
 - [Service Tests](service-tests.md)
 - [Local Tests](local-tests.md)
-- [TTS Command](../commands/process-steps/step-4-tts/text-to-speech.md)
+- [TTS Command](../commands/process-steps/step-4-tts/text-to-speech-and-voice.md)

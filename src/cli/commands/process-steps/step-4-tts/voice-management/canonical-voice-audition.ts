@@ -88,6 +88,7 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
     case 'deepinfra': return { deepinfraTtsModels: [model], deepinfraTtsVoice: voice }
     case 'replicate': return { replicateTtsModels: [model], replicateTtsVoice: voice }
+    case 'fal': return { falTtsModels: [model], falTtsVoice: voice }
   }
 }
 

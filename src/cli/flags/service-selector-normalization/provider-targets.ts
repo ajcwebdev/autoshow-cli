@@ -14,7 +14,8 @@ export const STANDALONE_TTS_PROVIDER_TARGETS = {
   fish: 'fish-tts',
   inworld: 'inworld-tts',
   deepinfra: 'deepinfra-tts',
-  replicate: 'replicate-tts'
+  replicate: 'replicate-tts',
+  fal: 'fal-tts'
 } as const satisfies Record<string, string>
 
 export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
@@ -116,7 +117,8 @@ export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
     fish: { modelsKey: 'fishTtsModels', modelKey: 'fishTtsModel' },
     inworld: { modelsKey: 'inworldTtsModels', modelKey: 'inworldTtsModel' },
     deepinfra: { modelsKey: 'deepinfraTtsModels', modelKey: 'deepinfraTtsModel' },
-    replicate: { modelsKey: 'replicateTtsModels', modelKey: 'replicateTtsModel' }
+    replicate: { modelsKey: 'replicateTtsModels', modelKey: 'replicateTtsModel' },
+    fal: { modelsKey: 'falTtsModels', modelKey: 'falTtsModel' }
   }
 )
 

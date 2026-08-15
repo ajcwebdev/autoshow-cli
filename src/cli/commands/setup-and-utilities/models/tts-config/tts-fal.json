@@ -1,0 +1,47 @@
+{
+  "fal": {
+    "description": "fal.ai hosted text-to-speech endpoints",
+    "type": "api",
+    "models": {
+      "fal-ai/bytedance/seed-speech/tts/v2": {
+        "description": "ByteDance Seed Speech v2 multilingual stock-voice TTS on fal.ai",
+        "pricingSourceUrl": "https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "fal.ai Seed Speech pay-as-you-go TTS pricing",
+        "pricingNotes": "Seed Speech v2 is billed at $0.03 / 1K characters.",
+        "costPer1kCharsCents": 3,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "fal-ai/maya": {
+        "description": "Maya Research Maya1 prompt-designed expressive TTS on fal.ai",
+        "pricingSourceUrl": "https://fal.ai/models/fal-ai/maya",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "fal.ai Maya1 duration pricing",
+        "pricingNotes": "Maya1 is billed at $0.002 per generated audio second. AutoShow estimates character cost from a 2.5s-per-1K-character timing model.",
+        "costPer1kCharsCents": 0.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "async/tts-pro/v1.0": {
+        "description": "Async TTS Pro curated-voice synthesis on fal.ai",
+        "pricingSourceUrl": "https://fal.ai/models/async/tts-pro/v1.0",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "fal.ai Async TTS Pro pay-as-you-go TTS pricing",
+        "pricingNotes": "Async TTS Pro is billed at $0.01 / 1K characters.",
+        "costPer1kCharsCents": 1,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      }
+    }
+  }
+}

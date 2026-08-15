@@ -309,4 +309,4 @@ Verification evidence for the hosted ramp update is recorded on 2026-08-14 using
 - STT batch coordinator: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-coordinator.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-policy.ts`
 - STT splitting: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts`
 - Retry policies: `src/utils/retries.ts`
-- Command docs: `docs/commands/process-steps/step-4-tts/text-to-speech.md`, `docs/commands/process-steps/step-2-extract/02-extract-stt.md`, `docs/commands/process-steps/step-2-extract/03-extract-ocr.md`
+- Command docs: `docs/commands/process-steps/step-4-tts/text-to-speech-and-voice.md`, `docs/commands/process-steps/step-2-extract/02-extract-stt.md`, `docs/commands/process-steps/step-2-extract/03-extract-ocr.md`

@@ -109,4 +109,4 @@ Notes:
 - [Setup Service Tests](step-0-service-tests-setup.md)
 - [extract](../commands/process-steps/step-2-extract/01-extract.md)
 - [Write Command](../commands/process-steps/step-3-write/write-text.md)
-- [TTS Command](../commands/process-steps/step-4-tts/text-to-speech.md)
+- [TTS Command](../commands/process-steps/step-4-tts/text-to-speech-and-voice.md)
