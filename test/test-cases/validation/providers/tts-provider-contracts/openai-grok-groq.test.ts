@@ -131,7 +131,8 @@ describe('TTS provider service contracts', () => {
       })
 
       const result = await runGrokTts('Grok timeout retry synthesis.', dir, {
-        model: 'grok-tts'
+        model: 'grok-tts',
+        allowAmbiguousRedispatch: true
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)

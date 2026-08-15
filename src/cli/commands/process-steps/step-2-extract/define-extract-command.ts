@@ -29,7 +29,7 @@ const transcriptVideoFlags = {
     type: String
   },
   font: {
-    description: 'Transcript video: font family used for rendered transcript text (default: DejaVu Sans)',
+    description: 'Transcript video: font family used for rendered transcript text',
     type: String,
     default: 'DejaVu Sans'
   },

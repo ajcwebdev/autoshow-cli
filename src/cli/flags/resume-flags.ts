@@ -67,15 +67,15 @@ export const resumeFlags = {
   ...withHelpGroup({
     ...genericTtsOptionFlags,
     ...pickFlags(ttsFlags, dialogueTtsCommandOptionNames)
-  }, 'step-4-tts'),
+  }, 'tts-options'),
   ...withHelpGroup(pickFlags(imageGenFlags, [
     ...imageGenerationOptionNames,
     ...imageInputOptionNames,
     ...imageProviderSpecificOptionNames
-  ]), 'step-5-image'),
+  ]), 'image-options'),
   ...withHelpGroup(pickFlags(videoGenFlags, [
     ...videoGenerationOptionNames,
     ...videoInputOptionNames
-  ]), 'step-6-video'),
-  ...withHelpGroup(musicGenFlags, 'step-7-music')
+  ]), 'video-options'),
+  ...withHelpGroup(musicGenFlags, 'hosted-music')
 } as const satisfies CliFlagsDefinition

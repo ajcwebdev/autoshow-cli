@@ -2,11 +2,11 @@
 
 ## Status
 
-- **Decision Status:** Accepted
+- **Decision Status:** Superseded
 - **Date Created:** 2026-07-16
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
-- **Supersession:** Owns the combined-report architecture, the quality-cost tier contract, paid-approval gates, calibration evidence, provider-refresh benchmark chronology, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md).
+- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md).
 
 ## Context
 

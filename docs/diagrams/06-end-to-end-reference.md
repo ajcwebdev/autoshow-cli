@@ -186,4 +186,4 @@ Runtime configuration is **flag-driven**: the shipped CLI reads no `AUTOSHOW_*` 
 | URL backend | `--url-provider` flag. |
 | Logging / color | `--log-level`, `--log-format` (plus `--verbose` / `--quiet` / `--json`); `NO_COLOR` / `FORCE_COLOR` honored, with `--color` / `--no-color` taking precedence. |
 | Timeouts | Fixed code constants (no env overrides). |
-| yt-dlp auth/cookies | `--cookies` and `--cookies-from-browser` flags. |
+| yt-dlp auth/cookies | `bun autoshow config --cookies` and `bun autoshow config --cookies-from-browser`; applied centrally after config load. |

@@ -1,40 +1,10 @@
 import { describe, expect, test } from 'bun:test'
+import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from '~/cli/command-definitions'
 import { HELP_FLAG_GROUPS } from '~/cli/native/help-groups'
-import { benchmarkCommand } from '~/cli/commands/setup-and-utilities/benchmark/define-benchmark-command'
-import { comicCommand } from '~/cli/commands/process-steps/step-8-comic/define-comic-command'
-import { configCommand } from '~/cli/commands/setup-and-utilities/config/define-config-command'
-import { downloadCommand } from '~/cli/commands/process-steps/step-1-download/define-download-command'
-import { extractCommand } from '~/cli/commands/process-steps/step-2-extract/define-extract-command'
-import { imageCommand } from '~/cli/commands/process-steps/step-5-image/define-image-command'
-import { linksCommand } from '~/cli/commands/setup-and-utilities/links/define-links-command'
-import { metadataCommand } from '~/cli/commands/process-steps/step-0-metadata/define-metadata-command'
-import { musicCommand } from '~/cli/commands/process-steps/step-7-music/define-music-command'
-import { resumeCommand } from '~/cli/commands/setup-and-utilities/resume/define-resume-command'
-import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-setup-command'
-import { ttsCommand } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
-import { videoCommand } from '~/cli/commands/process-steps/step-6-video/define-video-command'
-import { writeCommand } from '~/cli/commands/process-steps/step-3-write/define-write-command'
-import type { CliCommandDefinition, CliFlagsDefinition } from '~/types'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
+import type { CliFlagsDefinition } from '~/types'
 
-// Mirrors `COMMAND_DEFINITIONS` in `create-cli.ts`, which cannot be imported
-// here because that module runs the CLI on load. Walk the registered command tree
-// so first-class subcommand flags cannot drift out of this guard.
-const COMMANDS: readonly CliCommandDefinition[] = [
-  configCommand,
-  setupCommand,
-  linksCommand,
-  metadataCommand,
-  downloadCommand,
-  extractCommand,
-  resumeCommand,
-  writeCommand,
-  ttsCommand,
-  imageCommand,
-  videoCommand,
-  musicCommand,
-  comicCommand,
-  benchmarkCommand
-]
+const COMMANDS = COMMAND_DEFINITIONS
 
 const GROUPED_FLAG_SETS: (CliFlagsDefinition | undefined)[] = COMMANDS.flatMap((command) => [
   command.flags,
@@ -85,4 +55,40 @@ describe('help flag group catalog contracts', () => {
 
     expect(keys.length).toBe(new Set(keys).size)
   })
+
+  test('every registered command has a help group and none is benchmark', () => {
+    expect(COMMAND_DEFINITIONS.map((command) => command.name).sort()).toEqual(
+      Object.keys(HELP_COMMAND_GROUP_BY_NAME).filter((name) => name !== 'version' && name !== 'help').sort()
+    )
+    expect(COMMAND_DEFINITIONS.map((command) => command.name)).not.toContain('benchmark')
+    expect(HELP_COMMAND_GROUP_BY_NAME).not.toHaveProperty('benchmark')
+  })
+
+  test('flag descriptions do not restate a concrete metadata default', () => {
+    const restated: string[] = []
+    const flagSets: (CliFlagsDefinition | undefined)[] = [...GROUPED_FLAG_SETS, GLOBAL_FLAG_DEFINITIONS]
+    for (const flags of flagSets) {
+      if (!isRecord(flags)) continue
+      for (const [name, definition] of Object.entries(flags)) {
+        if (!isRecord(definition) || !('default' in definition)) continue
+        const description = definition['description']
+        if (typeof description !== 'string') continue
+        if (descriptionRestatesDefault(description, definition['default'])) {
+          restated.push(`--${name}`)
+        }
+      }
+    }
+
+    expect(restated).toEqual([])
+  })
 })
+
+const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/g
+
+const descriptionRestatesDefault = (description: string, defaultValue: unknown): boolean => {
+  if (typeof defaultValue !== 'string' && typeof defaultValue !== 'number' && typeof defaultValue !== 'boolean') {
+    return false
+  }
+  const escaped = String(defaultValue).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`\\(default:?\\s*["']?${escaped}["']?(?:\\)|\\s*[;,])`, 'i').test(description.replace(ANSI_ESCAPE_PATTERN, ''))
+}

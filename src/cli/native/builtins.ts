@@ -5,7 +5,7 @@ const noop = (): void => {}
 const NATIVE_BUILTIN_COMMANDS = [
   {
     name: 'version',
-    description: 'Prints current version',
+    description: 'Print current version',
     flags: {},
     help: { group: 'core' },
     handler: noop

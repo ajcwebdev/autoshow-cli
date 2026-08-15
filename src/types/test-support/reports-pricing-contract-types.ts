@@ -60,17 +60,6 @@ export type ArtifactReport = {
   tiering: Record<string, ArtifactTiering>
 }
 
-export type MediaBenchmarkRequestBody = {
-  model?: string
-  input?: Array<{
-    role?: string
-    content?: Array<Record<string, unknown>>
-  }>
-  text?: {
-    format?: Record<string, unknown>
-  }
-}
-
 export type RegistryModelRecord = {
   step: keyof ModelRegistry
   provider: string

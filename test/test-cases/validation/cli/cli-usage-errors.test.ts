@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { STABLE_EXAMPLE_AUDIO_URL, runCommand } from '../../../test-utils/test-helpers'
-import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
+import { VOICE_ACTIONS } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
 
 const tempDirs: string[] = []
 const repoFixtureFiles: string[] = []
@@ -92,6 +92,11 @@ test('removed setup command is not registered', async () => {
   await expectUsageExit([removedSetupCommand], `Unknown command "${removedSetupCommand}"`)
 })
 
+test('removed benchmark command is not registered', async () => {
+  await expectUsageExit(['benchmark'], 'Unknown command "benchmark"')
+  await expectUsageExit(['benchmark', '--help'], 'Unknown command "benchmark"')
+})
+
 test('image command rejects removed imagen-count flag', async () => {
   await expectUsageExit(
     ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--imagen-count', '2', '--price'],
@@ -140,164 +145,6 @@ test('extract and write reject primary OCR selection in pool mode before dispatc
 
 test('global cache-dir flag is removed', async () => {
   await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--cache-dir=/tmp/autoshow-cache'], 'Unexpected flag: --cache-dir')
-})
-
-test('benchmark --tts rejects missing TTS run directory', async () => {
-  const root = await makeTempRoot('autoshow-tts-benchmark-missing-')
-
-  await expectUsageExit(
-    ['benchmark', join(root, 'missing-run'), '--tts'],
-    'TTS run directory not found'
-  )
-})
-
-test('benchmark --tts rejects canonical manifests for another command', async () => {
-  const runDir = await makeTempRoot('autoshow-tts-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--tts'],
-    'Expected a single TTS manifest.json'
-  )
-})
-
-test('benchmark --tts rejects missing source text without override', async () => {
-  const runDir = await makeTempRoot('autoshow-tts-benchmark-text-')
-  await writeLegacyTtsManifestFixture(runDir, {
-    tts: [{
-      ttsService: 'kitten',
-      ttsModel: 'kitten-tts-nano',
-      speaker: 'Jasper',
-      processingTime: 100,
-      audioFileName: 'speech.wav',
-      audioFileSize: 10,
-      chunkCount: 1
-    }]
-  })
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--tts'],
-    'TTS benchmark source text is missing'
-  )
-})
-
-test('benchmark --image rejects missing image run directory', async () => {
-  const root = await makeTempRoot('autoshow-image-benchmark-missing-')
-
-  await expectUsageExit(
-    ['benchmark', join(root, 'missing-run'), '--image'],
-    'Image run directory not found'
-  )
-})
-
-test('benchmark --image rejects canonical manifests for another command', async () => {
-  const runDir = await makeTempRoot('autoshow-image-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--image'],
-    'Image run directory must contain a single image manifest.json.'
-  )
-})
-
-test('benchmark --image rejects invalid image run metadata', async () => {
-  const runDir = await makeTempRoot('autoshow-image-benchmark-metadata-')
-  await writeSingleManifestFixture(runDir, 'image', {
-    image: []
-  })
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--image'],
-    'Image benchmark source prompt is missing'
-  )
-})
-
-test('benchmark --text rejects missing write run directory', async () => {
-  const root = await makeTempRoot('autoshow-text-benchmark-missing-')
-
-  await expectUsageExit(
-    ['benchmark', join(root, 'missing-run'), '--text'],
-    'Text run directory not found'
-  )
-})
-
-test('benchmark --text rejects canonical manifests for another command', async () => {
-  const runDir = await makeTempRoot('autoshow-text-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--text'],
-    'Text run directory must contain a single write manifest.json.'
-  )
-})
-
-test('benchmark --text rejects missing step3 metadata', async () => {
-  const runDir = await makeTempRoot('autoshow-text-benchmark-step3-')
-  await writeSingleManifestFixture(runDir, 'write', {})
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--text'],
-    'Text benchmark manifest.json must contain item metadata.step3.'
-  )
-})
-
-test('benchmark --video rejects missing video run directory', async () => {
-  const root = await makeTempRoot('autoshow-video-benchmark-missing-')
-
-  await expectUsageExit(
-    ['benchmark', join(root, 'missing-run'), '--video'],
-    'Video run directory not found'
-  )
-})
-
-test('benchmark --video rejects canonical manifests for another command', async () => {
-  const runDir = await makeTempRoot('autoshow-video-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'image', {})
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--video'],
-    'Video run directory must contain a single video manifest.json.'
-  )
-})
-
-test('benchmark --video rejects missing source prompt', async () => {
-  const runDir = await makeTempRoot('autoshow-video-benchmark-prompt-')
-  await writeSingleManifestFixture(runDir, 'video', {
-    video: []
-  })
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--video'],
-    'Video benchmark source prompt is missing'
-  )
-})
-
-test('benchmark --video rejects missing video metadata', async () => {
-  const runDir = await makeTempRoot('autoshow-video-benchmark-metadata-')
-  await writeSingleManifestFixture(runDir, 'video', {
-    input: 'A cinematic mountain sunrise.'
-  })
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--video'],
-    'Video benchmark manifest.json must contain item metadata.video[].'
-  )
-})
-
-test('benchmark rejects mutually exclusive scoring modes', async () => {
-  const runDir = await makeTempRoot('autoshow-benchmark-mode-conflict-')
-
-  await expectUsageExit(
-    ['benchmark', runDir, '--image', '--video'],
-    'Choose only one benchmark mode: --image, --text, --tts, or --video'
-  )
-})
-
-test('benchmark rejects unknown STT services before audio preparation', async () => {
-  await expectUsageExit(
-    ['benchmark', '/definitely/missing/benchmark-audio.mp3', '--stt-services', 'deepgram,gorq'],
-    'Unsupported --stt-services service: gorq. Supported services:'
-  )
 })
 
 test('unknown flag exits 2', async () => {
@@ -898,6 +745,25 @@ test('comic draft-scenes rejects invalid concurrency values', async () => {
   )
 })
 
+test('comic reference-voice accepts the same actions as voice and routes clone as subjectKey', async () => {
+  await expectUsageExit(
+    ['comic', 'reference-voice', 'not-an-action'],
+    `comic reference-voice action must be one of: ${VOICE_ACTIONS.join(', ')}.`
+  )
+  await expectUsageExit(
+    ['comic', 'reference-voice', 'clone'],
+    'comic reference-voice clone requires a character/role key, consent locator, or registration ID.'
+  )
+  await expectUsageExit(
+    ['comic', 'reference-voice', 'clone', 'hero', '--price'],
+    '--provider is required.'
+  )
+  await expectUsageExit(
+    ['comic', 'reference-voice', 'audition', 'vr_123', '--price'],
+    '--generation-id is required.'
+  )
+})
+
 test('voice rejects providers outside the managed five-model surface', async () => {
   await expectUsageExit(
     ['voice', 'import', 'hero', '--provider', 'openai', '--model', 'gpt-4o-mini-tts-2025-12-15', '--voice-id', 'cedar', '--provenance-ref', 'project:casting', '--price'],
@@ -918,6 +784,59 @@ test('voice rejects providers outside the managed five-model surface', async () 
   await expectUsageExit(
     ['voice', 'save-reference', 'hero', '--model', 'voxtral-mini-tts-2603', '--price'],
     'Unknown command "voice save-reference"'
+  )
+})
+
+test('commands reject --characters-root outside voice and comic', async () => {
+  await expectUsageExit(
+    ['extract', STABLE_EXAMPLE_AUDIO_URL, '--characters-root', './input/characters'],
+    '--characters-root is not supported by "extract"'
+  )
+  await expectUsageExit(
+    ['extract', STABLE_EXAMPLE_AUDIO_URL, '--characters-root', './input/characters'],
+    'Use bun autoshow voice or bun autoshow comic.'
+  )
+  await expectUsageExit(
+    ['config', '--characters-root', './input/characters'],
+    '--characters-root is not supported by "config"'
+  )
+})
+
+test('commands reject cookie flags outside config', async () => {
+  await expectUsageExit(
+    ['extract', '--cookies', './cookies.txt'],
+    '--cookies is not supported by "extract"'
+  )
+  await expectUsageExit(
+    ['extract', '--cookies', './cookies.txt'],
+    'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.'
+  )
+  await expectUsageExit(
+    ['download', '--cookies-from-browser', 'chrome'],
+    '--cookies-from-browser is not supported by "download"'
+  )
+  await expectUsageExit(
+    ['download', '--cookies-from-browser', 'chrome'],
+    'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.'
+  )
+})
+
+test('commands reject --model-path outside write and resume', async () => {
+  await expectUsageExit(
+    ['config', '--model-path', './model.gguf'],
+    '--model-path is not supported by "config"'
+  )
+  await expectUsageExit(
+    ['config', '--model-path', './model.gguf'],
+    'Use bun autoshow write or bun autoshow resume.'
+  )
+  await expectUsageExit(
+    ['links', '--model-path', './model.gguf'],
+    '--model-path is not supported by "links"'
+  )
+  await expectUsageExit(
+    ['voice', 'status', '--model-path', './model.gguf'],
+    '--model-path is not supported by "voice status"'
   )
 })
 

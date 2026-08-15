@@ -22,7 +22,6 @@ Current CLI help in this repo reports `bun autoshow v0.1.0`; this document uses 
   - [config](#config)
   - [links](#links)
   - [resume](#resume)
-  - [benchmark](#benchmark)
   - [voice](#voice)
   - [help and version](#help-and-version)
 - [Shared Runtime Behavior](#shared-runtime-behavior)
@@ -36,10 +35,10 @@ AutoShow is a Bun-native, pipeline-oriented CLI with one command-first entrypoin
 bun autoshow <command> [input] [flags]
 ```
 
-AutoShow currently exposes 15 named commands, plus built-in `help` and `version`. The named commands are split into two groups:
+AutoShow currently exposes 14 named commands, plus built-in `help` and `version`. The named commands are split into two groups:
 
 - `process-steps`: the ordered pipeline commands, Step 0 through Step 8.
-- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, voice management, benchmarking, and CLI discovery.
+- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, voice management, and CLI discovery.
 
 Use the [command overview](./commands.md) for the full command map and selection guide.
 
@@ -347,28 +346,6 @@ Example:
 
 ```bash
 bun autoshow resume ./output/<run-or-batch-dir> --provider deepinfra
-```
-
-### benchmark
-
-[`benchmark`](./commands/setup-and-utilities/benchmark/benchmark.md) scores or compares existing outputs and selected benchmark inputs.
-
-- Primary inputs/providers:
-  - STT compression/speed benchmark source audio files such as `.mp3`, `.m4a`, `.wav`, `.flac`, `.ogg`, and `.aac`
-  - existing TTS run directories with `manifest.json` and speech audio outputs
-  - existing write, image, and video run directories with `manifest.json`, `.json`, `.png` / `.jpg` / `.webp` / `.svg`, or `.mp4` outputs
-  - configured local or hosted judging providers where a benchmark mode needs them
-- Key outputs:
-  - STT benchmark output under `output/benchmark/<timestamp>/` with `source.m4a`, variant `.m4a` files, per-service `transcription.txt`, raw benchmark `result.json`, `benchmark-attempt.json`, and final `report.json`
-  - TTS reports beside the run as `voice-quality-report.json` and `voice-quality-report.md`
-  - text reports beside the run as `provider-comparison-report.json` and `provider-comparison-report.md`
-  - image reports beside the run as `image-quality-report.json`, `image-quality-report.md`, `provider-comparison-report.json`, and `provider-comparison-report.md`
-  - video reports beside the run as `video-quality-report.json`, `video-quality-report.md`, `provider-comparison-report.json`, and `provider-comparison-report.md`
-
-Example:
-
-```bash
-bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper
 ```
 
 ### voice

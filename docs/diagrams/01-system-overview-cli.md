@@ -53,10 +53,10 @@ apply global runtime settings
         +--> --verbose / --quiet / --json / --log-level / --log-format -> logger
         +--> --output-root                -> base output directory
         +--> --output-dir                 -> pinned run directory for this invocation
-        +--> --characters-root            -> comic character reference images directory
+        +--> --characters-root            -> comic/voice character reference directory
         +--> --bin-dir                    -> external tool binary lookup
         +--> --color / --no-color         -> ANSI color handling
-        +--> --cookies / --cookies-from-browser -> yt-dlp auth
+        +--> config auth.cookies / auth.cookiesFromBrowser -> yt-dlp auth
         +--> --model-path                 -> llama.cpp local model override
         |
         v
@@ -75,7 +75,7 @@ Global flags:
 | `--config-path` | Use a config file other than `config/autoshow.json`. |
 | `--output-root` | Base output directory under which per-step subdirectories are created. |
 | `--output-dir` | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, and `resume`, which do not create run directories. |
-| `--characters-root` | Directory of comic character reference images and `characters-reference.json`. |
+| `--characters-root` | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only. |
 | `--bin-dir` | Directory of external tool binaries checked before the managed install and PATH. |
 | `--allow-over-budget` | Continue after cost preflight exceeds the configured budget. |
 | `--verbose` | Enable debug logging. |
@@ -84,9 +84,7 @@ Global flags:
 | `--log-level` | Minimum log level: `debug`, `info`, `success`, `warn`, or `error`. |
 | `--log-format` | Log output format: `human`, `json`, or `both`. |
 | `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY. |
-| `--cookies` | Pass a cookies.txt file to authenticated yt-dlp downloads. |
-| `--cookies-from-browser` | Import browser cookies through yt-dlp. |
-| `--model-path` | Use a local GGUF file for llama.cpp. |
+| `--model-path` | Use a local GGUF file for llama.cpp. Accepted on `write` and `resume` only. |
 
 Comic's public `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
 
@@ -101,7 +99,6 @@ Setup and utilities:
   setup     install local tools and report provider env readiness
   links     provider documentation/reference link lookup
   resume    rerun missing or failed providers from existing output
-  benchmark local benchmark helpers
 
 Processing and generation:
   metadata  Step 0/1 metadata only

@@ -65,7 +65,7 @@ bun autoshow setup --doctor
 Doctor also reports YouTube cookie state separately:
 
 - active mode: `cookies-file`, `cookies-from-browser`, or `none`
-- cookie-file readability when `--cookies` is configured
+- cookie-file readability when `bun autoshow config --cookies` is configured
 
 ## YouTube Cookies
 
@@ -73,9 +73,9 @@ If YouTube starts challenging anonymous `yt-dlp` requests, configure cookies usi
 
 The same precedence rules apply everywhere in the CLI:
 
-1. `--cookies <file>` wins when it is set and readable.
-2. Otherwise `--cookies-from-browser <browser>` is used.
-3. If `--cookies` is set but unreadable, AutoShow warns and does not fall back silently.
+1. `bun autoshow config --cookies <file>` wins when it is set and readable.
+2. Otherwise `bun autoshow config --cookies-from-browser <browser>` is used.
+3. If a cookies file is configured but unreadable, AutoShow warns and does not fall back silently.
 
 ## Targeted Setup Steps
 

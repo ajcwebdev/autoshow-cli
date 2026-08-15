@@ -636,9 +636,9 @@ const collectYoutubeCookieChecks = async (probes: DoctorProbes): Promise<DoctorC
         nextStep: 'docs/cookies.md'
       }))
   } else if (youtubeStatus.configuredMode === 'cookies-from-browser') {
-    checks.push(check('OK', 'YouTube cookies source', 'browser import via --cookies-from-browser'))
+    checks.push(check('OK', 'YouTube cookies source', 'browser import via bun autoshow config --cookies-from-browser'))
   } else {
-    checks.push(check('INFO', 'YouTube cookies source', 'not configured'))
+    checks.push(check('INFO', 'YouTube cookies source', 'not configured — bun autoshow config --cookies-from-browser chrome'))
   }
 
   if (youtubeStatus.warning) {

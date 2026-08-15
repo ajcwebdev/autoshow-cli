@@ -33,10 +33,10 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement ElevenLabs and Hume as first-class adapters** | Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume | Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies | 12 providers at decision time; 16 after ADR-018 additions; 10 captured-voice adapters repaired; 2 first-class advanced adapters; 2 new comic commands |
+| **Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement five voice-managed model adapters with a truthful segmented baseline across all 16 providers** | Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume across five dedicated voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`) | Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies | 16 providers; 5 voice-managed models with distinct expressiveness paths; 11 synthesis-only providers; 2 new comic commands |
 | Patch per-turn voice arguments and add comic flags directly to the existing `TtsOptions` bag | Smaller short-term change; can make basic speaker switching work | Leaves identity, consent, capabilities, provider-qualified casting, snapshots, resource lifecycle, and native dialogue unmodeled; generic options continue to mix selection and invocation | Fixes one defect but leaves the report's architectural gaps intact |
 | Build an ElevenLabs-only script-to-audio workflow | Fastest route to the broadest managed provider feature set | Locks script-to-audio artifacts and commands to one provider, bypasses shared TTS, and makes Hume/Mistral/Gemini or local fallback expensive to add later | 1 provider; no portable baseline |
-| Use only independent turn synthesis and local assembly | Works for nearly every provider; simplest cache and repair model | Discards native conversational context, timestamps, and continuation available from ElevenLabs, Hume, and Gemini | 12 potential segmented providers; 0 native capability use |
+| Use only independent turn synthesis and local assembly | Works for nearly every provider; simplest cache and repair model | Discards native conversational context, timestamps, and continuation available from ElevenLabs, Fish, Hume, and Gemini | 16 potential segmented providers; 0 native capability use |
 | Use only provider-native dialogue | Maximizes provider-owned context | Excludes providers without native dialogue, fails on speaker/length ceilings, weakens targeted repair, and creates provider-specific artifacts | At most a few current providers; Gemini is exactly two speakers |
 | Add voice fields directly to the visual character catalog | One character file to inspect | Couples provider resources, consent, expiry, and audio settings to a strict visual schema and forces unrelated schema migrations | Visual catalog is strict schema version 3 |
 
@@ -44,15 +44,15 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 
 Create one shared, provider-neutral script-to-audio subsystem beneath both the generic Step 4 TTS command and comic. Comic owns authored character voice briefs, role resolution, approvals, immutable scene snapshots, and source-linked dialogue plans. Shared TTS owns provider capabilities, voice provisioning and lifecycle ports, explicit per-invocation voice dispatch, native and segmented rendering, timing normalization, scheduling, and synthesis metadata. Comic must not create provider clients or a second TTS target registry.
 
-ElevenLabs and Hume Octave are the first-class advanced adapters for this subsystem. Both must implement the common discovery, candidate, audition, registration, lifecycle, preflight, native-dialogue, segmented-fallback, timing, and manifest contracts wherever the provider offers the capability. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
+Voice reference management is supported across five models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. These models implement the common discovery, candidate, audition, registration, lifecycle, preflight, expressiveness, timing, and manifest contracts according to their documented capabilities. Every existing TTS provider must implement the explicit-voice segmented baseline or fail locally with a truthful model-specific capability error; no adapter may silently reuse a captured default voice.
 
 This applies to:
 
 - All current generic multi-speaker TTS behavior, metadata, artifacts, validation, scheduling, and provider request contracts.
 - Comic character voice briefs, reference-voice creation/import/audition/approval, immutable voice snapshots, dialogue planning, audio generation, caching, assembly, effects, timing, resume, domain artifacts, and canonical scene-run state.
 - Existing providers' stock, saved, custom, designed, cloned, or request-time reference voice sources as their adapters truthfully support them.
-- First-class ElevenLabs voice-library, Voice Design/remix, clone, Text-to-Dialogue, and timestamp paths.
-- First-class Hume voice-library, Voice Design, clone/import, acting-direction, multi-utterance, timestamp, and continuation paths.
+- Durable catalog, design, clone, inspect, and delete lifecycle contracts for the five voice-managed models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`.
+- Native multi-speaker dialogue or utterance rendering where supported (ElevenLabs `eleven_v3` Text-to-Dialogue, Fish `s2.1-pro` native multi-speaker streaming, Gemini two-speaker dialogue, and Hume `octave-2` native utterances) with segmented fallback when scene constraints or model limits require it.
 
 `tts` synthesizes with one existing stock, designed, or cloned voice ID and remains compatible with every implemented TTS model. `voice` and `comic reference-voice` manage durable catalog, design, clone, inspect, and delete resources only for ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. Hume, MiniMax, DeepInfra, Mistral, and every stock-only model stay synthesis-only. fal.ai Maya stays off the voice surface until it exposes a durable voice port.
 
@@ -68,7 +68,7 @@ Each voice-managed model must expose a working expressiveness path. The methods 
 
 This decision itself does not:
 
-- Add Azure, Google Cloud TTS, Polly, Resemble, Qwen3-TTS, Chatterbox, or another new provider before the shared contracts are stable. ADR-018 later adds bounded Inworld, DeepInfra, Replicate, and Fish integrations under separate evidence-gated phases.
+- Add Azure, Google Cloud TTS, Polly, or Resemble before the shared contracts are stable.
 - Treat configured credentials as proof that an account has plan-, approval-, verification-, or region-gated voice capabilities.
 - Permit implicit remote voice creation during ordinary synthesis, configuration loading, resume, cleanup, or `--price`.
 - Permit cloning without recorded provenance and consent, or cross-provider cloning from a generated audition unless explicitly authorized.
@@ -210,7 +210,7 @@ Protected asset roots and output roots are verified to be realpath-disjoint befo
 
 ### Comic Dialogue Plan
 
-`comic generate-audio <script>` consumes a compatible existing scene run, resolving exact directory targets matching source identity and structured script v4 artifacts. It writes an immutable `metadata/dialogue-plans/<plan-id>.json`, maps all roles against an aggregate local registration snapshot, and generates preliminary branch plans.
+`comic generate-audio <script>` consumes a compatible existing scene run, resolving exact directory targets matching source identity and structured script artifacts. It writes an immutable `metadata/dialogue-plans/<plan-id>.json`, maps all roles against an aggregate local registration snapshot, and generates preliminary branch plans.
 
 Planned turns preserve stable turn IDs, canonical character/role keys, original speaker labels, canonical text, structured delivery/tone, and local effect intent (V.O., O.S., radio, telephone). All speakable segments resolve to an explicit policy without content dropping or silent fallback.
 
@@ -232,9 +232,7 @@ Hosted dialogue and ordinary hosted TTS chunks use the shared run-scoped provide
 
 ### Native Dialogue, Timing, and Continuation
 
-Native dialogue adapters normalize provider-prepared text through `PreparedProviderText` mappings back to canonical Unicode scalar-value offsets. Provider timestamps are converted to integer milliseconds on the take clock and transformed via an audio transform ledger into the final timeline.
-
-Hume Octave multi-batch rendering supports cross-request continuation by recording result-independent generation checkpoints, allowing crash recovery and suffix rebuilds without re-synthesizing completed turns.
+Native dialogue adapters (ElevenLabs `eleven_v3`, Fish `s2.1-pro`, and Gemini two-speaker) and native utterance adapters (Hume `octave-2`) normalize provider-prepared text through `PreparedProviderText` mappings back to canonical Unicode scalar-value offsets. Provider timestamps are converted to integer milliseconds on the take clock and transformed via an audio transform ledger into the final timeline. Fish `s2.1-pro` supports native multi-speaker dialogue with timestamped streaming via `<|speaker:N|>` tags and `chunk_seq` reduction. Hume Octave multi-batch rendering supports cross-request continuation by recording result-independent generation checkpoints, allowing crash recovery and suffix rebuilds without re-synthesizing completed turns.
 
 ### Audio Assembly, Caching, and Resume
 
@@ -256,7 +254,7 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 |---|---|---|
 | Kitten | Local segmented stock voices | No-cost local development baseline with explicit turn voice |
 | ElevenLabs | Segmented explicit voice | Shared `voice` catalog, design, remix, clone, audition, Text-to-Dialogue, timestamps, and v3 audio-tag plus `voice_settings` expressiveness |
-| MiniMax | Segmented stock/custom voice | Catalog, design, clone, and activation capability descriptors |
+| MiniMax | Segmented stock/custom voice | Synthesis-only; stock and custom voice support with explicit emotion selectors, volume, pitch, and interjection tags |
 | Groq | Segmented stock voice | English Orpheus direction support |
 | xAI/Grok | Segmented stock/custom ID | 26-voice catalog and custom voice access gates |
 | Mistral | Segmented saved/reference voice | Reference audio caching and lifecycle management |
@@ -264,31 +262,60 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 | Gemini | Native 2-speaker & segmented turns | 30-voice catalog, exactly-two-speaker native dialogue, single-speaker fallback |
 | Deepgram | Segmented Aura voice | ~90-voice catalog with demographic/language metadata |
 | Speechify | Segmented pre-provisioned ID | Shared `voice` catalog, instant clone, inspect, and delete; SSML `<speak>` expressiveness |
-| Hume | Segmented explicit voice | Discovery, design, clone, audition, acting direction, native utterances, timestamps, continuation |
+| Hume | Segmented explicit voice | Synthesis-only; Octave 1 acting direction, Octave 2 native utterances, timestamps, continuation |
 | Cartesia | Segmented voice ID | Shared `voice` catalog, instant clone, inspect, and delete; in-text SSML-like expressiveness |
 | Inworld | Segmented stock/custom voice ID | Shared `voice` catalog, design, instant clone, inspect, and delete; `--tts-instructions` steering plus preserved inline vocal tags |
 | DeepInfra | Segmented model-qualified synthesis | Reliable hosted single-voice inference; model-specific dialogue, design, clone, and protected-reference facets remain gated by ADR-018 |
 | Replicate | Segmented Kokoro stock voice | Version-pinned `jaaari/kokoro-82m` with exact stock-voice and speed serialization; speculative reference/dialogue models remain excluded |
 | Fish | Segmented approved-reference synthesis | Shared `voice` catalog, design, instant clone, inspect, delete, and reconcile; native dialogue plus in-text `[emotion]` markup |
 
-### First-Class ElevenLabs Contract
+### Five Voice-Managed Model Contracts
 
-- Catalog discovery, shared library addition, Voice Design/remixing with lineage attestation, IVC API provisioning, and gated PVC support.
-- Native Text-to-Dialogue (Eleven v3) with turn-safe planning, candidate take budgets, alignment timing maps, and delivery tags.
-- Segmented fallback for over-limit scenes or line repair.
+The five voice-managed models implement dedicated discovery, design, clone, lifecycle, and expressiveness contracts:
 
-### First-Class Hume Octave Contract
+#### ElevenLabs `eleven_v3`
 
-- Catalog discovery, Octave 1 Voice Design, custom voice saving, and Octave 2 synthesis compatibility.
-- Native utterance rendering with acting descriptions (Octave 1), timestamps (Octave 2), speed/silence controls, and multi-take generation slots.
-- Cross-request continuation via durable generation checkpoints and atomic suffix rebuild authorizations.
+- Catalog discovery (`account` and `shared-library`), Voice Design, and eligibility-proved remix with lineage attestation.
+- Instant Voice Cloning (IVC) from protected samples with consent and provenance records, inspect, and project-owned delete.
+- Native Text-to-Dialogue when the dialogue plan is representable (up to 10 voices, turn boundaries, v3 delivery tag allowlist) with alignment timing maps; segmented fallback for over-limit scenes or line repair.
+- Expressiveness via v3 audio tags (`[whispers]`, `[laughs]`), `/IPA/` pronunciation, and `voice_settings` (`stability`, `similarity_boost`, `style`, `use_speaker_boost`).
+
+#### Inworld `realtime-tts-2`
+
+- Read-only catalog discovery via `GET /voices/v1/voices` covering system and account voices.
+- Prompt-driven voice design candidate preview generation and single selected preview materialization.
+- Instant clone from protected audio samples with recorded provenance, inspect, and project-owned delete.
+- Segmented multi-speaker dialogue rendering.
+- Expressiveness via request-level `--tts-instructions` steering and preserved inline vocalization/emotion tags (`[happy]`, `[laugh]`, `[breathe]`).
+
+#### Fish `s2.1-pro`
+
+- Paginated catalog discovery covering public and account voice models via `voice discover`.
+- Stateless `voice-design-1` candidate preview generation and sample-backed model materialization (`POST /model`).
+- Fast instant clone from protected samples, inspect, project-owned delete, and crash-safe reconciliation without blind recreation.
+- Native multi-speaker dialogue with `<|speaker:N|>` tags, timestamped streaming, and `chunk_seq` reduction; segmented fallback when required.
+- Expressiveness via in-text `[emotion]` tags and delivery markup on dialogue and eligible vocal reactions.
+
+#### Cartesia `sonic-3.5-2026-05-04`
+
+- Paginated catalog discovery across provider and account libraries.
+- Instant clone from protected audio samples with recorded provenance, inspect, and project-owned delete.
+- Segmented multi-speaker dialogue rendering (native multi-speaker dialogue unsupported).
+- Expressiveness via SSML-like performance tags (`<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`) and `[laughter]`.
+
+#### Speechify `simba-3.2`
+
+- Paginated catalog discovery across shared and personal voice libraries.
+- Instant personal clone from protected 10–30 second audio samples with full consent payloads, inspect, and project-owned delete.
+- Segmented multi-speaker dialogue rendering (native multi-speaker dialogue unsupported).
+- Expressiveness via SSML `<speak>` with `<prosody>`, `<break>`, `<emphasis>`, `<sub>`, and `<speechify:style emotion="...">` (13 supported emotional styles).
 
 ## Rationale
 
 - Voice identity is durable project state; separating briefs, registrations, auditions, and snapshots ensures character continuity.
 - Explicit invocation identity prevents voice-capture bugs where collectors retain default options.
 - Capability facets allow maximum provider feature utilization while maintaining a reliable segmented fallback baseline.
-- ElevenLabs and Hume validate the full subsystem (broad library casting + native dialogue vs. contextual acting direction + continuation).
+- Five voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`) validate the full subsystem across discovery, design, instant cloning, expressiveness, native dialogue, and lifecycle management while preserving a truthful segmented baseline for all other providers.
 - Native and segmented paths are both required to balance conversational coherence with provider portability and targeted repair.
 - Serializer-observed request/result evidence ensures truthful cost accounting, benchmark accuracy, and reproducible builds.
 
@@ -296,7 +323,7 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 
 Positive outcomes:
 - All 16 TTS providers participate in the shared explicit-voice/capability boundary; providers without a verified native or voice-management facet fail locally rather than fabricating support.
-- ElevenLabs and Hume become first-class voice platforms supporting design, cloning, native dialogue, and continuation.
+- Five models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`) achieve first-class voice management across discovery, design, cloning, inspect, delete, and model-specific expressiveness.
 - Comic achieves stable voice references, audition/approval workflows, local repair, and mastering contracts.
 - Remote voice creation, verification, approval, expiry, and deletion become explicit, observable lifecycle states.
 - Benchmarks and pipeline manifests reflect true serialized voice and model identities.
@@ -313,7 +340,7 @@ Negative outcomes:
 | Stable provider-neutral character identity | Additional domain schemas and lifecycle state |
 | Broad segmented compatibility plus provider-native quality | Dual render strategies and strategy planning |
 | Crash-safe selected-take continuation across provider batches | Per-batch invocation/result/selection/checkpoint tracking |
-| First-class ElevenLabs and Hume capabilities | Comprehensive provider-specific adapter facets |
+| Five-model voice management and expressiveness | Model-specific capability facets and expressiveness mappings |
 | Auditable consent, provenance, and request identity | Stricter preflight and protected asset isolation |
 | Targeted line repair without repeating full synthesis | Storage for segment caches and working audio runs |
 
@@ -327,21 +354,19 @@ Negative outcomes:
 - Add strict domain schemas for `ComicSourceIdentity`, `CharacterVoiceBrief`, `ProviderRenderPlan`, `ProviderRenderResult`, `SynthesisCacheEntry`, `AudioRun`, etc.
 - Add bounded dialogue work selector integrating with provider concurrency lanes.
 
-
 ## Implementation Note
 
-- Shared TTS carries immutable explicit per-turn invocations through all 12 adapters, asserts actual A/B/A request serialization, plans strict Gemini exactly-two-speaker native rendering with turn-safe batching, bounds and cancels dialogue work through the shared scheduler, rejects explicit, configured, and inherited creation defaults before target collection, retains the strategy-appropriate render artifacts, and persists operation-scoped target identities with strict `ttsAudio` projections and append-only render history.
+- Shared TTS carries immutable explicit per-turn invocations through all 16 adapters, asserts actual A/B/A request serialization, plans strict Gemini exactly-two-speaker native rendering with turn-safe batching, bounds and cancels dialogue work through the shared scheduler, rejects explicit, configured, and inherited creation defaults before target collection, retains the strategy-appropriate render artifacts, and persists operation-scoped target identities with strict `ttsAudio` projections and append-only render history.
 - The protected store holds content-addressed purpose and retention policy for references, candidate previews, auditions, consent, and reconciliation evidence under owner-only roots kept realpath-disjoint from output roots. The shared `voice` surface and the `comic reference-voice` alias import, audition, approve, reconcile, retire, revoke, delete, and inspect registrations through crash-safe provisioning journals; all remote creation, including Mistral saved references, is confined to management.
 - Comic writes one canonical `command: 'comic'` scene manifest, structured-script v5 embeds source identity, Unicode source spans, and the ADR-018 soundscape envelope, and `comic generate-audio` selects only an exact compatible existing scene run, resolves every target and role through one immutable approved aggregate snapshot, and reuses the shared branch, readiness, admission, render, result, and audio-run machinery under the `comicAudio` namespace with explicit 16/24-bit mono/stereo WAV mastering. Missing or empty pinned paths may initialize, but a nonempty pinned path that fails exact compatibility is rejected without rewriting its structured script or manifest.
-- ElevenLabs and Hume are implemented as the first-class advanced adapters against dated capability fixtures: catalog discovery, design and remix lineage, clone state, lifecycle, bounded turn-safe Text-to-Dialogue with prepared-text alignment, Octave model-constrained direction and timing, one-to-five native takes, and selected-generation continuation.
-- MiniMax, Cartesia, and Speechify expose catalog, design, clone, and lifecycle facets. Their fixtures mark Cartesia and Speechify text-prompt design and all three providers' native multi-speaker dialogue unsupported, so those providers keep the segmented baseline. No new provider was added because no remaining casting or privacy gap was demonstrated.
+- Voice reference management is implemented for five models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. Their adapters expose typed capability fixtures for catalog discovery, design, cloning, inspect, delete, expressiveness, and timing. MiniMax, Hume, DeepInfra, Mistral, Replicate, fal.ai, and stock-only providers remain synthesis-only on `tts` and `comic generate-audio` with explicit turn voices. Hume supports native utterances (Octave 2) and acting descriptions (Octave 1) during synthesis, but does not expose voice-management ports. Cartesia and Speechify text-prompt design and MiniMax/Cartesia/Speechify/Inworld/DeepInfra native multi-speaker dialogue are unsupported and fall back to the segmented baseline.
 - Benchmark identity uses the adapter target plus render and optional registration, snapshot-entry, and character identity, with the non-reusable `legacy:` fallback for pre-ADR single-voice state. ADR-013 records the refreshed provider catalogs, and ADR-008 records the dialogue selector.
 - Every price path, for both synthesis and voice management, makes no provider call and writes no artifact.
 - Standalone TTS selection and resume share one typed 16-provider descriptor. Provider and model additions therefore reach fresh execution, price, and additive resume together instead of relying on a second handwritten resume table.
 - Completed pre-cutover standalone TTS benchmark manifests with unambiguous inline narration can retain their immutable legacy providers while appending a new canonical target. Price reconstructs the dialogue plan in memory without writes; execution materializes the plan before dispatch; interrupted or mixed legacy state still fails closed.
 - The 2026-08-14 provider reliability audit tightened the shared admission contract: definite non-timeout 4xx rejection is retry/replay-safe, while network errors, timeouts, 408/409, 5xx, and missing status are ambiguous. Provider task and prediction IDs are written as acceptance evidence before asynchronous polling continues, and target/comic aggregation preserves structured causes instead of relabeling provider failures as command usage errors.
-- Provider fixtures describe only code that exists. Inworld now exposes the documented read-only `GET /voices/v1/voices` catalog through `voice discover`, and execution readiness verifies every approved Inworld voice ID against that live account-visible catalog before paid synthesis begins. DeepInfra now exposes the documented account catalog, VoiceDesign inference, `POST /v1/voices/add` instant clone, inspect, and project-owned delete ports. Inworld native-dialogue and professional-clone facets, plus Replicate voice-management facets, remain unavailable until their real verified adapters exist; hardcoded catalogs, synthetic preview WAVs, fabricated resource IDs, and no-op deletion are prohibited. Missing credentials, unavailable approved voices, or missing provider audio are failures and never produce silent placeholder audio.
-- Comic target construction forwards every selected remote voice ID into the shared readiness layer for ElevenLabs, Hume, MiniMax, Cartesia, Speechify, and Inworld. A provider catalog check is therefore part of the same pre-dispatch barrier as snapshot selection instead of an optional adapter path that comic execution can bypass.
+- Provider fixtures describe only code that exists. Inworld exposes the documented read-only `GET /voices/v1/voices` catalog through `voice discover`, and execution readiness verifies every approved Inworld voice ID against that live account-visible catalog before paid synthesis begins. Inworld native-dialogue and professional-clone facets, plus Replicate and DeepInfra voice-management facets, remain unavailable until their real verified adapters exist; hardcoded catalogs, synthetic preview WAVs, fabricated resource IDs, and no-op deletion are prohibited. Missing credentials, unavailable approved voices, or missing provider audio are failures and never produce silent placeholder audio.
+- Comic target construction forwards every selected remote voice ID into the shared readiness layer for ElevenLabs, Inworld, Fish, Cartesia, Speechify, Hume, and MiniMax. A provider catalog check is therefore part of the same pre-dispatch barrier as snapshot selection instead of an optional adapter path that comic execution can bypass.
 - Fish stateless design candidates are materialized by resolving the selected protected preview and supplying those bytes to the model-creation API. Empty voice-model creation is rejected locally. Definite voice-management HTTP rejection is journaled as terminal failure; uncertain post-dispatch failure remains reconciliation-required.
 - Failed synthesis preserves its `.tts-tmp-*` workspace and every completed chunk or native-batch audio file. Cleanup runs only after finalization succeeds, so a later failure cannot erase paid segment evidence or force duplicate synthesis; recovery may promote recorded outputs on the next run.
 - A casting correction that changes the aggregate voice snapshot creates a new immutable render, promotes only slot-compatible retained output as cache materialization, and dispatches only changed or previously incomplete slots. It never relabels a prior provider dispatch as belonging to the new render.
@@ -409,3 +434,7 @@ Verification evidence for shared hosted dialogue admission is dated 2026-08-14 a
 - `src/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser.ts`
 - [ElevenLabs Text-to-Dialogue](https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue)
 - [Hume Text to Speech overview](https://dev.hume.ai/docs/text-to-speech-tts/overview)
+- [Inworld Voice Cloning](https://docs.inworld.ai/docs/tutorial-basics/voice-cloning/)
+- [Fish Audio API Reference](https://docs.fish.audio/api-reference/introduction)
+- [Cartesia Documentation](https://docs.cartesia.ai/)
+- [Speechify API Documentation](https://docs.speechify.com/)

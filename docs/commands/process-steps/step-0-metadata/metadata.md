@@ -180,7 +180,7 @@ For remote document URLs, the file is temporarily downloaded for inspection and 
 
 X Space URLs, raw Space IDs, and X post URLs use the X API to collect Space metadata, post references, user profiles, and lookup errors. Set `X_BEARER_TOKEN` before running these inputs.
 
-For YouTube inputs, `metadata` honors the same `yt-dlp` cookie flags as `download`: `--cookies <file>` and `--cookies-from-browser <browser>`.
+For YouTube inputs, `metadata` honors the same saved `yt-dlp` cookie auth as `download`: `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`.
 
 ## Processing Step Layout
 
@@ -200,7 +200,6 @@ src/cli/commands/
     step-7-music/
     step-8-comic/
   setup-and-utilities/
-    benchmark/
     config/
     links/
     models/

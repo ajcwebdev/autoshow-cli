@@ -7,7 +7,6 @@ import {
   ocrTuningFlags,
   batchFlags,
   promptFlag,
-  priceFlag,
   sharedConcurrencyFlags,
   stepProviderSelectorFlags
 } from './shared-flags'
@@ -24,6 +23,11 @@ const configFlags = {
 
 const pricingFlags = {
   'max-cents': strFlag('Budget limit in cents — commands exceeding this fail unless --allow-over-budget is set')
+} as const satisfies CliFlagsDefinition
+
+const authFlags = {
+  cookies: strFlag('Path to cookies.txt file for authenticated downloads'),
+  'cookies-from-browser': strFlag('Import cookies from browser for authenticated downloads: chrome|firefox|opera|edge|chromium|brave|vivaldi|safari (passed to yt-dlp --cookies-from-browser)')
 } as const satisfies CliFlagsDefinition
 
 const configTtsFlags = omitFlags(ttsCommandFlags, [
@@ -56,23 +60,23 @@ const configVideoGenFlags = omitFlags(videoGenFlags, [
 export const configCommandFlags = {
   ...withHelpGroup(configFlags, 'config'),
   ...withHelpGroup(pricingFlags, 'pricing'),
+  ...withHelpGroup(authFlags, 'auth'),
   ...withHelpGroup(batchFlags, 'batch-download'),
   ...withHelpGroup(sharedConcurrencyFlags, 'concurrency'),
-  ...withHelpGroup({ stt: stepProviderSelectorFlags.stt }, 'step-2-stt'),
-  ...withHelpGroup(transcriptionFlags, 'step-2-stt'),
-  ...withHelpGroup({ ocr: stepProviderSelectorFlags.ocr }, 'step-2-ocr'),
-  ...withHelpGroup(configOcrInputFlags, 'step-2-ocr'),
-  ...withHelpGroup(ocrTuningFlags, 'step-2-ocr'),
-  ...withHelpGroup(ocrProviderModeFlag, 'step-2-ocr'),
-  ...withHelpGroup(llmProviderFlags, 'step-3-write'),
-  ...withHelpGroup(promptFlag, 'step-3-write'),
-  ...withHelpGroup({ tts: stepProviderSelectorFlags.tts }, 'step-4-tts'),
-  ...withHelpGroup(configTtsFlags, 'step-4-tts'),
-  ...withHelpGroup({ image: stepProviderSelectorFlags.image }, 'step-5-image'),
-  ...withHelpGroup(configImageGenFlags, 'step-5-image'),
-  ...withHelpGroup({ video: stepProviderSelectorFlags.video }, 'step-6-video'),
-  ...withHelpGroup(configVideoGenFlags, 'step-6-video'),
-  ...withHelpGroup({ music: stepProviderSelectorFlags.music }, 'step-7-music'),
-  ...withHelpGroup(musicGenFlags, 'step-7-music'),
-  ...withHelpGroup(priceFlag, 'pricing')
+  ...withHelpGroup({ stt: stepProviderSelectorFlags.stt }, 'transcription'),
+  ...withHelpGroup(transcriptionFlags, 'transcription'),
+  ...withHelpGroup({ ocr: stepProviderSelectorFlags.ocr }, 'ocr-document'),
+  ...withHelpGroup(configOcrInputFlags, 'ocr-document'),
+  ...withHelpGroup(ocrTuningFlags, 'ocr-document'),
+  ...withHelpGroup(ocrProviderModeFlag, 'ocr-document'),
+  ...withHelpGroup(llmProviderFlags, 'writing'),
+  ...withHelpGroup(promptFlag, 'writing'),
+  ...withHelpGroup({ tts: stepProviderSelectorFlags.tts }, 'tts-options'),
+  ...withHelpGroup(configTtsFlags, 'tts-options'),
+  ...withHelpGroup({ image: stepProviderSelectorFlags.image }, 'image-options'),
+  ...withHelpGroup(configImageGenFlags, 'image-options'),
+  ...withHelpGroup({ video: stepProviderSelectorFlags.video }, 'video-options'),
+  ...withHelpGroup(configVideoGenFlags, 'video-options'),
+  ...withHelpGroup({ music: stepProviderSelectorFlags.music }, 'hosted-music'),
+  ...withHelpGroup(musicGenFlags, 'hosted-music')
 } as const satisfies CliFlagsDefinition

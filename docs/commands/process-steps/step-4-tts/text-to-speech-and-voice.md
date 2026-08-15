@@ -36,7 +36,8 @@ Generate speech audio from a local `.md` or `.txt` file with local or hosted TTS
   - [Voice Price Safety](#voice-price-safety)
 - [Provider Capabilities](#provider-capabilities)
   - [Advanced](#advanced)
-  - [Cloning and Stock Voices](#cloning-and-stock-voices)
+  - [Advanced Runner Ups](#advanced-runner-ups)
+  - [Voice Cloning and Design without Expressiveness](#voice-cloning-and-design-without-expressiveness)
   - [Stock Voices](#stock-voices)
 
 ## Setup
@@ -119,8 +120,6 @@ When a hosted target fails after producing some chunks, AutoShow retains the tar
 Paid requests with ambiguous admission are not retried by default. `--tts-allow-ambiguous-redispatch` explicitly authorizes a provider's bounded in-process retry policy and subsequent checkpoint resume; it may purchase the same immutable generation slot more than once. DeepInfra uses up to eight attempts with exponential jittered backoff. Every attempt is recorded in the admission journal, completed slots remain reusable, and an exhausted run reports the exact retained/unresolved checkpoint for the next invocation.
 
 AutoShow generally splits TTS text into 2000-character chunks, with provider/model registry limits taking precedence: Groq Orpheus uses 200, DeepInfra MiMo uses 1000, DeepInfra Qwen uses 4000, and DeepInfra Chatterbox uses 5000. `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that. Kitten synthesizes chunks sequentially and is unaffected by the hosted mode.
-
-The current Inworld selector is `realtime-tts-2`, serialized as provider ID `inworld-tts-2`. DeepInfra request fields are model-specific: Chatterbox Turbo uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Voice-design models use a narration description as the implicit voice when `--tts-voice` is omitted.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
@@ -369,7 +368,6 @@ Fish TTS converts output to `speech.wav`. Single-voice text is split into 2000-c
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2
 bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2 --tts-voice Dennis --tts-instructions "Sound reassuring"
-bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2
 ```
 
 Inworld selectors serialize as provider IDs `inworld-tts-2` and `inworld-tts-2-flash`. Text is split into 2000-character chunks. Steering via `--tts-instructions` is accepted on `realtime-tts-2` only; inline emotion and vocalization tags are preserved. Multi-speaker dialogue uses the segmented renderer. Use `voice discover` for system and account catalogs.
@@ -555,7 +553,7 @@ bun autoshow voice audition vr_ID --generation-id GENERATION_SHA256 --representa
 bun autoshow voice approve vr_ID --generation-id AUDITIONED_GENERATION_SHA256 --actor-id casting_editor
 ```
 
-Approval appends a new content-identified registration generation and atomically advances the sole current pointer for `(subject, provider, provider model, profile)`. This model-qualified key permits one subject to hold independent approved Hume Octave 1 and Octave 2 selections that refer to the same provider voice resource. Approval does not create a scene snapshot.
+Approval appends a new content-identified registration generation and atomically advances the sole current pointer for `(subject, provider, provider model, profile)`. This model-qualified key permits one subject to hold independent approved model selections that refer to the same provider voice resource. Approval does not create a scene snapshot.
 
 ### Lifecycle
 

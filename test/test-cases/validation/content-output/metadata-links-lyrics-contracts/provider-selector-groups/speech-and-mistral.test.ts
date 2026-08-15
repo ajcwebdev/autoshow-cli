@@ -19,6 +19,10 @@ import {
   GROK_TTS_LINKS,
   HUME_GENERAL_LINKS,
   HUME_TTS_LINKS,
+  INWORLD_ALL_LINKS,
+  INWORLD_GENERAL_LINKS,
+  INWORLD_MODELS_LINKS,
+  INWORLD_TTS_LINKS,
   MISTRAL_ALL_LINKS,
   MISTRAL_MODELS_LINKS,
   MISTRAL_OCR_LINKS,
@@ -217,6 +221,81 @@ test('links selector accepts hume provider with general and tts sections', async
     '--hume',
     'stt'
   ], 'Unknown links section(s) for --hume: stt')
+})
+
+test('links selector accepts inworld provider with general models and tts sections', async () => {
+  const inworldSelection = parseLinksArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--inworld'
+  ])
+
+  expect(inworldSelection.serviceSelections.get('inworld')).toEqual([])
+  expect(collectLinks(
+    inworldSelection.serviceSelections,
+    inworldSelection.globalSections
+  )).toEqual(INWORLD_ALL_LINKS)
+  expect(getDefaultLinksOutputFileName(
+    inworldSelection.serviceSelections,
+    inworldSelection.globalSections
+  )).toBe('inworld-all-links.md')
+
+  const inworldTtsSelection = parseLinksArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--inworld',
+    'tts'
+  ])
+
+  expect(collectLinks(
+    inworldTtsSelection.serviceSelections,
+    inworldTtsSelection.globalSections
+  )).toEqual(INWORLD_TTS_LINKS)
+  expect(getDefaultLinksOutputFileName(
+    inworldTtsSelection.serviceSelections,
+    inworldTtsSelection.globalSections
+  )).toBe('inworld-tts-links.md')
+
+  const inworldModelsSelection = parseLinksArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--inworld',
+    'models'
+  ])
+
+  expect(collectLinks(
+    inworldModelsSelection.serviceSelections,
+    inworldModelsSelection.globalSections
+  )).toEqual(INWORLD_MODELS_LINKS)
+
+  const inworldGeneralTtsSelection = parseLinksArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--inworld',
+    'general',
+    'tts'
+  ])
+
+  expect(collectLinks(
+    inworldGeneralTtsSelection.serviceSelections,
+    inworldGeneralTtsSelection.globalSections
+  )).toEqual([...INWORLD_GENERAL_LINKS, ...INWORLD_TTS_LINKS])
+  expect(getDefaultLinksOutputFileName(
+    inworldGeneralTtsSelection.serviceSelections,
+    inworldGeneralTtsSelection.globalSections
+  )).toBe('inworld-general-tts-links.md')
+
+  await expectLinksUsageError([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--inworld',
+    'stt'
+  ], 'Unknown links section(s) for --inworld: stt')
 })
 
 test('links selector accepts deapi provider with models and stt sections', async () => {

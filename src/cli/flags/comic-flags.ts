@@ -119,7 +119,10 @@ const comicAudioContractFlags = {
   channels: strFlag(colorizeHelpDescription('Final channel count: 1|2 (default: 2)')),
   codec: strFlag(colorizeHelpDescription('Final PCM codec: pcm_s16le|pcm_s24le (default: pcm_s24le)')),
   slideshow: boolFlag(colorizeHelpDescription('Automatically render the synchronized still-panel MP4 video upon audio completion')),
-  'panel-video': boolFlag(colorizeHelpDescription('Alias for --slideshow')),
+  'panel-video': {
+    ...boolFlag(colorizeHelpDescription('Alias for --slideshow')),
+    help: { hidden: true }
+  },
 } as const satisfies CliFlagsDefinition
 
 export const comicGenerateAudioFlags = {

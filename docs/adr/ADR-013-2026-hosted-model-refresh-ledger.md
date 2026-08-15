@@ -10,7 +10,7 @@
 
 ## Context
 
-AutoShow completed a broad 2026 refresh of every hosted model registry. The work changed selectors, provider request shapes, prices, defaults, all-provider expansion, resume identity, historical readers, and locally testable capability contracts across write, OCR, STT, TTS, music, image, and video. Active surfaces moved from 18 to 22 STT selectors, from 23 to 127 hosted TTS/music selectors, and from 50 to 66 image/video selectors.
+AutoShow completed a broad 2026 refresh of every hosted model registry. The work changed selectors, provider request shapes, prices, defaults, all-provider expansion, resume identity, historical readers, and locally testable capability contracts across write, OCR, STT, TTS, music, image, and video. Active surfaces moved to 22 STT selectors, 111 hosted TTS selectors, 5 music selectors, 34 hosted raster image selectors, and 32 video selectors.
 
 Those provider releases are implementation history rather than the stable place future maintainers should learn registry policy. ADR-010 owns the durable rules and ADR-012 owns how a refresh is proven, so this ledger records only what changed during the 2026 refresh and why provider-specific adapter branches remain. It is intentionally dated: future refreshes may append a new dated section or open a new ledger, but must not turn these provider snapshots into timeless policy.
 
@@ -20,8 +20,8 @@ Why now: the refresh is complete across all seven hosted command surfaces, and i
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **One dated cross-modality refresh ledger separated from durable policy and evidence architecture** | Keeps all 2026 additions, removals, provider constraints, corrections, and final counts discoverable without duplicating policy | Produces a long historical record and requires links to policy/evidence authorities | Consolidates 4 refresh chronologies across 7 hosted command surfaces |
-| Keep one live refresh ADR per modality pair | Keeps provider details in smaller files | Repeats policy and paid-verification rules and preserves arbitrary TTS/music and image/video pairings | Retains 4 dated refresh authorities |
+| **One dated cross-modality refresh ledger separated from durable policy and evidence architecture** | Keeps all 2026 additions, removals, provider constraints, corrections, and final counts discoverable without duplicating policy | Produces a long historical record and requires links to policy/evidence authorities | Consolidates refresh chronologies across 7 hosted command surfaces |
+| Keep one live refresh ADR per modality | Keeps provider details in smaller files | Repeats policy and paid-verification rules across multiple documents | Retains multiple dated refresh authorities |
 | Put all chronology into the durable policy ADR | Gives one model document | Buries stable lifecycle/capability rules under provider release history | More than 1,000 lines of mixed policy and evidence |
 | Preserve only current registry code and delete the decision history | Minimizes documentation | Loses why historical identities, provider branches, and exclusions exist | No audit trail for removed selectors or paid corrections |
 
@@ -76,13 +76,9 @@ Latency and token heuristics for new or replacement selectors reuse the closest 
 - Removed the duplicate `mistral-ocr-latest` selector because it was byte-for-byte equivalent to `mistral-ocr-4-0`, doubled paid all-OCR work, and contradicted the fixed-ID rule. `mistral-ocr-2512` remained the cheapest Mistral default.
 - The 2026-08-10 MiniMax structured-output gate remained negative: current `MiniMax-M3` OpenAI-compatible documentation exposed no `response_format` or `json_schema`, and only the deprecated native `MiniMax-Text-01` endpoint documented JSON Schema. The compatibility fallback and schema-guided strategy therefore remain live.
 
-### 2026-08-14 OCR provider-surface expansion (implemented)
+### 2026-08-14 OCR provider-surface expansion
 
-This dated section records a prioritized OCR expansion across Replicate, fal.ai, and DeepInfra. All eight P1–P8 entries are implemented in their recorded priority order: the DeepInfra models as registry-only additions, and the Replicate and fal.ai models through new step-2 OCR services with provider registry wiring, pricing provenance, resume identity, mocked adapter contracts, and price-preflight registration. Token-billed and compute-billed page costs remain estimates until an approved ADR-012 calibration promotes them.
-
-Implementation shape differed by provider. DeepInfra additions were registry-only changes: the existing DeepInfra OCR adapter renders pages to PNG and calls the OpenAI-compatible vision API, so the new model IDs needed only `ocr-config/ocr-deepinfra.json` entries, `ocr-models.ts` validation, help, docs, and contracts. Replicate and fal.ai previously had no OCR integration; each gained a new step-2 OCR service (`ocr-services/replicate-ocr/` and `ocr-services/fal-ocr/`) that reuses the provider's existing client transport, plus provider registry wiring, pricing, resume identity, and mocked contracts.
-
-Priority ranking by best combination of quality, speed, and cost. Token-billed page costs are provisional estimates that reuse the existing DeepInfra per-page heuristic (~7,981 prompt tokens and ~472 completion tokens per rendered page) and stay provisional until an approved ADR-012 calibration promotes them.
+The prioritized OCR expansion across Replicate, fal.ai, and DeepInfra implemented all eight P1–P8 entries in recorded priority order. DeepInfra additions were registry-only changes (`ocr-config/ocr-deepinfra.json`, `ocr-models.ts` validation, help, docs, and contracts) reusing the OpenAI-compatible vision API. Replicate and fal.ai introduced new step-2 OCR services (`ocr-services/replicate-ocr/` and `ocr-services/fal-ocr/`) reusing existing provider client transports, pricing provenance, resume identity, and mocked adapter contracts. Token-billed page costs reuse the DeepInfra per-page heuristic (~7,981 prompt tokens and ~472 completion tokens per page) and stay provisional until an approved ADR-012 calibration promotes them.
 
 | Priority | Selector | Provider | Pricing basis | Est. cost per 1k pages | Rationale |
 |---|---|---|---|---|---|
@@ -95,23 +91,23 @@ Priority ranking by best combination of quality, speed, and cost. Token-billed p
 | P7 | `fal-ai/got-ocr/v2` | fal.ai | $0.05 per image | $50.00 | Unique specialty coverage (formatted documents, tables, charts, mathematical formulas, geometric shapes, molecular formulas, sheet music) but 25x the P1 price; justified only for specialty content, never as a default or all-OCR economy target. |
 | P8 | `fal-ai/florence-2-large/ocr` | fal.ai | $0.00125 per GPU compute second | ~$7.55 (benchmark-calibrated estimate) | Compute-second billing has no fixed per-page or per-token rate, so the registry carries a benchmark-calibrated estimate from the 2026-08-14 Florence run (29 pages in 175.099 observed wall seconds, ~6.04 s/page) and explicitly marks it as an estimate rather than an invoice amount; billed GPU seconds vary by image and runtime. |
 
-Pricing provenance was checked 2026-08-14 against the Replicate model pages and Datalab/Replicate pricing announcements (`replicate.com/datalab-to/ocr`, `replicate.com/datalab-to/marker`, `replicate.com/lucataco/deepseek-ocr`), the fal.ai endpoint pages (`fal.ai/models/fal-ai/got-ocr/v2`, `fal.ai/models/fal-ai/florence-2-large/ocr`), and the DeepInfra model pages for Gemma 3 27B, Mistral Small 3.2 24B, and Llama 4 Scout.
+Pricing provenance was checked 2026-08-14 against Replicate, fal.ai, and DeepInfra model pages.
 
-Excluded from the expansion, with the exclusion rationale recorded so a future sweep does not treat these as omissions:
+Excluded from the expansion, with exclusion rationale recorded to prevent treating these as omissions:
 
-- Replicate `abiruyt/text-extract-ocr`: Tesseract-class plain-text extraction; the free local `tesseract` engine already covers this tier, so paying per run adds cost without quality.
-- Replicate `lucataco/glm-ocr`: duplicates the registered direct GLM provider's `glm-ocr` selector, contradicting the duplicate-selector rule that removed `mistral-ocr-latest`.
-- Replicate `cuuupid/marker`: superseded by the official `datalab-to/marker` deployment.
+- Replicate `abiruyt/text-extract-ocr`: Tesseract-class plain-text extraction; the free local `tesseract` engine already covers this tier.
+- Replicate `lucataco/glm-ocr`: duplicates the registered direct GLM provider's `glm-ocr` selector.
+- Replicate `cuuupid/marker`: superseded by official `datalab-to/marker`.
 - Replicate `bytedance/dolphin`, `mickeybeurskens/latex-ocr`, `willywongi/donut`, `cjwbw/docentr`, `awilliamson10/meta-nougat`, `cudanexus/ocr-surya`, and `pbevan1/llama-3.1-8b-ocr-correction`: low-usage community deployments, single-purpose utilities, or pre/post-processing stages rather than general-purpose page OCR.
-- fal.ai `openrouter/router/vision`: a moving router over many upstream models, violating the fixed-ID rule.
-- fal.ai `moondream3-preview/*`: preview-named endpoints, and only `query` overlaps OCR; deferred until a fixed non-preview ID exists.
-- fal.ai `docres` and `docres/dewarp`: document image enhancement, not OCR; eligible only as a future preprocessing decision.
-- DeepInfra partner-hosted Anthropic Claude and Google Gemini selectors: duplicate already-registered direct providers and add a routing layer without a price advantage.
-- DeepInfra `google/gemma-3-12b-it` and `google/gemma-3-4b-it`: marginal savings over Gemma 3 27B with meaningfully weaker OCR quality.
+- fal.ai `openrouter/router/vision`: moving router violating the fixed-ID rule.
+- fal.ai `moondream3-preview/*`: preview-named endpoints; deferred until a fixed non-preview ID exists.
+- fal.ai `docres` and `docres/dewarp`: document image enhancement, not OCR.
+- DeepInfra partner-hosted Anthropic Claude and Google Gemini selectors: duplicate direct providers without price advantages.
+- DeepInfra `google/gemma-3-12b-it` and `google/gemma-3-4b-it`: marginal savings over Gemma 3 27B with weaker OCR quality.
 
 ### STT refresh
 
-The STT refresh covered concrete general-purpose hosted batch models only. It excluded medical/specialized, streaming/realtime, dedicated-deployment, human, retrieval, and moving-alias products including Nova-3 Medical, Deepgram Flux, Mistral Realtime, Together streaming/dedicated offerings, Happy Scribe Pro, and Supadata retrieval modes.
+The STT refresh covered concrete general-purpose hosted batch models only, finishing with 22 active selectors. It excluded medical/specialized, streaming/realtime, dedicated-deployment, human, retrieval, and moving-alias products including Nova-3 Medical, Deepgram Flux, Mistral Realtime, Together streaming/dedicated offerings, Happy Scribe Pro, and Supadata retrieval modes.
 
 | Provider | Active change and retained contract |
 |---|---|
@@ -127,39 +123,33 @@ Completed historical results for removed selectors remain reportable. Unfinished
 
 Two corrections found during benchmark validation remain in current code: the split Gladia checkpoint isolates every segment's remote job, and compacted STT resume reads canonical structured `result.json` before the legacy `transcription.txt` fallback.
 
-### TTS refresh and provider-catalog follow-up
+### TTS refresh and catalog narrowing
 
-The TTS refresh removed four retired or moving selectors, added canonical or additive replacements, reached 109 hosted TTS selectors after the 2026-08-11 primary-documentation catalog follow-up added 84 voice-model IDs, and reached 122 on 2026-08-14 after four provider integrations added a net 13 current selectors.
+The hosted TTS catalog standardized on 111 active selectors across 15 hosted providers (plus local Kitten TTS). Outdated and moving selectors were replaced with fixed versions or retired with explicit refusal guidance. All active selectors participate in the canonical TTS selection descriptor, repeatable `--provider provider=model` normalization, `--all-tts` policy, price planning, and additive resume.
 
-| Provider | 2026 decision and implementation |
+| Provider | 2026 decision and active implementation |
 |---|---|
-| Speechify | Replaced legacy `simba-english` with `simba-3.2` and added multilingual default `simba-3.0`; added current pricing/timing, model-specific language and built-in-voice validation, and historical identity handling. Clone access was not inferred. |
+| Speechify | Replaced legacy `simba-english` and `simba-3.0` with active default `simba-3.2`; added current pricing/timing, model-specific language and built-in-voice validation, and historical identity handling. Clone access was not inferred. |
 | Cartesia | Replaced `sonic-3` and moving `sonic-3.5` with fixed `sonic-3.5-2026-05-04`, preserving compatible default voice behavior and historical aliases. |
-| OpenAI | Replaced moving `gpt-4o-mini-tts` with fixed `gpt-4o-mini-tts-2025-12-15`; retained `tts-1` and `tts-1-hd` because the official speech request schema still enumerated both. Built-in validation uses each model's documented subset; eligible custom voices serialize as `{ id: "voice_…" }`. Conflicting guide/catalog status did not justify removal without primary-schema evidence. |
-| Deepgram | Expanded from 8 to all 91 documented Aura-2 voice-model IDs across seven languages, all on the existing query transport, 2,000-character limit, and Aura-2 price. Aura-1 and Early Access Flux remain excluded. Deepgram's one-default all-TTS policy prevents 91 voices from multiplying ordinary all-provider execution. |
-| ElevenLabs | Retained `eleven_v3` and added `eleven_multilingual_v2` and `eleven_flash_v2_5` with current pricing, timing, limits, controls, help, and tests on the existing endpoint. |
-| Mistral | Retained exact canonical `voxtral-mini-tts-2603`, which primary documentation still enumerates as the API ID. |
-| Groq | Added `canopylabs/orpheus-arabic-saudi` beside English Orpheus. English/Arabic six-voice namespaces are model-disjoint; Arabic uses a 200-character WAV-only contract with no vocal directions and `$40/1M` characters. AutoShow chose `abdullah` locally because a voice is required and no provider default was documented. |
+| OpenAI | Replaced moving `gpt-4o-mini-tts` with fixed `gpt-4o-mini-tts-2025-12-15`. Retired classic `tts-1` and `tts-1-hd` because they reject instruction steering. Custom voices serialize as `{ id: "voice_…" }`. |
+| Deepgram | Expanded from 8 to all 91 documented Aura-2 voice-model IDs across seven languages on the existing query transport, 2,000-character limit, and Aura-2 price. Aura-1 and Early Access Flux remain excluded. Deepgram's one-default all-TTS policy prevents 91 voices from multiplying ordinary all-provider execution. |
+| ElevenLabs | Retained flagship `eleven_v3` with current pricing, timing, limits, controls, help, and tests on the existing endpoint. Retired earlier multilingual/flash variants to keep only the native-dialogue flagship. |
+| Mistral | Retained exact canonical `voxtral-mini-tts-2603`, which primary documentation enumerates as the API ID. |
+| Groq | Retained English Orpheus (`canopylabs/orpheus-v1-english`) with default voice `abdullah`. Retired narrow Arabic Orpheus selector. |
 | xAI | Kept local product selector `grok-tts` because the REST request has no model field; expanded stock voices from 5 to all 26 documented case-insensitive IDs with `eve` default and retained eight-lowercase-alphanumeric custom-ID validation. |
 | Gemini | Kept `gemini-3.1-flash-tts-preview` and added all 30 documented case-insensitive prebuilt voices for single-speaker and exactly-two-speaker TTS. |
-| Inworld | Added current `realtime-tts-2` and `realtime-tts-2-flash` selectors on first-party REST synthesis, mapped to provider API IDs `inworld-tts-2` and `inworld-tts-2-flash`. Published on-demand rates are `$25` and `$15` per 1M characters. The first live benchmark pass proved that the previously registered 1.5 Max/Mini IDs were no longer accepted; those selectors were removed instead of being silently remapped. The current reliable contract is single-voice synthesis, steering/markup serialization, read-only catalog discovery, and pre-synthesis account-visible voice readiness; WebSocket timing, native dialogue, design, cloning, and mutation remain gated by ADR-018. |
-| DeepInfra | Added `ResembleAI/chatterbox-multilingual`, `ResembleAI/chatterbox-turbo`, `XiaomiMiMo/MiMo-V2.5-tts`, `XiaomiMiMo/MiMo-V2.5-tts-voicedesign`, `Qwen/Qwen3-TTS`, and `Qwen/Qwen3-TTS-VoiceDesign` on the hosted inference transport. Chatterbox uses `$1/1M` characters, MiMo is recorded at the reviewed promotional `$0/1M` rate, and Qwen uses `$20/1M`. Live schema validation corrected the shared prototype serializer to model-specific bodies: Chatterbox uses `text` and optional `voice_id`, MiMo uses `text` and `voice` with a 1,000-character limit, and Qwen uses `input` and `voice` with a 4,000-character limit. Provider/model-specific native dialogue, design, cloning, and reference lifecycle remain separate ADR-018 gates. |
-| Replicate | Added only version-pinned `jaaari/kokoro-82m` with exact `{ text, voice, speed? }` serialization, validated stock voices, immediate output capture, and an estimated typical `$0.00022` prediction. Removed speculative `x-lance/f5-tts`, `zsxkib/dia`, and `lucataco/xtts-v2` entries because their reference/dialogue schemas are not Kokoro-compatible. |
-| Fish | Added `fish-speech-1.5`, `s1`, `s2-pro`, and `voice-design-1` at reviewed rates of `$50`, `$50`, `$100`, and `$200` per 1M characters. Single-voice synthesis, S2 Pro native dialogue with timestamped streaming, catalog/design/clone/reconcile lifecycle, and mocked soundscape acceptance are implemented; professional clone remains unsupported. |
+| Inworld | Added `realtime-tts-2` on first-party REST synthesis at published `$25/1M` characters (API ID `inworld-tts-2`). Removed legacy 1.5 Max/Mini IDs and retired Flash variant. Contract covers single-voice synthesis, steering/markup serialization, and read-only catalog discovery; advanced capabilities remain gated by ADR-018. |
+| DeepInfra | Added `ResembleAI/chatterbox-turbo` ($1/1M chars), `XiaomiMiMo/MiMo-V2.5-tts` ($0/1M promo rate), `XiaomiMiMo/MiMo-V2.5-tts-voicedesign` ($0/1M), `Qwen/Qwen3-TTS` ($20/1M), and `Qwen/Qwen3-TTS-VoiceDesign` ($20/1M) on the hosted inference transport. Chatterbox uses `text` and optional `voice_id`, MiMo uses `text` and `voice` (1,000-char limit), and Qwen uses `input` and `voice` (4,000-char limit). Retired failing `chatterbox-multilingual`. |
+| Replicate | Added version-pinned `jaaari/kokoro-82m` with exact `{ text, voice, speed? }` serialization, validated stock voices, immediate output capture, and estimated `$0.00022` prediction. Removed speculative `x-lance/f5-tts`, `zsxkib/dia`, and `lucataco/xtts-v2` entries lacking Kokoro-compatible schemas. |
+| Fish | Standardized on `s2.1-pro` at published `$15 / M UTF-8 bytes` ($0.015 / 1K characters English ASCII estimate) as Fish's sole synthesis model. Native dialogue, timestamp streaming, and `[bracket]` delivery markup are scoped to `s2.1-pro`. `voice-design-1` is exposed as the Voice Design creation endpoint via `--creation-model voice-design-1` rather than a synthesis selector. |
 
 Stock-voice changes that did not alter a model selector remain in this ledger because they explain current capability tables and request validation. Voice resource lifecycle, casting, cloning, and multi-speaker architecture belong to ADR-014.
 
-All 13 current added selectors participate in the canonical TTS selection descriptor, repeatable `--provider provider=model` normalization, `--all-tts` policy, price planning, and additive resume. Resume no longer carries a handwritten 12-provider inventory: new-provider completeness is compile-time checked against its model fields, and local contracts prove selection/resume parity across all 16 current TTS providers. ADR-002 owns the narrow completed-legacy-TTS bridge and failed implicit-default replacement branch used by retained June benchmark runs; ADR-012 records the paid cohort and its exact price and execution evidence.
-
-### 2026-08-15 TTS catalog narrowing (implemented)
-
-The live hosted TTS catalog moved from 122 to 111 selectors: twelve refused IDs were retired and Fish `s2.1-pro` was added as the only Fish synthesis model. Direct selection of a refused ID fails with replacement guidance and no silent substitution. Historical June 2026 benchmark manifests keep their original identities and reprice through `RETIRED_MODEL_RATES`. Command docs list only the live catalog.
-
-`s2.1-pro` is priced at Fish's published `$15 / M UTF-8 bytes`, recorded as `1.5` cents per 1K characters for English ASCII estimates. Bare `--provider fish` now defaults to `s2.1-pro`. Native dialogue, timestamp streaming, and `[bracket]` delivery markup are scoped to `s2.1-pro`. `voice-design-1` is the Voice Design API used by `s2.1-pro` via `--creation-model voice-design-1`, not a synthesis selector. `s2.1-pro-free` was not registered because it is a billing twin, not a distinct generation contract.
+Resume no longer carries a handwritten 12-provider inventory: new-provider completeness is compile-time checked against model fields, and local contracts prove selection/resume parity across all 16 current TTS providers. ADR-002 owns the narrow completed-legacy-TTS bridge; ADR-012 records the paid cohort evidence.
 
 #### Refused / do not reimplement
 
-These selectors are retired on purpose. Do not add them back because a provider catalog, sibling-tier, or language-coverage sweep still lists them.
+These twelve selectors are retired on purpose. Direct selection fails with replacement guidance and no silent substitution. Do not reintroduce them during catalog or language sweeps.
 
 | Refused selector | Replacement | Why not come back |
 |---|---|---|
@@ -172,19 +162,19 @@ These selectors are retired on purpose. Do not add them back because a provider 
 | `inworld/realtime-tts-2-flash` | `realtime-tts-2` | Latency sibling that rejected `--tts-instructions` |
 | `speechify/simba-3.0` | `simba-3.2` | Keep only the current Speechify default |
 | `deepinfra/ResembleAI/chatterbox-multilingual` | `ResembleAI/chatterbox-turbo` | Keep turbo; live hard-input HTTP 500s |
-| `openai/tts-1` | `gpt-4o-mini-tts-2025-12-15` | Reverses the earlier retain-classic-OpenAI row; classic models reject instructions |
-| `openai/tts-1-hd` | `gpt-4o-mini-tts-2025-12-15` | Same classic-OpenAI refusal |
+| `openai/tts-1` | `gpt-4o-mini-tts-2025-12-15` | Reverses earlier classic OpenAI retention; classic models reject instructions |
+| `openai/tts-1-hd` | `gpt-4o-mini-tts-2025-12-15` | Same classic OpenAI refusal |
 | `groq/canopylabs/orpheus-arabic-saudi` | `canopylabs/orpheus-v1-english` | Narrow language, 200-character WAV-only, no vocal directions |
 
 ### Music refresh
 
-The active music surface moved from four to five selectors.
+The active music surface finished with 5 selectors across 3 hosted providers.
 
 - Added ElevenLabs `music_v2` while retaining `music_v1` during its documented transition. The compose route automatically selects `mp3_44100_128` for v1 and `mp3_48000_192` for v2 and records the actual format. The v2 contract remains prompt-only; reference audio, inpainting, long-form section composition, and fine-tuning were not implied.
 - Replaced MiniMax `music-2.6` with recommended `music-3.0` on the existing `/v1/music_generation` prompt/lyrics/instrumental lifecycle. New selection rejects 2.6; historical readers preserve its `15¢` per-track rate plus `1¢` for generated lyrics. A recorded provider cost still wins.
 - Retained Gemini `lyria-3-clip-preview` and `lyria-3-pro-preview`, their per-track pricing, 30-second Clip behavior, prompt-controlled Pro duration, and Interactions API routing. Lyria RealTime is a streaming product, not another finished-track selector.
 - Excluded MiniMax free-tier duplicate IDs, `music-cover`, cover-free, reference-audio products, and Lyria RealTime because their availability, inputs, rate limits, or streaming lifecycle differ from text-to-music.
-- Additive music resume now promotes outputs to provider/model-specific filenames before merging metadata, preventing the artifact collision found during the approved benchmark pass.
+- Additive music resume now promotes outputs to provider/model-specific filenames before merging metadata, preventing artifact collisions during benchmark passes.
 
 ### Image refresh
 
@@ -218,7 +208,7 @@ The Veo audit kept the raw REST output boundary: completed operations read `resp
 ## API / Type Impact
 
 - Write/OCR unions gained the concrete 2026 OpenAI, Anthropic, Grok, Gemini, and Kimi models described above; Gemini 3.1 Flash-Lite and duplicate Mistral latest are absent from active validation but remain historically readable where applicable.
-- STT active entries finish at 22, hosted TTS at 122, music at 5, hosted image at 34 raster selectors, and video at 32 selectors, each with exact model/voice/mode compatibility.
+- STT active entries finish at 22, hosted TTS at 111, music at 5, hosted image at 34 raster selectors, and video at 32 selectors, each with exact model/voice/mode compatibility.
 - Removed selectors are absent from current help, defaults, all-provider expansion, and new manifests. Historical results keep their provider/model keys and rates.
 - Bare defaults and all-provider expansion changed only through explicit active-registry policy; invalid model-specific modes fail before pricing or dispatch.
 

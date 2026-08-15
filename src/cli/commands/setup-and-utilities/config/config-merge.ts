@@ -107,8 +107,8 @@ export const mergeConfigIntoRawFlags = (
   // Everything else is a one-flag-one-destination default, so the table is the
   // whole mapping. Section gating is implicit: a missing config section makes
   // readNestedValue return undefined and inject skip the flag. Paths outside
-  // `defaults` (`max-cents`) are not CLI defaults and stay excluded, as does
-  // `prompt`, which has no table entry and is handled below.
+  // `defaults` (`max-cents`, cookie auth) are not CLI defaults and stay excluded,
+  // as does `prompt`, which has no table entry and is handled below.
   for (const [flagName, path] of Object.entries(FLAG_TO_CONFIG_PATH)) {
     if (GROUP_INJECTED_FLAGS.has(flagName) || path[0] !== 'defaults') continue
     inject(flagName, path)
@@ -281,6 +281,8 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'batch-order':       ['defaults', 'batch', 'order'],
   'batch-concurrency': ['defaults', 'batch', 'concurrency'],
   'max-cents':         ['pricing', 'maxCents'],
+  cookies:             ['auth', 'cookies'],
+  'cookies-from-browser': ['auth', 'cookiesFromBrowser'],
 }
 
 // Per-run inputs that are never persisted. `buildConfigPatchFromFlags` skips these

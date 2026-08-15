@@ -305,7 +305,7 @@ describe('comic presentation manifest migration', () => {
 
       const plan = await writeImmutableArtifactFile(root, 'presentation/runs/test/plan.json', '{}\n')
       const timeline = await writeImmutableArtifactFile(root, 'presentation/runs/test/timeline.json', '{}\n')
-      const run = await writeImmutableArtifactFile(root, 'presentation/runs/test/run.json', '{}\n')
+      const run = await writeImmutableArtifactFile(root, 'presentation/runs/test/comic-presentation-run.json', '{}\n')
       const wav = await writeImmutableArtifactFile(root, 'presentation/final/slideshow.wav', new Uint8Array([1, 2, 3]))
       const mp4 = await writeImmutableArtifactFile(root, 'presentation/final/slideshow.mp4', new Uint8Array([4, 5, 6]))
       const artifactRefs = [plan, timeline, run, wav, mp4].map(ref => ({ path: ref.relativePath, sha256: ref.sha256 }))
@@ -329,7 +329,7 @@ describe('comic presentation manifest migration', () => {
 
       const nextPlan = await writeImmutableArtifactFile(root, 'presentation/runs/next/plan.json', '{"next":"plan"}\n')
       const nextTimeline = await writeImmutableArtifactFile(root, 'presentation/runs/next/timeline.json', '{"next":"timeline"}\n')
-      const nextRun = await writeImmutableArtifactFile(root, 'presentation/runs/next/run.json', '{"next":"run"}\n')
+      const nextRun = await writeImmutableArtifactFile(root, 'presentation/runs/next/comic-presentation-run.json', '{"next":"run"}\n')
       const nextWavBytes = new Uint8Array([7, 8, 9])
       const nextMp4Bytes = new Uint8Array([10, 11, 12])
       const nextWav = await writeImmutableArtifactFile(root, 'presentation/runs/next/presentation.wav', nextWavBytes)

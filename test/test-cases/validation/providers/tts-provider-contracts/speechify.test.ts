@@ -43,7 +43,8 @@ describe('TTS provider service contracts', () => {
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
         audioFormat: 'wav',
-        language: 'en-US'
+        language: 'en-US',
+        allowAmbiguousRedispatch: true
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)

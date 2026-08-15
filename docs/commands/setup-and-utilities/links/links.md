@@ -102,6 +102,7 @@ Accepted provider selectors are the lowercase names below.
 | `--elevenlabs` | `models`, `music`, `tts` |
 | `--fal` | `general`, `image`, `video` |
 | `--firecrawl` | `general`, `url` |
+| `--fish` | `general`, `models`, `tts` |
 | `--gemini` | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--gladia` | `general`, `stt` |
 | `--glm` | `general`, `models`, `ocr`, `text`, `url` |
@@ -109,6 +110,7 @@ Accepted provider selectors are the lowercase names below.
 | `--groq` | `general`, `models`, `stt`, `text`, `tts` |
 | `--happyscribe` | `stt` |
 | `--hume` | `general`, `tts` |
+| `--inworld` | `general`, `models`, `tts` |
 | `--kimi` | `general`, `models`, `ocr`, `text` |
 | `--llamafile` | `general`, `stt`, `text` |
 | `--ltx` | `models`, `video` |

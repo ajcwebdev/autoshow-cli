@@ -1,0 +1,37 @@
+{
+  "Inworld": {
+    "General": [
+      "https://docs.inworld.ai/api-reference/introduction.md",
+      "https://docs.inworld.ai/resources/rate-limits.md",
+      "https://docs.inworld.ai/resources/concurrency-limits.md"
+    ],
+    "Models": [
+      "https://docs.inworld.ai/tts/tts-models.md",
+      "https://docs.inworld.ai/tts/resources/billing.md"
+    ],
+    "TTS": [
+      "https://docs.inworld.ai/quickstart-tts.md",
+      "https://docs.inworld.ai/tts/tts.md",
+      "https://docs.inworld.ai/tts/capabilities/generating-audio.md",
+      "https://docs.inworld.ai/tts/capabilities/steering.md",
+      "https://docs.inworld.ai/tts/synthesize-speech.md",
+      "https://docs.inworld.ai/tts/voice-cloning.md",
+      "https://docs.inworld.ai/tts/professional-voice-cloning.md",
+      "https://docs.inworld.ai/tts/voice-design.md",
+      "https://docs.inworld.ai/tts/capabilities/timestamps.md",
+      "https://docs.inworld.ai/tts/capabilities/long-text-input.md",
+      "https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech.md",
+      "https://docs.inworld.ai/api-reference/voiceAPI/voiceservice/list-voices.md",
+      "https://docs.inworld.ai/api-reference/voiceAPI/voiceservice/get-voice.md",
+      "https://docs.inworld.ai/api-reference/voiceAPI/voiceservice/clone-voice.md",
+      "https://docs.inworld.ai/api-reference/voiceAPI/voiceservice/design-voice.md",
+      "https://docs.inworld.ai/api-reference/voiceAPI/voiceservice/publish-voice.md",
+      "https://docs.inworld.ai/api-reference/voiceAPI/voiceservice/delete-voice.md",
+      "https://docs.inworld.ai/tts/best-practices/generating-speech.md",
+      "https://docs.inworld.ai/tts/best-practices/prompting-for-tts.md",
+      "https://docs.inworld.ai/tts/best-practices/prompting-for-tts-2.md",
+      "https://docs.inworld.ai/tts/best-practices/voice-cloning.md",
+      "https://docs.inworld.ai/tts/best-practices/voice-design.md"
+    ]
+  }
+}

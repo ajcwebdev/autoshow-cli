@@ -6,6 +6,11 @@ const PricingConfigSchema = v.strictObject({
   maxCents: v.optional(v.pipe(v.number(), v.minValue(0)), undefined)
 })
 
+const AuthConfigSchema = v.strictObject({
+  cookies: v.optional(v.string(), undefined),
+  cookiesFromBrowser: v.optional(v.string(), undefined)
+})
+
 const ConcurrencyDefaultsSchema = v.strictObject({
   mode: v.optional(v.picklist(['ramp', 'immediate']), undefined)
 })
@@ -241,5 +246,6 @@ const ConfigDefaultsSchema = v.strictObject({
 
 export const AutoshowConfigSchema = v.strictObject({
   defaults: v.optional(ConfigDefaultsSchema, undefined),
-  pricing: v.optional(PricingConfigSchema, undefined)
+  pricing: v.optional(PricingConfigSchema, undefined),
+  auth: v.optional(AuthConfigSchema, undefined)
 })

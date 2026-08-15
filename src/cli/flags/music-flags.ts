@@ -18,8 +18,8 @@ const musicLyricVideoFlags = {
   batch: boolFlag('Render lyric videos for all supported audio files under input recursively'),
   audio: strFlag('Single lyric-video audio file inside input'),
   captions: strFlag('Optional VTT or SRT file inside ./output for rerendering without Whisper'),
-  model: strFlag(`Local whisper.cpp model for lyric-video captions: ${formatValueList(SUPPORTED_WHISPER_MODELS)} (default: large-v3-turbo)`, 'large-v3-turbo'),
-  font: strFlag('Font family used for rendered lyric-video captions (default: DejaVu Sans)', 'DejaVu Sans'),
+  model: strFlag(`Local whisper.cpp model for lyric-video captions: ${formatValueList(SUPPORTED_WHISPER_MODELS)}`, 'large-v3-turbo'),
+  font: strFlag('Font family used for rendered lyric-video captions', 'DejaVu Sans'),
   'keep-tmp': boolFlag('Keep the per-run .lyrics-tmp workspace in the output directory')
 } as const satisfies CliFlagsDefinition
 

@@ -65,6 +65,8 @@ bun as config --concurrency-mode immediate
 bun as config --prompt shortSummary --prompt longChapters
 bun as config --chapters --length 50 --pdf-chapter-mode auto
 bun as config --max-cents 100
+bun as config --cookies-from-browser chrome
+bun as config --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 ```
 
 Model-selecting step selector flags are repeatable. Repeating a provider selector saves all selected models in first-seen order:
@@ -245,6 +247,10 @@ Representative JSON shape:
   },
   "pricing": {
     "maxCents": 100
+  },
+  "auth": {
+    "cookies": "/absolute/path/to/runtime/auth/youtube.cookies.txt",
+    "cookiesFromBrowser": "chrome"
   }
 }
 ```
@@ -339,13 +345,17 @@ ElevenLabs and Speechify custom-voice creation fields describe one-off provision
 
 `--music-lyrics-file` and `--music-instrumental` are runtime music generation flags and are not persisted config defaults.
 
-### defaults.batch, defaults.prompts, pricing
+### defaults.batch, defaults.prompts, pricing, auth
 
 | Field | Flag |
 |-------|------|
 | `defaults.batch.limit`, `defaults.batch.order`, `defaults.batch.concurrency` | `--batch-limit`, `--batch-order`, `--batch-concurrency` |
 | `defaults.prompts` | repeated `--prompt` |
 | `pricing.maxCents` | `--max-cents` |
+| `auth.cookies` | `--cookies` |
+| `auth.cookiesFromBrowser` | `--cookies-from-browser` |
+
+Cookie auth persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`. Processing commands no longer accept these flags; configure them here, then run `extract` / `download` / `metadata`.
 
 `default` prompt expansion is `shortSummary + longSummary + longChapters`.
 
@@ -406,7 +416,7 @@ bun as config \
 
 ## Flags
 
-`bun as config --help` is the authoritative generated flag list for this command. It includes config controls, pricing controls, batch defaults, Step 2 STT/OCR defaults, Step 3 LLM defaults, and post-processing defaults for TTS, image, video, and music.
+`bun as config --help` is the authoritative generated flag list for this command. It includes config controls, pricing controls, YouTube cookie auth, batch defaults, Step 2 STT/OCR defaults, Step 3 LLM defaults, and post-processing defaults for TTS, image, video, and music.
 
 Global flags:
 

@@ -42,6 +42,7 @@ export const runSpeechifyTts = async (
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
+    allowAmbiguousRedispatch?: boolean | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('SPEECHIFY_API_KEY', 'tts:speechify', 'Speechify TTS')
@@ -77,6 +78,7 @@ export const runSpeechifyTts = async (
     chunkExtension: audioFormat,
     startTime,
     abortSignal: options.abortSignal,
+    allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,

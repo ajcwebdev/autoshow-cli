@@ -72,19 +72,19 @@ export const writeFlags = {
   ...withHelpGroup(writePipelineFlags, 'pipeline'),
   ...withHelpGroup(reasoningEffortFlag, 'pipeline'),
   ...withHelpGroup(batchFlags, 'batch-download'),
-  ...withHelpGroup(transcriptionFlags, 'extraction'),
-  ...withHelpGroup(ocrInputFlags, 'extraction'),
-  ...withHelpGroup(ocrTuningFlags, 'extraction'),
-  ...withHelpGroup({ ...ocrProviderModeFlag, ...primaryOcrFlag }, 'extraction'),
-  ...withHelpGroup(allArticleFlags, 'extraction'),
-  ...withHelpGroup(epubInspectFlags, 'extraction'),
+  ...withHelpGroup(transcriptionFlags, 'transcription'),
+  ...withHelpGroup(ocrInputFlags, 'ocr-document'),
+  ...withHelpGroup(ocrTuningFlags, 'ocr-document'),
+  ...withHelpGroup({ ...ocrProviderModeFlag, ...primaryOcrFlag }, 'ocr-document'),
+  ...withHelpGroup(allArticleFlags, 'article-extraction'),
+  ...withHelpGroup(epubInspectFlags, 'epub-inspect'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup(writeTextInputFlags, 'writing'),
   ...writeTtsOptionFlags,
   // ttsCommandFlags re-declares --batch-concurrency under its own group; restore the
   // batch grouping so all four batch flags render together.
   ...withHelpGroup({ 'batch-concurrency': batchFlags['batch-concurrency'] }, 'batch-download'),
-  ...withHelpGroup(imageGenFlags, 'step-5-image'),
-  ...withHelpGroup(videoGenFlags, 'step-6-video'),
-  ...withHelpGroup(musicGenFlags, 'step-7-music')
+  ...withHelpGroup(imageGenFlags, 'image-options'),
+  ...withHelpGroup(videoGenFlags, 'video-options'),
+  ...withHelpGroup(musicGenFlags, 'hosted-music')
 } as const satisfies CliFlagsDefinition

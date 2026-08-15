@@ -1,7 +1,7 @@
 import type { CliCommandContext, CliCommandDefinition, TtsProvider, TtsVoiceProvider, VoiceConsentAction, VoiceConsentRecord } from '~/types'
 import { join } from 'node:path'
 import { defineCliCommand } from '~/cli/native/native-types'
-import { boolFlag, strFlag, strListFlag } from '~/cli/flags/flag-utils'
+import { boolFlag, pickFlags, strFlag, strListFlag, withHelpGroup } from '~/cli/flags/flag-utils'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { CLIUsageError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
@@ -749,41 +749,63 @@ const inspectCommand = defineCliCommand({
 }, handleInspect)
 
 export const voiceReferenceAliasFlags = {
-  ...commonRegistrationFlags,
-  'voice-id': strFlag('Existing provider voice ID'),
-  origin: strFlag(`Voice origin: ${VOICE_ORIGINS.join('|')}`, 'provider-stock'),
-  'account-scope-hash': strFlag('SHA-256 account scope for account-namespaced voices'),
-  'voice-name': strFlag('Desired provider account voice name'),
-  'authorization-ref': strFlag('Opaque authorization record reference'),
-  allow: strFlag(`Comma-separated consent grants: ${CONSENT_ACTIONS.join(',')}`),
-  evidence: strFlag('Optional consent evidence file kept only in the protected store'),
-  'actor-namespace': strFlag('Audit actor namespace: local-user|project-role|automation', 'local-user'),
-  'actor-id': strFlag('Opaque audit actor ID'),
-  'generation-id': strFlag('Registration generation SHA-256'),
-  'representative-line': strFlag('Representative script line for the audition set'),
-  takes: strFlag('Takes per audition passage (1-5)', '1'),
-  'max-cents': strFlag('Maximum authorized provider spend in cents'),
-  reason: strFlag('Required non-sensitive revocation reason'),
-  'confirm-voice-id': strFlag('Exact provider resource ID confirmation'),
-  'consent-name': strFlag('Speechify clone consent full name'),
-  'consent-email': strFlag('Speechify clone consent email'),
-  locale: strFlag('Speechify clone locale'),
-  gender: strFlag(`Speechify clone gender: ${SPEECHIFY_CLONE_GENDERS.join('|')}`),
-  source: strFlag('Catalog source: account|provider-library|shared-library', 'account'),
-  cursor: strFlag('Opaque provider pagination cursor'),
-  'creation-model': strFlag('Provider model used only to create candidates'),
-  description: strFlag('Provider voice design/remix description'),
-  'preview-text': strFlag('Provider preview passage'),
-  candidates: strFlag('Bounded candidate count'),
-  seed: strFlag('Optional non-negative deterministic seed'),
-  'source-voice-id': strFlag('ElevenLabs remix source voice ID'),
-  'eligibility-snapshot-hash': strFlag('Dated ElevenLabs remix eligibility proof SHA-256'),
-  'subject-key': strFlag('Canonical character or role key for candidate materialization'),
-  kind: strFlag('Clone workflow: instant|professional', 'instant'),
-  sample: strListFlag('Authorized local clone sample; repeatable')
-} as const
+  ...withHelpGroup({
+    ...pickFlags(commonRegistrationFlags, ['provider', 'model', 'profile', 'provenance-ref', 'consent-ref', 'capability-fixture-hash']),
+    'voice-id': strFlag('Existing provider voice ID'),
+    origin: strFlag(`Voice origin: ${VOICE_ORIGINS.join('|')}`, 'provider-stock'),
+    'account-scope-hash': strFlag('SHA-256 account scope for account-namespaced voices'),
+  }, 'voice-registration'),
+  ...withHelpGroup({
+    allow: strFlag(`Comma-separated consent grants: ${CONSENT_ACTIONS.join(',')}`),
+    evidence: strFlag('Optional consent evidence file kept only in the protected store'),
+    'actor-namespace': strFlag('Audit actor namespace: local-user|project-role|automation', 'local-user'),
+    'consent-name': strFlag('Speechify clone consent full name'),
+    'consent-email': strFlag('Speechify clone consent email'),
+  }, 'voice-consent'),
+  ...withHelpGroup({
+    source: strFlag('Catalog source: account|provider-library|shared-library', 'account'),
+    cursor: strFlag('Opaque provider pagination cursor'),
+  }, 'voice-discovery'),
+  ...withHelpGroup({
+    'creation-model': strFlag('Provider model used only to create candidates'),
+    description: strFlag('Provider voice design/remix description'),
+    'preview-text': strFlag('Provider preview passage'),
+    candidates: strFlag('Bounded candidate count'),
+    seed: strFlag('Optional non-negative deterministic seed'),
+    'source-voice-id': strFlag('ElevenLabs remix source voice ID'),
+    'eligibility-snapshot-hash': strFlag('Dated ElevenLabs remix eligibility proof SHA-256'),
+    'subject-key': strFlag('Canonical character or role key for candidate materialization'),
+  }, 'voice-design'),
+  ...withHelpGroup({
+    kind: strFlag('Clone workflow: instant|professional', 'instant'),
+    sample: strListFlag('Authorized local clone sample; repeatable'),
+    'voice-name': strFlag('Desired provider account voice name'),
+    'authorization-ref': strFlag('Opaque authorization record reference'),
+    locale: strFlag('Speechify clone locale'),
+    gender: strFlag(`Speechify clone gender: ${SPEECHIFY_CLONE_GENDERS.join('|')}`),
+  }, 'voice-clone'),
+  ...withHelpGroup({
+    'generation-id': strFlag('Registration generation SHA-256'),
+    'representative-line': strFlag('Representative script line for the audition set'),
+    takes: strFlag('Takes per audition passage (1-5)', '1'),
+    'actor-id': strFlag('Opaque audit actor ID'),
+  }, 'voice-audition'),
+  ...withHelpGroup({
+    reason: strFlag('Required non-sensitive revocation reason'),
+    'confirm-voice-id': strFlag('Exact provider resource ID confirmation'),
+  }, 'voice-lifecycle'),
+  ...withHelpGroup({
+    ...pickFlags(commonRegistrationFlags, ['price']),
+    'max-cents': strFlag('Maximum authorized provider spend in cents'),
+  }, 'pricing'),
+}
 
 export const VOICE_SUBCOMMAND_DEFINITIONS = [consentCommand, revokeConsentCommand, discoverCommand, importCommand, designCommand, materializeCommand, cloneCommand, auditionCommand, approveCommand, inspectCommand, reconcileCommand, retireCommand, revokeCommand, deleteCommand, statusCommand] as const satisfies readonly CliCommandDefinition[]
+
+export const voiceActionName = (commandName: string): string =>
+  commandName.startsWith('voice ') ? commandName.slice('voice '.length) : commandName
+
+export const VOICE_ACTIONS = VOICE_SUBCOMMAND_DEFINITIONS.map((entry) => voiceActionName(entry.name))
 
 export const voiceCommand = defineCliCommand({
   name: 'voice', description: 'Manage durable provider voice registrations separately from speech synthesis',
@@ -803,7 +825,11 @@ export const voiceCommand = defineCliCommand({
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']
     ],
-    notes: ['Voice management supports only ElevenLabs eleven_v3, Inworld realtime-tts-2, Fish s2.1-pro, Cartesia sonic-3.5-2026-05-04, and Speechify simba-3.2. Every other TTS model stays synthesis-only through tts with an existing stock, designed, or cloned voice ID.', 'Cartesia and Speechify expose catalog, clone, inspect, and delete. Text-prompt design is ElevenLabs, Inworld, and Fish. tts, write, resume, and synthesis price never create voices.']
+    notes: [
+      'Each subcommand has its own flags: bun autoshow voice <subcommand> --help',
+      'Voice management supports only ElevenLabs eleven_v3, Inworld realtime-tts-2, Fish s2.1-pro, Cartesia sonic-3.5-2026-05-04, and Speechify simba-3.2. Every other TTS model stays synthesis-only through tts with an existing stock, designed, or cloned voice ID.',
+      'Cartesia and Speechify expose catalog, clone, inspect, and delete. Text-prompt design is ElevenLabs, Inworld, and Fish. tts, write, resume, and synthesis price never create voices.'
+    ]
   }
 }, async () => {})
 

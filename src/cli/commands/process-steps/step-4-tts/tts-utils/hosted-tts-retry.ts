@@ -4,6 +4,8 @@ import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retrie
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { classifyHostedRateLimitPressure } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 
+import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
+
 const HOSTED_TTS_RETRY_POLICY: RetryPolicy = {
   maxAttempts: 4,
   baseDelayMs: 2_000,
@@ -59,7 +61,8 @@ export const withHostedTtsRetry = async <T>(
   options.abortSignal?.throwIfAborted()
   const baseClassifier = options.classifier ?? classifyHostedTtsRetry
   const classifier: RetryClassifier = (error) => {
-    const ambiguous = error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true
+    const ambiguous = (error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true)
+      || classifyTtsProviderAdmissionError(error) === 'ambiguous'
     return ambiguous && options.allowAmbiguousRedispatch === true
       ? classifyFetchRetry(error, 'runtime_http_create_retriable')
       : baseClassifier(error)

@@ -46,7 +46,7 @@ export const genericTtsOptionFlags = {
   'tts-text-normalization': strListFlag('Generic TTS text normalization. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-instructions': strListFlag('Generic TTS voice/style instructions. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-output-format': strListFlag('Generic TTS output format. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (default 30; Grok-only default 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
+  'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (Grok-only default 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
 } as const satisfies CliFlagsDefinition
 
 const ttsProviderSelectionFlags = {

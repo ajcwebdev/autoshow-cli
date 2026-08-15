@@ -26,9 +26,9 @@ If YouTube starts challenging `yt-dlp` requests with a bot-check or sign-in prom
 
 Short version:
 
-- `--cookies-from-browser chrome` is the easiest path when yt-dlp can read your logged-in browser profile.
-- `--cookies /absolute/path/to/cookies.txt` is the fallback when you want a dedicated Netscape cookie jar.
-- `--cookies` wins when both flags are present. If that file is unreadable, AutoShow reports the path, passes no cookie argument to yt-dlp, and does not fall back to `--cookies-from-browser`.
+- `bun autoshow config --cookies-from-browser chrome` is the easiest path when yt-dlp can read your logged-in browser profile.
+- `bun autoshow config --cookies /absolute/path/to/cookies.txt` is the fallback when you want a dedicated Netscape cookie jar.
+- A configured cookies file wins when both settings are present. If that file is unreadable, AutoShow reports the path, passes no cookie argument to yt-dlp, and does not fall back to `--cookies-from-browser`.
 
 ## Common Workflows
 
@@ -154,13 +154,13 @@ bun autoshow comic generate-slideshow 01-01
 |------|----------|
 | Inspect and process | `metadata`, `download`, `extract`, `write` |
 | Generate | `tts`, `image`, `video`, `music`, `comic` |
-| Setup & Utilities | `setup`, `config`, `links`, `resume`, `benchmark` |
+| Setup & Utilities | `setup`, `config`, `links`, `resume` |
 
 High-value notes:
 
 - `write` is the central orchestration command. It can summarize transcripts or extracted documents, write JSON outputs, fan out across multiple LLM providers, and optionally continue into TTS, image, video, or music generation.
 - `setup --models` lets you pre-download local runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models ggml-org/gemma-3-270m-it-GGUF`.
-- If YouTube starts blocking `yt-dlp`, follow [docs/cookies.md](./docs/cookies.md) to pass `--cookies-from-browser` or `--cookies`.
+- If YouTube starts blocking `yt-dlp`, follow [docs/cookies.md](./docs/cookies.md) to persist `--cookies-from-browser` or `--cookies` with `bun autoshow config`.
 
 ## Usage Basics
 

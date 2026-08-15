@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
 
 ## Context
@@ -146,3 +146,8 @@ The local contracts cover exact and legacy reconciliation, ambiguity failures, i
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — comic native command and shared infrastructure boundaries
 - Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md) — voice identity, dialogue rendering, and original dialogue timeline
 - Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md) — authored sound intent, retained source assets, buses, and original soundscape mix
+- `src/types/comic-workflow/comic-presentation-types.ts`
+- `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/generate-slideshow-command.ts`
+- `src/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-inputs.ts`
+- `src/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-plan.ts`
+- `src/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-renderer.ts`

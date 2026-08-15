@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test'
 import { resolve } from 'node:path'
-import { benchmarkCommand } from '~/cli/commands/setup-and-utilities/benchmark/define-benchmark-command'
 import { linksCommand } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { resumeCommand } from '~/cli/commands/setup-and-utilities/resume/define-resume-command'
 import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-setup-command'
@@ -31,7 +30,6 @@ const commandByDoc = {
   'process-steps/step-6-video/text-to-video-services.md': videoCommand,
   'process-steps/step-7-music/text-to-music-services.md': musicCommand,
   'process-steps/step-8-comic/comic.md': comicCommand,
-  'setup-and-utilities/benchmark/benchmark.md': benchmarkCommand,
   'setup-and-utilities/links/links.md': linksCommand,
   'setup-and-utilities/resume/resume.md': resumeCommand,
   'setup-and-utilities/setup/setup.md': setupCommand
