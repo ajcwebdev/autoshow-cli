@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog } from '../../../../test-runner/artifacts'
 import { parseJunit } from '../../../../test-runner/parsers'
-import { parseCommandEstimatedTotal } from '../../../../test-runner/utils'
+import { lineHasTimedOutputPrefix, parseCommandEstimatedTotal } from '../../../../test-runner/utils'
 
 const tempDirs: string[] = []
 
@@ -25,6 +25,12 @@ afterEach(async () => {
 })
 
 describe('test-runner contracts', () => {
+  test('timed output prefix detection skips already-timestamped lines', () => {
+      expect(lineHasTimedOutputPrefix('[14:50:20.087] ✓ example')).toBe(true)
+      expect(lineHasTimedOutputPrefix('[14:50:20] already stamped')).toBe(true)
+      expect(lineHasTimedOutputPrefix('✓ example [8.25ms]')).toBe(false)
+    })
+
   test('estimated-cost parser accepts readable totals and exact parenthetical cents', () => {
       expect(parseCommandEstimatedTotal('Total estimated cost: $3.59 (358.690¢)')).toBe(358.690)
       expect(parseCommandEstimatedTotal('Total estimated cost: free (0.000¢)')).toBe(0)

@@ -115,6 +115,10 @@ export const formatTimestampForDir = (date: Date): string => {
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
 }
 
+export const TIMED_OUTPUT_PREFIX_PATTERN = /^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/
+
+export const lineHasTimedOutputPrefix = (line: string): boolean => TIMED_OUTPUT_PREFIX_PATTERN.test(line)
+
 export const formatTimedOutputPrefix = (atMs: number = Date.now()): string => {
   const date = new Date(atMs)
   const hours = String(date.getHours()).padStart(2, '0')

@@ -23,7 +23,6 @@ import {
 } from './artifacts'
 import { readMetrics, parseJunit } from './parsers'
 import {
-  evaluatePriceObservationGroup,
   evaluatePriceObservations,
   groupCommandsByKey,
   toObservation,
@@ -31,7 +30,7 @@ import {
 import { resolvePriceSelection } from './price-commands/resolve'
 import { buildPriceReportData } from './reports/price-report'
 import { buildTestReportData } from './reports/test-report'
-import { formatTimedOutputPrefix, normalizeRepoPath, parseCommandEstimatedTotal } from './utils'
+import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath, parseCommandEstimatedTotal } from './utils'
 import { buildModelCalibrationReport } from './model-calibration'
 import { resolveSelectedFiles } from './path-selection'
 import { withEmptyPriceConfig } from './price-command-config'
@@ -93,7 +92,7 @@ const installTimestampedConsole = (_startedAtMs?: number): void => {
         return
       }
       if (typeof args[0] === 'string') {
-        if (/^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/.test(args[0])) {
+        if (lineHasTimedOutputPrefix(args[0])) {
           original(...args)
           return
         }
@@ -211,8 +210,9 @@ const forwardSpawnOutput = async (
     }
 
     const prefix = formatTimedOutputPrefix(Date.now())
-    writer.write(`${prefix} ${line}`)
-    await appendRunnerLog(artifacts, `${prefix} [${label}] ${line}`)
+    const output = lineHasTimedOutputPrefix(line) ? line : `${prefix} ${line}`
+    writer.write(output)
+    await appendRunnerLog(artifacts, lineHasTimedOutputPrefix(line) ? `[${label}] ${line}` : `${prefix} [${label}] ${line}`)
   }
 
   const flushBuffered = async (force: boolean): Promise<void> => {
@@ -437,10 +437,8 @@ const runBudgetPreflight = async (
     const variants = groupResults.get(index) ?? []
     variants.sort((a, b) => a.variantIndex - b.variantIndex)
 
-    const groupObservations: PriceCommandObservation[] = []
     for (const { executed, observation, variantIndex } of variants) {
       observations.push(observation)
-      groupObservations.push(observation)
 
       if (observation.failureMessage !== null) {
         logPriceCommandFailure(
@@ -450,24 +448,6 @@ const runBudgetPreflight = async (
       }
     }
 
-    const groupEvaluation = evaluatePriceObservationGroup(group.key, groupObservations, budgetHundredthCents)
-    if (groupEvaluation.variantCostsCents.length === 0 || groupEvaluation.selectedCostCents === null) {
-      continue
-    }
-
-    const decisionText = groupEvaluation.overBudget ? 'SKIP (over budget)' : 'RUN'
-    if (group.variants.length === 1) {
-      l.write('info', `[${index + 1}/${groupedCommands.length}] ${group.key} — decision: ${decisionText} (cost: ${formatCost(groupEvaluation.selectedCostCents)})`)
-    } else {
-      l.write('info', `[${index + 1}/${groupedCommands.length}] ${group.key} (${group.variants.length} variants)`)
-      for (const { observation, variantIndex } of variants) {
-        if (observation.failureMessage === null) {
-          l.write('info', `  variant ${variantIndex + 1}/${group.variants.length}: ${formatCost(observation.costCents as number)}`)
-        }
-      }
-      l.write('info', `  selected cost (max variant): ${formatCost(groupEvaluation.selectedCostCents)}`)
-      l.write('info', `  decision: ${decisionText}`)
-    }
   }
 
   const evaluation = evaluatePriceObservations(suiteName, observations, budgetHundredthCents)

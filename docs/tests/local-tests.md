@@ -43,6 +43,7 @@ bun t test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video
 ## Shared Runner Behavior
 
 - Test discovery comes from `test/test-cases/**/*.test.ts`.
+- Passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test. JUnit stays a post-run sidecar for `report.json`; it is not the live reporter.
 - Selection is path-based only.
 - Normal test mode passes `--max-concurrency=10 --parallel=10` to `bun test` by default. Pass explicit `--max-concurrency=<n>` or `--parallel=<n>` values to override either knob for a run.
 - Price and budget preflight commands run with the default price concurrency of 25.

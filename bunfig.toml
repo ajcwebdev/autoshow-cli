@@ -6,3 +6,4 @@ minimumReleaseAge = 43200
 
 [test]
 root = "./test"
+preload = ["./test/test-utils/test-console-harness.ts"]

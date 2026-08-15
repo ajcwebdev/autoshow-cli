@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging"; its production metadata-cache and price-verification decisions are owned by ADR-001 and ADR-002 respectively.
 
@@ -158,7 +158,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`, `ValidationError`), type-safe `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, cause-aware paid-create admission handling, explicit bounded TTS ambiguous-redispatch authorization (`--tts-allow-ambiguous-redispatch`), bounded provider diagnostics, TTS recovery-checkpoint diagnostics, structured target aggregation, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log formatting are fully implemented and verified across `src/` and `test/`.
+The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`, `ValidationError`), type-safe `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, cause-aware paid-create admission handling, explicit bounded TTS ambiguous-redispatch authorization (`--tts-allow-ambiguous-redispatch`), bounded provider diagnostics, TTS recovery-checkpoint diagnostics, structured target aggregation, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log formatting are fully implemented and verified across `src/` and `test/`. `forwardSpawnOutput` now skips lines that already carry that timestamp. Passing-test console quieting is owned by [ADR-020](ADR-020-quiet-passing-test-console-output.md).
 
 ## Test Plan
 
@@ -185,6 +185,7 @@ bun test test/test-cases/validation/media-generation/tts-current-render-recovery
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
 - Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md)
 - Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md)
+- Related ADR: [ADR-020](ADR-020-quiet-passing-test-console-output.md)
 - `src/utils/error-handler.ts` — `AppError` hierarchy, `isCLIUsageError`, `extractErrorHints`, `serializeDiagnosticError`
 - `src/utils/retries.ts` — `withRetry` and `pollUntil`
 - `src/cli/create-cli.ts` — `cliErrorHandler`

@@ -431,13 +431,14 @@ describe('adaptive scheduler contracts', () => {
     expect(classifyAdaptivePressure('Cartesia TTS failed (402): quota_exceeded; 535 characters', 1, false)).toBeNull()
     expect(classifyAdaptivePressure('Together transcription failed (503)', 1, false)).toBe('transient')
 
+    const beforeMs = Date.now()
     await recordAdaptivePressure(['image/openai'], 'rate-limit', config)
     await recordAdaptivePressure(['video/gemini'], 'transient', config)
     await recordAdaptivePressure(['tts/minimax'], 'timeout', config)
 
     let snapshot = await readAdaptiveConcurrencySnapshot(config)
     expect(snapshot.groups['image/openai']?.limit).toBe(1)
-    expect(snapshot.groups['image/openai']?.cooldownUntilMs ?? 0).toBeGreaterThan(Date.now())
+    expect(snapshot.groups['image/openai']?.cooldownUntilMs ?? 0).toBeGreaterThan(beforeMs)
     expect(snapshot.groups['video/gemini']?.limit).toBe(2)
     expect(snapshot.groups['tts/minimax']?.limit).toBe(1)
 
