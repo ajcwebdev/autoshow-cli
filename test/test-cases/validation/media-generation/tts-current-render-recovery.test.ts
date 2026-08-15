@@ -241,15 +241,21 @@ const createRejectedDialogueFixtureTarget = (
   }
 })
 
+const journalEventForState = (state: PipelineProviderState) => {
+  const projection = state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+  const pointer = projection?.activeWork?.kind === 'render'
+    ? projection.activeWork
+    : projection?.selectedSuccess
+  if (!projection || !pointer) return undefined
+  const render = projection.renderHistory.find((entry) => entry.renderIdentity === pointer.renderIdentity)
+  return render?.events.find((entry) => entry.sequence === pointer.eventSequence)
+}
+
 const latestJournalForState = async (
   rootDir: string,
   state: PipelineProviderState
 ): Promise<RenderAdmissionJournalSnapshot | undefined> => {
-  const projection = state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
-  const active = projection?.activeWork
-  if (!projection || active?.kind !== 'render') return undefined
-  const render = projection.renderHistory.find((entry) => entry.renderIdentity === active.renderIdentity)
-  const event = render?.events.find((entry) => entry.sequence === active.eventSequence)
+  const event = journalEventForState(state)
   if (!event?.admissionJournalRef) return undefined
   return await Bun.file(join(rootDir, state.artifactDir, event.admissionJournalRef)).json()
 }
@@ -891,14 +897,7 @@ describe('TTS completed-render recovery', () => {
       const target = createFixtureTarget(() => { providerCalls += 1 }, 'success')
       const first = await runTtsForTargets(text, dir, {}, [target], { sourceIdentity, dialoguePlan })
       const retained = buildCurrentTtsProviderState(first.metadata[0]!)
-      const projection = retained.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
-      const active = projection?.activeWork
-      const render = active?.kind === 'render'
-        ? projection?.renderHistory.find((entry) => entry.renderIdentity === active.renderIdentity)
-        : undefined
-      const event = active?.kind === 'render'
-        ? render?.events.find((entry) => entry.sequence === active.eventSequence)
-        : undefined
+      const event = journalEventForState(retained)
       if (!event?.admissionJournalRef || !event.admissionJournalSnapshotId) throw new Error('Missing retained journal fixture')
       const retainedJournalPath = join(dir, retained.artifactDir, event.admissionJournalRef)
       const attemptRoot = join(retainedJournalPath, '..')

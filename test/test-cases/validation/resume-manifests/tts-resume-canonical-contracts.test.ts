@@ -516,7 +516,8 @@ describe('canonical TTS resume', () => {
       expect(projection.readinessAttempts[0]).toEqual(blockedProjection.readinessAttempts[0])
       expect(projection.readinessAttempts[1]).toMatchObject({ status: 'ready', admissionDisposition: 'eligible' })
       expect(projection.renderHistory).toHaveLength(1)
-      expect(projection.activeWork?.kind).toBe('render')
+      expect(projection.activeWork).toBeUndefined()
+      expect(projection.selectedSuccess?.renderIdentity).toBe(projection.renderHistory[0]?.renderIdentity)
       expect(projection.pointerEvents.filter((event) => event.action === 'activate-branch')).toHaveLength(2)
       const branchDir = join(dir, provider?.artifactDir as string, 'branches', projection.branchHistory[0]?.branchPlanId as string)
       expect((await readdir(branchDir)).filter((name) => name.startsWith('readiness-result-attempt-'))).toHaveLength(2)
@@ -619,8 +620,8 @@ describe('canonical TTS resume', () => {
         artifactDir: `providers/${target.targetKey}`,
         status: 'succeeded'
       })
-      expect(provider?.attempts).toBeGreaterThan(failed.attempts)
       expect(projection.renderHistory).toHaveLength(1)
+      expect(projection.renderHistory[0]?.events.length).toBeGreaterThan(failedProjection.renderHistory[0]?.events.length ?? 0)
       expect(projection.readinessAttempts.slice(0, failedProjection.readinessAttempts.length)).toEqual(failedProjection.readinessAttempts)
       expect(failed.status).toBe('failed')
       expect(projection.renderHistory[0]?.events.at(-1)?.status).toBe('succeeded')

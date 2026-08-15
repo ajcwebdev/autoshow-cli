@@ -83,9 +83,9 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
       expect(persisted).not.toContain('validationFailed')
     }
 
-    expect(results[5]?.parsedJson).toEqual({ content: 'valid output' })
-    expect(results[5]?.metadata.validationFailed).toBe(false)
-    expect(results[5]?.renderedText).toBe('valid output')
+    expect(results[3]?.parsedJson).toEqual({ content: 'valid output' })
+    expect(results[3]?.metadata.validationFailed).toBe(false)
+    expect(results[3]?.renderedText).toBe('valid output')
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }

@@ -157,7 +157,14 @@ const appendCurrentTtsProjection = (
   current: CanonicalAudioProviderProjection,
   incoming: CanonicalAudioProviderProjection
 ): CanonicalAudioProviderProjection => {
-  if (incoming.archive && incoming.selectedSuccess && !incoming.activeWork) return incoming
+  if (
+    incoming.archive
+    && incoming.selectedSuccess
+    && !incoming.activeWork
+    && current.branchHistory.length === 0
+    && current.readinessAttempts.length === 0
+    && current.renderHistory.length === 0
+  ) return incoming
   if (
     current.branchHistory.length === 0
     && current.readinessAttempts.length === 0
@@ -346,9 +353,11 @@ const appendCurrentTtsProjection = (
       }
     : current.selectedSuccess
 
+  const archive = incoming.archive ?? current.archive
   return {
     ...(activeWork ? { activeWork } : {}),
     ...(selectedSuccess ? { selectedSuccess } : {}),
+    ...(archive ? { archive } : {}),
     branchHistory,
     readinessAttempts,
     renderHistory,

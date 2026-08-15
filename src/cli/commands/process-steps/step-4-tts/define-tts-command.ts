@@ -28,6 +28,8 @@ import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compu
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
+import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { selectCheapestDefaultHostedTtsSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
@@ -1163,7 +1165,11 @@ export const ttsCommand = defineCliCommand({
   }
 }, async (ctx) => {
   const inputPath = ctx.parameters.input
-  const flags = ctx.flags as Record<string, unknown>
+  const rawFlags = ctx.flags as Record<string, unknown>
+  const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
+  const configPath = await resolveConfigPath(configPathOverride)
+  const config = await loadConfig(configPath)
+  const flags = mergeConfigIntoRawFlags(rawFlags, config, ctx.rawParsed.explicitFlags)
   const inputKind = await getTtsInputKind(inputPath)
   const maxCents = await resolveMaxCentsFromFlags(flags)
   const providerNormalized = normalizeGenericProviderSelectorFlags(

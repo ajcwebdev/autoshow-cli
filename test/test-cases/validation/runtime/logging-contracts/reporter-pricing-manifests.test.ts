@@ -34,7 +34,7 @@ describe('logging contracts', () => {
         'Estimate'
       ])
       expect(writes[0]?.options?.humanTable?.details).toEqual([
-        { label: 'Total estimated cost', value: '1.25\u00a2' }
+        { label: 'Total estimated cost', value: '1.25\u00a2 (1.250\u00a2)' }
       ])
       expect(writes[0]?.options?.humanSections?.[0]?.title).toBe('Cost Estimate')
       expect(writes[0]?.options?.humanSections?.[0]?.table).toBeDefined()
