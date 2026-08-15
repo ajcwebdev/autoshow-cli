@@ -41,13 +41,13 @@ This applies to:
 - Runtime environment variables, `.env.example` documentation, binary tool overrides, test IPC seams, and provider endpoint configuration.
 - It does not apply to required provider credential keys, intentional runner-to-child test IPC, standard system variables, or typed in-process test seams.
 
-### Pass 1 — Delete dead, redundant, and decorative variables; fix inconsistent override
+### Pass 1 — Delete dead, redundant, and decorative variables
 
-Remove 16 unused/decorative keys (`AUTOSHOW_LOG_FORMAT`, `AUTOSHOW_LOG_LEVEL`, timeout knobs, `AUTOSHOW_GENERATION_RESOURCE_CAPACITY`, `AUTOSHOW_TEST_BUDGET_HUNDREDTH_CENTS`, unused binary overrides `AUTOSHOW_TESSERACT_BIN`/`AUTOSHOW_OCRMYPDF_BIN`/`AUTOSHOW_TESSDATA_PREFIX`, and non-prefixed keys `NODE_ENV`/`HOSTNAME`/`HOST`). Align `.env.example` with runtime CLI flags and fixed constants in `timeouts.ts`. Wire `SCRAPECREATORS_BASE_URL` to standard `readEnv(...) ?? DEFAULT` fallback handling.
+Remove 16 unused/decorative keys (`AUTOSHOW_LOG_FORMAT`, `AUTOSHOW_LOG_LEVEL`, timeout knobs, `AUTOSHOW_GENERATION_RESOURCE_CAPACITY`, `AUTOSHOW_TEST_BUDGET_HUNDREDTH_CENTS`, unused binary overrides `AUTOSHOW_TESSERACT_BIN`/`AUTOSHOW_OCRMYPDF_BIN`/`AUTOSHOW_TESSDATA_PREFIX`, and non-prefixed keys `NODE_ENV`/`HOSTNAME`/`HOST`). Align `.env.example` with runtime CLI flags and fixed constants in `timeouts.ts`.
 
 ### Pass 2 — Replace environment variables with typed mechanisms
 
-Migrate ~9 environment reads to direct mechanisms: subprocess argv for PaddleOCR settings, `os.homedir()` for portable home directory resolution, in-process parameters for setup flags, and managed build directory paths. Prune misleading `.env.example` entries (`yt-dlp` cookie env vars, phantom timeout help text) and correct `HF_TOKEN` to `HUGGINGFACE_TOKEN`.
+Migrate ~9 environment reads to direct mechanisms: subprocess argv for local tool settings, `os.homedir()` for portable home directory resolution, in-process parameters for setup flags, and managed directory paths. Prune misleading `.env.example` entries (`yt-dlp` cookie env vars, phantom timeout help text) and correct `HF_TOKEN` to `HUGGINGFACE_TOKEN`.
 
 ### Pass 3 — Prune test-only tuning knobs and consolidate binary overrides
 
@@ -87,7 +87,7 @@ Positive outcomes:
 
 Negative outcomes:
 
-- Ad-hoc environment variable escape hatches are removed (OCR binary paths, custom macOS build flags, per-tool env overrides, runtime base-URL repointing).
+- Ad-hoc environment variable escape hatches are removed (per-tool binary overrides, build flags, runtime base-URL repointing).
 - Subprocess argv contracts and explicit typed parameter threading require discipline across callers and test suites.
 
 ## Trade-offs

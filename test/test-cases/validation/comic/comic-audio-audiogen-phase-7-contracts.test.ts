@@ -121,9 +121,9 @@ describe('ADR-018 Phase 7E Replicate AudioGen soundscape acceptance', () => {
     const soundscapeRun = mixed.soundscapeRuns[0]
     expect(calls.some(call => call.method === 'POST' && call.url.endsWith('/v1/predictions'))).toBe(true)
     expect(calls.some(call => call.url === OUTPUT_URL)).toBe(true)
-    expect(soundscapeRun?.audioRun.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
-    expect(await Bun.file(join(root, soundscapeRun?.audioRun.resolvedTimeline.path as string)).exists()).toBe(true)
-    expect(await Bun.file(join(root, soundscapeRun?.audioRun.master.path as string)).exists()).toBe(true)
+    expect(soundscapeRun?.mix.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
+    expect(await Bun.file(join(root, soundscapeRun?.ref.path as string)).exists()).toBe(true)
+    expect(await Bun.file(join(root, soundscapeRun?.mix.master.path as string)).exists()).toBe(true)
     expect(await Bun.file(join(root, soundscapeRun?.binding.reportedOutputPath as string)).exists()).toBe(true)
     const resumed = await loadSoundEffectRenderResult(root, renderPlan)
     expect(resumed?.status).toBe('succeeded')

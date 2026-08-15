@@ -236,10 +236,15 @@ export const runTtsTargets = async (
     }
     const retainedState = target.targetKey ? retainedByTargetKey.get(target.targetKey) : undefined
     const retainedNamespace = retainedState?.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
-    const retainedProjection = retainedState?.result?.[retainedNamespace] as { activeWork?: { kind?: unknown }, renderHistory?: Array<{ renderIdentity?: unknown }> } | undefined
+    const retainedProjection = retainedState?.result?.[retainedNamespace] as {
+      activeWork?: { kind?: unknown } | undefined
+      renderHistory?: Array<{ renderIdentity?: unknown }> | undefined
+      archive?: unknown
+      selectedSuccess?: { renderIdentity?: unknown } | undefined
+    } | undefined
     let recoveredSlots: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['recoveredSlots'] | undefined
     let retainedCumulativePlannedCost: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['retainedCumulativePlannedCost'] | undefined
-    const plannedRenderIdentity = retainedState && retainedProjection?.activeWork?.kind === 'render'
+    const plannedRenderIdentity = retainedState
       ? planCurrentTtsRenderIdentity({
           target,
           sourceText: text,
@@ -249,8 +254,10 @@ export const runTtsTargets = async (
           comicContext: sourceContext?.comicContext,
         }).renderIdentity
       : undefined
-    const retainedHasPlannedRender = plannedRenderIdentity !== undefined && retainedProjection?.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
-    if (retainedState && retainedProjection?.activeWork?.kind === 'render' && retainedHasPlannedRender) {
+    const retainedHasPlannedRender = plannedRenderIdentity !== undefined && retainedProjection?.activeWork?.kind === 'render'
+      && retainedProjection.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
+    const sameRenderArchive = Boolean(retainedProjection?.archive && retainedProjection.selectedSuccess?.renderIdentity === plannedRenderIdentity)
+    if (retainedState && (retainedHasPlannedRender || sameRenderArchive)) {
       const recovery = await prepareCurrentTtsCompletedRecovery({
         rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
         state: retainedState,
@@ -271,7 +278,7 @@ export const runTtsTargets = async (
         retainedCumulativePlannedCost = recovery.retainedCumulativePlannedCost
       }
     }
-    if (retainedState && retainedProjection?.activeWork?.kind === 'render' && !retainedHasPlannedRender) {
+    if (retainedState && !retainedHasPlannedRender && !sameRenderArchive) {
       const compatibleRecovery = await prepareCurrentTtsCompatibleSlotRecovery({
         rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
         outputDir: sourceContext?.artifactOutputDir ?? outputDir,

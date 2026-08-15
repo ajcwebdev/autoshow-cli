@@ -20,13 +20,14 @@ bun t test/test-cases/setup/tts-models/tts-setup.test.ts
 ## Current Coverage
 
 - `test/test-cases/setup/tts-models/tts-setup.test.ts` validates the Kitten TTS setup module and runtime virtualenv checks.
-- No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts`, `native-setup-download-contracts.test.ts`, `managed-artifact-contracts.test.ts`, `prebuilt-artifact-contracts.test.ts`, `prebuilt-producer-contracts.test.ts`, and `setup-performance-contracts.test.ts`). No standalone step 0 price-only suite currently exists.
+- No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts`, `native-setup-download-contracts.test.ts`, `managed-artifact-contracts.test.ts`, `prebuilt-artifact-contracts.test.ts`, `prebuilt-producer-contracts.test.ts`, and `setup-performance-contracts.test.ts`).
 
 ## Price Preflight
 
-Setup does not currently add any mapped price commands. `--price` and `--budget` do not provide step-specific setup preflight coverage today.
+Setup does not add mapped price commands; `--price` and `--budget` do not provide step-specific setup preflight coverage.
 
 ## Related Docs
 
 - [Service Tests](service-tests.md)
+- [Local Tests](local-tests.md)
 - [Setup](../commands/setup-and-utilities/setup/setup.md)

@@ -161,7 +161,7 @@ export const joinRestUrl = (
 export const readJsonResponse = async (
   response: Response,
   errorMessagePrefix: string,
-  options: { invalidJsonMessagePrefix?: string | undefined } = {}
+  options: { invalidJsonMessagePrefix?: string | undefined, stage?: string | undefined } = {}
 ): Promise<unknown> => {
   const captured = await readRestResponseText(response)
   const rawText = captured.text
@@ -169,6 +169,7 @@ export const readJsonResponse = async (
     throw new AppError(`${errorMessagePrefix} exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
       kind: 'validation',
       status: response.status,
+      ...(options.stage !== undefined ? { stage: options.stage } : {}),
       metadata: buildCaptureMetadata(captured)
     })
   }
@@ -184,6 +185,7 @@ export const readJsonResponse = async (
       kind: 'validation',
       cause: error instanceof Error ? error : new Error(String(error)),
       status: response.status,
+      ...(options.stage !== undefined ? { stage: options.stage } : {}),
       metadata: buildCaptureMetadata(captured)
     })
   }

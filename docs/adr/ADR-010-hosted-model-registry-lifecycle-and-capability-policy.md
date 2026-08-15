@@ -6,7 +6,7 @@
 - **Date Created:** 2026-07-13
 - **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
-- **Supersession:** Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md); paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md); paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Context
 
@@ -14,9 +14,9 @@ AutoShow's hosted-model registries are public CLI, configuration, pricing, resum
 
 A model selector is therefore a complete runtime promise, not a validator string. Concrete identity, lifecycle, pricing, defaults, all-provider expansion, request construction, response parsing, help, resume behavior, historical identity, and local contracts must move together. Moving aliases, availability tiers, voice IDs, free billing variants, and transport-incompatible products are not equivalent model selectors.
 
-That promise also requires one inventory. Handwritten execution, public-selector, pricing, and resume lists can each compile while disagreeing; the 2026 TTS expansion exposed this when four newly registered providers were selectable for fresh synthesis but absent from standalone resume. Write had the same class of omission for local `llamafile`, and extract duplicated its route-aware STT/OCR provider map. Registry completeness therefore includes mechanical propagation from the canonical provider/model selection descriptor into every resume surface.
+That promise also requires a single inventory. Maintaining separate lists across execution, public selection, pricing, and resume allows them to compile successfully while diverging at runtime. Canonical provider/model selection descriptors must mechanically drive all downstream execution, pricing, and resume surfaces.
 
-Reasoning policy is part of that capability promise. Hosted LLM-backed write and OCR adapters previously hardcoded incompatible provider-local fields — per-provider effort levels, binary `thinking` toggles, always-on reasoning with no toggle at all — and those hidden choices affected tokens, latency, price, cache identity, manifests, and resume compatibility without one typed surface.
+Reasoning policy is also part of that capability promise. Hosted LLM-backed write and OCR adapters previously used inconsistent provider-local mechanisms (effort levels, binary thinking flags, or untoggled reasoning), affecting token usage, latency, pricing, cache identity, manifests, and resume compatibility without a unified typed contract.
 
 Lifecycle transitions also need a reusable contract. A deprecated model can remain cheaper than its successor, so array order and price alone cannot determine safe defaults. A wall-clock switch makes the same installed commit resolve differently over time. Removing a selector without historical rates breaks committed cost evidence, while silently substituting a successor misstates provider identity.
 
@@ -38,10 +38,15 @@ Govern every hosted-model registry with one shared policy covering selector iden
 
 This applies to:
 
-- the hosted write, OCR, STT, TTS, music, image, and video registries and every consumer that resolves selectors through them;
-- the CLI surfaces those registries feed: validation, defaults, `--all-*` expansion, help, pricing, resume, and manifests;
-- historical readers for retired selectors and their preserved rates; and
-- not local inference template controls, dated refresh chronology (ADR-013), or benchmark evidence (ADR-012).
+- The hosted write, OCR, STT, TTS, music, image, and video registries and every consumer that resolves selectors through them.
+- CLI surfaces fed by those registries: validation, defaults, `--all-*` expansion, help, pricing, resume, and manifests.
+- Historical readers for retired selectors and their preserved rates.
+
+It does not apply to:
+
+- Local inference template controls.
+- Dated refresh chronology (governed by [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)).
+- Benchmark evidence and calibration records (governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)).
 
 ### Concrete selector identity and eligibility
 
@@ -108,7 +113,7 @@ Write and OCR manifests, estimates, result diagnostics, resume identity, and hos
 
 ### Adjacent authorities
 
-Refresh chronology belongs to ADR-013; benchmark and report evidence to ADR-012; curated primary-source links and `.refresh.json` metadata to ADR-011; lane scheduling to ADR-008; extract execution to ADR-009; and resume and price dry-run behavior to ADR-002.
+Refresh chronology belongs to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md); benchmark and report evidence to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md); curated primary-source links and `.refresh.json` metadata to [ADR-011](ADR-011-add-refresh-metadata-to-links.md); lane scheduling to [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md); extract execution to [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); and resume and price dry-run behavior to [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
 ## Rationale
 
@@ -153,13 +158,11 @@ Negative outcomes:
 
 ## Implementation Note
 
-The policy is implemented across the model registries and loaders under `src/cli/commands/setup-and-utilities/models/`, provider adapters, option resolution, pricing orchestration, resume handlers, and workflow metadata.
+The policy is implemented across the model registries and loaders under `src/cli/commands/setup-and-utilities/models/`, provider adapters, option resolution, pricing orchestration, resume handlers, and workflow metadata:
 
-`ReasoningCapabilitiesSchema` and `reasoning-resolver.ts` provide `NORMALIZED_REASONING_EFFORTS`, `parseReasoningEffort`, `getReasoningCapabilities`, and `resolveReasoningPolicy`. Hosted write and OCR dispatch validate every selected target before multi-provider price calculation or execution. The resolver preserves omitted versus explicit-default behavior and maps native provider payloads without silent coercion.
-
-The generic lifecycle mechanism validates evidence dates and concrete same-service replacements, filters cheapest defaults and all-provider expansion, and keeps selection independent of the current date. A full deprecate-then-retire transition has run end to end under this contract: automatic eligibility was withdrawn first, active selection was retired later, current config was removed, historical rates and stored identity remained readable, and successor selection stayed explicit and additive. ADR-013 records which models moved through each step.
-
-`provider-targets.ts` now defines the canonical generation selection descriptors used by write, TTS, image, video, and music resume. `extract-selectors.ts` derives its route-aware public provider inventory from the canonical STT/OCR maps. Resume contract tests compare these descriptors to every handler in both directions, and the TTS descriptor covers all 16 current providers and their singular/repeatable model fields.
+- `ReasoningCapabilitiesSchema` and `reasoning-resolver.ts` define `NORMALIZED_REASONING_EFFORTS`, `parseReasoningEffort`, `getReasoningCapabilities`, and `resolveReasoningPolicy`. Hosted write and OCR dispatch validate every selected target before price calculation or execution, preserving omitted versus explicit-default behavior and mapping native provider payloads without coercion.
+- `model-lifecycle.ts` and `model-loader-schemas.ts` validate evidence dates and concrete same-service replacements, filter cheapest defaults and all-provider expansion, and ensure model resolution remains independent of the current date.
+- `provider-targets.ts` defines canonical generation selection descriptors used by write, TTS, image, video, and music resume. `extract-selectors.ts` derives route-aware public provider inventories from canonical STT/OCR maps. Bidirectional contract tests verify parity between execution flags and resume handlers across all registered providers.
 
 ## API / Type Impact
 
@@ -175,38 +178,46 @@ The generic lifecycle mechanism validates evidence dates and concrete same-servi
 | Action | Owner | Current State |
 |---|---|---|
 | Maintain primary-source pricing, lifecycle, capability, and replacement evidence during each refresh | Model registry maintainers | Ongoing |
-| Calibrate materially different reasoning levels and provisional model heuristics | Benchmark maintainers | Deferred pending immediate approval for each exact paid run |
-| Evaluate provider-specific `xhigh` only through an explicit public-enum expansion | CLI maintainers | Deferred outside the accepted seven-value surface |
-| Evaluate deAPI/OpenAI STT, streaming/dedicated STT, realtime/cover/reference-audio music, SkyReels V4, and Helios through separate architecture decisions | Domain maintainers | Deferred; each requires a different provider or transport contract |
+| Calibrate materially different reasoning levels and provisional model heuristics | Benchmark maintainers | Deferred pending approval for paid benchmark runs |
+| Evaluate provider-specific reasoning levels outside the seven-value surface through explicit public-enum expansion | CLI maintainers | Deferred |
+| Evaluate out-of-scope modalities and non-standard transports (streaming, realtime, dedicated endpoints) through separate architecture decisions | Domain maintainers | Deferred |
 
 ## Test Plan
 
-- Run `bun run check`, `bun t --price`, CLI help/usage/option-resolution contracts, registry schema/provenance tests, provider selection/default/expansion tests, retired-model price and resume tests, and the smallest local request/response contracts for changed providers.
+- Run `bun run check`, `bun t --price`, CLI help/usage/option-resolution contracts, registry schema/provenance tests, provider selection/default/expansion tests, retired-model price and resume tests, and local request/response contracts for changed providers.
 - Reasoning contracts cover parsing, omitted and explicit provider defaults, capability validation, provider request mapping, hosted-only scope, pre-dispatch validation, pricing, resume compatibility, manifest propagation, and hosted OCR cache identity.
 - Lifecycle contracts cover valid evidence dates, same-service concrete replacements, no moving aliases, deterministic defaults, all-expansion eligibility, successor guidance, historical identity, and no wall-clock selection.
 - Capability contracts prove active-selector acceptance, removed-selector rejection, exact all-provider expansion, complete pricing metadata, and local rejection of unsupported controls.
 - Selection inventory contracts prove every extract, write, TTS, image, video, and music execution target has matching resume routing and that repeatable model flags include every registered provider family.
 - Do not run `bun run t`, `bun test/test-runner.ts`, provider smoke tests, paid provider commands, or quota-risk E2E paths. Any live calibration or benchmark requires immediate explicit approval naming the exact command and expected cost or quota risk.
-- Last verified 2026-08-14: `bun run check`, `bun t --price` across 175 mapped commands, and the targeted reasoning, pricing, registry, resume, and provider-selection contracts all passed without a provider call.
 
 ## References
 
-- Pipeline state, resume, and no-provider price planning: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
-- Shared model consumers and native CLI infrastructure: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
-- Provider-lane scheduling: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
-- Extract execution and OCR calibration rules: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
-- Curated documentation acquisition: [ADR-011](ADR-011-add-refresh-metadata-to-links.md)
-- Benchmark evidence and generated reports: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
-- Dated hosted-model refresh ledger: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)
-- Character voice and multi-speaker architecture: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md)
-- Soundscape and added TTS provider implementation phases: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md)
-- Write command documentation: `docs/commands/process-steps/step-3-write/write-text.md`
-- Model registries and configuration: `src/cli/commands/setup-and-utilities/models/`
-- Lifecycle resolver and schemas: `src/cli/commands/setup-and-utilities/models/model-loader/model-lifecycle.ts`, `src/cli/commands/setup-and-utilities/models/model-loader/model-loader-schemas.ts`
-- Retired rates: `src/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates.ts`, `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
-- Reasoning resolver: `src/cli/commands/setup-and-utilities/models/reasoning-resolver.ts`
-- Model flag selection: `src/cli/options/option-resolution/model-flag-selection.ts`
-- Canonical selection descriptors and target maps: `src/cli/flags/service-selector-normalization/provider-targets.ts`, `src/cli/flags/service-selector-normalization/extract-selectors.ts`
-- Resume selection parity contracts: `test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts`, `test/test-cases/validation/providers/provider-selection-contracts/selection-inventory-contracts.test.ts`
-- Provider adapters: `src/cli/commands/process-steps/step-2-extract/`, `src/cli/commands/process-steps/step-3-write/`, `src/cli/commands/process-steps/step-4-tts/`, `src/cli/commands/process-steps/step-5-image/`, `src/cli/commands/process-steps/step-6-video/`, `src/cli/commands/process-steps/step-7-music/`
-- Primary-source snapshots and refresh metadata: `project/links/`
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — pipeline state, resume, and no-provider price planning
+- Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — shared model consumers and native CLI infrastructure
+- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — provider-lane scheduling
+- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — extract execution and OCR calibration rules
+- Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — curated documentation acquisition
+- Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md) — benchmark evidence and generated reports
+- Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — dated hosted-model refresh ledger
+- Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md) — character voice and multi-speaker architecture
+- Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape and multi-track pipeline
+- `docs/commands/process-steps/step-3-write/write-text.md`
+- `src/cli/commands/setup-and-utilities/models/`
+- `src/cli/commands/setup-and-utilities/models/model-loader/model-lifecycle.ts`
+- `src/cli/commands/setup-and-utilities/models/model-loader/model-loader-schemas.ts`
+- `src/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates.ts`
+- `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
+- `src/cli/commands/setup-and-utilities/models/reasoning-resolver.ts`
+- `src/cli/options/option-resolution/model-flag-selection.ts`
+- `src/cli/flags/service-selector-normalization/provider-targets.ts`
+- `src/cli/flags/service-selector-normalization/extract-selectors.ts`
+- `test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts`
+- `test/test-cases/validation/providers/provider-selection-contracts/selection-inventory-contracts.test.ts`
+- `src/cli/commands/process-steps/step-2-extract/`
+- `src/cli/commands/process-steps/step-3-write/`
+- `src/cli/commands/process-steps/step-4-tts/`
+- `src/cli/commands/process-steps/step-5-image/`
+- `src/cli/commands/process-steps/step-6-video/`
+- `src/cli/commands/process-steps/step-7-music/`
+- `project/links/`

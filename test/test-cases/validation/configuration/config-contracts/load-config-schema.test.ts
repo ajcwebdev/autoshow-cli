@@ -62,7 +62,6 @@ describe('config load schema contracts', () => {
             elevenlabsTtsSeed: 12345,
             elevenlabsTtsTextNormalization: 'on',
             elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2'],
-            elevenlabsTtsOptimizeStreamingLatency: 2,
             minimaxTts: ['speech-2.8-turbo'],
             minimaxTtsVoice: 'AutoShowTestVoice',
             chunkConcurrency: 3

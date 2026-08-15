@@ -41,7 +41,7 @@ describe('general retry-on-any-error contracts', () => {
     } catch (error) {
       expect(classifyFetchRetry(error, 'runtime_http_create_conservative')).toMatchObject({
         shouldRetry: false,
-        reason: 'abort/timeout on conservative request'
+        reason: 'paid create outcome is ambiguous'
       })
       expect(classifyFetchRetry(error, 'runtime_http_create_retriable')).toMatchObject({
         shouldRetry: true,

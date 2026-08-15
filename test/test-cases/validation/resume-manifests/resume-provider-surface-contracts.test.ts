@@ -89,7 +89,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'elevenlabs-tts-use-speaker-boost',
   'elevenlabs-tts-seed',
   'elevenlabs-tts-pronunciation-dictionary-locator',
-  'elevenlabs-tts-optimize-streaming-latency',
   'replicate-video-seed',
   'replicate-video-generate-audio',
   'replicate-video-reference-video',

@@ -1,9 +1,8 @@
 import { posix } from 'node:path'
-import type { CliCommandContext, ComicPresentationRun, ResolvedPanelTimeline } from '~/types'
+import type { CliCommandContext, ResolvedPanelTimeline } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { canonicalTtsJson } from '../../../step-4-tts/script-to-audio/contract-identity'
-import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../../step-4-tts/script-to-audio/safe-artifact-store'
 import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 import { updateComicPresentationManifest } from '../../comic-utils/comic-manifest'
 import {
@@ -19,6 +18,9 @@ import {
   preparePresentationVisualInputs,
 } from '../../comic-utils/comic-presentation-inputs'
 import {
+  PRESENTATION_ARCHIVE_PATH,
+  loadCompactPresentation,
+  presentationRunAsArchive,
   publishComicPresentationFinal,
   renderComicPresentation,
   validateComicPresentationRun,
@@ -35,30 +37,7 @@ const parsePositiveInteger = (value: unknown, fallback: number, label: string, m
   return Number(value)
 }
 
-const loadCompleteRun = async (input: {
-  sceneRunDir: string
-  runPath: string
-  presentationId: string
-  planRef: { path: string, sha256: string }
-  timelineRef: { path: string, sha256: string }
-}): Promise<{ run: ComicPresentationRun, runRef: { path: string, sha256: string } } | undefined> => {
-  let stored: Awaited<ReturnType<typeof readContainedArtifactFile>>
-  try { stored = await readContainedArtifactFile(input.sceneRunDir, input.runPath) }
-  catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
-    throw error
-  }
-  let run: ComicPresentationRun
-  try { run = validateComicPresentationRun(JSON.parse(stored.bytes.toString('utf8')) as ComicPresentationRun) }
-  catch (error) { throw CLIUsageError(`Retained ComicPresentationRun is invalid: ${error instanceof Error ? error.message : String(error)}`) }
-  if (run.presentationId !== input.presentationId || canonicalTtsJson(run.plan) !== canonicalTtsJson(input.planRef) || canonicalTtsJson({ path: run.resolvedTimeline.path, sha256: run.resolvedTimeline.sha256 }) !== canonicalTtsJson(input.timelineRef)) throw CLIUsageError('Retained ComicPresentationRun conflicts with the deterministic presentation inputs.')
-  for (const output of [run.outputs.wav, run.outputs.mp4]) {
-    const artifact = await readContainedArtifactFile(input.sceneRunDir, output.path)
-    if (artifact.sha256 !== output.sha256) throw CLIUsageError(`Retained ComicPresentationRun output checksum is stale: ${output.path}`)
-  }
-  return { run, runRef: { path: input.runPath, sha256: stored.sha256 } }
-}
+
 
 export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath: string): Promise<void> => {
   const flags = ctx.flags as Record<string, unknown>
@@ -102,10 +81,10 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
       dialogueAudioRun: { path: audio.dialogueBinding.audioRunRef, sha256: audio.dialogueBinding.audioRunSha256, audioRunId: audio.dialogueAudioRun.audioRunId },
       dialogueTimeline: { path: dialogueTimelinePath, sha256: audio.dialogueAudioRun.finalTimeline.sha256, timelineId: audio.dialogueTimeline.timelineId },
       dialogueAudio: audio.dialogueAudio,
-      ...(audio.soundscapeBinding && audio.soundscapeAudioRun ? { soundscapeAudioRun: { path: audio.soundscapeBinding.audioRunRef, sha256: audio.soundscapeBinding.audioRunSha256, audioRunId: audio.soundscapeAudioRun.audioRunId } } : {}),
+      ...(audio.soundscapeBinding && audio.soundscapeAudioRun ? { soundscapeAudioRun: { path: audio.soundscapeBinding.audioRunRef, sha256: audio.soundscapeBinding.audioRunSha256, audioRunId: audio.soundscapeAudioRun.mixId } } : {}),
       ...(audio.soundscapePlan && audio.soundscapeAudioRun ? { soundscapePlan: { path: audio.soundscapeAudioRun.soundscapePlan.path, sha256: audio.soundscapeAudioRun.soundscapePlan.sha256, soundscapePlanId: audio.soundscapePlan.soundscapePlanId } } : {}),
-      ...(audio.renderResult && audio.soundscapeAudioRun?.soundEffectRenderResult ? { soundEffectRenderResult: { path: audio.soundscapeAudioRun.soundEffectRenderResult.path, sha256: audio.soundscapeAudioRun.soundEffectRenderResult.sha256, resultId: audio.renderResult.resultId } } : {}),
-      ...(audio.soundscapeTimeline && audio.soundscapeAudioRun ? { soundscapeTimeline: { path: audio.soundscapeAudioRun.resolvedTimeline.path, sha256: audio.soundscapeAudioRun.resolvedTimeline.sha256, timelineId: audio.soundscapeTimeline.timelineId, preRollMs: audio.soundscapeTimeline.preRollMs } } : {}),
+      ...(audio.renderResult && audio.soundscapeAudioRun?.sfx ? { soundEffectRenderResult: { path: audio.soundscapeAudioRun.sfx.path, sha256: audio.soundscapeAudioRun.sfx.sha256, resultId: audio.renderResult.sfxId } } : {}),
+      ...(audio.soundscapeTimeline && audio.soundscapeBinding ? { soundscapeTimeline: { path: audio.soundscapeBinding.audioRunRef, sha256: audio.soundscapeBinding.audioRunSha256, timelineId: audio.soundscapeTimeline.timelineId, preRollMs: audio.soundscapeTimeline.preRollMs } } : {}),
       panels,
     },
     dialogueBindings,
@@ -125,37 +104,25 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
     soundBindings,
     untimedPanelMs,
   }))
-  const runRoot = `presentation/runs/${presentationPlan.presentationId}`
-  const planPath = `${runRoot}/comic-presentation-plan.json`
-  const timelinePath = `${runRoot}/resolved-panel-timeline.json`
-  const planWritten = await writeImmutableArtifactFile(compatible.sceneRunDir, planPath, `${canonicalTtsJson(presentationPlan)}\n`)
-  const timelineWritten = await writeImmutableArtifactFile(compatible.sceneRunDir, timelinePath, `${canonicalTtsJson(timeline)}\n`)
-  const planRef = { path: planWritten.relativePath, sha256: planWritten.sha256 }
-  const timelineRef = { path: timelineWritten.relativePath, sha256: timelineWritten.sha256 }
-  const runPath = `${runRoot}/comic-presentation-run.json`
-  const completed = await loadCompleteRun({ sceneRunDir: compatible.sceneRunDir, runPath, presentationId: presentationPlan.presentationId, planRef, timelineRef })
-    ?? await renderComicPresentation({ sceneRunDir: compatible.sceneRunDir, plan: presentationPlan, planRef, timeline, timelineRef })
+  const retained = await loadCompactPresentation(compatible.sceneRunDir, presentationPlan.presentationId)
+  const completed = retained
+    ? { presentation: retained.presentation, run: validateComicPresentationRun(presentationRunAsArchive(retained.presentation, retained.ref.sha256)), runRef: retained.ref }
+    : await renderComicPresentation({ sceneRunDir: compatible.sceneRunDir, plan: presentationPlan, timeline })
+  const archiveRef = { path: PRESENTATION_ARCHIVE_PATH, sha256: completed.runRef.sha256 }
   const finalOutputRefs = [
-    { path: 'presentation/final/slideshow.wav', sha256: completed.run.outputs.wav.sha256 },
-    { path: 'presentation/final/slideshow.mp4', sha256: completed.run.outputs.mp4.sha256 },
-  ]
-  const currentRefs = [
-    planRef,
-    timelineRef,
-    completed.runRef,
     { path: completed.run.outputs.wav.path, sha256: completed.run.outputs.wav.sha256 },
     { path: completed.run.outputs.mp4.path, sha256: completed.run.outputs.mp4.sha256 },
-    ...finalOutputRefs,
   ]
+  const currentRefs = [archiveRef, ...finalOutputRefs]
   const prior = compatible.comicMetadata
   const artifactRefByPath = new Map(prior.stages.presentation.artifactRefs.map(ref => [ref.path, ref] as const))
   for (const ref of currentRefs) artifactRefByPath.set(ref.path, ref)
   const artifactRefs = [...artifactRefByPath.values()].sort((left, right) => left.path.localeCompare(right.path))
   const presentation = {
     selectedPresentationId: presentationPlan.presentationId,
-    planRef,
-    resolvedTimelineRef: timelineRef,
-    runRef: completed.runRef,
+    planRef: archiveRef,
+    resolvedTimelineRef: archiveRef,
+    runRef: archiveRef,
     finalOutputRefs,
   }
   const alreadyPublished = canonicalTtsJson(prior.presentation) === canonicalTtsJson(presentation)

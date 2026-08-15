@@ -39,9 +39,6 @@ bun autoshow setup
 
 # install llama.cpp and download the setup-managed local write models
 bun autoshow setup --step write
-
-# optional: add larger local transcription assets used by some write flows
-bun autoshow setup --step transcription
 ```
 
 Local write runtime pieces:
@@ -49,7 +46,7 @@ Local write runtime pieces:
 - `runtime/bin/llama-server`
 - local models under `runtime/models/llama/`
 
-Llamafile needs no setup step. The first `--llm llamafile=<model>` run downloads the matching single-file `.llamafile` (binary plus weights) from the `mozilla-ai/llamafile_0.10` Hugging Face repo into `runtime/bin/llamafile/` and reuses it afterward. To pre-download it instead, run `bun autoshow setup --step llamafile` (default `Qwen3.5-0.8B-Q8_0`) or `bun autoshow setup --models llamafile:<model>` for a specific bundle.
+Llamafile needs no setup step. The first `--llm llamafile=<model>` run downloads the matching single-file `.llamafile` (binary plus weights) into `runtime/bin/llamafile/` and reuses it afterward. To pre-download it instead, run `bun autoshow setup --step llamafile` (default `Qwen3.5-0.8B-Q8_0`) or `bun autoshow setup --models llamafile:<model>` for a specific bundle.
 
 ### Environment
 
@@ -77,9 +74,9 @@ X_BEARER_TOKEN=...
 bun autoshow write [input] [flags]
 ```
 
-`write` still uses the normal step 1 and step 2 routing. The LLM flag you choose only controls step 3. Media inputs route through STT, documents/images route through OCR or native text extraction, HTML/article inputs route through URL article extraction, and X Space or X post inputs route through X Space collection before the LLM runs.
+`write` uses standard step 1 and step 2 routing. The LLM flag you choose controls step 3. Media inputs route through STT, documents/images route through OCR or native text extraction, HTML/article inputs route through URL article extraction, and X Space or X post inputs route through X Space collection before the LLM runs.
 
-Project lyric draft mode is enabled only when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory. In that mode, `write` treats the input as raw text, reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
+Project lyric draft mode is enabled when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory. In that mode, `write` treats the input as raw text, reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
 
 ## Shared Write Options
 
@@ -149,7 +146,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafil
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-4B-Q5_K_S
 ```
 
-Llamafile is a self-contained alternative to the `llama.cpp` build: each model is a prebuilt single-file bundle (binary plus embedded weights), so it runs with no compiler toolchain. AutoShow starts the llamafile server on port `8081` so it can coexist with the `llama.cpp` server on `8080`. Unlike `--llm llama`, only the bundled aliases above are accepted — free-form Hugging Face repo IDs are rejected because each alias must resolve to a known download URL. Passing `--llm llamafile` resolves to `Qwen3.5-0.8B-Q8_0` (~1.6 GB), the smallest bundle. Like `llama.cpp`, llamafile has no native structured output and uses AutoShow's internal schema-guided fallback path.
+Llamafile is a self-contained alternative to the `llama.cpp` build: each model is a prebuilt single-file bundle (binary plus embedded weights) running without a compiler toolchain. AutoShow starts the llamafile server on port `8081`. Only the bundled aliases above are accepted.
 
 ### OpenAI
 
@@ -168,7 +165,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=g
 bun autoshow write ./output/demo/text/01-track-one.md --llm openai=gpt-5.5 --prompt folkSong
 ```
 
-Passing `--llm openai` keeps the existing cheapest-model default (`gpt-5.6-luna`). The concrete GPT-5.6 tier IDs above are available when selected explicitly or through `--all-providers llm`; the `gpt-5.6` alias is not registered separately.
+Passing `--llm openai` defaults to `gpt-5.6-luna`. Explicit model selectors or `--all-providers llm` access all registered GPT-5.6, GPT-5.5, and GPT-5.4 tiers.
 
 ### Anthropic
 
@@ -184,7 +181,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropi
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropic=claude-opus-5
 ```
 
-Passing `--llm anthropic` keeps the cheaper `claude-haiku-4-5` default. Claude Opus 5 estimates use Anthropic's standard rates of `$5 / 1M input` and `$25 / 1M output`, unchanged from Claude Opus 4.8, with a 1M-token context window and 128K maximum output tokens. Its timing heuristic is reused from Claude Opus 4.8 and is provisional. Limited-availability `claude-mythos-5` is intentionally not registered.
+Passing `--llm anthropic` defaults to `claude-haiku-4-5`. Claude Opus 5 estimates use standard rates of `$5 / 1M input` and `$25 / 1M output`, with a 1M-token context window and 128K maximum output tokens.
 
 ### Gemini
 
@@ -192,15 +189,14 @@ Passing `--llm anthropic` keeps the cheaper `claude-haiku-4-5` default. Claude O
 |--------|-------|
 | Selector | `--llm gemini[=<model>]` |
 | Models | `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
-| Bare default | `gemini-3.5-flash-lite` |
-| Retired selector | `gemini-3.1-flash-lite` is rejected with guidance to use `gemini-3.5-flash-lite`; historical pricing and manifest identity remain readable |
+| Default | Passing `--llm gemini` uses `gemini-3.5-flash-lite` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.5-flash-lite
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
 ```
 
-Passing `--llm gemini` resolves to `gemini-3.5-flash-lite`. The retired `gemini-3.1-flash-lite` selector is absent from active validation and `--all-providers llm`; direct selection names `gemini-3.5-flash-lite` as the replacement without silently rewriting the requested identity, while historical pricing and completed manifests remain readable. The current Gemini models use flat Standard rates with no context tiers: Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Google still listed 2027-05-07 as the earliest shutdown date and `gemini-3.5-flash-lite` as the replacement when AutoShow retired the old selector on 2026-08-13. Moving alias selectors such as `gemini-flash-latest` and the `gemini-3-flash-preview` duplicate of `gemini-3.5-flash` are intentionally not registered. Gemini 3.5 Flash-Lite's write timing heuristic remains provisional pending a separately approved paid calibration.
+Passing `--llm gemini` defaults to `gemini-3.5-flash-lite`. Gemini models use flat Standard rates: Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Gemini 3.1 Pro Preview uses `$2.00 / 1M input` and `$12.00 / 1M output` up to 200K tokens, and `$4.00 / 1M input` and `$18.00 / 1M output` above 200K.
 
 ### Groq
 
@@ -227,7 +223,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm groq=ope
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm minimax=MiniMax-M3
 ```
 
-`MiniMax-M3` supports a 1M context window. Price estimates use MiniMax Standard pay-as-you-go bands: up to 512K input tokens at `$0.60 / 1M input`, `$0.12 / 1M cached input`, and `$2.40 / 1M output`; over 512K input tokens at `$1.20 / 1M input`, `$0.24 / 1M cached input`, and `$4.80 / 1M output`. AutoShow uses uncached Standard pricing for `--price` and ignores the temporary 7-day promotional discount and priority tier.
+`MiniMax-M3` supports a 1M context window. Price estimates use MiniMax Standard pay-as-you-go bands: up to 512K input tokens at `$0.60 / 1M input` and `$2.40 / 1M output`; over 512K input tokens at `$1.20 / 1M input` and `$4.80 / 1M output`.
 
 ### Grok
 
@@ -242,7 +238,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=gro
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.5
 ```
 
-Passing `--llm grok` still resolves to the cheaper `grok-4.3` default. `--all-providers llm` includes both concrete selectors in stable order: `grok-4.3`, then `grok-4.5`. Grok 4.5 price estimates use xAI's uncached standard rates: `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
+Passing `--llm grok` defaults to `grok-4.3`. Grok 4.5 price estimates use standard rates: `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
 
 ### Z.AI GLM
 
@@ -251,13 +247,13 @@ Passing `--llm grok` still resolves to the cheaper `grok-4.3` default. `--all-pr
 | Selector | `--llm glm[=<model>]` |
 | Models | `glm-5.1` |
 | Default | Passing `--llm glm` uses `glm-5.1` |
-| Structured output | Uses Z.AI's OpenAI-compatible chat API with JSON mode and disables GLM thinking for predictable write latency |
+| Structured output | Uses Z.AI's OpenAI-compatible chat API with JSON mode |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm glm=glm-5.1
 ```
 
-GLM 5.1 estimates are based on the Z.AI pricing docs: input `$1.40 / 1M tokens`, output `$4.40 / 1M tokens`, cached input `$0.26 / 1M tokens`, and 200K context with 128K maximum output. AutoShow uses uncached input/output pricing for `--price` because the write pipeline does not use Z.AI context caching. The speed estimate is `14146 ms / 1K tokens`, measured from AutoShow's write benchmark runs.
+GLM 5.1 pricing uses standard rates: `$1.40 / 1M input` and `$4.40 / 1M output`, with a 200K-token context window and 128K maximum output tokens.
 
 ### Kimi
 
@@ -266,16 +262,14 @@ GLM 5.1 estimates are based on the Z.AI pricing docs: input `$1.40 / 1M tokens`,
 | Selector | `--llm kimi[=<model>]` |
 | Models | `kimi-k2.6`, `kimi-k3` |
 | Default | Passing `--llm kimi` uses `kimi-k2.6` |
-| Structured output | Uses Kimi's OpenAI-compatible chat API with JSON mode. Disables K2.x thinking for predictable write latency; K3 thinking is always on by default and can be configured with `--reasoning-effort` |
+| Structured output | Uses Kimi's OpenAI-compatible chat API with JSON mode |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k2.6
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k3
 ```
 
-Kimi K2.6 estimates are based on Moonshot AI's public pricing: input `$0.95 / 1M tokens`, output `$4.00 / 1M tokens`, cached input `$0.16 / 1M tokens`, and 256K context. AutoShow uses cache-miss input/output pricing for `--price` and a speed estimate of `11215 ms / 1K tokens`, measured from AutoShow's write benchmark runs.
-
-Passing `--llm kimi` keeps the cheaper `kimi-k2.6` default. Kimi K3 uses flat pay-as-you-go pricing with no context tiers: input `$3.00 / 1M tokens`, output `$15.00 / 1M tokens`, cache-hit input `$0.30 / 1M tokens`, and a 1M-token context window. K3 runs with always-on thinking by default at `reasoning_effort` `max`, and its reused K2.6 output-token and latency heuristics are optimistic until calibrated. AutoShow supports configuring reasoning effort via `--reasoning-effort`.
+Passing `--llm kimi` defaults to `kimi-k2.6` (`$0.95 / 1M input`, `$4.00 / 1M output`, 256K context). Kimi K3 uses flat pay-as-you-go rates: `$3.00 / 1M input`, `$15.00 / 1M output`, and a 1M-token context window. K3 runs with always-on thinking by default; reasoning effort can be configured via `--reasoning-effort`.
 
 ### Together
 
@@ -291,9 +285,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=glm-5.1
 ```
 
-Together uses OpenAI-compatible chat completions at `https://api.together.xyz/v1`, which is fixed and not configurable. AutoShow keeps the public short selectors in output metadata and maps them internally to Together model IDs: `kimi-k2.6` maps to `moonshotai/Kimi-K2.6`, and `glm-5.1` maps to `zai-org/GLM-5.1`.
-
-Together estimates are based on the Together serverless pricing docs. Kimi K2.6 uses `$1.20 / 1M input`, `$0.20 / 1M cached input`, and `$4.50 / 1M output`; GLM-5.1 uses `$1.40 / 1M input`, `$0.26 / 1M cached input`, and `$4.40 / 1M output`. AutoShow uses uncached input/output pricing for `--price`.
+Together provides serverless hosted models via OpenAI-compatible chat completions: `kimi-k2.6` maps to `moonshotai/Kimi-K2.6` (`$1.20 / 1M input`, `$4.50 / 1M output`) and `glm-5.1` maps to `zai-org/GLM-5.1` (`$1.40 / 1M input`, `$4.40 / 1M output`).
 
 ### Cerebras
 
@@ -309,11 +301,9 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=zai-glm-4.7
 ```
 
-Cerebras uses OpenAI-compatible chat completions at `https://api.cerebras.ai/v1`, which is fixed and not configurable. AutoShow uses the public Cerebras model IDs directly: `gpt-oss-120b` for OpenAI GPT OSS 120B and `zai-glm-4.7` for Z.ai GLM 4.7 Preview.
+Cerebras provides high-throughput hosted inference via OpenAI-compatible chat completions with 131K context and 40,960 maximum completion tokens: `gpt-oss-120b` (`$0.35 / 1M input`, `$0.75 / 1M output`) and `zai-glm-4.7` (`$2.25 / 1M input`, `$2.75 / 1M output`).
 
-For structured output, Cerebras strict mode accepts a smaller JSON Schema subset than some other OpenAI-compatible providers. AutoShow removes unsupported request-side schema keywords such as string length, string pattern/format, and array length constraints before sending the Cerebras request, then still validates the returned JSON against the full local schema before writing metadata and output files.
-
-The Cerebras public model catalog lists both public models with 131,072-token context and 40,960 maximum completion tokens. AutoShow estimates `gpt-oss-120b` at `$0.35 / 1M input` and `$0.75 / 1M output`; `zai-glm-4.7` is marked preview and is estimated at `$2.25 / 1M input` and `$2.75 / 1M output`.
+AutoShow normalizes structured output schemas for Cerebras strict mode while validating returned JSON against the full local schema.
 
 ```bash
 # Multi-provider run

@@ -374,7 +374,7 @@ test('tts help exposes hosted TTS provider flags', async () => {
   expect(result.stdout).toContain('--elevenlabs-tts-seed')
   expect(result.stdout).not.toContain('--elevenlabs-tts-text-normalization')
   expect(result.stdout).toContain('--elevenlabs-tts-pronunciation-dictionary-locator')
-  expect(result.stdout).toContain('--elevenlabs-tts-optimize-streaming-latency')
+  expect(result.stdout).not.toContain('--elevenlabs-tts-optimize-streaming-latency')
 })
 
 test('write and config help expose shared selectors and concurrency flags', async () => {
@@ -1036,7 +1036,7 @@ test('removed benchmark command is absent while retained fixtures stay in place'
   expect(root.stdout).not.toMatch(/^\s+benchmark\b/m)
 
   const setup = await loadHelp(['setup', '--help'])
-  expect(setup.stdout).toContain('--repeat')
+  expect(setup.stdout).not.toContain('--repeat')
 
   expect(existsSync(resolve('docs/benchmarks'))).toBe(true)
   expect(existsSync(resolve('.claude/skills/consensus'))).toBe(true)

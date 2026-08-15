@@ -62,7 +62,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     elevenLabsSeed: options.elevenlabsTtsSeed,
     elevenLabsTextNormalization: trimmed(options.elevenlabsTtsTextNormalization),
     elevenLabsPronunciationDictionaryLocators,
-    elevenLabsOptimizeStreamingLatency: options.elevenlabsTtsOptimizeStreamingLatency,
     speechifyVoiceId: trimmed(options.speechifyVoice),
     speechifyAudioFormat: trimmed(options.speechifyTtsAudioFormat),
     speechifyLanguage: trimmed(options.speechifyTtsLanguage),

@@ -14,7 +14,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 
 Additional no-cost URL article contract coverage lives in `test/test-cases/validation/ingest/html-url-backends-contracts/` and `test/test-cases/validation/reports-pricing/price-mode-contracts/`; those suites mock provider calls and cover route-aware `--all-providers` artifact and price-preflight behavior. `test/test-cases/validation/providers/provider-selection-contracts/` is another no-cost suite covering provider-flag acceptance/rejection and shared-flag logic across all provider types.
 
-The `bun t` commands below document the full project runner for humans. Do not use `bun t`, `bun run t`, or `bun test/test-runner.ts` as a default verification pass. Service, e2e, and full-runner commands may call paid or quota-limited providers and must not be used as agent verification without explicit approval for that exact run.
+The `bun t` commands below document the full project runner for humans. Do not use `bun t` as a default verification pass: service, e2e, and full-runner commands may call paid or quota-limited providers and must not be used for agent verification without explicit approval for that exact run.
 
 ## Outline
 
@@ -83,7 +83,7 @@ cat project/test-output/latest.log
 
 ## Price Preflight
 
-Local price and budget commands are now path-based:
+Local price and budget commands use path filters:
 
 ```bash
 bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/ --price
@@ -100,8 +100,8 @@ bun t test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video
 Notes:
 - `--price` with no path filters resolves all mapped test price commands.
 - `--budget` in normal mode applies its threshold independently to each matching `budgetedTest()` key; runnable estimates are not combined into an aggregate cap. Every component key must be mapped and successfully evaluated by preflight. An unmapped, malformed, or otherwise unevaluated key fails locally without executing the test callback or calling a provider.
-- Local lyric-video rendering maps to local Whisper transcription price keys (`transcribe-whisper-tiny` and `transcribe-whisper-large-v3-turbo`); `music --audio` itself still rejects hosted-generation `--price`.
-- Some local paths still have no mapped price commands, including `test/test-cases/validation/` and `test/test-cases/setup/`.
+- Local lyric-video rendering maps to local Whisper transcription price keys (`transcribe-whisper-tiny` and `transcribe-whisper-large-v3-turbo`); `music --audio` itself rejects hosted-generation `--price`.
+- Validation (`test/test-cases/validation/`) and setup (`test/test-cases/setup/`) paths do not have mapped price commands.
 
 ## Related Docs
 

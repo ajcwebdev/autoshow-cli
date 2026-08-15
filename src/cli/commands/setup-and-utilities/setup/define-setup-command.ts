@@ -13,8 +13,7 @@ const FOCUSED_SETUP_CONFLICT_FLAGS = [
   'models',
   'doctor',
   'step',
-  'force-redownload',
-  'repeat'
+  'force-redownload'
 ] as const
 
 const normalizeStringArrayFlag = (value: unknown): string[] => {
@@ -80,18 +79,12 @@ export const setupCommand = defineCliCommand({
     throw CLIUsageError(`Invalid --step value: ${step}. Valid values: ${VALID_SETUP_STEPS.join(', ')}`)
   }
 
-  const repeatRaw = parseInt(ctx.flags.repeat as string, 10)
-  if (!Number.isFinite(repeatRaw) || repeatRaw < 1) {
-    throw CLIUsageError(`Invalid --repeat value: ${ctx.flags.repeat}. Must be an integer >= 1`)
-  }
-
   const healthy = await runWithLogContext({ step: 'setup' }, async () => {
-    if (step === 'all' && !ctx.flags['force-redownload'] && repeatRaw === 1) {
+    if (step === 'all' && !ctx.flags['force-redownload']) {
       return await runCompleteSetup()
     }
     return await runSetupStep(step as SetupStepId, {
-      ...(ctx.flags['force-redownload'] ? { forceRedownload: true } : {}),
-      ...(repeatRaw > 1 ? { repeat: repeatRaw } : {})
+      ...(ctx.flags['force-redownload'] ? { forceRedownload: true } : {})
     })
   })
 

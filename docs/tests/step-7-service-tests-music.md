@@ -24,11 +24,10 @@ Live music generation tests run only when their provider key is configured: `ELE
 
 ## Current Coverage
 
-- Model-level service files under `test/test-cases/e2e/service/step-7-music-gen-e2e/` use `defineMusicServiceTest` for model/provider rejection, option validation, and live generation when provider credentials are supplied.
-- `provider-flag-validation.test.ts` covers provider-selection validation and multi-provider runs emitting per-provider filenames and array metadata.
-- `test/test-cases/validation/providers/music-provider-contracts.test.ts` covers mocked REST contracts for MiniMax (`music-3.0` model acceptance, previous model rejection, instrumental flag, auto-lyrics metadata, prompt capping, and lyrics length validation), Gemini (inline audio decoding and text part preservation), and ElevenLabs (model-specific output formats `mp3_44100_128` / `mp3_48000_192` and response header recording). `test/test-cases/validation/music/lyrics-video-render-contracts.test.ts` covers lyric-video ASS subtitle generation, image background filters, and FFmpeg command-line argument construction without live service calls.
-- Pipeline files (`elevenlabs-music-v2-pipeline.test.ts`, `minimax-music-3.0-pipeline.test.ts`) add write-pipeline coverage for ElevenLabs and MiniMax music generation.
-- Focused `--price` coverage lives in `test/test-cases/price-flag/music-price.test.ts`.
+- Model-level service files under `test/test-cases/e2e/service/step-7-music-gen-e2e/` cover ElevenLabs, Gemini, and MiniMax using `defineMusicServiceTest` for model rejection, option validation, and live generation.
+- Pipeline integration coverage in `elevenlabs-music-v2-pipeline.test.ts` and `minimax-music-3.0-pipeline.test.ts` verifies root `write` pipeline integration.
+- Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/music-provider-contracts.test.ts` (mocked ElevenLabs, Gemini, and MiniMax REST contracts) and `test/test-cases/validation/music/lyrics-video-render-contracts.test.ts` (lyric-video rendering contracts).
+- Focused `--price` validation lives in `test/test-cases/price-flag/music-price.test.ts`.
 
 ## Price Preflight
 
@@ -37,7 +36,10 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --price
 bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --budget 2500
 ```
 
+The mapped music price preflight covers ElevenLabs, Gemini, and MiniMax music generation files.
+
 ## Related Docs
 
 - [Service Tests](service-tests.md)
+- [Local Tests](local-tests.md)
 - [Music Services](../commands/process-steps/step-7-music/text-to-music-services.md)

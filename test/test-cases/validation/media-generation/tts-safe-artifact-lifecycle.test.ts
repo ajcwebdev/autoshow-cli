@@ -144,7 +144,7 @@ const retainedBatchAndAudioPaths = async (
 const attemptsDirectoryFor = (outputDir: string, state: PipelineProviderState): string => {
   const render = projectionFor(state).renderHistory[0]
   if (!render) throw new Error('Missing prepared render fixture')
-  return join(outputDir, state.artifactDir, render.renderDir, 'attempts')
+  return join(outputDir, state.artifactDir, 'attempts')
 }
 
 const withOpenAiCredential = async <T>(operation: () => Promise<T>): Promise<T> => {
@@ -408,21 +408,18 @@ describe('safe artifact integration in the TTS lifecycle', () => {
       const retainedProjection = projectionFor(retainedPreparedState)
       const retainedActive = retainedProjection.activeWork
       if (retainedActive?.kind !== 'render') throw new Error('Missing retained prepared render pointer')
-      const retainedRender = retainedProjection.renderHistory.find((entry) => entry.renderIdentity === retainedActive.renderIdentity)
-      const retainedEvent = retainedRender?.events.find((entry) => entry.sequence === retainedActive.eventSequence)
-      if (!retainedEvent?.admissionJournalRef) throw new Error('Missing retained prepared journal reference')
-      const retainedJournal = JSON.parse(await readFile(
-        join(outputDir, retainedPreparedState.artifactDir, retainedEvent.admissionJournalRef),
-        'utf8'
-      )) as { invocationId?: string }
-      if (!retainedJournal.invocationId) throw new Error('Missing retained prepared invocation identity')
+      const journalPath = retainedActive.journalPath
+      if (!journalPath) throw new Error('Missing retained prepared journal reference')
+      const journalLines = (await readFile(join(outputDir, journalPath), 'utf8')).split('\n').filter((line) => line.length > 0)
+      const retainedJournal = JSON.parse(journalLines.at(-1) ?? '{}') as { snapshot?: { invocationId?: string } }
+      if (!retainedJournal.snapshot?.invocationId) throw new Error('Missing retained prepared invocation identity')
       const attemptsDirectory = attemptsDirectoryFor(outputDir, retainedPreparedState)
       const staleClaim = join(attemptsDirectory, '.attempt-001.claim')
       const staleToken = '00000000-0000-4000-8000-000000000001'
       await mkdir(staleClaim)
       await writeFile(
         join(staleClaim, `owner-${staleToken}.lock`),
-        `${retainedJournal.invocationId}\n${staleToken}\n`
+        `${retainedJournal.snapshot.invocationId}\n${staleToken}\n`
       )
 
       let realOperations = 0

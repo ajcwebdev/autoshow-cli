@@ -131,8 +131,7 @@ describe('config image and TTS default contracts', () => {
       'elevenlabs-tts-speed': '1.1',
       'elevenlabs-tts-seed': '12345',
       'elevenlabs-tts-text-normalization': 'on',
-      'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3'],
-      'elevenlabs-tts-optimize-streaming-latency': '2'
+      'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3']
     }
     expectConfigPatchRoundTrip(requestControlFlags, 'tts', {
       grokTtsLanguage: 'ar-SA',
@@ -160,8 +159,7 @@ describe('config image and TTS default contracts', () => {
       elevenlabsTtsSpeed: 1.1,
       elevenlabsTtsSeed: 12345,
       elevenlabsTtsTextNormalization: 'on',
-      elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3'],
-      elevenlabsTtsOptimizeStreamingLatency: 2
+      elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3']
     })
   })
 

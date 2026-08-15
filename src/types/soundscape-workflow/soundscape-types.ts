@@ -314,3 +314,63 @@ export type SoundscapeAudioRun = {
   master: { path: string, sha256: string, format: ObservedAudioFormat, durationMs: number }
   createdAt: string
 }
+
+export type CompactSfxEntry = {
+  cueId: string
+  taskId: string
+  generationIdentity: string
+  requestIdentity: string
+  status: 'succeeded' | 'omitted'
+  audio?: { path: string, sha256: string, format: ObservedAudioFormat, durationMs: number } | undefined
+  cost?: { amount: number | null, currency: 'USD' } | undefined
+  omissionReason?: string | undefined
+}
+
+export type CompactSfx = {
+  schemaVersion: 1
+  sfxId: string
+  renderPlanId: string
+  soundscapePlanId: string
+  targetKey: string
+  target: SoundEffectTarget
+  licenseUse?: SoundEffectLicenseUse | undefined
+  status: 'succeeded'
+  cost: { amount: number | null, currency: 'USD', basis: string }
+  entries: CompactSfxEntry[]
+  createdAt: string
+}
+
+export type CompactMixTimelineEntry = {
+  cueId: string
+  bus: Exclude<SoundscapeBus, 'dialogue'>
+  required: boolean
+  status: 'placed' | 'omitted'
+  sourceRangeMs?: { start: number, end: number } | undefined
+  finalRangeMs?: { start: number, end: number } | undefined
+  sourceAudioSha256?: string | undefined
+  loopIterations?: number | undefined
+  omissionReason?: string | undefined
+}
+
+export type CompactMixTimelineSummary = {
+  timelineId: string
+  dialogueAudioRunId: string
+  preRollMs: number
+  durationMs: number
+  entries: CompactMixTimelineEntry[]
+}
+
+export type CompactMix = {
+  schemaVersion: 1
+  mixId: string
+  soundscapePlan: { soundscapePlanId: string, path: string, sha256: string }
+  dialogueRender: { audioRunId: string, path: string, sha256: string }
+  sfx?: { sfxId: string, path: string, sha256: string } | undefined
+  timelineSummary: CompactMixTimelineSummary
+  mixProfileHash: string
+  mixIdentity: string
+  transforms: Array<Pick<SoundscapeTransform, 'transformId' | 'kind' | 'parametersHash' | 'bus' | 'cueId'>>
+  stems: SoundscapeStemRef[]
+  master: { path: string, sha256: string, format: ObservedAudioFormat, durationMs: number }
+  createdAt: string
+}

@@ -28,12 +28,12 @@ export const ocrRegistry: PriceSelectionEntry[] = [
     command('extract-deepinfra-qwen3-vl-30b-a3b-instruct', 'extract-deepinfra-Qwen/Qwen3-VL-30B-A3B-Instruct', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-replicate.test.ts', [
-    command('extract-replicate-datalab-to-ocr', 'extract-replicate-datalab-to-ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/ocr', '--price']),
-    command('extract-replicate-datalab-to-marker', 'extract-replicate-datalab-to-marker', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/marker', '--price']),
-    command('extract-replicate-lucataco-deepseek-ocr', 'extract-replicate-lucataco-deepseek-ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=lucataco/deepseek-ocr', '--price']),
+    command('extract-replicate-datalab-to/ocr', 'extract-replicate-datalab-to/ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/ocr', '--price']),
+    command('extract-replicate-datalab-to/marker', 'extract-replicate-datalab-to/marker', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/marker', '--price']),
+    command('extract-replicate-lucataco/deepseek-ocr', 'extract-replicate-lucataco/deepseek-ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=lucataco/deepseek-ocr', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-fal.test.ts', [
-    command('extract-fal-fal-ai-got-ocr-v2', 'extract-fal-fal-ai-got-ocr-v2', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'fal=fal-ai/got-ocr/v2', '--price']),
+    command('extract-fal-fal-ai/got-ocr/v2', 'extract-fal-fal-ai/got-ocr/v2', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'fal=fal-ai/got-ocr/v2', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/openai-gpt-5.5.test.ts', [
     command('extract-openai-gpt-5.5', 'extract-openai-gpt-5.5', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'openai=gpt-5.5', '--price']),

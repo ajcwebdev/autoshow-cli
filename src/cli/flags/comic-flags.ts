@@ -115,9 +115,6 @@ const comicAudioContractFlags = {
   'allow-ambiguous-redispatch': boolFlag(colorizeHelpDescription('Explicitly authorize repurchasing a provider-admitted slot that has no recoverable audio')),
   'max-generation-slots': strFlag(colorizeHelpDescription('Generate at most this many unresolved immutable slots, checkpoint, and exit without a final WAV')),
   role: strListFlag(colorizeHelpDescription('Map an uncatalogued or compound speaker label to a logical voice subject, LABEL=role:key or LABEL=voice:key; repeatable')),
-  'sample-rate': strFlag(colorizeHelpDescription('Final WAV sample rate in Hz (default: 48000)')),
-  channels: strFlag(colorizeHelpDescription('Final channel count: 1|2 (default: 2)')),
-  codec: strFlag(colorizeHelpDescription('Final PCM codec: pcm_s16le|pcm_s24le (default: pcm_s24le)')),
   slideshow: boolFlag(colorizeHelpDescription('Automatically render the synchronized still-panel MP4 video upon audio completion')),
   'panel-video': {
     ...boolFlag(colorizeHelpDescription('Alias for --slideshow')),

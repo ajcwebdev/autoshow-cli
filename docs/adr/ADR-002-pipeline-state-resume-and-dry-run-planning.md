@@ -4,234 +4,204 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
 - **Supersession:** Owns batch work planning, canonical pipeline persistence, canonical selection-to-resume parity, pooled OCR page state, the narrow completed-legacy-TTS additive bridge, and resume price preflight. Source identity, classification, normalization, and discovery caches are owned by [ADR-001](ADR-001-source-ingestion-and-normalization.md); URL and OCR execution and artifacts by [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); pooled work selection by [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md); general diagnostic rendering by [ADR-006](ADR-006-unify-error-handling-vocabulary.md).
 
 ## Context
 
-Metadata, download, extract, write, generation, and resume need one command-neutral description of the work to perform and one canonical record of work already attempted. Pipeline state was previously split across filenames, envelopes, summaries, and provider checkpoints, so readers needed format versions, artifact kinds, probing order, aliases, and route inference to reconstruct a single run.
+Metadata, download, extract, write, generation, and resume require one command-neutral description of planned work and one canonical record of work already attempted. Pipeline state was previously fragmented across separate files, envelopes, summaries, and provider checkpoints, requiring readers to infer routing, guess format versions, and reconcile derived state across runs.
 
-Pipeline outputs are disposable execution state, not a durable interchange format. Rerunning is the supported recovery path after the persistence contract changes, so recognition or migration machinery for superseded state adds ambiguity without providing a supported compatibility promise.
+Pipeline outputs represent disposable execution state rather than a durable interchange format. Rerunning is the supported recovery path after persistence schema changes; maintaining migration machinery for superseded intermediate states adds maintenance burden without offering a supported compatibility promise.
 
-One bounded case has different cost semantics: completed pre-cutover standalone TTS benchmark manifests can contain already-paid successful provider outputs and the exact narration inline in `item.input`. Requiring those archives to be rebuilt before adding a newly registered model would discard reusable paid evidence and purchase the historical cohort again. The architecture therefore needs a narrow additive bridge that cannot turn arbitrary legacy or interrupted state into authority for new synthesis.
+One bounded case requires distinct cost handling: completed pre-cutover standalone TTS benchmark runs contain successful, already-paid provider outputs and inline narration in `item.input`. Requiring full regeneration of those benchmark cohorts to test a newly added model would unnecessarily repurchase historical audio. The architecture needs an intentionally narrow, immutable additive bridge that enables new model synthesis without treating legacy state as general current provenance.
 
-Resume can backfill missing provider outputs in existing extract, write, TTS, image, video, and music runs. It accepts the same provider-selection surface as execution — `--provider provider[=model]`, `--all-providers`, `--all-local` — so it can initiate paid or quota-limited calls, but `resume --price` failed with `Unexpected flag: price`, leaving no way to estimate additive work before a paid run.
+Additionally, multi-provider pooled OCR introduces page claims, accepted results, and attempt tracking that must reside in the canonical item manifest rather than in external provider files or separate scheduler checkpoints.
 
-Why now: resume became a paid-provider entry point without a preflight, and the split persistence layout made both resume and price planning depend on inferring run state instead of reading it.
+Finally, resume can backfill missing provider outputs across extract, write, TTS, image, video, and music workflows. Because resume shares the execution command provider-selection surface (`--provider provider[=model]`, `--all-providers`, `--all-local`), it can initiate paid provider requests. However, `resume --price` was unsupported, leaving no way to dry-run or estimate additive costs before initiating paid runs.
 
-Pooled multi-provider OCR adds page claims, accepted results, interrupted work, target and lane retirement, and attempt-level usage, but it does not change the persistence decision. That state must live in the same canonical item rather than in provider directories, raw responses, a scheduler checkpoint, or a parallel pool manifest. Resume and `resume --price` must read the stored mode and page ledger so accepted pages are never inferred from artifacts or charged again.
+Why now: resume became a paid-provider entry point without a cost preflight, and fragmented state made both resume and price planning depend on inferring run state instead of reading a single canonical authority.
 
 ## Options Considered
 
-### Pipeline state
+### Pipeline state persistence
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **One current, unversioned canonical manifest and clean-break reader** | Gives all commands and resume one authority; removes probing, aliases, derived completion state, and compatibility ambiguity | Existing pre-cutover outputs must be regenerated | One `manifest.json` per output root |
-| Per-command or per-artifact codecs | Lets each domain evolve independently | Recreates format ownership and dispatch under a new abstraction | n/a |
-| Versioned compatibility readers and migration | Could open historical outputs | Preserves obsolete formats even though pipeline state is disposable and unsupported as interchange | n/a |
+| **One current, unversioned canonical manifest and clean-break reader** | Gives all commands and resume one authority; eliminates probing, aliases, derived state drift, and format ambiguity | Pre-cutover outputs must be regenerated | Exactly one `manifest.json` per output directory |
+| Per-command or per-artifact codecs | Allows individual workflow domains to evolve formats independently | Recreates format fragmentation, competing authorities, and complex cross-command dispatch | n/a |
+| Versioned compatibility readers and migrations | Allows opening historical output directories | Preserves obsolete intermediate formats for disposable execution state | n/a |
 
 ### Resume price planning
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **Add `--price` support to all resume target types** | Makes preflight consistent across extract, write, and generation; avoids surprising paid runs | Requires target-aware planning in several resume handlers | Covers 6 resume kinds: extract, write, TTS, image, video, music |
-| Add `--price` only for OCR resume | Smallest implementation | Leaves inconsistent behavior and future paid-resume gaps | Covers 1 extract route |
-| Keep rejecting `resume --price` | Preserves implementation simplicity | Requires manual estimates or risks paid provider calls | No implementation work |
+| **Add `--price` dry-run preflight across all resume target types** | Provides consistent, safe, no-cost preflight across extract, write, and generation; prevents unexpected paid runs | Requires target-aware dry-run planning in each resume handler | Covers 6 resume domains: extract, write, TTS, image, video, music |
+| Add `--price` only for OCR resume | Smallest initial implementation | Leaves inconsistent CLI behavior and unbudgeted paid runs in other workflows | Covers 1 extract route only |
+| Reject `resume --price` | Requires no planning implementation | Users must manually calculate costs or risk unexpected paid provider calls | No implementation work |
 
-### No-cost price verification
-
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Stable local/remote fixtures plus bounded 25-worker concurrency** | Removes network head-of-line blocking from cost-planning verification | Fixtures must be curated and kept stable | 175/175 current pricing specs; the original optimization measured 165/165 in 6.5 s |
-| Raise concurrency only | No fixture maintenance | Increases contention without removing blocking network work | Slower than the 10-worker baseline |
-| Keep live YouTube price cases | Exercises real discovery paths | Four live cases dominated total suite time | 165/165 in 39.1 s |
-
-### Completed legacy TTS archives
+### Completed legacy TTS benchmark archives
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **Retain completed legacy states immutably and append only new canonical targets when inline source identity is unambiguous** | Preserves already-paid audio and enables additive model benchmarks without weakening current render identity | Adds one intentionally narrow read/write bridge and strict eligibility checks | Applies only to completed/skipped legacy standalone TTS states; new work is always canonical |
-| Require complete regeneration before any additive TTS resume | Keeps the clean break absolute | Repurchases every historical provider output merely to add one current model | Repeats paid work for the whole retained cohort |
-| Upgrade legacy states into current operation-scoped render evidence | Produces a superficially uniform manifest | Invents checksums, dialogue plans, admissions, and render lineage that the old run never recorded | Rejected as false provenance |
+| **Retain completed legacy states immutably and append new canonical targets when inline source identity is unambiguous** | Preserves already-paid benchmark audio and enables additive model evaluations without weakening current render provenance | Requires a narrow read-time bridge and strict validation guardrails | Applies strictly to completed/skipped legacy standalone TTS items |
+| Require complete regeneration before additive TTS resume | Maintains an absolute clean break with no bridge logic | Repurchases every historical provider output to benchmark one new model | Multiplies paid API costs across retained cohorts |
+| Upgrade legacy states into current operation-scoped render evidence | Produces uniform manifest records | Synthesizes false checksums, dialogue plans, and render lineage never recorded in the original run | Rejected as false provenance |
 
 ## Decision
 
+Establish a single unversioned canonical `manifest.json` as the sole authority for pipeline execution state and batch work planning, enforce a clean-break reader that rejects superseded formats, and implement universal non-mutating `--price` dry-run preflight across all resume workflows. Persist pooled OCR page claims and accepted results in the canonical item ledger, derive resume selection surfaces directly from canonical execution descriptors, and provide an immutable additive bridge strictly for completed standalone TTS benchmark archives to prevent repurchasing historical audio.
+
 This applies to:
 
-- Command-neutral batch work planning and canonical pipeline persistence.
-- Resume execution and price dry-run preflight across extract, write, TTS, image, video, and music routes.
+- Command-neutral batch work planning and canonical pipeline persistence (`manifest.json`).
+- Resume execution and `--price` dry-run preflight across extract (STT, OCR, URL), write (LLM), and generation (TTS, image, video, music) routes.
+- Pooled OCR in-manifest page claim, attempt, and accepted-result ledgers.
+- Bidirectional inventory parity between execution and resume selection surfaces.
+- Completed standalone legacy TTS benchmark manifests appending new canonical model targets.
+
+It does not apply to:
+
+- Long-term interchange or document export formats (pipeline state is disposable execution state).
+- Backward compatibility or automatic migration for arbitrary pre-cutover or interrupted legacy runs.
+- Provider-named flags on the resume CLI surface.
+- Mutating manifests or initiating network calls during price dry-run preflight.
 
 ### Command-neutral work planning
 
-Step 0 produces source classification, expansion, format hints, and explicit route selection under ADR-001. This record owns the command-neutral batch work plan that turns those source results into ordered, route-aware pipeline items consumed by download, extract, write, generation, and resume. Domain execution does not rediscover or infer routes from provider metadata.
+Step 0 produces source classification, expansion, format hints, and explicit route selection under [ADR-001](ADR-001-source-ingestion-and-normalization.md). This record owns the command-neutral batch work plan that converts those source results into ordered, route-aware pipeline items consumed by download, extract, write, generation, and resume. Domain execution does not rediscover or infer routes from provider metadata.
 
-`article` and `x-space` are distinct explicit routes. One-item and mixed-route batches retain their route in the plan and state. X Spaces keep explicit not-resumable behavior rather than being mistaken for URL articles.
+`article` and `x-space` are distinct explicit routes. Single-item and mixed-route batches preserve their explicit routes in the work plan and manifest state. X Spaces maintain explicit non-resumable behavior rather than being inferred as URL articles.
 
 ### One pipeline persistence contract
 
-Every pipeline output root contains exactly one unversioned `manifest.json`. The top-level shape is always `{ command, scope, createdAt, updatedAt, source?, items }`; `command` and `scope` are ordinary business fields rather than format selectors. Every item uses the same input, route, output, child-link, status, metadata, and provider-state fields.
+Every pipeline output root contains exactly one unversioned `manifest.json`. The top-level shape is `{ command, scope, createdAt, updatedAt, source?, items }`, where `command` and `scope` are standard business metadata rather than format selectors. Every item uses uniform input, route, output, child-link, status, metadata, and provider-state fields.
 
-Provider identity, artifact location, attempts, running/succeeded/missing/failed/skipped status, resumable remote-job metadata, result summary, and error are stored once in item provider entries. Requested, missing, blocked, completion, and batch-summary views are derived. Provider directories may contain raw domain payloads, but those payloads do not carry pipeline format metadata and never control resume eligibility.
+Provider identity, artifact location, attempts, statuses (`running`, `succeeded`, `missing`, `failed`, `skipped`), resumable remote-job metadata, result summaries, and errors are stored once in item provider entries. Progress, completion, and batch-summary views are derived dynamically. Provider directories may store raw domain payloads, but raw payloads carry no pipeline format metadata and never determine resume eligibility.
 
-Mixed-route batches use containment-checked child-directory links. Each linked child directory owns its own canonical manifest. Resume validates parent route, child route, index, command, scope, and path containment before reading or rewriting child state.
+Mixed-route batches use containment-checked child-directory links. Each linked child directory maintains its own canonical manifest. Resume validates parent route, child route, index, command, scope, and path containment before reading or updating child state.
 
-The canonical reader validates only the current shape, timestamps, statuses, and contained relative paths. It distinguishes a missing canonical file from malformed or invalid current data. It does not recognize, detect, reject by version, migrate, or probe for superseded formats. Corrupt current state fails before provider execution or rewrite. A missing or empty explicitly pinned comic directory may initialize a new workspace; any nonempty pinned directory must pass exact source and structured-script compatibility and is never partially reinitialized after inspection failure. Existing output directories created under an earlier persistence layout must be rerun except for the completed standalone TTS additive bridge defined below. That bridge attaches non-serialized read-time identity to a recognized legacy provider state; it does not rewrite the state into current provenance or establish a general format reader.
+The canonical reader validates current shape, timestamps, statuses, and contained relative paths. It distinguishes a missing manifest from malformed or invalid data, and rejects corrupted state before provider execution or rewriting. It does not probe for, detect, or migrate superseded formats. Existing output directories created under earlier persistence layouts must be rerun, with the sole exception of the completed standalone TTS additive bridge.
 
 ### Canonical pooled OCR page ledger
 
-When an OCR item uses `ocrProviderMode: "pool"`, that same canonical item carries one `ocrPool` ledger. The ledger records the selected mode, required page count, ordered page states, current claims, accepted results, all attempts, provider/model/reasoning attribution, usage and cost evidence, target and lane status, and scheduler telemetry. An accepted page result is committed through the ordinary atomic manifest writer after verifying that its claim is still current and no accepted result exists. Provider directories, page inputs, response caches, raw responses, throughput profiles, and generated diagnostics are evidence or projections only.
+When an OCR item uses `ocrProviderMode: "pool"`, the canonical item carries an `ocrPool` ledger. The ledger records the selected mode, required page count, ordered page states, active claims, accepted results, attempts, provider/model/reasoning attribution, usage and cost evidence, target/lane status, and scheduler telemetry. An accepted page result is committed atomically after verifying that its claim remains active and no accepted result exists.
 
-Claims stored as running when a process stops are recovered as interrupted unfinished work. Accepted page records remain immutable inputs to composite reassembly and are not rerun. The item is full only when every required page is accepted; exhausted pages make it incomplete even if every remaining target state is terminal. This page ledger is not a separately versioned format: changing its canonical shape follows this ADR's existing unversioned clean-break policy.
+Claims marked as running when a process exits are recovered as interrupted work on resume. Accepted page records remain immutable and are never re-executed. An item is complete only when every required page is accepted. The page ledger is part of the canonical item shape and follows the same unversioned clean-break policy.
 
 ### Resume and dry-run planning
 
-`resume --price` is a provider-neutral, non-mutating dry-run cost preflight for exactly the missing, failed, or newly selected additive targets that the same resume command would attempt. It applies to extract STT, OCR, and URL article routes; write LLM resume; and standalone TTS, image, video, and music resume. It supports explicit provider selections and additive resume behavior.
+`resume --price` provides a provider-neutral, non-mutating dry-run cost preflight for the exact missing, failed, or newly selected additive targets that execution would attempt. It applies across extract STT, OCR, and URL routes; write LLM resume; and standalone TTS, image, video, and music resume.
 
-Pooled OCR resume preserves the mode stored in the manifest and continues only unfinished pages. Healthy stored targets remain eligible subject to their prior page attempts; explicitly selected additive targets are added only after current registry and capability validation. Explicitly selecting a previously retired target re-enables that target and its affected lane without invalidating accepted pages. A stored fan-out item cannot resume as pool, and a stored pool cannot resume as fan-out.
+Pooled OCR resume preserves the stored mode from the manifest and continues only unfinished pages. Stored healthy targets remain eligible based on prior attempts; explicitly selected additive targets are admitted after capability validation. Explicitly selecting a retired target re-enables that target and its lane without invalidating accepted pages. A stored fan-out item cannot resume as pool, and a stored pool cannot resume as fan-out. `resume --price` estimates only unfinished pages under identical lane-sharing and concurrency assumptions without modifying claims, artifacts, or manifests.
 
-For pooled OCR, `resume --price` estimates only unfinished pages with the same lane-sharing and concurrency assumptions used by execution. It does not rewrite claims, targets, completion state, artifacts, or the manifest. If no eligible target or lane remains, price mode does not invent different work.
+Price mode performs no provider calls, writes no manifest or raw provider artifacts, and exits immediately after reporting estimates. Unsupported or non-resumable manifests produce usage errors. Execution and price mode share identical target selection and option resolution logic.
 
-Price mode performs no provider call, writes no canonical manifest or raw provider artifact, and exits after estimates. Unsupported or insufficiently resumable manifests produce usage errors instead of estimating different work. Execution and price mode use the same target selection and option resolution.
+For TTS, a content-addressed `AudioRun` with a checksum-verified successful terminal event constitutes authoritative completion. Resume validates provider results, dependencies, output checksums, duration, format, and terminal bindings before reporting zero unresolved slots. When a TTS target fails, side-effect-free diagnostic planning evaluates terminal evidence to report retained and unresolved slots, reconciliation blockers, and required authorization without calling providers or mutating state.
 
-For TTS, an exact selected-success pointer to a checksum-verified successful terminal event and content-addressed `AudioRun` is authoritative completion for that render. Resume validates the selected provider result, AudioRun identity and dependencies, final output checksum, duration, format, and terminal output binding before reporting zero unresolved slots or republishing the retained output locally. This remains true when the successful render combined cache-materialized slots with newly dispatched slots; a later price or execution pass must not reinterpret cache-materialized slots as unresolved provider work.
+Resume accepts only provider-neutral option slices and declares no provider-named flags. Unknown flags fail at argv parsing with `Unexpected flag: <flag>`. Omitted tuning options resolve from merged `autoshow.config` or provider defaults.
 
-When a TTS target fails after provider dispatch, the failure boundary runs this same side-effect-free resume planner against the newly finalized terminal evidence. If the run retained completed slots or contains ambiguous admissions, the first failure diagnostic reports retained and unresolved slot counts, reconciliation blockers, and the exact `--tts-allow-ambiguous-redispatch` authorization required by the active TTS or resume command. Compatible-slot recovery across a changed render identity carries forward strictly chained ambiguous, accepted, and dispatch-started admissions for every semantically unchanged slot while promoting verified completed audio; changing execution identity must not erase duplicate-spend blockers. When compatible recovery supplies every slot in the current plan, execution creates no empty provider attempt or admission journal: it assembles the verified audio locally and closes the current render with a `local-composition` result and zero closing-attempt spend. This diagnostic planning never calls a provider or mutates retained state, and a diagnostic-planning failure never masks the original sanitized provider error.
-
-Resume accepts only provider-neutral option slices. It declares no provider-named flags. Such flags fail at argv parsing with `Unexpected flag: <typed spelling including leading dashes>`, matching the rejection path for removed pipeline-prefixed aliases. When canonical provider state cannot reconstruct a tuning value, both execution and price planning resolve it from merged `autoshow.config` or the provider default.
-
-Hosted concurrency mode and live lane pressure are execution policy, not canonical content or cache identity. Resume retains accepted provider, page, segment, chunk, and generation results, then creates a fresh run-scoped coordinator using the current explicit `--concurrency-mode` or `defaults.concurrency.mode`; a new resume process therefore begins a fresh ramp. The manifest may retain additive hosted-concurrency telemetry as historical execution evidence, but it does not use that telemetry to resume a live limit or invalidate accepted work.
-
-Price mode remains side-effect-free and models a clean run with no rate-limit pressure. Its wall-time calculations use the same one-slot-at-time-zero and one-additional-slot-every-five-seconds schedule for each independent provider/account lane, bounded by the resolved work-class cap. Price planning does not persist timers, probes, or inferred provider capacity.
+Hosted concurrency mode and lane pressure represent execution policy rather than content identity. Resume retains accepted results and initializes a fresh run-scoped coordinator using the explicit `--concurrency-mode` or configuration default. Price mode models a clean run without rate-limit pressure, using deterministic time schedules bounded by work-class caps.
 
 ### Canonical resume selection inventory
 
-Every model selectable by a supported execution command must be selectable additively by that command's resume path. Resume provider flags and provider-to-model option fields are derived from the same canonical selection descriptors used by command normalization and pricing; they are not parallel handwritten inventories. This invariant covers extract STT/OCR, write LLMs, TTS, image, video, and music, including local targets and `--all-*` shortcuts. Adding a provider requires updating the typed descriptor, while adding a model to an existing provider registry flows through its existing repeatable model field without a resume-specific edit.
+Every model selectable by an execution command must be selectable additively by that command's resume path. Resume provider flags and model options derive from the same canonical selection descriptors used by command normalization and pricing, rather than separate handwritten lists. This applies across extract, write, TTS, image, video, and music, including local targets and `--all-*` shortcuts.
 
-Extract preserves route awareness while following the same rule. Its public `--provider provider[=model]` normalization is derived from the canonical STT and OCR target maps, so a shared provider resolves only to the target kind allowed by the stored route. URL article routing remains separately explicit. Equality contracts check both directions: execution cannot advertise a provider absent from resume, and resume cannot expose a provider absent from execution.
+Extract preserves route awareness: public `--provider` normalization derives from canonical STT and OCR target maps so shared provider names resolve strictly to the target type allowed by the stored route. Bidirectional contract tests guarantee execution and resume selection surfaces remain identical.
 
 ### Completed legacy TTS additive bridge
 
-A pre-cutover standalone TTS item may authorize its first additive current-model plan only when every retained provider state is read-time legacy state, every such state is `succeeded` or `skipped`, and `item.input` is unambiguously inline narration rather than a path. Inline narration must contain whitespace and must not begin with `.` or `~` or contain `/` or `\\`. After that first append, the durable item is intentionally mixed: at least one immutable completed legacy state continues to identify the inline source convention, while every appended current provider must validate its own operation-scoped source, dialogue-plan, branch, render, request, admission, result, and output evidence. Interrupted/failed legacy state, missing input, path-like input, or mixed state that cannot prove this exact lineage disables the bridge and fails closed.
+A pre-cutover standalone TTS item may authorize an additive current-model plan only when all retained provider states are legacy `succeeded` or `skipped` states, and `item.input` is unambiguously inline narration (contains whitespace and does not match a file path). Appended current providers must validate their own full operation-scoped source, dialogue-plan, branch, render, request, admission, result, and output evidence. Interrupted, failed, missing, path-like, or malformed legacy state fails closed.
 
-`resume --price` and execution apply the same mixed-state source rule, so a successful first additive pass cannot make its own archive unpriceable on the second pass. A failed current target normally retains its exact plan. A provider adapter may opt into an immutable replacement branch only when the CLI voice was an implicit adapter default, the retained state is definitively failed, and compatible recovery reports no ambiguous admitted work. Explicit voice/cast/control changes still fail closed, and the replacement appends branch/render history instead of overwriting or deleting the failed attempt.
+`resume --price` and execution apply the same mixed-state source rule. Price mode derives an in-memory inline source identity, reconstructs the deterministic dialogue plan, and estimates selected additive targets without writing artifacts or manifests. Execution materializes the immutable dialogue-plan artifact before dispatch and appends new provider states. Retained legacy states remain byte-for-byte immutable and cannot be modified, deleted, or reordered.
 
-Price mode derives an in-memory inline source identity, reconstructs the deterministic single- or multi-speaker dialogue plan, and computes only the selected additive targets without writing a dialogue-plan artifact, manifest, or provider output. Execution materializes that exact immutable dialogue-plan artifact before dispatch and appends new operation-scoped provider states. Existing legacy provider states are retained byte-for-byte and exactly once: they cannot be removed, duplicated, reordered, rewritten, or newly introduced. Current or corrupt manifests never downgrade into the legacy path, and a legacy state never masquerades as checksum-verified current completion.
+## API / Type Impact
 
-### No-cost verification contract
-
-- Price registries use fast, stable fixtures for cost-planning contracts instead of live YouTube watch/channel scraping. The selected fixtures are `https://ajc.pics/autoshow/examples/2-video.mp4`, `input/examples/batch/2-urls.md`, and `https://ajc.pics/autoshow/examples/0-audio-short.mp3`.
-- Price commands and budget variants share a bounded worker pool with `PRICE_CONCURRENCY = 25`. This is test-runner concurrency only; it does not change provider concurrency or public CLI behavior.
-- Ordered reporting renders each completed price command once as `[index/total] name — cost: <cost>`. A single-variant budget preflight renders once as `[index/total] key — decision: RUN (cost: <cost>)`.
+- The canonical pipeline manifest (`manifest.json`) is the sole run-state authority and has no schema version field.
+- `resume` accepts `--price` as a boolean provider-neutral flag and exits before provider dispatch or manifest mutation.
+- Pooled OCR items include `ocrProviderMode: "pool"` and a canonical `ocrPool` page ledger.
+- Resume exposes `--ocr-provider-mode` solely to detect explicit stored-mode mismatches; omitted mode preserves the stored manifest setting.
+- Pooled resume target selection preserves accepted pages, treats interrupted claims as unfinished, admits validated additive targets, and re-enables explicitly selected retired targets or lanes.
+- Resume options compose domain-specific STT, OCR, URL, LLM, TTS, image, video, and music options with shared price and concurrency controls, excluding provider-named flags.
+- Generation and extract resume provider flags derive from typed canonical selection descriptors and target maps.
+- Eligible completed legacy standalone TTS items receive non-serialized read-time `legacyRenderIdentity` annotations; appended targets record full canonical render provenance.
+- Manifest writers retain pre-existing legacy TTS states while appending canonical states, rejecting any modification, deletion, or duplication of legacy entries.
+- Resume initializes fresh run-scoped concurrency coordinators rather than persisting live rate-limit pressure into manifest state.
 
 ## Rationale
 
-- One work plan and persistence shape remove duplicated route inference, codecs, completion aliases, and probing order.
-- A clean-break reader reflects that generated pipeline state is rebuildable rather than a long-lived interchange format.
-- Page-level pool state belongs in that same clean-break manifest because exactly-once acceptance and crash recovery cannot be reconstructed safely from attempt artifacts.
-- Explicit routes are required because safe one-item and mixed-route resume cannot rely on inference.
-- Resume can spend provider credits, so it must support the same no-cost preflight pattern as normal execution commands, and estimates must include only work that execution would attempt.
-- Full route coverage avoids a fragmented rule where `--price` works for OCR but fails elsewhere.
-- Deriving resume selection from the canonical execution descriptors prevents provider and model additions from silently becoming execution-only features.
-- The completed-legacy-TTS bridge preserves paid benchmark evidence while refusing to invent current render lineage or authorize continuation of interrupted legacy work.
-- Provider-named resume flags were rejected because one resume surface spans domains with colliding option names, and canonical/config/default resolution already supplies tuning values.
-- A universal execution runner was rejected because retries, cleanup, responses, and artifacts remain domain-specific under ADR-009.
-- Fast fixtures remove unrelated remote-site integration latency from cost-planning verification; concurrency alone cannot solve network head-of-line blocking.
+- A single canonical manifest eliminates duplicated route inference, disparate codecs, completion aliases, and file-probing order.
+- A clean-break reader reflects that ephemeral pipeline execution state is rebuildable rather than a long-lived interchange format.
+- In-manifest pooled OCR ledgers ensure atomic page acceptance and crash recovery without secondary checkpoint files.
+- Explicit routing guarantees safe resume and work planning for single-item, URL, X Spaces, and mixed-route batches.
+- Universal `--price` preflight prevents unexpected paid provider calls during resume runs.
+- Shared selection descriptors ensure new provider and model capabilities are automatically available to resume without drift.
+- The completed legacy TTS bridge protects historical financial investment in benchmark audio while strictly enforcing current render provenance for new work.
+- Provider-neutral resume flags prevent CLI option collisions across heterogeneous pipeline steps.
 
 ## Consequences
 
 Positive outcomes:
 
-- Every producer, benchmark reader, artifact reporter, and resume path uses one canonical persistence boundary.
+- All producers, benchmark readers, artifact reporters, and resume handlers share one canonical persistence boundary.
 - Provider progress and completion cannot drift between root summaries, checkpoints, and result envelopes.
-- Path traversal and malformed current state fail locally before filesystem escape or provider work.
-- Users can price-check multi-directory and additive resume work before any paid provider call.
-- Every execution provider/model surface has a matching additive resume selection path, guarded by bidirectional inventory contracts.
-- Completed legacy standalone TTS benchmark cohorts can receive new canonical targets without repurchasing retained historical outputs.
-- Completed mixed-source TTS renders remain zero-cost no-ops instead of proposing new calls for their cache-materialized slots.
-- Pooled OCR resume preserves accepted pages, recovers interrupted claims, and prices only unfinished work without another checkpoint authority.
-- No-cost price verification runs in seconds instead of tens of seconds, with roughly half the log lines.
+- Path-containment and shape validation fail fast before filesystem escape or provider invocation.
+- Users can preflight single-directory, multi-directory, and additive resume costs at zero expense.
+- Bidirectional contracts guarantee complete parity between execution and resume selection surfaces.
+- Historical standalone TTS benchmark cohorts can receive new model targets without repurchasing past audio.
+- Pooled OCR resume reliably recovers interrupted claims, preserves accepted pages, and prices unfinished work accurately.
 
 Negative outcomes:
 
-- Existing pre-cutover pipeline outputs are intentionally not resumable and must be regenerated.
-- The completed-legacy-TTS exception adds read-time identity and append-only validation that current-only manifests do not otherwise need; all other pre-cutover outputs still require regeneration.
-- Resume handlers maintain a dry-run planning path as well as execution.
-- Some estimates remain heuristic when canonical state lacks exact source size, duration, prompt, or page-count evidence, and values absent from canonical provider options fall back to configuration or provider defaults.
-- Pooled OCR increases canonical item size and write frequency because page claims and accepted results are checkpointed atomically.
-- The no-cost runner maintains a 25-worker bound and curated stable fixtures.
+- Pre-cutover pipeline output directories are not resumable and must be regenerated (except eligible completed TTS benchmarks).
+- The completed legacy TTS bridge introduces read-time validation logic that current-only manifests do not require.
+- Resume handlers must maintain dry-run planning logic alongside execution paths.
+- Manifests lacking exact source size, duration, or page counts rely on configuration or provider defaults for dry-run estimates.
+- In-manifest page ledgers increase canonical manifest file size for large pooled OCR documents.
 
 ## Trade-offs
 
 | Gains | Sacrifices |
 |---|---|
-| One canonical work/state authority with one bounded paid-evidence bridge | Pre-cutover output directories must be rebuilt except eligible completed standalone TTS archives |
-| Safe provider-neutral resume price planning | Every resumable domain maintains a shared planning path alongside execution |
+| One canonical work/state authority with one bounded paid-evidence bridge | Pre-cutover output directories must be rebuilt (except eligible completed standalone TTS archives) |
+| Safe provider-neutral resume price planning | Resumable domains maintain dry-run planning logic alongside execution |
 | Canonical selection-to-resume parity | Typed selection descriptors become a required provider-addition boundary |
-| Crash-safe pooled page acceptance | Larger canonical page and attempt ledgers |
-| Resume-aware additive estimates | Some manifest-dependent values require configuration/default fallbacks |
-| Fast, quiet no-cost price verification | The test runner maintains bounded worker scheduling and curated fixtures |
-
-## API / Type Impact
-
-- The canonical pipeline manifest is the only run-state authority and has no format version.
-- `resume` accepts `--price` as a boolean provider-neutral flag.
-- The shared price/preflight option slice participates in resume dispatch, and price-mode resume exits before provider runners and state mutation.
-- Pooled OCR items carry `ocrProviderMode: "pool"` and one canonical `ocrPool` page ledger; no schema version or parallel pool manifest is introduced.
-- Resume exposes `--ocr-provider-mode` only to detect explicit stored-mode mismatches. Omitted mode preserves the manifest value.
-- Pooled resume target selection retains accepted pages, treats interrupted claims as unfinished, admits validated additive targets, and re-enables explicitly selected retired targets or lanes.
-- Resume composes command-specific STT, OCR, URL, LLM, TTS, image, video, or music options with shared price and concurrency controls; provider-named knobs remain outside its surface.
-- Generation resume provider flags and model fields derive from typed canonical selection descriptors; extract public selection derives route-aware STT/OCR flags from the canonical target maps.
-- Eligible completed legacy standalone TTS items receive only non-serialized read-time `legacyRenderIdentity` values. New targets use ordinary `operation`, `targetKey`, `transport`, dialogue-plan, render, and artifact evidence.
-- A manifest writer may retain pre-existing legacy TTS states while appending canonical states, but it rejects any removal, duplication, rewrite, or introduction of legacy state.
-- Resume projects the current hosted concurrency mode into a new run-scoped coordinator without making that mode part of content, cache, or accepted-work identity.
-- Bare `manifest.json` and any domain raw-result files have distinct ownership: domain artifacts may be referenced from canonical state but cannot replace it.
+| Crash-safe pooled page acceptance | Larger in-manifest page and attempt ledgers |
+| Accurate additive resume cost estimates | Missing manifest metrics require configuration/default fallbacks |
 
 ## Implementation Note
 
-- Implemented single current canonical manifest and containment-checked mixed-route child links in `src/cli/commands/process-steps/pipeline-manifest.ts`.
-- Implemented `priceFlag` in provider-neutral `resumeFlags` built as `pickFlags` allow-lists in `src/cli/flags/resume-flags.ts`.
-- Implemented target resolution for resume planning and execution in `src/cli/commands/setup-and-utilities/resume/`, exiting price mode before provider execution or state mutation.
-- Implemented typed selection descriptors and derived resume provider/model inventories in `src/cli/flags/service-selector-normalization/provider-targets.ts`; extract public normalization derives from the canonical STT/OCR maps in `extract-selectors.ts`.
-- Implemented the completed-legacy-TTS additive bridge in `tts-resume.ts`, immutable in-memory dialogue-plan reference construction in `item-dialogue-plan-artifact.ts`, and append-only mixed legacy/current enforcement in `pipeline-manifest.ts`.
-- Implemented persistence for pooled claims, accepted pages, attempts, target/lane failures, usage, and attribution in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` and `src/cli/commands/process-steps/pipeline-manifest.ts`.
-- Implemented pool-mode and accepted-page preservation during resume in `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`.
-- Implemented side-effect-free price estimation across STT, OCR, URL, LLM, TTS, image, video, and music resume handlers.
-- Retained `--image-*`, `--video-*`, and `--music-*` prefixes on resume to resolve cross-domain option collisions.
-- Implemented stable price fixtures, 25-worker bounded concurrency, and single-line result rendering in `test/test-runner/runner.ts`.
-
-## Follow-up Actions
-
-| Action | Owner | Current State |
-|---|---|---|
-| Keep new resumable provider domains on the shared canonical-state and side-effect-free price-planning contracts | Pipeline maintainers | Ongoing guardrail |
+- Implemented the unversioned canonical manifest and containment-checked mixed-route child links in `src/cli/commands/process-steps/pipeline-manifest.ts`.
+- Implemented `priceFlag` in provider-neutral `resumeFlags` in `src/cli/flags/resume-flags.ts`.
+- Implemented target resolution and side-effect-free dry-run planning in `src/cli/commands/setup-and-utilities/resume/`.
+- Implemented typed selection descriptors and derived resume inventories in `src/cli/flags/service-selector-normalization/provider-targets.ts` and `extract-selectors.ts`.
+- Implemented the completed legacy TTS additive bridge in `src/cli/commands/setup-and-utilities/resume/generation/tts-resume.ts` and `src/cli/commands/process-steps/pipeline-manifest.ts`.
+- Implemented pooled OCR page ledger persistence and crash-recovery resume in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` and `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`.
 
 ## Test Plan
 
-- Canonical contracts cover every process command, single and batch scope, one-item batches, mixed-route child links, all provider statuses, atomic progress updates, missing files, malformed JSON, invalid shapes, corrupt rewrites, and path containment.
-- A source guard ensures no superseded pipeline filename, format-version helper, old manifest type, route adapter, checkpoint, or derived summary artifact remains.
-- Resume price contracts prove estimates cover selected missing/additive targets, multi-directory totals are reported, manifests stay unchanged, and provider runners are not invoked.
-- Pooled OCR contracts prove atomic claim and accepted-page checkpoints, interrupted-claim recovery, accepted-page preservation, additive and explicitly re-enabled targets, stored-mode enforcement, unfinished-page pricing, and canonical-manifest authority.
-- Resume flag contracts prove every provider-neutral option is present, provider-named options are absent, and representative rejected flags preserve the user's typed dashed spelling.
-- Resume inventory contracts prove equality between canonical execution descriptors and resume for extract, write, TTS, image, video, and music, including all 16 TTS providers and write's local `llamafile` target.
-- TTS resume contracts prove unambiguous completed inline legacy state is priceable without writes, can append a canonical target locally, remains priceable after becoming a validated mixed legacy/current item, and can append a safe failed implicit-default replacement branch while interrupted, path-like, ambiguous mixed, corrupt, removed, duplicated, rewritten, explicitly rebound, or ambiguously admitted state fails closed.
-- Run `bun run check`, `bun t --price`, `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`, `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`, `bun test test/test-cases/validation/cli/option-resolution-contracts/`, `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/`, and targeted manifest tests. Do not run paid provider, smoke, or e2e tests that can call third-party APIs.
-- Verification on 2026-08-14 includes the default no-cost checks, targeted resume/option contracts, and clean-ramp pricing coverage without provider calls.
+- Canonical persistence contracts verify single and batch scopes, single-item batches, mixed-route child links, all provider statuses, atomic updates, missing files, malformed JSON, invalid schemas, corrupt rewrites, and path containment.
+- Source guards verify that no superseded persistence filenames, format-version helpers, legacy manifest types, checkpoints, or derived summary artifacts exist.
+- Resume price contracts verify that estimates cover selected missing/additive targets, report multi-directory totals, leave manifests unchanged, and invoke zero provider runners.
+- Pooled OCR contracts verify atomic claim checkpoints, interrupted-claim recovery, accepted-page preservation, additive/re-enabled targets, stored-mode preservation, and unfinished-page pricing.
+- Resume flag and inventory contracts verify provider-neutral option surfaces, rejection of provider-named flags, and bidirectional equality between execution and resume selection descriptors across all modalities.
+- TTS resume contracts verify dry-run pricing and additive target appending for unambiguous inline legacy states, while asserting that interrupted, path-like, ambiguous, or corrupted states fail closed.
+- Verification commands: `bun run check`, `bun t --price`, `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`, `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`, `bun test test/test-cases/validation/cli/option-resolution-contracts/`, `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/`, and `bun test test/test-cases/validation/resume-manifests/no-legacy-persistence-contracts.test.ts`. Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 
 ## References
 
-- Source ingestion, identity, normalization, and discovery caches: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
-- Extract execution and artifacts: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
-- Pooled OCR scheduling decision: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
-- Diagnostic-rendering companion: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
-- Hosted scheduling and price-ramp companion: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
+- Source ingestion and normalization authority: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Diagnostic rendering and error vocabulary: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
+- Concurrency lanes and work-unit scheduling: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
+- Extract execution and artifact contracts: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
+- Hosted model registry and capability policy: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
+- Benchmark evidence and report architecture: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
+- Pooled OCR work distribution: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 - Canonical persistence boundary: `src/cli/commands/process-steps/pipeline-manifest.ts`
 - Resume routing and dispatch: `src/cli/commands/setup-and-utilities/resume/`
 - Resume flags: `src/cli/flags/resume-flags.ts`
 - Configuration fallback: `src/cli/commands/setup-and-utilities/config/config-merge.ts`
 - Aggregate pricing: `src/cli/commands/pricing-orchestration/aggregate-pricing.ts`
-- Price worker, fixtures, and result rendering: `test/test-runner/runner.ts`, `test/test-runner/price-commands/registry/`
 - Canonical persistence source guard: `test/test-cases/validation/resume-manifests/no-legacy-persistence-contracts.test.ts`
 - Resume provider-surface contracts: `test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts`
 - TTS canonical and legacy-additive resume contracts: `test/test-cases/validation/resume-manifests/tts-resume-canonical-contracts.test.ts`

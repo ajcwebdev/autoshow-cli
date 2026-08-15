@@ -14,7 +14,6 @@ Generate music from a text prompt with hosted providers, or render local lyric v
   - [MiniMax](#minimax)
   - [Gemini](#gemini)
   - [Lyric-Video Rendering](#lyric-video-rendering)
-- [Pricing Notes](#pricing-notes)
 - [Output](#output)
 - [Notes](#notes)
 
@@ -32,8 +31,6 @@ The music setup step checks hosted music API readiness and local lyric-video pre
 - Local Whisper `large-v3-turbo` model
 
 ### Environment
-
-There are no local music-generation models in this project.
 
 ```bash
 ELEVENLABS_API_KEY=...
@@ -67,7 +64,7 @@ Do not mix hosted generation flags with lyric-video flags.
 
 ## Shared Music Options
 
-The standalone `music` command drops the `music-` prefix these options carry on `write`, `config`, and `resume` (e.g. `--duration` vs `--music-duration`).
+The standalone `music` command drops the `music-` prefix these options carry on `write`, `config`, and `resume` (e.g. `--duration` vs `--music-duration`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
 Hosted generation flags:
 
@@ -76,7 +73,7 @@ Hosted generation flags:
 | `--provider provider[=model]` | Hosted music provider/model selector; repeat to run multiple targets |
 | `--all-providers` | Enable every supported hosted music provider/model |
 | `--provider-concurrency <n>` | Hosted music providers/models to run concurrently per item; default `7` |
-| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
+| `--concurrency-mode <ramp|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--duration <seconds>` | Requested music duration |
 | `--lyrics-file <path>` | Lyrics file path (`.md` or `.txt`) for MiniMax and Gemini music generation |
 | `--instrumental` | Force instrumental generation for providers that support prompt/instrumental mode |
@@ -119,7 +116,7 @@ bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider
 bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v2 --price
 ```
 
-ElevenLabs returns audio directly. Music v1 produces `mp3_44100_128`; Music v2 produces `mp3_48000_192`.
+ElevenLabs returns audio directly (`mp3_44100_128` for `music_v1`, `mp3_48000_192` for `music_v2`). Pricing estimates use explicit `--duration` or default to 180 seconds.
 
 ### MiniMax
 
@@ -137,7 +134,7 @@ bun autoshow music "ambient piano instrumental with soft tape saturation" --prov
 bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --price
 ```
 
-MiniMax auto-generates lyrics when `--lyrics-file` is omitted. `music-3.0` supports instrumental mode. `--duration` is ignored by MiniMax.
+MiniMax auto-generates lyrics when `--lyrics-file` is omitted, which is included in `--price` estimation. `music-3.0` supports instrumental mode. `--duration` is ignored by MiniMax.
 
 ### Gemini
 
@@ -155,7 +152,7 @@ bun autoshow music input/examples/tts/1-tts.md --provider gemini=lyria-3-pro-pre
 bun autoshow music "ambient piano and strings" --provider gemini=lyria-3-clip-preview --price
 ```
 
-Gemini Lyria 3 Clip always generates a 30-second MP3 clip. Lyria 3 Pro uses duration instructions from `--duration`, or a 120-second timing estimate when omitted. `--lyrics-file` appends lyrics to the prompt. If `--instrumental` is also set, instrumental takes precedence and the lyrics file is ignored with a warning.
+Gemini Lyria 3 Clip always generates a 30-second MP3 clip. Lyria 3 Pro uses duration instructions from `--duration` (default 120 seconds). `--lyrics-file` appends lyrics to the prompt. If `--instrumental` is also set, instrumental takes precedence and the lyrics file is ignored with a warning.
 
 ### Lyric-Video Rendering
 
@@ -165,7 +162,7 @@ Gemini Lyria 3 Clip always generates a 30-second MP3 clip. Lyria 3 Pro uses dura
 | Input root | `--input-dir <dir>` |
 | Rerender | `--captions <file>` inside `./output` |
 | Batch | `--batch` |
-| Whisper model | `--model tiny\|base\|small\|medium\|large-v3-turbo`, default `large-v3-turbo` |
+| Whisper model | `--model tiny|base|small|medium|large-v3-turbo`, default `large-v3-turbo` |
 | Overlay | `--font <name>` |
 | Debug artifacts | `--keep-tmp` |
 
@@ -180,21 +177,16 @@ bun autoshow music --batch --model tiny
 
 Lyric-video rendering uses local Whisper captions and ffmpeg rendering. In rerender mode, output stems come from the caption filename. If an image beside the lyric-video audio file matches by exact basename or track number, it is used as the background; otherwise a spectrogram background is rendered.
 
-## Pricing Notes
-
-- **ElevenLabs**: Uses explicit `--duration` when provided; otherwise estimates using `180` seconds.
-- **MiniMax**: Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated.
-- **Gemini**: `lyria-3-clip-preview` is a fixed 30-second clip; `lyria-3-pro-preview` uses `--duration` or defaults to 120 seconds.
-
 ## Output
 
-- Single-target hosted runs write `generated-music.mp3` and `manifest.json`.
-- Multi-target hosted runs write `generated-music-<provider>-<sanitized-model>.mp3` per target and `manifest.json`.
-- `--output-dir` sets the run directory; output filenames remain provider-deterministic.
-- Lyric-video single runs write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json` (plus `.lyrics-tmp/` when `--keep-tmp` is set).
-- Lyric-video batch runs write `<slug>/<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
-- `manifest.json` records single-run metadata including `music` array, `cost`, and `timing`.
+- **Single-target hosted runs**: write `output/<timestamp>_music-gen/generated-music.mp3` and `manifest.json`.
+- **Multi-target hosted runs**: write `generated-music-<provider>-<sanitized-model>.mp3` per target and `manifest.json`.
+- **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json` (plus `.lyrics-tmp/` when `--keep-tmp` is set).
+- **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
+- **`--output-dir`**: pins an exact output directory; filenames remain provider-deterministic.
+- **`manifest.json`**: records single-run metadata including `music` array, `cost`, and `timing`.
 
 ## Notes
 
-- Do not mix hosted generation flags with lyric-video flags.
+- When multiple providers are specified, each generates independently. A failure from one provider does not cancel the others; a warning is logged and the run succeeds if at least one provider succeeds.
+- Music generation tests cover validation and `--price`; live provider-generation tests require API keys. See [Step 7 Service Tests: Music](../../../tests/step-7-service-tests-music.md).

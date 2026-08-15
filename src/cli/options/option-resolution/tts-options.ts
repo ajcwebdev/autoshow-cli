@@ -287,7 +287,6 @@ export const buildTtsOptions = (
       return validateCliValue(validateElevenLabsTtsTextNormalization, value)
     })(),
     elevenlabsTtsPronunciationDictionaryLocators: readOptionalStringListFlag(flags, 'elevenlabs-tts-pronunciation-dictionary-locator'),
-    elevenlabsTtsOptimizeStreamingLatency: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-optimize-streaming-latency'), 'elevenlabs-tts-optimize-streaming-latency', { min: 0, max: 4, integer: true }),
     minimaxTtsVoice: readOptionalStringFlag(flags, 'minimax-tts-voice'),
     minimaxTtsLanguageBoost: (() => {
       const value = readOptionalStringFlag(flags, 'minimax-tts-language-boost')

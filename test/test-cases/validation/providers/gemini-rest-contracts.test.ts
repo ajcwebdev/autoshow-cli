@@ -112,7 +112,7 @@ describe('Gemini REST contracts', () => {
       expect(error).toBeInstanceOf(GeminiRestError)
       expect((error as GeminiRestError).status).toBe(429)
       expect((error as GeminiRestError).headers.get('retry-after')).toBe('1')
-      expect(classifyGeminiRetry(error)).toMatchObject({ shouldRetry: true, reason: 'retryable status 429' })
+      expect(classifyGeminiRetry(error)).toMatchObject({ shouldRetry: true, reason: 'provider rejected paid create with retryable status 429' })
     }
   })
 

@@ -8,7 +8,6 @@ Generate images from a text prompt with hosted image providers.
   - [Environment](#environment)
 - [Usage](#usage)
 - [Shared Image Options](#shared-image-options)
-- [Workflow: Generate, Then Edit](#workflow-generate-then-edit)
 - [Image Services](#image-services)
   - [Gemini](#gemini)
   - [OpenAI](#openai)
@@ -75,28 +74,8 @@ The standalone `image` command uses `--size` instead of `--image-size` (which ca
 
 ```bash
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
-bun autoshow image "turn this into a premium catalog product photo with a soft gray background and subtle shadow" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-catalog
-```
-
-## Workflow: Generate, Then Edit
-
-Image runs write to `output/<timestamp>_image-gen/` unless `--output-dir <dir>` is specified.
-
-```bash
-# 1. Generate the base image.
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
-
-# 2. Edit the generated image.
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
-```
-
-The generated file can also serve as a reference input across other providers:
-
-```bash
-bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini
-bun autoshow image "turn this into a glossy magazine ad on a warm kitchen counter" --provider grok=grok-imagine-image-quality --input output/mug-base/generated-image.png --size 1K --output-dir output/mug-grok
-bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-klein-4b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
-bun autoshow image "place the same mug on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input output/mug-base/generated-image.png --output-dir output/mug-replicate
+bun autoshow image "a serene mountain lake at dawn" --all-providers --price
 ```
 
 ## Image Services
@@ -114,8 +93,7 @@ bun autoshow image "place the same mug on a rustic breakfast table" --provider r
 
 ```bash
 bun autoshow image "a serene mountain lake at dawn" --provider gemini=gemini-3.1-flash-lite-image --size 1K --aspect-ratio 16:9
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/mug-base
-bun autoshow image "restyle the generated mug as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini-edit
+bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input input/reference.png --output-dir output/travel-poster
 bun autoshow image "a detailed editorial data visualization" --provider gemini=gemini-3-pro-image --size 4K --search-grounding
 ```
 
@@ -132,9 +110,9 @@ bun autoshow image "a detailed editorial data visualization" --provider gemini=g
 | Edit/reference | `--input` with optional `--mask` |
 
 ```bash
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
-bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
+bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png
 bun autoshow image "a product sketch of the same travel mug concept" --provider openai=gpt-image-2 --size 1024x1024 --quality low
+bun autoshow image "replace the background with a sunlit forest" --provider openai=gpt-image-2 --input input/product.png --mask input/mask.png --format webp
 ```
 
 ### Grok
@@ -149,9 +127,8 @@ bun autoshow image "a product sketch of the same travel mug concept" --provider 
 | Edit/reference | Up to 3 `--input` images with `grok-imagine-image-quality` |
 
 ```bash
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider grok=grok-imagine-image-quality --size 1K --output-dir output/mug-base
-bun autoshow image "turn the generated mug into a glossy magazine ad on a warm kitchen counter" --provider grok=grok-imagine-image-quality --input output/mug-base/generated-image.jpg --size 1K --output-dir output/mug-grok
 bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --aspect-ratio 16:9 --size 1K --count 4
+bun autoshow image "turn the reference into a glossy magazine ad on a warm kitchen counter" --provider grok=grok-imagine-image-quality --input input/reference.jpg --size 1K
 ```
 
 ### BFL
@@ -165,8 +142,8 @@ bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-ima
 | References | Repeatable `--input` (up to 4 images for Klein, 8 for Pro/Max/Flex) |
 
 ```bash
-bun autoshow image "a cinematic product photo of a red enamel camping mug" --provider bfl=flux-2-klein-4b --size 1024x1024 --format png --output-dir output/mug-base
-bun autoshow image "place the same mug in a cozy cabin kitchen" --provider bfl=flux-2-klein-9b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
+bun autoshow image "a handmade ceramic espresso cup on a marble counter" --provider bfl=flux-2-klein-4b --size 1024x1024 --format webp
+bun autoshow image "place the subject in a cozy cabin kitchen" --provider bfl=flux-2-pro --input input/subject.png --size 1024x1024
 ```
 
 ### Recraft
@@ -180,7 +157,7 @@ bun autoshow image "place the same mug in a cozy cabin kitchen" --provider bfl=f
 | Output | PNG |
 
 ```bash
-bun autoshow image "a premium product photo of a red enamel camping mug on white seamless" --provider recraft=recraftv4_1 --size 1024x1024 --count 3
+bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3
 bun autoshow image "a compact illustrated travel postcard of a desert observatory" --provider recraft --aspect-ratio 16:9
 ```
 
@@ -200,8 +177,7 @@ Standard V4.1 models accept 1MP sizes (`1024x1024`, `1536x768`, etc.); Pro V4.1 
 
 ```bash
 bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider replicate=bytedance/seedream-4.5 --aspect-ratio 1:1 --output-dir output/mug-base
-bun autoshow image "place the same mug on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input output/mug-base/generated-image.jpg --output-dir output/mug-replicate
+bun autoshow image "place the subject on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input input/subject.jpg --aspect-ratio 1:1
 ```
 
 ### Luma Labs
@@ -215,9 +191,9 @@ bun autoshow image "place the same mug on a rustic breakfast table" --provider r
 | References | Repeatable `--input` (up to 9 images) |
 
 ```bash
-bun autoshow image "a quiet editorial product photo of a red enamel camping mug" --provider lumalabs=uni-1 --aspect-ratio 1:1 --format png --output-dir output/mug-base
-bun autoshow image "make the mug matte black and keep the same camera angle" --provider lumalabs=uni-1 --input output/mug-base/generated-image.png --output-dir output/mug-lumalabs-edit
+bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png
 bun autoshow image "a serene mountain lake at dawn" --provider lumalabs=uni-1-max --aspect-ratio 16:9
+bun autoshow image "make the subject matte black and keep the same camera angle" --provider lumalabs=uni-1 --input input/subject.png
 ```
 
 ### fal.ai
@@ -232,8 +208,8 @@ bun autoshow image "a serene mountain lake at dawn" --provider lumalabs=uni-1-ma
 
 ```bash
 bun autoshow image "a technical cutaway illustration of a lunar greenhouse" --provider fal=fal-ai/hidream-o1-image --size 1024x1024
-bun autoshow image "a typographic launch poster" --provider fal=alibaba/qwen-image-3 --count 2
-bun autoshow image "turn this into a dusk scene" --provider fal=reve/2.1 --input output/mug-base/generated-image.png --aspect-ratio 16:9
+bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2
+bun autoshow image "turn this into a dusk scene" --provider fal=reve/2.1 --input input/scene.png --aspect-ratio 16:9
 ```
 
 ## Output

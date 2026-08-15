@@ -75,7 +75,7 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
     expect(requestOptions.get('anthropic')?.every((options) => options.strategy === 'native')).toBe(true)
     expect(requestOptions.get('minimax')?.every((options) => options.strategy === 'schema-guided')).toBe(true)
     expect(requestOptions.get('llama.cpp')?.every((options) => options.strategy === 'native')).toBe(true)
-    expect(requestOptions.get('llamafile')?.every((options) => options.strategy === 'native')).toBe(true)
+    expect(requestOptions.get('llamafile')?.every((options) => options.strategy === 'schema-guided')).toBe(true)
 
     for (const result of results.slice(0, 5)) {
       expect(result.parsedJson).toEqual({

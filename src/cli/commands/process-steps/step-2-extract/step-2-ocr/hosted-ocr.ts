@@ -451,7 +451,6 @@ const runChunkableHostedPdfOcr = async (
       model: identity.ocrModel,
       pageCount: totalPages
     }) ?? opts.ocrConcurrency,
-    keepPageInputs: opts.keepOcrPageInputs,
     runFull: async () => await runScheduledProvider(filePath, step1Metadata, {
       unit: 'document',
       pages: totalPages

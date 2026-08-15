@@ -768,37 +768,6 @@ const runSetupMusic = async (): Promise<void> => {
   l.write('success', 'Music setup complete')
 }
 
-const computeMedian = (values: number[]): number => {
-  if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1]! + sorted[mid]!) / 2) : sorted[mid]!
-}
-
-const computeP90 = (values: number[]): number => {
-  if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  return sorted[Math.max(0, Math.min(sorted.length - 1, Math.ceil(0.9 * sorted.length) - 1))]!
-}
-
-const logBenchmarkResults = (stepLabel: string, durations: number[]): void => {
-  const median = computeMedian(durations)
-  const p90 = computeP90(durations)
-  const rows = [{
-    medianMs: median,
-    p90Ms: p90,
-    minMs: Math.min(...durations),
-    maxMs: Math.max(...durations),
-    outliers: durations.filter(v => v > p90).length
-  }]
-
-  l.write('info', `Setup Benchmark (${stepLabel}, ${durations.length} runs)`, {
-    category: 'command',
-    humanTable: createHumanTable(rows, ['medianMs', 'p90Ms', 'minMs', 'maxMs', 'outliers']),
-    metadata: { step: stepLabel, runs: durations.length, results: rows }
-  })
-}
-
 export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {
   const whisperModelPath = `${whisperModelsDir}/ggml-${defaultWhisperModel}.bin`
   const lyricsWhisperModelPath = `${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`
@@ -901,26 +870,8 @@ const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
   }
 }
 
-export const runSetupStep = async (step: SetupStepId, options?: { forceRedownload?: boolean, repeat?: number }): Promise<boolean> => {
-  const repeat = options?.repeat ?? 1
+export const runSetupStep = async (step: SetupStepId, options?: { forceRedownload?: boolean }): Promise<boolean> => {
   await ensureRuntimeDirs()
-
-  if (repeat <= 1) {
-    await applyRunOptions(step, options)
-    return await executeStepOnce(step)
-  }
-
-  const timings: number[] = []
-  let healthy = true
-  for (let i = 0; i < repeat; i++) {
-    await applyRunOptions(step, options)
-    const start = Date.now()
-    healthy = await executeStepOnce(step) && healthy
-    const duration = Date.now() - start
-    timings.push(duration)
-    l.write('info', `Run ${i + 1}/${repeat}: ${duration}ms`)
-  }
-
-  logBenchmarkResults(step, timings)
-  return healthy
+  await applyRunOptions(step, options)
+  return await executeStepOnce(step)
 }

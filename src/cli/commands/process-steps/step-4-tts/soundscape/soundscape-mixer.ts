@@ -1,12 +1,12 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { join, resolve } from 'node:path'
-import type { ObservedAudioFormat, ResolvedSoundscapeTimeline, SoundEffectRenderPlan, SoundEffectRenderResult, SoundscapeAudioRun, SoundscapeBus, SoundscapePlan, SoundscapeStemRef, SoundscapeTransform } from '~/types'
+import type { CompactMix, CompactMixTimelineSummary, ObservedAudioFormat, ResolvedSoundscapeTimeline, SoundEffectRenderPlan, SoundEffectRenderResult, SoundscapeBus, SoundscapePlan, SoundscapeStemRef, SoundscapeTransform } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
-import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../script-to-audio/contract-identity'
-import { readContainedArtifactFile, writeImmutableArtifactFile } from '../script-to-audio/safe-artifact-store'
+import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { readContainedArtifactFile, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
 import { inspectSoundscapeAudio } from './soundscape-audio'
 
 type SourcePlacement = {
@@ -161,31 +161,77 @@ const masterStems = async (input: { stems: string[], output: string, plan: Sound
   await runFfmpeg([...input.stems.flatMap(path => ['-i', path]), '-filter_complex', filter, '-map', '[master]', '-ar', String(profile.sampleRate), '-ac', String(profile.channels), '-c:a', profile.codec, '-bitexact', '-y', input.output], 'soundscape master', input.cancellation)
 }
 
-const loadExistingSoundscapeRun = async (input: {
+const timelineSummary = (timeline: ResolvedSoundscapeTimeline): CompactMixTimelineSummary => ({
+  timelineId: timeline.timelineId,
+  dialogueAudioRunId: timeline.dialogueAudioRunId,
+  preRollMs: timeline.preRollMs,
+  durationMs: timeline.durationMs,
+  entries: timeline.entries.map(entry => ({
+    cueId: entry.cueId,
+    bus: entry.bus,
+    required: entry.required,
+    status: entry.status,
+    ...(entry.sourceRangeMs ? { sourceRangeMs: entry.sourceRangeMs } : {}),
+    ...(entry.finalRangeMs ? { finalRangeMs: entry.finalRangeMs } : {}),
+    ...(entry.sourceAudioSha256 ? { sourceAudioSha256: entry.sourceAudioSha256 } : {}),
+    ...(entry.loopIterations !== undefined ? { loopIterations: entry.loopIterations } : {}),
+    ...(entry.omissionReason ? { omissionReason: entry.omissionReason } : {}),
+  })),
+})
+
+const compactTransforms = (transforms: SoundscapeTransform[]): CompactMix['transforms'] =>
+  transforms.map(transform => ({
+    transformId: transform.transformId,
+    kind: transform.kind,
+    parametersHash: transform.parametersHash,
+    ...(transform.bus ? { bus: transform.bus } : {}),
+    ...(transform.cueId ? { cueId: transform.cueId } : {}),
+  }))
+
+export const soundscapeMixPath = (mixId: string): string => `audio/soundscape/${mixId}/mix.json`
+
+export const soundscapeMixIdFor = (input: {
+  mixIdentity: string
+  dialogueAudioRunId: string
+  sfxId?: string | undefined
+}): string => hashCanonicalTtsValue({
+  mixIdentity: input.mixIdentity,
+  dialogueAudioRunId: input.dialogueAudioRunId,
+  sfxId: input.sfxId ?? null,
+})
+
+const loadExistingSoundscapeMix = async (input: {
   rootDir: string
-  path: string
+  mixId: string
   plan: SoundscapePlan
   dialogueAudioRunId: string
-  renderResultId?: string | undefined
-}): Promise<{ audioRun: SoundscapeAudioRun, ref: { path: string, sha256: string } } | undefined> => {
+  sfxId?: string | undefined
+}): Promise<{ mix: CompactMix, ref: { path: string, sha256: string } } | undefined> => {
   let stored: Awaited<ReturnType<typeof readContainedArtifactFile>>
-  try { stored = await readContainedArtifactFile(input.rootDir, input.path) }
+  try { stored = await readContainedArtifactFile(input.rootDir, soundscapeMixPath(input.mixId)) }
   catch (error) {
     if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
     if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
     throw error
   }
-  let audioRun: SoundscapeAudioRun
-  try { audioRun = JSON.parse(stored.bytes.toString('utf8')) as SoundscapeAudioRun }
-  catch { throw CLIUsageError('Retained soundscape AudioRun is not valid JSON.') }
-  const { audioRunId: _id, ...base } = audioRun
-  if (audioRun.schemaVersion !== 1 || audioRun.audioRunId !== hashCanonicalTtsValue(base) || audioRun.dialogueAudioRun.audioRunId !== input.dialogueAudioRunId || audioRun.soundscapePlan.soundscapePlanId !== input.plan.soundscapePlanId || audioRun.mixIdentity !== input.plan.mixIdentity || audioRun.mixProfileHash !== input.plan.mixProfileHash || audioRun.soundEffectRenderResult?.resultId !== input.renderResultId) throw CLIUsageError('Retained soundscape AudioRun identity is incompatible with the selected inputs.')
-  const refs = [audioRun.resolvedTimeline, audioRun.transformLedger, ...audioRun.stems, audioRun.master]
-  for (const ref of refs) {
+  let mix: CompactMix
+  try { mix = JSON.parse(stored.bytes.toString('utf8')) as CompactMix }
+  catch { throw CLIUsageError('Retained soundscape mix.json is not valid JSON.') }
+  if (
+    mix.schemaVersion !== 1
+    || mix.mixId !== input.mixId
+    || mix.dialogueRender.audioRunId !== input.dialogueAudioRunId
+    || mix.soundscapePlan.soundscapePlanId !== input.plan.soundscapePlanId
+    || mix.mixIdentity !== input.plan.mixIdentity
+    || mix.mixProfileHash !== input.plan.mixProfileHash
+    || mix.sfx?.sfxId !== input.sfxId
+    || mix.timelineSummary.dialogueAudioRunId !== input.dialogueAudioRunId
+  ) throw CLIUsageError('Retained soundscape mix identity is incompatible with the selected inputs.')
+  for (const ref of [...mix.stems, mix.master]) {
     const artifact = await readContainedArtifactFile(input.rootDir, ref.path)
     if (artifact.sha256 !== ref.sha256) throw CLIUsageError(`Retained soundscape artifact checksum is invalid: ${ref.path}`)
   }
-  return { audioRun, ref: { path: stored.relativePath, sha256: stored.sha256 } }
+  return { mix, ref: { path: stored.relativePath, sha256: stored.sha256 } }
 }
 
 export const mixSoundscape = async (input: {
@@ -196,17 +242,27 @@ export const mixSoundscape = async (input: {
   dialogueAudioRun: { audioRunId: string, path: string, sha256: string, finalAudio: { path: string, sha256: string } }
   renderPlan?: { value: SoundEffectRenderPlan, ref: { path: string, sha256: string } } | undefined
   renderResult?: { value: SoundEffectRenderResult, ref: { path: string, sha256: string } } | undefined
+  sfx?: { sfxId: string, path: string, sha256: string } | undefined
   cancellation?: AbortSignal | undefined
-}): Promise<{ audioRun: SoundscapeAudioRun, ref: { path: string, sha256: string } }> => {
+}): Promise<{ mix: CompactMix, ref: { path: string, sha256: string } }> => {
   if (input.timeline.soundscapePlanId !== input.plan.soundscapePlanId || input.timeline.dialogueAudioRunId !== input.dialogueAudioRun.audioRunId) throw CLIUsageError('Resolved soundscape timeline does not bind the selected plan and dialogue audio run.')
   if (input.timeline.durationMs <= 0 || !Number.isSafeInteger(input.timeline.durationMs)) throw CLIUsageError('Resolved soundscape timeline requires a positive integer duration.')
-  const materializationIdentity = hashCanonicalTtsValue({
+  const sfx = input.sfx ?? (input.renderResult
+    ? { sfxId: input.renderResult.value.resultId, path: input.renderResult.ref.path, sha256: input.renderResult.ref.sha256 }
+    : undefined)
+  const mixId = soundscapeMixIdFor({
     mixIdentity: input.plan.mixIdentity,
     dialogueAudioRunId: input.dialogueAudioRun.audioRunId,
-    soundEffectRenderResultId: input.renderResult?.value.resultId ?? null,
+    ...(sfx ? { sfxId: sfx.sfxId } : {}),
   })
-  const outputRoot = `audio/soundscape/${materializationIdentity}`
-  const existing = await loadExistingSoundscapeRun({ rootDir: input.rootDir, path: `${outputRoot}/audio-run.json`, plan: input.plan, dialogueAudioRunId: input.dialogueAudioRun.audioRunId, ...(input.renderResult ? { renderResultId: input.renderResult.value.resultId } : {}) })
+  const outputRoot = `audio/soundscape/${mixId}`
+  const existing = await loadExistingSoundscapeMix({
+    rootDir: input.rootDir,
+    mixId,
+    plan: input.plan,
+    dialogueAudioRunId: input.dialogueAudioRun.audioRunId,
+    ...(sfx ? { sfxId: sfx.sfxId } : {}),
+  })
   if (existing) return existing
   const work = join(input.rootDir, 'audio', 'soundscape', `.work-${randomUUID()}`)
   await mkdir(work, { recursive: true })
@@ -261,28 +317,22 @@ export const mixSoundscape = async (input: {
     const master = await finishImmutableAudio(input.rootDir, masterTemp, `${outputRoot}/master.wav`)
     const masterParametersHash = hashCanonicalTtsValue({ stems: stems.map(stem => ({ bus: stem.bus, sha256: stem.sha256 })), profile: input.plan.mixProfileHash, durationMs: input.timeline.durationMs })
     transforms.push({ transformId: hashCanonicalTtsValue({ kind: 'master', masterParametersHash }), kind: 'master', parametersHash: masterParametersHash, finalRangeMs: { start: 0, end: input.timeline.durationMs } })
-    const timelineBytes = `${canonicalTtsJson(input.timeline)}\n`
-    const timelineRef = await writeImmutableArtifactFile(input.rootDir, `${outputRoot}/resolved-soundscape-timeline.json`, timelineBytes)
-    const ledger = { schemaVersion: 1 as const, soundscapePlanId: input.plan.soundscapePlanId, mixIdentity: input.plan.mixIdentity, transforms }
-    const ledgerRef = await writeImmutableArtifactFile(input.rootDir, `${outputRoot}/soundscape-transform-ledger.json`, `${canonicalTtsJson(ledger)}\n`)
-    const base = {
-      schemaVersion: 1 as const,
-      dialogueAudioRun: { audioRunId: input.dialogueAudioRun.audioRunId, path: input.dialogueAudioRun.path, sha256: input.dialogueAudioRun.sha256 },
+    const mix: CompactMix = {
+      schemaVersion: 1,
+      mixId,
       soundscapePlan: { soundscapePlanId: input.plan.soundscapePlanId, path: input.planRef.path, sha256: input.planRef.sha256 },
-      ...(input.renderPlan ? { soundEffectRenderPlan: { renderPlanId: input.renderPlan.value.renderPlanId, path: input.renderPlan.ref.path, sha256: input.renderPlan.ref.sha256 } } : {}),
-      ...(input.renderResult ? { soundEffectRenderResult: { resultId: input.renderResult.value.resultId, path: input.renderResult.ref.path, sha256: input.renderResult.ref.sha256 } } : {}),
-      resolvedTimeline: { timelineId: input.timeline.timelineId, path: timelineRef.relativePath, sha256: sha256Bytes(timelineBytes) },
+      dialogueRender: { audioRunId: input.dialogueAudioRun.audioRunId, path: input.dialogueAudioRun.path, sha256: input.dialogueAudioRun.sha256 },
+      ...(sfx ? { sfx } : {}),
+      timelineSummary: timelineSummary(input.timeline),
       mixProfileHash: input.plan.mixProfileHash,
       mixIdentity: input.plan.mixIdentity,
-      transformLedger: { path: ledgerRef.relativePath, sha256: ledgerRef.sha256 },
-      transforms,
+      transforms: compactTransforms(transforms),
       stems,
       master,
       createdAt: input.plan.createdAt,
     }
-    const audioRun: SoundscapeAudioRun = { ...base, audioRunId: hashCanonicalTtsValue(base) }
-    const ref = await writeImmutableArtifactFile(input.rootDir, `${outputRoot}/audio-run.json`, `${canonicalTtsJson(audioRun)}\n`)
-    return { audioRun, ref: { path: ref.relativePath, sha256: ref.sha256 } }
+    const ref = await writeReplaceableArtifactFile(input.rootDir, `${outputRoot}/mix.json`, `${canonicalTtsJson(mix)}\n`)
+    return { mix, ref: { path: ref.relativePath, sha256: ref.sha256 } }
   } finally {
     await rm(work, { recursive: true, force: true })
   }

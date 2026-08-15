@@ -163,6 +163,21 @@ export type ComicPresentationRun = {
   createdAt: string
 }
 
+export type CompactPresentation = {
+  schemaVersion: 1
+  presentationId: string
+  plan: ComicPresentationPlan
+  timeline: ResolvedPanelTimeline
+  encoderProfile: ComicPresentationEncoderProfile
+  audioTransforms: ComicPresentationAudioTransform[]
+  commands: Array<{ tool: 'ffmpeg', args: string[] }>
+  outputs: {
+    wav: ComicPresentationArtifactRef & { format: ObservedAudioFormat, durationMs: number }
+    mp4: ComicPresentationArtifactRef & { durationMs: number }
+  }
+  createdAt: string
+}
+
 export type ComicPresentationMetadata = {
   selectedPresentationId?: string | undefined
   planRef?: ComicPresentationArtifactRef | undefined

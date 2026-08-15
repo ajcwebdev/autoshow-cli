@@ -158,12 +158,16 @@ describe('video provider REST contracts', () => {
     }))
 
     await withTempDir(async (dir) => {
-      await expect(runMinimaxVideoGen('bad response', dir, {
-        model: 'MiniMax-Hailuo-2.3'
-      })).rejects.toMatchObject({
-        stage: 'video:minimax',
-        message: expect.stringContaining('Invalid JSON for MiniMax video generation create response')
-      })
+      try {
+        await runMinimaxVideoGen('bad response', dir, {
+          model: 'MiniMax-Hailuo-2.3'
+        })
+        throw new Error('expected MiniMax video generation to fail')
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error)
+        expect((error as Error).message).toContain('returned invalid JSON')
+        expect((error as { stage?: string }).stage).toBe('video:minimax')
+      }
     })
   })
 })

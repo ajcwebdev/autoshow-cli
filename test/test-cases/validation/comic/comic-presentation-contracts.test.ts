@@ -255,9 +255,9 @@ describe('comic presentation audio selection', () => {
   })
 
   test('accepts a succeeded sound-effect result reused from an earlier SoundscapePlan identity', () => {
-    expect(() => assertPresentationSoundEffectResult({ resultId: HASH, status: 'succeeded' }, HASH)).not.toThrow()
-    expect(() => assertPresentationSoundEffectResult({ resultId: 'b'.repeat(64), status: 'succeeded' }, HASH)).toThrow('does not match the soundscape AudioRun binding')
-    expect(() => assertPresentationSoundEffectResult({ resultId: HASH, status: 'failed' }, HASH)).toThrow('is not a complete success')
+    expect(() => assertPresentationSoundEffectResult({ sfxId: HASH, status: 'succeeded' }, HASH)).not.toThrow()
+    expect(() => assertPresentationSoundEffectResult({ sfxId: 'b'.repeat(64), status: 'succeeded' }, HASH)).toThrow('does not match the soundscape mix binding')
+    expect(() => assertPresentationSoundEffectResult({ sfxId: HASH, status: 'failed' }, HASH)).toThrow('is not a complete success')
   })
 
   test('verifies retained AudioRun checksums before accepting a complete dialogue target', async () => {

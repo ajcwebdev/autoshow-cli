@@ -183,7 +183,7 @@ describe('price mode contracts', () => {
     })
 
   test('cheapest-model helpers return stable model selections', () => {
-      expect(resolveCheapestModelForFlag('openai')).toBe('gpt-5.4-nano')
+      expect(resolveCheapestModelForFlag('openai')).toBe('gpt-5.6-luna')
       expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.3')
       expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.1')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
@@ -203,7 +203,7 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('gladia-stt')).toBe('solaria-1')
       expect(resolveCheapestModelForFlag('supadata-stt')).toBe('auto')
       expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
-      expect(resolveCheapestModelForFlag('openai-ocr')).toBe('gpt-5.4-nano')
+      expect(resolveCheapestModelForFlag('openai-ocr')).toBe('gpt-5.6-luna')
       expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.3')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-4-5')
       expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')

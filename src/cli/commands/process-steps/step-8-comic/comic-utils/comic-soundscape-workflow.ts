@@ -1,18 +1,18 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
-import { dirname, join } from 'node:path'
-import type { AudioRun, FinalTimeline, HostedConcurrencyCoordinator, PipelineProviderState, SoundEffectLicenseUse, SoundEffectLicenseUseClassification, SoundEffectRenderPlan, SoundscapeAudioRun, SoundscapePlan } from '~/types'
+import { dirname, join, posix } from 'node:path'
+import type { AudioRun, CompactMix, CompactSfx, CompactTargetRender, FinalTimeline, HostedConcurrencyCoordinator, PipelineProviderState, SoundEffectLicenseUse, SoundEffectLicenseUseClassification, SoundEffectRenderPlan, SoundscapePlan } from '~/types'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
+import { hardlinkContainedArtifact, readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '../../step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import { assertAudioGenDispatchEligible, assertAudioGenLicenseEligible, createReplicateAudioGenAdapter, createSoundEffectLicenseUse } from '../../step-4-tts/soundscape/replicate-audiogen-adapter'
 import { createStabilitySoundEffectAdapter } from '../../step-4-tts/soundscape/stability-stable-audio-adapter'
-import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, type SoundEffectAdapter, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
+import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadCompactSfx, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, type SoundEffectAdapter, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
 import { mixSoundscape } from '../../step-4-tts/soundscape/soundscape-mixer'
 import { resolveSoundscapeTimeline } from '../../step-4-tts/soundscape/soundscape-timeline'
 import { writeSoundscapePlan } from '../../step-4-tts/soundscape/soundscape-planner'
-import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
+import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
 import { createSilenceWav } from '../../step-4-tts/tts-utils/audio-utils'
 
 export type DialogueAudioRunBinding = {
@@ -81,6 +81,34 @@ const verifiedJson = async <T>(rootDir: string, path: string, sha256: string, la
   catch { throw CLIUsageError(`${label} is not valid JSON.`) }
 }
 
+const isCompactTargetRender = (value: unknown): value is CompactTargetRender =>
+  typeof value === 'object' && value !== null && 'renderId' in value && 'outputs' in value && !('audioRunId' in value)
+
+const loadDialogueMixSource = async (rootDir: string, binding: DialogueAudioRunBinding): Promise<{
+  audioRunId: string
+  path: string
+  sha256: string
+  timeline: FinalTimeline
+  finalAudio: { path: string, sha256: string }
+}> => {
+  const stored = await verifiedJson<CompactTargetRender | AudioRun>(rootDir, binding.audioRunRef, binding.audioRunSha256, `Dialogue render ${binding.audioRunId}`)
+  if (isCompactTargetRender(stored)) {
+    if (stored.targetKey !== binding.targetKey || stored.renderIdentity !== binding.renderIdentity) throw CLIUsageError('Selected dialogue render identity does not match its canonical manifest binding.')
+    const timelinePath = posix.join(posix.dirname(binding.audioRunRef), 'timeline.json')
+    const timelineBytes = await readContainedArtifactFile(rootDir, timelinePath)
+    const timeline = JSON.parse(timelineBytes.bytes.toString('utf8')) as FinalTimeline
+    if (timeline.renderIdentity !== stored.renderIdentity) throw CLIUsageError('Selected dialogue timeline does not bind the compact render.')
+    return { audioRunId: binding.audioRunId, path: binding.audioRunRef, sha256: binding.audioRunSha256, timeline, finalAudio: { path: stored.outputs.final.path, sha256: stored.outputs.final.sha256 } }
+  }
+  if (stored.audioRunId !== binding.audioRunId || stored.targetKey !== binding.targetKey) throw CLIUsageError('Selected dialogue AudioRun identity does not match its canonical manifest binding.')
+  const audioRunDirectory = dirname(binding.audioRunRef)
+  const finalTimelinePath = join(audioRunDirectory, stored.finalTimeline.path).replace(/\\/gu, '/')
+  const timeline = await verifiedJson<FinalTimeline>(rootDir, finalTimelinePath, stored.finalTimeline.sha256, `Dialogue timeline ${stored.finalTimeline.timelineId}`)
+  const finalOutput = stored.finalOutputs[0]
+  if (!finalOutput) throw CLIUsageError(`Dialogue AudioRun ${binding.audioRunId} has no final audio output.`)
+  return { audioRunId: stored.audioRunId, path: binding.audioRunRef, sha256: binding.audioRunSha256, timeline, finalAudio: { path: join(audioRunDirectory, finalOutput.path).replace(/\\/gu, '/'), sha256: finalOutput.sha256 } }
+}
+
 export const parseSoundEffectLicenseUseClassification = (value: unknown): SoundEffectLicenseUseClassification | undefined => {
   if (value === undefined || value === null || value === '') return undefined
   if (value !== 'noncommercial' && value !== 'commercial' && value !== 'unknown') {
@@ -106,6 +134,10 @@ export const resolveSoundEffectPlan = async (input: {
       })
       : undefined
     return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target, ...(licenseUse ? { licenseUse } : {}) })
+  }
+  const compact = await loadCompactSfx(input.rootDir)
+  if (compact && compact.value.soundscapePlanId === input.soundscapePlan.soundscapePlanId) {
+    return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target: compact.value.target, allowUnavailable: true, ...(compact.value.licenseUse ? { licenseUse: compact.value.licenseUse } : {}) })
   }
   if (input.retainedPlanRef) {
     const retained = await loadSoundEffectRenderPlan(input.rootDir, input.retainedPlanRef)
@@ -162,21 +194,23 @@ export const runComicSoundscape = async (input: {
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
 }): Promise<{
   planRef: { path: string, sha256: string }
-  renderPlanRef: { path: string, sha256: string }
+  renderPlanRef?: { path: string, sha256: string } | undefined
   renderResultRef: { path: string, sha256: string }
-  soundscapeRuns: Array<{ binding: DialogueAudioRunBinding, audioRun: SoundscapeAudioRun, ref: { path: string, sha256: string } }>
+  compactSfx?: CompactSfx | undefined
+  soundscapeRuns: Array<{ binding: DialogueAudioRunBinding, mix: CompactMix, ref: { path: string, sha256: string } }>
   providerState: PipelineProviderState
 }> => {
   if (input.dialogueRuns.length === 0) throw CLIUsageError('Soundscape mastering requires at least one selected dialogue AudioRun.')
   const planRef = await writeSoundscapePlan(input.rootDir, input.plan)
-  const renderPlanRef = await writeSoundEffectRenderPlan(input.rootDir, input.renderPlan)
-  let renderResult = await loadSoundEffectRenderResult(input.rootDir, input.renderPlan)
+  const retainedCompact = await loadCompactSfx(input.rootDir, input.renderPlan)
+  let renderResult = retainedCompact ? await loadSoundEffectRenderResult(input.rootDir, input.renderPlan) : undefined
   let renderResultRef: { path: string, sha256: string }
-  if (renderResult) {
-    const path = `audio/sound-effects/${input.renderPlan.renderPlanId}/sound-effect-render-result.json`
-    const stored = await readContainedArtifactFile(input.rootDir, path)
-    renderResultRef = { path, sha256: stored.sha256 }
+  let renderPlanRef: { path: string, sha256: string } | undefined
+  let compactSfx = retainedCompact?.value
+  if (retainedCompact && renderResult) {
+    renderResultRef = retainedCompact.ref
   } else {
+    renderPlanRef = await writeSoundEffectRenderPlan(input.rootDir, input.renderPlan)
     const estimate = await planSoundEffectResumePrice(input.rootDir, input.renderPlan)
     const liveAdapter = input.adapter ?? (estimate.unresolvedTaskCount > 0
       ? (input.renderPlan.target.provider === 'replicate'
@@ -188,7 +222,10 @@ export const runComicSoundscape = async (input: {
     const executed = await executeSoundEffectRenderPlan({ rootDir: input.rootDir, plan: input.renderPlan, adapter: liveAdapter, concurrency: input.concurrency, cancellation: input.cancellation, hostedConcurrencyCoordinator: input.hostedConcurrencyCoordinator })
     renderResult = executed.result
     renderResultRef = executed.ref
+    compactSfx = executed.compact
+    if (executed.compact) renderPlanRef = undefined
   }
+  if (!renderResult) throw CLIUsageError('Sound-effect render produced no result.')
   const providerState: PipelineProviderState = {
     service: input.renderPlan.target.provider,
     model: input.renderPlan.target.model,
@@ -196,44 +233,38 @@ export const runComicSoundscape = async (input: {
     operation: 'sound-effect-generation',
     targetKey: input.renderPlan.target.targetKey,
     transport: input.renderPlan.target.transport,
-    artifactDir: `audio/sound-effects/${input.renderPlan.renderPlanId}`,
+    artifactDir: compactSfx ? 'audio/sound-effects' : `audio/sound-effects/${input.renderPlan.renderPlanId}`,
     status: renderResult.status === 'succeeded' ? 'succeeded' : 'failed',
     attempts: 1,
     options: { outputFormat: input.renderPlan.target.outputFormat, promptInfluence: input.renderPlan.target.promptInfluence, boundedConcurrency: input.concurrency ?? 2 },
     metadata: {
       soundscapePlanId: input.plan.soundscapePlanId,
       renderPlanId: input.renderPlan.renderPlanId,
-      resultId: renderResult.resultId,
+      resultId: compactSfx?.sfxId ?? renderResult.resultId,
       taskCount: input.renderPlan.tasks.length,
       ...(input.hostedConcurrencyCoordinator ? { hostedConcurrency: input.hostedConcurrencyCoordinator.snapshot() } : {})
     },
-    ...(renderResult.status === 'succeeded' ? { result: { resultId: renderResult.resultId, renderResultRef: renderResultRef.path, renderResultSha256: renderResultRef.sha256 } } : { error: { code: renderResult.status === 'canceled' ? 'canceled' : 'required-cue-failed', message: 'One or more required sound cues did not produce a verified source.' } }),
+    ...(renderResult.status === 'succeeded' ? { result: { resultId: compactSfx?.sfxId ?? renderResult.resultId, renderResultRef: renderResultRef.path, renderResultSha256: renderResultRef.sha256 } } : { error: { code: renderResult.status === 'canceled' ? 'canceled' : 'required-cue-failed', message: 'One or more required sound cues did not produce a verified source.' } }),
   }
-  if (renderResult.status !== 'succeeded') return { planRef, renderPlanRef, renderResultRef, soundscapeRuns: [], providerState }
-  const mixed: Array<{ binding: DialogueAudioRunBinding, audioRun: SoundscapeAudioRun, ref: { path: string, sha256: string } }> = []
+  if (renderResult.status !== 'succeeded') return { planRef, ...(renderPlanRef ? { renderPlanRef } : {}), renderResultRef, soundscapeRuns: [], providerState }
+  const sfxRef = compactSfx ? { sfxId: compactSfx.sfxId, path: renderResultRef.path, sha256: renderResultRef.sha256 } : undefined
+  const mixed: Array<{ binding: DialogueAudioRunBinding, mix: CompactMix, ref: { path: string, sha256: string } }> = []
   for (const binding of input.dialogueRuns) {
-    const audioRun = await verifiedJson<AudioRun>(input.rootDir, binding.audioRunRef, binding.audioRunSha256, `Dialogue AudioRun ${binding.audioRunId}`)
-    if (audioRun.audioRunId !== binding.audioRunId || audioRun.targetKey !== binding.targetKey) throw CLIUsageError('Selected dialogue AudioRun identity does not match its canonical manifest binding.')
-    const audioRunDirectory = dirname(binding.audioRunRef)
-    const finalTimelinePath = join(audioRunDirectory, audioRun.finalTimeline.path).replace(/\\/gu, '/')
-    const finalTimeline = await verifiedJson<FinalTimeline>(input.rootDir, finalTimelinePath, audioRun.finalTimeline.sha256, `Dialogue timeline ${audioRun.finalTimeline.timelineId}`)
-    const finalOutput = audioRun.finalOutputs[0]
-    if (!finalOutput) throw CLIUsageError(`Dialogue AudioRun ${binding.audioRunId} has no final audio output.`)
-    const finalAudioPath = join(audioRunDirectory, finalOutput.path).replace(/\\/gu, '/')
-    const timeline = resolveSoundscapeTimeline({ plan: input.plan, dialoguePlan: input.dialoguePlan, dialogueTimeline: finalTimeline, dialogueAudioRunId: audioRun.audioRunId, renderResult })
+    const dialogue = await loadDialogueMixSource(input.rootDir, binding)
+    const timeline = resolveSoundscapeTimeline({ plan: input.plan, dialoguePlan: input.dialoguePlan, dialogueTimeline: dialogue.timeline, dialogueAudioRunId: dialogue.audioRunId, renderResult })
     const soundscape = await mixSoundscape({
       rootDir: input.rootDir, plan: input.plan, planRef, timeline,
-      dialogueAudioRun: { audioRunId: audioRun.audioRunId, path: binding.audioRunRef, sha256: binding.audioRunSha256, finalAudio: { path: finalAudioPath, sha256: finalOutput.sha256 } },
-      renderPlan: { value: input.renderPlan, ref: renderPlanRef }, renderResult: { value: renderResult, ref: renderResultRef }, cancellation: input.cancellation,
+      dialogueAudioRun: { audioRunId: dialogue.audioRunId, path: dialogue.path, sha256: dialogue.sha256, finalAudio: dialogue.finalAudio },
+      ...(renderPlanRef ? { renderPlan: { value: input.renderPlan, ref: renderPlanRef } } : {}),
+      renderResult: { value: renderResult, ref: renderResultRef },
+      ...(sfxRef ? { sfx: sfxRef } : {}),
+      cancellation: input.cancellation,
     })
     mixed.push({ binding, ...soundscape })
   }
   for (const entry of mixed) {
-    const master = await readContainedArtifactFile(input.rootDir, entry.audioRun.master.path)
-    if (master.sha256 !== entry.audioRun.master.sha256) throw CLIUsageError('Soundscape master checksum changed before publication.')
-    await Bun.write(join(input.rootDir, entry.binding.reportedOutputPath), master.bytes)
-    const published = new Uint8Array(await Bun.file(join(input.rootDir, entry.binding.reportedOutputPath)).arrayBuffer())
-    if (sha256Bytes(published) !== master.sha256) throw CLIUsageError('Published soundscape master checksum does not match its canonical artifact.')
+    const published = await hardlinkContainedArtifact(input.rootDir, entry.mix.master.path, entry.binding.reportedOutputPath)
+    if (published.sha256 !== entry.mix.master.sha256) throw CLIUsageError('Published soundscape master checksum does not match its canonical artifact.')
   }
-  return { planRef, renderPlanRef, renderResultRef, soundscapeRuns: mixed, providerState }
+  return { planRef, ...(renderPlanRef ? { renderPlanRef } : {}), renderResultRef, ...(compactSfx ? { compactSfx } : {}), soundscapeRuns: mixed, providerState }
 }

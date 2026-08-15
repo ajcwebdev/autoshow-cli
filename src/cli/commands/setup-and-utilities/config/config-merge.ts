@@ -166,6 +166,11 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'speechify-tts':     ['defaults', 'post', 'tts', 'speechifyTts'],
   'hume-tts':          ['defaults', 'post', 'tts', 'humeTts'],
   'cartesia-tts':      ['defaults', 'post', 'tts', 'cartesiaTts'],
+  'fish-tts':          ['defaults', 'post', 'tts', 'fishTts'],
+  'inworld-tts':       ['defaults', 'post', 'tts', 'inworldTts'],
+  'deepinfra-tts':     ['defaults', 'post', 'tts', 'deepinfraTts'],
+  'replicate-tts':     ['defaults', 'post', 'tts', 'replicateTts'],
+  'fal-tts':           ['defaults', 'post', 'tts', 'falTts'],
   'kitten-voice':      ['defaults', 'post', 'tts', 'ttsSpeaker'],
   'groq-voice':        ['defaults', 'post', 'tts', 'groqVoice'],
   'grok-tts-voice':    ['defaults', 'post', 'tts', 'grokTtsVoice'],
@@ -194,7 +199,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'elevenlabs-tts-seed': ['defaults', 'post', 'tts', 'elevenlabsTtsSeed'],
   'elevenlabs-tts-text-normalization': ['defaults', 'post', 'tts', 'elevenlabsTtsTextNormalization'],
   'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'post', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
-  'elevenlabs-tts-optimize-streaming-latency': ['defaults', 'post', 'tts', 'elevenlabsTtsOptimizeStreamingLatency'],
   'minimax-tts-voice': ['defaults', 'post', 'tts', 'minimaxTtsVoice'],
   'minimax-tts-language-boost': ['defaults', 'post', 'tts', 'minimaxTtsLanguageBoost'],
   'minimax-tts-speed': ['defaults', 'post', 'tts', 'minimaxTtsSpeed'],
@@ -349,7 +353,7 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
     'openai-tts-speed', 'minimax-tts-speed', 'minimax-tts-volume', 'minimax-tts-pitch',
     'deepgram-tts-bit-rate', 'deepgram-tts-sample-rate', 'deepgram-tts-speed',
     'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost', 'elevenlabs-tts-style',
-    'elevenlabs-tts-speed', 'elevenlabs-tts-seed', 'elevenlabs-tts-optimize-streaming-latency',
+    'elevenlabs-tts-speed', 'elevenlabs-tts-seed',
     'replicate-video-seed'
   ])
   if (numericFlags.has(flagName)) {

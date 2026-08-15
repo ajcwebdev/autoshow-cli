@@ -64,7 +64,6 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
     ocrProviderModeExplicit: opts.ocrProviderModeExplicit,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
-    keepOcrPageInputs: opts.keepOcrPageInputs,
     primaryOcr: opts.primaryOcr,
     configPath: opts.configPath
   }

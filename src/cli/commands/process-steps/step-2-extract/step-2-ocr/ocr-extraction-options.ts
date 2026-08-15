@@ -25,7 +25,6 @@ export const resolveOcrExtractionOptions = (
     ...(typeof rawOpts.ocrPoolDocumentPageNumber === 'number' ? { ocrPoolDocumentPageNumber: rawOpts.ocrPoolDocumentPageNumber } : {}),
     ocrProviderConcurrency: rawOpts.ocrProviderConcurrency ?? DEFAULT_OCR_CONCURRENCY,
     ocrLocalConcurrency: rawOpts.ocrLocalConcurrency ?? DEFAULT_OCR_CONCURRENCY,
-    keepOcrPageInputs: rawOpts.keepOcrPageInputs === true,
     ...(rawOpts.useTesseract ? { useTesseract: true } : {}),
     ...(rawOpts.mistralOcrModel ? { mistralOcrModel: rawOpts.mistralOcrModel } : {}),
     ...(rawOpts.mistralOcrModels ? { mistralOcrModels: rawOpts.mistralOcrModels } : {}),

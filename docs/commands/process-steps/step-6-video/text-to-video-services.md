@@ -4,8 +4,10 @@ Generate a video from a text prompt or input image with one or more hosted video
 
 ## Outline
 
+- [Setup](#setup)
+  - [Environment](#environment)
 - [Usage](#usage)
-- [Environment](#environment)
+- [Modes](#modes)
 - [Shared Video Options](#shared-video-options)
 - [Video Services](#video-services)
   - [Gemini Veo](#gemini-veo)
@@ -20,15 +22,15 @@ Generate a video from a text prompt or input image with one or more hosted video
 - [Output](#output)
 - [Notes](#notes)
 
-## Usage
+## Setup
+
+Video providers are hosted API services.
 
 ```bash
-bun autoshow video <input> [flags]
+bun autoshow setup --step video
 ```
 
-The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. Repeating a provider flag runs each selected model independently. When no provider is specified, a text prompt runs the cheapest default text-to-video target and a positional image input runs every supported provider.
-
-## Environment
+### Environment
 
 ```bash
 GEMINI_API_KEY=...
@@ -42,33 +44,15 @@ LUMA_AGENTS_API_KEY=...
 FAL_API_KEY=...
 ```
 
-## Shared Video Options
-
-The standalone `video` command drops the `video-` prefix these options carry elsewhere (e.g. `--size` here is `--video-size` on `write`, `config`, and `resume`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
-
-| Flag | Description |
-|------|-------------|
-| `--all-providers` | Run every supported video provider/model |
-| `--provider-concurrency <n>` | Hosted video providers/models to run concurrently per item; default `7` |
-| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--duration <seconds>` | Requested video duration |
-| `--size <size>` | Provider-dependent size control |
-| `--aspect-ratio <ratio>` | Provider-dependent aspect ratio |
-| `--resolution <res>` | Provider-dependent resolution control |
-| `--mode <mode>` | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `extend`, or `edit`; default `text` |
-| `--input-image <path-or-url>` | Input image for `image-to-video`; first frame for `interpolate` |
-| `--last-frame <path-or-url>` | Last-frame image for `interpolate` |
-| `--reference-image <path-or-url>` | Reference image for `reference-to-video`; repeat up to 3 times (Replicate Seedance/Happy Horse accepts up to 9; fal.ai MiniMax H3 accepts up to 9; fal.ai PixVerse C1 accepts up to 7) |
-| `--input-video <path-or-url>` | Input MP4 for `extend` or `edit` |
-| `--grok-video-storage-filename <name>` | xAI/Grok storage filename |
-| `--grok-video-storage-expires-after <seconds>` | xAI/Grok storage expiration, max 30 days |
-| `--price` | Show the estimate and exit |
-| `--output-dir <dir>` | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/` |
+## Usage
 
 ```bash
-bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=veo-3.1-fast-generate-preview --provider minimax=MiniMax-Hailuo-2.3 --provider runway=gen4.5 --provider ltx=ltx-2-3-fast
-bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --price
+bun autoshow video <input> [flags]
 ```
+
+The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. Repeating a provider flag runs each selected model independently. When no provider is specified, a text prompt runs the cheapest default text-to-video target and a positional image input runs every supported provider.
+
+## Modes
 
 Media-input modes are explicit. Passing media flags without `--mode` is rejected because the default mode is text-to-video; positional image inputs infer `--mode image-to-video`.
 
@@ -92,6 +76,35 @@ bun autoshow video "transition between frames" --provider gemini=veo-3.1-generat
 bun autoshow video "character walking through lagoon" --provider grok=grok-imagine-video --mode reference-to-video --reference-image input/jacket.png --reference-image input/glasses.png
 ```
 
+## Shared Video Options
+
+The standalone `video` command drops the `video-` prefix these options carry elsewhere (e.g. `--size` here is `--video-size` on `write`, `config`, and `resume`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
+
+| Flag | Description |
+|------|-------------|
+| `--provider provider[=model]` | Hosted video provider/model selector; repeat to run multiple targets |
+| `--all-providers` | Run every supported video provider/model |
+| `--provider-concurrency <n>` | Hosted video providers/models to run concurrently per item; default `7` |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
+| `--duration <seconds>` | Requested video duration |
+| `--size <size>` | Provider-dependent size control |
+| `--aspect-ratio <ratio>` | Provider-dependent aspect ratio |
+| `--resolution <res>` | Provider-dependent resolution control |
+| `--mode <mode>` | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `extend`, or `edit`; default `text` |
+| `--input-image <path-or-url>` | Input image for `image-to-video`; first frame for `interpolate` |
+| `--last-frame <path-or-url>` | Last-frame image for `interpolate` |
+| `--reference-image <path-or-url>` | Reference image for `reference-to-video`; repeat up to 3 times (Replicate Seedance/Happy Horse accepts up to 9; fal.ai MiniMax H3 accepts up to 9; fal.ai PixVerse C1 accepts up to 7) |
+| `--input-video <path-or-url>` | Input MP4 for `extend` or `edit` |
+| `--grok-video-storage-filename <name>` | xAI/Grok storage filename |
+| `--grok-video-storage-expires-after <seconds>` | xAI/Grok storage expiration, max 30 days |
+| `--price` | Show the estimate and exit |
+| `--output-dir <dir>` | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/` |
+
+```bash
+bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=veo-3.1-fast-generate-preview --provider minimax=MiniMax-Hailuo-2.3 --provider runway=gen4.5 --provider ltx=ltx-2-3-fast
+bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --price
+```
+
 ## Video Services
 
 ### Gemini Veo
@@ -108,14 +121,6 @@ bun autoshow video "character walking through lagoon" --provider grok=grok-imagi
 bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=veo-3.1-fast-generate-preview
 bun autoshow video "a sweeping Grand Canyon drone shot" --provider gemini=veo-3.1-generate-preview --duration 8 --aspect-ratio 16:9 --resolution 4k
 ```
-
-Gemini Veo price estimates use normalized billed duration and current per-second Gemini API pricing:
-
-| Model | 720p | 1080p | 4k estimate | CLI timing estimate |
-|-------|------|-------|-------------|---------------------|
-| `veo-3.1-generate-preview` | 40.0000¢/s | 40.0000¢/s | 60.0000¢/s fallback | 10543 ms/s |
-| `veo-3.1-fast-generate-preview` | 10.0000¢/s | 12.0000¢/s | 30.0000¢/s fallback | 10000 ms/s |
-| `veo-3.1-lite-generate-preview` | 5.0000¢/s | 8.0000¢/s | not supported | 8000 ms/s |
 
 - Gemini `1080p`, `4k`, reference-image, and extension requests are normalized to 8 seconds.
 - Veo 3.1 Lite does not support `4k`, reference-image generation, or video extension.
@@ -253,14 +258,6 @@ bun autoshow video "product turntable" --provider fal=fal-ai/pixverse/c1 --mode 
 
 - MiniMax H3 accepts up to 9 image, 3 video, and 3 audio references (max 12 combined).
 - PixVerse C1 accepts up to 7 image references and supports `--fal-video-generate-audio`.
-
-```bash
-# Multi-model runs
-bun autoshow video "rainy neon city" --provider gemini=veo-3.1-fast-generate-preview --provider minimax=MiniMax-Hailuo-2.3 --provider ltx=ltx-2-3-fast
-
-# Write command integration
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --video gemini=veo-3.1-fast-generate-preview --video minimax=MiniMax-Hailuo-2.3 --price
-```
 
 ## Output
 

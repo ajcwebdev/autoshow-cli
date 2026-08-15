@@ -19,13 +19,9 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 
 ## Current Coverage
 
-- Model-level files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction with `--provider mistral=mistral-ocr-2512`, `--provider glm=glm-ocr`, `--provider kimi=kimi-k2.6`, `--provider openai=gpt-5.4-nano`, `--provider gemini=gemini-3.5-flash-lite`, and `--provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct`.
-- Dedicated image-only OCR files cover `--provider openai=gpt-5.5`, `--provider grok=grok-4.3`, `--provider gemini=gemini-3.1-pro-preview`, and `--provider anthropic=claude-opus-4-8` / `--provider anthropic=claude-sonnet-5`. These are live provider tests and should not be run without explicit paid-provider approval.
-- Kimi and DeepInfra OCR tests are gated on `KIMI_API_KEY` / `DEEPINFRA_API_KEY` and assert provider/model metadata and token usage when returned.
-- Dedicated URL extraction files (`ocr-firecrawl.test.ts`, `ocr-glm-reader.test.ts`, `ocr-supadata.test.ts`) cover remote article extraction with `--url-provider` (firecrawl, glm-reader, supadata), write `extraction.txt`, and record canonical provider metadata.
-- Hosted article and local HTML input validation also lives in `test/test-cases/validation/ingest/input-contracts.test.ts`. Mocked URL backend contracts for Firecrawl v2, Spider, Supadata, Zyte, GLM Reader, Defuddle, and route-aware `--all-providers` provider artifacts live in `test/test-cases/validation/ingest/html-url-backends-contracts/`.
-- `test/test-cases/validation/cli/option-resolution-contracts/` covers all-backend expansion, URL concurrency defaults, conflict handling with `--url-provider`, and expected provider artifact paths without live API calls.
-- Native EPUB cleanup and export validation lives in `test/test-cases/validation/extract-ocr/epub-contracts/`.
+- Model-level service files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction for Anthropic, DeepInfra, FAL, Gemini, GLM, Grok, Kimi, Mistral, OpenAI, and Replicate using `defineOCRServiceTest`.
+- Dedicated URL extraction files (`ocr-firecrawl.test.ts`, `ocr-glm-reader.test.ts`, `ocr-supadata.test.ts`) cover remote article extraction with `--url-provider` (Firecrawl, GLM Reader, Supadata), writing `extraction.txt` and canonical provider metadata.
+- Zero-cost validation and contract coverage lives in `test/test-cases/validation/extract-ocr/` (EPUB and page pool contracts) and `test/test-cases/validation/ingest/` (input and HTML/URL backend contracts).
 
 ## Price Preflight
 
@@ -34,9 +30,7 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --price
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --budget 2500
 ```
 
-The mapped OCR price preflight covers the model-level service files plus Supadata, Firecrawl, and GLM Reader URL extraction.
-
-`extract <url> --all-providers --price` is covered by the local validation suite. Do not run live all-provider URL e2e coverage unless hosted URL provider API usage has been explicitly approved.
+The mapped OCR price preflight covers model-level OCR service files plus Supadata, Firecrawl, and GLM Reader URL extraction.
 
 ## Related Docs
 

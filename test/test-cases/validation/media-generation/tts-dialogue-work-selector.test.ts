@@ -8,7 +8,7 @@ import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tt
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createResourceGate } from '~/utils/resource-gate'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
-import type { CanonicalAudioProviderProjection, ProviderRenderResult, ResourceGate, TtsOptions, TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection, ResourceGate, TtsOptions, TtsTarget } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import * as kittenTargets from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-targets'
 import * as kittenModelCache from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
@@ -335,12 +335,10 @@ describe('bounded dialogue work selector', () => {
       const root = index === 0 ? firstRoot : secondRoot
       const metadata = run.metadata[0]
       const projection = metadata?.ttsAudio as CanonicalAudioProviderProjection | undefined
-      const selected = projection?.selectedSuccess
-      const render = projection?.renderHistory.find((entry) => entry.renderIdentity === selected?.renderIdentity)
-      const event = render?.events.find((entry) => entry.sequence === selected?.eventSequence)
-      if (!metadata?.artifactDir || !event?.providerRenderResultRef) throw new Error('missing retained Kitten result')
-      const result = await Bun.file(join(root, metadata.artifactDir, event.providerRenderResultRef)).json() as ProviderRenderResult
-      expect(result.turnOutcomes.map((outcome) => outcome.turnId)).toEqual([
+      const archive = projection?.archive
+      if (!metadata?.artifactDir || !archive) throw new Error('missing retained Kitten result')
+      const compactRender = await Bun.file(join(root, archive.renderRef.path)).json() as { slots: Array<{ turnIds: string[] }> }
+      expect(compactRender.slots.flatMap((slot) => slot.turnIds)).toEqual([
         'dialogue-turn-001',
         'dialogue-turn-002',
         'dialogue-turn-003',

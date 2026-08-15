@@ -403,7 +403,7 @@ const validateAudioProjectionStructure = (
     ) return false
   } else if (active['kind'] === 'render') {
     if (
-      !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence'])
+      !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence', 'journalPath', 'completedSlotHashes'])
       || !resolveRenderEvent(projection, active['renderIdentity'], active['eventSequence'])
       || !isRecord(latestPointer)
       || !['activate-render', 'rollback-active', 'select-success'].includes(latestPointer['action'] as string)
@@ -447,8 +447,7 @@ const parseAudioProjectionStatus = (
 ): { status: PipelineProviderState['status'], attempts: number } | undefined => {
   if (
     !isRecord(value)
-    || !hasOnlyKeys(value, ['activeWork', 'selectedSuccess', 'branchHistory', 'readinessAttempts', 'renderHistory', 'pointerEvents'])
-    || !isRecord(value['activeWork'])
+    || !hasOnlyKeys(value, ['activeWork', 'selectedSuccess', 'archive', 'branchHistory', 'readinessAttempts', 'renderHistory', 'pointerEvents'])
     || !Array.isArray(value['branchHistory'])
     || !Array.isArray(value['readinessAttempts'])
     || !Array.isArray(value['renderHistory'])
@@ -456,7 +455,24 @@ const parseAudioProjectionStatus = (
   ) {
     return undefined
   }
-  if (!validateAudioProjectionStructure(value, targetKey)) {
+  if (isRecord(value['archive']) && isRecord(value['selectedSuccess']) && value['activeWork'] === undefined) {
+    const archive = value['archive']
+    const selected = value['selectedSuccess']
+    if (
+      archive['schemaVersion'] !== 1
+      || !isRecord(archive['renderRef'])
+      || !isRecord(archive['timelineRef'])
+      || !isRecord(archive['finalRef'])
+      || !Number.isInteger(archive['slotCount'])
+      || typeof selected['renderIdentity'] !== 'string'
+      || typeof selected['resultIdentity'] !== 'string'
+      || typeof selected['audioRunId'] !== 'string'
+    ) {
+      return undefined
+    }
+    return { status: 'succeeded', attempts: 0 }
+  }
+  if (!isRecord(value['activeWork']) || !validateAudioProjectionStructure(value, targetKey)) {
     return undefined
   }
 
@@ -516,7 +532,7 @@ const parseAudioProjectionStatus = (
 
   if (
     active['kind'] !== 'render'
-    || !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence'])
+    || !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence', 'journalPath', 'completedSlotHashes'])
     || typeof active['renderIdentity'] !== 'string'
     || !Number.isInteger(active['eventSequence'])
   ) {
@@ -685,7 +701,7 @@ type ProjectionArtifactReference = {
   path: string
   sha256: string
   scope?: 'provider-artifact' | 'run-root' | undefined
-  kind: 'audio' | 'strategy-text' | 'source-identity' | 'dialogue-plan' | 'capability-fixture' | 'branch-plan' | 'readiness-result' | 'render-plan' | 'admission-journal' | 'admission-evidence' | 'provider-render-result' | 'audio-run' | 'audio-mix-plan' | 'audio-transform-ledger' | 'final-timeline' | 'batch-invocation-plan' | 'provider-batch-result' | 'provider-timing-evidence' | 'cache-materialization-plan' | 'render-takes' | 'take-selection' | 'continuation-checkpoint' | 'consumed-selection-rebuild' | 'generic-json'
+  kind: 'audio' | 'strategy-text' | 'source-identity' | 'dialogue-plan' | 'capability-fixture' | 'branch-plan' | 'readiness-result' | 'render-plan' | 'admission-journal' | 'admission-evidence' | 'provider-render-result' | 'audio-run' | 'audio-mix-plan' | 'audio-transform-ledger' | 'final-timeline' | 'batch-invocation-plan' | 'provider-batch-result' | 'provider-timing-evidence' | 'cache-materialization-plan' | 'render-takes' | 'take-selection' | 'continuation-checkpoint' | 'consumed-selection-rebuild' | 'generic-json' | 'compact-render'
   expectedJsonFields?: Record<string, string | number> | undefined
   context?: {
     renderDir?: string | undefined
@@ -740,6 +756,19 @@ const collectProjectionArtifactReferences = (
     if (!path || !isSha256(sha256)) return false
     files.push({ path, sha256, scope, kind, ...(expectedJsonFields ? { expectedJsonFields } : {}), ...(context ? { context } : {}) })
     return true
+  }
+
+  const archive = projection['archive']
+  if (isRecord(archive) && isRecord(projection['selectedSuccess']) && projection['activeWork'] === undefined) {
+    if (
+      !isRecord(archive['renderRef'])
+      || !addFile(archive['renderRef'], 'path', 'sha256', 'compact-render', { targetKey }, undefined, undefined, 'run-root')
+      || !isRecord(archive['timelineRef'])
+      || !addFile(archive['timelineRef'], 'path', 'sha256', 'final-timeline', undefined, undefined, undefined, 'run-root')
+      || !isRecord(archive['finalRef'])
+      || !addFile(archive['finalRef'], 'path', 'sha256', 'audio', undefined, undefined, undefined, 'run-root')
+    ) return undefined
+    return { files, directories }
   }
 
   for (const branch of projection['branchHistory'] as unknown[]) {
@@ -909,14 +938,13 @@ const collectProjectionArtifactReferences = (
                 rawRender['renderDir'] as string,
                 { renderDir: rawRender['renderDir'] as string }
               ))) return undefined
-            } else if (slot['source'] === 'cache-materialization') {
-              const plan = slot['materializationPlan']
+            } else if (slot['source'] === 'slot-reuse') {
               const result = slot['batchResult']
               if (
-                !isRecord(plan)
-                || !addFile(plan, 'path', 'sha256', 'cache-materialization-plan', undefined, rawRender['renderDir'] as string, { renderDir: rawRender['renderDir'] as string })
+                typeof slot['slotHash'] !== 'string'
+                || !slot['slotHash']
                 || !isRecord(result)
-                || !addFile(result, 'path', 'sha256', 'provider-batch-result', undefined, rawRender['renderDir'] as string, { renderDir: rawRender['renderDir'] as string })
+                || !addFile(result, 'path', 'sha256', 'provider-batch-result', undefined, undefined, { renderDir: rawRender['renderDir'] as string }, 'run-root')
               ) return undefined
             } else {
               return undefined
@@ -986,6 +1014,13 @@ const validateProjectionArtifactJson = (
   }
   if (kind === 'render-plan') {
     validateProviderRenderPlanIdentity(value as unknown as ProviderRenderPlan)
+    return
+  }
+  if (kind === 'compact-render') {
+    if (value['schemaVersion'] !== 1) throw CLIUsageError('Compact TTS render requires schemaVersion 1.')
+    if (typeof value['renderId'] !== 'string' || typeof value['targetKey'] !== 'string' || typeof value['renderIdentity'] !== 'string' || !Array.isArray(value['slots'])) {
+      throw CLIUsageError('Compact TTS render is missing identity or slot index.')
+    }
     return
   }
   if (kind === 'source-identity') {
@@ -1201,6 +1236,18 @@ const collectNestedProjectionArtifactReferences = (
   }
 
   const renderDir = reference.context?.renderDir
+  if (reference.kind === 'compact-render') {
+    const slots = value['slots']
+    if (!Array.isArray(slots)) return undefined
+    for (const rawSlot of slots) {
+      if (!isRecord(rawSlot) || typeof rawSlot['slotHash'] !== 'string' || !isSha256(rawSlot['sha256'])) return undefined
+      const slotDir = posix.dirname(reference.path)
+      const mediaRoot = slotDir.includes('/') ? posix.dirname(slotDir) : ''
+      const slotPath = mediaRoot ? `${mediaRoot}/slots/${rawSlot['slotHash']}.wav` : `slots/${rawSlot['slotHash']}.wav`
+      nested.push({ path: slotPath, sha256: rawSlot['sha256'] as string, kind: 'audio', scope: 'run-root' })
+    }
+    return nested
+  }
   if (reference.kind === 'readiness-result') {
     const fixture = value['capabilityFixture']
     if (
@@ -1385,7 +1432,14 @@ const collectNestedProjectionArtifactReferences = (
       ) return undefined
     }
     for (const rawOutput of value['outputs']) {
-      if (!isRecord(rawOutput) || !add(rawOutput, 'artifactRef', 'sha256', 'audio', batchResultDir, undefined, context)) return undefined
+      if (!isRecord(rawOutput)) return undefined
+      if (value['provenance'] === 'slot-reuse') {
+        const path = resolveArtifactRelativePath(undefined, rawOutput['artifactRef'])
+        if (!path || !isSha256(rawOutput['sha256'])) return undefined
+        nested.push({ path, sha256: rawOutput['sha256'] as string, kind: 'audio', scope: 'run-root' })
+        continue
+      }
+      if (!add(rawOutput, 'artifactRef', 'sha256', 'audio', batchResultDir, undefined, context)) return undefined
     }
     const generated = value['generatedBatch']
     if (generated !== undefined) {
@@ -1400,22 +1454,8 @@ const collectNestedProjectionArtifactReferences = (
         if (isRecord(continuation) && continuation['kind'] === 'protected-token' && !isOpaqueProtectedAssetRef(continuation['asset'])) return undefined
       }
     }
-    const cache = value['cacheMaterialization']
-    if (cache !== undefined) {
-      if (!isRecord(cache) || !isRecord(cache['materializationPlan']) || !add(cache['materializationPlan'], 'artifactRef', 'sha256', 'cache-materialization-plan', renderDir, {
-        cacheMaterializationPlanId: cache['materializationPlan']['cacheMaterializationPlanId'] as string
-      }, context)) return undefined
-      for (const key of ['cacheEntry', 'sourceBatchResult', 'sourceProvenanceAttestation'] as const) {
-        const copy = cache[key]
-        if (!isRecord(copy) || !add(copy, 'artifactRef', 'sha256', 'generic-json', batchResultDir, undefined, context)) return undefined
-      }
-      if (!Array.isArray(cache['materializedObjects'])) return undefined
-      for (const rawObject of cache['materializedObjects']) {
-        if (!isRecord(rawObject) || !isRecord(rawObject['source'])) return undefined
-        const kind = rawObject['source']['role'] === 'audio' ? 'audio' : rawObject['source']['role'] === 'timing-evidence' ? 'provider-timing-evidence' : 'generic-json'
-        if (!add(rawObject, 'artifactRef', 'sha256', kind, batchResultDir, undefined, context)) return undefined
-      }
-    }
+    if (value['cacheMaterialization'] !== undefined || value['provenance'] === 'cache-materialization') return undefined
+    if (value['provenance'] === 'slot-reuse' && typeof value['slotHash'] !== 'string') return undefined
     return nested
   }
 
@@ -1471,7 +1511,8 @@ const collectNestedProjectionArtifactReferences = (
   if (reference.kind === 'final-timeline') {
     const ledger = value['transformLedgerRef']
     const audioRunDir = reference.context?.audioRunDir
-    if (!audioRunDir || !isRecord(ledger) || !add(ledger, 'path', 'sha256', 'audio-transform-ledger', audioRunDir, {
+    if (!audioRunDir) return nested
+    if (!isRecord(ledger) || !add(ledger, 'path', 'sha256', 'audio-transform-ledger', audioRunDir, {
       renderIdentity: value['renderIdentity'] as string
     }, reference.context)) return undefined
     return nested
@@ -2259,6 +2300,10 @@ const verifyProviderProjectionArtifacts = async (
         const bytes = await readFile(canonical)
         const actualSha = createHash('sha256').update(bytes).digest('hex')
         if (actualSha !== reference.sha256) return false
+        if (reference.kind === 'admission-journal' && reference.path.endsWith('.jsonl')) {
+          checked.set(referenceKey, { sha256: reference.sha256 })
+          continue
+        }
         if ((reference.kind !== 'audio' && reference.kind !== 'strategy-text') || reference.expectedJsonFields) {
           try {
             const parsed = JSON.parse(bytes.toString('utf8')) as unknown

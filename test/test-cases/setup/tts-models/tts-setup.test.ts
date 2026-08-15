@@ -5,7 +5,7 @@ import { runCommand, fileExists } from "../../../test-utils/test-helpers"
 const TTS_ENGINES = [
   {
     name: "kitten-tts",
-    setupModule: "./src/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts.ts",
+    setupModule: "./src/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-setup.ts",
     setupFn: "setupKittenTts",
     envDir: "runtime/bin/kitten-tts",
     pythonVersion: "3.12",

@@ -33,7 +33,6 @@ export const collectElevenLabsTtsTargets = (
           seed: selection.elevenLabsSeed,
           textNormalization: selection.elevenLabsTextNormalization,
           pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators,
-          optimizeStreamingLatency: selection.elevenLabsOptimizeStreamingLatency,
         })
         await ensureElevenLabsTtsSetup()
         invocation?.signal?.throwIfAborted()
@@ -77,8 +76,7 @@ export const collectElevenLabsTtsTargets = (
             textNormalization: controls.textNormalization,
             pronunciationDictionaryLocators: controls.pronunciationDictionaryLocators
               ? [...controls.pronunciationDictionaryLocators]
-              : undefined,
-            optimizeStreamingLatency: controls.optimizeStreamingLatency
+              : undefined
           },
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,

@@ -119,6 +119,5 @@ export const allArticleFlags = {
 
 export const ocrTuningFlags = {
   'ocr-dpi': strFlag('Render DPI for OCR pages', '300'),
-  'ocr-concurrency': strFlag('Page-level OCR concurrency cap. Local OCR defaults to 10; hosted OCR defaults to auto. Explicit values are hosted hard caps.'),
-  'keep-ocr-page-inputs': boolFlag('Keep intermediate single-page PDF inputs from hosted OCR fallback after success')
+  'ocr-concurrency': strFlag('Page-level OCR concurrency cap. Local OCR defaults to 10; hosted OCR defaults to auto. Explicit values are hosted hard caps.')
 } as const satisfies CliFlagsDefinition

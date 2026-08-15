@@ -22,7 +22,11 @@ const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'deepgram-tts': 'aura-2-thalia-en',
   'speechify-tts': 'simba-3.2',
   'cartesia-tts': 'sonic-3.5-2026-05-04',
-  'fish-tts': 's2.1-pro'
+  'fish-tts': 's2.1-pro',
+  'inworld-tts': 'realtime-tts-2',
+  'deepinfra-tts': 'ResembleAI/chatterbox-turbo',
+  'replicate-tts': 'jaaari/kokoro-82m',
+  'fal-tts': 'fal-ai/bytedance/seed-speech/tts/v2'
 } as const satisfies Record<string, string>
 
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
@@ -419,6 +423,8 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'anthropic-ocr': () => selectCheapestExtractModel('anthropic'),
   'gemini-ocr': () => selectCheapestExtractModel('gemini'),
   'deepinfra-ocr': () => DEFAULT_DEEPINFRA_OCR_MODEL,
+  'replicate-ocr': () => 'datalab-to/ocr',
+  'fal-ocr': () => 'fal-ai/got-ocr/v2',
   openai: () => selectCheapestLlmModel('openai'),
   groq: () => selectCheapestLlmModel('groq'),
   gemini: () => selectCheapestLlmModel('gemini'),

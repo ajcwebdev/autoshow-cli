@@ -47,7 +47,6 @@ export type TtsTargetSelection = {
   elevenLabsSeed: number | undefined
   elevenLabsTextNormalization: string | undefined
   elevenLabsPronunciationDictionaryLocators: string[] | undefined
-  elevenLabsOptimizeStreamingLatency: number | undefined
   speechifyVoiceId: string | undefined
   speechifyAudioFormat: string | undefined
   speechifyLanguage: string | undefined

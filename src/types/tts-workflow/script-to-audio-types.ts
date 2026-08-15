@@ -948,7 +948,7 @@ export type GeneratedProviderBatch = {
   generatedAt: string
 } & (
   | { source: 'provider-dispatch', batchInvocationPlanId: string, observedRequestOrdinals: number[] }
-  | { source: 'cache-materialization', sourceBatchResultId: string, observedRequestOrdinals: [] }
+  | { source: 'slot-reuse', slotHash: string, observedRequestOrdinals: [] }
 )
 
 export type SynthesisCacheObjectRef = {
@@ -1099,11 +1099,12 @@ export type ProviderBatchResult = ProviderBatchResultBase & (
       admissionBasis: { journalId: string, snapshotId: string, artifactRef: AttemptRelativeArtifactPath, sha256: string }
       observedRequests: ObservedProviderRequest[]
       retryAttempts: ProviderRetryRecord[]
-      cacheMaterialization?: never
+      slotHash?: never
     }
   | {
-      provenance: 'cache-materialization'
+      provenance: 'slot-reuse'
       status: 'succeeded'
+      slotHash: string
       invocationId?: never
       attempt?: never
       batchInvocationPlan?: never
@@ -1111,7 +1112,6 @@ export type ProviderBatchResult = ProviderBatchResultBase & (
       observedRequests: []
       retryAttempts: []
       createdResources: []
-      cacheMaterialization: CacheMaterializationEvidence
       error?: never
     }
 )
@@ -1279,8 +1279,8 @@ export type CanonicalBatchProgress = {
       }
     | {
         generationSlotId: string
-        source: 'cache-materialization'
-        materializationPlan: { cacheMaterializationPlanId: string, path: RenderRelativeArtifactPath, sha256: string }
+        source: 'slot-reuse'
+        slotHash: string
         batchResult: { batchResultId: string, path: RenderRelativeArtifactPath, sha256: string, status: 'succeeded' }
       }
   >
@@ -1345,13 +1345,52 @@ export type CanonicalReadinessAttempt = {
   | { status: 'blocked', admissionDisposition: 'self-blocked', error: SanitizedProviderError }
 )
 
+export type CompactAudioArchiveSlot = {
+  slotHash: string
+  turnIds: string[]
+  sha256: string
+  durationMs: number
+  voiceHash: string
+}
+
+export type CompactTargetRender = {
+  schemaVersion: 1
+  renderId: string
+  targetKey: string
+  renderIdentity: string
+  renderPlanId: string
+  dialoguePlanId: string
+  snapshotId?: string | undefined
+  strategy: ProviderRenderStrategy
+  format: ObservedAudioFormat
+  cost: PlannedAndObservedCost
+  slots: CompactAudioArchiveSlot[]
+  outputs: {
+    final: { path: string, sha256: string, durationMs: number }
+  }
+  retryErrorSummary?: {
+    requestCount: number
+    retryCount: number
+    failedSlotCount: number
+  } | undefined
+}
+
+export type CompactAudioArchive = {
+  schemaVersion: 1
+  renderRef: { path: string, sha256: string }
+  timelineRef: { path: string, sha256: string }
+  finalRef: { path: string, sha256: string }
+  slotCount: number
+}
+
 export type CanonicalAudioProviderProjection = {
   activeWork?:
     | { kind: 'branch', branchPlanId: string, readinessAttemptSequence?: number | undefined }
-    | { kind: 'render', renderIdentity: string, eventSequence: number }
+    | { kind: 'render', renderIdentity: string, eventSequence: number, journalPath?: string | undefined, completedSlotHashes?: string[] | undefined }
     | { kind: 'policy-skip', evidence: ProviderPolicySkipEvidence }
     | undefined
   selectedSuccess?: { renderIdentity: string, eventSequence: number, resultIdentity: string, audioRunId: string } | undefined
+  archive?: CompactAudioArchive | undefined
   branchHistory: Array<{ sequence: number, branchPlanId: string, branchPlanRef: string, branchPlanSha256: string, createdAt: string }>
   readinessAttempts: CanonicalReadinessAttempt[]
   renderHistory: CanonicalRenderRecord[]

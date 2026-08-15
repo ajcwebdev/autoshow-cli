@@ -211,18 +211,6 @@ describe('option resolution contracts', () => {
       expect(configured.ocrConcurrencyMode).toBe('fixed')
     })
 
-  test('OCR page input retention flag flows to extraction options', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const keepInputs = buildOptsFromFlags(false, {
-        'keep-ocr-page-inputs': true
-      })
-
-      expect(defaults.keepOcrPageInputs).toBe(false)
-      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', defaults).keepOcrPageInputs).toBe(false)
-      expect(keepInputs.keepOcrPageInputs).toBe(true)
-      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', keepInputs).keepOcrPageInputs).toBe(true)
-    })
-
   test('LLM provider concurrency defaults, falls back, and clamps like STT/OCR concurrency flags', () => {
       const defaults = buildOptsFromFlags(false, {})
       const fallback = buildOptsFromFlags(false, {
@@ -542,7 +530,7 @@ describe('option resolution contracts', () => {
       expect(ocrOpts.geminiOcrModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'])
       expect(ocrOpts.geminiOcrModels).not.toContain('gemini-3.1-flash-lite')
       expect(ocrOpts.deepinfraOcrModels).toEqual(['google/gemma-3-27b-it', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'mistralai/Mistral-Small-3.2-24B-Instruct-2506', 'Qwen/Qwen3-VL-235B-A22B-Instruct', 'Qwen/Qwen3-VL-30B-A3B-Instruct'])
-      expect(ocrOpts.replicateOcrModels).toEqual(['datalab-to/ocr', 'datalab-to/marker'])
+      expect(ocrOpts.replicateOcrModels).toEqual(['datalab-to/ocr', 'datalab-to/marker', 'lucataco/deepseek-ocr'])
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('deepgram')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('grok')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('mistral')

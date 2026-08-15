@@ -20,8 +20,6 @@ Tiering is constrained by the same regeneration requirement. Tier membership mus
 
 Why now: STT, OCR, and URL combined reports share an expanded ranking contract, so their generated JSON, Markdown, and offline HTML need one deterministic presentation and tiering structure before further benchmark runs are added.
 
-The August TTS provider expansion also needs a safe continuation of four retained June benchmark cohorts. Their manifests predate operation-scoped TTS render evidence and store narration inline, but their successful provider outputs are already-paid evidence. ADR-002 defines the narrow additive bridge; this record owns the exact no-cost preflight, paid-approval state, output validation, provider-schema corrections, and report regeneration for the corrected 13-model refresh cohort.
-
 ## Options Considered
 
 ### Evidence governance
@@ -53,6 +51,22 @@ The August TTS provider expansion also needs a safe continuation of four retaine
 
 ## Decision
 
+Govern benchmark evidence through a strict lifecycle requiring no-cost preflight, explicit command-specific paid approval, artifact validation, and post-validation compaction, while generating self-contained offline HTML dashboards beside JSON and Markdown reports with deterministic quality-cost tercile tiering.
+
+This applies to:
+
+- Benchmark evidence lifecycle, paid-approval requirements, and artifact validation across all hosted modalities.
+- STT, OCR, and URL combined cross-run report builders and their generated JSON, Markdown, and self-contained HTML artifacts.
+- The shared eight-set weighted ranking registry and deterministic quality-cost tercile tiering contract (`quality-cost-terciles-v1`).
+- Post-validation artifact compaction, historical result envelope preservation, and report regeneration rules.
+
+It does not apply to:
+
+- Production CLI flags, runtime commands, or public execution APIs (the CLI `benchmark` command was removed).
+- Durable hosted-model registry, lifecycle, and capability policy (governed by [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
+- Dated hosted-model refresh chronology and selector changes (governed by [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)).
+- Single-run execution manifests, runtime data fetching, or cross-group overall leaderboards.
+
 ### Benchmark evidence lifecycle and paid approval
 
 Every provider/model refresh follows this evidence order:
@@ -79,11 +93,6 @@ All three combined report builders emit three sibling artifacts:
 The HTML is generated, not hand-authored. A shared, category-agnostic renderer receives a view model assembled by each builder. Category differences such as group names, column labels, evidence fields, display names, and value formats are data in that model rather than separate dashboard implementations.
 
 The resulting HTML is one file with all report data embedded at generation time, all CSS and JavaScript inline, and no network or third-party runtime dependencies. The browser script only switches among rankings that TypeScript has already computed and embedded; it does not recompute ranks or composites. The report remains readable when JavaScript is disabled and opens directly from `file://`. This keeps JSON, Markdown, and HTML on the same generated data while allowing the dashboard to consolidate the repeated ranking tables into one provider view, a weighted-ranking matrix, tier cards, and a per-run quality heatmap.
-
-This applies to:
-
-- STT, OCR, and URL combined cross-run report builders and their generated JSON, Markdown, and self-contained HTML artifacts.
-- No production CLI flags, public APIs, single-run reports, provider execution, runtime data fetching, or cross-group leaderboards.
 
 URL combined schema v1 uses the source reports' `rankingSurfaces.*.automatedQuality` values as quality evidence, averages present supporting WER, CER, content coverage, processing-time, and cost values, and keeps `local` and `service` aggregation independent. Optional canonical `manifest.json` item metadata supplies article titles and safe HTTP(S) inventory links.
 
@@ -165,14 +174,12 @@ The focused combined-report contract test checks the exact eight-set registry, w
 
 ### 2026 hosted-model evidence ledger
 
-ADR-013 owns which selectors changed; this section owns what was measured, approved, repaired, compacted, and regenerated.
+ADR-013 owns which selectors changed; this section records what was measured, approved, repaired, compacted, and regenerated.
 
 #### Write and OCR
 
 - Calibration across historical benchmark runs produced GPT-5.6 and Claude Fable 5 benchmark evidence, establishing token throughput and timing baselines with unified multipliers.
 - A separately approved Kimi K3 short-summary write probe proved request and usage compatibility without requiring thinking-field overrides.
-- Uncalibrated models (Gemini 3.6/3.5, Claude Opus 5, Grok 4.5, Kimi K3) retain provisional same-family heuristics until explicit approval.
-- Gemini 3.1 Flash-Lite retirement was verified via primary deprecation evidence and local compatibility contracts without requiring provider calls.
 
 #### STT
 
@@ -182,22 +189,11 @@ ADR-013 owns which selectors changed; this section owns what was measured, appro
 
 #### TTS and music
 
-- TTS selector and provider catalog refresh verified 122 active hosted selectors using local no-network evidence. The corrected 13-selector addition is Fish `fish-speech-1.5`, `s1`, `s2-pro`, and `voice-design-1`; Inworld `realtime-tts-2` and `realtime-tts-2-flash`; DeepInfra `ResembleAI/chatterbox-multilingual`, `ResembleAI/chatterbox-turbo`, `XiaomiMiMo/MiMo-V2.5-tts`, `XiaomiMiMo/MiMo-V2.5-tts-voicedesign`, `Qwen/Qwen3-TTS`, and `Qwen/Qwen3-TTS-VoiceDesign`; and version-pinned Replicate `jaaari/kokoro-82m`. The 2026-08-15 catalog narrowing later retired twelve of those and adjacent sibling IDs and added Fish `s2.1-pro`, leaving 111 hosted TTS selectors; ADR-013 records the refused set.
-- The first exact additive `resume --price` preflight covered four retained runs: `docs/benchmarks/tts/2026-06-15_18-24-36-993_tts-hard` (1,613 characters, `80.9946¢`), `docs/benchmarks/tts/2026-06-15_18-28-56-715_tts-long` (453 characters, `22.7626¢`), `docs/benchmarks/tts/2026-06-15_18-51-16-094_0-tts-short` (17 characters, `0.8754¢`), and `docs/benchmarks/tts/2026-06-15_18-59-47-953_1-tts` (87 characters, `4.3894¢`). The aggregate estimate was `109.022¢` (`$1.09022`) for 56 additive outputs before ordinary retry, provider-price, or variable-runtime billing variance.
-- The approved first paid pass preserved every retained artifact and produced 34 successful outputs. All four Fish models, Inworld TTS-2, DeepInfra Chatterbox Turbo, and Replicate Kokoro succeeded on all four inputs; Chatterbox Multilingual and MiMo TTS also succeeded on the three shorter inputs. Provider rejections exposed two obsolete Inworld 1.5 IDs and four DeepInfra schema assumptions. The registry now replaces the obsolete selectors with current TTS-2 Flash, and the DeepInfra serializer uses exact per-model fields and input limits. No human-listening quality claim is inferred from successful synthesis.
-- A second write-free `resume --price` pass proved that all 34 successful outputs were zero-cost recoveries and priced exactly 18 remaining outputs: six for the hard run and four for each shorter run. The corrected resume-only estimate was `12.10¢` (`$0.1210`) plus ordinary retry variance. After exact approval, the follow-up produced 17 more successful outputs: current Inworld TTS-2 Flash, both MiMo models, and both Qwen models completed every previously missing input. DeepInfra Chatterbox Multilingual alone continued returning HTTP 500 for the 1,613-character hard input, including after explicit ambiguous-redispatch authorization; the user stopped further DeepInfra attempts. The retained checkpoint and cached artifacts were not deleted. The corrected cohort therefore closes at 51 of 52 current-model outputs, with 12 of 13 on the hard run and all 13 on each other run.
-- The four TTS JSON and Markdown provider-comparison reports were regenerated from the retained successful artifacts. They expose complete local/service price, speed, automated-quality, and human-quality ranking surfaces with aliases and unavailable reasons. The reports make no new human-listening claim; where no voice-quality evidence exists, the quality surfaces remain explicitly unavailable, while the separate overall composite uses the report builder's documented neutral accuracy fallback.
-- Music preflight and execution validated ElevenLabs Music v2 and MiniMax Music 3.0 additions. Resolved an additive-resume output collision by promoting outputs to provider/model-specific filenames before metadata merge.
-
-#### Image and video
-
-- Image/fal.ai verification validated queue submission, polling, cancellation, metadata, and resume contracts using local mocks without fal.ai generation calls.
-- Existing video provider verification passed 68 targeted request, option-resolution, pricing, provenance, and budget contracts with zero hosted calls.
-- Veo REST response-shape audit confirmed strict REST `encodedVideo`/`encoding` provenance handling across Gemini contracts.
-
-#### Shared no-cost verification
-
-- Baseline verification uses `bun run check` and `bun t --price`, verifying mapped commands without provider calls.
+- Four retained June TTS benchmark cohorts (`tts-hard`, `tts-long`, `0-tts-short`, `1-tts`) were safely continued through exact no-cost `resume --price` preflights and approved paid passes.
+- Provider rejections exposed obsolete Inworld 1.5 identifiers and DeepInfra per-model input/schema constraints; the registry updated to current Inworld TTS-2 Flash and model-specific serialization.
+- DeepInfra Chatterbox Multilingual returned HTTP 500 on the hard input; the failed attempt was preserved with retained checkpoints without deleting cached artifacts. The cohort closed at 51 of 52 current-model outputs (12/13 on hard, 13/13 on remaining runs).
+- Four TTS provider-comparison reports were regenerated from retained successful artifacts, exposing price, speed, and automated/human quality surfaces without unverified voice claims.
+- Music preflight and execution validated ElevenLabs Music v2 and MiniMax Music 3.0 additions, resolving an additive-resume output collision by promoting outputs to provider/model-specific filenames.
 
 ## Follow-up Actions
 

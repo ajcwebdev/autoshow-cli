@@ -1,22 +1,20 @@
-import { readdir } from 'node:fs/promises'
 import { join, posix } from 'node:path'
 import type {
   AudioRun,
   CanonicalComicItemMetadata,
-  ComicPresentationPlan,
-  ComicPresentationRun,
-  ResolvedPanelTimeline,
-  ResolvedSoundscapeTimeline,
-  SoundEffectRenderResult,
-  SoundscapeAudioRun,
+  CompactMix,
+  CompactPresentation,
+  CompactSfx,
+  CompactTargetRender,
+  FinalTimeline,
   SoundscapePlan,
 } from '~/types'
 import { readManifest } from '../../pipeline-manifest'
-import { canonicalTtsJson, hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
+import { hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
 import { readContainedArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { soundscapeReportedOutputPath } from './comic-soundscape-workflow'
 import { validateComicPresentationPlan, validateResolvedPanelTimeline } from './comic-presentation-plan'
-import { validateComicPresentationRun } from './comic-presentation-renderer'
+import { PRESENTATION_ARCHIVE_PATH, validateCompactPresentation } from './comic-presentation-renderer'
 
 export type ComicArtifactLineageError = {
   code: 'manifest-unreadable' | 'checksum-mismatch' | 'missing-artifact' | 'invalid-json' | 'invalid-identity' | 'missing-binding' | 'missing-presentation' | 'transform-ledger-mismatch'
@@ -37,12 +35,9 @@ export type ComicArtifactLineageAudit = {
 
 type ArtifactRef = { path: string, sha256: string }
 
-export const soundscapeAudioRunLineageRefs = (run: SoundscapeAudioRun): ArtifactRef[] => [
+export const soundscapeAudioRunLineageRefs = (run: CompactMix): ArtifactRef[] => [
   { path: run.soundscapePlan.path, sha256: run.soundscapePlan.sha256 },
-  ...(run.soundEffectRenderPlan ? [{ path: run.soundEffectRenderPlan.path, sha256: run.soundEffectRenderPlan.sha256 }] : []),
-  ...(run.soundEffectRenderResult ? [{ path: run.soundEffectRenderResult.path, sha256: run.soundEffectRenderResult.sha256 }] : []),
-  run.resolvedTimeline,
-  run.transformLedger,
+  ...(run.sfx ? [{ path: run.sfx.path, sha256: run.sfx.sha256 }] : []),
   ...run.stems.map(stem => ({ path: stem.path, sha256: stem.sha256 })),
   { path: run.master.path, sha256: run.master.sha256 },
 ]
@@ -145,8 +140,27 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
   for (const binding of audio.selectedAudioRuns ?? []) {
     selectedDialogueTargets.push(binding.targetKey)
     dialogueById.set(binding.audioRunId, binding)
-    const run = await verifyJson<AudioRun>({ path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Dialogue AudioRun ${binding.audioRunId}`, binding.targetKey)
-    if (!run) continue
+    const compactRender = await verifyJson<CompactTargetRender | AudioRun>({ path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Dialogue render ${binding.audioRunId}`, binding.targetKey)
+    if (!compactRender) continue
+    if ('renderId' in compactRender && 'outputs' in compactRender && !('audioRunId' in compactRender)) {
+      if (!hashedIdentity(compactRender as unknown as Record<string, unknown>, 'renderId') || compactRender.targetKey !== binding.targetKey || compactRender.renderIdentity !== binding.renderIdentity) {
+        fail({ code: 'invalid-identity', message: `Dialogue render ${binding.renderIdentity} does not match its selected binding.`, path: binding.audioRunRef, targetKey: binding.targetKey })
+        continue
+      }
+      const timelinePath = posix.join(posix.dirname(binding.audioRunRef), 'timeline.json')
+      try {
+        const stored = await readContainedArtifactFile(sceneRunDir, timelinePath)
+        const timeline = JSON.parse(stored.bytes.toString('utf8')) as FinalTimeline
+        if (timeline.renderIdentity !== compactRender.renderIdentity) {
+          fail({ code: 'invalid-identity', message: `Dialogue timeline does not bind compact render ${binding.renderIdentity}.`, path: timelinePath, targetKey: binding.targetKey })
+        } else verified.add(`${timelinePath}:${stored.sha256}`)
+      } catch {
+        fail({ code: 'missing-artifact', message: `Dialogue timeline is missing: ${timelinePath}`, path: timelinePath, targetKey: binding.targetKey })
+      }
+      await verifyRef(compactRender.outputs.final, `Dialogue final audio ${compactRender.outputs.final.path}`, binding.targetKey)
+      continue
+    }
+    const run = compactRender as AudioRun
     if (!hashedIdentity(run as unknown as Record<string, unknown>, 'audioRunId') || run.audioRunId !== binding.audioRunId || run.targetKey !== binding.targetKey) {
       fail({ code: 'invalid-identity', message: `Dialogue AudioRun ${binding.audioRunId} does not match its selected binding.`, path: binding.audioRunRef, targetKey: binding.targetKey })
       continue
@@ -164,55 +178,42 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
     if (!dialogue || dialogue.targetKey !== binding.targetKey) {
       fail({ code: 'missing-binding', message: `Selected soundscape ${binding.targetKey} has no exact selected dialogue AudioRun ${binding.dialogueAudioRunId}.`, path: binding.audioRunRef, targetKey: binding.targetKey })
     }
-    const run = await verifyJson<SoundscapeAudioRun>({ path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Soundscape AudioRun ${binding.soundscapeAudioRunId}`, binding.targetKey)
-    if (!run) continue
-    if (!hashedIdentity(run as unknown as Record<string, unknown>, 'audioRunId') || run.audioRunId !== binding.soundscapeAudioRunId) {
-      fail({ code: 'invalid-identity', message: `Soundscape AudioRun ${binding.soundscapeAudioRunId} has invalid content identity.`, path: binding.audioRunRef, targetKey: binding.targetKey })
+    const mix = await verifyJson<CompactMix>({ path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Soundscape mix ${binding.soundscapeAudioRunId}`, binding.targetKey)
+    if (!mix) continue
+    if (mix.mixId !== binding.soundscapeAudioRunId) {
+      fail({ code: 'invalid-identity', message: `Soundscape mix ${binding.soundscapeAudioRunId} has invalid content identity.`, path: binding.audioRunRef, targetKey: binding.targetKey })
       continue
     }
-    if (dialogue && (run.dialogueAudioRun.audioRunId !== dialogue.audioRunId || run.dialogueAudioRun.sha256 !== dialogue.audioRunSha256 || run.dialogueAudioRun.path !== dialogue.audioRunRef)) {
-      fail({ code: 'missing-binding', message: `Soundscape AudioRun ${binding.soundscapeAudioRunId} does not bind the selected dialogue AudioRun.`, path: binding.audioRunRef, targetKey: binding.targetKey })
+    if (dialogue && (mix.dialogueRender.audioRunId !== dialogue.audioRunId || mix.dialogueRender.sha256 !== dialogue.audioRunSha256 || mix.dialogueRender.path !== dialogue.audioRunRef)) {
+      fail({ code: 'missing-binding', message: `Soundscape mix ${binding.soundscapeAudioRunId} does not bind the selected dialogue render.`, path: binding.audioRunRef, targetKey: binding.targetKey })
     }
-    if (run.master.path !== binding.masterRef.path || run.master.sha256 !== binding.masterRef.sha256) {
-      fail({ code: 'missing-binding', message: `Soundscape AudioRun ${binding.soundscapeAudioRunId} master does not match its selected masterRef.`, path: binding.masterRef.path, targetKey: binding.targetKey })
+    if (mix.master.path !== binding.masterRef.path || mix.master.sha256 !== binding.masterRef.sha256) {
+      fail({ code: 'missing-binding', message: `Soundscape mix ${binding.soundscapeAudioRunId} master does not match its selected masterRef.`, path: binding.masterRef.path, targetKey: binding.targetKey })
     }
     const publishedPath = soundscapeReportedOutputPath(binding.targetKey)
     const published = (audio.finalOutputRefs ?? []).find(ref => ref.path === publishedPath)
-    if (!published || published.sha256 !== run.master.sha256) {
-      fail({ code: 'missing-binding', message: `Published soundscape output ${publishedPath} does not checksum-bind master ${run.master.sha256}.`, path: publishedPath, targetKey: binding.targetKey })
+    if (!published || published.sha256 !== mix.master.sha256) {
+      fail({ code: 'missing-binding', message: `Published soundscape output ${publishedPath} does not checksum-bind master ${mix.master.sha256}.`, path: publishedPath, targetKey: binding.targetKey })
     } else await verifyRef(published, `Published soundscape ${publishedPath}`, binding.targetKey)
 
-    const plan = await verifyJson<SoundscapePlan>(run.soundscapePlan, `SoundscapePlan ${run.soundscapePlan.soundscapePlanId}`, binding.targetKey)
-    if (plan && (!hashedIdentity(plan as unknown as Record<string, unknown>, 'soundscapePlanId') || plan.soundscapePlanId !== run.soundscapePlan.soundscapePlanId || (audio.dialoguePlanId && plan.dialoguePlanId !== audio.dialoguePlanId))) {
-      fail({ code: 'invalid-identity', message: `SoundscapePlan ${run.soundscapePlan.soundscapePlanId} does not bind the selected scene.`, path: run.soundscapePlan.path, targetKey: binding.targetKey })
+    const plan = await verifyJson<SoundscapePlan>(mix.soundscapePlan, `SoundscapePlan ${mix.soundscapePlan.soundscapePlanId}`, binding.targetKey)
+    if (plan && (!hashedIdentity(plan as unknown as Record<string, unknown>, 'soundscapePlanId') || plan.soundscapePlanId !== mix.soundscapePlan.soundscapePlanId || (audio.dialoguePlanId && plan.dialoguePlanId !== audio.dialoguePlanId))) {
+      fail({ code: 'invalid-identity', message: `SoundscapePlan ${mix.soundscapePlan.soundscapePlanId} does not bind the selected scene.`, path: mix.soundscapePlan.path, targetKey: binding.targetKey })
     }
-    if (run.soundEffectRenderResult) {
-      const result = await verifyJson<SoundEffectRenderResult>(run.soundEffectRenderResult, `SoundEffectRenderResult ${run.soundEffectRenderResult.resultId}`, binding.targetKey)
-      if (result && (!hashedIdentity(result as unknown as Record<string, unknown>, 'resultId') || result.resultId !== run.soundEffectRenderResult.resultId || result.status !== 'succeeded')) {
-        fail({ code: 'invalid-identity', message: `Sound-effect result ${run.soundEffectRenderResult.resultId} is not a complete success identity.`, path: run.soundEffectRenderResult.path, targetKey: binding.targetKey })
+    if (mix.sfx) {
+      const sfx = await verifyJson<CompactSfx>(mix.sfx, `Compact SFX ${mix.sfx.sfxId}`, binding.targetKey)
+      if (sfx && (!hashedIdentity(sfx as unknown as Record<string, unknown>, 'sfxId') || sfx.sfxId !== mix.sfx.sfxId || sfx.status !== 'succeeded')) {
+        fail({ code: 'invalid-identity', message: `Compact SFX ${mix.sfx.sfxId} is not a complete success identity.`, path: mix.sfx.path, targetKey: binding.targetKey })
       }
-      for (const entry of result?.entries ?? []) {
+      for (const entry of sfx?.entries ?? []) {
         if (entry.status === 'succeeded' && entry.audio) await verifyRef(entry.audio, `Retained SFX source ${entry.cueId}`, binding.targetKey)
       }
     }
-    if (run.soundEffectRenderPlan) await verifyRef(run.soundEffectRenderPlan, `SoundEffectRenderPlan ${run.soundEffectRenderPlan.renderPlanId}`, binding.targetKey)
-    const timeline = await verifyJson<ResolvedSoundscapeTimeline>(run.resolvedTimeline, `Resolved soundscape timeline ${run.resolvedTimeline.timelineId}`, binding.targetKey)
-    if (timeline && (!hashedIdentity(timeline as unknown as Record<string, unknown>, 'timelineId') || timeline.timelineId !== run.resolvedTimeline.timelineId || timeline.dialogueAudioRunId !== run.dialogueAudioRun.audioRunId || timeline.soundscapePlanId !== run.soundscapePlan.soundscapePlanId)) {
-      fail({ code: 'invalid-identity', message: `Resolved soundscape timeline ${run.resolvedTimeline.timelineId} does not bind its source runs.`, path: run.resolvedTimeline.path, targetKey: binding.targetKey })
+    if (mix.timelineSummary.dialogueAudioRunId !== mix.dialogueRender.audioRunId || (plan && mix.timelineSummary.timelineId && plan.soundscapePlanId !== mix.soundscapePlan.soundscapePlanId)) {
+      fail({ code: 'invalid-identity', message: `Soundscape mix timeline summary does not bind its source runs.`, path: binding.audioRunRef, targetKey: binding.targetKey })
     }
-    const ledgerBytes = await verifyRef(run.transformLedger, `Soundscape transform ledger`, binding.targetKey)
-    if (ledgerBytes) {
-      try {
-        const ledger = JSON.parse(ledgerBytes.toString('utf8')) as { transforms?: unknown }
-        if (canonicalTtsJson(ledger.transforms ?? null) !== canonicalTtsJson(run.transforms)) {
-          fail({ code: 'transform-ledger-mismatch', message: `Soundscape transform ledger does not match AudioRun transforms.`, path: run.transformLedger.path, targetKey: binding.targetKey })
-        }
-      } catch {
-        fail({ code: 'invalid-json', message: `Soundscape transform ledger is not valid JSON: ${run.transformLedger.path}`, path: run.transformLedger.path, targetKey: binding.targetKey })
-      }
-    }
-    for (const stem of run.stems) await verifyRef(stem, `Soundscape stem ${stem.bus}`, binding.targetKey)
-    await verifyRef(run.master, `Soundscape master`, binding.targetKey)
+    for (const stem of mix.stems) await verifyRef(stem, `Soundscape stem ${stem.bus}`, binding.targetKey)
+    await verifyRef(mix.master, `Soundscape master`, binding.targetKey)
   }
 
   const presentation = comic.presentation
@@ -221,82 +222,65 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
   }
 
   const discovered = new Map<string, { targetKey: string, runPath: string }>()
-  try {
-    const entries = await readdir(posix.join(sceneRunDir, 'presentation/runs'), { withFileTypes: true })
-    for (const entry of entries) {
-      if (!entry.isDirectory() || !/^[a-f0-9]{64}$/u.test(entry.name)) continue
-      const runPath = `presentation/runs/${entry.name}/comic-presentation-run.json`
-      const stored = await readContainedArtifactFile(sceneRunDir, runPath).catch(() => undefined)
-      if (!stored) {
-        fail({ code: 'missing-artifact', message: `Presentation run directory ${entry.name} is missing comic-presentation-run.json.`, path: runPath })
-        continue
-      }
-      let run: ComicPresentationRun
-      try { run = validateComicPresentationRun(JSON.parse(stored.bytes.toString('utf8')) as ComicPresentationRun) }
+  const archiveRef = presentation.runRef ?? (presentation.planRef?.path === PRESENTATION_ARCHIVE_PATH ? presentation.planRef : undefined)
+  if (archiveRef) {
+    const compact = await verifyJson<CompactPresentation>(archiveRef, `Compact presentation ${presentation.selectedPresentationId ?? archiveRef.path}`)
+    if (compact) {
+      try { validateCompactPresentation(compact) }
       catch (error) {
-        fail({ code: 'invalid-identity', message: `Presentation run ${entry.name} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: runPath })
-        continue
+        fail({ code: 'invalid-identity', message: `Compact presentation is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
       }
-      verified.add(`${runPath}:${stored.sha256}`)
-      const plan = await verifyJson<ComicPresentationPlan>(run.plan, `ComicPresentationPlan ${run.presentationId}`)
-      const timeline = await verifyJson<ResolvedPanelTimeline>(run.resolvedTimeline, `ResolvedPanelTimeline ${run.resolvedTimeline.timelineId}`)
-      if (plan) {
-        try { validateComicPresentationPlan(plan) }
-        catch (error) {
-          fail({ code: 'invalid-identity', message: `ComicPresentationPlan ${run.presentationId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: run.plan.path })
-        }
-        presentationTargets.push(plan.inputs.audioTarget.targetKey)
-        discovered.set(plan.inputs.audioTarget.targetKey, { targetKey: plan.inputs.audioTarget.targetKey, runPath })
-        const soundscape = soundscapeByTarget.get(plan.inputs.audioTarget.targetKey)
-        if (plan.inputs.audioTarget.kind === 'soundscape') {
-          if (!soundscape) fail({ code: 'missing-binding', message: `Presentation ${run.presentationId} binds missing selected soundscape ${plan.inputs.audioTarget.targetKey}.`, path: run.plan.path, targetKey: plan.inputs.audioTarget.targetKey })
-          else if (plan.inputs.soundscapeAudioRun && (plan.inputs.soundscapeAudioRun.path !== soundscape.audioRunRef || plan.inputs.soundscapeAudioRun.sha256 !== soundscape.audioRunSha256 || plan.inputs.soundscapeAudioRun.audioRunId !== soundscape.soundscapeAudioRunId)) {
-            fail({ code: 'missing-binding', message: `Presentation ${run.presentationId} does not bind the selected soundscape AudioRun.`, path: run.plan.path, targetKey: plan.inputs.audioTarget.targetKey })
-          }
-        }
-        for (const panel of plan.inputs.panels) await verifyRef(panel, `Presentation panel ${panel.panelNumber}`, plan.inputs.audioTarget.targetKey)
-        await verifyRef(plan.inputs.reviewedScene, `Presentation reviewed scene`, plan.inputs.audioTarget.targetKey)
-        await verifyRef(plan.inputs.structuredScript, `Presentation structured script`, plan.inputs.audioTarget.targetKey)
-        await verifyRef(plan.inputs.dialoguePlan, `Presentation dialogue plan`, plan.inputs.audioTarget.targetKey)
-        await verifyRef(plan.inputs.dialogueAudioRun, `Presentation dialogue AudioRun`, plan.inputs.audioTarget.targetKey)
-        await verifyRef(plan.inputs.dialogueTimeline, `Presentation dialogue timeline`, plan.inputs.audioTarget.targetKey)
-        await verifyRef(plan.inputs.dialogueAudio, `Presentation dialogue audio`, plan.inputs.audioTarget.targetKey)
-        if (plan.inputs.soundscapeAudioRun) await verifyRef(plan.inputs.soundscapeAudioRun, `Presentation soundscape AudioRun`, plan.inputs.audioTarget.targetKey)
-        if (plan.inputs.soundscapePlan) await verifyRef(plan.inputs.soundscapePlan, `Presentation SoundscapePlan`, plan.inputs.audioTarget.targetKey)
-        if (plan.inputs.soundEffectRenderResult) await verifyRef(plan.inputs.soundEffectRenderResult, `Presentation sound-effect result`, plan.inputs.audioTarget.targetKey)
-        if (plan.inputs.soundscapeTimeline) await verifyRef(plan.inputs.soundscapeTimeline, `Presentation soundscape timeline`, plan.inputs.audioTarget.targetKey)
-        for (const binding of plan.soundBindings) await verifyRef(binding.sourceAudio, `Presentation sound binding ${binding.cueId}`, plan.inputs.audioTarget.targetKey)
-        for (const bed of plan.ambience) await verifyRef(bed.sourceAudio, `Presentation ambience ${bed.cueId}`, plan.inputs.audioTarget.targetKey)
+      if (presentation.selectedPresentationId && compact.presentationId !== presentation.selectedPresentationId) {
+        fail({ code: 'missing-binding', message: `selectedPresentationId ${presentation.selectedPresentationId} is not bound by presentation.json.`, path: archiveRef.path })
       }
-      if (timeline) {
-        try { validateResolvedPanelTimeline(timeline) }
-        catch (error) {
-          fail({ code: 'invalid-identity', message: `ResolvedPanelTimeline ${run.resolvedTimeline.timelineId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: run.resolvedTimeline.path })
-        }
-        if (plan && timeline.presentationId !== plan.presentationId) {
-          fail({ code: 'missing-binding', message: `ResolvedPanelTimeline ${timeline.timelineId} does not bind presentation ${plan.presentationId}.`, path: run.resolvedTimeline.path })
+      const plan = compact.plan
+      try { validateComicPresentationPlan(plan) }
+      catch (error) {
+        fail({ code: 'invalid-identity', message: `ComicPresentationPlan ${plan.presentationId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
+      }
+      try { validateResolvedPanelTimeline(compact.timeline) }
+      catch (error) {
+        fail({ code: 'invalid-identity', message: `ResolvedPanelTimeline ${compact.timeline.timelineId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
+      }
+      if (compact.timeline.presentationId !== plan.presentationId) {
+        fail({ code: 'missing-binding', message: `ResolvedPanelTimeline ${compact.timeline.timelineId} does not bind presentation ${plan.presentationId}.`, path: archiveRef.path })
+      }
+      presentationTargets.push(plan.inputs.audioTarget.targetKey)
+      discovered.set(plan.inputs.audioTarget.targetKey, { targetKey: plan.inputs.audioTarget.targetKey, runPath: archiveRef.path })
+      const soundscape = soundscapeByTarget.get(plan.inputs.audioTarget.targetKey)
+      if (plan.inputs.audioTarget.kind === 'soundscape') {
+        if (!soundscape) fail({ code: 'missing-binding', message: `Presentation ${plan.presentationId} binds missing selected soundscape ${plan.inputs.audioTarget.targetKey}.`, path: archiveRef.path, targetKey: plan.inputs.audioTarget.targetKey })
+        else if (plan.inputs.soundscapeAudioRun && (plan.inputs.soundscapeAudioRun.path !== soundscape.audioRunRef || plan.inputs.soundscapeAudioRun.sha256 !== soundscape.audioRunSha256 || plan.inputs.soundscapeAudioRun.audioRunId !== soundscape.soundscapeAudioRunId)) {
+          fail({ code: 'missing-binding', message: `Presentation ${plan.presentationId} does not bind the selected soundscape mix.`, path: archiveRef.path, targetKey: plan.inputs.audioTarget.targetKey })
         }
       }
-      await verifyRef(run.outputs.wav, `Presentation WAV ${run.outputs.wav.path}`)
-      await verifyRef(run.outputs.mp4, `Presentation MP4 ${run.outputs.mp4.path}`)
-      for (const transform of run.audioTransforms) {
+      for (const panel of plan.inputs.panels) await verifyRef(panel, `Presentation panel ${panel.panelNumber}`, plan.inputs.audioTarget.targetKey)
+      await verifyRef(plan.inputs.reviewedScene, `Presentation reviewed scene`, plan.inputs.audioTarget.targetKey)
+      await verifyRef(plan.inputs.structuredScript, `Presentation structured script`, plan.inputs.audioTarget.targetKey)
+      await verifyRef(plan.inputs.dialoguePlan, `Presentation dialogue plan`, plan.inputs.audioTarget.targetKey)
+      await verifyRef(plan.inputs.dialogueAudioRun, `Presentation dialogue AudioRun`, plan.inputs.audioTarget.targetKey)
+      await verifyRef(plan.inputs.dialogueTimeline, `Presentation dialogue timeline`, plan.inputs.audioTarget.targetKey)
+      await verifyRef(plan.inputs.dialogueAudio, `Presentation dialogue audio`, plan.inputs.audioTarget.targetKey)
+      if (plan.inputs.soundscapeAudioRun) await verifyRef(plan.inputs.soundscapeAudioRun, `Presentation soundscape mix`, plan.inputs.audioTarget.targetKey)
+      if (plan.inputs.soundscapePlan) await verifyRef(plan.inputs.soundscapePlan, `Presentation SoundscapePlan`, plan.inputs.audioTarget.targetKey)
+      if (plan.inputs.soundEffectRenderResult) await verifyRef(plan.inputs.soundEffectRenderResult, `Presentation sound-effect result`, plan.inputs.audioTarget.targetKey)
+      if (plan.inputs.soundscapeTimeline) await verifyRef(plan.inputs.soundscapeTimeline, `Presentation soundscape timeline`, plan.inputs.audioTarget.targetKey)
+      for (const binding of plan.soundBindings) await verifyRef(binding.sourceAudio, `Presentation sound binding ${binding.cueId}`, plan.inputs.audioTarget.targetKey)
+      for (const bed of plan.ambience) await verifyRef(bed.sourceAudio, `Presentation ambience ${bed.cueId}`, plan.inputs.audioTarget.targetKey)
+      await verifyRef(compact.outputs.wav, `Presentation WAV ${compact.outputs.wav.path}`)
+      await verifyRef(compact.outputs.mp4, `Presentation MP4 ${compact.outputs.mp4.path}`)
+      for (const transform of compact.audioTransforms) {
         if (transform.sourceRef) await verifyRef(transform.sourceRef, `Presentation transform ${transform.transformId}`)
       }
     }
-  } catch (error) {
-    const missing = error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT'
-    if (!missing) fail({ code: 'missing-artifact', message: `Could not read presentation/runs: ${error instanceof Error ? error.message : String(error)}`, path: 'presentation/runs' })
   }
 
   if (comic.stages.presentation.requirement !== 'not-requested' && comic.stages.presentation.status === 'full') {
-    for (const targetKey of selectedSoundscapeTargets) {
-      if (!discovered.has(targetKey)) fail({ code: 'missing-presentation', message: `Selected soundscape ${targetKey} has no manifest-backed ADR-019 presentation run.`, targetKey })
+    if (!archiveRef || discovered.size === 0) {
+      fail({ code: 'missing-presentation', message: 'Published comic presentation stage has no compact presentation.json archive.', path: PRESENTATION_ARCHIVE_PATH })
     }
-    if (presentation.selectedPresentationId) {
-      const selectedRunPath = presentation.runRef?.path
-      if (!selectedRunPath || !selectedRunPath.includes(presentation.selectedPresentationId)) {
-        fail({ code: 'missing-binding', message: `selectedPresentationId ${presentation.selectedPresentationId} is not bound by presentation.runRef.`, path: selectedRunPath })
-      }
+    if (presentation.selectedPresentationId && !archiveRef) {
+      fail({ code: 'missing-binding', message: `selectedPresentationId ${presentation.selectedPresentationId} is not bound by presentation.json.`, path: PRESENTATION_ARCHIVE_PATH })
     }
   }
 

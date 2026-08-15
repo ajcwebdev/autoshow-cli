@@ -1,5 +1,7 @@
 # Step 2 Service Tests: STT
 
+Hosted speech-to-text and URL transcript coverage for the extract STT route.
+
 Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.
 
 ## Outline

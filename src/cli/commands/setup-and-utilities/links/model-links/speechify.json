@@ -1,15 +1,19 @@
 {
   "Speechify": {
+    "General": [
+      "https://docs.speechify.ai/build/guides/welcome.md",
+      "https://docs.speechify.ai/build/guides/get-started/authentication.md",
+      "https://docs.speechify.ai/build/guides/concepts/api-limits.md",
+      "https://docs.speechify.ai/build/api-reference/overview.md",
+      "https://docs.speechify.ai/build/api-reference/get-started/introduction.md",
+      "https://docs.speechify.ai/build/guides/get-started/quickstart.md"
+    ],
     "Models": [
       "https://docs.speechify.ai/build/guides/concepts/models.md"
     ],
     "TTS": [
-      "https://docs.speechify.ai/build/guides/welcome.md",
-      "https://docs.speechify.ai/build/guides/get-started/quickstart.md",
       "https://docs.speechify.ai/build/text-to-speech-quickstart.md",
       "https://docs.speechify.ai/build/text-to-speech-api.md",
-      "https://docs.speechify.ai/build/guides/get-started/authentication.md",
-      "https://docs.speechify.ai/build/guides/concepts/api-limits.md",
       "https://docs.speechify.ai/build/api-reference/get-started/idempotency.md",
       "https://docs.speechify.ai/build/guides/text-to-speech/language-support.md",
       "https://docs.speechify.ai/build/guides/text-to-speech/emotion-control.md",
@@ -18,8 +22,6 @@
       "https://docs.speechify.ai/build/guides/voice-cloning/manage.md",
       "https://docs.speechify.ai/build/guides/concepts/error-handling.md",
       "https://docs.speechify.ai/build/guides/concepts/content-policy.md",
-      "https://docs.speechify.ai/build/api-reference/overview.md",
-      "https://docs.speechify.ai/build/api-reference/get-started/introduction.md",
       "https://docs.speechify.ai/build/api-reference/v1/audio/speech.md",
       "https://docs.speechify.ai/build/api-reference/v1/voices/get.md",
       "https://docs.speechify.ai/build/api-reference/v1/voices/post.md",

@@ -8,33 +8,29 @@
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging"; its production metadata-cache and price-verification decisions are owned by ADR-001 and ADR-002 respectively.
 
-<!-- This record synthesizes production error vocabulary, test failure handling, and human/test-runner diagnostic rendering. All three areas are Accepted and implemented. -->
-
 ## Context
 
-Two now-retired descriptive analyses — `src-error.md` for `src/` and `test-error.md` for `test/` — catalog how error handling works today without prescribing fixes. This ADR records the decision to act on the concrete defects and duplication each surfaced, while deliberately keeping the patterns both analyses confirm are healthy.
+An architectural audit of error handling across `src/` and `test/` surfaced fragmentation across production error handling, test failure classification, and diagnostic log rendering, despite existing foundational primitives.
 
-**Production `src/` (from `src-error.md` Part 3).** The codebase has a well-built centralized core — the `AppError` hierarchy with kind-driven exit codes (`error-handler.ts`), the `withRetry`/`classifyFetchRetry` framework (`retries.ts`), valibot validation, centralized redaction, and a single top-level funnel `cliErrorHandler` — but the pipeline never adopted it. Five fixable issues follow from that one gap:
+**Production `src/`.** The codebase defined a centralized error core — the `AppError` hierarchy with kind-driven exit codes (`error-handler.ts`), the `withRetry`/`classifyFetchRetry` framework (`retries.ts`), schema validation, centralized redaction, and a single top-level funnel `cliErrorHandler` — but pipeline execution modules had not adopted it. Five concrete issues stemmed from this gap:
 
-1. **Two error vocabularies coexist.** ~994 plain `new Error(...)` throw sites in `src` (829 in `process-steps` alone) versus ~323 structured `CLIUsageError`/`AppError` throws. Plain throws funnel to exit 1 but carry no `kind`/`hints`/`metadata`/`stage`.
-2. **The typed subclasses are effectively unused.** `AppValidationError`, `AppProviderError`, `AppInfrastructureError`, `AppInternalError` have zero direct `new` call sites; the structured throwers build `new AppError({ kind })` inline, and a subclass appears only as a base for provider REST errors. A full sweep is therefore the *first real adoption* of the structured family, not churn of an established API.
-3. **Usage-ness detected by the magic string `name === 'CLIUsageError'`.** The canonical check is re-implemented at five sites and opted into by `UnsupportedArtifactSchemaError extends Error` (which sets `this.name`).
-4. **Hints bolted on by substring matching.** `LEGACY_ERROR_HINTS` scans every message for needles (`yt-dlp`, `OPENAI_API_KEY`, …) — a compensating workaround for issue #1.
-5. **`pollUntil` throws a plain `Error`** on terminal failure and deadline, unlike its sibling `withRetry` (which throws `new AppError({ kind: 'retry_exhausted' })` with `stage`/`status`/`metadata`). A sixth, smaller item is the duplicated validator-wrapping idiom (catch a low-level throw, re-wrap as `CLIUsageError`).
+1. **Two error vocabularies coexist:** ~994 plain `new Error(...)` throw sites in `src/` (829 in `process-steps/` alone) versus ~323 structured `CLIUsageError`/`AppError` throws. Plain throws funnel to exit code 1 but carry no `kind`, `hints`, `metadata`, or `stage`.
+2. **Typed subclasses are unused:** `AppValidationError`, `AppProviderError`, `AppInfrastructureError`, and `AppInternalError` had zero direct `new` call sites; structured throwers built `new AppError({ kind })` inline. A complete sweep represents the first uniform adoption of the structured family.
+3. **Usage detection via magic string:** Usage error detection relied on `name === 'CLIUsageError'`, re-implemented at five sites and opted into by `UnsupportedArtifactSchemaError extends Error`.
+4. **Hints attached via substring scanning:** `LEGACY_ERROR_HINTS` scanned every error message for keywords (`yt-dlp`, `OPENAI_API_KEY`, etc.) as a compensating workaround for unformatted throws.
+5. **`pollUntil` inconsistency:** `pollUntil` threw plain `Error` instances on terminal failure and deadline, unlike `withRetry` (which threw `new AppError({ kind: 'retry_exhausted' })` with `stage`, `status`, and `metadata`). Additionally, validator-wrapping logic was duplicated across command definitions.
 
-Issues #3/#4/#5 are all compensations for the root cause #1; closing the gap makes the workarounds deletable rather than maintainable.
-
-**Test suite `test/` (from `test-error.md`).** The Bun-based homegrown runner handles errors at three altitudes (runner/orchestration, shared `test-utils`, inline tests). The catalog surfaced genuine defects/duplication in the centralized layer:
+**Test suite `test/`.** The test runner and harness exhibited duplication and missing safety nets:
 
 1. Two parallel transient-failure classifiers with overlapping detection (`classifyLiveProviderAvailabilityFailure` vs `classifyAdaptivePressure`).
-2. Provider-specific transient predicates scattered across two modules, with the Gemini check duplicated in two different forms.
-3. Redundant, unreachable `expect(result.exitCode).toBe(0)` after a `throw` already failed the test (two sites).
-4. Retry-once-on-transient hard-coded to Gemini + MiniMax inside the LLM factory; no other factory gets it.
-5. No global `unhandledRejection`/`uncaughtException` handlers anywhere in `test/`.
+2. Provider-specific transient predicates scattered across multiple modules, including duplicate definitions of Gemini transient errors.
+3. Redundant, unreachable `expect(result.exitCode).toBe(0)` assertions after preceding `throw` statements.
+4. Retry-once logic hardcoded to Gemini and MiniMax inside one test factory rather than shared across providers.
+5. No global `unhandledRejection` or `uncaughtException` handlers in the test runner.
 
-**Human and test-runner diagnostics.** A later price-preflight investigation found that human log lines carried both a zero-based stopwatch prefix such as `[00:00:00.002]` and a local wall-clock prefix such as `[20:57:19]`. The test runner could then add another prefix to already-timestamped logger output. Related values were also spread over multiple lines, multiplying prefixes and making a 165-command preflight exceed 338 log lines. This is a rendering-vocabulary concern: application and runner diagnostics should agree on one timestamp and should keep one logical result on one line.
+**Human and test-runner diagnostics.** Human log output emitted both a zero-based stopwatch prefix (`[00:00:00.002]`) and a local wall-clock prefix (`[20:57:19]`), while the test runner appended an additional prefix to already-timestamped logs. Spreading related output values across multiple lines caused single preflight runs to exceed 338 log lines.
 
-Why now: this follows the recent line of ADRs that record a plan before the work (see [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), and the env-var series in [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)). All three areas are now **Accepted and implemented**; the implementation tables record the completed work.
+Why now: Unifying error structures, test failure classifiers, and log formatting resolves active drift across provider transient retry logic, eliminates brittle substring-matching workarounds, and ensures consistent diagnostic output across CLI runs and test runners.
 
 ## Options Considered
 
@@ -52,9 +48,24 @@ Why now: this follows the recent line of ADRs that record a plan before the work
 
 ## Decision
 
-### A. Production `src/` — adopt `AppError` as the single throw vocabulary *(Accepted — implemented 2026-06-13)*
+Adopt `AppError` and its typed subclasses as the single throw vocabulary across `src/`, consolidate provider failure classification and transient retry logic under `test/test-utils/provider-failure-classifiers.ts`, standardize human and test-runner log diagnostics on a single local millisecond wall-clock timestamp (`[HH:MM:SS.MMM]`) with single-line results, and normalize hosted rate-limit recovery at admission boundaries.
 
-1. **Typed subclasses become the canonical throw API.** Add terse factory helpers beside the existing `CLIUsageError` factory — `ProviderError`, `InfraError`, `InternalError`, `ValidationError` — and sweep every plain `new Error(...)` to the right kind:
+This applies to:
+
+- Production error construction, wrapping, and exit-code mapping across `src/`.
+- Shared test failure classification, transient retry helpers, and runner-level error handling across `test/`.
+- Human application logging and test-runner console timestamping and single-line result formatting.
+- Hosted provider admission classification, rate-limit recovery backoff, and recovery checkpoint diagnostics.
+
+It does not apply to:
+
+- Provider-specific API response payload schemas or low-level HTTP transport logic.
+- Domain assertion assertions inside leaf test files (`expect(...).toThrow(...)`).
+- Alternative logger sink transports (e.g. structured JSON event streams).
+
+### A. Production `src/` — Adopt `AppError` as the single throw vocabulary
+
+1. **Typed subclasses become the canonical throw API.** Add terse factory helpers beside the existing `CLIUsageError` factory — `ProviderError`, `InfraError`, `InternalError`, `ValidationError` — and sweep plain `new Error(...)` call sites to the appropriate typed subclass:
 
    | Throw describes… | Becomes |
    |---|---|
@@ -64,98 +75,90 @@ Why now: this follows the recent line of ADRs that record a plan before the work
    | Bad/parse/schema data | `AppValidationError` (or `validateData`) |
    | Bad **user** input at a command boundary | `CLIUsageError` (unchanged) |
 
-Each migrated throw attaches a `stage` and, where remediation exists, structured `hints`. The sweep is by cluster (bulk in `process-steps`: `target-runner.ts`, `batch-executor.ts`, download/STT/document/audio/TTS; remainder in `run-llm.ts`, `dialogue-normalizer.ts`, provider env-var checks, `prompt-loader.ts`, `media-url.ts`, `process-lock.ts`, `bootstrap-broker.ts`). Because every non-usage kind maps to exit 1, a debatable `infrastructure`-vs-`internal` call only changes the diagnostic label, never process behavior — making the sweep low-risk despite its breadth.
-2. **Replace magic-string usage detection with `instanceof`.** Rewrite `isCLIUsageError` to `error instanceof AppUsageError || (error instanceof Error && error.name === 'CLIUsageError')` (the name match kept only as a cross-realm fallback), **export** it, delete the five local re-implementations, and convert `UnsupportedArtifactSchemaError` from `extends Error` to `extends AppUsageError`.
-3. **Retire `LEGACY_ERROR_HINTS`.** Once the swept throws carry structured `hints`, move the remediation strings to the throw sites (env-var family via a `hintsForMissingEnv(key)` helper) and delete the table; `extractErrorHints` keeps its structured-`hints` and `keyedHintsFor` paths, only the message-substring scan is removed.
-4. **Make `pollUntil` throw `AppError`** — terminal failure → `AppError({ kind: 'infrastructure', stage, metadata })`; deadline → `AppError({ kind: 'retry_exhausted', stage, metadata })`, matching `withRetry`.
-5. **Consolidate the validator-wrapping idiom** into one `rethrowAsUsage(fn, fallbackHint?)` and route `define-comic-command.ts`'s bespoke wrappers and `download-model-options.ts`'s `validateCliValue` through it.
+   Each migrated throw attaches a `stage` and, where remediation exists, structured `hints`. Because non-usage kinds map to exit code 1, classification distinctions between `infrastructure` and `internal` refine diagnostic labels without altering process exit behavior.
+2. **Replace magic-string usage detection with `instanceof`.** Export `isCLIUsageError` using `error instanceof AppUsageError`, delete local string-matching re-implementations, and ensure usage error classes inherit from `AppUsageError`.
+3. **Retire `LEGACY_ERROR_HINTS`.** With structured `hints` co-located at throw sites (including env-var guidance via `hintsForMissingEnv(key)`), the global substring-scanning lookup table is deleted. `extractErrorHints` evaluates structured `hints` and `keyedHintsFor`.
+4. **Make `pollUntil` throw `AppError`.** Terminal polling failures throw `AppError({ kind: 'infrastructure', stage, metadata })` and deadlines throw `AppError({ kind: 'retry_exhausted', stage, metadata })`, aligning with `withRetry`.
+5. **Consolidate validator wrapping.** Provide a shared `rethrowAsUsage(fn, fallbackHint?)` helper to standardize option parsing and validation error wrapping across CLI commands.
 
-### B. Test suite `test/` — consolidate the error utilities *(Accepted — implemented)*
+### B. Test suite `test/` — Consolidate error and retry utilities
 
-1. **Extract provider predicates into one shared registry** (new `test/test-utils/provider-failure-classifiers.ts`). Move every provider-specific transient predicate (GLM, Gemini-image, BFL, Together STT, DeepInfra, the Runway-credits constant) out of `service-test-kit.ts`, and `isGeminiTransientUnavailable`/`isMinimaxTransientUnavailable` out of `define-llm-write-test.ts`, into the registry; reconcile the **two Gemini definitions** (image-availability vs LLM `"code"/"status"` JSON shape) into one predicate or two clearly-named non-overlapping ones. The two public classifiers (`classifyLiveProviderAvailabilityFailure`, `classifyAdaptivePressure`) **stay separate** but import their building blocks from the registry — Option A: shared inputs, distinct outputs.
-2. **Generalize retry-once-on-transient.** Lift the inline Gemini/MiniMax retry-once pattern into a shared helper (an option on `runCommandAndExpectOutputDir` or a sibling `runCommandWithTransientRetry`) keyed off the registry, so any factory opts in by passing predicates instead of re-implementing the `warn → Bun.sleep → retry → throw-if-persisted` dance.
-3. **Remove the two unreachable assertions** (`expect(result.exitCode).toBe(0)` in `service-test-kit.ts` and `define-llm-write-test.ts`) — the preceding `if (exitCode !== 0) { … throw }` makes them assert nothing; the throw is the real signal and the artifact assertions stay.
-4. **Add a global runner-level safety net** — register `unhandledRejection` / `uncaughtException` handlers in `test-runner.ts` that log via `l.error` and set exit code 1, alongside the existing `try/catch`.
+1. **Extract provider predicates into a shared registry.** Consolidate all provider-specific transient predicates into `test/test-utils/provider-failure-classifiers.ts`. The two public classifiers (`classifyLiveProviderAvailabilityFailure` and `classifyAdaptivePressure`) remain separate for distinct use cases (availability skipping vs. adaptive concurrency) but source predicates from this common registry.
+2. **Generalize retry-once-on-transient.** Provide a reusable helper (`runCommandWithTransientRetry`) utilizing registry predicates so test factories can opt into transient retry without re-implementing backoff and sleep logic.
+3. **Remove unreachable assertions.** Eliminate dead assertions (`expect(result.exitCode).toBe(0)`) placed after unconditional throw statements.
+4. **Add runner safety net.** Register global `unhandledRejection` and `uncaughtException` handlers in `test-runner.ts` that log via `l.error` and exit with code 1.
 
-### C. Human and test-runner diagnostics — use one timestamp and one line per result *(Accepted — implemented 2026-08-13)*
+### C. Human and test-runner diagnostics — Standardize on single-timestamp, single-line results
 
-1. **Use one local wall-clock timestamp.** The human application sink and the test runner format timestamps as `[HH:MM:SS.MMM]`. The prior zero-based stopwatch prefix is removed from rendered output; elapsed duration remains available in explicit summaries where it carries meaning.
-2. **Suppress duplicate runner prefixes.** The test runner's console wrapper strips ANSI styling for detection and leaves lines beginning with either `[HH:MM:SS.MMM]` or `[HH:MM:SS]` unchanged. Untimestamped console output receives the canonical millisecond wall-clock prefix.
-3. **Render one logical diagnostic per line.** Closely related labels and values, including price-command cost results and single-variant budget decisions, stay on a concise single line without dropping information. ADR-002 owns the exact price-result shapes and benchmark evidence.
+1. **Single wall-clock timestamp:** Format application and test-runner log timestamps uniformly as `[HH:MM:SS.MMM]`. Remove the zero-based stopwatch prefix from rendered output.
+2. **Suppress duplicate runner prefixes:** Strip ANSI formatting during runner log inspection and pass lines starting with `[HH:MM:SS.MMM]` or `[HH:MM:SS]` through without prepending additional timestamps.
+3. **Single-line result formatting:** Emit closely related labels and values (such as price estimates and single-variant budget decisions) on a concise single line.
 
-### D. Normalize hosted rate-limit recovery at the admission boundary *(Accepted — implemented 2026-08-14)*
+### D. Normalize hosted rate-limit recovery at the admission boundary
 
-HTTP 429 and explicitly classified provider rate/concurrency responses report pressure against the immutable admission token for the exact request. Billing, authentication, quota exhaustion, validation, timeout, 5xx, and ambiguous create failures retain their prior failure and retry policies unless a provider explicitly marks the response as a rate limit. This keeps the semantic error classifier separate from the scheduler pressure controller while giving both a shared structured vocabulary.
+1. **Rate-limit classification:** HTTP 429 and provider rate/concurrency rejections report pressure against the immutable admission token for the exact request. Non-rate-limit failures (billing, auth, quota exhaustion, validation, timeouts, 5xx) retain standard failure policies unless explicitly classified as rate limits.
+2. **Bounded jittered backoff:** Hosted recovery respects `Retry-After` headers or applies half-to-full jitter backoff across exponential bases (2, 4, 8, 16, 30s), bounded to five minutes. Exhausted attempts throw a structured `retry_exhausted` error retaining status, headers, stage, retry metadata, work identity, and lane identity.
+3. **Ambiguity vs. definite rejection:** Only definite 4xx responses (excluding 408 and 409) prove rejection prior to work admission. Network failures, timeouts, and 5xx responses are treated as ambiguous. Ambiguous paid operations are not redispatched automatically.
+4. **Explicit redispatch authorization:** The `--tts-allow-ambiguous-redispatch` flag is the sole public mechanism authorizing re-dispatch of ambiguous TTS generation slots during fresh runs or resumes. When omitted, ambiguity halts execution to prevent duplicate billing; when provided, bounded provider retries (e.g. up to 8 attempts for DeepInfra) are authorized with duplicate-purchase warnings.
+5. **Structured aggregation and redaction:** Target and composite workflows preserve underlying cause, status, headers, stage, retryability, request ID, and redacted provider messages. All provider diagnostic text passes through the central redaction pipeline prior to logging or disk storage.
+6. **Recovery checkpoints:** Failed targets compute non-destructive recovery checkpoints. When reusable completed slots or ambiguous admissions exist, structured infrastructure errors report retained, unresolved, and reconciliation-blocked slot counts alongside required redispatch flag guidance.
 
-The hosted controller preserves `Retry-After`, otherwise applies the existing half-to-full jitter style to exponential bases of 2, 4, 8, 16, and then 30 seconds, and bounds recovery to five minutes from the request's first pressure response. If recovery is exhausted or the next required delay exceeds the remaining budget, the existing `retry_exhausted` shape retains status, headers, stage, retry metadata, exact work identity, work class, and lane identity. Known rate-limit rejection can retry the exact failed request; ambiguous paid create outcomes do not become safe to redispatch merely because hosted concurrency recovery exists. They require the separate explicit TTS redispatch authorization below.
+## Rationale
 
-Provider admission classification is cause-aware and deliberately narrower than generic HTTP retry classification. Only a definite 4xx response other than 408 or 409 proves that a create was rejected before work admission. Network failures, timeouts, missing status, 408, 409, and every 5xx response are ambiguous. Without explicit redispatch authorization, a paid create may retry only an explicit pre-admission pressure response such as 425 or 429; generic network and server failures retain the original request identity for reconciliation. Successful asynchronous creates record the provider task or prediction ID before polling or response decoding continues.
+- **Single Vocabulary:** Adopting `AppError` and typed subclasses across all modules eliminates the bifurcation between plain and structured errors, allowing `cliErrorHandler` and `serializeDiagnosticError` to reliably extract `kind`, `stage`, `hints`, and `metadata`.
+- **Elimination of Fragile Workarounds:** Replacing substring matching (`LEGACY_ERROR_HINTS`) and string comparison (`name === 'CLIUsageError'`) with co-located hints and `instanceof` checks makes error handling maintainable and type-safe.
+- **Unified Test Failure Logic:** Centralizing provider failure predicates in `provider-failure-classifiers.ts` creates a single point of update when provider error signatures change, while preserving the independent responsibilities of availability filtering and concurrency throttling.
+- **Diagnostic Signal-to-Noise:** Standardizing on `[HH:MM:SS.MMM]` and single-line result logs removes redundant timestamps and reduces diagnostic log volume by roughly half without discarding diagnostic detail.
+- **Safe Paid Operations:** Explicitly separating rate-limit recovery from ambiguous execution outcomes guarantees that paid external API calls are never duplicated silently without explicit user authorization.
 
-`--tts-allow-ambiguous-redispatch` is the sole public authorization for intentionally replaying an ambiguous TTS generation slot. It applies consistently to fresh TTS execution and resume. When absent, the classifier records ambiguity and stops. When present, a provider may apply its bounded retry policy within the current process and a later resume may repurchase the exact unresolved slot; neither path deletes the original admission event or completed audio, and diagnostics warn that one immutable slot may be billed more than once. DeepInfra's policy is at most eight attempts with exponential jittered delays from three to thirty seconds. The flag does not convert ambiguity into a known rejection, bypass manifest reconciliation, authorize another provider, or permit unbounded retry.
-
-Provider failures remain structured through target and comic aggregation. Wrappers preserve the original cause, status, headers, stage, retryability, request ID, and bounded redacted provider message; command boundaries do not convert an infrastructure failure into a usage error. Voice-provisioning journals record definite provider rejection as terminal `failed`, while uncertain post-dispatch failures remain `reconciliation-required`.
-
-Every concurrent TTS request also writes the same bounded diagnostic fields into its immutable rejection or ambiguity evidence before the target-level failure is finalized. A target may still report one primary failure to the command boundary, but retained request evidence preserves `code`, `status`, `stage`, error name, redacted provider message, request ID, retry delay, and retryability for each request that was already in flight. Provider text is passed through the shared secret, identifier, authorization, URL-credential, query-secret, and email redaction pipeline before it reaches logs or durable JSON.
-
-After that evidence is finalized, a failed TTS target derives one recovery checkpoint through the exact no-provider resume planner. When any completed slots are reusable or any admission remains ambiguous, the same structured infrastructure error appends the retained/total and unresolved counts, the number of reconciliation-blocked slots, the `--tts-allow-ambiguous-redispatch` flag, and the warning that explicitly authorized slots may be purchased again. The same admission vocabulary survives compatible-slot migration across render identities: verified audio may be materialized into the current plan, but ambiguous, accepted, or dispatch-started evidence for a semantically identical unresolved slot remains a blocker and is validated before recovery writes. If every current slot is recovered, the runner bypasses provider dispatch and finalizes through local composition; a local assembly failure remains a structured infrastructure failure while the verified slot evidence stays reusable. Recovery diagnostics are best-effort enrichment: integrity or planning errors are not logged separately and never replace the original provider failure.
-
-### Keep (with rationale)
+## Keep (with rationale)
 
 `src/`:
 
 | Pattern | Reason kept |
 |---|---|
-| The existing `AppError` kinds (no new `pipeline` kind) | `infrastructure`/`internal`/`validation` already cover every case and all map to exit 1 |
-| The `name='CLIUsageError'` fallback inside `isCLIUsageError` | Preserves cross-realm / opt-in semantics during the migration so no usage error silently downgrades. **Retired 2026-08-07** — see the history note at the end of this ADR. |
+| The existing `AppError` kinds (no new `pipeline` kind) | `infrastructure`, `internal`, `validation`, and `usage` cover all runtime scenarios and map cleanly to process exit codes. |
 
 `test/`:
 
 | Pattern | Reason kept |
 |---|---|
-| Two **public** classifiers with different return types | Intentional separation (semantic reason vs concurrency pressure); only the predicate inputs are consolidated |
-| Result-object `runCommand` + factory-layer throw | The "errors as data" low level converting to throws in factories is a deliberate, useful seam |
-| Three failure dispositions (throw / `test.skip` / `catch {}`) | Hard failure vs missing-env/over-budget skip vs best-effort reads/cleanup — all intentional |
-| Assertion-dominant leaf tests (`toThrow`/`rejects`) | Correct error *assertion*, not error *handling* to refactor |
-| Graceful parser degradation in `parsers.ts` | Returning `[]`/`continue` on malformed JSONL/JUnit so one bad line never crashes the run is desired |
-
-This applies to:
-
-- Production error construction and rendering under `src/`, plus shared test failure predicates and runner-level failure handling under `test/`.
-- Human application logging and test-runner console rendering.
-- No provider-specific failure semantics, provider response contracts, or assertion behavior in leaf tests.
-
-## Rationale
-
-The `src/` core was built but never adopted in the pipeline, and the three workarounds (magic-string detection, substring hints, plain-`Error` `pollUntil`) are symptoms of that single gap; fixing it **deletes** them — `instanceof` replaces a string convention, structured `hints` at throw sites replace a substring scan, and a unified `AppError` makes `pollUntil` consistent for free. The sweep introduces no new machinery, reusing the existing kinds, exit-code mapping, `extractErrorHints`, `extractErrorMetadata`, and `serializeDiagnosticError` — the same "adopt the structure that already exists" move as the type-system work in ADR-003. On the test side, duplication of *detection logic* is the real risk: a provider's error wording changing forces N scattered matchers to be updated. Consolidating the **predicates** (genuinely the same job) while preserving the two **classifiers** (different questions) removes the drift hazard without over-coupling the runner to test-utils semantics; the redundant `expect`s and missing global handlers are small, unambiguous correctness fixes that ride along.
-
-The timestamp and line-shape rules extend that same vocabulary to successful and progress diagnostics. A single local timestamp gives application and test output one chronology, duplicate-prefix detection lets logger output pass safely through the runner, and one-line results preserve all fields while reducing scanning and token overhead.
+| Two **public** classifiers with different return types | Preserves intentional separation between semantic provider availability and adaptive concurrency pressure. |
+| Result-object `runCommand` + factory-layer throw | Deliberate separation: lower-level utilities treat failures as data while high-level factories convert them to throws. |
+| Three failure dispositions (throw / `test.skip` / `catch {}`) | Differentiates hard failures, missing environment/budget skips, and best-effort resource cleanup. |
+| Assertion-dominant leaf tests (`toThrow`/`rejects`) | Standard unit test error assertion, not error handling infrastructure. |
+| Graceful parser degradation in `parsers.ts` | Allows malformed JSONL/JUnit log lines to skip without crashing test summary generation. |
 
 ## Consequences
 
 Positive outcomes:
-- `src/`: one error vocabulary — every operational failure carries `kind`/`stage`/`hints`/`metadata` and surfaces them through `cliErrorHandler` and `serializeDiagnosticError`, so JSON diagnostics and user-facing hints become structured everywhere, not only on the ~323 throws that already opt in. `LEGACY_ERROR_HINTS` and the five duplicated guards are **deleted**, not centralized; usage detection becomes type-safe; `pollUntil` and `withRetry` produce the same shape.
-- `test/`: one place to update when a provider's transient wording changes; new factories get transient-retry and availability-skipping by importing the registry; dead assertions removed; escaped async rejections produce structured `l.error` output and a deterministic exit code instead of a silent crash.
-- Diagnostics: application and runner output share one millisecond wall-clock prefix; already-prefixed lines are not timestamped twice; price preflight renders 172 rather than 338+ lines while preserving the logged data.
+
+- `src/`: A single structured error vocabulary where every failure carries `kind`, `stage`, `hints`, and `metadata`, surfacing structured diagnostics through `cliErrorHandler` and `serializeDiagnosticError`.
+- `src/`: Type-safe usage detection via `instanceof`, removal of `LEGACY_ERROR_HINTS`, and consistent error contracts between `pollUntil` and `withRetry`.
+- `test/`: Centralized provider transient predicates in a shared registry; generalized transient-retry and availability skipping; deterministic global error reporting via runner-level uncaught exception handlers.
+- Diagnostics: Unified `[HH:MM:SS.MMM]` timestamp across application and test runners without duplicate prefixing, and concise single-line result logs.
+- Hosted Operations: Explicit boundary between rate-limit pressure recovery and ambiguous create outcomes, preventing accidental duplicate billing while enabling clean resume checkpoints.
 
 Negative outcomes:
-- `src/`: a very large mechanical refactor (~994 throw sites) — a missed/mis-typed site is a typecheck failure (CI), not a silent behavior change; per-throw `kind` judgement is mitigated because all non-usage kinds map to exit 1; the `instanceof` switch must retain the `name` fallback so no usage error downgrades mid-migration.
-- `test/`: import churn across `service-test-kit.ts`, `define-llm-write-test.ts`, and `adaptive-concurrency.ts` (a careless move could drop a predicate from a classifier chain); reconciling the two Gemini definitions needs judgment so neither surface misfires.
-- Diagnostics: each line no longer carries an implicit zero-relative stopwatch; callers that need elapsed time must report it explicitly.
+
+- Broad mechanical refactoring across ~994 throw sites in `src/`.
+- Call sites needing elapsed duration must compute and log it explicitly rather than relying on automatic stopwatch prefixes.
+- Replaying ambiguous paid operations requires explicit flag authorization (`--tts-allow-ambiguous-redispatch`) and cannot be resolved automatically by the concurrency controller.
 
 ## Trade-offs
 
 | Gains | Sacrifices |
 |---|---|
-| `src`: structured diagnostics on every failure | One large refactor touching ~994 throw sites |
-| `src`: type-safe `instanceof` detection; five duplicated guards deleted | Lose the opt-in-by-arbitrary-class trick — a class must now `extends AppUsageError` |
-| `src`: `LEGACY_ERROR_HINTS` retired; remediation at the throw site; `pollUntil` consistent | Hint wording moves into throw sites + a small helper; two `retries.ts` call sites change error type |
-| `test`: single source of truth for transient detection; reusable retry for all factories | One extra module + import hop; a shared helper signature general enough for every service |
-| `test`: deterministic global failure reporting | Two more process-level listeners in the runner |
-| One `[HH:MM:SS.MMM]` prefix and concise single-line results | No per-line stopwatch prefix; compact renderers must keep every material field |
+| `src`: Structured diagnostics on every failure | Large refactor touching ~994 throw sites |
+| `src`: Type-safe `instanceof` usage detection and centralized `rethrowAsUsage` | Custom error classes must extend `AppUsageError` |
+| `src`: Remediation hints at throw sites; `pollUntil` consistent with `withRetry` | Retired global substring matching table |
+| `test`: Single registry for transient provider detection and reusable retry helper | An extra module hop (`provider-failure-classifiers.ts`) for test utilities |
+| `test`: Deterministic runner failure reporting | Process-level error listeners in the runner |
+| Diagnostics: Unified `[HH:MM:SS.MMM]` prefix and concise single-line logs | Removed per-line stopwatch prefix; callers must format elapsed times explicitly |
 
 ## Implementation Note
 
-The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, cause-aware paid-create admission handling, explicit bounded TTS ambiguous-redispatch authorization, bounded provider diagnostics, TTS recovery-checkpoint diagnostics, structured target aggregation, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
+The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`, `ValidationError`), type-safe `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, cause-aware paid-create admission handling, explicit bounded TTS ambiguous-redispatch authorization (`--tts-allow-ambiguous-redispatch`), bounded provider diagnostics, TTS recovery-checkpoint diagnostics, structured target aggregation, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log formatting are fully implemented and verified across `src/` and `test/`.
 
 ## Test Plan
 
@@ -168,24 +171,24 @@ bun test test/test-cases/validation/runtime/retry-error-contracts.test.ts
 bun test test/test-cases/validation/media-generation/tts-current-render-recovery.test.ts
 ```
 
-1. Verification confirms `bun run check` and lint clean — no dangling `new Error` in swept clusters.
-2. `grep -rn "LEGACY_ERROR_HINTS" src` returns nothing; `grep -rn "name === 'CLIUsageError'" src` returns only the single fallback inside `isCLIUsageError`.
-3. Benchmark (text/TTS), comic command, and manifest-schema paths pass; a usage error still exits 2 while an operational failure exits 1 with its hint rendered.
-4. Complete no-cost price suite passes all pricing specs with one `[HH:MM:SS.MMM]` prefix per line. ADR-002 retains the duration matrix and price-specific verification details.
+1. Verification confirms `bun run check` and linter pass with zero errors.
+2. Grep verification confirms `LEGACY_ERROR_HINTS` is removed from `src/`.
+3. Contract tests verify that usage errors exit with code 2, operational errors exit with code 1 with structured hints, and retry exhausted errors preserve metadata.
+4. Console diagnostics output a single `[HH:MM:SS.MMM]` prefix per line with no duplicate runner prefixes.
 
 ## References
 
-- Historical analyses: the retired `src-error.md` and `test-error.md`
-- `src/utils/error-handler.ts` — the `AppError` hierarchy, `isCLIUsageError`, `LEGACY_ERROR_HINTS`, `extractErrorHints`, `serializeDiagnosticError`
+- Related ADR: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
+- Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
+- Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
+- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
+- Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md)
+- Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md)
+- `src/utils/error-handler.ts` — `AppError` hierarchy, `isCLIUsageError`, `extractErrorHints`, `serializeDiagnosticError`
 - `src/utils/retries.ts` — `withRetry` and `pollUntil`
-- `src/cli/create-cli.ts` — `cliErrorHandler`; `src/cli/failure-handlers.ts` — process-boundary handlers
-- `test/test-utils/service-test-kit.ts`, `test/test-utils/define-llm-write-test.ts`, `test/test-runner/adaptive-concurrency.ts`, `test/test-runner.ts`, `test/test-runner/parsers.ts`
-- Precedent for adopting existing structure rather than adding machinery: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
-- Prior change touching `adaptive-concurrency.ts`, and base-URL/error context: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
-- Human timestamp renderer: `src/utils/app-logger/sinks/human-sink.ts`
-- Test timestamp formatter and console wrapper: `test/test-runner/utils.ts`, `test/test-runner/runner.ts`
-- Discovery-cache companion: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
-- Price-planning and no-cost-verification companion: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
-- Hosted admission, lane pressure, and recovery companion: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
-- TTS render recovery and artifact companion: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md)
-- New-provider TTS implementation phases: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md)
+- `src/cli/create-cli.ts` — `cliErrorHandler`
+- `src/cli/failure-handlers.ts` — Process-boundary error handlers
+- `src/utils/app-logger/sinks/human-sink.ts` — Human timestamp renderer
+- `test/test-utils/provider-failure-classifiers.ts` — Shared provider failure predicates
+- `test/test-runner/utils.ts` and `test/test-runner/runner.ts` — Test timestamp formatter and console wrapper

@@ -20,13 +20,13 @@ bun t test/test-cases/e2e/service/step-6-video-gen-e2e/
 
 ## Provider Env Vars
 
-Live video generation tests run only when their provider key is configured: `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `REPLICATE_API_TOKEN`, `FAL_API_KEY`, or `LUMA_AGENTS_API_KEY`.
+Live video generation tests run only when their provider key is configured: `FAL_API_KEY`, `GEMINI_API_KEY`, `GLM_API_KEY`, `LTXV_API_KEY`, `LUMA_AGENTS_API_KEY`, `MINIMAX_API_KEY`, `REPLICATE_API_TOKEN`, `RUNWAYML_API_SECRET`, or `XAI_API_KEY`.
 
 ## Current Coverage
 
-- Video coverage is split into model-level scenario files under `test/test-cases/e2e/service/step-6-video-gen-e2e/` using `defineVideoServiceTest` for model/provider rejection, option validation, and live generation when provider credentials are supplied. Provider-flag and request-shape validation lives in `test/test-cases/validation/providers/video-provider-contracts/` and `test/test-cases/validation/providers/provider-selection-contracts/`.
-- `test/test-cases/validation/providers/video-provider-contracts/` covers mocked REST contracts for Gemini Veo media inputs, GLM text/image/interpolation/reference requests, MiniMax text/image/subject-reference requests, Grok generation/reference/edit/extension endpoint shapes including moderation failure handling, LTX text/image/interpolation/extension request shapes including failed jobs, Runway `text_to_video` request shapes, Replicate prediction create/poll/download flows including terminal failure statuses, and Luma Labs text/image-to-video request shapes (`lumalabs-video.test.ts`).
-- `fal-provider-contracts.test.ts` separately exercises fal.ai queue submission, polling, result retrieval, downloads, authentication, and both current video model routes without consuming provider credits. Optional live coverage for fal.ai video models is defined in `fal-minimax-h3.test.ts` and `fal-pixverse-c1.test.ts`.
+- Model-level service files under `test/test-cases/e2e/service/step-6-video-gen-e2e/` cover fal.ai, Gemini, GLM, Grok, LTX, MiniMax, Replicate, and Runway using `defineVideoServiceTest` for model/provider rejection, option validation, and live generation.
+- Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/video-provider-contracts/` (mocked Gemini, GLM, Grok, LTX, Luma Labs, MiniMax, Replicate, and Runway requests), `test/test-cases/validation/providers/fal-provider-contracts.test.ts`, and `test/test-cases/validation/providers/provider-selection-contracts/`.
+- Focused `--price` validation lives in `test/test-cases/price-flag/video-price.test.ts`.
 
 ## Price Preflight
 
@@ -35,18 +35,10 @@ bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --price
 bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --budget 2500
 ```
 
-The price checks cover:
-
-- Gemini: `veo-3.1-fast-generate-preview`, `veo-3.1-generate-preview`
-- MiniMax: `MiniMax-Hailuo-2.3`, `MiniMax-Hailuo-2.3-Fast`, `T2V-01-Director`, `T2V-01`
-- GLM: `cogvideox-3`, `viduq1-text`
-- Grok: `grok-imagine-video`, `grok-imagine-video-1.5`
-- Runway: `gen4.5`
-- LTX: `ltx-2-3-fast`, `ltx-2-3-pro`
-- Replicate: `alibaba/happyhorse-1.1`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `kwaivgi/kling-v3-video`, `kwaivgi/kling-v3-omni-video`, `pixverse/pixverse-v6`, `runwayml/aleph-2`, `wan-video/wan-2.7-t2v`
-- fal: `minimax/h3`, `fal-ai/pixverse/c1`
+The mapped video price preflight covers fal.ai, Gemini, GLM, Grok, LTX, MiniMax, Replicate, and Runway generation files.
 
 ## Related Docs
 
 - [Service Tests](service-tests.md)
+- [Local Tests](local-tests.md)
 - [Video](../commands/process-steps/step-6-video/text-to-video-services.md)

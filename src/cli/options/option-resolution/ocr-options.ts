@@ -74,7 +74,6 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
       configuredFlags,
       { defaultValue: DEFAULT_OCR_CONCURRENCY }
     ),
-    keepOcrPageInputs: readBooleanFlag(mergedFlags, 'keep-ocr-page-inputs'),
     dpi: parseIntWithDefault(readOptionalStringFlag(mergedFlags, 'ocr-dpi'), 300),
     lang: readStringFlag(mergedFlags, 'ocr-language', 'eng'),
     out: normalizedOut,

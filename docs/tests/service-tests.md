@@ -4,8 +4,6 @@ Service-backed, networked, and setup-adjacent test coverage for provider integra
 
 Shared `bun t` runner behavior, artifacts, cleanup, and path-based selection are documented in [Local Tests](local-tests.md).
 
-When `--budget` is present, its value remains a per-test-key threshold rather than an aggregate suite cap. A budgeted test can run only when preflight evaluated every one of its component keys; unmapped or otherwise unevaluated keys fail locally before the test callback can invoke a provider.
-
 These commands are documented for humans. Service, e2e, and full-runner commands may call paid or quota-limited providers and must not be used as agent verification without explicit approval for that exact run. Agents should use `bun run check` plus the targeted no-cost smoke tests listed in [Local Tests](local-tests.md).
 
 ## Outline
@@ -62,8 +60,6 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --price
 
 ## Cross-Cutting Coverage
 
-- `test/test-cases/validation/cli/option-resolution-contracts/`, `test/test-cases/validation/providers/provider-selection-contracts/`, and `test/test-cases/validation/reports-pricing/price-mode-contracts/` cover model-option, provider-selection, and price-mode behavior without live service calls.
-- `test/test-cases/validation/providers/video-provider-contracts/`, `test/test-cases/validation/providers/image-provider-rest-contracts.test.ts`, `test/test-cases/validation/providers/tts-provider-contracts/`, `test/test-cases/validation/providers/music-provider-contracts.test.ts`, and `test/test-cases/validation/resume-manifests/resume-additive-provider-contracts.test.ts` cover mocked REST and provider-contract behavior across their respective generation command families. Provider-specific REST contract suites such as `test/test-cases/validation/providers/anthropic-rest-contracts.test.ts`, `test/test-cases/validation/providers/gemini-rest-contracts.test.ts`, `test/test-cases/validation/providers/openai-rest-contracts/`, and `test/test-cases/validation/providers/mistral-rest-contracts.test.ts` cover write/OCR service request payloads.
+- `test/test-cases/validation/cli/option-resolution-contracts/`, `test/test-cases/validation/providers/provider-selection-contracts/`, and `test/test-cases/validation/reports-pricing/price-mode-contracts/` cover model-option resolution, provider selection, and price-mode behavior without live service calls.
+- `test/test-cases/validation/providers/` and `test/test-cases/validation/resume-manifests/` cover mocked REST request/response payloads and manifest serialization across generation command families without live network requests.
 - `test/test-cases/price-flag/` contains focused `--price` coverage for STT, OCR, write, TTS, image, video, and music command families.
-- Cross-provider CLI flow coverage lives in step-specific service suites plus no-cost validation contracts.
-- `--price` with no path filters still resolves all mapped test price commands across both local and service coverage.

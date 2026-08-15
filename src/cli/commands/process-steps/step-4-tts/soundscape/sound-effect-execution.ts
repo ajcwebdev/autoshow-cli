@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { HostedConcurrencyCoordinator, ObservedAudioFormat, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
+import type { CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, ObservedAudioFormat, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
-import { readContainedArtifactFile, writeImmutableArtifactFile } from '../script-to-audio/safe-artifact-store'
+import { readContainedArtifactFile, removeContainedDirectory, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
 import { serializeElevenLabsSoundEffectRequest, validateElevenLabsSoundEffectTask } from './elevenlabs-sfx-adapter'
 import {
   assertAudioGenDispatchEligible,
@@ -20,6 +20,9 @@ import { routeSoundscapeSynthesisTasks } from './soundscape-routing'
 import { classifyHostedRateLimitPressure, runHostedConcurrencyRequest } from '../../hosted-concurrency-coordinator'
 
 const CACHE_ROOT = join(RUNTIME_DIR, 'synthesis-cache', 'v1')
+export const SOUND_EFFECT_ARCHIVE_PATH = 'audio/sound-effects/sfx.json'
+export const soundEffectSourcePath = (requestIdentity: string): string => `audio/sound-effects/sources/${requestIdentity}.audio`
+export const soundEffectWorkingRoot = (renderPlanId: string): string => `audio/sound-effects/${renderPlanId}`
 
 type CacheEntry = {
   schemaVersion: 1
@@ -311,15 +314,106 @@ const writeCache = async (task: SoundEffectRenderTask, plan: SoundEffectRenderPl
   return entry
 }
 
-const materialize = async (rootDir: string, plan: SoundEffectRenderPlan, task: SoundEffectRenderTask, bytes: Uint8Array, entry: CacheEntry, source: SoundEffectRenderResultEntry['source']): Promise<SoundEffectRenderResultEntry> => {
-  const path = `audio/sound-effects/${plan.renderPlanId}/sources/${task.requestIdentity}.audio`
-  const written = await writeImmutableArtifactFile(rootDir, path, bytes)
+const materialize = async (rootDir: string, task: SoundEffectRenderTask, bytes: Uint8Array, entry: CacheEntry, source: SoundEffectRenderResultEntry['source']): Promise<SoundEffectRenderResultEntry> => {
+  const written = await writeImmutableArtifactFile(rootDir, soundEffectSourcePath(task.requestIdentity), bytes)
   return {
     cueId: task.cueId, taskId: task.taskId, generationIdentity: task.generationIdentity, requestIdentity: task.requestIdentity,
     status: 'succeeded', source,
     audio: { path: written.relativePath, sha256: written.sha256, format: entry.audio.format, durationMs: entry.audio.durationMs },
     requestEvidence: entry.requestEvidence,
   }
+}
+
+const compactSfxEntry = (entry: SoundEffectRenderResultEntry): CompactSfxEntry => ({
+  cueId: entry.cueId,
+  taskId: entry.taskId,
+  generationIdentity: entry.generationIdentity,
+  requestIdentity: entry.requestIdentity,
+  status: entry.status,
+  ...(entry.audio ? { audio: entry.audio } : {}),
+  ...(entry.requestEvidence?.observedCharacterCost !== undefined ? { cost: { amount: entry.requestEvidence.observedCharacterCost, currency: 'USD' as const } } : {}),
+  ...(entry.omissionReason ? { omissionReason: entry.omissionReason } : {}),
+})
+
+export const compactSoundEffectResult = (plan: SoundEffectRenderPlan, result: SoundEffectRenderResult): CompactSfx => {
+  const base = {
+    schemaVersion: 1 as const,
+    renderPlanId: plan.renderPlanId,
+    soundscapePlanId: plan.soundscapePlanId,
+    targetKey: plan.target.targetKey,
+    target: plan.target,
+    ...(plan.licenseUse ? { licenseUse: plan.licenseUse } : {}),
+    status: 'succeeded' as const,
+    cost: plan.plannedCost,
+    entries: result.entries.map(compactSfxEntry),
+    createdAt: result.createdAt,
+  }
+  return { ...base, sfxId: hashCanonicalTtsValue(base) }
+}
+
+const projectCompactSfx = (sfx: CompactSfx): SoundEffectRenderResult => ({
+  schemaVersion: 1,
+  resultId: sfx.sfxId,
+  renderPlanId: sfx.renderPlanId,
+  soundscapePlanId: sfx.soundscapePlanId,
+  targetKey: sfx.targetKey,
+  status: sfx.status,
+  entries: sfx.entries.map(entry => ({
+    cueId: entry.cueId,
+    taskId: entry.taskId,
+    generationIdentity: entry.generationIdentity,
+    requestIdentity: entry.requestIdentity,
+    status: entry.status,
+    source: 'resume',
+    ...(entry.audio ? { audio: entry.audio } : {}),
+    ...(entry.omissionReason ? { omissionReason: entry.omissionReason } : {}),
+  })),
+  createdAt: sfx.createdAt,
+})
+
+const validateCompactSfx = (sfx: CompactSfx): CompactSfx => {
+  const { sfxId: _id, ...base } = sfx
+  if (sfx.schemaVersion !== 1 || sfx.status !== 'succeeded' || sfx.sfxId !== hashCanonicalTtsValue(base)) throw CLIUsageError('Retained compact sound-effect archive identity is invalid.')
+  return sfx
+}
+
+const compactSfxMatchesPlan = (sfx: CompactSfx, plan: SoundEffectRenderPlan): boolean =>
+  sfx.renderPlanId === plan.renderPlanId && sfx.soundscapePlanId === plan.soundscapePlanId && sfx.targetKey === plan.target.targetKey
+
+export const loadCompactSfx = async (rootDir: string, plan?: SoundEffectRenderPlan): Promise<{ value: CompactSfx, ref: { path: string, sha256: string } } | undefined> => {
+  try {
+    const stored = await readContainedArtifactFile(rootDir, SOUND_EFFECT_ARCHIVE_PATH)
+    const sfx = validateCompactSfx(JSON.parse(stored.bytes.toString('utf8')) as CompactSfx)
+    if (plan && !compactSfxMatchesPlan(sfx, plan)) return undefined
+    return { value: sfx, ref: { path: stored.relativePath, sha256: stored.sha256 } }
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
+    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    throw error
+  }
+}
+
+const compactSucceededSoundEffectRender = async (rootDir: string, plan: SoundEffectRenderPlan, result: SoundEffectRenderResult): Promise<{ compact: CompactSfx, ref: { path: string, sha256: string } }> => {
+  const compact = compactSoundEffectResult(plan, result)
+  const written = await writeReplaceableArtifactFile(rootDir, SOUND_EFFECT_ARCHIVE_PATH, `${canonicalTtsJson(compact)}\n`)
+  const referenced = new Set(compact.entries.flatMap(entry => entry.audio ? [entry.requestIdentity] : []))
+  for (const entry of compact.entries) {
+    if (!entry.audio) continue
+    const source = await readContainedArtifactFile(rootDir, entry.audio.path)
+    if (source.sha256 !== entry.audio.sha256) throw CLIUsageError(`Compact sound-effect source checksum is invalid for ${entry.cueId}.`)
+  }
+  try {
+    const names = await readdir(join(rootDir, 'audio', 'sound-effects', 'sources'))
+    for (const name of names) {
+      const match = /^(.*)\.audio$/u.exec(name)
+      if (!match?.[1] || referenced.has(match[1])) continue
+      await rm(join(rootDir, 'audio', 'sound-effects', 'sources', name), { force: true })
+    }
+  } catch (error) {
+    if (!(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT')) throw error
+  }
+  await removeContainedDirectory(rootDir, soundEffectWorkingRoot(plan.renderPlanId))
+  return { compact, ref: { path: written.relativePath, sha256: written.sha256 } }
 }
 
 export type SoundEffectAdapter = { generate(task: SoundEffectRenderTask, target: SoundEffectTarget, requestOrdinal: number, cancellation: AbortSignal): Promise<SoundEffectGenerationResponse> }
@@ -332,7 +426,7 @@ export const executeSoundEffectRenderPlan = async (input: {
   cancellation?: AbortSignal | undefined
   maxAttempts?: number | undefined
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
-}): Promise<{ result: SoundEffectRenderResult, ref: { path: string, sha256: string } }> => {
+}): Promise<{ result: SoundEffectRenderResult, ref: { path: string, sha256: string }, compact?: CompactSfx | undefined }> => {
   validatePlan(input.plan)
   const cancellation = input.cancellation ?? new AbortController().signal
   const concurrency = Math.max(1, Math.min(input.concurrency ?? 2, 8, input.plan.tasks.length || 1))
@@ -349,7 +443,7 @@ export const executeSoundEffectRenderPlan = async (input: {
         cancellation.throwIfAborted()
         const cached = await readCache(task, input.plan)
         if (cached) {
-          entries[index] = await materialize(input.rootDir, input.plan, task, cached.bytes, cached.entry, 'cache-materialization')
+          entries[index] = await materialize(input.rootDir, task, cached.bytes, cached.entry, 'cache-materialization')
           continue
         }
         const retainedAdmission = await readAdmission(input.rootDir, input.plan, task)
@@ -409,7 +503,7 @@ export const executeSoundEffectRenderPlan = async (input: {
           await Bun.write(temporary, response.bytes)
           const observed = await inspectSoundscapeAudio(temporary)
           const cacheEntry = await writeCache(task, input.plan, response, observed)
-          entries[index] = await materialize(input.rootDir, input.plan, task, response.bytes, cacheEntry, resultSource)
+          entries[index] = await materialize(input.rootDir, task, response.bytes, cacheEntry, resultSource)
         } finally {
           await rm(temporaryRoot, { recursive: true, force: true })
         }
@@ -427,14 +521,24 @@ export const executeSoundEffectRenderPlan = async (input: {
   const status = canceled ? 'canceled' as const : requiredFailure ? 'failed' as const : 'succeeded' as const
   const base = { schemaVersion: 1 as const, renderPlanId: input.plan.renderPlanId, soundscapePlanId: input.plan.soundscapePlanId, targetKey: input.plan.target.targetKey, status, entries: entries.filter((entry): entry is SoundEffectRenderResultEntry => entry !== undefined), createdAt: new Date().toISOString() }
   const result: SoundEffectRenderResult = { ...base, resultId: hashCanonicalTtsValue(base) }
-  const path = status === 'succeeded'
-    ? `audio/sound-effects/${input.plan.renderPlanId}/sound-effect-render-result.json`
-    : `audio/sound-effects/${input.plan.renderPlanId}/failed-results/${result.resultId}/sound-effect-render-result.json`
+  if (status === 'succeeded') {
+    const compacted = await compactSucceededSoundEffectRender(input.rootDir, input.plan, result)
+    return { result, ref: compacted.ref, compact: compacted.compact }
+  }
+  const path = `audio/sound-effects/${input.plan.renderPlanId}/failed-results/${result.resultId}/sound-effect-render-result.json`
   const written = await writeImmutableArtifactFile(input.rootDir, path, `${canonicalTtsJson(result)}\n`)
   return { result, ref: { path: written.relativePath, sha256: written.sha256 } }
 }
 
 export const loadSoundEffectRenderResult = async (rootDir: string, plan: SoundEffectRenderPlan): Promise<SoundEffectRenderResult | undefined> => {
+  const compact = await loadCompactSfx(rootDir, plan)
+  if (compact) {
+    for (const entry of compact.value.entries) if (entry.audio) {
+      const audio = await readContainedArtifactFile(rootDir, entry.audio.path)
+      if (audio.sha256 !== entry.audio.sha256) throw CLIUsageError(`Retained sound-effect audio checksum is invalid for ${entry.cueId}.`)
+    }
+    return projectCompactSfx(compact.value)
+  }
   const path = `audio/sound-effects/${plan.renderPlanId}/sound-effect-render-result.json`
   try {
     const bytes = await readFile(join(rootDir, path), 'utf8')

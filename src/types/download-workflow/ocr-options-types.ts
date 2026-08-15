@@ -7,7 +7,6 @@ export type OcrRuntimeOptions = {
   ocrProviderModeExplicit: boolean
   ocrProviderConcurrency: number
   ocrLocalConcurrency: number
-  keepOcrPageInputs: boolean
   dpi: number
   lang: string
   out: OutputFormat

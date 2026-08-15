@@ -280,13 +280,31 @@ describe('URL combined-report aggregation', () => {
     tempRoots.push(root)
     const providerDir = join(root, 'providers', 'current')
     mkdirSync(providerDir, { recursive: true })
-    const longText = new Array<string>(10_001).fill('same').join(' ')
-    writeFileSync(join(root, 'consensus-extraction.txt'), longText)
+    const consensusText = new Array<string>(10_001).fill('same').join(' ')
+    const currentText = new Array<string>(10_001).fill('other').join(' ')
+    writeFileSync(join(root, 'consensus-extraction.txt'), consensusText)
+    writeFileSync(join(root, PIPELINE_MANIFEST_FILE), JSON.stringify({
+      command: 'extract',
+      scope: 'single',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      items: [{
+        extractRoute: 'article',
+        status: 'full',
+        metadata: {},
+        providers: [{
+          service: 'current',
+          model: 'current',
+          artifactDir: 'providers/current',
+          status: 'succeeded',
+          attempts: 1,
+          options: {},
+          metadata: { processingTime: 10, tokenEstimate: 10_001 }
+        }]
+      }]
+    }))
     writeFileSync(join(providerDir, 'result.json'), JSON.stringify({
-      provider: 'current',
-      model: 'current',
-      metadata: { processingTime: 10, tokenEstimate: 10_001 },
-      result: { text: longText }
+      text: currentText
     }))
     writeFileSync(join(root, 'provider-comparison-report.json'), JSON.stringify({
       schemaVersion: 2,

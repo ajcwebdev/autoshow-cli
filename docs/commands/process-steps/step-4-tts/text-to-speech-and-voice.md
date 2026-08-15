@@ -154,7 +154,7 @@ Kitten strips markdown, splits local text into 2000-character chunks, and synthe
 | Selector | `--provider elevenlabs[=<model>]` |
 | Models | `eleven_v3` |
 | Existing voice | `--tts-voice <id>`, default `hpp4J3VqNfWAUOO0d1Us` |
-| Controls | `--tts-output-format`, `--tts-language`, `--elevenlabs-tts-stability`, `--elevenlabs-tts-similarity-boost`, `--elevenlabs-tts-style`, `--elevenlabs-tts-use-speaker-boost`, `--tts-speed`, `--elevenlabs-tts-seed`, `--tts-text-normalization`, `--elevenlabs-tts-pronunciation-dictionary-locator`, `--elevenlabs-tts-optimize-streaming-latency` |
+| Controls | `--tts-output-format`, `--tts-language`, `--elevenlabs-tts-stability`, `--elevenlabs-tts-similarity-boost`, `--elevenlabs-tts-style`, `--elevenlabs-tts-use-speaker-boost`, `--tts-speed`, `--elevenlabs-tts-seed`, `--tts-text-normalization`, `--elevenlabs-tts-pronunciation-dictionary-locator` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us

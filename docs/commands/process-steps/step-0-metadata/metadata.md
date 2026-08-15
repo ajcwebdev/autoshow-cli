@@ -1,8 +1,6 @@
 # metadata
 
-Collect and display metadata for media or documents without downloading files, running transcription, extraction, or LLM steps.
-
-This is the most fundamental command in the pipeline hierarchy: `metadata` → `download` → `extract` → `write`.
+Collect and display metadata for media, documents, articles, or X Spaces without downloading files, running transcription, extraction, or LLM steps.
 
 ## Outline
 
@@ -11,7 +9,6 @@ This is the most fundamental command in the pipeline hierarchy: `metadata` → `
 - [Output](#output)
 - [Examples](#examples)
 - [How It Works](#how-it-works)
-- [Processing Step Layout](#processing-step-layout)
 
 ```bash
 bun autoshow metadata <input>
@@ -181,28 +178,3 @@ For remote document URLs, the file is temporarily downloaded for inspection and 
 X Space URLs, raw Space IDs, and X post URLs use the X API to collect Space metadata, post references, user profiles, and lookup errors. Set `X_BEARER_TOKEN` before running these inputs.
 
 For YouTube inputs, `metadata` honors the same saved `yt-dlp` cookie auth as `download`: `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`.
-
-## Processing Step Layout
-
-CLI commands are split between runtime processing steps and setup/utilities:
-
-```text
-src/cli/commands/
-  pricing-orchestration/
-  process-steps/
-    step-0-metadata/
-    step-1-download/
-    step-2-extract/
-    step-3-write/
-    step-4-tts/
-    step-5-image/
-    step-6-video/
-    step-7-music/
-    step-8-comic/
-  setup-and-utilities/
-    config/
-    links/
-    models/
-    resume/
-    setup/
-```

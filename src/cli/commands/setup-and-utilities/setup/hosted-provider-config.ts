@@ -87,8 +87,13 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'FAL_API_KEY',
-    label: 'fal.ai image/video/TTS',
-    configPaths: ['defaults.post.image.falImage', 'defaults.post.video.falVideo']
+    label: 'fal.ai image/video/TTS/OCR',
+    configPaths: [
+      'defaults.post.image.falImage',
+      'defaults.post.video.falVideo',
+      'defaults.post.tts.falTts',
+      'defaults.extract.ocr.falOcr'
+    ]
   },
   {
     envVar: 'STABILITY_API_KEY',
@@ -102,8 +107,13 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'REPLICATE_API_TOKEN',
-    label: 'Replicate OCR/image/video',
-    configPaths: ['defaults.extract.ocr.replicateOcr', 'defaults.post.image.replicateImage', 'defaults.post.video.replicateVideo']
+    label: 'Replicate OCR/image/video/TTS',
+    configPaths: [
+      'defaults.extract.ocr.replicateOcr',
+      'defaults.post.image.replicateImage',
+      'defaults.post.video.replicateVideo',
+      'defaults.post.tts.replicateTts'
+    ]
   },
   {
     envVar: 'ANTHROPIC_API_KEY',
@@ -121,8 +131,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'DEEPINFRA_API_KEY',
-    label: 'DeepInfra STT/OCR',
-    configPaths: ['defaults.extract.stt.deepinfraStt', 'defaults.extract.ocr.deepinfraOcr']
+    label: 'DeepInfra STT/OCR/TTS',
+    configPaths: [
+      'defaults.extract.stt.deepinfraStt',
+      'defaults.extract.ocr.deepinfraOcr',
+      'defaults.post.tts.deepinfraTts'
+    ]
   },
   {
     envVar: 'MINIMAX_API_KEY',
@@ -171,6 +185,16 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'CARTESIA_API_KEY',
     label: 'Cartesia TTS',
     configPaths: ['defaults.post.tts.cartesiaTts']
+  },
+  {
+    envVar: 'FISH_API_KEY',
+    label: 'Fish Audio TTS',
+    configPaths: ['defaults.post.tts.fishTts']
+  },
+  {
+    envVar: 'INWORLD_API_KEY',
+    label: 'Inworld AI TTS',
+    configPaths: ['defaults.post.tts.inworldTts']
   },
   {
     envVar: 'SONIOX_API_KEY',

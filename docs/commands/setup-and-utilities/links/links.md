@@ -304,4 +304,4 @@ Global flags like `--config-path` and `--allow-over-budget` may still appear in 
 - Input file entries must be remote documentation/page URLs; local file entries inside the input file are ignored.
 - Documentation links with a `blob:https://` or `blob:http://` wrapper are fetched through the underlying HTTP URL while preserving the original source marker in the output.
 - Selection filenames are derived from normalized provider and section selections, lowercased, deduped, and sorted into a stable order. Input-file filenames use the sanitized input basename. Direct URL filenames use the sanitized URL host and path.
-- Provider selectors are parsed manually from argv, so they are documented here even though they do not appear in the standard help flag list. `--refresh` and `--refresh-only` are real command flags and appear in `bun autoshow links --help`.
+- Provider selectors are registered as hidden CLI flags and documented in the provider table above. `--refresh` and `--refresh-only` appear in `bun autoshow links --help`.

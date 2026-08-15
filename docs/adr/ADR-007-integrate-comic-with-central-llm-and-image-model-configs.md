@@ -23,15 +23,31 @@ Why now: comic's model migration and its CLI migration are the same architectura
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **Use the central model registry and shared LLM/image collectors** | One source of truth for models, pricing, clients, and dispatch; centrally registered providers reach comic without comic-specific branches | Comic depends on shared generation infrastructure and must adapt its domain options | Removed the comic model directory, three private clients, and three exhaustive dispatch chains |
-| Keep comic-local model dispatch but read central prices | Smaller migration | Preserves parallel clients and provider branches; only solves price drift | Rejected half-measure |
-| **Represent comic subcommands as one native `CliCommandDefinition` tree and accept native grammar** | One parse and dispatch path; one help renderer; globals applied once; parser owns unknown flags and parameter cardinality | Public grammar deliberately changes for inline assignments, `--`, and repeated scalar flags | Removes the second-stage shell and about one hundred lines of comic revalidation |
-| Preserve comic's old grammar inside native subcommands | Minimizes surface change | Requires permanent comic-specific tokenizer checks and repeated-option guards | Rejected because it preserves the split this decision removes |
-| Flatten comic into three top-level commands | Avoids nested-dispatch support | Breaks the established `comic <subcommand>` surface and pollutes root help | Rejected |
-| Fully flatten links' provider-scoped grammar | Makes links expressible as ordinary independent flags and positionals | Changes the meaning of ordered sections after provider selectors with no agreed replacement syntax | Out of scope; the grammar remains |
-| Keep the links bespoke parser | No test churn | Leaves the final raw-argv tokenizer and permissive unknown-flag bypass in production | Rejected |
+| **Use the central model registry and shared LLM/image collectors** | One source of truth for models, pricing, clients, and dispatch; centrally registered providers reach comic without comic-specific branches | Comic depends on shared generation infrastructure and must adapt its domain options | Removed 1 private model directory, 3 private clients, and 3 dispatch chains |
+| Keep comic-local model dispatch but read central prices | Smaller migration | Preserves parallel clients and provider branches; only solves price drift | Preserves 3 private clients |
+| **Represent comic subcommands as one native `CliCommandDefinition` tree and accept native grammar** | One parse and dispatch path; one help renderer; globals applied once; parser owns unknown flags and parameter cardinality | Public grammar deliberately changes for inline assignments, `--`, and repeated scalar flags | Removes 1 second-stage shell and ~100 lines of comic revalidation |
+| Preserve comic's old grammar inside native subcommands | Minimizes surface change | Requires permanent comic-specific tokenizer checks and repeated-option guards | Preserves ~100 lines of custom validation |
+| Flatten comic into three top-level commands | Avoids nested-dispatch support | Breaks the established `comic <subcommand>` surface and pollutes root help | Adds 3 top-level commands |
+| Fully flatten links' provider-scoped grammar | Makes links expressible as ordinary independent flags and positionals | Changes the meaning of ordered sections after provider selectors with no agreed replacement syntax | n/a |
+| Keep the links bespoke parser | No test churn | Leaves the final raw-argv tokenizer and permissive unknown-flag bypass in production | Preserves 1 bespoke parser |
 
 ## Decision
+
+Integrate comic workflows with the central model registry, shared hosted coordinator, and native CLI command hierarchy. Comic-local model registries, clients, and dispatch branches are retired in favor of shared generation infrastructure, while comic subcommands and `links` adopt the native parser and dispatcher.
+
+This applies to:
+
+- Comic model resolution, client dispatch, pricing, structured-LLM collectors, and image target collectors.
+- Native CLI command definitions supporting single-level subcommands, shared dispatcher, and unified help rendering for comic (`draft-scenes`, `generate-images`, `generate-audio`, `reference-sketch`, `reference-voice`).
+- Native grammar adoption for comic commands (inline assignments, `--` separator, last-occurrence scalar flags, and typed unknown-flag diagnostics).
+- `links` provider selection parsing via ordered native flag and positional metadata instead of raw argv tokenization.
+- Comic hosted admission for LLM, image, QA, dialogue, and sound-effect tasks via the shared hosted coordinator.
+
+It does not apply to:
+
+- Comic domain workflow logic, prompt assembly, schemas, panel ordering, QA/repair rules, audio mixing, or presentation rendering.
+- `links` provider-scoped grammar semantics or provider execution logic.
+- Arbitrary multi-level subcommand nesting beyond the single level required by the CLI.
 
 ### 1. Shared model infrastructure
 
@@ -57,19 +73,13 @@ This is a deliberate public-surface change, not a behavior-preserving refactor. 
 
 Every real links provider selector is registered as a hidden Boolean flag; the fake `<provider>` flag and `allowUnknownFlags` are removed. `parseCommandInvocation` is the sanctioned reusable native boundary for tests and other resolved invocations. Production receives the already parsed command context and reduces ordered native flag/positional metadata into provider-scoped sections; it does not locate or tokenize raw process argv again.
 
-Links keeps its order-sensitive meaning: positionals after `--openai` belong to OpenAI until another provider selector appears, while leading positionals are global sections. Inline values on provider selectors remain invalid, direct URL and input-file exclusivity is unchanged, and unknown dashed selectors now fail through the native unknown-flag path.
-
-This applies to:
-
-- Comic model dispatch, and the native CLI definition, parser, dispatcher, and help boundary.
-- Comic subcommand parsing and help, and links selection parsing.
-- It does not change comic workflow artifacts, prompts, schemas, generation behavior, links selection semantics, or provider execution.
+Links keeps its order-sensitive meaning: positionals after `--openai` belong to OpenAI until another provider selector appears, while leading positionals are global sections. Inline values on provider selectors remain invalid, direct URL and input-file exclusivity is unchanged, and unknown dashed selectors fail through the native unknown-flag path.
 
 ### 4. Comic adopts shared hosted admission
 
 Comic LLM generation, image generation, image QA, dialogue synthesis, and sound-effect execution use the same run-scoped hosted coordinator as the rest of the pipeline. `draft-scenes`, `generate-images`, `generate-audio`, and `reference-sketch` expose `--concurrency-mode ramp|immediate`; their existing `--concurrency`, provider, TTS-chunk, and SFX caps remain hard maxima. Provider plus non-secret account label defines the lane, so LLM, image, and QA work sharing an account share its live bound while independent providers start and ramp independently.
 
-Comic work selectors retain panel ordering, QA/repair sequencing, cancellation, artifact promotion, durable-admission, and ambiguous-redispatch rules. The coordinator controls only hosted admission and exact classified rate-limit pressure. Local prompt assembly, page composition, audio mixing, and slideshow rendering remain immediate. Comic price mode uses the clean five-second ramp model without credentials, writes, or provider calls.
+Comic work selectors retain panel ordering, QA/repair sequencing, cancellation, artifact promotion, durable-admission, and ambiguous-redispatch rules. The coordinator controls only hosted admission and rate-limit pressure. Local prompt assembly, page composition, audio mixing, and slideshow rendering remain immediate.
 
 ## Rationale
 
@@ -112,29 +122,26 @@ Negative outcomes:
 - The `StripGlobalArgsOptions` export and `global-arg-stripper.ts` are deleted.
 - Comic model ID types are registry-validated strings rather than comic-local provider unions.
 - Parsed comic runtime options carry the shared hosted concurrency mode and one coordinator for LLM, image, QA, dialogue, and sound-effect work.
-- Unknown-flag diagnostics derive display spellings from unknown `CliFlagOccurrence` records rather than from normalized `rawParsed.unknown` keys. `getUnknownFlagSpellings` strips only a long inline `=<value>` suffix, deduplicates identical spellings in encounter order, and falls back to normalized keys for synthetic parse results with no unknown occurrences.
 
 ## Test Plan
 
-Run default verification (`bun run check`) and local, no-cost contract validation suites (with no paid or quota-limited provider calls):
-
-```bash
-bun run check
-bun test test/test-cases/validation/cli/native-cli-parser-contracts.test.ts
-bun test test/test-cases/validation/cli/cli-usage-errors.test.ts
-bun test test/test-cases/validation/cli/option-resolution-contracts/
-bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/selector-validation.test.ts
-bun test test/test-cases/validation/comic/character-handling-contracts.test.ts
-```
-
-Verification evidence for shared comic admission is dated 2026-08-14 and uses only local fixtures and mocked providers; no hosted generation command is run.
+- Baseline verification: `bun run check`.
+- Local contract validation suites (no paid or quota-limited provider calls):
+  - `bun test test/test-cases/validation/cli/native-cli-parser-contracts.test.ts`
+  - `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`
+  - `bun test test/test-cases/validation/cli/option-resolution-contracts/`
+  - `bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/selector-validation.test.ts`
+  - `bun test test/test-cases/validation/comic/character-handling-contracts.test.ts`
+- Verification uses local fixtures and mocked providers without executing live hosted generation commands.
 
 ## References
 
-- [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — shared type and ownership boundaries
-- [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
-- [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
-- [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
-- `src/cli/native/native-parser.ts`, `dispatcher.ts`, and `help-renderer.ts`
+- Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — shared type and ownership boundaries
+- Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
+- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
+- Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
+- `src/cli/native/native-parser.ts`
+- `src/cli/native/dispatcher.ts`
+- `src/cli/native/help-renderer.ts`
 - `src/cli/commands/process-steps/step-8-comic/define-comic-command.ts`
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts`

@@ -106,15 +106,14 @@ describe('TTS provider service contracts', () => {
           },
           seed: 12345,
           textNormalization: 'on',
-          pronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3'],
-          optimizeStreamingLatency: 2
+          pronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3']
         }
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(1)
       expect(calls[0]?.headers.get('xi-api-key')).toBe('elevenlabs-key')
-      expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_22050_32&optimize_streaming_latency=2')
+      expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_22050_32')
       expect(calls[0]?.method).toBe('POST')
       expect(calls[0]?.bodyJson).toEqual({
         text: 'ElevenLabs control synthesis.',

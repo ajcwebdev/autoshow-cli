@@ -6,12 +6,13 @@ import type {
   AudioRun,
   ComicPresentationAmbienceInput,
   ComicPresentationPanelInput,
+  CompactMix,
+  CompactMixTimelineSummary,
+  CompactSfx,
+  CompactTargetRender,
   FinalTimeline,
   ObservedAudioFormat,
-  ResolvedSoundscapeTimeline,
   ScenePromptData,
-  SoundEffectRenderResult,
-  SoundscapeAudioRun,
   SoundscapePlan,
   StructuredScriptData,
 } from '~/types'
@@ -46,10 +47,10 @@ export type LoadedPresentationAudio = {
   dialogueTimeline: FinalTimeline
   dialogueAudio: { path: string, sha256: string, format: ObservedAudioFormat, durationMs: number }
   soundscapeBinding?: NonNullable<CompatibleComicSceneRun['comicMetadata']['audio']['selectedSoundscapeRuns']>[number] | undefined
-  soundscapeAudioRun?: SoundscapeAudioRun | undefined
+  soundscapeAudioRun?: CompactMix | undefined
   soundscapePlan?: SoundscapePlan | undefined
-  soundscapeTimeline?: ResolvedSoundscapeTimeline | undefined
-  renderResult?: SoundEffectRenderResult | undefined
+  soundscapeTimeline?: CompactMixTimelineSummary | undefined
+  renderResult?: CompactSfx | undefined
   sounds: PresentationSoundSource[]
   ambience: ComicPresentationAmbienceInput[]
 }
@@ -67,10 +68,10 @@ const runRelativeRef = (audioRunRef: string, ref: ArtifactRef): ArtifactRef => (
 })
 
 export const assertPresentationSoundEffectResult = (
-  renderResult: Pick<SoundEffectRenderResult, 'resultId' | 'status'>,
+  renderResult: { sfxId: string, status: string },
   boundResultId: string,
 ): void => {
-  if (renderResult.resultId !== boundResultId) throw CLIUsageError('Selected sound-effect result does not match the soundscape AudioRun binding.')
+  if (renderResult.sfxId !== boundResultId) throw CLIUsageError('Selected sound-effect result does not match the soundscape mix binding.')
   if (renderResult.status !== 'succeeded') throw CLIUsageError('Selected sound-effect result is not a complete success.')
 }
 
@@ -141,7 +142,38 @@ const loadDialogueAudio = async (compatible: CompatibleComicSceneRun, binding: R
   timeline: FinalTimeline
   audio: LoadedPresentationAudio['dialogueAudio']
 }> => {
-  const run = await verifiedJson<AudioRun>(compatible.sceneRunDir, { path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Dialogue AudioRun ${binding.audioRunId}`)
+  const storedJson = await verifiedJson<CompactTargetRender | AudioRun>(compatible.sceneRunDir, { path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Dialogue render ${binding.audioRunId}`)
+  if ('renderId' in storedJson && 'outputs' in storedJson && !('audioRunId' in storedJson)) {
+    assertIdentity(storedJson as unknown as Record<string, unknown>, 'renderId', 'Compact dialogue render')
+    if (storedJson.targetKey !== binding.targetKey || storedJson.renderIdentity !== binding.renderIdentity) throw CLIUsageError('Selected dialogue render does not match its canonical target binding.')
+    const timelinePath = posix.join(posix.dirname(binding.audioRunRef), 'timeline.json')
+    const timelineStored = await readContainedArtifactFile(compatible.sceneRunDir, timelinePath)
+    const timeline = JSON.parse(timelineStored.bytes.toString('utf8')) as FinalTimeline
+    assertIdentity(timeline as unknown as Record<string, unknown>, 'timelineId', 'Dialogue FinalTimeline')
+    if (timeline.renderIdentity !== storedJson.renderIdentity) throw CLIUsageError('Dialogue FinalTimeline does not bind the selected compact render.')
+    if (timeline.timing.availability !== 'timed') throw CLIUsageError(`Selected dialogue render has no canonical timed FinalTimeline: ${timeline.timing.reason}`)
+    const stored = await readContainedArtifactFile(compatible.sceneRunDir, storedJson.outputs.final.path)
+    if (stored.sha256 !== storedJson.outputs.final.sha256) throw CLIUsageError(`Dialogue final audio checksum is stale: ${storedJson.outputs.final.path}`)
+    const observed = await inspectSoundscapeAudio(stored.path)
+    if (observed.durationMs !== storedJson.outputs.final.durationMs || observed.format.sampleRate !== storedJson.format.sampleRate || observed.format.channels !== storedJson.format.channels) throw CLIUsageError('Dialogue final audio format or duration no longer matches its compact render evidence.')
+    const syntheticRun = {
+      schemaVersion: 1 as const,
+      audioRunId: binding.audioRunId,
+      targetKey: storedJson.targetKey,
+      renderPlanId: storedJson.renderPlanId,
+      renderIdentity: storedJson.renderIdentity,
+      providerResult: { resultIdentity: storedJson.renderId, path: binding.audioRunRef, sha256: binding.audioRunSha256 },
+      takeSelections: [],
+      continuationCheckpoints: [],
+      mixPlan: { mixPlanId: storedJson.renderId, path: binding.audioRunRef, sha256: binding.audioRunSha256 },
+      transformLedger: { transformLedgerId: storedJson.renderId, path: binding.audioRunRef, sha256: binding.audioRunSha256 },
+      finalTimeline: { timelineId: timeline.timelineId, path: 'timeline.json', sha256: timelineStored.sha256 },
+      finalOutputs: [{ path: storedJson.outputs.final.path, sha256: storedJson.outputs.final.sha256, format: storedJson.format, durationMs: storedJson.outputs.final.durationMs }],
+      createdAt: compatible.manifest.createdAt,
+    } satisfies AudioRun
+    return { run: syntheticRun, timeline, audio: { path: storedJson.outputs.final.path, sha256: storedJson.outputs.final.sha256, format: storedJson.format, durationMs: storedJson.outputs.final.durationMs } }
+  }
+  const run = storedJson as AudioRun
   assertIdentity(run as unknown as Record<string, unknown>, 'audioRunId', 'Dialogue AudioRun')
   if (run.audioRunId !== binding.audioRunId || run.targetKey !== binding.targetKey) throw CLIUsageError('Selected dialogue AudioRun does not match its canonical target binding.')
   const timelineRef = runRelativeRef(binding.audioRunRef, run.finalTimeline)
@@ -170,19 +202,17 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
   }
 
   const binding = selection.soundscape as NonNullable<typeof selection.soundscape>
-  const soundscapeRun = await verifiedJson<SoundscapeAudioRun>(compatible.sceneRunDir, { path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Soundscape AudioRun ${binding.soundscapeAudioRunId}`)
-  assertIdentity(soundscapeRun as unknown as Record<string, unknown>, 'audioRunId', 'Soundscape AudioRun')
-  if (soundscapeRun.audioRunId !== binding.soundscapeAudioRunId || soundscapeRun.dialogueAudioRun.audioRunId !== loadedDialogue.run.audioRunId || soundscapeRun.dialogueAudioRun.sha256 !== selection.dialogue.audioRunSha256) throw CLIUsageError('Selected soundscape AudioRun does not bind the exact selected dialogue AudioRun.')
+  const soundscapeRun = await verifiedJson<CompactMix>(compatible.sceneRunDir, { path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Soundscape mix ${binding.soundscapeAudioRunId}`)
+  if (soundscapeRun.mixId !== binding.soundscapeAudioRunId || soundscapeRun.dialogueRender.audioRunId !== loadedDialogue.run.audioRunId || soundscapeRun.dialogueRender.sha256 !== selection.dialogue.audioRunSha256) throw CLIUsageError('Selected soundscape mix does not bind the exact selected dialogue render.')
   const plan = validateSoundscapePlan(await verifiedJson<SoundscapePlan>(compatible.sceneRunDir, { path: soundscapeRun.soundscapePlan.path, sha256: soundscapeRun.soundscapePlan.sha256 }, `SoundscapePlan ${soundscapeRun.soundscapePlan.soundscapePlanId}`), compatible.structuredScript)
   if (plan.soundscapePlanId !== soundscapeRun.soundscapePlan.soundscapePlanId || plan.dialoguePlanId !== compatible.comicMetadata.audio.dialoguePlanId) throw CLIUsageError('Selected SoundscapePlan does not bind the canonical dialogue plan.')
-  const soundscapeTimeline = await verifiedJson<ResolvedSoundscapeTimeline>(compatible.sceneRunDir, soundscapeRun.resolvedTimeline, `Resolved soundscape timeline ${soundscapeRun.resolvedTimeline.timelineId}`)
-  assertIdentity(soundscapeTimeline as unknown as Record<string, unknown>, 'timelineId', 'Resolved soundscape timeline')
-  if (soundscapeTimeline.timelineId !== soundscapeRun.resolvedTimeline.timelineId || soundscapeTimeline.dialogueAudioRunId !== loadedDialogue.run.audioRunId || soundscapeTimeline.soundscapePlanId !== plan.soundscapePlanId) throw CLIUsageError('Resolved soundscape timeline does not bind the selected source runs.')
-  let renderResult: SoundEffectRenderResult | undefined
-  if (soundscapeRun.soundEffectRenderResult) {
-    renderResult = await verifiedJson<SoundEffectRenderResult>(compatible.sceneRunDir, { path: soundscapeRun.soundEffectRenderResult.path, sha256: soundscapeRun.soundEffectRenderResult.sha256 }, `SoundEffectRenderResult ${soundscapeRun.soundEffectRenderResult.resultId}`)
-    assertIdentity(renderResult as unknown as Record<string, unknown>, 'resultId', 'SoundEffectRenderResult')
-    assertPresentationSoundEffectResult(renderResult, soundscapeRun.soundEffectRenderResult.resultId)
+  const soundscapeTimeline = soundscapeRun.timelineSummary
+  if (soundscapeTimeline.dialogueAudioRunId !== loadedDialogue.run.audioRunId) throw CLIUsageError('Soundscape mix timeline summary does not bind the selected source runs.')
+  let renderResult: CompactSfx | undefined
+  if (soundscapeRun.sfx) {
+    renderResult = await verifiedJson<CompactSfx>(compatible.sceneRunDir, { path: soundscapeRun.sfx.path, sha256: soundscapeRun.sfx.sha256 }, `Compact SFX ${soundscapeRun.sfx.sfxId}`)
+    assertIdentity(renderResult as unknown as Record<string, unknown>, 'sfxId', 'Compact SFX')
+    assertPresentationSoundEffectResult(renderResult, soundscapeRun.sfx.sfxId)
   }
   const resultByCue = new Map(renderResult?.entries.map(entry => [entry.cueId, entry] as const) ?? [])
   const timelineByCue = new Map(soundscapeTimeline.entries.map(entry => [entry.cueId, entry] as const))

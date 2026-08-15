@@ -143,13 +143,17 @@ describe('music provider contracts', () => {
         status: 200,
         headers: { 'content-type': 'application/json' }
       })) as typeof fetch, async () => {
-        await expect(runMinimaxMusicGen('ambient instrumental', dir, {
-          model: 'music-3.0',
-          forceInstrumental: true
-        })).rejects.toMatchObject({
-          stage: 'music:minimax',
-          message: expect.stringContaining('Invalid JSON')
-        })
+        try {
+          await runMinimaxMusicGen('ambient instrumental', dir, {
+            model: 'music-3.0',
+            forceInstrumental: true
+          })
+          throw new Error('expected MiniMax music generation to fail')
+        } catch (error) {
+          expect(error).toBeInstanceOf(Error)
+          expect((error as Error).message).toContain('returned invalid JSON')
+          expect((error as { stage?: string }).stage).toBe('music:minimax')
+        }
       })
     })
   })

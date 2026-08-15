@@ -72,7 +72,6 @@ export const buildProcessingOptions = (
     elevenlabsTtsSeed: runtimeOptions.elevenlabsTtsSeed,
     elevenlabsTtsTextNormalization: runtimeOptions.elevenlabsTtsTextNormalization,
     elevenlabsTtsPronunciationDictionaryLocators: runtimeOptions.elevenlabsTtsPronunciationDictionaryLocators,
-    elevenlabsTtsOptimizeStreamingLatency: runtimeOptions.elevenlabsTtsOptimizeStreamingLatency,
     deepgramVoiceId: runtimeOptions.deepgramVoiceId,
     deepgramTtsEncoding: runtimeOptions.deepgramTtsEncoding,
     deepgramTtsContainer: runtimeOptions.deepgramTtsContainer,

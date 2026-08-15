@@ -153,9 +153,9 @@ Batch items use the same item shape. A route parent adds a child link without ch
 }
 ```
 
-`source` is optional top-level business data for source-backed work such as podcast feeds or YouTube collections. It is never written to a companion control file.
+`source` is optional top-level business data for source-backed work such as podcast feeds or YouTube collections.
 
-Provider directories may retain raw user-facing domain results, but those files are not manifests and never control resume:
+Provider directories may retain raw user-facing domain results, but those files are not manifests and do not control resume:
 
 ```json
 {
@@ -166,7 +166,7 @@ Provider directories may retain raw user-facing domain results, but those files 
 }
 ```
 
-The sole reader validates this current shape, timestamps, enumerated values, status consistency, and containment of every output, child, and provider path. One serialized atomic writer creates and updates that shape, including in-progress provider lifecycle changes. There is no pipeline-manifest version, kind registry, compatibility reader, migration path, filename probing, or old-format recognition. Existing outputs from before this cutover must be rerun.
+A single reader validates this structure, timestamps, enumerated values, status consistency, and path containment. A serialized atomic writer manages all creation and in-progress provider lifecycle updates.
 
 ## Runtime Layout
 
@@ -257,11 +257,12 @@ Provider unions:
 
 | Type | Values |
 |------|--------|
-| `TtsProvider` | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia` |
+| `TtsProvider` | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
 | `ImageProvider` | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
 | `VideoProvider` | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
 | `MusicProvider` | `elevenlabs`, `minimax`, `gemini` |
-| `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra` |
+| `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal` |
+| `HtmlArticleBackend` | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte` |
 
 `DetectResult` values:
 

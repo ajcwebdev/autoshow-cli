@@ -33,7 +33,6 @@ export type TtsInvocationControlsByProvider = {
     seed?: OptionalControl<number>
     textNormalization?: OptionalControl<string>
     pronunciationDictionaryLocators?: OptionalControl<readonly string[]>
-    optimizeStreamingLatency?: OptionalControl<number>
   }>
   minimax: Readonly<{
     languageBoost?: OptionalControl<string>
@@ -130,7 +129,6 @@ const CONTROL_SPECS = {
     seed: { kind: 'number', min: 0, max: 4_294_967_295, integer: true },
     textNormalization: { kind: 'string', normalize: validateElevenLabsTtsTextNormalization },
     pronunciationDictionaryLocators: { kind: 'string-array' },
-    optimizeStreamingLatency: { kind: 'number', min: 0, max: 4, integer: true },
   },
   minimax: {
     languageBoost: { kind: 'string', normalize: validateMinimaxTtsLanguageBoost },

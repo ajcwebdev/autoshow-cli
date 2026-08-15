@@ -7,8 +7,7 @@ A current trace of a write command from native CLI dispatch through output artif
 - [Example Trace](#example-trace)
 - [Expected Artifacts](#expected-artifacts)
 - [Provider API Keys](#provider-api-keys)
-- [Base URL Overrides](#base-url-overrides)
-- [Provider Defaults and Runtime Env](#provider-defaults-and-runtime-env)
+- [Provider Defaults and Runtime Environment](#provider-defaults-and-runtime-environment)
 
 ## Example Trace
 
@@ -151,39 +150,35 @@ These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
 | Kimi | `KIMI_API_KEY` for write/OCR. |
 | Together | `TOGETHER_API_KEY` for write/STT. |
 | Cerebras | `CEREBRAS_API_KEY` for write. |
-| Video-only | `RUNWAYML_API_SECRET`, `LTXV_API_KEY`. |
-| Luma Labs | `LUMA_AGENTS_API_KEY` for image/video. |
-| fal.ai | `FAL_API_KEY` for OCR, image, and video. |
-| Replicate | `REPLICATE_API_TOKEN` for image/video. |
-| Mistral | `MISTRAL_API_KEY` for STT/OCR/TTS. |
-| Image-only | `BFL_API_KEY`, `RECRAFT_API_TOKEN`. |
 | Anthropic | `ANTHROPIC_API_KEY` for write/OCR. |
+| Mistral | `MISTRAL_API_KEY` for STT/OCR/TTS. |
 | Groq | `GROQ_API_KEY` for write/STT/TTS. |
-| DeepInfra | `DEEPINFRA_API_KEY` for STT/OCR. |
+| DeepInfra | `DEEPINFRA_API_KEY` for STT/OCR/TTS. |
 | MiniMax | `MINIMAX_API_KEY` for write/TTS/video/music. |
 | ElevenLabs | `ELEVENLABS_API_KEY` for TTS/music. |
+| fal.ai | `FAL_API_KEY` for OCR/image/video/TTS. |
+| Replicate | `REPLICATE_API_TOKEN` for OCR/image/video/TTS. |
+| Image-only | `BFL_API_KEY`, `RECRAFT_API_TOKEN`. |
+| Image/Video | `LUMA_AGENTS_API_KEY` for Luma Labs image/video. |
+| Video-only | `RUNWAYML_API_SECRET`, `LTXV_API_KEY`. |
+| Sound effects | `STABILITY_API_KEY` for Stability AI sound effects. |
 | STT-only | `ASSEMBLYAI_API_KEY`, `GLADIA_API_KEY`, `SONIOX_API_KEY`, `SPEECHMATICS_API_KEY`, `REVAI_ACCESS_TOKEN`, `HAPPYSCRIBE_API_KEY`, `SCRAPECREATORS_API_KEY`. |
-| STT/TTS or STT/URL | `DEEPGRAM_API_KEY`, `SUPADATA_API_KEY`. |
-| TTS-only | `SPEECHIFY_API_KEY`, `HUME_API_KEY`, `CARTESIA_API_KEY`. |
+| STT/TTS | `DEEPGRAM_API_KEY`. |
+| STT/URL | `SUPADATA_API_KEY`. |
+| TTS-only | `SPEECHIFY_API_KEY`, `HUME_API_KEY`, `CARTESIA_API_KEY`, `FISH_API_KEY`, `INWORLD_API_KEY`. |
 | URL/X | `FIRECRAWL_API_KEY`, `SPIDER_API_KEY`, `ZYTE_API_KEY`, `X_BEARER_TOKEN`. |
 | Hosted asset downloads | `HUGGINGFACE_TOKEN` for Reverb assets. |
 
-## Base URL Overrides
+## Provider Defaults and Runtime Environment
 
-**Removed (ADR-005).** The per-provider base-URL / endpoint override env vars (`OPENAI_BASE_URL`, `ANTHROPIC_BASE_URL`, `GROQ_BASE_URL`, `MISTRAL_BASE_URL`, `XAI_BASE_URL`, `ZAI_BASE_URL`/GLM, `KIMI_BASE_URL`, `TOGETHER_BASE_URL`, `CEREBRAS_BASE_URL`, `MINIMAX_BASE_URL`, `DEEPGRAM_BASE_URL`, `DEEPINFRA_BASE_URL`, `ASSEMBLYAI_BASE_URL`, `GLADIA_BASE_URL`, `SONIOX_BASE_URL`, `SPEECHMATICS_BASE_URL`, `HAPPYSCRIBE_BASE_URL`, `REVAI_BASE_URL`, `SUPADATA_BASE_URL`, `SCRAPECREATORS_BASE_URL`, `ELEVENLABS_BASE_URL`, `CARTESIA_BASE_URL`, `HUME_BASE_URL`, `SPEECHIFY_BASE_URL`, `FIRECRAWL_API_URL`, `SPIDER_API_URL`, `ZYTE_API_URL`, `UNSTRUCTURED_API_URL`, `BFL_BASE_URL`, `REVE_BASE_URL`, `RECRAFT_BASE_URL`, …) are **no longer read.** Every provider resolves to a fixed default endpoint in [`base-urls.ts`](../../src/utils/base-urls.ts); contract tests inject a typed `baseUrl` parameter in-process instead.
-
-Runway and LTX video clients use their provider API endpoints with `RUNWAYML_API_SECRET` and `LTXV_API_KEY`.
-
-## Provider Defaults and Runtime Env
-
-Runtime configuration is **flag-driven**: the shipped CLI reads no `AUTOSHOW_*` runtime-config, base-URL, timeout, or TTS-tuning env vars — they were removed or replaced by flags. The only environment input is provider API keys (above), `HUGGINGFACE_TOKEN`, and the `NO_COLOR` / `FORCE_COLOR` conventions.
+Runtime configuration is flag- and config-driven. The CLI reads only provider API keys, `HUGGINGFACE_TOKEN`, and standard `NO_COLOR` / `FORCE_COLOR` environment variables at runtime.
 
 | Area | Mechanism |
 |------|-----------|
 | Local model selection | `--model-path` flag (`configureModelPath`); `HUGGINGFACE_TOKEN` env for gated asset downloads. |
-| TTS voices / reference audio / API versions | Per-run flags only (`--tts-voice`, `--tts-ref-audio`, `--hume-tts-voice-provider`, …); defaults are code constants in [`tts-models.ts`](../../src/cli/commands/setup-and-utilities/models/tts-models.ts). The Cartesia `Cartesia-Version` and Hume `version` headers are fixed constants. |
+| TTS voices / reference audio / API versions | Per-run flags (`--tts-voice`, `--tts-ref-audio`, `--hume-tts-voice-provider`, …); defaults are defined in [`tts-models.ts`](../../src/cli/commands/setup-and-utilities/models/tts-models.ts). Cartesia `Cartesia-Version` and Hume `version` headers are fixed protocol constants. |
 | Output / external binaries | `--output-root`, `--bin-dir` flags. |
 | URL backend | `--url-provider` flag. |
 | Logging / color | `--log-level`, `--log-format` (plus `--verbose` / `--quiet` / `--json`); `NO_COLOR` / `FORCE_COLOR` honored, with `--color` / `--no-color` taking precedence. |
-| Timeouts | Fixed code constants (no env overrides). |
+| Timeouts and base URLs | Fixed constants in provider client implementations (`base-urls.ts`). |
 | yt-dlp auth/cookies | `bun autoshow config --cookies` and `bun autoshow config --cookies-from-browser`; applied centrally after config load. |

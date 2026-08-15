@@ -155,9 +155,9 @@ describe('ADR-018 Phase 3E Inworld soundscape acceptance', () => {
     const soundscapeRun = mixed.soundscapeRuns[0]
     expect([0, 2]).toContain(sfxCalls)
     expect(soundscapeRun?.binding.targetKey).toBe(canonicalTargetKey('comic-audio', 'inworld', 'realtime-tts-2', 'hosted-api'))
-    expect(soundscapeRun?.audioRun.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
-    expect(await Bun.file(join(root, soundscapeRun?.audioRun.resolvedTimeline.path as string)).exists()).toBe(true)
-    expect(await Bun.file(join(root, soundscapeRun?.audioRun.master.path as string)).exists()).toBe(true)
+    expect(soundscapeRun?.mix.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
+    expect(await Bun.file(join(root, soundscapeRun?.ref.path as string)).exists()).toBe(true)
+    expect(await Bun.file(join(root, soundscapeRun?.mix.master.path as string)).exists()).toBe(true)
     expect(await Bun.file(join(root, soundscapeRun?.binding.reportedOutputPath as string)).exists()).toBe(true)
   }, 20_000)
 })

@@ -96,19 +96,19 @@ describe('ADR-018 deterministic four-bus mixer', () => {
         renderPlan: { value: renderPlan, ref: { path: 'render-plan.json', sha256: h('render-plan-ref') } }, renderResult: { value: renderResult, ref: { path: 'render-result.json', sha256: h('render-result-ref') } },
       })
       const first = await run()
-      expect(first.audioRun.stems.map(stem => stem.bus)).toEqual(['dialogue', 'vocal-reaction', 'action-sfx', 'ambience'])
-      expect(first.audioRun.transforms.some(transform => transform.kind === 'duck')).toBe(true)
-      expect(first.audioRun.transforms.some(transform => transform.kind === 'loop')).toBe(true)
-      expect((await inspectSoundscapeAudio(join(root, first.audioRun.master.path))).durationMs).toBeGreaterThanOrEqual(1390)
-      expect(first.audioRun.master.format).toMatchObject({ codec: 'pcm_s24le', container: 'wav', sampleRate: 48000, channels: 2 })
-      const ambienceStem = first.audioRun.stems.find(stem => stem.bus === 'ambience')!
+      expect(first.mix.stems.map(stem => stem.bus)).toEqual(['dialogue', 'vocal-reaction', 'action-sfx', 'ambience'])
+      expect(first.mix.transforms.some(transform => transform.kind === 'duck')).toBe(true)
+      expect(first.mix.transforms.some(transform => transform.kind === 'loop')).toBe(true)
+      expect((await inspectSoundscapeAudio(join(root, first.mix.master.path))).durationMs).toBeGreaterThanOrEqual(1390)
+      expect(first.mix.master.format).toMatchObject({ codec: 'pcm_s24le', container: 'wav', sampleRate: 48000, channels: 2 })
+      const ambienceStem = first.mix.stems.find(stem => stem.bus === 'ambience')!
       const ambienceBeforeSpeech = await pcm24Metrics(join(root, ambienceStem.path), { start: 40, end: 160 })
       const ambienceDuringSpeech = await pcm24Metrics(join(root, ambienceStem.path), { start: 500, end: 650 })
       expect(ambienceDuringSpeech.rms).toBeLessThan(ambienceBeforeSpeech.rms * 0.8)
-      expect((await pcm24Metrics(join(root, first.audioRun.master.path))).peak).toBeLessThanOrEqual(0.96)
+      expect((await pcm24Metrics(join(root, first.mix.master.path))).peak).toBeLessThanOrEqual(0.96)
       const second = await run()
-      expect(second.audioRun.audioRunId).toBe(first.audioRun.audioRunId)
-      expect(second.audioRun.master.sha256).toBe(first.audioRun.master.sha256)
+      expect(second.mix.mixId).toBe(first.mix.mixId)
+      expect(second.mix.master.sha256).toBe(first.mix.master.sha256)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

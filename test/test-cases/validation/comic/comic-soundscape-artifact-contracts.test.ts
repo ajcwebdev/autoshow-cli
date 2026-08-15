@@ -61,21 +61,21 @@ describe('ADR-018 canonical soundscape artifact workflow', () => {
       expect(soundEffectLane?.activePeak).toBeLessThanOrEqual(2)
       for (const run of first.soundscapeRuns) {
         const published = new Uint8Array(await Bun.file(join(root, run.binding.reportedOutputPath)).arrayBuffer())
-        expect(sha256Bytes(published)).toBe(run.audioRun.master.sha256)
-        expect(run.audioRun.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
+        expect(sha256Bytes(published)).toBe(run.mix.master.sha256)
+        expect(run.mix.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
       }
       await writeInitialComicStructureManifest({ sceneRunDir: root, createdAt: soundscapePlan.createdAt, sourceIdentity: structured.sourceIdentity, structuredScript: structuredRef })
-      const selectedSoundscapeRuns = first.soundscapeRuns.map(run => ({ targetKey: run.binding.targetKey, dialogueAudioRunId: run.binding.audioRunId, soundscapeAudioRunId: run.audioRun.audioRunId, audioRunRef: run.ref.path, audioRunSha256: run.ref.sha256, masterRef: { path: run.audioRun.master.path, sha256: run.audioRun.master.sha256 } }))
-      const artifactRefs = [structuredRef, first.planRef, first.renderPlanRef, first.renderResultRef, ...firstDialogue.refs, ...secondDialogue.refs, ...first.soundscapeRuns.flatMap(run => [run.ref, run.audioRun.resolvedTimeline, run.audioRun.transformLedger, ...run.audioRun.stems, run.audioRun.master])].map(ref => ({ path: ref.path, sha256: ref.sha256 }))
+      const selectedSoundscapeRuns = first.soundscapeRuns.map(run => ({ targetKey: run.binding.targetKey, dialogueAudioRunId: run.binding.audioRunId, soundscapeAudioRunId: run.mix.mixId, audioRunRef: run.ref.path, audioRunSha256: run.ref.sha256, masterRef: { path: run.mix.master.path, sha256: run.mix.master.sha256 } }))
+      const artifactRefs = [structuredRef, first.planRef, ...(first.renderPlanRef ? [first.renderPlanRef] : []), first.renderResultRef, ...firstDialogue.refs, ...secondDialogue.refs, ...first.soundscapeRuns.flatMap(run => [run.ref, ...run.mix.stems, run.mix.master])].map(ref => ({ path: ref.path, sha256: ref.sha256 }))
       await updateComicAudioManifest({
         sceneRunDir: root, sourceIdentity: structured.sourceIdentity,
         stage: { requirement: 'required', status: 'full', execution: { kind: 'provider-targets' }, targetKeys: [renderPlan.target.targetKey], artifactRefs },
         audio: {
           sceneRunIdentity, structuredScript: structuredRef, dialoguePlanId: dialoguePlan.dialoguePlanId,
-          soundscapePlanId: soundscapePlan.soundscapePlanId, soundscapePlanRef: first.planRef, soundEffectRenderPlanRef: first.renderPlanRef, soundEffectRenderResultRef: first.renderResultRef,
+          soundscapePlanId: soundscapePlan.soundscapePlanId, soundscapePlanRef: first.planRef, ...(first.renderPlanRef ? { soundEffectRenderPlanRef: first.renderPlanRef } : {}), soundEffectRenderResultRef: first.renderResultRef,
           selectedAudioRuns: [firstDialogue.binding, secondDialogue.binding].map(binding => ({ targetKey: binding.targetKey, renderIdentity: binding.renderIdentity, audioRunId: binding.audioRunId, audioRunRef: binding.audioRunRef, audioRunSha256: binding.audioRunSha256 })),
           selectedSoundscapeRuns, publishedAudioRunId: selectedSoundscapeRuns[0]?.soundscapeAudioRunId,
-          finalOutputRefs: first.soundscapeRuns.map(run => ({ path: run.binding.reportedOutputPath, sha256: run.audioRun.master.sha256 })),
+          finalOutputRefs: first.soundscapeRuns.map(run => ({ path: run.binding.reportedOutputPath, sha256: run.mix.master.sha256 })),
         },
         providers: [first.providerState],
       })
@@ -84,11 +84,17 @@ describe('ADR-018 canonical soundscape artifact workflow', () => {
       expect(manifest?.items[0]?.status).toBe('full')
       expect(comic?.audio?.selectedSoundscapeRuns).toHaveLength(2)
       const resumed = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [firstDialogue.binding, secondDialogue.binding], adapter, concurrency: 2, hostedConcurrencyCoordinator })
-      expect(resumed.soundscapeRuns.map(run => run.audioRun.audioRunId)).toEqual(first.soundscapeRuns.map(run => run.audioRun.audioRunId))
+      expect(resumed.soundscapeRuns.map(run => run.mix.mixId)).toEqual(first.soundscapeRuns.map(run => run.mix.mixId))
       expect(calls).toBe(renderPlan.tasks.length)
       const names = (await readdir(root, { recursive: true })).map(String)
       expect(names.filter(name => name.endsWith('manifest.json'))).toEqual(['manifest.json'])
       expect(names.filter(name => name.endsWith('/result.json') || name === 'result.json')).toEqual([])
+      expect(names.some(name => name.endsWith('sfx.json'))).toBe(true)
+      expect(names.some(name => name.endsWith('mix.json'))).toBe(true)
+      expect(names.some(name => name.includes('/admissions/'))).toBe(false)
+      expect(names.some(name => name.endsWith('audio-run.json') && name.includes('soundscape'))).toBe(false)
+      expect(names.some(name => name.endsWith('resolved-soundscape-timeline.json'))).toBe(false)
+      expect(names.some(name => name.endsWith('soundscape-transform-ledger.json'))).toBe(false)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

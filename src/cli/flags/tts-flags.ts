@@ -30,8 +30,7 @@ export const ttsFlags = {
   'elevenlabs-tts-style': strFlag('ElevenLabs voice_settings style from 0 to 1'),
   'elevenlabs-tts-use-speaker-boost': boolFlag('Enable ElevenLabs voice_settings use_speaker_boost'),
   'elevenlabs-tts-seed': strFlag('ElevenLabs deterministic generation seed'),
-  'elevenlabs-tts-pronunciation-dictionary-locator': strListFlag('ElevenLabs pronunciation dictionary locator; repeatable as dictionary_id or dictionary_id:version_id'),
-  'elevenlabs-tts-optimize-streaming-latency': strFlag('ElevenLabs optimize_streaming_latency value from 0 to 4')
+  'elevenlabs-tts-pronunciation-dictionary-locator': strListFlag('ElevenLabs pronunciation dictionary locator; repeatable as dictionary_id or dictionary_id:version_id')
 } as const satisfies CliFlagsDefinition
 
 export const genericTtsOptionFlags = {
@@ -91,8 +90,7 @@ const elevenlabsTtsCommandOptionNames = [
   'elevenlabs-tts-style',
   'elevenlabs-tts-use-speaker-boost',
   'elevenlabs-tts-seed',
-  'elevenlabs-tts-pronunciation-dictionary-locator',
-  'elevenlabs-tts-optimize-streaming-latency'
+  'elevenlabs-tts-pronunciation-dictionary-locator'
 ] as const
 
 export const ttsCommandFlags = {

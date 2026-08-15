@@ -181,8 +181,7 @@ describe('option resolution contracts', () => {
         'elevenlabs-tts-speed': '1.1',
         'elevenlabs-tts-seed': '12345',
         'elevenlabs-tts-text-normalization': 'AUTO',
-        'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2'],
-        'elevenlabs-tts-optimize-streaming-latency': '2'
+        'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2']
       })
 
       expect(opts.grokTtsVoice).toBe('ab12cd34')
@@ -215,7 +214,6 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsSeed).toBe(12345)
       expect(opts.elevenlabsTtsTextNormalization).toBe('auto')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2'])
-      expect(opts.elevenlabsTtsOptimizeStreamingLatency).toBe(2)
 
       expect(() => buildOptsFromFlags(false, { 'grok-tts-language': 'xx' })).toThrow('Invalid --grok-tts-language "xx"')
       expect(() => buildOptsFromFlags(false, { 'openai-tts-speed': '0.1' })).toThrow('Invalid --openai-tts-speed value "0.1"')
@@ -230,7 +228,6 @@ describe('option resolution contracts', () => {
       expect(() => buildOptsFromFlags(false, { 'cartesia-tts': 'sonic-2' })).toThrow('Invalid model "sonic-2" for --provider/--tts cartesia[=model]')
       expect(() => buildOptsFromFlags(false, { 'deepgram-tts-sample-rate': '1.5' })).toThrow('Invalid --deepgram-tts-sample-rate value "1.5"')
       expect(() => buildOptsFromFlags(false, { 'elevenlabs-tts-text-normalization': 'always' })).toThrow('Invalid --elevenlabs-tts-text-normalization "always"')
-      expect(() => buildOptsFromFlags(false, { 'elevenlabs-tts-optimize-streaming-latency': '5' })).toThrow('Invalid --elevenlabs-tts-optimize-streaming-latency value "5"')
     })
 
   test('TTS request control flags require their matching provider selection', () => {

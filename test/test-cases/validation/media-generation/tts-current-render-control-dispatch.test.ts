@@ -3,11 +3,9 @@ import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import { hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import type {
   CanonicalAudioProviderProjection,
   MockFetchCall,
-  ProviderRenderResult,
   TtsOptions,
 } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
@@ -66,39 +64,15 @@ describe('current TTS render control dispatch', () => {
     const projection = metadata.ttsAudio as CanonicalAudioProviderProjection
     const selected = projection.selectedSuccess
     if (!selected) throw new Error('Missing selected TTS success')
-    const render = projection.renderHistory.find((entry) => entry.renderIdentity === selected.renderIdentity)
-    const event = render?.events.find((entry) => entry.sequence === selected.eventSequence)
-    if (!event?.providerRenderResultRef) throw new Error('Missing retained provider render result')
-    const renderResult = await Bun.file(join(
-      outputDir,
-      metadata.artifactDir,
-      event.providerRenderResultRef
-    )).json() as ProviderRenderResult
-
-    const observedByTurn = new Map(renderResult.observedRequests.flatMap((request) =>
-      request.turns.map((turn) => [turn.turnId, {
-        voiceHash: turn.actualSerializedVoice.valueHash,
-        controlsHash: turn.actualSerializedControlsHash
-      }] as const)
-    ))
-    expect(observedByTurn).toEqual(new Map([
-      ['dialogue-turn-001', {
-        voiceHash: sha256Bytes('alloy'),
-        controlsHash: hashCanonicalTtsValue({ responseFormat: 'wav', speed: 0.8 })
-      }],
-      ['dialogue-turn-002', {
-        voiceHash: sha256Bytes('onyx'),
-        controlsHash: hashCanonicalTtsValue({ responseFormat: 'wav', speed: 1.2 })
-      }],
-      ['dialogue-turn-003', {
-        voiceHash: sha256Bytes('alloy'),
-        controlsHash: hashCanonicalTtsValue({ responseFormat: 'wav', speed: 0.8 })
-      }]
-    ]))
-    expect(renderResult.turnOutcomes.map((outcome) => outcome.status)).toEqual([
-      'succeeded',
-      'succeeded',
-      'succeeded'
+    const archive = projection.archive
+    if (!archive) throw new Error('Missing compact TTS archive')
+    const compactRender = await Bun.file(join(outputDir, archive.renderRef.path)).json() as {
+      slots: Array<{ turnIds: string[], voiceHash: string }>
+    }
+    expect(compactRender.slots.map((slot) => slot.turnIds)).toEqual([
+      ['dialogue-turn-001'],
+      ['dialogue-turn-002'],
+      ['dialogue-turn-003'],
     ])
   }, 20_000)
 })

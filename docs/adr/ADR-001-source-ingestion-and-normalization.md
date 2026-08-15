@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
 - **Supersession:** Setup mechanics for the ACSM toolchain — plugin provisioning, managed runtime, wrappers, resolver precedence, doctor, and help — moved to ADR-004. URL execution moved to ADR-009, and pipeline state, resume, and dry-run planning belong to ADR-002. This record remains the authority on ingestion classification, normalization, and the fulfillment boundary.
 
@@ -16,7 +16,7 @@ URL sources need one stable identity model before extraction. The shared provide
 
 Discovery repeats expensive but non-authoritative work across independent CLI processes: `yt-dlp` video and collection lookups, local `ffprobe` probes, and batch-list parsing. Best-effort temporary caches may accelerate that work only when fingerprints, payload validation, stable-source checks, serialized updates, private permissions, and atomic replacement preserve the same ingestion result.
 
-AutoShow has one mature document extraction implementation, and it reads exactly two container types: EPUB and PDF. The EPUB path covers TOC/spine inspection, text cleanup, automatic chapter export, `--no-chapters`, `--length <n>`, and JSON inspection through the Bun EPUB reader; the PDF path covers page extraction and local/hosted OCR. Everything else a user thinks of as "a book" arrives in some other container, so Step 0/1 is the single place where a book-like input becomes an EPUB or PDF before Step 2 runs.
+AutoShow has one mature document extraction implementation, and it reads exactly two container types: EPUB and PDF. The EPUB path covers TOC/spine inspection, text cleanup, automatic chapter export, and JSON inspection; the PDF path covers page extraction and local/hosted OCR. Everything else a user thinks of as "a book" arrives in some other container, so Step 0/1 is the single place where a book-like input becomes an EPUB or PDF before Step 2 runs.
 
 Two source classes need that conversion, for different reasons. Several ebook formats are closer to EPUB than to PDF/image OCR workflows, but treating each separately would duplicate chapter logic. ACSM files are different from every other input: they are Adobe Content Server fulfillment documents, not the final book files. Turning an ACSM into an EPUB or PDF requires a user-authorized fulfillment flow that can contact Adobe or distributor servers and may produce DRM-protected output, so the ACSM itself must never be treated as directly extractable text.
 
@@ -67,7 +67,7 @@ Shared asynchronous JSON-cache updates take a process lock, re-read while holdin
 
 No raw book container other than EPUB and PDF is directly extractable. Every supported book-like input is converted at the Step 1 boundary into a temporary EPUB or a fulfilled EPUB/PDF, and only that normalized file enters Step 2 extraction. A format must be registered before conversion is attempted; AutoShow must not broadly probe unknown extensions.
 
-Convertible ebooks. Explicitly registered non-EPUB ebook inputs are normalized to a temporary EPUB with Calibre `ebook-convert`, then routed through the existing native EPUB extraction and chapter export path. Canonical detected formats are `mobi`, `azw3`, `fb2`, and `lit`, with `.azw` treated as `azw3` and `.prc` as `mobi`. The single registry is `metadata-convertible-ebooks.ts`, which exports `CONVERTIBLE_EBOOK_FORMATS`, `CONVERTIBLE_EBOOK_FORMAT_LABEL`, and `isConvertibleEbookFormat`; `dl-document.ts` imports it directly, and `convertible-ebooks-types.ts` derives its type from that one array.
+Convertible ebooks. Explicitly registered non-EPUB ebook inputs are normalized to a temporary EPUB with Calibre `ebook-convert`, then routed through the existing native EPUB extraction and chapter export path. Canonical detected formats are `mobi`, `azw3`, `fb2`, and `lit`, with `.azw` treated as `azw3` and `.prc` as `mobi`. Convertible formats are maintained in a single central registry (`src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`) rather than probed dynamically.
 
 ACSM. ACSM fulfillment is a local, user-authorized preprocessing step that produces an EPUB or PDF, which then reuses the existing EPUB/PDF extraction pipeline. The ingestion boundary requires a local `calibre-acsm-fulfill` implementation and invokes:
 
@@ -81,7 +81,7 @@ This applies to:
 
 - Canonical convertible formats `mobi`, `azw3`, `fb2`, `lit`, and the aliases `.azw` as `azw3` and `.prc` as `mobi`.
 - Default extraction of `epub-text` after ebook normalization.
-- EPUB features after normalization: automatic `chapters/`, `--no-chapters`, `--length <n>`, and `--epub-bun --format json`.
+- EPUB features after normalization: automatic chapter export, length truncation, and JSON inspection.
 - OCR provider flags after normalization: existing EPUB-to-PDF OCR behavior.
 - `.acsm` recognition for local files, direct URLs, content-disposition filenames, and ACSM content-type hints.
 - User-managed authorization and activation state, which must remain outside manifests, run artifacts, and logs.
@@ -99,17 +99,16 @@ It does not apply to:
 
 ## API / Type Impact
 
-Both paths write the same three Step 1 conversion metadata fields, which Step 2 then preserves:
+Both conversion paths write standard Step 1 conversion metadata fields that Step 2 extraction preserves:
 
 | Source class | `sourceFormat` | `normalizedFormat` | `conversionChain` |
 |---|---|---|---|
 | Convertible ebook | `mobi` \| `azw3` \| `fb2` \| `lit` (after alias resolution) | `epub` | `["calibre"]` |
 | ACSM fulfillment | `acsm` | `epub` \| `pdf` | `["calibre-acsm-plugin"]` |
 
-- `.acsm` is a recognized document input after local wrapper fulfillment.
-- Missing `calibre-acsm-fulfill` fails with a clear setup error rather than falling through to PDF, EPUB, OCR, hosted provider, or online-service paths.
-- Step 2 extraction sees only the normalized EPUB/PDF and uses the existing EPUB/PDF extraction behavior, including chapter export and OCR/provider handling where those already apply.
-- Step 2 result metadata records `normalizedFrom` and `conversionChain` for both paths.
+- `ConvertibleEbookFormat` type union defines explicitly supported convertible formats (`mobi`, `azw3`, `fb2`, `lit`).
+- `.acsm` is registered as a recognized document input format.
+- Step 2 extraction result metadata records `normalizedFrom` (the original source format) and `conversionChain` for downstream manifest transparency.
 
 ## Rationale
 
@@ -138,7 +137,6 @@ Negative outcomes:
 - The normalized EPUB is temporary, so debugging conversion output requires rerunning with local inspection.
 - The selected Calibre plugin workflow is less headless than `libgourou` and may require user authorization or activation state before fulfillment.
 - Adobe ID, anonymous activation, ADE-imported activation, and backup ZIP files are sensitive local state that AutoShow must not copy into run artifacts or logs.
-- ACSM/library return behavior only applies to books downloaded through the plugin, not books downloaded through ADE or other tools.
 - Fulfillment may depend on Adobe/distributor server availability and account policy even though it is not a paid AutoShow provider run.
 
 ## Trade-offs
@@ -160,6 +158,7 @@ Run default verification (`bun run check`) and local, no-cost contract validatio
 ```bash
 bun run check
 bun test test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts
+bun test test/test-cases/validation/extract-ocr/epub-contracts/acsm-support.test.ts
 ```
 
 Local/no-cost contract tests cover:
@@ -194,3 +193,4 @@ Do not run live Adobe, distributor, hosted OCR, paid-provider, smoke, e2e, or fu
 - OCR result metadata fields: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-result.ts`
 - EPUB export implementation: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export.ts`
 - Normalizable ebook contracts: `test/test-cases/validation/extract-ocr/epub-contracts/normalizable-ebooks.test.ts`
+- ACSM support contracts: `test/test-cases/validation/extract-ocr/epub-contracts/acsm-support.test.ts`

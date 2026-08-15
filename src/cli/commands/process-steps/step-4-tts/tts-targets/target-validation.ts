@@ -149,7 +149,6 @@ export const validateTtsTargetSelection = (
     || typeof selection.elevenLabsSeed === 'number'
     || selection.elevenLabsTextNormalization
     || (selection.elevenLabsPronunciationDictionaryLocators && selection.elevenLabsPronunciationDictionaryLocators.length > 0)
-    || typeof selection.elevenLabsOptimizeStreamingLatency === 'number'
   )
   if (hasElevenLabsRequestControlFlags && selection.elevenlabsModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('ElevenLabs TTS', 'elevenlabs', 'request control flags'))

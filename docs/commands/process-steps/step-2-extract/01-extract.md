@@ -40,13 +40,13 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 | Directory batches | Mixed routing per discovered item |
 | URL-list batches (`.md` / `.txt`) | Mixed routing per listed URL |
 
-Media inputs are downloaded, normalized when needed, and transcribed with local or hosted speech-to-text engines. If no STT engine flag is provided, `extract` defaults to local Whisper with the `tiny` model.
+Media inputs are downloaded, normalized when needed, and transcribed with local or hosted speech-to-text engines (defaulting to local Whisper `tiny`).
 
-Document and image inputs route through OCR or native text extraction depending on the file type. PDFs and images can use local or hosted OCR engines, EPUBs default to cleaned native text extraction, ACSM files fulfill locally to EPUB/PDF before extraction, Office-style files use native ZIP/XML or text extraction, and CSV inputs are treated as raw text.
+Document and image inputs route through OCR or native text extraction based on file type, supporting local or hosted OCR engines, native ebook/office extraction, and raw text handling.
 
-Remote article URLs and local HTML files use article extraction instead of OCR engine flags. Remote URLs default to `defuddle` and can use `--url-provider firecrawl`, `--url-provider glm-reader`, `--url-provider spider`, `--url-provider supadata`, or `--url-provider zyte`. Use `--all-providers` to run the full URL backend set (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`) and write per-provider artifacts under `providers/<backend>/`. Local `.html` and `.htm` files always use `defuddle`; with `--all-providers`, hosted URL backends are recorded as skipped.
+Remote article URLs and local HTML files use article extraction rather than OCR engines. Remote URLs default to `defuddle` (configurable via `--url-provider <backend>` or `--all-providers`), while local HTML files always use `defuddle`.
 
-X/Twitter Space URLs, post URLs, and raw Space IDs are auto-detected and processed through the X v2 API. They produce metadata artifacts rather than an STT transcript.
+X/Twitter Space URLs, post URLs, and raw Space IDs are auto-detected and processed through the X v2 API, producing metadata artifacts rather than an STT transcript.
 
 ## Batch Inputs
 

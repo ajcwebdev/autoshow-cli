@@ -133,7 +133,7 @@ Every batch root writes the same unversioned canonical `manifest.json` used by a
   },
   "items": [
     {
-      "input": "file://input/file.mp3",
+      "input": "input/file.mp3",
       "outputDir": "2026-06-10_12-00-00_file",
       "status": "full",
       "metadata": {

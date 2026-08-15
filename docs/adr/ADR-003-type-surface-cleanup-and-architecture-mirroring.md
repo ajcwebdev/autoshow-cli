@@ -15,54 +15,39 @@ The `src/types` tree (149 files) had accumulated two kinds of drag: unnecessary 
 - **Phase 2 — non-exported single-parent declarations.** Of 107 non-exported declarations, a bucket is referenced exactly once, inside one other type or interface — private aliases that can fold into their only parent.
 - **Phase 3 — architecture mirroring.** Even after declaration cleanup, type ownership was often detached from the source module it supports, and `migrated/` read as permanent architecture rather than history.
 
-Candidates for phases 1 and 2 were identified by simulating removal/inlining/merging through TypeScript language-service refactor trials in memory, against a passing `bun run check` baseline. "Safe" meant the simulated refactor produced no significant TypeScript errors; unused-import/declaration fallout was not treated as a blocker because it is expected during the real edit pass.
-
 Why now: declaration-level cleanup (phases 1–2) is the prerequisite for the structural move (phase 3); doing the moves first would churn declarations that were about to be removed. The structural phase also aligns type ownership with the ingestion, pipeline-state, and extract boundaries in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
 
 ## Options Considered
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **Phase 1: remove safe exported single-use declarations first, then inline the rest** | Shrinks exported `~/types`; prefers inference where it preserves safety; keeps inline edits where an explicit shape is still useful | Removes exported names possibly convenient for out-of-tree consumers | 262 candidates: 145 remove-capable, 222 inline-capable (overlapping) |
-| Inline every safe exported single-use declaration | Preserves explicit local annotations | Keeps unnecessary aliases where inference already suffices | 222 inline-capable |
-| **Phase 2: clean up non-exported single-parent declarations after exported cleanup** | Low-risk, internal; separates mechanical edits from API churn | Requires a second pass | 68 candidates: 62 inline/anonymous, 6 merge-into-parent, 0 removable-by-inference |
-| **Phase 3: reorganize `src/types` into an architecture-shaped tree and retire `migrated/`** | Aligns type ownership with source ownership; removes the permanent-looking migration bucket; improves review/navigation | High import churn; careful batching + barrel updates | 149 files, incl. 106 under `migrated/` |
-| Include multiple-use / internal-reference exported buckets in the same cleanup | One larger cleanup | Mixes simple strict single-use edits with repeated/type-tree-referenced declarations | Excluded: 257 one-file multiple-use + 155 internal-reference |
-| Make `src/types` exactly one-to-one with `src` | Maximum predictability | Overfits small/temporary modules; many thin dirs, noisy movement | Too granular |
-| Co-locate types beside implementation files | Strong locality | Conflicts with the central `~/types` contract; broad churn | Rejected |
-| Collapse all types into fewer domain files | Fewer files/imports | Recreates large mixed-purpose files; weakens ownership | Opposite of source modularity |
-| Leave the type surface/structure unchanged | No edit risk | Preserves indirection, root-file sprawl, and `migrated/` as long-term architecture | 0 cleanup |
+| **Three-phase cleanup: remove/inline single-use declarations, fold private single-parent aliases, and reorganize `src/types` by subsystem ownership while keeping `src/types/index.ts`** | Shrinks exported `~/types`, aligns file ownership with durable architecture, retires `migrated/`, and preserves the central public barrel | Requires phased review, import churn, and careful barrel update | 149 type files (106 in `migrated/`), 262 exported candidates, 68 non-exported candidates |
+| Inline every single-use declaration without inference removal | Preserves explicit local annotations | Leaves unnecessary type aliases where TypeScript inference suffices | 222 inline-capable |
+| Include multi-use and cross-referenced declarations in the initial cleanup | Broadest single pass | Blurs clean single-use boundaries with complex type hierarchies; increases risk | 412 deferred candidates |
+| Strict 1:1 directory mirroring between `src/` and `src/types/` | Highly predictable structure | Overfits ephemeral modules; produces directory fragmentation and thin folders | Too granular |
+| Co-locate type files beside implementation files in `src/` | Strong file locality | Conflicts with central `~/types` barrel and breaks project-wide import pattern | Repository-wide import churn |
+| Collapse types into fewer monolithic domain files | Fewer files to manage | Recreates large mixed-purpose files and obscures subsystem ownership | Reduces modularity |
+| Leave `src/types` surface and `migrated/` namespace unchanged | Zero edit risk | Preserves indirection, unnecessary aliases, and migration staging as permanent architecture | 0 cleanup |
 
 ## Decision
 
-### 1. Phase 1 — exported strict single-use cleanup
+Clean up single-use type declarations across two phases by removing inference-redundant exports and inlining private aliases, then retire `src/types/migrated/` and reorganize `src/types` around durable subsystem and workflow boundaries while keeping `src/types/index.ts` as the sole public `~/types` barrel.
 
-Clean up only the exported strict single-use bucket, in two passes: first **remove** the 145 declarations whose only use can be dropped through inference or equivalent narrowing while keeping `bun run check` clean; then **inline** the remaining inline-capable candidates whose declaration body can replace the single use. Prefer removal over inlining when inference preserves the same checking behavior. The `Only Imported/Used In One File, Multiple Uses` (257) and internal-reference (155) exported buckets are out of scope. Exported base types that are extended within their own file stay. Orphaned in-file helper/base types exposed by removals are cleaned up in the same batch. Fifteen in-scope candidates are also phase-2 parents (see §2); removing or inlining such a parent must inline/relocate its non-exported child in the same edit.
-
-> Implementation Note: implemented. Exported strict single-use declarations were removed or inlined with `bun run check` kept clean throughout. Base types extended in-file were kept as predicted — for example `RunTargetsOptionsBase` (`src/types/pipeline-core/target-runner-types.ts:11`), still extended by `RunSingleFileTargetsOptions` and `RunTargetsOptions`.
-
-### 2. Phase 2 — non-exported single-parent cleanup
-
-After phase 1, fold private one-reference declarations into their only parent: **merge** composition-style children into their parent, and **inline** the remaining nested/property/array/union/type-argument references as anonymous types. No non-exported single-parent declaration is treated as removable by inference (the trials classified none as safe). Where a chain has a declaration that is both child and parent (e.g. `GladiaResult → GladiaTranscription → GladiaUtterance`, `HtmlRewriterText → HtmlRewriterHandlers → HtmlRewriterInstance`), inline innermost-first and keep one intermediate name when full inlining (e.g. nested `NonNullable` index chains) would hurt readability. Entries sharing a phase-1 parent are resolved when phase 1 removes/inlines it; the inventory is re-validated before implementing. The 39 multi-reference non-exported declarations are out of scope.
-
-> Implementation Note: implemented 2026-06-12 after re-validating the post-phase-1 tree, which found 57 non-exported declarations referenced exactly once inside one parent; all 57 were inlined or merged. A follow-up scan found 32 remaining non-exported declarations, none matching the single-parent criterion.
-
-### 3. Phase 3 — restructure `src/types` around subsystem ownership
-
-Refactor `src/types` into a stable architecture-shaped tree that follows the `src` structure as a guide, not a strict one-to-one mirror:
-
-- `src/types/index.ts` remains the only public `~/types` barrel; no deep-path compatibility shims.
-- Every type file lives under the durable subsystem or workflow it serves; `migrated/` is retired.
-- Broad shared process/provider/config/CLI/prompt/retry/test contracts remain at the `src/types` root only where genuinely cross-cutting.
-
-This governs type-file organization only — no runtime refactors, behavior/CLI/schema changes, provider execution, or paid-provider test runs.
-
-> Implementation Note: implemented 2026-06-12. All 106 files moved out of `src/types/migrated/**` with no filename conflicts, and `index.ts` was updated to export from the final paths. The tree was subsequently regrouped by workflow rather than by mirroring the `src` command tree; the current top level is `api-clients`, `benchmarks`, `cli-surface`, `comic-workflow`, `costing`, `document-processing`, `download-workflow`, `generation-core`, `image-workflow`, `music-workflow`, `ocr-workflow`, `pipeline-core`, `provider-core`, `runtime-core`, `setup-support`, `stt-workflow`, `test-support`, `tts-workflow`, `url-workflow`, `video-workflow`, and `write-workflow`. The load-bearing parts held: one public barrel, no deep-path shims, and no remaining source/test references to `src/types/migrated`.
+1. **Phase 1 — exported strict single-use cleanup:** Remove declarations whose single use is safely handled by TypeScript inference while keeping `bun run check` clean; inline remaining single-use declarations into their consuming site. Exported base types extended within their own file remain.
+2. **Phase 2 — non-exported single-parent cleanup:** Fold private one-reference declarations into their parent types by merging composition interfaces or inlining nested shapes.
+3. **Phase 3 — subsystem ownership restructuring:** Reorganize `src/types` by subsystem and workflow domain rather than strict 1:1 file mirroring. Retire `src/types/migrated/` entirely with no deep-path compatibility shims, retaining broad shared contracts at the root only when genuinely cross-cutting.
 
 This applies to:
 
-- Exported strict single-use and non-exported single-parent type cleanup.
-- The subsystem-scoped `src/types` layout; runtime behavior and broader multiple-use type cleanup remain out of scope.
+- Exported strict single-use and non-exported single-parent type cleanup across `src/types/`.
+- Subsystem- and workflow-scoped directory organization under `src/types/`.
+- Preserving `src/types/index.ts` as the single public `~/types` barrel export.
+
+It does not apply to:
+
+- Multi-use exported declarations and multi-reference non-exported declarations (deferred to follow-up reviews).
+- Runtime behavior, CLI options, schema changes, or provider execution logic.
+- Strict 1:1 mirroring of internal module hierarchies or co-locating types beside implementation files.
 
 ## Rationale
 
@@ -70,6 +55,13 @@ This applies to:
 - Removal is preferred over inlining where inference preserves checking; inlining is reserved for shapes that still benefit from an explicit property/parameter/return/generic/union.
 - The non-exported bucket has an even narrower boundary — one reference inside one parent — and needs no exported-compat consideration, so it is purely mechanical and runs second to keep API-impacting churn separate.
 - The structural phase comes last because the prior tree already pointed at an architecture-shaped model, but `migrated/` prevented it from being the source of truth. A partial mirror of durable subsystem boundaries avoids needless directory churn, and keeping the central barrel avoids a big-bang import rewrite.
+
+## Implementation Note
+
+- Exported strict single-use declarations were removed or inlined across `src/types/`, retaining extended in-file base types, with `bun run check` passing throughout.
+- Private single-parent declarations were inlined or merged into their containing parent interfaces.
+- All 106 legacy files were moved out of `src/types/migrated/` into subsystem and workflow directories (such as `pipeline-core/`, `provider-core/`, `runtime-core/`, `cli-surface/`, and workflow-specific folders), retiring `src/types/migrated/` with zero deep-path compatibility shims.
+- `src/types/index.ts` was updated to export all subsystem types from their final paths as the sole public `~/types` barrel.
 
 ## API / Type Impact
 
@@ -80,7 +72,7 @@ Phase 1 removed and inlined exported names from `~/types`; this was treated as a
 Positive outcomes:
 
 - Smaller exported `~/types` surface; local declarations live at their only use sites; fewer aliases requiring cross-file navigation; private one-reference aliases folded into parents.
-- Maintainers can infer a type file's home from the subsystem it supports; `migrated/` stops being a permanent layer; future cleanup happens by subsystem; reviews follow the source, pipeline-state, and extract boundaries in ADR-001, ADR-002, and ADR-009.
+- Maintainers can infer a type file's home from the subsystem it supports; `migrated/` stops being a permanent layer; future cleanup happens by subsystem; reviews follow the source, pipeline-state, and extract boundaries in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
 - Each phase batches and verifies with `bun run check`.
 
 Negative outcomes:
@@ -111,9 +103,8 @@ Negative outcomes:
 
 ## References
 
-- Related source ownership boundary: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
-- Related pipeline-state ownership boundary: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
-- Related extract ownership boundary: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
-- Types tree under review: `src/types/`
-- Public type barrel: `src/types/index.ts`
-- Verification rule: `bun run check`
+- Related ADR: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
+- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
+- `src/types/`
+- `src/types/index.ts`

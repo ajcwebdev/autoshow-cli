@@ -41,7 +41,6 @@ export const ExtractionOptionsSchema = v.object({
   ocrPoolDocumentPageNumber: v.optional(v.number(), undefined),
   ocrProviderConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
   ocrLocalConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
-  keepOcrPageInputs: v.optional(v.boolean(), undefined),
   useTesseract: v.optional(v.boolean(), undefined),
   mistralOcrModel: v.optional(v.string(), undefined),
   mistralOcrModels: v.optional(v.array(v.string()), undefined),

@@ -501,6 +501,9 @@ export const validateProviderRenderPlanIdentity = (plan: ProviderRenderPlan): Pr
 export const projectCanonicalAudioProviderStatus = (
   projection: CanonicalAudioProviderProjection
 ): { status: 'missing' | 'running' | 'succeeded' | 'failed' | 'skipped', attempts: number } => {
+  if (projection.archive && projection.selectedSuccess && !projection.activeWork) {
+    return { status: 'succeeded', attempts: projection.renderHistory[0]?.events.at(-1)?.attempt ?? 0 }
+  }
   const active = projection.activeWork
   if (!active) throw CLIUsageError('New audio provider projection requires activeWork.')
   if (active.kind === 'policy-skip') {
@@ -843,9 +846,9 @@ export const validateProviderBatchResult = (
       throw CLIUsageError('Succeeded provider batch requires output and succeeded outcomes for every turn.')
     }
   }
-  if (result.provenance === 'cache-materialization') {
-    if (result.observedRequests.length !== 0 || result.retryAttempts.length !== 0 || result.createdResources.length !== 0) {
-      throw CLIUsageError('Cache-materialized batch result cannot claim provider dispatch, retry, or created resources.')
+  if (result.provenance === 'slot-reuse') {
+    if (!result.slotHash.trim() || result.observedRequests.length !== 0 || result.retryAttempts.length !== 0 || result.createdResources.length !== 0) {
+      throw CLIUsageError('Slot-reuse batch result must list one slot hash and cannot claim provider dispatch, retry, or created resources.')
     }
   } else if (result.status === 'succeeded' && result.observedRequests.length === 0) {
     throw CLIUsageError('Provider-dispatch success requires at least one serializer-observed request.')

@@ -597,7 +597,7 @@ describe('TTS completed-render recovery', () => {
     })
   })
 
-  test('materializes unchanged completed slots across a voice-profile render change', async () => {
+  test('reuses unchanged completed slots by slotHash across a voice-profile render change', async () => {
     await withTempDir('autoshow-tts-cross-render-slot-recovery-', async (dir) => {
       const text = 'Host: Keep this retained voice.\nGuest: Replace only this voice.'
       const sourceIdentity = createInlineTtsSourceIdentity(text)
@@ -609,6 +609,11 @@ describe('TTS completed-render recovery', () => {
         beforeDispatch: async () => {},
         onProviderState: async () => {}
       })
+      const firstArchive = first.metadata[0]?.ttsAudio?.archive
+      if (!firstArchive) throw new Error('Missing first compact TTS archive')
+      const firstRender = await Bun.file(join(dir, firstArchive.renderRef.path)).json() as { slots: Array<{ slotHash: string }> }
+      const reusedSlotHashes = firstRender.slots.map((slot) => slot.slotHash)
+      expect(reusedSlotHashes).toHaveLength(2)
       const retained = buildCurrentTtsProviderState(first.metadata[0]!)
       const changedVoiceOptions: TtsOptions = { ...DIALOGUE_OPTIONS, ttsSpeakers: ['Host=alloy', 'Guest=onyx'] }
       const price = await planCurrentTtsResumePrice({
@@ -636,9 +641,14 @@ describe('TTS completed-render recovery', () => {
       expect(firstCalls).toEqual([0, 1])
       expect(resumedCalls).toEqual([1])
       expect(await Bun.file(reportedOutput).exists()).toBe(true)
-      const terminal = resumed.metadata[0]?.ttsAudio?.renderHistory[0]?.events.at(-1)
-      expect(terminal?.status).toBe('succeeded')
-      expect(terminal?.batchProgress?.flatMap(batch => batch.generationSlots).map(slot => slot.source).sort()).toEqual(['cache-materialization', 'provider-dispatch'])
+      expect(resumed.metadata[0]?.ttsAudio?.archive?.slotCount).toBe(2)
+      expect(resumed.metadata[0]?.ttsAudio?.renderHistory).toEqual([])
+      expect(await Bun.file(join(dir, 'cache-materializations')).exists()).toBe(false)
+      const resumedArchive = resumed.metadata[0]?.ttsAudio?.archive
+      if (!resumedArchive) throw new Error('Missing recast compact TTS archive')
+      const resumedRender = await Bun.file(join(dir, resumedArchive.renderRef.path)).json() as { slots: Array<{ slotHash: string }> }
+      expect(resumedRender.slots.some((slot) => reusedSlotHashes.includes(slot.slotHash))).toBe(true)
+      expect(await Bun.file(join(dir, 'slots', `${resumedRender.slots.find((slot) => reusedSlotHashes.includes(slot.slotHash))?.slotHash}.wav`)).exists()).toBe(true)
       const completedState = buildCurrentTtsProviderState(resumed.metadata[0]!)
       const completedPrice = await planCurrentTtsResumePrice({
         rootDir: dir,

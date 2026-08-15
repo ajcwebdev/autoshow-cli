@@ -129,7 +129,7 @@ processOcr()
   |
   +--> hosted OCR:
          mistral, glm, kimi, openai, grok, anthropic, gemini,
-         deepinfra
+         deepinfra, replicate, fal
 ```
 
 Document extract output:

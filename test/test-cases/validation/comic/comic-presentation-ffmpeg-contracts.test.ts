@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { ComicPresentationDialogueBinding, ComicPresentationPanelInput } from '~/types'
@@ -13,6 +13,9 @@ import {
   validateResolvedPanelTimeline,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-plan'
 import {
+  PRESENTATION_ARCHIVE_PATH,
+  PRESENTATION_FINAL_MP4,
+  PRESENTATION_FINAL_WAV,
   buildPresentationAudioCommand,
   publishComicPresentationFinal,
   renderComicPresentation,
@@ -108,6 +111,12 @@ describe('comic presentation local FFmpeg rendering', () => {
       const second = await renderComicPresentation(renderInput)
       expect(second).toEqual(first)
       expect(await publishComicPresentationFinal(root, second.run)).toEqual(published)
+      expect(first.run.outputs.wav.path).toBe(PRESENTATION_FINAL_WAV)
+      expect(first.run.outputs.mp4.path).toBe(PRESENTATION_FINAL_MP4)
+      expect(first.runRef.path).toBe(PRESENTATION_ARCHIVE_PATH)
+      const names = (await readdir(root, { recursive: true })).map(String)
+      expect(names.some(name => name === PRESENTATION_ARCHIVE_PATH || name.endsWith('presentation.json'))).toBe(true)
+      expect(names.some(name => name.includes('presentation/runs') || name.includes('presentation\\runs'))).toBe(false)
       expect(first.run.encoderProfile).toMatchObject({ width: 64, height: 64, videoCodec: 'h264', pixelFormat: 'yuv420p', fps: 30, audioCodec: 'aac', transitions: 'hard-cuts' })
       expect(['libx264', 'h264_videotoolbox', 'h264_nvenc', 'h264_amf']).toContain(first.run.encoderProfile.videoEncoder)
       expect(Math.abs(first.run.outputs.mp4.durationMs - timeline.durationMs)).toBeLessThanOrEqual(1000 / 30 + 1)

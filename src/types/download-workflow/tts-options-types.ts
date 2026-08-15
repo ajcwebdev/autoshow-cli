@@ -37,7 +37,6 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsSeed: number | undefined
   elevenlabsTtsTextNormalization: string | undefined
   elevenlabsTtsPronunciationDictionaryLocators: string[] | undefined
-  elevenlabsTtsOptimizeStreamingLatency: number | undefined
   deepgramTtsModels: string[] | undefined
   deepgramTtsModel: string | undefined
   deepgramVoiceId: string | undefined
