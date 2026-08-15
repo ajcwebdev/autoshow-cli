@@ -11,6 +11,7 @@ import type {
   ComicTtsRenderContext,
   PipelineProviderState,
   ProtectedAssetRef,
+  SoundscapeAudioRun,
   Step4Metadata,
   TtsOptions,
   TtsTarget,
@@ -42,7 +43,9 @@ import { MANAGED_VOICE_STORE_ROOT } from '../../../step-4-tts/voice-management/m
 import { resolveCharacterVoiceRegistryPaths } from '../../../step-4-tts/voice-management/character-voice-registry'
 import { createHostedTtsChunkScheduler } from '../../../step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createSoundscapePlan, DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE, writeSoundscapePlan } from '../../../step-4-tts/soundscape/soundscape-planner'
-import { assertComicSoundscapeExecutionReady, createLocalSilentDialogueRun, planComicSoundscapePrice, runComicSoundscape, soundscapeReportedOutputPath } from '../../comic-utils/comic-soundscape-workflow'
+import { soundscapeAudioRunLineageRefs } from '../../comic-utils/comic-artifact-lineage-audit'
+import { assertComicSoundscapeExecutionReady, createLocalSilentDialogueRun, parseSoundEffectLicenseUseClassification, planComicSoundscapePrice, runComicSoundscape, soundscapeReportedOutputPath } from '../../comic-utils/comic-soundscape-workflow'
+import { readContainedArtifactFile } from '../../../step-4-tts/script-to-audio/safe-artifact-store'
 
 const DEFAULT_PROFILE = 'default'
 const DEFAULT_SAMPLE_RATE = 48000
@@ -122,6 +125,10 @@ const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   speechifyVoice: undefined,
   humeTtsVoice: undefined,
   cartesiaTtsVoice: undefined,
+  fishTtsVoice: undefined,
+  inworldTtsVoice: undefined,
+  deepinfraTtsVoice: undefined,
+  replicateTtsVoice: undefined,
 })
 
 export const buildTargetExecution = (input: {
@@ -278,6 +285,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   const allowAmbiguousRedispatch = flags['allow-ambiguous-redispatch'] === true
   const maxGenerationSlots = parseOptionalPositiveInteger(flags['max-generation-slots'], '--max-generation-slots')
   const sfxSelector = typeof flags['sfx-provider'] === 'string' && flags['sfx-provider'].trim() ? flags['sfx-provider'].trim() : undefined
+  const sfxLicenseUseClassification = parseSoundEffectLicenseUseClassification(flags['sfx-license-use'])
   const sfxConcurrency = parseInteger(flags['sfx-concurrency'], 2, '--sfx-concurrency')
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
@@ -329,7 +337,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     timingPolicy: soundscapeTimingPolicy,
   })
   const retainedSoundEffectPlanRef = compatible.comicMetadata.audio.soundEffectRenderPlanRef
-  const soundscapePrice = await planComicSoundscapePrice({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, selector: sfxSelector, ...(retainedSoundEffectPlanRef ? { retainedPlanRef: retainedSoundEffectPlanRef } : {}) })
+  const soundscapePrice = await planComicSoundscapePrice({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, selector: sfxSelector, licenseUseClassification: sfxLicenseUseClassification, ...(retainedSoundEffectPlanRef ? { retainedPlanRef: retainedSoundEffectPlanRef } : {}) })
   const soundEffectRenderPlan = soundscapePrice.renderPlan
   if (turns.length === 0 && !soundEffectRenderPlan) {
     if (price) {
@@ -588,7 +596,6 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     })
     await appendComicAudioProviderState({ sceneRunDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, targetKeys: stageTargetKeys, state: soundscape.providerState })
     soundscapeMetadata = { soundEffectRenderPlanRef: soundscape.renderPlanRef, soundEffectRenderResultRef: soundscape.renderResultRef }
-    soundscapeArtifactRefs = [soundscape.planRef, soundscape.renderPlanRef, soundscape.renderResultRef, ...soundscape.soundscapeRuns.flatMap(run => [run.ref, run.audioRun.transformLedger, run.audioRun.resolvedTimeline, ...run.audioRun.stems.map(stem => ({ path: stem.path, sha256: stem.sha256 })), { path: run.audioRun.master.path, sha256: run.audioRun.master.sha256 }])]
     soundscapeRequiredFailure = soundscape.providerState.status !== 'succeeded'
     if (!soundscapeRequiredFailure) {
       const runByTarget = new Map(selectedSoundscapeRuns.map(run => [run.targetKey, run] as const))
@@ -607,6 +614,20 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
         return soundscapeOutput ? { path: soundscapeOutput.path, sha256: soundscapeOutput.master.sha256 } : { path: entry.audioFileName, sha256: finalOutputRefs.find(ref => ref.path === entry.audioFileName)?.sha256 ?? '' }
       })
     }
+    const runByMixedTarget = new Map(soundscape.soundscapeRuns.map(run => [run.binding.targetKey, run] as const))
+    const retainedSoundscapeRefs: Array<{ path: string, sha256: string }> = []
+    for (const binding of selectedSoundscapeRuns) {
+      retainedSoundscapeRefs.push({ path: binding.audioRunRef, sha256: binding.audioRunSha256 }, binding.masterRef)
+      const mixed = runByMixedTarget.get(binding.targetKey)
+      if (mixed) {
+        retainedSoundscapeRefs.push(...soundscapeAudioRunLineageRefs(mixed.audioRun))
+        continue
+      }
+      const stored = await readContainedArtifactFile(compatible.sceneRunDir, binding.audioRunRef)
+      if (stored.sha256 !== binding.audioRunSha256) throw CLIUsageError(`Retained soundscape AudioRun checksum is stale: ${binding.audioRunRef}`)
+      retainedSoundscapeRefs.push(...soundscapeAudioRunLineageRefs(JSON.parse(stored.bytes.toString('utf8')) as SoundscapeAudioRun))
+    }
+    soundscapeArtifactRefs = [soundscape.planRef, soundscape.renderPlanRef, soundscape.renderResultRef, ...retainedSoundscapeRefs]
   }
   const selectedRunByTarget = new Map((compatible.comicMetadata.audio.selectedAudioRuns ?? []).map(run => [run.targetKey, run] as const))
   for (const run of selectedAudioRuns) selectedRunByTarget.set(run.targetKey, run)

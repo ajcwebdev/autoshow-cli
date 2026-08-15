@@ -263,6 +263,20 @@ export const runReplicatePrediction = async (
   })
 }
 
+export const cancelReplicatePrediction = async (options: {
+  apiToken: string
+  cancelUrl: string
+  operationName: string
+}): Promise<void> => {
+  await fetchReplicateJson(
+    options.cancelUrl,
+    options.apiToken,
+    { method: 'POST' },
+    `${options.operationName} cancel`,
+    'runtime_http_read'
+  )
+}
+
 export const normalizeReplicateOutputUris = (output: unknown): string[] => {
   if (typeof output === 'string' && output.trim().length > 0) {
     return [output]

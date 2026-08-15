@@ -8,7 +8,7 @@ import { ProviderError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION } from './inworld-tts-request'
+import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, normalizeInworldTimestampInfo } from './inworld-tts-request'
 
 export type RunInworldTtsOptions = Readonly<{
   model: InworldTtsModel
@@ -22,13 +22,8 @@ export type RunInworldTtsOptions = Readonly<{
 }>
 
 export const parseInworldMarkups = (text: string): { sanitizedText: string, markups: string[] } => {
-  const markupRegex = /\[(happy|sad|angry|fearful|disgusted|surprised|calm|whisper|breathe|cough|sigh|laugh)\]/gi
-  const markups: string[] = []
-  const sanitizedText = text.replace(markupRegex, (_match, markup) => {
-    markups.push(markup.toLowerCase())
-    return ''
-  }).trim()
-  return { sanitizedText: sanitizedText || text, markups }
+  const markups = [...text.matchAll(/\[([^\]\r\n]+)\]/g)].map(match => match[1] as string)
+  return { sanitizedText: text, markups }
 }
 
 export const runInworldTts = async (
@@ -38,6 +33,9 @@ export const runInworldTts = async (
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   if (!options.apiKey.trim()) {
     throw ValidationError('Inworld AI API key is required', { stage: 'tts:inworld' })
+  }
+  if (options.model === 'realtime-tts-2-flash' && options.steeringPrompt?.trim()) {
+    throw ValidationError('Inworld steering is not supported by realtime-tts-2-flash', { stage: 'tts:inworld' })
   }
   const voice = validateInworldTtsVoice(options.voiceId?.trim() || INWORLD_DEFAULT_TTS_VOICE)
   const { sanitizedText, markups } = parseInworldMarkups(text)
@@ -62,7 +60,7 @@ export const runInworldTts = async (
     speaker: voice,
     chunks,
     outputDir,
-    chunkExtension: 'mp3',
+    chunkExtension: 'wav',
     startTime: Date.now(),
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
@@ -70,13 +68,9 @@ export const runInworldTts = async (
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       const resolvedVoice = voice === 'voice_inworld_standard_en' ? 'Dennis' : voice
-      const body = buildInworldTtsRequestBody({
-        model: options.model,
-        text: chunk,
-        voiceId: resolvedVoice,
-        steeringPrompt: options.steeringPrompt,
-        markups
-      })
+      const body = options.model === 'realtime-tts-2'
+        ? buildInworldTtsRequestBody({ model: options.model, text: chunk, voiceId: resolvedVoice, steeringPrompt: options.steeringPrompt })
+        : buildInworldTtsRequestBody({ model: options.model, text: chunk, voiceId: resolvedVoice })
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'realtime-tts',
@@ -89,9 +83,10 @@ export const runInworldTts = async (
         voiceField: 'voiceId',
         voices: [{ kind: 'provider-id', value: voice }],
         requestControls: {
-          format: 'mp3',
+          format: 'wav',
+          timestampType: 'WORD',
+          audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 },
           ...(options.steeringPrompt ? { steeringPrompt: options.steeringPrompt } : {}),
-          ...(markups.length > 0 ? { markups } : {})
         },
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
@@ -128,7 +123,11 @@ export const runInworldTts = async (
         if (audio.byteLength === 0) {
           throw ValidationError('Inworld AI TTS response contained empty audioContent', { stage: 'tts:inworld:response' })
         }
-        return audio
+        const timestampInfo = isRecord(data) ? data['timestampInfo'] : undefined
+        return {
+          audio,
+          timing: identity => normalizeInworldTimestampInfo({ text: chunk, timestampInfo, identity })
+        }
       })
     }
   })

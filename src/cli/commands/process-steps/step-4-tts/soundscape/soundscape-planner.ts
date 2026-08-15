@@ -15,6 +15,7 @@ export const DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE: SoundscapeMixProfile = {
     thresholdDb: -32,
     attackMs: 30,
     releaseMs: 350,
+    ratio: 7,
   },
   bedLoopCrossfadeMs: 120,
   panLaw: 'constant-power',
@@ -43,7 +44,7 @@ export const validateSoundscapeMixProfile = (profile: SoundscapeMixProfile): Sou
   if (profile.loudness.mode === 'ebu-r128' && profile.loudness.integratedLufs === undefined) throw CLIUsageError('EBU R128 soundscape mastering requires an integrated LUFS target.')
   const duck = profile.ambienceDucking
   for (const [name, value] of Object.entries(duck).filter((entry): entry is [string, number] => typeof entry[1] === 'number')) finite(value, `Soundscape ambience ducking ${name}`)
-  if (duck.sidechainBuses[0] !== 'dialogue' || duck.sidechainBuses[1] !== 'vocal-reaction' || duck.depthDb < 0 || duck.detectorWindowMs <= 0 || duck.attackMs < 0 || duck.releaseMs < 0) throw CLIUsageError('Soundscape ambience ducking controls are invalid.')
+  if (duck.sidechainBuses[0] !== 'dialogue' || duck.sidechainBuses[1] !== 'vocal-reaction' || duck.depthDb < 0 || duck.detectorWindowMs <= 0 || duck.attackMs < 0 || duck.releaseMs < 0 || duck.ratio < 1) throw CLIUsageError('Soundscape ambience ducking controls are invalid.')
   if (![profile.bedLoopCrossfadeMs, profile.fadeInMs, profile.fadeOutMs].every(value => Number.isSafeInteger(value) && value >= 0)) throw CLIUsageError('Soundscape loop crossfade and fade durations must be non-negative integer milliseconds.')
   if (!Number.isSafeInteger(profile.sampleRate) || profile.sampleRate <= 0 || ![1, 2].includes(profile.channels) || !['pcm_s16le', 'pcm_s24le'].includes(profile.codec) || profile.container !== 'wav') throw CLIUsageError('Soundscape master output profile must be PCM WAV with a positive sample rate and one or two channels.')
   finite(profile.limiter.ceiling, 'Soundscape limiter ceiling')
@@ -55,6 +56,10 @@ export const validateSoundscapeMixProfile = (profile: SoundscapeMixProfile): Sou
 const validateAnchor = (anchor: SoundscapePlan['cues'][number]['anchor'], structuredScript: StructuredScriptData, label: string): void => {
   if (anchor.kind === 'scene-clock') {
     if (!Number.isSafeInteger(anchor.positionMs) || anchor.positionMs < 0) throw CLIUsageError(`${label} scene-clock position must be a non-negative integer number of milliseconds.`)
+    return
+  }
+  if (anchor.kind === 'resolved-scene-edge') {
+    if (anchor.edge !== 'start' && anchor.edge !== 'end') throw CLIUsageError(`${label} resolved scene edge must be start or end.`)
     return
   }
   const segment = structuredScript.sourceSegments.find(candidate => candidate.id === anchor.sourceSegmentId)

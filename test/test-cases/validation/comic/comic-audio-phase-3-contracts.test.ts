@@ -47,8 +47,9 @@ const createDummyRun = (): TtsTarget['run'] => async () => ({
 
 describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
   test('Fish Audio capability fixture declares single-speaker TTS, S2 Pro native dialogue, and voice design', () => {
-    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'turn-synthesis')).toBeTrue()
-    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'native-dialogue')).toBeTrue()
+    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'turn-synthesis' && c.adapterSupport === 'implemented')).toBeTrue()
+    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'native-dialogue' && 'model' in c.scope && c.scope.model === 's2-pro' && c.adapterSupport === 'implemented')).toBeTrue()
+    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'word-timing' && 'model' in c.scope && c.scope.model === 's2-pro' && c.adapterSupport === 'implemented')).toBeTrue()
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'voice-design')).toBeTrue()
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'instant-clone')).toBeTrue()
   })
@@ -79,7 +80,9 @@ describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
 
     installMockFetch((call) => {
       if (call.url.includes('/voice-design')) {
-        return new Response(JSON.stringify({ audio: Buffer.from(mockWav).toString('base64'), duration: 3.5 }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({
+          candidates: [{ id: 'fish-candidate-0', index: 0, audio_base64: Buffer.from(mockWav).toString('base64'), sample_rate: 44100, duration_ms: 3500 }],
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } })
       }
       if (call.url.includes('/model')) {
         return new Response(JSON.stringify({ _id: 'fish-model-99', title: 'New Fish Voice', state: 'ready' }), { status: 200, headers: { 'Content-Type': 'application/json' } })

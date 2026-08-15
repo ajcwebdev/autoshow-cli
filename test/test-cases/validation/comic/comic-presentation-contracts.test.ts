@@ -8,7 +8,7 @@ import {
   reconcilePresentationSoundEffects,
   resolveComicPanelTimeline,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-plan'
-import { loadCanonicalPresentationPanels, loadPresentationAudio, preparePresentationVisualInputs, resolvePresentationVisualInputs, selectPresentationAudioBinding } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-inputs'
+import { assertPresentationSoundEffectResult, loadCanonicalPresentationPanels, loadPresentationAudio, preparePresentationVisualInputs, resolvePresentationVisualInputs, selectPresentationAudioBinding } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-inputs'
 import type { CompatibleComicSceneRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run'
 import { createLocalSilentDialogueRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-soundscape-workflow'
 import { createStructuredScriptArtifactRef } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
@@ -252,6 +252,12 @@ describe('comic presentation audio selection', () => {
     const compatible = compatibleAudioFixture({ selectedAudioRuns: [firstDialogue, secondDialogue] }, [provider('target-a', 'fixture', 'voice'), provider('target-b', 'fixture', 'voice')])
     expect(() => selectPresentationAudioBinding(compatible, 'fixture=voice')).toThrow('is ambiguous in canonical selected audio metadata')
     expect(() => selectPresentationAudioBinding(compatible, 'fixture=missing')).toThrow('does not name a complete selected comic dialogue or soundscape run')
+  })
+
+  test('accepts a succeeded sound-effect result reused from an earlier SoundscapePlan identity', () => {
+    expect(() => assertPresentationSoundEffectResult({ resultId: HASH, status: 'succeeded' }, HASH)).not.toThrow()
+    expect(() => assertPresentationSoundEffectResult({ resultId: 'b'.repeat(64), status: 'succeeded' }, HASH)).toThrow('does not match the soundscape AudioRun binding')
+    expect(() => assertPresentationSoundEffectResult({ resultId: HASH, status: 'failed' }, HASH)).toThrow('is not a complete success')
   })
 
   test('verifies retained AudioRun checksums before accepting a complete dialogue target', async () => {

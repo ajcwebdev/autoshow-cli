@@ -1,6 +1,10 @@
 import type { SoundEffectCapabilityFixture, SoundEffectGenerationResponse, SoundEffectRenderTask, SoundEffectRequestEvidence, SoundEffectTarget } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { resolveReplicateAudioGenTarget } from './replicate-audiogen-adapter'
+import { SoundEffectProviderError } from './sound-effect-errors'
+
+export { SoundEffectProviderError } from './sound-effect-errors'
 
 const DOCS = [
   'https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert',
@@ -46,19 +50,6 @@ export type ElevenLabsSoundEffectHttpRequest = (input: {
   cancellation: AbortSignal
 }) => Promise<{ status: number, headers?: Headers | Record<string, string> | undefined, body: Uint8Array }>
 
-export class SoundEffectProviderError extends Error {
-  constructor(
-    message: string,
-    readonly retryable: boolean,
-    readonly admissionDisposition: 'rejected' | 'ambiguous',
-    readonly status?: number | undefined,
-    readonly headers?: Headers | Record<string, string> | undefined
-  ) {
-    super(message)
-    this.name = 'SoundEffectProviderError'
-  }
-}
-
 const header = (headers: Headers | Record<string, string> | undefined, name: string): string | undefined => {
   if (!headers) return undefined
   if (headers instanceof Headers) return headers.get(name) ?? undefined
@@ -79,13 +70,10 @@ const defaultRequest = (apiKey: string): ElevenLabsSoundEffectHttpRequest => asy
 
 export const resolveSoundEffectTarget = (selector: string, options: { outputFormat?: string | undefined, promptInfluence?: number | undefined } = {}): SoundEffectTarget => {
   const match = /^([^=]+)=([^=]+)$/u.exec(selector.trim())
-  if (!match?.[1] || !match[2]) throw CLIUsageError('--sfx-provider must use provider=model syntax, for example elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen.')
+  if (!match?.[1] || !match[2]) throw CLIUsageError('--sfx-provider must use provider=model syntax, for example elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8.')
   const provider = match[1].toLowerCase()
   const model = match[2]
-  if (provider === 'replicate') {
-    const { resolveReplicateAudioGenTarget } = require('./replicate-audiogen-adapter')
-    return resolveReplicateAudioGenTarget(model, options)
-  }
+  if (provider === 'replicate') return resolveReplicateAudioGenTarget(model, options)
   if (provider !== 'elevenlabs') throw CLIUsageError(`Unsupported sound-effect provider ${provider}; expected elevenlabs or replicate.`)
   if (model !== ELEVENLABS_SFX_CAPABILITY_FIXTURE.model) throw CLIUsageError(`Unsupported ElevenLabs sound-effect model ${model}; expected ${ELEVENLABS_SFX_CAPABILITY_FIXTURE.model}.`)
   const outputFormat = options.outputFormat ?? 'mp3_44100_128'

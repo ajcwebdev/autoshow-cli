@@ -66,7 +66,8 @@ describe('ADR-018 structured soundscape contracts', () => {
   test('rejects malformed or out-of-range authored sound controls locally', () => {
     expect(() => parseScriptMarkdownToStructuredData(source.replace('duration: 12s', 'duration: 31s'), 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })).toThrow(/between 0\.5 and 30 seconds/iu)
     expect(() => parseScriptMarkdownToStructuredData(source.replace('pan: 0.4', 'pan: 1.1'), 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })).toThrow(/pan must be between -1 and 1/iu)
-    expect(() => parseScriptMarkdownToStructuredData(source.replace('gain: -2dB', 'volume: -2dB'), 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })).toThrow(/expected duration, gain, or pan/iu)
+    expect(() => parseScriptMarkdownToStructuredData(source.replace('gain: -2dB', 'volume: -2dB'), 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })).toThrow(/expected duration, gain, pan, from, or to/iu)
+    expect(() => parseScriptMarkdownToStructuredData(source.replace('[[SFX: {duration: 1.5s, pan: 0.4} console chirp]]', '[[SFX: {from: scene-start, to: scene-end} console chirp]]'), 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })).toThrow(/only valid on AMBIENCE/iu)
   })
 
   test('rejects v4 and separates generation identity from placement and mix identity', async () => {
@@ -88,5 +89,33 @@ describe('ADR-018 structured soundscape contracts', () => {
     expect(proportional.synthesisTasks.map(task => task.generationIdentity)).toEqual(first.synthesisTasks.map(task => task.generationIdentity))
     expect(proportional.mixIdentity).not.toBe(first.mixIdentity)
     expect(proportional.soundscapePlanId).not.toBe(first.soundscapePlanId)
+  })
+
+  test('includes authored controls in cue identity and parses explicit ambient ranges', () => {
+    const louder = source.replace('gain: -1dB', 'gain: -6dB')
+    const ranged = [
+      '# Episode',
+      '',
+      '## Scene: "Sound"',
+      '',
+      '**INT. SHIP BRIDGE**',
+      '',
+      '**AMBIENCE:** {from: scene-start, to: next-line-start} low engine room hum',
+      '',
+      '**PILOT**',
+      'Ready for launch.',
+      '',
+      '**AMBIENCE:** {from: previous-line-end, to: scene-end} corridor ventilation',
+    ].join('\n')
+    const initial = parseScriptMarkdownToStructuredData(source, 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })
+    const structured = parseScriptMarkdownToStructuredData(source, 'input/sound.md', { sourceIdentity: initial.sourceIdentity, characterCatalog: characters, locationCatalog: locations })
+    const louderStructured = parseScriptMarkdownToStructuredData(louder, 'input/sound.md', { sourceIdentity: initial.sourceIdentity, characterCatalog: characters, locationCatalog: locations })
+    const rangedStructured = parseScriptMarkdownToStructuredData(ranged, 'input/ranged.md', { characterCatalog: characters, locationCatalog: locations })
+    expect(louderStructured.scene.soundscape.cues[0]?.cueId).not.toBe(structured.scene.soundscape.cues[0]?.cueId)
+    expect(rangedStructured.scene.soundscape.ambientBeds).toMatchObject([
+      { prompt: 'low engine room hum', range: { kind: 'anchors', start: { kind: 'resolved-scene-edge', edge: 'start' }, end: { kind: 'source-segment-edge', edge: 'start' } } },
+      { prompt: 'corridor ventilation', range: { kind: 'anchors', start: { kind: 'source-segment-edge', edge: 'end' }, end: { kind: 'resolved-scene-edge', edge: 'end' } } },
+    ])
+    expect(() => parseScriptMarkdownToStructuredData(source.replace('OPTIONAL {duration: 12s, gain: -2dB, pan: 0}', 'OPTIONAL {from: scene-start}'), 'input/sound.md', { characterCatalog: characters, locationCatalog: locations })).toThrow(/requires both from and to/iu)
   })
 })

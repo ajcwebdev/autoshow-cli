@@ -15,7 +15,7 @@ export const runHostedTtsChunkPipeline = async (
     const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
       const chunkIndex = index + 1
       const chunkPath = `${outputDir}/speech-${provider}-chunk-${String(chunkIndex).padStart(3, '0')}.${options.chunkExtension}`
-      const audioBytes = await withHostedTtsRetry(
+      const fetchResult = await withHostedTtsRetry(
         {
           operationName: `${provider}-tts-chunk-${chunkIndex}`,
           abortSignal: options.abortSignal,
@@ -32,13 +32,15 @@ export const runHostedTtsChunkPipeline = async (
           ...(requestAttempt.retryReasonCode ? { retryReasonCode: requestAttempt.retryReasonCode } : {})
         })
       )
+      const audioBytes = fetchResult instanceof Uint8Array ? fetchResult : fetchResult.audio
+      const timingFactory = fetchResult instanceof Uint8Array ? undefined : fetchResult.timing
 
       if (audioBytes.byteLength === 0) {
         throw InfraError(`${providerLabel} TTS returned empty audio`, { stage: `tts:${provider}` })
       }
 
       await Bun.write(chunkPath, audioBytes)
-      await options.requestEvidence?.recordOutput({ chunkIndex, path: chunkPath })
+      await options.requestEvidence?.recordOutput({ chunkIndex, path: chunkPath, ...(timingFactory ? { timingFactory } : {}) })
       await options.requestEvidence?.complete({ chunkIndex })
       chunkPaths.push(chunkPath)
       return chunkPath

@@ -10,6 +10,7 @@ import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/re
 import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
+import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 export type RunReplicateTtsOptions = Readonly<{
@@ -24,6 +25,38 @@ export type RunReplicateTtsOptions = Readonly<{
 }>
 
 export const REPLICATE_KOKORO_VERSION = 'f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13'
+export const REPLICATE_KOKORO_MODEL_ID = 'jaaari/kokoro-82m' as const
+export const REPLICATE_KOKORO_SERIALIZER_VERSION = 'replicate.kokoro.v1' as const
+
+const KOKORO_FIXTURE_BASE = {
+  schemaVersion: 1 as const,
+  provider: 'replicate' as const,
+  model: REPLICATE_KOKORO_MODEL_ID,
+  pinnedVersion: REPLICATE_KOKORO_VERSION,
+  transport: 'hosted-api' as const,
+  endpoint: '/v1/predictions' as const,
+  serializerVersion: REPLICATE_KOKORO_SERIALIZER_VERSION,
+  inputSchema: { text: 'string', voice: 'stock-voice-id', speed: 'optional-number-0.1-5' } as const,
+  defaultVoice: 'af_bella' as const,
+  checkedAt: '2026-08-14' as const,
+  sourceRefs: [
+    'https://replicate.com/jaaari/kokoro-82m',
+    'https://replicate.com/jaaari/kokoro-82m/api',
+    'https://replicate.com/jaaari/kokoro-82m/api/schema',
+    'https://replicate.com/jaaari/kokoro-82m/readme',
+    'https://replicate.com/docs/reference/http#create-a-prediction',
+  ],
+  pricing: {
+    currency: 'USD' as const,
+    typicalPerPredictionCents: 0.022,
+    inputDependent: true,
+  },
+}
+
+export const REPLICATE_KOKORO_TTS_FIXTURE = {
+  ...KOKORO_FIXTURE_BASE,
+  fixtureHash: hashCanonicalTtsValue(KOKORO_FIXTURE_BASE),
+}
 
 export const runReplicateTts = async (
   text: string,
@@ -68,7 +101,7 @@ export const runReplicateTts = async (
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'predictions',
-        serializerVersion: 'replicate.kokoro.v1',
+        serializerVersion: REPLICATE_KOKORO_SERIALIZER_VERSION,
         serializedRequest: {
           path: '/v1/predictions',
           body: {
@@ -136,7 +169,7 @@ export const runReplicateTts = async (
           }
           const audio = new Uint8Array(await audioRes.arrayBuffer())
           if (audio.byteLength === 0) {
-            throw ValidationError('Replicate TTS audio download was empty', { stage: 'tts:replicate:download' })
+            throw ValidationError('Replicate TTS audio download was empty', { stage: 'tts:replicate:download', retryable: false })
           }
           return audio
         }, (error) => classifyFetchRetry(error, 'runtime_http_read'))

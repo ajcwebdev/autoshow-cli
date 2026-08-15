@@ -16,6 +16,18 @@ export type SoundscapeAnchor =
   | { kind: 'scene-clock', positionMs: number }
   | { kind: 'source-segment-edge', sourceSegmentId: string, edge: 'start' | 'end', offsetMs: number }
   | { kind: 'source-text-offset', sourceSegmentId: string, textOffset: number, indexUnit: 'unicode-scalar-value', offsetMs: number }
+  | { kind: 'resolved-scene-edge', edge: 'start' | 'end' }
+
+export type SoundscapeCueRoute = 'dedicated-sfx' | 'unsupported'
+
+export type SoundscapeCueRoutingDecision = {
+  cueId: string
+  kind: SoundscapeCueKind | 'ambience'
+  required: boolean
+  route: SoundscapeCueRoute
+  targetKey?: string | undefined
+  reason?: string | undefined
+}
 
 export type AuthoredSoundscapeCue = {
   cueId: string
@@ -69,6 +81,7 @@ export type SoundscapeMixProfile = {
     thresholdDb: number
     attackMs: number
     releaseMs: number
+    ratio: number
   }
   bedLoopCrossfadeMs: number
   panLaw: 'constant-power'
@@ -103,30 +116,60 @@ export type SoundscapePlan = {
 export type ResolvedSoundscapeAnchorResolution = {
   anchorRole: 'point' | 'range-start' | 'range-end'
   policy: SoundscapeTimingPolicy
-  algorithm: 'scene-clock-v1' | 'source-segment-edge-v1' | 'prepared-provider-timing-v1' | 'canonical-offset-linear-v1'
+  algorithm: 'scene-clock-v1' | 'source-segment-edge-v1' | 'prepared-provider-timing-v1' | 'canonical-offset-linear-v1' | 'resolved-scene-edge-v1'
   positionMs: number
   inputEvidenceHash: string
   errorBoundMs: number
 }
 
 export type SoundEffectProvider = 'elevenlabs' | 'replicate'
+export type SoundEffectLicenseUseClassification = 'noncommercial' | 'commercial' | 'unknown'
+export type SoundEffectDispatchAvailability = 'available' | 'unavailable' | 'retired'
+export type SoundEffectCommunityLifecycle = 'official' | 'community-unofficial'
+
+export type SoundEffectLicenseUse = {
+  schemaVersion: 1
+  classification: SoundEffectLicenseUseClassification
+  fixtureHash: string
+  permittedUse?: 'noncommercial' | 'commercial' | undefined
+  licenseProvenance?: string | undefined
+  sourceRefs: string[]
+  evidenceHash: string
+}
 
 export type SoundEffectCapabilityFixture = {
   schemaVersion: 1
   provider: SoundEffectProvider
+  owner?: string | undefined
   model: string
   pinnedVersion?: string | undefined
   transport: 'hosted-api'
   endpoint: string
   serializerVersion: string
+  inputSchema?: Record<string, string> | undefined
+  outputSchema?: Record<string, string> | undefined
+  hardwareObservation?: {
+    accelerator: string
+    typicalPredictSeconds?: number | undefined
+    observedAt: string
+  } | undefined
+  upstreamSource?: string | undefined
+  communityLifecycle?: SoundEffectCommunityLifecycle | undefined
   licenseProvenance?: string | undefined
   permittedUse?: 'noncommercial' | 'commercial' | undefined
+  dispatchAvailability?: SoundEffectDispatchAvailability | undefined
   checkedAt: string
   sourceRefs: string[]
   constraints: {
     promptMaxScalars: number
     durationSeconds: { min: number, max: number, default?: number | undefined, optional?: boolean | undefined }
     promptInfluence?: { min: number, max: number, default: number } | undefined
+    sampling?: {
+      topK: number
+      topP: number
+      temperature: number
+      classifierFreeGuidance: number
+    } | undefined
     loopModels?: string[] | undefined
     outputFormats: string[]
   }
@@ -134,6 +177,8 @@ export type SoundEffectCapabilityFixture = {
     currency: 'USD'
     specifiedDurationPerMinute: number
     automaticDurationPerRequest: number | null
+    typicalPerPrediction?: number | undefined
+    inputDependent?: boolean | undefined
   }
   capabilityFixtureHash: string
 }
@@ -161,6 +206,8 @@ export type SoundEffectRenderPlan = {
   target: SoundEffectTarget
   tasks: SoundEffectRenderTask[]
   plannedCost: { amount: number | null, currency: 'USD', basis: string }
+  routingDecisions?: SoundscapeCueRoutingDecision[] | undefined
+  licenseUse?: SoundEffectLicenseUse | undefined
   createdAt: string
 }
 

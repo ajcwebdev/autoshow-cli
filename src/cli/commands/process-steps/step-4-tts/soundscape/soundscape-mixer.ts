@@ -148,7 +148,7 @@ const duckAmbience = async (input: { ambience: string, drivers: string[], output
   const detectorSamples = Math.max(1, Math.round(profile.sampleRate * duck.detectorWindowMs / 1000))
   const driver = input.drivers.length === 1 ? `[1:a]asetnsamples=n=${detectorSamples}:p=1[driver]` : `${driverLabels}amix=inputs=${input.drivers.length}:duration=longest:normalize=0,asetnsamples=n=${detectorSamples}:p=1[driver]`
   const threshold = 10 ** (duck.thresholdDb / 20)
-  const ratio = Math.max(1, 1 + duck.depthDb / 1.5)
+  const ratio = Math.max(1, duck.ratio)
   const filters = `${driver};[0:a][driver]sidechaincompress=threshold=${threshold.toFixed(8)}:ratio=${ratio.toFixed(4)}:attack=${duck.attackMs}:release=${duck.releaseMs}:makeup=1,${deterministicOutputFormat(input.plan)}[ducked]`
   await runFfmpeg(['-i', input.ambience, ...input.drivers.flatMap(path => ['-i', path]), '-filter_complex', filters, '-map', '[ducked]', '-ar', String(profile.sampleRate), '-ac', String(profile.channels), '-c:a', profile.codec, '-bitexact', '-y', input.output], 'ducked ambience stem', input.cancellation)
 }

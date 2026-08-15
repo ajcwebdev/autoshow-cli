@@ -5,11 +5,12 @@ import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { validateDeepinfraTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ProviderError, ValidationError } from '~/utils/error-handler'
-import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import {
   buildDeepinfraTtsRequestBody,
+  decodeDeepinfraTtsAudio,
   DEEPINFRA_TTS_SERIALIZER_VERSION,
   prepareDeepinfraTtsText,
   resolveDeepinfraTtsDefaultVoice,
@@ -121,27 +122,7 @@ export const runDeepinfraTts = async (
           providerRequestId: res.headers.get('x-request-id') ?? undefined,
           fields: { httpStatus: res.status }
         })
-        const contentType = res.headers.get('content-type')?.toLowerCase() ?? ''
-        if (contentType.startsWith('audio/') || contentType.includes('application/octet-stream')) {
-          const audio = new Uint8Array(await res.arrayBuffer())
-          if (audio.byteLength === 0) {
-            throw ValidationError('DeepInfra TTS returned an empty audio response', { stage: 'tts:deepinfra:response' })
-          }
-          return audio
-        }
-        const json = await readJsonResponse(res, 'DeepInfra TTS response')
-        const b64 = isRecord(json)
-          ? (typeof json['audio'] === 'string' ? json['audio'] : json['audio_b64'])
-          : undefined
-        if (typeof b64 === 'string' && b64.trim().length > 0) {
-          const cleanB64 = b64.includes('base64,') ? (b64.split('base64,')[1] ?? b64) : b64
-          const audio = new Uint8Array(Buffer.from(cleanB64, 'base64'))
-          if (audio.byteLength === 0) {
-            throw ValidationError('DeepInfra TTS returned empty base64 audio', { stage: 'tts:deepinfra:response' })
-          }
-          return audio
-        }
-        throw ValidationError('DeepInfra TTS response did not contain audio', { stage: 'tts:deepinfra:response' })
+        return await decodeDeepinfraTtsAudio(res)
       })
     }
   })

@@ -179,5 +179,6 @@ export type ComicGenerateAudioOptions = {
   codec: 'pcm_s16le' | 'pcm_s24le'
   price: boolean
   sfxProvider?: string | undefined
+  sfxLicenseUse?: string | undefined
   sfxConcurrency?: number | undefined
 }

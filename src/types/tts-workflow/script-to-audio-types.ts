@@ -898,6 +898,7 @@ export type TimedToken = {
   canonicalStart?: number | undefined
   canonicalEnd?: number | undefined
   providerStart?: number | undefined
+  visemeSymbol?: string | undefined
   providerEnd?: number | undefined
 }
 

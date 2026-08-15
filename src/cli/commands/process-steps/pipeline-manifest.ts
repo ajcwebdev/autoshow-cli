@@ -2313,11 +2313,26 @@ const verifyManifestProjectionArtifacts = async (
       for (const ref of stage['artifactRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
     }
     const audio = comic['audio']
-    for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef'] as const) {
+    for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
       const ref = audio[key]
       if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
     }
     if (Array.isArray(audio['finalOutputRefs'])) for (const ref of audio['finalOutputRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+    if (Array.isArray(audio['selectedAudioRuns'])) for (const run of audio['selectedAudioRuns']) {
+      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
+    }
+    if (Array.isArray(audio['selectedSoundscapeRuns'])) for (const run of audio['selectedSoundscapeRuns']) {
+      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
+      if (isRecord(run) && isRecord(run['masterRef']) && typeof run['masterRef']['path'] === 'string' && typeof run['masterRef']['sha256'] === 'string') references.push({ path: run['masterRef']['path'], sha256: run['masterRef']['sha256'] })
+    }
+    const presentation = comic['presentation']
+    if (isRecord(presentation)) {
+      for (const key of ['planRef', 'resolvedTimelineRef', 'runRef'] as const) {
+        const ref = presentation[key]
+        if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+      }
+      if (Array.isArray(presentation['finalOutputRefs'])) for (const ref of presentation['finalOutputRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+    }
     for (const ref of references) {
       if (!isSafeRelativePath(rootDir, ref.path)) return false
       try {

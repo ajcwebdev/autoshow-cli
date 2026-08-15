@@ -37,7 +37,11 @@
       "https://replicate.com/qwen/qwen-image-2-pro/llms.txt",
       "https://replicate.com/qwen/qwen-image-2/llms.txt",
       "https://replicate.com/wan-video/wan-2.7-image-pro/llms.txt",
-      "https://replicate.com/wan-video/wan-2.7-image/llms.txt"
+      "https://replicate.com/wan-video/wan-2.7-image/llms.txt",
+      "https://replicate.com/jaaari/kokoro-82m",
+      "https://replicate.com/jaaari/kokoro-82m/api",
+      "https://replicate.com/jaaari/kokoro-82m/api/schema",
+      "https://replicate.com/jaaari/kokoro-82m/readme"
     ]
   }
 }

@@ -58,6 +58,15 @@ import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions,
 import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
 import { planElevenLabsNativeDialogueBatches, prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
+import {
+  FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION,
+  FISH_TIMESTAMP_SERIALIZER_VERSION,
+  FISH_TTS_SERIALIZER_VERSION,
+  isFishNativeDialogueModel,
+  isFishTimestampModel,
+  planFishNativeDialogueBatches,
+  prepareFishDialogueText,
+} from '../tts-services/fish/fish-tts-request'
 import { prepareDeepinfraChatterboxText } from '../tts-services/tts-deepinfra/deepinfra-text-preparation'
 import { DEEPINFRA_TTS_SERIALIZER_VERSION, resolveDeepinfraTtsRequestControls, resolveDeepinfraTtsVoiceField } from '../tts-services/tts-deepinfra/deepinfra-tts-request'
 import { INWORLD_TTS_SERIALIZER_VERSION } from '../tts-services/inworld/inworld-tts-request'
@@ -453,9 +462,14 @@ const serializerContract = (
     case 'deepgram':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'deepgram.tts.phase-0-v1', controls: { ...(stringValue('encoding') ? { encoding: stringValue('encoding') } : {}), ...(stringValue('container') ? { container: stringValue('container') } : {}), ...(numberValue('bitRate') !== undefined ? { bitRate: numberValue('bitRate') } : {}), ...(numberValue('sampleRate') !== undefined ? { sampleRate: numberValue('sampleRate') } : {}), ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
     case 'fish':
-      return { endpointKind: 'speech-synthesis', serializerVersion: 'fish.tts.phase-0-v1', controls: { format: 'wav' } }
-    case 'inworld':
-      return { endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: { format: 'mp3' } }
+      if (strategy === 'native-dialogue') return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION, controls: { format: 'wav', model: 's2-pro' } }
+      if (isFishTimestampModel(target.model)) return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_TIMESTAMP_SERIALIZER_VERSION, controls: { format: 'wav', model: target.model } }
+      return { endpointKind: 'speech-synthesis', serializerVersion: FISH_TTS_SERIALIZER_VERSION, controls: { format: 'wav' } }
+    case 'inworld': {
+      const steeringPrompt = stringValue('steeringPrompt')
+      if (target.model === 'realtime-tts-2-flash' && steeringPrompt) throw CLIUsageError('Inworld steering is not supported by realtime-tts-2-flash.')
+      return { endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: { format: 'wav', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 }, ...(steeringPrompt ? { steeringPrompt } : {}) } }
+    }
     case 'deepinfra':
       return { endpointKind: 'inference', serializerVersion: DEEPINFRA_TTS_SERIALIZER_VERSION, controls: resolveDeepinfraTtsRequestControls(target.model, stringValue('promptInstructions')) }
     case 'replicate':
@@ -530,7 +544,7 @@ const serializerVoiceField = (
     case 'gemini': return strategy === 'native-dialogue' ? 'speechConfig.multiSpeakerVoiceConfig' : 'speechConfig.voiceConfig'
     case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
     case 'minimax': return 'voice_setting.voice_id'
-    case 'fish': return 'reference_id'
+    case 'fish': return strategy === 'native-dialogue' ? 'reference_id[]' : 'reference_id'
     case 'inworld': return 'voiceId'
     case 'deepinfra': return resolveDeepinfraTtsVoiceField(target.model)
     case 'replicate': return 'input.voice'
@@ -551,11 +565,13 @@ const prepareSegmentedTurnText = (
   text: string,
   target: TtsTarget,
   delivery?: string | undefined
-) => target.service === 'elevenlabs' && target.model === 'eleven_v3'
+  ) => target.service === 'elevenlabs' && target.model === 'eleven_v3'
   ? prepareElevenLabsDialogueText(text, delivery)
-  : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-multilingual'
-    ? prepareDeepinfraChatterboxText(text)
-    : preparedText(text)
+  : target.service === 'fish'
+    ? prepareFishDialogueText(text, delivery, target.model)
+    : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-multilingual'
+      ? prepareDeepinfraChatterboxText(text)
+      : preparedText(text)
 
 const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): SanitizedProviderError => {
   const metadata = extractErrorMetadata(error)
@@ -958,8 +974,9 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     const registry = parseSpeakerVoiceMappings(options.ttsOptions.ttsSpeakers)
     const normalizedText = canonicalTurns.map(turn => `${context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel}: ${turn.canonicalText}`).join('\n')
     const distinctSpeakers = new Set(canonicalTurns.map(turn => (context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel).normalize('NFKC').trim().toLocaleUpperCase('en-US')))
-    const hasSegmentedOnlyIntent = context.dialoguePlan.nodes.some(node => node.kind === 'overlap')
-      || canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
+    const hasOverlapIntent = context.dialoguePlan.nodes.some(node => node.kind === 'overlap')
+    const hasDeliveryOrEffect = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
+    const hasSegmentedOnlyIntent = hasOverlapIntent || (hasDeliveryOrEffect && options.target.service !== 'fish')
     const hasTurnControls = canonicalTurns.some(turn => {
       const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
       return keys.length > 0 && !(options.target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
@@ -970,7 +987,8 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
       && resolveGeminiDialogueStrategyForText(normalizedText, registry, TTS_CHUNK_CHARACTER_LIMITS.gemini, 'auto') === 'native'
     const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && !hasTurnControls
     const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && !hasTurnControls && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
-    const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (geminiNative || elevenLabsNative || humeNative)
+    const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && !hasTurnControls
+    const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (geminiNative || elevenLabsNative || humeNative || fishNative)
     if (context.modePreference === 'native' && !nativeEligible) throw CLIUsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
     const native = context.modePreference !== 'segmented' && nativeEligible
     const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
@@ -988,7 +1006,9 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
         ? planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
         : humeNative
           ? planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
-          : []
+          : fishNative
+            ? planFishNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash, delivery: turn.canonical.delivery?.description }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+            : []
     const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined }> = native
       ? nativeGroups
       : turns.map(turn => segmentedSlotGroup(turn, options.target))
@@ -1083,7 +1103,8 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     : false
   const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent
   const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
-  const native = geminiNative || elevenLabsNative || humeNative
+  const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && registry !== undefined && !hasProviderTurnControls
+  const native = geminiNative || elevenLabsNative || humeNative || fishNative
   const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
   const limit = chunkLimit(options.target)
   let nativeTurnCursor = 0
@@ -1102,7 +1123,9 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
       ? planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
       : humeNative && registry
         ? planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
-        : []
+        : fishNative && registry
+          ? planFishNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice, delivery: turn.canonical.delivery?.description }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+          : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
     ? nativeGroups
     : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText, limit) }))
@@ -3472,7 +3495,7 @@ export const createCurrentTtsRenderAttempt = async (
         throw error
       }
     },
-    recordOutput: async ({ chunkIndex, path, outputIndex = 1, timing, providerGenerationId, warnings }) => await locked(async () => {
+    recordOutput: async ({ chunkIndex, path, outputIndex = 1, timing, timingFactory, providerGenerationId, warnings }) => await locked(async () => {
       const slot = slotFor(invocation, { chunkIndex } as TtsSerializedRequestObservation)
       if (!journalFile || !runtimeRequests.some((entry) => entry.slot.generationSlotId === slot.generationSlotId)) {
         throw CLIUsageError('TTS serializer output does not bind one dispatched generation slot.')
@@ -3482,13 +3505,18 @@ export const createCurrentTtsRenderAttempt = async (
       const destination = `${batchResultDir}/audio-${String(outputIndex).padStart(3, '0')}${suffix}`
       await copyCreateOnly(options.outputDir, path, destination)
       const audio = await readObservedAudio(options.outputDir, destination)
+      if (timing && timingFactory) throw CLIUsageError('TTS serializer output supplied conflicting timing representations.')
+      if (timingFactory && slot.turnIds.length !== 1) throw CLIUsageError('Provider timing for a hosted TTS chunk must bind exactly one planned turn.')
+      const turn = timingFactory ? planned.turns.find((entry) => entry.canonical.turnId === slot.turnIds[0]) as AttemptTurn | undefined : undefined
+      if (timingFactory && !turn) throw CLIUsageError('Provider timing could not bind its planned turn identity.')
+      const boundTiming = timingFactory && turn ? timingFactory({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey }) : timing
       const recorded = {
         path: destination,
         relativeToBatchResult: contained(batchResultDir, destination),
         sha256: sha256Bytes(audio.bytes),
         format: audio.format,
         durationMs: audio.durationMs,
-        ...(timing ? { timing } : {}),
+        ...(boundTiming ? { timing: boundTiming } : {}),
         ...(providerGenerationId ? { providerGenerationId } : {}),
         ...(warnings ? { warnings: [...warnings] } : {})
       }

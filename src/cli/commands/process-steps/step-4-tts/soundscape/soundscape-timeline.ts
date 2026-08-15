@@ -21,7 +21,11 @@ const resolvedAnchor = (
   resolution: { anchorRole, policy, algorithm, positionMs, inputEvidenceHash: hashCanonicalTtsValue(evidence), errorBoundMs },
 })
 
-const resolveAnchor = (anchor: SoundscapeAnchor, dialoguePlan: ComicDialoguePlan, timeline: FinalTimeline, cueId: string, timingPolicy: SoundscapePlan['timingPolicy'], anchorRole: AnchorRole): { positionMs: number, resolution: ResolvedSoundscapeAnchorResolution } => {
+const resolveAnchor = (anchor: SoundscapeAnchor, dialoguePlan: ComicDialoguePlan, timeline: FinalTimeline, cueId: string, timingPolicy: SoundscapePlan['timingPolicy'], anchorRole: AnchorRole, sceneBounds?: { start: number, end: number }): { positionMs: number, resolution: ResolvedSoundscapeAnchorResolution } => {
+  if (anchor.kind === 'resolved-scene-edge') {
+    if (!sceneBounds) throw CLIUsageError(`Sound cue ${cueId} resolved-scene-edge anchor requires a computed scene range.`)
+    return resolvedAnchor(anchor.edge === 'start' ? sceneBounds.start : sceneBounds.end, anchorRole, timingPolicy, 'resolved-scene-edge-v1', { anchor, sceneBounds })
+  }
   if (anchor.kind === 'scene-clock') return resolvedAnchor(anchor.positionMs, anchorRole, timingPolicy, 'scene-clock-v1', { anchor })
   const turnIds = sourceTurnIds(dialoguePlan, anchor.sourceSegmentId)
   if (turnIds.length === 0) throw CLIUsageError(`Sound cue ${cueId} anchor references unknown speakable source segment ${anchor.sourceSegmentId}.`)
@@ -98,8 +102,9 @@ export const resolveSoundscapeTimeline = (input: {
       if (cue.required) throw CLIUsageError(`Required ambient cue ${cue.cueId} has no verified successful generation result.`)
       return { cueId: cue.cueId, bus: 'ambience' as const, required: false, status: 'omitted' as const, omissionReason: result?.omissionReason ?? 'No compatible generated source was available.' }
     }
-    const startAnchor = cue.range.kind === 'full-scene' ? undefined : resolveAnchor(cue.range.start, input.dialoguePlan, input.dialogueTimeline, cue.cueId, input.plan.timingPolicy, 'range-start')
-    const endAnchor = cue.range.kind === 'full-scene' ? undefined : resolveAnchor(cue.range.end, input.dialoguePlan, input.dialogueTimeline, cue.cueId, input.plan.timingPolicy, 'range-end')
+    const sceneBounds = { start: sceneStart, end: sceneEnd }
+    const startAnchor = cue.range.kind === 'full-scene' ? undefined : resolveAnchor(cue.range.start, input.dialoguePlan, input.dialogueTimeline, cue.cueId, input.plan.timingPolicy, 'range-start', sceneBounds)
+    const endAnchor = cue.range.kind === 'full-scene' ? undefined : resolveAnchor(cue.range.end, input.dialoguePlan, input.dialogueTimeline, cue.cueId, input.plan.timingPolicy, 'range-end', sceneBounds)
     const start = startAnchor?.positionMs ?? sceneStart
     const end = endAnchor?.positionMs ?? sceneEnd
     if (end <= start) throw CLIUsageError(`Ambient cue ${cue.cueId} resolves to a non-positive playback range.`)

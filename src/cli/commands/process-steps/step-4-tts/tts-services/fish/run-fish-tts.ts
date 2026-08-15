@@ -7,6 +7,13 @@ import { FISH_DEFAULT_TTS_VOICE, validateFishTtsVoice } from '~/cli/commands/set
 import { createFishClient } from '~/utils/fish-client/fish-client'
 import { ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import {
+  FISH_TIMESTAMP_SERIALIZER_VERSION,
+  FISH_TTS_SERIALIZER_VERSION,
+  isFishTimestampModel,
+  normalizeFishTimestampAlignment,
+  prepareFishDialogueText,
+} from './fish-tts-request'
 
 export type RunFishTtsOptions = Readonly<{
   model: FishTtsModel
@@ -55,20 +62,49 @@ export const runFishTts = async (
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
+      const timestamped = isFishTimestampModel(options.model)
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
-        endpointKind: 'speech-synthesis',
-        serializerVersion: 'fish.tts.phase-0-v1',
-        serializedRequest: { path: '/v1/tts', body: { text: chunk, reference_id: voice, model: options.model, format: 'wav' } },
+        endpointKind: timestamped ? 'text-to-speech-stream-with-timestamps' : 'speech-synthesis',
+        serializerVersion: timestamped ? FISH_TIMESTAMP_SERIALIZER_VERSION : FISH_TTS_SERIALIZER_VERSION,
+        serializedRequest: timestamped
+          ? { path: '/v1/tts/stream/with-timestamp', body: { text: chunk, reference_id: voice, format: 'wav' } }
+          : { path: '/v1/tts', body: { text: chunk, reference_id: voice, model: options.model, format: 'wav' } },
         providerText: chunk,
         voiceField: 'reference_id',
         voices: [{ kind: 'provider-id', value: voice }],
         requestControls: {
           format: 'wav',
+          ...(timestamped ? { model: options.model } : {}),
           ...(options.latency ? { latency: options.latency } : {})
         },
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
+        if (timestamped) {
+          const result = await client.synthesizeTtsWithTimestamps({
+            text: chunk,
+            reference_id: voice,
+            model: options.model,
+            format: 'wav',
+            latency: options.latency,
+          }, {
+            signal,
+            onAccepted: async (response) => {
+              await accepted({
+                providerRequestId: response.headers.get('x-request-id') ?? undefined,
+                fields: { httpStatus: response.status }
+              })
+            }
+          })
+          return {
+            audio: new Uint8Array(result.audioBuffer),
+            timing: (identity) => normalizeFishTimestampAlignment({
+              text: prepareFishDialogueText(chunk, undefined, options.model).providerText,
+              timeline: result.timeline,
+              identity,
+            }),
+          }
+        }
         const { audioBuffer } = await client.synthesizeTts({
           text: chunk,
           reference_id: voice,

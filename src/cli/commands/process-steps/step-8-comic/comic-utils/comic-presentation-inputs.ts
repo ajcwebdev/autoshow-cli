@@ -66,6 +66,14 @@ const runRelativeRef = (audioRunRef: string, ref: ArtifactRef): ArtifactRef => (
   sha256: ref.sha256,
 })
 
+export const assertPresentationSoundEffectResult = (
+  renderResult: Pick<SoundEffectRenderResult, 'resultId' | 'status'>,
+  boundResultId: string,
+): void => {
+  if (renderResult.resultId !== boundResultId) throw CLIUsageError('Selected sound-effect result does not match the soundscape AudioRun binding.')
+  if (renderResult.status !== 'succeeded') throw CLIUsageError('Selected sound-effect result is not a complete success.')
+}
+
 const assertIdentity = <T extends Record<string, unknown>>(value: T, field: keyof T, label: string): void => {
   const identity = value[field]
   const base = { ...value }
@@ -174,7 +182,7 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
   if (soundscapeRun.soundEffectRenderResult) {
     renderResult = await verifiedJson<SoundEffectRenderResult>(compatible.sceneRunDir, { path: soundscapeRun.soundEffectRenderResult.path, sha256: soundscapeRun.soundEffectRenderResult.sha256 }, `SoundEffectRenderResult ${soundscapeRun.soundEffectRenderResult.resultId}`)
     assertIdentity(renderResult as unknown as Record<string, unknown>, 'resultId', 'SoundEffectRenderResult')
-    if (renderResult.resultId !== soundscapeRun.soundEffectRenderResult.resultId || renderResult.soundscapePlanId !== plan.soundscapePlanId || renderResult.status !== 'succeeded') throw CLIUsageError('Selected sound-effect result is not a complete success for the SoundscapePlan.')
+    assertPresentationSoundEffectResult(renderResult, soundscapeRun.soundEffectRenderResult.resultId)
   }
   const resultByCue = new Map(renderResult?.entries.map(entry => [entry.cueId, entry] as const) ?? [])
   const timelineByCue = new Map(soundscapeTimeline.entries.map(entry => [entry.cueId, entry] as const))

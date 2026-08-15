@@ -139,7 +139,7 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
     { path: 'presentation/final/slideshow.wav', sha256: completed.run.outputs.wav.sha256 },
     { path: 'presentation/final/slideshow.mp4', sha256: completed.run.outputs.mp4.sha256 },
   ]
-  const artifactRefs = [
+  const currentRefs = [
     planRef,
     timelineRef,
     completed.runRef,
@@ -147,6 +147,10 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
     { path: completed.run.outputs.mp4.path, sha256: completed.run.outputs.mp4.sha256 },
     ...finalOutputRefs,
   ]
+  const prior = compatible.comicMetadata
+  const artifactRefByPath = new Map(prior.stages.presentation.artifactRefs.map(ref => [ref.path, ref] as const))
+  for (const ref of currentRefs) artifactRefByPath.set(ref.path, ref)
+  const artifactRefs = [...artifactRefByPath.values()].sort((left, right) => left.path.localeCompare(right.path))
   const presentation = {
     selectedPresentationId: presentationPlan.presentationId,
     planRef,
@@ -154,10 +158,10 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
     runRef: completed.runRef,
     finalOutputRefs,
   }
-  const prior = compatible.comicMetadata
   const alreadyPublished = canonicalTtsJson(prior.presentation) === canonicalTtsJson(presentation)
     && prior.stages.presentation.status === 'full'
-    && canonicalTtsJson(prior.stages.presentation.artifactRefs) === canonicalTtsJson(artifactRefs)
+    && artifactRefs.every(ref => prior.stages.presentation.artifactRefs.some(existing => existing.path === ref.path && existing.sha256 === ref.sha256))
+    && prior.stages.presentation.artifactRefs.length === artifactRefs.length
   if (!alreadyPublished) {
     await updateComicPresentationManifest({
       sceneRunDir: compatible.sceneRunDir,

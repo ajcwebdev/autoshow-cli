@@ -143,6 +143,7 @@ const createAttempt = (input: {
   protectedEvidence: VoiceProvisioningAttempt['protectedRequestEvidence']
   requestFingerprint: string
   now: string
+  providerHandle?: string | undefined
 }): VoiceProvisioningAttempt => {
   const attemptId = `vp_${hashCanonicalTtsValue({ candidateId: input.candidate.candidateId, operation: input.candidate.operation }).slice(0, 40)}`
   const base = {
@@ -154,7 +155,9 @@ const createAttempt = (input: {
     lockLeaseId: `lease_${hashCanonicalTtsValue({ attemptId, accountScopeHash: input.accountScopeHash }).slice(0, 32)}`,
     requestFingerprint: input.requestFingerprint,
     protectedRequestEvidence: input.protectedEvidence,
-    reconciliation: { strategy: 'provider-operation' as const, protectedLookupEvidence: input.protectedEvidence },
+    reconciliation: input.providerHandle
+      ? { strategy: 'provider-search' as const, providerHandle: input.providerHandle, protectedLookupEvidence: input.protectedEvidence }
+      : { strategy: 'provider-operation' as const, protectedLookupEvidence: input.protectedEvidence },
     transitions: [{ sequence: 1, phase: 'prepared' as const, at: input.now }],
     issuedResources: [],
     compareAndSwapVersion: 0
@@ -201,7 +204,8 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     accountScopeHash: input.provider.accountScopeHash,
     protectedEvidence: evidence,
     requestFingerprint: hashCanonicalTtsValue({ candidateId: candidate.candidateId, registrationDraftId: candidate.registrationDraftId, desiredName: input.desiredName, sourceVoice: input.sourceVoice ?? null, eligibilitySnapshotHash: input.eligibilitySnapshotHash ?? null }),
-    now: now()
+    now: now(),
+    ...(input.provider.provider === 'fish' ? { providerHandle: input.desiredName } : {}),
   })
   const design = requireDesignPort(input.provider)
   const attempt = await runCrashSafeVoiceProvisioning({
@@ -242,7 +246,7 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     provenanceRef: input.provenanceRef,
     ...(input.consent ? { consent: input.consent, consentRecordRef: input.consentRecordRef } : {}),
     capabilityFixtureHash: input.capabilityFixtureHash,
-    sanitizedProviderMetadata: { candidateId: candidate.candidateId, attemptId: attempt.attemptId, briefHash: hashCharacterVoiceBrief(input.brief) }
+    sanitizedProviderMetadata: { candidateId: candidate.candidateId, attemptId: attempt.attemptId, briefHash: hashCharacterVoiceBrief(input.brief), desiredName: input.desiredName }
   })
   await appendVoiceRegistration(input.charactersRoot, registration)
   return { candidate: materialized, registration, attempt }
@@ -282,7 +286,7 @@ export const provisionAdvancedVoiceClone = async (input: {
   const attemptId = `vp_${hashCanonicalTtsValue({ registrationId, operation: 'clone', sourceIdentityHash }).slice(0, 40)}`
   const createdAt = now()
   let provisioning: VoiceRegistration['provisioning']
-  let sanitizedProviderMetadata: Record<string, string | number | boolean | null | string[]> = { cloneKind: input.request.cloneKind, sampleCount: input.request.protectedSamples.length, attemptId }
+  let sanitizedProviderMetadata: Record<string, string | number | boolean | null | string[]> = { cloneKind: input.request.cloneKind, sampleCount: input.request.protectedSamples.length, attemptId, desiredName: input.request.desiredName }
   let attempt: VoiceProvisioningAttempt | undefined
   if (input.request.cloneKind === 'professional') {
     const result = await input.provider.clone.clone({ ...input.request, localAttemptId: attemptId })
@@ -296,6 +300,7 @@ export const provisionAdvancedVoiceClone = async (input: {
       lockLeaseId: `lease_${randomUUID().replace(/-/gu, '')}`,
       requestFingerprint: planAdvancedClone({ ...input.request, localAttemptId: attemptId }).requestFingerprint,
       protectedRequestEvidence: evidence,
+      ...(input.provider.provider === 'fish' ? { reconciliation: { strategy: 'provider-search' as const, providerHandle: input.request.desiredName, protectedLookupEvidence: evidence } } : {}),
       transitions: [{ sequence: 1, phase: 'prepared', at: createdAt }], issuedResources: [], compareAndSwapVersion: 0,
     }
     attempt = await runCrashSafeVoiceProvisioning({

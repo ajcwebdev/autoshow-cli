@@ -51,4 +51,28 @@ describe('ADR-018 strict soundscape timeline resolution', () => {
     expect(entry?.finalRangeMs).toEqual({ start: 373, end: 573 })
     expect(entry?.anchorResolutions).toEqual([expect.objectContaining({ policy: 'proportional', algorithm: 'canonical-offset-linear-v1', positionMs: 373, errorBoundMs: 727 })])
   })
+
+  test('resolves explicit ambient ranges from computed scene edges and source-segment bounds', () => {
+    const ranged = {
+      ...plan,
+      ambientBeds: [{
+        cueId: 'bed',
+        kind: 'ambience' as const,
+        prompt: 'bed',
+        required: true,
+        range: {
+          kind: 'anchors' as const,
+          start: { kind: 'resolved-scene-edge' as const, edge: 'start' as const },
+          end: { kind: 'source-segment-edge' as const, sourceSegmentId: 'beat-0001', edge: 'start' as const, offsetMs: 0 },
+        },
+        sourceSpan: span,
+      }],
+    }
+    const resolved = resolveSoundscapeTimeline({ plan: ranged, dialoguePlan, dialogueTimeline: timeline, dialogueAudioRunId: hash('audio-run'), renderResult: result })
+    expect(resolved.entries.find(entry => entry.cueId === 'bed')?.finalRangeMs).toEqual({ start: 0, end: 250 })
+    expect(resolved.entries.find(entry => entry.cueId === 'bed')?.anchorResolutions).toEqual([
+      expect.objectContaining({ algorithm: 'resolved-scene-edge-v1', positionMs: -150 }),
+      expect.objectContaining({ algorithm: 'source-segment-edge-v1', positionMs: 100 }),
+    ])
+  })
 })

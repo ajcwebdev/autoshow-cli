@@ -133,6 +133,9 @@ export type TtsProviderRequestLifecycle = Readonly<{
   accepted: (acceptance?: TtsProviderRequestAcceptance | undefined) => Promise<void>
 }>
 
+export type TtsTimingIdentity = Readonly<{ turnId: string, subjectKey: string }>
+export type TtsTimingFactory = (identity: TtsTimingIdentity) => import('./script-to-audio-types').NormalizedTiming<'take-audio-ms'>
+
 export type TtsRequestEvidenceScope = Readonly<{
   forInvocation?: ((invocation: TtsTargetInvocation) => TtsRequestEvidenceScope) | undefined
   /** Returns verified retained outputs only when every planned slot in this invocation is complete. */
@@ -150,6 +153,7 @@ export type TtsRequestEvidenceScope = Readonly<{
     path: string
     outputIndex?: number | undefined
     timing?: import('./script-to-audio-types').NormalizedTiming<'take-audio-ms'> | undefined
+    timingFactory?: TtsTimingFactory | undefined
     providerGenerationId?: string | undefined
     warnings?: readonly string[] | undefined
   }) => Promise<void>

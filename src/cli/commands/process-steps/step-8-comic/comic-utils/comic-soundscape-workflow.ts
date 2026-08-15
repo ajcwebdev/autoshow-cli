@@ -1,12 +1,12 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { dirname, join } from 'node:path'
-import type { AudioRun, FinalTimeline, HostedConcurrencyCoordinator, PipelineProviderState, SoundEffectRenderPlan, SoundscapeAudioRun, SoundscapePlan } from '~/types'
+import type { AudioRun, FinalTimeline, HostedConcurrencyCoordinator, PipelineProviderState, SoundEffectLicenseUse, SoundEffectLicenseUseClassification, SoundEffectRenderPlan, SoundscapeAudioRun, SoundscapePlan } from '~/types'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '../../step-4-tts/soundscape/elevenlabs-sfx-adapter'
-import { createReplicateAudioGenAdapter } from '../../step-4-tts/soundscape/replicate-audiogen-adapter'
+import { assertAudioGenDispatchEligible, assertAudioGenLicenseEligible, createReplicateAudioGenAdapter, createSoundEffectLicenseUse } from '../../step-4-tts/soundscape/replicate-audiogen-adapter'
 import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, type SoundEffectAdapter, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
 import { mixSoundscape } from '../../step-4-tts/soundscape/soundscape-mixer'
 import { resolveSoundscapeTimeline } from '../../step-4-tts/soundscape/soundscape-timeline'
@@ -80,29 +80,54 @@ const verifiedJson = async <T>(rootDir: string, path: string, sha256: string, la
   catch { throw CLIUsageError(`${label} is not valid JSON.`) }
 }
 
+export const parseSoundEffectLicenseUseClassification = (value: unknown): SoundEffectLicenseUseClassification | undefined => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (value !== 'noncommercial' && value !== 'commercial' && value !== 'unknown') {
+    throw CLIUsageError('--sfx-license-use must be noncommercial, commercial, or unknown.')
+  }
+  return value
+}
+
 export const resolveSoundEffectPlan = async (input: {
   rootDir: string
   soundscapePlan: SoundscapePlan
   selector?: string | undefined
+  licenseUseClassification?: SoundEffectLicenseUseClassification | undefined
   retainedPlanRef?: { path: string, sha256: string } | undefined
 }): Promise<SoundEffectRenderPlan | undefined> => {
   if (input.soundscapePlan.synthesisTasks.length === 0) return undefined
-  if (input.selector) return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target: resolveSoundEffectTarget(input.selector) })
+  if (input.selector) {
+    const target = resolveSoundEffectTarget(input.selector)
+    const licenseUse: SoundEffectLicenseUse | undefined = target.provider === 'replicate' && input.licenseUseClassification
+      ? createSoundEffectLicenseUse({
+        classification: input.licenseUseClassification,
+        fixture: target.capabilityFixture,
+      })
+      : undefined
+    return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target, ...(licenseUse ? { licenseUse } : {}) })
+  }
   if (input.retainedPlanRef) {
     const retained = await loadSoundEffectRenderPlan(input.rootDir, input.retainedPlanRef)
     if (retained.soundscapePlanId !== input.soundscapePlan.soundscapePlanId) throw CLIUsageError('Retained sound-effect target belongs to a different soundscape plan; provide an explicit --sfx-provider for the new plan.')
     return retained
   }
-  throw CLIUsageError('Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen); no paid hosted default is selected.')
+  throw CLIUsageError('Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8); no paid hosted default is selected.')
 }
 
 export const planComicSoundscapePrice = async (input: {
   rootDir: string
   plan: SoundscapePlan
   selector?: string | undefined
+  licenseUseClassification?: SoundEffectLicenseUseClassification | undefined
   retainedPlanRef?: { path: string, sha256: string } | undefined
 }): Promise<{ renderPlan?: SoundEffectRenderPlan | undefined, summary: string }> => {
-  const renderPlan = await resolveSoundEffectPlan({ rootDir: input.rootDir, soundscapePlan: input.plan, selector: input.selector, retainedPlanRef: input.retainedPlanRef })
+  const renderPlan = await resolveSoundEffectPlan({
+    rootDir: input.rootDir,
+    soundscapePlan: input.plan,
+    selector: input.selector,
+    licenseUseClassification: input.licenseUseClassification,
+    retainedPlanRef: input.retainedPlanRef,
+  })
   if (!renderPlan) return { summary: 'soundscape: 0 authored generation tasks, 0.0000 USD, no SFX target setup' }
   const estimate = await planSoundEffectResumePrice(input.rootDir, renderPlan)
   const amount = estimate.amount === null ? 'unknown' : estimate.amount.toFixed(4)
@@ -113,6 +138,8 @@ export const assertComicSoundscapeExecutionReady = async (rootDir: string, rende
   const estimate = await planSoundEffectResumePrice(rootDir, renderPlan)
   if (estimate.unresolvedTaskCount > 0) {
     if (renderPlan.target.provider === 'replicate') {
+      assertAudioGenDispatchEligible(renderPlan.target.capabilityFixture)
+      assertAudioGenLicenseEligible(renderPlan.licenseUse, renderPlan.target.capabilityFixture)
       requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation')
     } else {
       requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation')

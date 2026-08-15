@@ -200,7 +200,7 @@ input/characters/
 
 output/<timestamp>_<scene-slug>/
   metadata/
-    structured-script.json           # schemaVersion 4; characterKeys/speakerKey
+    structured-script.json           # schemaVersion 5; characterKeys/speakerKey plus scene.soundscape
     draft-prompt.md
     scene.json                       # schemaVersion 4; authoritative panel.characterKeys
     scene.invalid.json               # only when validation preserves invalid model output

@@ -76,6 +76,7 @@ const SoundscapeAnchorSchema = v.variant('kind', [
   v.strictObject({ kind: v.literal('scene-clock'), positionMs: v.number() }),
   v.strictObject({ kind: v.literal('source-segment-edge'), sourceSegmentId: v.string(), edge: v.picklist(['start', 'end']), offsetMs: v.number() }),
   v.strictObject({ kind: v.literal('source-text-offset'), sourceSegmentId: v.string(), textOffset: v.number(), indexUnit: v.literal('unicode-scalar-value'), offsetMs: v.number() }),
+  v.strictObject({ kind: v.literal('resolved-scene-edge'), edge: v.picklist(['start', 'end']) }),
 ])
 const SoundscapeCueSchema = v.strictObject({
   cueId: v.string(),
@@ -231,6 +232,7 @@ const soundscapeAnchorJsonSchema = () => ({
     { type: 'object', properties: { kind: { type: 'string', enum: ['scene-clock'] }, positionMs: { type: 'integer', minimum: 0 } }, required: ['kind', 'positionMs'], additionalProperties: false },
     { type: 'object', properties: { kind: { type: 'string', enum: ['source-segment-edge'] }, sourceSegmentId: { type: 'string' }, edge: { type: 'string', enum: ['start', 'end'] }, offsetMs: { type: 'integer' } }, required: ['kind', 'sourceSegmentId', 'edge', 'offsetMs'], additionalProperties: false },
     { type: 'object', properties: { kind: { type: 'string', enum: ['source-text-offset'] }, sourceSegmentId: { type: 'string' }, textOffset: { type: 'integer', minimum: 0 }, indexUnit: { type: 'string', enum: ['unicode-scalar-value'] }, offsetMs: { type: 'integer' } }, required: ['kind', 'sourceSegmentId', 'textOffset', 'indexUnit', 'offsetMs'], additionalProperties: false },
+    { type: 'object', properties: { kind: { type: 'string', enum: ['resolved-scene-edge'] }, edge: { type: 'string', enum: ['start', 'end'] } }, required: ['kind', 'edge'], additionalProperties: false },
   ],
 })
 

@@ -21,6 +21,8 @@ import {
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
 
+import { FISH_VOICE_DESIGN_MODEL } from './fish-tts-request'
+
 const DOCS = {
   catalog: 'https://docs.fish.audio/api-reference/endpoint/model/list-models',
   inspect: 'https://docs.fish.audio/api-reference/endpoint/model/get-model',
@@ -28,12 +30,15 @@ const DOCS = {
   voiceDesign: 'https://docs.fish.audio/api-reference/endpoint/openapi-v1/voice-design',
   delete: 'https://docs.fish.audio/api-reference/endpoint/model/delete-model',
   synthesis: 'https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech',
+  timestamps: 'https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech-stream-with-timestamps',
 } as const
 
 const evidence = (refs: readonly string[]) => buildCapabilityDocumentationEvidence(refs)
 const capabilityRecords = [
   { scope: { provider: 'fish', feature: 'turn-synthesis' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], supportedOutputFormats: ['raw', 'wav', 'mp3', 'opus', 'flac'] }, documentationEvidence: evidence([DOCS.synthesis]) },
-  { scope: { provider: 'fish', feature: 'native-dialogue' as const }, maturity: 'not-applicable' as const, channel: 'unsupported' as const, adapterSupport: 'unsupported' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], minSpeakers: 2, maxSpeakers: 2 }, reason: 'Fish synthesis requests select one reference_id and this adapter does not implement a native multi-speaker dialogue contract.', documentationEvidence: evidence([DOCS.synthesis]) },
+  { scope: { provider: 'fish', feature: 'native-dialogue' as const, model: 's2-pro' }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], minSpeakers: 2, maxSpeakers: 16, maxCharacters: 4000 }, documentationEvidence: evidence([DOCS.synthesis, DOCS.timestamps]) },
+  { scope: { provider: 'fish', feature: 'native-dialogue' as const }, maturity: 'not-applicable' as const, channel: 'unsupported' as const, adapterSupport: 'unsupported' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], minSpeakers: 2, maxSpeakers: 2 }, reason: 'Fish native multi-speaker dialogue is documented only for the S2 family; s1, fish-speech-1.5, and voice-design-1 remain single-speaker.', documentationEvidence: evidence([DOCS.synthesis]) },
+  { scope: { provider: 'fish', feature: 'word-timing' as const, model: 's2-pro' }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { providerTimeUnit: 'seconds', providerIndexUnit: 'unicode-scalar-value' as const }, documentationEvidence: evidence([DOCS.timestamps]) },
   { scope: { provider: 'fish', feature: 'voice-catalog' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { paginated: true, stableResourceIds: true }, documentationEvidence: evidence([DOCS.catalog, DOCS.inspect]) },
   { scope: { provider: 'fish', feature: 'voice-design' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { requiresConsent: false, createsRemoteResource: false }, documentationEvidence: evidence([DOCS.voiceDesign]) },
   { scope: { provider: 'fish', feature: 'instant-clone' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { requiresConsent: true, createsRemoteResource: true }, documentationEvidence: evidence([DOCS.clone]) },
@@ -70,18 +75,19 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
     list: async (input) => {
       const pageNumber = input?.cursor ? Number.parseInt(input.cursor, 10) : 1
       const pageSize = 20
-      const response = await client.listModels({ page_number: pageNumber, page_size: pageSize })
+      const source = input?.source === 'provider-library' ? 'provider-library' : 'account'
+      const response = await client.listModels({ page_number: pageNumber, page_size: pageSize, self: source === 'account' })
       const entries: ProviderVoiceCatalogEntry[] = response.items.map((item) => ({
         provider: 'fish',
         resourceId: item._id,
         name: item.title,
-        source: 'account',
-        origin: 'imported-custom',
+        source,
+        origin: source === 'account' ? 'imported-custom' : 'provider-stock',
         ...(item.description ? { description: item.description } : {}),
         labels: {},
         modelIds: [],
-        state: item.state === 'ready' || !item.state ? 'available' : 'unavailable',
-        sanitizedMetadata: { state: item.state ?? 'ready' },
+        state: item.state === 'trained' || item.state === 'ready' || !item.state ? 'available' : 'unavailable',
+        sanitizedMetadata: { state: item.state ?? 'trained' },
       }))
       const nextCursor = response.items.length >= pageSize ? String(pageNumber + 1) : undefined
       return { schemaVersion: 1, provider: 'fish', entries, ...(nextCursor ? { nextCursor } : {}), checkedAt: now() }
@@ -90,25 +96,37 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
 
   const design: VoiceDesignPort = {
     createCandidate: async (designRequest: ProviderVoiceDesignRequest): Promise<ProviderVoiceDesignResult> => {
+      if (designRequest.creationModel !== FISH_VOICE_DESIGN_MODEL) {
+        throw CLIUsageError('Fish Audio Voice Design creation model must be voice-design-1.')
+      }
+      if (!Number.isInteger(designRequest.candidateCount) || designRequest.candidateCount < 1 || designRequest.candidateCount > 4) {
+        throw CLIUsageError('Fish Audio Voice Design supports one to four bounded previews per request.')
+      }
       const res = await client.voiceDesign({
-        text: designRequest.previewText,
-        voice_description: designRequest.description,
+        instruction: designRequest.description,
+        ...(designRequest.previewText.trim() ? { reference_text: designRequest.previewText } : {}),
+        n: designRequest.candidateCount,
+        ...(typeof designRequest.seed === 'number' ? { seed: designRequest.seed } : {}),
       })
-      const candidateAudio = Buffer.from(res.audio, 'base64')
       const checkedAt = now()
       return {
         schemaVersion: 1,
         provider: 'fish',
         operation: 'design',
         creationModel: designRequest.creationModel,
-        previews: [
-          {
-            providerCandidateId: 'fish-candidate-0',
-            audioBase64: candidateAudio.toString('base64'),
-            mediaType: 'audio/wav',
-            sanitizedMetadata: { duration: res.duration ?? 5.0 },
+        previews: res.candidates.slice(0, designRequest.candidateCount).map((candidate) => ({
+          providerCandidateId: candidate.id,
+          audioBase64: candidate.audio_base64,
+          mediaType: 'audio/wav',
+          durationMs: candidate.duration_ms,
+          sanitizedMetadata: {
+            candidateIndex: candidate.index,
+            sampleRate: candidate.sample_rate,
+            durationMs: candidate.duration_ms,
+            ...(typeof designRequest.seed === 'number' ? { seed: designRequest.seed } : {}),
+            ...(candidate.language ? { language: candidate.language } : {}),
           },
-        ],
+        })),
         checkedAt,
       }
     },
@@ -159,6 +177,9 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
 
   const clone: VoiceClonePort = {
     clone: async (cloneRequest) => {
+      if (cloneRequest.cloneKind === 'professional') {
+        throw CLIUsageError('Fish Audio does not document a professional voice-clone workflow.')
+      }
       if (!cloneRequest.protectedSamples || cloneRequest.protectedSamples.length === 0) {
         throw CLIUsageError('At least one reference audio sample is required for Fish Audio voice clone.')
       }

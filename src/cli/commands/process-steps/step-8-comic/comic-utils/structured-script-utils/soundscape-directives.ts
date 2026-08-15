@@ -1,9 +1,11 @@
-import type { ExpandedScriptBlock, StructuredScriptSourceSegment, StructuredSoundscape } from '~/types'
+import type { ExpandedScriptBlock, SoundscapeAnchor, StructuredScriptSourceSegment, StructuredSoundscape } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { stripEmphasisWrapper } from './markdown-blocks'
 
 type DirectiveKind = 'action-sfx' | 'vocal-reaction' | 'ambience'
+
+type AmbientRangeBound = 'scene-start' | 'scene-end' | 'previous-line-end' | 'next-line-start'
 
 type LocatedDirective = {
   kind: DirectiveKind
@@ -12,6 +14,8 @@ type LocatedDirective = {
   durationSeconds?: number | undefined
   gainDb?: number | undefined
   pan?: number | undefined
+  rangeFrom?: AmbientRangeBound | undefined
+  rangeTo?: AmbientRangeBound | undefined
   startUtf16: number
   endUtf16: number
   inline: boolean
@@ -23,7 +27,17 @@ const LABEL_KIND: Readonly<Record<string, DirectiveKind>> = {
   AMBIENCE: 'ambience',
 }
 
-type DirectiveControls = Pick<LocatedDirective, 'durationSeconds' | 'gainDb' | 'pan'>
+type DirectiveControls = Pick<LocatedDirective, 'durationSeconds' | 'gainDb' | 'pan' | 'rangeFrom' | 'rangeTo'>
+
+const AMBIENT_RANGE_BOUNDS = new Set<AmbientRangeBound>(['scene-start', 'scene-end', 'previous-line-end', 'next-line-start'])
+
+const parseAmbientRangeBound = (value: string, label: 'from' | 'to'): AmbientRangeBound => {
+  const bound = value.trim().toLowerCase()
+  if (!AMBIENT_RANGE_BOUNDS.has(bound as AmbientRangeBound)) throw CLIUsageError(`Sound directive ${label} must be scene-start, scene-end, previous-line-end, or next-line-start.`)
+  if (label === 'from' && bound === 'scene-end') throw CLIUsageError('Sound directive from cannot be scene-end.')
+  if (label === 'to' && bound === 'scene-start') throw CLIUsageError('Sound directive to cannot be scene-start.')
+  return bound as AmbientRangeBound
+}
 
 const parseControls = (value: string): { remainder: string, controls: DirectiveControls } => {
   const match = /^\{([^{}]+)\}\s*/u.exec(value)
@@ -31,8 +45,8 @@ const parseControls = (value: string): { remainder: string, controls: DirectiveC
   const controls: DirectiveControls = {}
   const seen = new Set<string>()
   for (const entry of match[1].split(',').map(part => part.trim())) {
-    const pair = /^(duration|gain|pan)\s*:\s*(.+)$/iu.exec(entry)
-    if (!pair?.[1] || !pair[2]) throw CLIUsageError(`Invalid sound directive control "${entry}"; expected duration, gain, or pan.`)
+    const pair = /^(duration|gain|pan|from|to)\s*:\s*(.+)$/iu.exec(entry)
+    if (!pair?.[1] || !pair[2]) throw CLIUsageError(`Invalid sound directive control "${entry}"; expected duration, gain, pan, from, or to.`)
     const key = pair[1].toLowerCase()
     if (seen.has(key)) throw CLIUsageError(`Sound directive control ${key} is duplicated.`)
     seen.add(key)
@@ -49,11 +63,20 @@ const parseControls = (value: string): { remainder: string, controls: DirectiveC
       controls.gainDb = Number(gain[1])
       continue
     }
+    if (key === 'from') {
+      controls.rangeFrom = parseAmbientRangeBound(pair[2], 'from')
+      continue
+    }
+    if (key === 'to') {
+      controls.rangeTo = parseAmbientRangeBound(pair[2], 'to')
+      continue
+    }
     const pan = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))$/u.exec(pair[2])
     if (!pan?.[1]) throw CLIUsageError('Sound directive pan must be a number between -1 and 1.')
     controls.pan = Number(pan[1])
     if (controls.pan < -1 || controls.pan > 1) throw CLIUsageError('Sound directive pan must be between -1 and 1.')
   }
+  if ((controls.rangeFrom === undefined) !== (controls.rangeTo === undefined)) throw CLIUsageError('Sound directive ambient range requires both from and to.')
   return { remainder: value.slice(match[0].length).trim(), controls }
 }
 
@@ -170,6 +193,42 @@ const blockAnchor = (
     : { kind: 'scene-clock', positionMs: 0 }
 }
 
+const previousSpeakableAnchor = (
+  directiveStart: number,
+  segments: readonly StructuredScriptSourceSegment[],
+): SoundscapeAnchor => {
+  const prior = blockAnchor(directiveStart, segments)
+  return prior.kind === 'scene-clock' ? { kind: 'resolved-scene-edge', edge: 'start' } : prior
+}
+
+const nextSpeakableAnchor = (
+  directiveEnd: number,
+  segments: readonly StructuredScriptSourceSegment[],
+): SoundscapeAnchor => {
+  const next = segments
+    .filter(segment => segment.type === 'dialogue' || segment.type === 'narration')
+    .flatMap(segment => {
+      const bounds = segmentBounds(segment)
+      return bounds && bounds.start >= directiveEnd ? [{ segment, start: bounds.start }] : []
+    })
+    .sort((left, right) => left.start - right.start)[0]
+  return next
+    ? { kind: 'source-segment-edge', sourceSegmentId: next.segment.id, edge: 'start', offsetMs: 0 }
+    : { kind: 'resolved-scene-edge', edge: 'end' }
+}
+
+const resolveAmbientRangeBound = (
+  bound: AmbientRangeBound,
+  directiveStart: number,
+  directiveEnd: number,
+  segments: readonly StructuredScriptSourceSegment[],
+): SoundscapeAnchor => {
+  if (bound === 'scene-start') return { kind: 'resolved-scene-edge', edge: 'start' }
+  if (bound === 'scene-end') return { kind: 'resolved-scene-edge', edge: 'end' }
+  if (bound === 'previous-line-end') return previousSpeakableAnchor(directiveStart, segments)
+  return nextSpeakableAnchor(directiveEnd, segments)
+}
+
 export const buildStructuredSoundscape = (input: {
   exactSource: string
   expandedBlocks: readonly ExpandedScriptBlock[]
@@ -193,6 +252,11 @@ export const buildStructuredSoundscape = (input: {
     kind: directive.kind,
     prompt: directive.prompt,
     required: directive.required,
+    durationSeconds: directive.durationSeconds ?? null,
+    gainDb: directive.gainDb ?? null,
+    pan: directive.pan ?? null,
+    rangeFrom: directive.rangeFrom ?? null,
+    rangeTo: directive.rangeTo ?? null,
   }))
   if (new Set(cueIds).size !== cueIds.length) throw CLIUsageError('Structured soundscape contains duplicate stable cue identities.')
 
@@ -210,9 +274,21 @@ export const buildStructuredSoundscape = (input: {
     }
     if (directive.kind === 'ambience') {
       if (directive.inline) throw CLIUsageError('AMBIENCE is a block directive; inline ambience ranges must use structured anchor data.')
-      ambientBeds.push({ ...common, kind: 'ambience', range: { kind: 'full-scene' } })
+      if ((directive.rangeFrom === undefined) !== (directive.rangeTo === undefined)) throw CLIUsageError('AMBIENCE range requires both from and to.')
+      const start = spans[index]?.start
+      const end = spans[index]?.end
+      if (start === undefined || end === undefined) throw CLIUsageError('Ambient cue has no exact source position.')
+      const range = directive.rangeFrom && directive.rangeTo && !(directive.rangeFrom === 'scene-start' && directive.rangeTo === 'scene-end')
+        ? {
+            kind: 'anchors' as const,
+            start: resolveAmbientRangeBound(directive.rangeFrom, start, end, input.sourceSegments),
+            end: resolveAmbientRangeBound(directive.rangeTo, start, end, input.sourceSegments),
+          }
+        : { kind: 'full-scene' as const }
+      ambientBeds.push({ ...common, kind: 'ambience', range })
       return
     }
+    if (directive.rangeFrom !== undefined || directive.rangeTo !== undefined) throw CLIUsageError('from/to range controls are only valid on AMBIENCE directives.')
     const start = spans[index]?.start
     if (start === undefined) throw CLIUsageError('Sound cue has no exact source position.')
     cues.push({ ...common, kind: directive.kind, anchor: directive.inline ? inlineAnchor(start, input.sourceSegments) : blockAnchor(start, input.sourceSegments) })

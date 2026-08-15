@@ -5,7 +5,7 @@
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
 - **Date Updated:** 2026-08-14
-- **Verification Status:** Pending
+- **Verification Status:** Passed — offline test plan last passed 2026-08-14 with no provider calls; Phase 8A–8D completed the same day for the seven registered Episode 2 Scene 4 targets
 
 ## Context
 
@@ -29,11 +29,11 @@ The Phase 3–6 offline completion claims originally relied in part on adapter t
 
 | Provider phase | Verified implementation after correction | Still required before the original phase gate is complete |
 |---|---|---|
-| Inworld Phase 3 | Credentialed single-voice REST synthesis, steering/markup serialization, bounded errors, cancellation, explicit admission evidence, documented read-only Voice API catalog discovery, and pre-synthesis voice-ID readiness | Verified timing/WebSocket support, native dialogue, cloning, design, mutation lifecycle, and end-to-end soundscape acceptance |
-| DeepInfra Phase 4 | Credentialed model-specific single-voice inference for registered models, binary/base64 response decoding, bounded errors, cancellation, explicit admission evidence, and 23 of 24 corrected baseline benchmark outputs; Chatterbox Multilingual repeatedly returned HTTP 500 on the hard input and further DeepInfra execution was stopped at user direction | Verified reliability across the supported input envelope, model-specific native dialogue, voice design, zero-shot protected references, lifecycle semantics, and end-to-end soundscape acceptance |
-| Replicate speech Phase 5 | Real model prediction create/poll lifecycle, prediction-ID evidence, checked output download, cancellation, and default ambiguity-safe paid-create blocking with explicit redispatch authorization | Model-specific input/version fixtures, native dialogue and protected reference flows, expiry/resume acceptance, and complete multi-model soundscape evidence |
-| Fish Phase 6 | Structured single-voice TTS, real catalog/design/model lifecycle calls, and protected-preview materialization with non-empty model samples | Native dialogue/timestamp streaming, CLI clone parity, full reconciliation coverage, and end-to-end soundscape acceptance |
-| Replicate AudioGen Phase 7 | Version-pinned real prediction create/poll, cancellation, checked non-empty download, and ambiguity-safe admission classification | The existing mocked governance, license, cache, resume, and historical-readability gates remain required and must not be inferred from a successful create/poll adapter alone |
+| Inworld Phase 3 | Credentialed single-voice REST synthesis with WORD timestamps and visemes, injectable WebSocket create/send/flush reducer, request-level TTS-2 steering plus preserved inline tags, catalog/design/publish/instant-clone/inspect/delete ports, shared `voice` command coverage, and mocked v5 soundscape acceptance | Native multi-speaker dialogue remains unavailable because Inworld has no documented native-dialogue request; Professional Voice Clone remains a Portal beta workflow reported as external-action-required |
+| DeepInfra Phase 4 | Credentialed model-specific single-voice inference for registered models, binary/base64 response decoding, bounded errors, cancellation, explicit admission evidence, account catalog/create/inspect/delete ports, request-time MiMo/Qwen VoiceDesign candidates that materialize through `POST /v1/voices/add`, consent-gated instant clone, mocked v5 soundscape acceptance, and 23 of 24 corrected baseline benchmark outputs | Native multi-speaker dialogue remains unavailable because each inference request carries one voice or `voice_id`; professional clone remains unsupported; Chatterbox Multilingual hard-input HTTP 500 is a retained live reliability observation, not an offline gate |
+| Replicate speech Phase 5 | Version-pinned Kokoro stock-voice prediction create/poll, prediction-ID evidence, checked non-empty download, cancellation, ambiguity-safe paid-create blocking, dated input/version fixture, 46-voice validation with default `af_bella`, speed-only controls, deferred clone/dialogue selectors, and mocked v5 soundscape acceptance | Native dialogue and protected reference-audio cloning remain deferred until a future model-specific serializer exists; F5-TTS, Dia, and XTTS-v2 stay unregistered |
+| Fish Phase 6 | Structured single-voice TTS, S2 Pro native dialogue with timestamped SSE `chunk_seq` reduction, catalog/design/model lifecycle calls, CLI clone parity, Fish reconcile without blind recreation, and mocked v5 soundscape acceptance | Professional clone remains unsupported because Fish documents only fast model creation; `voice-design-1` remains a design model rather than a dialogue target |
+| Replicate AudioGen Phase 7 | Version-pinned real prediction create/poll, cancellation, checked non-empty download, ambiguity-safe admission classification, mocked governance/license/cache/resume, and historical-readability gates | Native dialogue, voice identity, and vocal-reaction routing remain unsupported; commercial and unknown intended use stay statically ineligible under the CC BY-NC 4.0 fixture |
 
 Capability declarations must now match exposed ports. A request-time model feature is not a durable voice-management API, and provider-adjacent documentation is not evidence that the adapter implements native dialogue, cloning, design, catalog, or deletion. No offline placeholder may satisfy a provider execution gate.
 
@@ -219,7 +219,7 @@ Phase 1 was completed on 2026-08-13. The implementation is an offline-verified v
 | 1D | Complete | Canonical normalization, strict placement and pre-roll, overlap-faded ambience looping, four semantic buses, authored gain, constant-power pan, dialogue-and-vocal sidechain ducking, loudness normalization, limiting, semantic stems, transform ledger, resolved timeline, and checksummed soundscape `AudioRun` |
 | 1E | Complete | Mocked command and workflow coverage for dialogue-only, soundscape-only, and combined scenes; no-call price; cache and resume; bounded work; cancellation; required and optional failures; multi-dialogue-target SFX reuse; canonical manifest publication; and final master lineage |
 
-The accepted `comic-soundscape-v1` profile is fixture-locked at 48 kHz stereo 24-bit PCM WAV, dialogue/vocal/action/ambience bus gains of `0/-1/-3/-14 dB`, `-16 LUFS` integrated loudness, `-1 dBTP`, a limiter ceiling of `0.95`, `9 dB` ambience ducking with a `-32 dB` threshold and `30/350 ms` attack/release, a `50 ms` detector window, `120 ms` ambience-loop crossfade, `8/20 ms` fades, centered default pan, and constant-power panning. Profile data and its hash, rather than hidden FFmpeg defaults, own these values.
+The accepted `comic-soundscape-v1` profile is fixture-locked at 48 kHz stereo 24-bit PCM WAV, dialogue/vocal/action/ambience bus gains of `0/-1/-3/-14 dB`, `-16 LUFS` integrated loudness, `-1 dBTP`, a limiter ceiling of `0.95`, `9 dB` ambience ducking with sidechain `ratio` `7`, a `-32 dB` threshold and `30/350 ms` attack/release, a `50 ms` detector window, `120 ms` ambience-loop crossfade, `8/20 ms` fades, centered default pan, and constant-power panning. Profile data and its hash, rather than hidden FFmpeg defaults, own these values.
 
 ElevenLabs Phase 1 pins `eleven_text_to_sound_v2`, `POST /v1/sound-generation`, serializer `elevenlabs.sound-generation.v1`, a 450-Unicode-scalar prompt limit, optional `0.5–30 second` duration, prompt influence `0–1` with default `0.3`, loop support for the pinned v2 model, and selected MP3/WAV output formats. Static price planning uses the reviewed `$0.12/minute` specified-duration API rate; automatic-duration price remains `unknown`, never zero.
 
@@ -257,7 +257,7 @@ Phase 2 was completed on 2026-08-13. The implementation connects existing Cartes
 
 | Subphase | State | Implemented result |
 |---|---|---|
-| 2A | Complete | Capability-scoped vocal routing, deterministic routing decisions for authored vocal reactions vs. dedicated SFX targets, provider-qualified generation identities, and static rejection of unsupported speech-provider SFX requests |
+| 2A | Complete | Capability-scoped vocal routing, deterministic `dedicated-sfx` / `unsupported` decisions on the sound-effect render plan, static rejection of unsupported speech-provider SFX requests, and required-vocal failure when the selected SFX target cannot render VOCAL SFX. Voice-qualified dialogue synthesis remains deferred until a dialogue adapter exposes a vocal-reaction port |
 | 2B | Complete | Hume Octave 1 and Octave 2 integration with acting descriptions for vocal reactions, single-request catalog probe reuse across model targets, Voice Conversion routing restricted to speech buses, consent-gated donor handling, and subscription-gated external `voice clone` reporting |
 | 2C | Complete | Cartesia Sonic integration for segmented dialogue and voice-qualified reaction controls (`[laughter]`), instant clone workflow, catalog pagination, and static rejection of unsupported text-prompt `voice design` |
 | 2D | Complete | MiniMax T2A integration with interjection tags and subtitle-level word timing, catalog discovery, candidate-based voice design with protected temporary-voice lifecycle, and upload-then-clone instant voice creation |
@@ -289,6 +289,18 @@ Render full v5 soundscape fixtures with Inworld dialogue targets while reusing E
 
 Phase 3 gate: Inworld AI renders steerable dialogue, instant/pro clones, voice design, and inline vocal markups through common plans and artifacts; viseme timing supports lip-sync alignment, and non-speech SFX requests fail before dispatch.
 
+#### Phase 3 Implementation Record
+
+Phase 3 offline adapters were completed on 2026-08-14. No live or quota-limited Inworld request was used for acceptance. Native multi-speaker dialogue remains explicitly unsupported because the documented API synthesizes one `voiceId` per request. Professional Voice Clone remains a Portal beta workflow and is reported as `external-action-required` rather than approximated through Instant Voice Cloning.
+
+| Subphase | State | Implemented result |
+|---|---|---|
+| 3A | Complete | TTS-2 and TTS-2 Flash registry/pricing, capability fixture, selector resolution, static SFX rejection, and catalog/readiness identity |
+| 3B | Complete | REST `POST /tts/v1/voice` with WAV/48 kHz WORD timestamps, viseme-bearing phoneme tokens, hosted-chunk timing factories, and an injectable WebSocket create/send/flush adapter with offline protocol tests; REST remains the default CLI transport |
+| 3C | Complete | Instant clone, prompt design plus publish materialization, inspect/delete lifecycle, and shared `voice design`/`materialize`/`clone`/`inspect`/`delete` coverage |
+| 3D | Complete | TTS-2 request-level `instruction` steering, Flash steering rejection, and preserved inline tags including documented non-verbals |
+| 3E | Complete | Offline v5 soundscape acceptance: Inworld dialogue planning, ElevenLabs action-SFX/ambience ownership, viseme retention, and local four-bus mix publication |
+
 ### Phase 4: DeepInfra Hosted Speech Suite (Chatterbox, MiMo V2.5, Qwen3-TTS)
 
 Phase 4 integrates DeepInfra's hosted open-weight speech models: ResembleAI Chatterbox (`chatterbox-multilingual` & `chatterbox-turbo` @ $1.00/1M chars), Xiaomi MiMo V2.5 (`MiMo-V2.5-tts` & `MiMo-V2.5-tts-voicedesign` @ $0.00/1M promotional), and Alibaba Qwen3-TTS (`Qwen3-TTS` & `Qwen3-TTS-VoiceDesign` @ $20.00/1M chars).
@@ -315,6 +327,18 @@ Render v5 soundscape fixtures using DeepInfra Chatterbox, MiMo V2.5, and Qwen3-T
 
 Phase 4 gate: DeepInfra hosted Chatterbox, MiMo V2.5, and Qwen3-TTS models render multi-speaker dialogue, voice design, and zero-shot cloning through common plans and artifacts with verified pricing and offline resume.
 
+#### Phase 4 Implementation Record
+
+Phase 4 offline adapters were completed on 2026-08-14. No live or quota-limited DeepInfra request was used for acceptance. Native multi-speaker dialogue remains explicitly unsupported because each inference request carries one voice or `voice_id`. Professional Voice Clone is unsupported because DeepInfra documents only `POST /v1/voices/add`. The retained Chatterbox Multilingual hard-input HTTP 500 is a live reliability observation from the earlier baseline and does not reopen the offline gate.
+
+| Subphase | State | Implemented result |
+|---|---|---|
+| 4A | Complete | DeepInfra speech-suite registry, bearer-token readiness, dated capability fixture, static pricing for Chatterbox `$1.00/1M`, MiMo V2.5 promotional `$0.00/1M`, and Qwen3-TTS `$20.00/1M`, plus static SFX rejection |
+| 4B | Complete | Model-specific Chatterbox Multilingual and Turbo serializers, ellipsis-safe text preparation, binary/base64 decode, admission evidence, retryable HTTP 500 classification, and mocked cache/resume-safe synthesis |
+| 4C | Complete | MiMo V2.5 TTS instruct serialization and request-time VoiceDesign candidates that materialize through protected preview audio plus `POST /v1/voices/add` |
+| 4D | Complete | Qwen3-TTS preset-voice and VoiceDesign serializers plus consent-gated zero-shot create-voice cloning for Chatterbox and Qwen3-TTS |
+| 4E | Complete | Offline v5 soundscape acceptance: DeepInfra dialogue planning for every registered model, ElevenLabs action-SFX/ambience ownership, and local four-bus mix publication |
+
 ### Phase 5: Replicate Version-Pinned Stock-Voice Speech
 
 Phase 5 integrates `jaaari/kokoro-82m` as the Replicate segmented stock-voice target. The prior registry entries for `x-lance/f5-tts`, `zsxkib/dia`, and `lucataco/xtts-v2` were removed on 2026-08-14 because the generic adapter falsely serialized them as `{ text, voice }`: F5-TTS instead requires reference audio and `gen_text`, and the other community models likewise require model-specific schemas. A public model page is not sufficient evidence that one generic TTS serializer supports it.
@@ -340,6 +364,18 @@ Pin the documented Kokoro voice set locally, choose `af_bella` as the standalone
 Download output audio immediately into checksummed local artifacts before Replicate's remote prediction files expire. Render v5 soundscape fixtures using segmented Kokoro dialogue with separately selected action SFX and ambient beds. This subphase exits when Kokoro passes prediction polling, artifact capture, expiry safety, cache, resume, and four-bus mastering contracts.
 
 Phase 5 gate: the pinned Replicate Kokoro deployment renders validated stock voices through common segmented plans and artifacts with expiry-safe local capture; unsupported clone/dialogue models are rejected before provider dispatch.
+
+#### Phase 5 Implementation Record
+
+Phase 5 offline adapters were completed on 2026-08-14. No live or quota-limited Replicate request was used for acceptance. Native multi-speaker dialogue and protected reference-audio cloning remain explicitly unsupported because the selectable registry contains only version-pinned `jaaari/kokoro-82m` stock voices. F5-TTS, Dia, and XTTS-v2 stay unregistered until each has an exact serializer, consent boundary, cost model, and offline conformance test.
+
+| Subphase | State | Implemented result |
+|---|---|---|
+| 5A | Complete | Replicate identity, `POST /v1/predictions`, pinned Kokoro version fixture, capability records, typical `$0.00022` per-prediction price with explicit input-dependent variance, and fabricated-voice rejection |
+| 5B | Complete | Kokoro `{ text, voice, speed? }` serializer, admission evidence, starting-to-succeeded polling, immediate output capture, and mocked pinned-version request |
+| 5C | Complete | F5-TTS, Dia, and XTTS-v2 remain unregistered; native dialogue, instant clone, voice design, and reference-audio invocations fail before dispatch |
+| 5D | Complete | 46-voice pin, standalone default `af_bella`, speed-only controls, and rejection of `standard`, instructions, and unverified fields |
+| 5E | Complete | Offline v5 soundscape acceptance: segmented Kokoro dialogue planning, ElevenLabs action-SFX/ambience ownership, polling plus local capture, and four-bus mix publication |
 
 ### Phase 6: Fish Audio Across Synthesis and Voice Workflows
 
@@ -384,6 +420,18 @@ The `voice` command coverage required by Phase 6 is explicit:
 | `delete` | Delete only an exact eligibility-checked project-owned model |
 | `save-reference` | Unsupported; remains Mistral-specific |
 
+#### Phase 6 Implementation Record
+
+Phase 6 offline adapters were completed on 2026-08-14. No live or quota-limited Fish request was used for acceptance. Professional Voice Clone remains unsupported because Fish documents only fast `POST /model` creation. `voice-design-1` is a stateless design model and is not a native-dialogue target.
+
+| Subphase | State | Implemented result |
+|---|---|---|
+| 6A | Complete | Fish registry/pricing, model-scoped S2 Pro native-dialogue and word-timing capability records, static SFX rejection, account vs public catalog query (`self`), and readiness identity |
+| 6B | Complete | Bounded single-speaker TTS with approved `reference_id`, WAV request identity, cache/resume-safe hosted chunks, and protected reference handling |
+| 6C | Complete | S2 Pro native multi-speaker planning with `<\|speaker:N\|>` tags, deterministic segmented fallback, `POST /v1/tts/stream/with-timestamp`, SSE reduction that replaces the latest alignment snapshot by `chunk_seq`, and prepared-text timing mapping |
+| 6D | Complete | Stateless `voice-design-1` candidates with retained seed/index/sample-rate/duration, materialize through protected preview plus `POST /model`, CLI `voice clone` instant parity, inspect/delete, and Fish `voice reconcile` without blind recreation |
+| 6E | Complete | Offline v5 soundscape acceptance: Fish dialogue planning, ElevenLabs action-SFX/ambience ownership, timestamp evidence, and local four-bus mix publication |
+
 #### Phase 3–6 Resume and Benchmark Readiness Record (2026-08-14)
 
 The reliable selectable baselines for Inworld, DeepInfra, Replicate Kokoro, and Fish are now integrated into the same typed standalone TTS descriptor as the earlier providers. All 13 current selectors therefore resolve through fresh `tts`, no-call `--price`, explicit `--provider provider=model`, `--all-tts` eligibility, and additive `resume`; no phase keeps a private resume provider list. Bidirectional local contracts cover all 16 TTS providers and their repeatable model fields.
@@ -416,13 +464,25 @@ Run the pinned community model through mocked license eligibility, price, predic
 
 Phase 7 gate: the pinned community deployment passes mocked license-eligibility, prediction, polling, cancellation, expiry, price, cache, resume, and mixer contracts and can be removed or marked unavailable without making historical manifests unreadable.
 
+#### Phase 7 Implementation Record
+
+Phase 7 offline adapters were completed on 2026-08-14. No live or quota-limited Replicate AudioGen request was used for acceptance. The pinned target remains `sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8` with CC BY-NC 4.0 noncommercial-use restriction. Vocal reactions, dialogue, and voice-management stay unsupported. Commercial and unknown intended use fail before credentials.
+
+| Subphase | State | Implemented result |
+|---|---|---|
+| 7A | Complete | Community-model governance fixture with owner, pinned version, input/output schemas, Nvidia L40S hardware observation, AudioCraft upstream, CC BY-NC 4.0 license, community-unofficial lifecycle, alias rejection, and historical fixture readers |
+| 7B | Complete | Explicit `--sfx-provider replicate=sepal/audiogen@<version>` selector, `--sfx-license-use` evidence on the render plan, version-qualified typical `$0.013`/prediction pricing with input-dependent variance, and no-call distinction of supported, prohibited, unknown, invalid-duration, and version-mismatch cases |
+| 7C | Complete | Version-pinned prediction create/poll, cancel POST, checked non-empty download, starting/processing/succeeded/failed/canceled/timed-out/ambiguous-admission classification, and injectable prediction runner |
+| 7D | Complete | Immediate checksummed local capture, action-SFX and ambience-only routing, local ambience looping, cache/resume identity distinct from ElevenLabs, and no fallback when AudioGen is unavailable |
+| 7E | Complete | Offline v5 soundscape acceptance plus retired-fixture historical readability: completed plans, results, and mixes remain readable while new dispatch is blocked |
+
 ### Phase 8: Multi-Model Episode 2 Scene 4 Render Matrix and ADR-019 Panel Video Generation
 
 Phase 8 establishes the production execution plan for Episode 2 Scene 4 ("Overcompensation" Part 1 / `04-overcompensation-part-1`), selected for multi-provider testing because it is shorter and focused on a 3-character scene (`seamus`, `peaches`, `paddy`). The goal is to generate complete multi-speaker dialogue and soundscape masters for all newly integrated models and render corresponding ADR-019 panel videos (`panel-vid`) across structured parallel execution waves.
 
 #### Phase 8A: Episode 2 Scene 4 Authored Script and Workspace Audit
 
-Verify the canonical v5 `structured-script.json` for Episode 2 Scene 4 (`04-overcompensation-part-1`), featuring 3-character dialogue turns (`seamus`, `peaches`, `paddy`), non-verbal vocal reactions, action SFX directives, and ambient beds. Validate that `SoundscapePlan` and `ComicDialoguePlan` generate deterministically across all targeted providers without embedding provider-specific parameters in the source script. Completed on 2026-08-14; v5 script structure generated deterministically and static planning validated across all model targets.
+Verify the canonical v5 `structured-script.json` for Episode 2 Scene 4 (`04-overcompensation-part-1`), featuring 3-character dialogue turns (`seamus`, `peaches`, `paddy`), non-verbal vocal reactions, action SFX directives, and ambient beds. Validate that `SoundscapePlan` and `ComicDialoguePlan` generate deterministically across all targeted providers without embedding provider-specific parameters in the source script. Completed on 2026-08-14: authored `SFX`, `VOCAL SFX`, and `AMBIENCE` directives were added to `input/scripts/02-script/04-overcompensation-part-1.md` and a fresh local `draft-scenes --only structure` run without `--llm-model` wrote `output/2026-08-14_16-33-37-322_04-overcompensation-part-1`. The v5 artifact has 16 speakable turns for `seamus`/`peaches`/`paddy`, 8 required action cues, 3 required plus 1 optional vocal reaction including one `source-text-offset` mid-turn grunt, 1 optional action cue, and 2 ranged ambient beds. Reparse matched the written soundscape, `ComicDialoguePlan` `2c762f8c1d8bef506b5cf845930649f409c8017973c2aef2bb5527c8604bcbd0` and `SoundscapePlan` `add82dd18e7ce464a2f04356bf9cf39377ed4b124fb519fe958737bcfcdc3b12` were identical across two in-process builds, the source and structured script contain no provider fields, and no-call `generate-audio --price` planned the same 14 SFX tasks plus Cartesia, Hume, MiniMax, Inworld, Fish, Replicate Kokoro, DeepInfra Chatterbox Multilingual, and ElevenLabs dialogue targets.
 
 #### Phase 8B: Sub-Wave Multi-Model Soundscape Audio Generation Matrix
 
@@ -443,6 +503,8 @@ Execute parallel soundscape audio generation runs for Episode 2 Scene 4 across g
 
 Each run combines the target model's dialogue bus with action SFX and ambient beds, outputting checksummed stem WAVs and mastered soundscape WAVs. This subphase exits when all model targets across Sub-Waves 1.1 through 3.3 pass synthesis, cache materialization, and four-bus mix assembly.
 
+Executed on 2026-08-14 against `output/2026-08-14_16-33-37-322_04-overcompensation-part-1` with `--sfx-provider elevenlabs=eleven_text_to_sound_v2`, `--profile ep07-comparison`, and `--soundscape-timing-policy proportional` after strict text-offset timing lacked provider evidence. The registered one-model-per-provider subset completed: Cartesia `sonic-3.5-2026-05-04`, ElevenLabs `eleven_v3`, Fish `fish-speech-1.5`, Hume `octave-1`, Inworld `realtime-tts-2`, MiniMax `speech-2.8-hd`, and Replicate `jaaari/kokoro-82m`, each with a dialogue WAV and a four-bus soundscape master. Fourteen ElevenLabs SFX tasks materialized once and were reused. DeepInfra `ResembleAI/chatterbox-multilingual` was left incomplete after retryable HTTP 500s at the user's request. Fal `fal-ai/speech` / `speech/clone` / `speech/design` are not TTS selectors. Cartesia `sonic-3.0` / `sonic-2.5` and MiniMax `speech-2.8` are not registered selectors. Fish `s2-pro` / `s1`, Inworld `realtime-tts-2-flash`, Hume `octave-2`, DeepInfra MiMo/Qwen/Chatterbox Turbo, and the deferred Replicate Dia/XTTS-v2 targets have no approved `ep07-comparison` voices for `seamus`/`peaches`/`paddy`.
+
 #### Phase 8C: ADR-019 Panel Video Sub-Wave Generation (panel-vid)
 
 Execute the ADR-019 panel video rendering pipeline (`comic generate-panel-video` / `panel-vid`) across matching parallel sub-waves for every completed soundscape audio run:
@@ -453,11 +515,26 @@ Execute the ADR-019 panel video rendering pipeline (`comic generate-panel-video`
 
 Align visual comic panels with the derived timing of each provider's soundscape run, rendering synchronized video tracks with audio waveform integration and panel transitions. This subphase exits when every Episode 2 Scene 4 audio run produces a valid, playable, manifest-backed panel video artifact.
 
+Executed on 2026-08-14 from `/Users/ajc/c/uss-acampo` with `comic generate-slideshow` (the implemented ADR-019 command; there is no separate `generate-panel-video` subcommand) against `output/2026-08-14_16-33-37-322_04-overcompensation-part-1`. The curated 16-panel 1536×1024 reviewed scene was imported from the deterministic sibling `output/04-overcompensation-part-1` → `output/ep02/04-overcompensation-part-1`. Seven local FFmpeg presentations completed with `--audio-target`: Sub-Wave 4.1 Replicate `jaaari/kokoro-82m`; Sub-Wave 4.2 ElevenLabs `eleven_v3`, Fish `fish-speech-1.5`, Hume `octave-1`, and Inworld `realtime-tts-2`; Sub-Wave 4.3 Cartesia `sonic-3.5-2026-05-04` and MiniMax `speech-2.8-hd`. Each run is a playable H.264/yuv420p + AAC MP4 plus derived WAV under `presentation/runs/<presentation-id>/`. `selectedPresentationId` is the last published target (`minimax=speech-2.8-hd`). Slideshow loading now accepts a succeeded sound-effect result reused from an earlier `SoundscapePlan` identity, which is how five of the seven mixes share the first ElevenLabs SFX result. No provider call was used.
+
 #### Phase 8D: Cross-Model Media Verification and Manifest Audit
 
 Audit the complete Episode 2 Scene 4 artifact graph, verifying that `manifest.json`, `selectedSoundscapeRuns`, `finalOutputRefs`, panel video manifests, and transform ledgers maintain total checksum lineage across all model targets. This subphase exits when the entire render matrix passes offline verification with zero unhandled errors or missing references.
 
+Executed on 2026-08-14 against `output/2026-08-14_16-33-37-322_04-overcompensation-part-1`. `auditComicSceneArtifactLineage` walked the canonical comic envelope, every selected dialogue and soundscape AudioRun, retained SFX sources, four-bus stems, transform ledgers, published `.soundscape.wav` masters, and all seven `presentation/runs/<presentation-id>/` ADR-019 plans, timelines, runs, WAVs, and MP4s. The audit verified 184 checksum-bound references with zero errors. Each of Cartesia Sonic 3.5, ElevenLabs Eleven v3, Fish Speech 1.5, Hume Octave 1, Inworld Realtime TTS 2, MiniMax Speech 2.8 HD, and Replicate Kokoro has a selected dialogue run, a four-bus soundscape master, and a matching presentation run. Manifest envelope verification now checksums `selectedAudioRuns`, `selectedSoundscapeRuns`, soundscape plan/result refs, and presentation refs; later audio and slideshow writes retain the full nested lineage instead of replacing it with the latest target only. DeepInfra Chatterbox Multilingual remains unselected after the 8B HTTP 500 stop and was not part of this matrix. No provider call was used.
+
 Phase 8 gate: Episode 2 Scene 4 generates complete soundscape audio runs across all integrated speech models across structured parallel waves and every run has a corresponding manifest-backed ADR-019 panel video.
+
+#### Phase 8 Implementation Record
+
+Phase 8A local structure and no-call planning were completed on 2026-08-14. Phase 8B produced seven registered dialogue-plus-soundscape masters the same day. Phase 8C produced seven local ADR-019 slideshows the same day. Phase 8D verified the complete registered matrix the same day.
+
+| Subphase | State | Implemented result |
+|---|---|---|
+| 8A | Complete | Authored Episode 2 Scene 4 `SFX` / `VOCAL SFX` / `AMBIENCE` directives; local `draft-scenes --only structure` without `--llm-model` wrote v5 `output/2026-08-14_16-33-37-322_04-overcompensation-part-1`; deterministic `ComicDialoguePlan` and `SoundscapePlan` identities; no provider fields in source; no-call `--price` across Cartesia, Hume, MiniMax, Inworld, Fish, Replicate Kokoro, DeepInfra Chatterbox Multilingual, and ElevenLabs dialogue plus ElevenLabs SFX |
+| 8B | Complete for registered executable targets | Seven four-bus masters in `output/2026-08-14_16-33-37-322_04-overcompensation-part-1/audio/final/` for Cartesia Sonic 3.5, ElevenLabs Eleven v3, Fish Speech 1.5, Hume Octave 1, Inworld Realtime TTS 2, MiniMax Speech 2.8 HD, and Replicate Kokoro; shared ElevenLabs SFX cache of 14 tasks; proportional mid-turn vocal timing; DeepInfra Chatterbox Multilingual left incomplete after HTTP 500s; Fal and unregistered/invalid selectors not dispatched |
+| 8C | Complete for registered executable targets | Seven ADR-019 slideshows in `output/2026-08-14_16-33-37-322_04-overcompensation-part-1/presentation/runs/` for Cartesia Sonic 3.5, ElevenLabs Eleven v3, Fish Speech 1.5, Hume Octave 1, Inworld Realtime TTS 2, MiniMax Speech 2.8 HD, and Replicate Kokoro; curated 16-panel sibling import; H.264/yuv420p 1536×1024 + AAC; slideshow loader accepts reused SFX results across SoundscapePlan identities; DeepInfra and unregistered selectors not rendered |
+| 8D | Complete for registered executable targets | Offline lineage audit of `output/2026-08-14_16-33-37-322_04-overcompensation-part-1`: 184 verified checksums, seven selected dialogue runs, seven four-bus masters, seven ADR-019 presentation runs, zero missing references; envelope and publication now retain the full nested graph |
 
 ### Phase Gates
 
@@ -563,13 +640,15 @@ Negative outcomes:
 |---|---|---|
 | Phase 1A–1E: deliver authored planning, the ElevenLabs voice/clone reference path, ElevenLabs SFX execution, the calibrated four-bus mixer, canonical artifacts, and offline acceptance | AutoShow Team | Complete — offline gate passed 2026-08-13; no live provider call used |
 | Phase 2A–2E: add capability routing, Hume, Cartesia, and MiniMax integration, shared voice-workflow extensions, and cross-provider acceptance | AutoShow Team | Complete — offline gate passed 2026-08-13; no live provider call used |
-| Phase 3A–3E: add First-Party Inworld AI foundation, steerable TTS, instant/pro cloning, voice design, natural language steering, audio markups, and acceptance | AutoShow Team | Reopened — reliable single-voice synthesis baseline implemented; unsupported management/native/timing facets removed pending real adapters and acceptance evidence |
-| Phase 4A–4E: add DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) foundation, adapters, zero-shot cloning, and acceptance | AutoShow Team | Reopened — model-specific single-voice adapters produced 23 of 24 corrected baseline outputs, but Chatterbox Multilingual repeatedly failed the hard input with HTTP 500 and further DeepInfra execution was stopped at user direction; reliability plus dialogue/design/clone and acceptance gates remain pending |
-| Phase 5A–5E: add version-pinned Replicate stock-voice speech and keep model-specific clone/dialogue selectors gated by exact contracts | AutoShow Team | Partial — Kokoro exact-version stock-voice execution and offline serializer coverage are implemented; reference-audio cloning and native dialogue remain deliberately deferred |
-| Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Partial — single-voice TTS and protected-preview materialization are reliable; native dialogue/timing, clone command parity, and full acceptance remain pending |
-| Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Partial — prediction execution reliability is corrected; the complete governance/cache/resume/historical gate must remain independently verified |
-| Phase 8A: Episode 2 Scene 4 authored script & workspace audit | AutoShow Team | Complete — v5 script structure generated & static planning validated for 3-character scene (`seamus`, `peaches`, `paddy`) |
-| Phase 8B–8D: generate Episode 2 Scene 4 soundscape audio matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish sub-waves with corresponding ADR-019 panel-vid renders | AutoShow Team | Pending — Nothing has been generated yet; workspace reset to scratch |
+| Phase 3A–3E: add First-Party Inworld AI foundation, steerable TTS, instant/pro cloning, voice design, natural language steering, audio markups, and acceptance | AutoShow Team | Complete — offline REST timing, WebSocket protocol adapter, design/clone/lifecycle ports, and mocked soundscape acceptance passed 2026-08-14; native dialogue remains unsupported and professional clone remains Portal-only; no live provider call used |
+| Phase 4A–4E: add DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) foundation, adapters, zero-shot cloning, and acceptance | AutoShow Team | Complete — offline serializer, catalog/design/clone/lifecycle ports, and mocked soundscape acceptance passed 2026-08-14; native dialogue remains unsupported and professional clone remains unavailable; no live provider call used |
+| Phase 5A–5E: add version-pinned Replicate stock-voice speech and keep model-specific clone/dialogue selectors gated by exact contracts | AutoShow Team | Complete — offline Kokoro pin, stock-voice validation, prediction poll/download, deferred clone/dialogue rejection, and mocked soundscape acceptance passed 2026-08-14; native dialogue and reference-audio cloning remain unsupported; no live provider call used |
+| Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Complete — offline S2 Pro native dialogue, timestamp SSE reduction, CLI clone parity, Fish reconcile, and mocked soundscape acceptance passed 2026-08-14; professional clone remains unavailable; no live provider call used |
+| Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Complete — offline governance, license eligibility, prediction create/poll/cancel/download, cache, resume, mixer, and historical-readability gates passed 2026-08-14; commercial use remains ineligible; no live provider call used |
+| Phase 8A: Episode 2 Scene 4 authored script & workspace audit | AutoShow Team | Complete — 2026-08-14 local `draft-scenes --only structure` without `--llm-model` wrote v5 `output/2026-08-14_16-33-37-322_04-overcompensation-part-1`; deterministic dialogue/soundscape plans and no-call multi-provider price planning passed; no provider call used |
+| Phase 8B: Episode 2 Scene 4 registered soundscape audio matrix | AutoShow Team | Complete for the seven approved `ep07-comparison` targets — Cartesia, ElevenLabs, Fish, Hume, Inworld, MiniMax, and Replicate Kokoro masters plus shared ElevenLabs SFX; DeepInfra skipped after HTTP 500s; Fal/unregistered models not dispatched |
+| Phase 8C: ADR-019 panel-vid sub-waves | AutoShow Team | Complete for the seven approved `ep07-comparison` targets — local `comic generate-slideshow` from uss-acampo produced seven playable 16-panel MP4s; no provider call used |
+| Phase 8D: Cross-model media verification and manifest audit | AutoShow Team | Complete for the seven approved `ep07-comparison` targets — offline `auditComicSceneArtifactLineage` verified 184 checksum-bound refs across selected dialogue, soundscape, SFX, stem, ledger, master, and ADR-019 presentation artifacts with zero errors; DeepInfra remains unselected |
 
 ## Test Plan
 
@@ -583,16 +662,78 @@ bun test test/test-cases/validation/comic/soundscape-timeline-contracts.test.ts
 bun test test/test-cases/validation/comic/soundscape-mixer-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-soundscape-artifact-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-audio-phase-2-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-audio-inworld-phase-3-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-audio-deepinfra-phase-4-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-audio-replicate-phase-5-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-audio-fish-phase-6-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-audio-audiogen-phase-7-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-phase-8d-artifact-lineage-contracts.test.ts
+bun test test/test-cases/validation/media-generation/inworld-tts-adapter-contracts.test.ts
+bun test test/test-cases/validation/media-generation/deepinfra-tts-adapter-contracts.test.ts
+bun test test/test-cases/validation/media-generation/replicate-tts-adapter-contracts.test.ts
+bun test test/test-cases/validation/media-generation/fish-tts-adapter-contracts.test.ts
+bun test test/test-cases/validation/media-generation/fish-tts-timing-contracts.test.ts
+bun test test/test-cases/validation/media-generation/inworld-tts-timing-contracts.test.ts
+bun test test/test-cases/validation/media-generation/inworld-tts-websocket-adapter.test.ts
 bun test test/test-cases/validation/media-generation/elevenlabs-sfx-adapter-contracts.test.ts
+bun test test/test-cases/validation/media-generation/replicate-audiogen-adapter-contracts.test.ts
 bun test test/test-cases/validation/media-generation/voice-clone-phase-1-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/tts-resume-canonical-contracts.test.ts
 git diff --check
 ```
 
-The implemented Phase 1 tests use local synthetic WAV fixtures and mocked HTTP responses. They prove dialogue-only zero-dispatch behavior, soundscape-only execution without a TTS target, exact and unresolved anchors, pre-roll shifting, shared SFX reuse across dialogue targets, cache-key separation from mix identity, required and optional cue failures, price-mode no-call/no-write behavior, durable admission and ambiguous-redispatch blocking, resume, cancellation, output format, stem lineage, measured ducking, limiter bounds, deterministic selected artifacts, protected clone provisioning, and canonical manifest publication. Later phases add their provider-specific test files when implemented; they are not part of the Phase 1 command list above. Do not run live sound generation, hosted TTS, or any provider smoke/e2e path to verify this ADR.
+The Phase 8D contracts audit a two-target fixture graph for checksum lineage, selected-run bindings, published masters, and required ADR-019 coverage, then fail stale masters and missing presentation runs. The implemented Phase 1 tests use local synthetic WAV fixtures and mocked HTTP responses. They prove dialogue-only zero-dispatch behavior, soundscape-only execution without a TTS target, exact and unresolved anchors, pre-roll shifting, shared SFX reuse across dialogue targets, cache-key separation from mix identity, required and optional cue failures, price-mode no-call/no-write behavior, durable admission and ambiguous-redispatch blocking, resume, cancellation, output format, stem lineage, measured ducking, limiter bounds, deterministic selected artifacts, protected clone provisioning, and canonical manifest publication. Later phases add their provider-specific test files when implemented; they are not part of the Phase 1 command list above. The 2026-08-14 offline pass also covers cue-ID authored-control identity, explicit ambient `from`/`to` ranges, dedicated-sfx vs unsupported vocal routing, AudioGen typical-per-prediction price math, and mix-profile-owned ducking ratio. Do not run live sound generation, hosted TTS, or any provider smoke/e2e path to verify this ADR.
 
 Shared hosted SFX admission and rate-pressure recovery were verified on 2026-08-14 with fake-clock coordinator contracts and mocked sound-effect adapters only; no live provider generation ran.
+
+## Appendix: Merged Provider Research
+
+This appendix preserves the still-relevant findings of the background research report "Cartoon Sci-Fi Space Crew Voice, Multi-Character TTS, and Soundscape/Foley Options" (assessed 2026-08-10 against repository baseline `1bba61c2`, last updated 2026-08-14). The standalone report file was merged into this ADR on 2026-08-14 and removed; its planning narrative, phase tables, and four-bus profile duplicated the contracts above and were dropped. Provider claims here are research evidence, not architecture authority: each capability, endpoint, price, and access condition requires fresh primary-source revalidation before dispatch code is enabled. No hosted audio generation was run for the research; repository status was checked locally and documentation snapshots were captured with `bun as links`.
+
+### Independent SFX suitability of retained dialogue providers
+
+"Relevant to production" does not mean a provider is a valid independent SFX target. Vocal expression inside synthesized speech does not establish an API for independent action effects, reusable ambient beds, or acoustic simulation.
+
+| Provider | Suitable production role | Independent SFX suitability |
+|---|---|---|
+| ElevenLabs | Complete initial vertical slice: character voices, vocal reactions, discrete foley, ambience sources, and final soundscape execution | Yes. The official `POST /v1/sound-generation` contract exposes model-qualified text-to-sound generation, optional duration and prompt influence, and v2 looping. |
+| Hume Octave | Acting-directed dialogue and eligible vocal reactions, native utterances, timing evidence, continuation, authorized Voice Conversion, design, catalog, and voice lifecycle | No. Voice Conversion remains speech-to-speech work; action-SFX and ambience still use the selected SFX target. |
+| Cartesia Sonic | Approved character voices, segmented dialogue, request-scoped emotion guidance, eligible `[laughter]` reactions, catalog, instant cloning, import, inspection, and deletion | No. Its controls and nonverbalisms remain speech performance rather than independent stems. |
+| MiniMax Speech | Character casting, voice design and cloning, segmented dialogue, eligible model-qualified interjection tags, word timing, catalog, inspection, and deletion | No. Its text-to-audio API and voice effects remain speech generation, not standalone foley. |
+
+### Voice providers excluded as SFX targets
+
+The following providers remain usable through the dialogue subsystem but are excluded from the SFX candidate matrix.
+
+| Provider | Why it is not a soundscape-generation target |
+|---|---|
+| Deepgram Aura-2 | Speech synthesis only in the evaluated surface; no independent foley or ambience endpoint. |
+| Speechify | Voice catalog and personal speech cloning do not provide independent action-SFX or ambient-bed generation. |
+| Mistral Voxtral | Saved and reference voice synthesis serve dialogue identity, not non-speech sound generation. |
+| Gemini TTS & Audio | Prompted vocal expression and native dialogue remain speech output; no dedicated public SFX endpoint was established. |
+| OpenAI | Expressive or vocalized audio output is not a dedicated, reusable foley or ambience contract. |
+| xAI / Grok | The evaluated API surface provides speech voices, not independent sound-effect or ambient-bed generation. |
+| Groq Orpheus | Bracketed reactions such as laughter or sighs are embedded vocal performance, not discrete SFX or ambience stems. |
+
+### Deferred or rejected candidates
+
+To prevent duplicate integration effort, fal.ai-hosted models already covered by primary or partner endpoints in committed phases—ElevenLabs, MiniMax, Inworld, Resemble Chatterbox and Qwen3-TTS via DeepInfra, and Dia via Replicate—were omitted from the fal.ai evaluation. The remaining candidates stay deferred until a phase commits them with exact endpoint, schema, pricing, and lifecycle evidence.
+
+| Candidate | Disposition |
+|---|---|
+| [ByteDance Seed Speech v2](https://fal.ai/models/bytedance/seed-speech/tts/v2) (fal.ai) | Large-scale speech model for expressive synthesis, stylized delivery, and lip-sync alignment; candidate for fal.ai speech adapter expansion. |
+| [Maya Research Maya1](https://fal.ai/models/maya) (fal.ai) | Expressive voice generation for human emotion capture and prompt-based voice design in batch and streaming modes. |
+| [Zyphra Zonos2](https://fal.ai/models/zonos2) (fal.ai) | Zero-shot voice cloning from short samples across multiple languages with natural prosody. |
+| [Microsoft VibeVoice 7B](https://fal.ai/models/vibevoice) (fal.ai) | Multi-voice long-form speech synthesis for multi-speaker script and dialogue rendering. |
+| [Async TTS Pro](https://fal.ai/models/async/tts-pro/v1.0) (fal.ai) | Text-based control over pauses, timing, and emphasis using curated voice IDs. |
+| [hexgrad Kokoro-82M on DeepInfra](https://deepinfra.com/hexgrad/Kokoro-82M) | Apache-licensed 82M open-weight model hosted at $0.62/1M characters; cost-efficient candidate for low-cost dialogue baselines beyond the pinned Replicate deployment in Phase 5. |
+| [Stability AI Stable Audio 3](https://platform.stability.ai/docs/api-reference) | Documents text-to-audio and audio-to-audio generation at 44.1 kHz stereo with requested durations up to 380 seconds, but its distinct pricing, polling, moderation, and lifecycle contracts are outside the committed phases. An earlier description of this API as "uncapped" was incorrect. |
+| LOVO Genny | No retained official technical API reference established a public standalone SFX endpoint with a complete request, pricing, and access contract; product-level sound-effects functionality is insufficient for an adapter commitment. |
+
+### Superseded report claims
+
+For archival accuracy: the report's final revision proposed Replicate F5-TTS, Dia 1.6B, and XTTS-v2 as the committed Phase 5 scope and listed Inworld Realtime TTS 1.5 Max/Mini pricing. Both claims were superseded by the corrections recorded above—Phase 5 was narrowed to the pinned Kokoro stock-voice deployment after the generic `{ text, voice }` serializer was proven wrong for those community models, and the Inworld 1.5 selectors were removed in Phase 3A after provider rejection proved they are not current synthesis IDs.
 
 ## References
 
@@ -606,5 +747,5 @@ Shared hosted SFX admission and rate-pressure recovery were verified on 2026-08-
 - Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — dated selector, provider, price, and compatibility changes
 - Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md) — dialogue, timing, cache, artifact, and mastering foundation
 - Related ADR: [ADR-019](ADR-019-synchronize-comic-panels-with-manifest-backed-audio.md) — derived panel timing, presentation remix, and still-image rendering
-- Background report: [Cartoon Sci-Fi Space Crew Voice, Multi-Character TTS, and Soundscape/Foley Options](../reports/comic-character-tts-options-report.md) — provider claims are non-authoritative and require implementation-time revalidation
+- Background research: [merged provider research appendix](#appendix-merged-provider-research) — provider claims are non-authoritative and require implementation-time revalidation
 - Implementation sources: [subphase documentation index](#implementation-documentation-index) — direct primary references for 1A–7E

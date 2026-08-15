@@ -86,7 +86,7 @@ Canonical project-root paths:
 ```bash
 bun autoshow comic draft-scenes <script-path> [--only structure|prompt|scene|panel-prompts] [--price]
 bun autoshow comic generate-images <script-path> [--target images|sketches|both] [--panels <all|range|list>] [--panels-per-image <n>] [--no-qa] [--max-repairs <n>] [--force] [--price]
-bun autoshow comic generate-audio <script-path> [--provider <provider[=model]>] [--sfx-provider <provider=model>] [--soundscape-timing-policy strict|proportional] [--profile <key>] [--mode auto|native|segmented] [--role <label=role:key>] [--sample-rate <hz>] [--channels 1|2] [--codec pcm_s16le|pcm_s24le] [--price]
+bun autoshow comic generate-audio <script-path> [--provider <provider[=model]>] [--sfx-provider <provider=model>] [--sfx-license-use noncommercial|commercial|unknown] [--soundscape-timing-policy strict|proportional] [--profile <key>] [--mode auto|native|segmented] [--role <label=role:key>] [--sample-rate <hz>] [--channels 1|2] [--codec pcm_s16le|pcm_s24le] [--price]
 bun autoshow comic generate-slideshow <script-path> [--audio-target <provider=model>] [--untimed-panel-ms <n>] [--fps <n>] [--price]
 bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
 ```
@@ -285,7 +285,8 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--provider <provider[=model]>` | Select a TTS provider/model; repeatable | `kitten` |
-| `--sfx-provider <provider=model>` | Select the dedicated authored sound-effect target; Phase 1 accepts `elevenlabs=eleven_text_to_sound_v2` | none |
+| `--sfx-provider <provider=model>` | Select the dedicated authored sound-effect target; accepts `elevenlabs=eleven_text_to_sound_v2` or `replicate=sepal/audiogen@<pinned-version>` | none |
+| `--sfx-license-use <classification>` | Declare intended use for license-restricted SFX targets: `noncommercial`, `commercial`, or `unknown`; required for AudioGen and never inferred from model selection | none |
 | `--sfx-concurrency <count>` | Bound parallel sound-effect requests independently from dialogue generation | `2` |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted dialogue and sound-effect caps from one request per provider/account lane (`ramp`) or start at the configured caps (`immediate`) | `ramp` |
 | `--soundscape-timing-policy <policy>` | Resolve inline text offsets with exact evidence (`strict`) or recorded canonical-offset interpolation (`proportional`) | `strict` |
