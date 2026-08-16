@@ -65,6 +65,16 @@ describe('multi-location comic contracts', () => {
       locations: [...catalog.locations, { key: 'other-hallway', name: 'Other', aliases: ['ship upper deck hallway'], specification: 'Other.', sourceScripts: [] }],
     }
     expect(() => resolveLocationCatalogEntry('SHIP UPPER DECK HALLWAY', ambiguous)).toThrow(/ambiguous.*hallway.*other-hallway/)
+
+    const typed = {
+      ...catalog,
+      locations: [
+        { key: 'base-exterior', name: 'Base Exterior', aliases: ['EXT. AIM BASE — CONTINUOUS'], specification: 'Test.', sourceScripts: [] },
+        { key: 'base-interior', name: 'Base Interior', aliases: ['INT. AIM BASE — CONTINUOUS'], specification: 'Test.', sourceScripts: [] },
+      ],
+    }
+    expect(resolveLocationCatalogEntry('EXT. AIM BASE — CONTINUOUS', typed).key).toBe('base-exterior')
+    expect(resolveLocationCatalogEntry('INT. AIM BASE — CONTINUOUS', typed).key).toBe('base-interior')
   })
 
   test('requires panel locationKey to match one source location and rejects transition-spanning panels', () => {

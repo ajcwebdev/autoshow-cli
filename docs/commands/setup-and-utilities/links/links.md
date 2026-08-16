@@ -87,52 +87,52 @@ Input file mode is standalone. Do not combine it with provider selectors, sectio
 
 Accepted provider selectors are the lowercase names below.
 
-| Provider selector | Sections |
-|-------------------|----------|
-| `--assembly` | `models`, `stt` |
-| `--better-auth` | `general` |
-| `--bfl` | `image`, `models` |
-| `--cartesia` | `general`, `models`, `tts` |
-| `--cerebras` | `general`, `models`, `text` |
-| `--claude` | `general`, `models`, `ocr`, `text` |
-| `--deapi` | `models`, `stt` |
-| `--deepgram` | `models`, `stt`, `tts` |
-| `--deepinfra` | `general`, `models`, `ocr`, `stt` |
-| `--drive` | `general` |
-| `--elevenlabs` | `models`, `music`, `tts` |
-| `--fal` | `general`, `image`, `video` |
-| `--firecrawl` | `general`, `url` |
-| `--fish` | `general`, `models`, `tts` |
-| `--gemini` | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
-| `--gladia` | `general`, `stt` |
-| `--glm` | `general`, `models`, `ocr`, `text`, `url` |
-| `--grok` | `general`, `image`, `models`, `stt`, `text`, `tts`, `video` |
-| `--groq` | `general`, `models`, `stt`, `text`, `tts` |
-| `--happyscribe` | `stt` |
-| `--hume` | `general`, `tts` |
-| `--inworld` | `general`, `models`, `tts` |
-| `--kimi` | `general`, `models`, `ocr`, `text` |
-| `--whisperfile` | `stt` |
-| `--ltx` | `models`, `video` |
-| `--lumalabs` | `general`, `image`, `models`, `video` |
-| `--minimax` | `general`, `music`, `text`, `tts`, `video` |
-| `--mistral` | `general`, `models`, `ocr`, `stt`, `tts` |
-| `--openai` | `general`, `image`, `models`, `ocr`, `text`, `tts` |
-| `--recraft` | `image` |
-| `--replicate` | `general`, `models` |
-| `--resend` | `general` |
-| `--rev` | `general`, `stt` |
-| `--runway` | `general`, `models` |
-| `--scrapecreators` | `general`, `stt`, `url` |
-| `--solidbase` | `general` |
-| `--soniox` | `stt` |
-| `--speechify` | `models`, `tts` |
-| `--speechmatics` | `general`, `stt` |
-| `--spider` | `general`, `url` |
-| `--supadata` | `general`, `stt`, `url` |
-| `--together` | `general`, `models`, `stt`, `text` |
-| `--x` | `general`, `url` |
-| `--zyte` | `general`, `url` |
+| Provider selector  | Sections                                                                    |
+| ------------------ | --------------------------------------------------------------------------- |
+| `--assembly`       | `models`, `stt`                                                             |
+| `--better-auth`    | `general`                                                                   |
+| `--bfl`            | `image`, `models`                                                           |
+| `--cartesia`       | `general`, `models`, `tts`                                                  |
+| `--cerebras`       | `general`, `models`, `text`                                                 |
+| `--claude`         | `general`, `models`, `ocr`, `text`                                          |
+| `--deapi`          | `models`, `stt`                                                             |
+| `--deepgram`       | `models`, `stt`, `tts`                                                      |
+| `--deepinfra`      | `general`, `models`, `ocr`, `stt`                                           |
+| `--drive`          | `general`                                                                   |
+| `--elevenlabs`     | `models`, `music`, `tts`                                                    |
+| `--fal`            | `general`, `image`, `video`                                                 |
+| `--firecrawl`      | `general`, `url`                                                            |
+| `--fish`           | `general`, `models`, `tts`                                                  |
+| `--gemini`         | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
+| `--gladia`         | `general`, `stt`                                                            |
+| `--glm`            | `general`, `models`, `ocr`, `text`, `url`                                   |
+| `--grok`           | `general`, `image`, `models`, `stt`, `text`, `tts`, `video`                 |
+| `--groq`           | `general`, `models`, `stt`, `text`, `tts`                                   |
+| `--happyscribe`    | `stt`                                                                       |
+| `--hume`           | `general`, `tts`                                                            |
+| `--inworld`        | `general`, `models`, `tts`                                                  |
+| `--kimi`           | `general`, `models`, `ocr`, `text`                                          |
+| `--whisperfile`    | `stt`                                                                       |
+| `--ltx`            | `models`, `video`                                                           |
+| `--lumalabs`       | `general`, `image`, `models`, `video`                                       |
+| `--minimax`        | `general`, `music`, `text`, `tts`, `video`                                  |
+| `--mistral`        | `general`, `models`, `ocr`, `stt`, `tts`                                    |
+| `--openai`         | `general`, `image`, `models`, `ocr`, `text`, `tts`                          |
+| `--recraft`        | `image`                                                                     |
+| `--replicate`      | `general`, `models`                                                         |
+| `--resend`         | `general`                                                                   |
+| `--rev`            | `general`, `stt`                                                            |
+| `--runway`         | `general`, `models`                                                         |
+| `--scrapecreators` | `general`, `stt`, `url`                                                     |
+| `--solidbase`      | `general`                                                                   |
+| `--soniox`         | `stt`                                                                       |
+| `--speechify`      | `models`, `tts`                                                             |
+| `--speechmatics`   | `general`, `stt`                                                            |
+| `--spider`         | `general`, `url`                                                            |
+| `--supadata`       | `general`, `stt`, `url`                                                     |
+| `--together`       | `general`, `models`, `stt`, `text`                                          |
+| `--x`              | `general`, `url`                                                            |
+| `--zyte`           | `general`, `url`                                                            |
 
 ## Global sections
 
@@ -287,10 +287,10 @@ Token counts are reference-tokenizer estimates using `tiktoken` with `o200k_base
 
 ## Flags
 
-| Flag | Type | Description |
-|------|------|-------------|
-| `--refresh` | Boolean | Write a refresh metadata sidecar with per-link SHA-256 hashes, reference token counts, and change status. |
-| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing Markdown bundle file. |
+| Flag             | Type    | Description                                                                                               |
+| ---------------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| `--refresh`      | Boolean | Write a refresh metadata sidecar with per-link SHA-256 hashes, reference token counts, and change status. |
+| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing Markdown bundle file.                 |
 
 Global flags like `--config-path` and `--allow-over-budget` may still appear in help output, but they do not change link selection or the output file path for this command.
 

@@ -480,4 +480,20 @@ describe('price mode contracts', () => {
         }
       ])
     })
+
+  test('TTS timing uses each target remaining character count instead of one shared input', () => {
+      const timing = computeEstimatedProcessingTimes({
+        ttsTargets: [
+          { service: 'speechify', model: 'simba-3.2', characterCount: 6_000 },
+          { service: 'speechify', model: 'simba-3.2', characterCount: 24_000 }
+        ],
+        ttsCharacterCount: 939_201,
+        ttsInputText: 'a'.repeat(939_201)
+      })
+      expect(timing.steps.map((step) => step.inputValue)).toEqual([6_000, 24_000])
+      const firstMs = timing.steps[0]?.processingTimeMs ?? 0
+      const secondMs = timing.steps[1]?.processingTimeMs ?? 0
+      expect(firstMs).toBeGreaterThan(0)
+      expect(secondMs).toBeGreaterThan(firstMs)
+    })
 })

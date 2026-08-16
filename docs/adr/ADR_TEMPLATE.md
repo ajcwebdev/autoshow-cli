@@ -47,11 +47,11 @@ Why now: <what triggered this decision today — new requirement, recurring pain
 <!-- One row per alternative, including the chosen one. Bold the chosen option.
      Quantitative Notes should hold counts, scope, timing, cost, or "n/a". -->
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
+| Option              | Pros             | Cons            | Quantitative Notes               |
+| ------------------- | ---------------- | --------------- | -------------------------------- |
 | **<Chosen option>** | <key advantages> | <key drawbacks> | <counts / scope / cost / timing> |
-| <Alternative B> | <pros> | <cons> | <quantitative notes or n/a> |
-| <Alternative C> | <pros> | <cons> | <quantitative notes or n/a> |
+| <Alternative B>     | <pros>           | <cons>          | <quantitative notes or n/a>      |
+| <Alternative C>     | <pros>           | <cons>          | <quantitative notes or n/a>      |
 
 ## Decision
 
@@ -87,8 +87,8 @@ Negative outcomes:
 
 <!-- Left column: what we gain. Right column: what we sacrifice to get it. -->
 
-| Gains | Sacrifices |
-|---|---|
+| Gains  | Sacrifices  |
+| ------ | ----------- |
 | <gain> | <sacrifice> |
 | <gain> | <sacrifice> |
 
@@ -100,10 +100,10 @@ Negative outcomes:
      Implementation Note and verification belongs in Test Plan.
      Current State examples: Implemented in `path/file.ts` | Pending | In progress. -->
 
-| Action | Owner | Current State |
-|---|---|---|
+| Action           | Owner          | Current State                                           |
+| ---------------- | -------------- | ------------------------------------------------------- |
 | <action to take> | <owner / role> | <Pending / In progress / Implemented in `path/file.ts`> |
-| <action to take> | <owner / role> | <state> |
+| <action to take> | <owner / role> | <state>                                                 |
 
 ## References
 

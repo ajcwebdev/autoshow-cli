@@ -307,7 +307,7 @@ test('links refresh fetches with bounded concurrency while preserving output ord
         activeFetches += 1
         maxActiveFetches = Math.max(maxActiveFetches, activeFetches)
         try {
-          await Bun.sleep((urls.length - urlIndex) * 2)
+          await Bun.sleep((urls.length - urlIndex) * 1)
           return url === failUrl
             ? new Response('missing', { status: 404, statusText: 'Not Found' })
             : markdownResponse(`docs for ${url}`)

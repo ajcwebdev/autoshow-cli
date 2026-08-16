@@ -8,6 +8,7 @@ import { rm } from 'node:fs/promises'
 import { EMPTY_PRICE_CONFIG_PATH, withEmptyPriceConfig } from '../../../../test-runner/price-command-config'
 import { resolvePriceSelection } from '../../../../test-runner/price-commands/resolve'
 import { BUDGET_PRICE_SELECTION_REGISTRY } from '../../../../test-runner/price-commands/registry/index'
+import { loadE2eTestSources } from './e2e-test-sources'
 
 const tempDirs: string[] = []
 
@@ -174,16 +175,9 @@ describe('test-runner contracts', () => {
     })
 
   test('e2e test files do not contain direct --price command coverage', async () => {
-      const glob = new Bun.Glob('test/test-cases/e2e/**/*.test.ts')
-      const allFiles = (await Array.fromAsync(glob.scan({ dot: false }))).sort()
-      const filesWithPriceFlag: string[] = []
-
-      for (const file of allFiles) {
-        const source = await Bun.file(file).text()
-        if (source.includes('--price')) {
-          filesWithPriceFlag.push(file)
-        }
-      }
+      const filesWithPriceFlag = (await loadE2eTestSources())
+        .filter(({ source }) => source.includes('--price'))
+        .map(({ file }) => file)
 
       expect(filesWithPriceFlag).toEqual([])
     })

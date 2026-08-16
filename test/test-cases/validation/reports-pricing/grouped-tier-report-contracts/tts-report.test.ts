@@ -8,10 +8,7 @@ import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
 import { writeLegacyTtsManifestFixture } from '../../../../test-utils/manifest-helpers'
 import {
-  deprecatedOverallTierKey,
-  deprecatedTierSplitKey,
   expectTtsRankingSurfaces,
-  hasOwnKeyDeep,
   runConsensusBuildReport,
   setupTempRoots,
   writeJson
@@ -103,8 +100,6 @@ describe('grouped report contracts', () => {
         providers?: unknown
       }
 
-      expect(hasOwnKeyDeep(report, deprecatedTierSplitKey)).toBe(false)
-      expect(hasOwnKeyDeep(report, deprecatedOverallTierKey)).toBe(false)
       expect(report.overall).toBeUndefined()
       expect(report.providers).toBeUndefined()
       expectTtsRankingSurfaces(report)

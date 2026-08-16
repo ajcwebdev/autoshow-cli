@@ -27,11 +27,11 @@ bun autoshow resume <outputDirs...> [flags]
 
 Use the target-aware generic selector:
 
-| Flag | Description |
-|------|-------------|
-| `--provider provider[=model]` | Add one provider/model for the resolved command or extract route |
-| `--all-providers` | Add every supported provider/model for the resolved command or extract route |
-| `--all-local` | Add every local engine/backend for the resolved extract route; supported for `extract` targets and rejected for write LLM, TTS, image, video, and music targets |
+| Flag                          | Description                                                                                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--provider provider[=model]` | Add one provider/model for the resolved command or extract route                                                                                                |
+| `--all-providers`             | Add every supported provider/model for the resolved command or extract route                                                                                    |
+| `--all-local`                 | Add every local engine/backend for the resolved extract route; supported for `extract` targets and rejected for write LLM, TTS, image, video, and music targets |
 
 `--provider` is repeatable. For `extract` resumes, the target route decides whether a provider name maps to STT, OCR, or URL article extraction.
 
@@ -39,16 +39,16 @@ For OCR resumes, automatic mode derives blocked providers from canonical provide
 
 Examples of provider names:
 
-| Target | Provider names |
-|--------|----------------|
+| Target      | Provider names                                                                                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | STT extract | `whisper`, `whisperfile`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together` |
-| OCR extract | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra` |
-| URL extract | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte` |
-| Write LLM | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` |
-| TTS | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia` |
-| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
-| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
-| Music | `elevenlabs`, `minimax`, `gemini` |
+| OCR extract | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`                                                                                                              |
+| URL extract | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`                                                                                                                                      |
+| Write LLM   | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`                                                                                                        |
+| TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`                                                                                      |
+| Image       | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`                                                                                                                             |
+| Video       | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                                                      |
+| Music       | `elevenlabs`, `minimax`, `gemini`                                                                                                                                                                        |
 
 ## Examples
 
@@ -104,17 +104,17 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-providers
 
 ## Shared Flags
 
-| Flag | Description |
-|------|-------------|
-| `--prompt <name...>` | Named prompt presets discovered under `src/prompts/entries/` |
-| `--prompt-md` | Save a second prompt file with Markdown examples when a resumed path rebuilds prompt output |
-| `--price` | Estimate the providers resume would run and exit without provider calls or writes |
-| `--batch-concurrency <n>` | Number of batch items to process concurrently |
-| `--provider-concurrency <n>` | Max hosted providers/models running in parallel for one item |
-| `--local-concurrency <n>` | Max local providers/models running in parallel for one item |
+| Flag                                   | Description                                                                                                                                                                       |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--prompt <name...>`                   | Named prompt presets discovered under `src/prompts/entries/`                                                                                                                      |
+| `--prompt-md`                          | Save a second prompt file with Markdown examples when a resumed path rebuilds prompt output                                                                                       |
+| `--price`                              | Estimate the providers resume would run and exit without provider calls or writes                                                                                                 |
+| `--batch-concurrency <n>`              | Number of batch items to process concurrently                                                                                                                                     |
+| `--provider-concurrency <n>`           | Max hosted providers/models running in parallel for one item                                                                                                                      |
+| `--local-concurrency <n>`              | Max local providers/models running in parallel for one item                                                                                                                       |
 | `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--stt-segment-concurrency <n>` | Max split STT segments in flight per provider |
-| `--stt-preflight-concurrency <n>` | Max STT duration probes running in parallel during preflight |
+| `--stt-segment-concurrency <n>`        | Max split STT segments in flight per provider                                                                                                                                     |
+| `--stt-preflight-concurrency <n>`      | Max STT duration probes running in parallel during preflight                                                                                                                      |
 
 Resume preserves accepted artifacts and other canonical work state, but it creates a fresh run-scoped hosted coordinator. The new process therefore starts a fresh ramp using the current explicit or configured mode; concurrency policy is not part of cache or content identity.
 
@@ -122,50 +122,50 @@ Resume preserves accepted artifacts and other canonical work state, but it creat
 
 Write resumes reuse the stored `prompt.md` and run only selected LLM providers that do not already have matching `step3` metadata. They preserve short model selectors in metadata, so `--provider together=kimi-k2.6` records `llmService: "together"` and `llmModel: "kimi-k2.6"`, while `--provider cerebras=gpt-oss-120b` records `llmService: "cerebras"` and `llmModel: "gpt-oss-120b"`. If a provider call fails, resume records any successful providers and exits incomplete for the missing targets.
 
-| Flag | Description |
-|------|-------------|
+| Flag                 | Description                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--prompt <name...>` | Override the structured schema used to validate new LLM outputs. If omitted, resume uses the `structuredPresetNames` from existing `step3` metadata. |
 
 ## Extract Options
 
-| Flag | Description |
-|------|-------------|
-| `--youtube-captions` | Prefer English YouTube captions before STT when available |
-| `--speaker-count <n>` | Diarization speaker-count hint |
-| `--split` | Split audio into 30-minute segments before transcription |
-| `--format <format>` | OCR output format: `text`, `json`, `tsv`, or `hocr` |
-| `--password <value>` | Password for encrypted PDFs |
-| `--ocr-language <codes>` | Tesseract language codes such as `eng` or `eng+fra` |
-| `--ocr-dpi <n>` | Render DPI for OCR pages |
-| `--ocr-concurrency <n>` | Page-level OCR concurrency cap; local OCR defaults to `10`, hosted OCR defaults to auto, and explicit values are hosted hard caps |
-| `--ocr-provider-mode <fanout|pool>` | Optional stored-mode assertion for OCR resume; omission preserves the mode in `manifest.json`, and a mismatch is rejected |
-| `--reasoning-effort <policy>` | Reasoning effort policy: `low`, `medium`, `high`, `minimal`, or `extended` (default delegates to the provider) |
-| `--chapters`, `--no-chapters` | Write or suppress EPUB/PDF chapter files when rebuilding extraction artifacts |
-| `--length <thousands>` | Hard export limit in thousands of characters for EPUB/PDF chunking |
-| `--pdf-chapter-mode <mode>` | PDF chapter detection mode: `local`, `auto`, or `llm` |
-| `--url-provider <backend>` | Article/HTML backend: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` |
-| `--url-provider-concurrency <n>` | Max hosted URL providers running in parallel for one item |
-| `--url-request-timeout-ms <ms>` | Per-provider URL request timeout |
-| `--url-request-attempts <n>` | Per-provider URL retry attempts |
-| `--epub-bun` | Inspect EPUB structure with the Bun parser |
+| Flag                                | Description                                                                                                                       |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `--youtube-captions`                | Prefer English YouTube captions before STT when available                                                                         |
+| `--speaker-count <n>`               | Diarization speaker-count hint                                                                                                    |
+| `--split`                           | Split audio into 30-minute segments before transcription                                                                          |
+| `--format <format>`                 | OCR output format: `text`, `json`, `tsv`, or `hocr`                                                                               |
+| `--password <value>`                | Password for encrypted PDFs                                                                                                       |
+| `--ocr-language <codes>`            | Tesseract language codes such as `eng` or `eng+fra`                                                                               |
+| `--ocr-dpi <n>`                     | Render DPI for OCR pages                                                                                                          |
+| `--ocr-concurrency <n>`             | Page-level OCR concurrency cap; local OCR defaults to `10`, hosted OCR defaults to auto, and explicit values are hosted hard caps |
+| `--ocr-provider-mode <fanout|pool>` | Optional stored-mode assertion for OCR resume; omission preserves the mode in `manifest.json`, and a mismatch is rejected         |
+| `--reasoning-effort <policy>`       | Reasoning effort policy: `low`, `medium`, `high`, `minimal`, or `extended` (default delegates to the provider)                    |
+| `--chapters`, `--no-chapters`       | Write or suppress EPUB/PDF chapter files when rebuilding extraction artifacts                                                     |
+| `--length <thousands>`              | Hard export limit in thousands of characters for EPUB/PDF chunking                                                                |
+| `--pdf-chapter-mode <mode>`         | PDF chapter detection mode: `local`, `auto`, or `llm`                                                                             |
+| `--url-provider <backend>`          | Article/HTML backend: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                                      |
+| `--url-provider-concurrency <n>`    | Max hosted URL providers running in parallel for one item                                                                         |
+| `--url-request-timeout-ms <ms>`     | Per-provider URL request timeout                                                                                                  |
+| `--url-request-attempts <n>`        | Per-provider URL retry attempts                                                                                                   |
+| `--epub-bun`                        | Inspect EPUB structure with the Bun parser                                                                                        |
 
 ## TTS Options
 
 Resume accepts only provider-neutral TTS options. Provider-named tuning flags such as `--elevenlabs-tts-stability`, `--minimax-tts-emotion`, `--deepgram-tts-container`, `--speechify-tts-voice-gender`, `--hume-tts-voice-provider`, and `--minimax-tts-pitch` are not part of the resume surface.
 
-| Flag | Description |
-|------|-------------|
-| `--tts-voice <provider=value|value>` | Generic TTS voice selector |
-| `--tts-speed <provider=value|value>` | Generic TTS speed |
-| `--tts-language <provider=value|value>` | Generic TTS language |
-| `--tts-ref-audio <provider=path|path>` | Explicit authorized one-off reference input where the synthesis adapter supports it |
-| `--tts-voice-name`, `--tts-consent-name`, `--tts-consent-email` | Retired creation inputs; rejected with guidance to run voice management separately |
-| `--tts-text-normalization <provider=value|value>` | Generic text normalization |
-| `--tts-instructions <provider=value|value>` | Generic voice/style instructions |
-| `--tts-output-format <provider=value|value>` | Generic output format |
-| `--tts-chunk-concurrency <n>` | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, or `50` for Grok-only hosted TTS |
-| `--tts-dialogue-format <screenplay\|labeled>` | Dialogue input format for multi-speaker TTS |
-| `--tts-speaker <SPEAKER=VOICE\|path>` | Multi-speaker TTS voice mapping; repeatable |
+| Flag                                                            | Description                                                                                                                     |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--tts-voice <provider=value|value>`                            | Generic TTS voice selector                                                                                                      |
+| `--tts-speed <provider=value|value>`                            | Generic TTS speed                                                                                                               |
+| `--tts-language <provider=value|value>`                         | Generic TTS language                                                                                                            |
+| `--tts-ref-audio <provider=path|path>`                          | Explicit authorized one-off reference input where the synthesis adapter supports it                                             |
+| `--tts-voice-name`, `--tts-consent-name`, `--tts-consent-email` | Retired creation inputs; rejected with guidance to run voice management separately                                              |
+| `--tts-text-normalization <provider=value|value>`               | Generic text normalization                                                                                                      |
+| `--tts-instructions <provider=value|value>`                     | Generic voice/style instructions                                                                                                |
+| `--tts-output-format <provider=value|value>`                    | Generic output format                                                                                                           |
+| `--tts-chunk-concurrency <n>`                                   | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, or `50` for Grok-only hosted TTS |
+| `--tts-dialogue-format <screenplay\|labeled>`                   | Dialogue input format for multi-speaker TTS                                                                                     |
+| `--tts-speaker <SPEAKER=VOICE\|path>`                           | Multi-speaker TTS voice mapping; repeatable                                                                                     |
 
 Use `--tts-speaker SPEAKER=VOICE` for multi-speaker resumes instead of provider-specific speaker flags. To change provider tuning on a resumed run, set it under `defaults` in `autoshow.config` or rerun the original `tts` command.
 
@@ -175,11 +175,11 @@ Resume never creates, imports, saves, verifies, approves, reconciles, or deletes
 
 Resume keeps the pipeline/config option names for media generation options, because one flag set serves image, video, music, and OCR at once and the short `image`/`video`/`music` command names would collide. Provider-named options such as `--replicate-video-seed` and `--grok-video-storage-filename` are not part of the resume surface.
 
-| Target | Option flags |
-|--------|--------------|
-| Image | `--image-aspect-ratio`, `--image-size`, `--image-quality`, `--image-format`, `--image-background`, `--image-count`, `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, `--image-compression` |
-| Video | `--video-mode`, `--video-duration`, `--video-size`, `--video-aspect-ratio`, `--video-resolution`, `--video-input-image`, `--video-last-frame`, `--video-reference-image`, `--video-input-video` |
-| Music | `--music-duration`, `--music-lyrics-file`, `--music-instrumental` |
+| Target | Option flags                                                                                                                                                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Image  | `--image-aspect-ratio`, `--image-size`, `--image-quality`, `--image-format`, `--image-background`, `--image-count`, `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, `--image-compression` |
+| Video  | `--video-mode`, `--video-duration`, `--video-size`, `--video-aspect-ratio`, `--video-resolution`, `--video-input-image`, `--video-last-frame`, `--video-reference-image`, `--video-input-video`                                 |
+| Music  | `--music-duration`, `--music-lyrics-file`, `--music-instrumental`                                                                                                                                                               |
 
 ## Notes
 

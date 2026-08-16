@@ -140,25 +140,28 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
   opts: TOptions,
   explicitFlags: Set<string>,
-  throwOnInvalid: true
+  throwOnInvalid: true,
+  itemIndex?: number
 ): Promise<GenerationResumePreparation<TTarget, TMetadata>>
 async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
   opts: TOptions,
   explicitFlags: Set<string>,
-  throwOnInvalid: false
+  throwOnInvalid: false,
+  itemIndex?: number
 ): Promise<GenerationResumePreparation<TTarget, TMetadata> | undefined>
 async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
   opts: TOptions,
   explicitFlags: Set<string>,
-  throwOnInvalid: boolean
+  throwOnInvalid: boolean,
+  itemIndex = 0
 ): Promise<GenerationResumePreparation<TTarget, TMetadata> | undefined> {
   if (
     target.scope !== 'single'
-    && (config.selectionMode === 'selected-only' || config.kind === 'tts')
+    && config.selectionMode === 'selected-only'
   ) {
     if (throwOnInvalid) {
       throw CLIUsageError(`${config.stepLabel} resume currently supports single-run manifest.json outputs only.`)
@@ -177,7 +180,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
     return undefined
   }
 
-  const item = manifest.items[0]
+  const item = manifest.items[itemIndex]
   if (!item) {
     if (throwOnInvalid) {
       throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
@@ -312,9 +315,51 @@ const resolveGenerationInput = async <TTarget extends ProviderIdentity, TMetadat
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>
 ): Promise<string> => {
   if (config.resolveInput) {
-    return await config.resolveInput(target, prep.item.metadata)
+    return await config.resolveInput(target, prep.item.metadata, prep.item)
   }
   return prep.item.input as string
+}
+
+const addResumeTotals = (left: ResumeResult, right: ResumeResult): ResumeResult => ({
+  full: left.full + right.full,
+  incomplete: left.incomplete + right.incomplete,
+  failed: left.failed + right.failed
+})
+
+const resumeGenerationItems = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+  target: ResumeTarget,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
+  explicitFlags: Set<string>,
+  displayOptions: ResumeDisplayOptions
+): Promise<ResumeResult> => {
+  const manifest = await readManifest(target.dir)
+  if (!manifest || manifest.command !== config.kind || manifest.scope !== target.scope || manifest.items.length === 0) {
+    throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
+  }
+  let totals: ResumeResult = { full: 0, incomplete: 0, failed: 0 }
+  for (const [itemIndex] of manifest.items.entries()) {
+    const result = await resumeGenerationTarget(target, config, opts, explicitFlags, {
+      ...displayOptions,
+      itemIndex,
+      itemLabel: `${itemIndex + 1}/${manifest.items.length}`,
+      deferItemFailure: true
+    })
+    totals = addResumeTotals(totals, result)
+  }
+  if (totals.failed > 0) {
+    throw InfraError(
+      `${config.stepLabel} resume still has failed items`,
+      { stage: 'resume:generation', exitCode: 2 }
+    )
+  }
+  if (totals.incomplete > 0) {
+    throw InfraError(
+      `${config.stepLabel} resume still has incomplete items`,
+      { stage: 'resume:generation', exitCode: 2 }
+    )
+  }
+  return totals
 }
 
 const buildGenerationFailureMessage = <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
@@ -337,6 +382,15 @@ export const hasResumableGenerationWork = async <TTarget extends ProviderIdentit
   opts: TOptions,
   explicitFlags: Set<string> = new Set()
 ): Promise<boolean> => {
+  if (target.scope === 'batch' && config.kind === 'tts') {
+    const manifest = await readManifest(target.dir)
+    if (!manifest || manifest.command !== 'tts' || manifest.scope !== 'batch') return false
+    for (const [itemIndex] of manifest.items.entries()) {
+      const prep = await prepareGenerationResume(target, config, opts, explicitFlags, false, itemIndex)
+      if (prep !== undefined && prep.resolved.providersToRun.length > 0) return true
+    }
+    return false
+  }
   const prep = await prepareGenerationResume(target, config, opts, explicitFlags, false)
   return prep !== undefined && prep.resolved.providersToRun.length > 0
 }
@@ -348,8 +402,12 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   explicitFlags: Set<string> = new Set(),
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeResult> => {
+  if (target.scope === 'batch' && config.kind === 'tts' && displayOptions.itemIndex === undefined) {
+    return await resumeGenerationItems(target, config, opts, explicitFlags, displayOptions)
+  }
+  const itemIndex = displayOptions.itemIndex ?? 0
   const itemLabel = displayOptions.itemLabel ?? '1/1'
-  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true)
+  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true, itemIndex)
   const { item, existingEntries, successKeys, selectedProviders, resolved } = prep
   const hasExplicitSelectedProviders = selectedProviders !== undefined
   const getProviderKey = (provider: ProviderIdentity): string =>
@@ -400,7 +458,8 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
       targets: targetsToRun,
       existingEntries,
       currentManifestMetadata: item.metadata,
-      currentProviderStates: item.providers
+      currentProviderStates: item.providers,
+      itemIndex
     })
   } catch (error) {
     logResumeItem(l, {
@@ -411,6 +470,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
       detail: error instanceof Error ? error.message : String(error)
     }, 'error')
     logResumeSummary(l, { full: 0, incomplete: 0, failed: 1 })
+    if (displayOptions.deferItemFailure) return { full: 0, incomplete: 0, failed: 1 }
     throw InfraError(
       buildGenerationFailureMessage(config, 'failed', targetsToRun),
       { stage: 'resume:generation', exitCode: 2 }
@@ -427,8 +487,14 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     (provider) => !mergedSuccessKeys.has(getProviderKey(provider))
   )
   const latestManifest = await readManifest(target.dir)
-  const latestItem = latestManifest?.items[0]
-  if (!latestManifest || !latestItem || latestManifest.command !== config.kind || latestManifest.scope !== 'single') {
+  const latestItem = latestManifest?.items[itemIndex]
+  if (
+    !latestManifest
+    || !latestItem
+    || latestManifest.command !== config.kind
+    || latestManifest.scope !== target.scope
+    || (target.scope === 'single' && latestManifest.items.length !== 1)
+  ) {
     throw CLIUsageError(`Canonical ${config.stepLabel} manifest changed incompatibly during resume.`)
   }
   const rebuiltMetadata = config.rebuildRunMetadata
@@ -468,21 +534,24 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
         }
         return [...nextProviderByKey.values()]
       })()
+  const nextItem = {
+    ...latestItem,
+    input: config.kind === 'tts' ? latestItem.input : input,
+    status: stillMissing.length > 0 ? 'incomplete' as const : 'full' as const,
+    metadata: {
+      ...latestItem.metadata,
+      ...rebuiltMetadata,
+      [config.metadataKey]: config.serializeEntries
+        ? config.serializeEntries(mergedMetadata)
+        : mergedMetadata
+    },
+    providers: nextProviders
+  }
   await writeManifest(target.dir, {
     ...latestManifest,
-    items: [{
-      ...latestItem,
-      input: config.kind === 'tts' ? latestItem.input : input,
-      status: stillMissing.length > 0 ? 'incomplete' : 'full',
-      metadata: {
-        ...latestItem.metadata,
-        ...rebuiltMetadata,
-        [config.metadataKey]: config.serializeEntries
-          ? config.serializeEntries(mergedMetadata)
-          : mergedMetadata
-      },
-      providers: nextProviders
-    }]
+    items: target.scope === 'batch'
+      ? latestManifest.items.map((entry, index) => index === itemIndex ? nextItem : entry)
+      : [nextItem]
   })
 
   if (stillMissing.length > 0) {
@@ -510,6 +579,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
       detail: `${stillMissing.length} provider(s) still missing`
     }, 'warn')
     logResumeSummary(l, { full: 0, incomplete: 1, failed: 0 })
+    if (displayOptions.deferItemFailure) return { full: 0, incomplete: 1, failed: 0 }
     throw InfraError(
       buildGenerationFailureMessage(config, 'incomplete', stillMissing),
       { stage: 'resume:generation', exitCode: 2 }
@@ -527,17 +597,17 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   return { full: 1, incomplete: 0, failed: 0 }
 }
 
-export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+const priceGenerationItem = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
   opts: TOptions,
-  explicitFlags: Set<string> = new Set()
-): Promise<AggregatedPriceEstimate> => {
-  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true)
+  explicitFlags: Set<string>,
+  itemIndex: number
+): Promise<{ steps: Awaited<ReturnType<GenerationResumeConfig<TTarget, TMetadata, TOptions>['buildEstimates']>>, input: string, priceOpts: TOptions }> => {
+  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true, itemIndex)
   if (prep.resolved.providersToRun.length === 0) {
-    return aggregateExplicitPriceEstimate([], opts)
+    return { steps: [], input: '', priceOpts: opts }
   }
-
   const input = await resolveGenerationInput(target, prep, config)
   const targetsToRun = await resolveGenerationTargetsToRunOrThrow(target, prep, config, opts)
   const priceOpts = config.modelFields
@@ -549,12 +619,47 @@ export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TM
     targets: targetsToRun,
     existingEntries: prep.existingEntries,
     currentManifestMetadata: prep.item.metadata,
-    currentProviderStates: prep.item.providers
+    currentProviderStates: prep.item.providers,
+    itemIndex
   })
+  return { steps, input, priceOpts }
+}
+
+export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+  target: ResumeTarget,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
+  explicitFlags: Set<string> = new Set()
+): Promise<AggregatedPriceEstimate> => {
+  if (target.scope === 'batch' && config.kind === 'tts') {
+    const manifest = await readManifest(target.dir)
+    if (!manifest || manifest.command !== 'tts' || manifest.scope !== 'batch') {
+      throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
+    }
+    const steps: Awaited<ReturnType<GenerationResumeConfig<TTarget, TMetadata, TOptions>['buildEstimates']>> = []
+    let priceOpts = opts
+    for (const [itemIndex] of manifest.items.entries()) {
+      const priced = await priceGenerationItem(target, config, opts, explicitFlags, itemIndex)
+      steps.push(...priced.steps)
+      priceOpts = priced.priceOpts
+    }
+    const remainingCharacters = steps.reduce((total, step) => (
+      step.step === 'tts' && typeof step.characterCount === 'number'
+        ? total + step.characterCount
+        : total
+    ), 0)
+    return aggregateExplicitPriceEstimate(
+      steps,
+      priceOpts,
+      remainingCharacters > 0 ? { ttsTimingCharacterCount: remainingCharacters } : undefined
+    )
+  }
+
+  const priced = await priceGenerationItem(target, config, opts, explicitFlags, 0)
   return aggregateExplicitPriceEstimate(
-    steps,
-    priceOpts,
-    config.priceAggregateOptions?.(input)
+    priced.steps,
+    priced.priceOpts,
+    priced.input.length > 0 ? config.priceAggregateOptions?.(priced.input) : undefined
   )
 }
 

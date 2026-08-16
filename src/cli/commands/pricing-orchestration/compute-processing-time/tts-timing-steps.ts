@@ -14,7 +14,7 @@ export const buildTtsTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
 
   for (const ttsTarget of ttsTargets) {
     const estimation = getTtsEstimation(ttsTarget.service, ttsTarget.model)
-    const characterCount = Math.max(0, input.ttsCharacterCount ?? 0)
+    const characterCount = Math.max(0, ttsTarget.characterCount ?? input.ttsCharacterCount ?? 0)
     steps.push(withNormalizedTiming({
       step: 'tts',
       provider: ttsTarget.service,
@@ -22,7 +22,7 @@ export const buildTtsTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
       processingTimeMs: roundMs(estimateTtsSynthesisProcessingTimeMs({
         provider: ttsTarget.service,
         model: ttsTarget.model,
-        text: input.ttsInputText,
+        text: ttsTarget.characterCount === undefined ? input.ttsInputText : undefined,
         characterCount,
         msPer1KChars: estimation.msPer1KChars,
         setupTimeMs: ttsTarget.setupTimeMs,

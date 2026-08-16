@@ -24,7 +24,7 @@ mock.module('node:fs/promises', () => ({
       ownerTempWriteCount += 1
       if (ownerTempWriteCount === 2) {
         resolveHeartbeatStarted?.()
-        await Bun.sleep(50)
+        await Bun.sleep(25)
       }
     }
     await actualWriteFile(...args)
@@ -37,5 +37,5 @@ await withProcessLock(lockName, async () => {
   await heartbeatStarted
 }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: 1_000 })
 
-await Bun.sleep(80)
+await Bun.sleep(40)
 console.log('released')

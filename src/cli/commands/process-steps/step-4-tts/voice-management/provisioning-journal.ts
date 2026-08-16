@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rename } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
   VoiceIssuedResource,
@@ -86,6 +86,23 @@ export const loadVoiceProvisioningAttempt = async (
   registrationDraftId: string,
   attemptId: string
 ): Promise<VoiceProvisioningAttempt> => await loadAttemptPath(attemptPath(journalRoot, registrationDraftId, attemptId))
+
+export const listVoiceProvisioningAttempts = async (
+  journalRoot: string,
+  registrationDraftId: string
+): Promise<VoiceProvisioningAttempt[]> => {
+  if (!SAFE_KEY.test(registrationDraftId)) return []
+  const root = join(resolve(journalRoot), registrationDraftId)
+  if (!existsSync(root)) return []
+  const attempts: VoiceProvisioningAttempt[] = []
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const path = join(root, entry.name, 'voice-provisioning-attempt.json')
+    if (!existsSync(path)) continue
+    attempts.push(await loadAttemptPath(path))
+  }
+  return attempts
+}
 
 const assertAppendPreservingUpdate = (
   current: VoiceProvisioningAttempt,
@@ -277,9 +294,9 @@ export const runCrashSafeVoiceProvisioning = async (
         // attempt is safe. Preserve the original lease and prepared transition.
       } else if (attempt.outcome === undefined && attempt.transitions.some(entry => entry.phase === 'request-sent')) {
         await markAmbiguous(path, attempt, new Error('Provisioning stopped after request dispatch without a durable terminal outcome.'))
-        throw CLIUsageError('Provisioning may have reached the provider; reconcile the durable attempt before retrying.')
+        throw CLIUsageError('Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
       } else {
-        throw CLIUsageError('A provisioning attempt already exists for this identity; reconcile it before another create.')
+        throw CLIUsageError('A provisioning attempt already exists for this identity; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
       }
     } else {
       await atomicWriteJson(path, initial)

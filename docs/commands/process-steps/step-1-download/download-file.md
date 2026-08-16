@@ -17,22 +17,22 @@ bun autoshow download <input>
 
 ## Supported Inputs
 
-| Input | Behavior |
-|-------|----------|
-| YouTube / Twitch / TikTok URL | `yt-dlp` download, normalize to compressed audio-only media, collect media metadata |
-| Direct media URL (`.mp3`, `.mp4`, etc.) | HTTP fetch, normalize to compressed audio-only media, collect media metadata |
-| Direct document URL (`.pdf`, `.epub`, `.acsm`, `.docx`, etc.) | HTTP fetch to a temp file, detect format, collect document metadata |
-| Direct document URL without an extension | HEAD probe plus download + magic-byte detection |
-| Remote article / HTML URL | Article extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
-| X/Twitter Space URL or raw Space ID | `yt-dlp` download of Space audio, normalize to compressed audio-only media, collect media metadata |
-| X/Twitter post URL | X API lookup of linked Space, then `yt-dlp` download of Space audio |
-| Local `.html` / `.htm` file | Article extraction with local `defuddle` |
-| Local media file | normalize to compressed audio-only media, collect media metadata |
-| Local document file | detect format by magic bytes first, then extension |
-| YouTube channel URL | batch the latest videos |
-| RSS / podcast feed URL | batch the latest episodes |
-| URL list file (`.md` / `.txt`) | batch each listed input |
-| Directory | batch each supported local input |
+| Input                                                         | Behavior                                                                                                               |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| YouTube / Twitch / TikTok URL                                 | `yt-dlp` download, normalize to compressed audio-only media, collect media metadata                                    |
+| Direct media URL (`.mp3`, `.mp4`, etc.)                       | HTTP fetch, normalize to compressed audio-only media, collect media metadata                                           |
+| Direct document URL (`.pdf`, `.epub`, `.acsm`, `.docx`, etc.) | HTTP fetch to a temp file, detect format, collect document metadata                                                    |
+| Direct document URL without an extension                      | HEAD probe plus download + magic-byte detection                                                                        |
+| Remote article / HTML URL                                     | Article extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
+| X/Twitter Space URL or raw Space ID                           | `yt-dlp` download of Space audio, normalize to compressed audio-only media, collect media metadata                     |
+| X/Twitter post URL                                            | X API lookup of linked Space, then `yt-dlp` download of Space audio                                                    |
+| Local `.html` / `.htm` file                                   | Article extraction with local `defuddle`                                                                               |
+| Local media file                                              | normalize to compressed audio-only media, collect media metadata                                                       |
+| Local document file                                           | detect format by magic bytes first, then extension                                                                     |
+| YouTube channel URL                                           | batch the latest videos                                                                                                |
+| RSS / podcast feed URL                                        | batch the latest episodes                                                                                              |
+| URL list file (`.md` / `.txt`)                                | batch each listed input                                                                                                |
+| Directory                                                     | batch each supported local input                                                                                       |
 
 Use `--best-quality` for streaming sources when you want the best available video stream plus the best available audio stream instead of the default audio-only artifact. For direct media URLs and local media files, `--best-quality` keeps the source file as-is because there is no alternate quality ladder to select.
 
@@ -171,3 +171,5 @@ Setup details are centralized in [`setup.md`](../../setup-and-utilities/setup/se
 For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. When that happens, persist cookies once with `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`, then rerun `download` / `extract`.
 
 For X post URL inputs, set `X_BEARER_TOKEN` so AutoShow can resolve the linked Space before downloading. X Space playback itself is handled by yt-dlp and may require the same cookie setup as other authenticated media sources.
+
+Download test coverage is documented in [Step 1 Tests: Download](download-tests.md).

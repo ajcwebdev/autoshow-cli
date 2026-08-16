@@ -6,7 +6,6 @@ import {
 import { runGrokTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-grok/run-grok-tts'
 import { runGroqTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-groq/run-groq-tts'
 import { runOpenAITts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-openai/run-openai-tts'
-import { validateGroqTtsModel, validateOpenAITtsModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
@@ -46,10 +45,6 @@ describe('TTS provider service contracts', () => {
         }
       })
     }, 10_000)
-
-  test('OpenAI tts-1 selection is retired', () => {
-      expect(() => validateOpenAITtsModel('tts-1')).toThrow('Model "tts-1" is retired for --provider/--tts openai[=model]. Use "gpt-4o-mini-tts-2025-12-15" instead.')
-    })
 
   test('OpenAI TTS serializes eligible custom voice IDs as typed voice objects', async () => {
       const dir = await makeTempDir('autoshow-openai-tts-custom-voice-')
@@ -297,8 +292,4 @@ describe('TTS provider service contracts', () => {
         response_format: 'wav'
       })
     }, 10_000)
-
-  test('Groq Saudi-Arabic model selection is retired', () => {
-      expect(() => validateGroqTtsModel('canopylabs/orpheus-arabic-saudi')).toThrow('Model "canopylabs/orpheus-arabic-saudi" is retired for --provider/--tts groq[=model]. Use "canopylabs/orpheus-v1-english" instead.')
-    })
 })

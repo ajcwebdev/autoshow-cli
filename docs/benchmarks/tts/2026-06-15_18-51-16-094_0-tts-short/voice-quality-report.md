@@ -22,23 +22,23 @@
 
 ## Overall Ranking
 
-| Rank | Provider | Group | Human / 100 | Naturalness | Speech Quality | Confidence | Nat/Qual Coverage | Missing Metrics |
-| ---: | --- | --- | ---: | ---: | ---: | --- | --- | --- |
-| 1 | `openai/tts-1-hd` | cloud | 91.75 | 85.00 | 100.00 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 2 | `speechify/simba-english` | cloud | 91.72 | 84.94 | 100.00 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 3 | `hume/octave-2` | cloud | 91.35 | 86.85 | 96.86 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 4 | `minimax/speech-2.8-turbo` | cloud | 90.71 | 83.44 | 99.61 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 5 | `deepgram/aura-2-thalia-en` | cloud | 89.08 | 80.94 | 99.02 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 6 | `openai/tts-1` | cloud | 88.96 | 84.54 | 94.37 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 7 | `minimax/speech-2.8-hd` | cloud | 87.64 | 78.54 | 98.76 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 8 | `grok/grok-tts` | cloud | 85.83 | 77.97 | 95.43 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 9 | `groq/canopylabs/orpheus-v1-english` | cloud | 84.50 | 75.28 | 95.78 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 10 | `elevenlabs/eleven_v3` | cloud | 84.17 | 76.64 | 93.37 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 11 | `gemini/gemini-3.1-flash-tts-preview` | cloud | 83.31 | 77.29 | 90.66 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 12 | `cartesia/sonic-3.5` | cloud | 82.68 | 74.99 | 92.07 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 13 | `cartesia/sonic-3` | cloud | 80.15 | 83.70 | 75.81 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 14 | `openai/gpt-4o-mini-tts` | cloud | 77.78 | 68.41 | 89.23 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
-| 15 | `mistral/voxtral-mini-tts-2603` | cloud | 75.84 | 75.29 | 76.51 | Low | 30% / 40% | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+| Rank | Provider                              | Group | Human / 100 | Naturalness | Speech Quality | Confidence | Nat/Qual Coverage | Missing Metrics                                                                                                 |
+| ---: | ------------------------------------- | ----- | ----------: | ----------: | -------------: | ---------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+|    1 | `openai/tts-1-hd`                     | cloud |       91.75 |       85.00 |         100.00 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    2 | `speechify/simba-english`             | cloud |       91.72 |       84.94 |         100.00 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    3 | `hume/octave-2`                       | cloud |       91.35 |       86.85 |          96.86 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    4 | `minimax/speech-2.8-turbo`            | cloud |       90.71 |       83.44 |          99.61 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    5 | `deepgram/aura-2-thalia-en`           | cloud |       89.08 |       80.94 |          99.02 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    6 | `openai/tts-1`                        | cloud |       88.96 |       84.54 |          94.37 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    7 | `minimax/speech-2.8-hd`               | cloud |       87.64 |       78.54 |          98.76 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    8 | `grok/grok-tts`                       | cloud |       85.83 |       77.97 |          95.43 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|    9 | `groq/canopylabs/orpheus-v1-english`  | cloud |       84.50 |       75.28 |          95.78 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   10 | `elevenlabs/eleven_v3`                | cloud |       84.17 |       76.64 |          93.37 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   11 | `gemini/gemini-3.1-flash-tts-preview` | cloud |       83.31 |       77.29 |          90.66 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   12 | `cartesia/sonic-3.5`                  | cloud |       82.68 |       74.99 |          92.07 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   13 | `cartesia/sonic-3`                    | cloud |       80.15 |       83.70 |          75.81 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   14 | `openai/gpt-4o-mini-tts`              | cloud |       77.78 |       68.41 |          89.23 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
+|   15 | `mistral/voxtral-mini-tts-2603`       | cloud |       75.84 |       75.29 |          76.51 | Low        | 30% / 40%         | naturalness.utmosv2Mos, naturalness.nisqaTtsNaturalnessMos, speechQuality.nisqaQualityMos, speechQuality.dnsmos |
 
 ## Best By Group
 
@@ -55,30 +55,30 @@
 
 ### 1. `openai/tts-1-hd` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 91.75 |
-| Naturalness | 85.00 |
+| Metric         |  Score |
+| -------------- | -----: |
+| Human Speech   |  91.75 |
+| Naturalness    |  85.00 |
 | Speech Quality | 100.00 |
-| Confidence | Low |
+| Confidence     |    Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 85.00 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 85.00 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 99.99 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  99.99 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -96,39 +96,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 2. `speechify/simba-english` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 91.72 |
-| Naturalness | 84.94 |
+| Metric         |  Score |
+| -------------- | -----: |
+| Human Speech   |  91.72 |
+| Naturalness    |  84.94 |
 | Speech Quality | 100.00 |
-| Confidence | Low |
+| Confidence     |    Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 84.83 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 84.83 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 99.99 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  99.99 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -146,39 +146,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 3. `hume/octave-2` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 91.35 |
-| Naturalness | 86.85 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 91.35 |
+| Naturalness    | 86.85 |
 | Speech Quality | 96.86 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 90.56 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 90.56 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 91.62 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  91.62 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -196,10 +196,10 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 **Warnings**
 
@@ -209,30 +209,30 @@
 
 ### 4. `minimax/speech-2.8-turbo` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 90.71 |
-| Naturalness | 83.44 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 90.71 |
+| Naturalness    | 83.44 |
 | Speech Quality | 99.61 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 80.31 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 80.31 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 98.95 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  98.95 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -250,39 +250,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 5. `deepgram/aura-2-thalia-en` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 89.08 |
-| Naturalness | 80.94 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 89.08 |
+| Naturalness    | 80.94 |
 | Speech Quality | 99.02 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 72.83 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 72.83 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 97.37 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  97.37 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -300,39 +300,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 6. `openai/tts-1` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 88.96 |
-| Naturalness | 84.54 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 88.96 |
+| Naturalness    | 84.54 |
 | Speech Quality | 94.37 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 83.61 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 83.61 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 84.99 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  84.99 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -350,10 +350,10 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 **Warnings**
 
@@ -363,30 +363,30 @@
 
 ### 7. `minimax/speech-2.8-hd` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 87.64 |
-| Naturalness | 78.54 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 87.64 |
+| Naturalness    | 78.54 |
 | Speech Quality | 98.76 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 65.62 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 65.62 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 96.69 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  96.69 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -404,39 +404,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 8. `grok/grok-tts` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 85.83 |
-| Naturalness | 77.97 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 85.83 |
+| Naturalness    | 77.97 |
 | Speech Quality | 95.43 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 63.91 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 63.91 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 87.81 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  87.81 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -454,39 +454,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 9. `groq/canopylabs/orpheus-v1-english` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 84.50 |
-| Naturalness | 75.28 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 84.50 |
+| Naturalness    | 75.28 |
 | Speech Quality | 95.78 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 88.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 49.85 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 88.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 49.85 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 88.74 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  88.74 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -504,39 +504,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 10. `elevenlabs/eleven_v3` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 84.17 |
-| Naturalness | 76.64 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 84.17 |
+| Naturalness    | 76.64 |
 | Speech Quality | 93.37 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 59.91 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 59.91 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 82.33 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  82.33 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -554,39 +554,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 11. `gemini/gemini-3.1-flash-tts-preview` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 83.31 |
-| Naturalness | 77.29 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 83.31 |
+| Naturalness    | 77.29 |
 | Speech Quality | 90.66 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 61.88 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 61.88 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 75.09 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  75.09 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -604,10 +604,10 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 **Warnings**
 
@@ -617,30 +617,30 @@
 
 ### 12. `cartesia/sonic-3.5` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 82.68 |
-| Naturalness | 74.99 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 82.68 |
+| Naturalness    | 74.99 |
 | Speech Quality | 92.07 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 54.98 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 54.98 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 78.85 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  78.85 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -658,39 +658,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 ---
 
 ### 13. `cartesia/sonic-3` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 80.15 |
-| Naturalness | 83.70 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 80.15 |
+| Naturalness    | 83.70 |
 | Speech Quality | 75.81 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 81.10 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 81.10 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 66.67 | 25% | median-roundtrip-wer |
-| signalHygiene | 91.04 | 15% | ffmpeg-pcm-heuristics |
+| Component                   | Score | Weight | Source                |
+| --------------------------- | ----: | -----: | --------------------- |
+| nisqaQualityMos             |   n/a |    35% | nisqa                 |
+| dnsmos                      |   n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 66.67 |    25% | median-roundtrip-wer  |
+| signalHygiene               | 91.04 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -708,39 +708,39 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 33.33% |
-| **Median** | **33.33%** |
+| Engine                     |        WER |
+| -------------------------- | ---------: |
+| assemblyai/universal-3-pro |     33.33% |
+| **Median**                 | **33.33%** |
 
 ---
 
 ### 14. `openai/gpt-4o-mini-tts` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 77.78 |
-| Naturalness | 68.41 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 77.78 |
+| Naturalness    | 68.41 |
 | Speech Quality | 89.23 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 35.22 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 35.22 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 100.00 | 25% | median-roundtrip-wer |
-| signalHygiene | 71.29 | 15% | ffmpeg-pcm-heuristics |
+| Component                   |  Score | Weight | Source                |
+| --------------------------- | -----: | -----: | --------------------- |
+| nisqaQualityMos             |    n/a |    35% | nisqa                 |
+| dnsmos                      |    n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 100.00 |    25% | median-roundtrip-wer  |
+| signalHygiene               |  71.29 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -758,10 +758,10 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 0.00% |
-| **Median** | **0.00%** |
+| Engine                     |       WER |
+| -------------------------- | --------: |
+| assemblyai/universal-3-pro |     0.00% |
+| **Median**                 | **0.00%** |
 
 **Warnings**
 
@@ -771,30 +771,30 @@
 
 ### 15. `mistral/voxtral-mini-tts-2603` (cloud)
 
-| Metric | Score |
-| --- | ---: |
-| Human Speech | 75.84 |
-| Naturalness | 75.29 |
+| Metric         | Score |
+| -------------- | ----: |
+| Human Speech   | 75.84 |
+| Naturalness    | 75.29 |
 | Speech Quality | 76.51 |
-| Confidence | Low |
+| Confidence     |   Low |
 
 **Naturalness Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| utmosv2Mos | n/a | 45% | utmosv2 |
-| nisqaTtsNaturalnessMos | n/a | 25% | nisqa-tts |
-| paidAudioJudgeRubric | 85.00 | 20% | openai/gpt-audio |
-| prosodyHeuristics | 55.88 | 10% | ffmpeg-pcm-heuristics |
+| Component              | Score | Weight | Source                |
+| ---------------------- | ----: | -----: | --------------------- |
+| utmosv2Mos             |   n/a |    45% | utmosv2               |
+| nisqaTtsNaturalnessMos |   n/a |    25% | nisqa-tts             |
+| paidAudioJudgeRubric   | 85.00 |    20% | openai/gpt-audio      |
+| prosodyHeuristics      | 55.88 |    10% | ffmpeg-pcm-heuristics |
 
 **Speech Quality Components**
 
-| Component | Score | Weight | Source |
-| --- | ---: | ---: | --- |
-| nisqaQualityMos | n/a | 35% | nisqa |
-| dnsmos | n/a | 25% | dnsmos |
-| roundtripSttIntelligibility | 66.67 | 25% | median-roundtrip-wer |
-| signalHygiene | 92.91 | 15% | ffmpeg-pcm-heuristics |
+| Component                   | Score | Weight | Source                |
+| --------------------------- | ----: | -----: | --------------------- |
+| nisqaQualityMos             |   n/a |    35% | nisqa                 |
+| dnsmos                      |   n/a |    25% | dnsmos                |
+| roundtripSttIntelligibility | 66.67 |    25% | median-roundtrip-wer  |
+| signalHygiene               | 92.91 |    15% | ffmpeg-pcm-heuristics |
 
 **Signal Metrics**
 
@@ -812,10 +812,10 @@
 
 **Roundtrip STT**
 
-| Engine | WER |
-| --- | ---: |
-| assemblyai/universal-3-pro | 33.33% |
-| **Median** | **33.33%** |
+| Engine                     |        WER |
+| -------------------------- | ---------: |
+| assemblyai/universal-3-pro |     33.33% |
+| **Median**                 | **33.33%** |
 
 
 ## Warnings

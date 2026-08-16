@@ -18,7 +18,14 @@ const envKeys = [
   'RECRAFT_API_TOKEN',
   'REPLICATE_API_TOKEN'
 ]
-const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-image-provider-rest-' })
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys,
+  tempPrefix: 'autoshow-image-provider-rest-',
+  restoreBunSleep: true,
+  beforeEachExtra: () => {
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+  }
+})
 
 const imageResponse = (
   bytes: Uint8Array,

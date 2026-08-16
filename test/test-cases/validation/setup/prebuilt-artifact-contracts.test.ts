@@ -250,10 +250,7 @@ describe('dormant prebuilt schemas and eligible installation', () => {
       macosVersion: '15.4'
     })).toEqual({ healthy: false, reason: 'no pinned prebuilt candidate metadata is configured' })
 
-    const dependencyMetadataSource = await Bun.file('src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts').text()
     const managedToolsSource = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts').text()
-    expect(dependencyMetadataSource).not.toContain('prebuiltUrl')
-    expect(dependencyMetadataSource).not.toContain('prebuiltSha256')
     expect(managedToolsSource).not.toContain('installManagedPrebuiltCandidate')
   })
 })

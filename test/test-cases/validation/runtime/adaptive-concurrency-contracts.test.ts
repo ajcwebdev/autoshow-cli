@@ -384,7 +384,7 @@ describe('adaptive scheduler contracts', () => {
 
   test('cross-process leases serialize when the group limit is one', async () => {
     const stateDir = await makeTempDir()
-    const first = spawnLeaseChild('first', 100, stateDir)
+    const first = spawnLeaseChild('first', 50, stateDir)
     const config = resolveAdaptiveConcurrencyConfig(stateDir, {
       initialProviderLimit: 1,
       lockWaitMs: 5,
@@ -396,7 +396,7 @@ describe('adaptive scheduler contracts', () => {
       if ((snapshot.groups['tts/minimax']?.active ?? 0) > 0) {
         break
       }
-      await Bun.sleep(5)
+      await Bun.sleep(2)
     }
 
     const second = spawnLeaseChild('second', 0, stateDir)

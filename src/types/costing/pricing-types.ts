@@ -242,6 +242,7 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
     setupCostCents?: number
     setupNote?: string
     chunkConcurrency?: number
+    characterCount?: number
   }> | undefined
   ttsService?: Step4Metadata['ttsService'] | undefined
   ttsModel?: string | undefined

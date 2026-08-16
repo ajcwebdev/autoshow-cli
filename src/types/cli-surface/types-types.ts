@@ -74,8 +74,10 @@ export type CliCommandDefinition = {
   parameters?: readonly CliParameterDefinition[]
   flags?: CliFlagsDefinition
   subcommands?: readonly CliCommandDefinition[]
+  defaultSubcommand?: string
   help?: {
     group?: string
+    hidden?: boolean
     examples?: ReadonlyArray<readonly [command: string, description: string]>
     notes?: readonly string[]
   }

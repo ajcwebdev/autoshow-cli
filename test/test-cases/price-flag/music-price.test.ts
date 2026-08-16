@@ -1,32 +1,5 @@
 import { expect, test } from 'bun:test'
-import { defineMusicServicePriceTests } from '../../test-utils/define-music-service-test'
-import { runCommand } from '../../test-utils/test-helpers'
-
-defineMusicServicePriceTests({
-  models: [
-    { model: 'music_v1', prompt: 'upbeat electronic instrumental with warm synth pads', extraArgs: ['--duration', '12', '--instrumental'] },
-    { model: 'music_v2', prompt: 'cinematic electronic instrumental with pulsing synths', extraArgs: ['--duration', '12', '--instrumental'] },
-  ],
-  provider: 'elevenlabs',
-  musicService: 'elevenlabs',
-})
-
-defineMusicServicePriceTests({
-  models: [
-    { model: 'music-3.0', prompt: 'uplifting indie rock with bright guitars', extraArgs: ['--lyrics-file', 'input/examples/tts/0-tts-short.txt'] },
-  ],
-  provider: 'minimax',
-  musicService: 'minimax',
-})
-
-defineMusicServicePriceTests({
-  models: [
-    { model: 'lyria-3-clip-preview', prompt: 'bright synthwave instrumental with pulsing bass' },
-    { model: 'lyria-3-pro-preview', prompt: 'ambient orchestral cue with soft piano' },
-  ],
-  provider: 'gemini',
-  musicService: 'gemini',
-})
+import { LOCAL_EXAMPLE_AUDIO_PATH, runCommand } from '../../test-utils/test-helpers'
 
 test('--price with both providers shows two cost rows and per-provider filenames', async () => {
   const result = await runCommand(
@@ -43,7 +16,7 @@ test('--price with both providers shows two cost rows and per-provider filenames
 
 test('write --price includes MiniMax music estimate for a real input', async () => {
   const result = await runCommand(
-    ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--music', 'minimax=music-3.0', '--price'],
+    ['src/cli/create-cli.ts', 'write', LOCAL_EXAMPLE_AUDIO_PATH, '--music', 'minimax=music-3.0', '--price'],
   )
   const output = `${result.stdout}\n${result.stderr}`
 

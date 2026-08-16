@@ -90,19 +90,6 @@ const createHostedEstimateJobs = (
   return jobs
 }
 
-const compareHostedEstimateJobs = (
-  left: HostedEstimateJob,
-  right: HostedEstimateJob
-): number => {
-  const leftRemaining = left.durationsMs.length - left.completed
-  const rightRemaining = right.durationsMs.length - right.completed
-  if (leftRemaining !== rightRemaining) return leftRemaining - rightRemaining
-  if (left.active !== right.active) return left.active - right.active
-  if (left.started !== right.started) return left.started - right.started
-  if (left.lastDispatchSequence !== right.lastDispatchSequence) return left.lastDispatchSequence - right.lastDispatchSequence
-  return left.originalOrder - right.originalOrder
-}
-
 const simulateHostedProviderLane = (
   jobs: HostedEstimateJob[],
   ttsChunkConcurrency: number
@@ -120,28 +107,11 @@ const simulateHostedProviderLane = (
   const selectJob = (): HostedEstimateJob | undefined => {
     const runnable = jobs.filter(hasRemaining)
     if (runnable.length === 0) return undefined
-    const window = Math.max(1, Math.ceil(cap / runnable.length))
-    const eligible = runnable.filter((job) => job.active < window)
-    if (eligible.length === 0) return undefined
-    const starvationThreshold = Math.max(1, runnable.length - 1)
-    const aged = eligible
-      .filter((job) => job.dispatchDebt >= starvationThreshold)
-      .sort((left, right) => {
-        if (left.dispatchDebt !== right.dispatchDebt) return right.dispatchDebt - left.dispatchDebt
-        if (left.lastDispatchSequence !== right.lastDispatchSequence) return left.lastDispatchSequence - right.lastDispatchSequence
-        return left.originalOrder - right.originalOrder
-      })
-    const selected = aged[0] ?? eligible.slice().sort(compareHostedEstimateJobs)[0]
+    const selected = runnable.slice().sort((left, right) => left.originalOrder - right.originalOrder)[0]
     if (!selected) return undefined
     dispatchSequence += 1
-    for (const job of eligible) {
-      if (job === selected) {
-        job.dispatchDebt = 0
-        job.lastDispatchSequence = dispatchSequence
-      } else {
-        job.dispatchDebt += 1
-      }
-    }
+    selected.dispatchDebt = 0
+    selected.lastDispatchSequence = dispatchSequence
     return selected
   }
 

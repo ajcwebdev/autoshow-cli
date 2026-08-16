@@ -565,8 +565,6 @@ describe('price mode contracts', () => {
 
   test('retired Gemini selector stays outside active registries while historical pricing and replacement guidance remain available', () => {
       const registry = getModelRegistry()
-      expect(registry.llm['gemini']?.models['gemini-3.1-flash-lite']).toBeUndefined()
-      expect(registry.extract['gemini']?.models['gemini-3.1-flash-lite']).toBeUndefined()
       expect(resolveModelLifecycle(registry.llm['gemini']?.models['gemini-3.5-flash-lite'])).toMatchObject({
         status: 'active',
         defaultEligible: true,

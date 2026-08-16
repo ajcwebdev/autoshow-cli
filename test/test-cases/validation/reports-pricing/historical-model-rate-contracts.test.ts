@@ -95,7 +95,7 @@ describe('historical model rate contracts', () => {
   test('every committed benchmark step model resolves through active or retired rates', async () => {
     const identities: HistoricalIdentity[] = []
     let runCount = 0
-    const glob = new Bun.Glob('docs/benchmarks/**/manifest.json')
+    const glob = new Bun.Glob('docs/benchmarks/*/*/manifest.json')
     for await (const file of glob.scan({ cwd: process.cwd(), onlyFiles: true })) {
       runCount += 1
       collectModelIdentities(await Bun.file(file).json(), file, identities)

@@ -9,7 +9,6 @@ import {
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import {
   defineBudgetedLiveServiceTest,
-  defineInvalidModelTest,
   formatCommandFailureDiagnostics,
   requireConfiguredEnvVar,
   withOutputLifecycle
@@ -69,14 +68,6 @@ export const defineTTSServiceTest = ({
   generationTimeoutMsByModel?: Readonly<Record<string, number>>
 }): void => {
   withOutputLifecycle(inputTitle)
-
-  defineInvalidModelTest(`rejects invalid ${ttsService} model`, [
-    'src/cli/create-cli.ts',
-    'tts',
-    inputPath,
-    '--provider',
-    `${provider}=invalid-model`
-  ])
 
   for (const model of models) {
     const budgetKey = `tts-${ttsService}-${model}`

@@ -26,27 +26,27 @@ Why now: resume became a paid-provider entry point without a cost preflight, and
 
 ### Pipeline state persistence
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **One current, unversioned canonical manifest and clean-break reader** | Gives all commands and resume one authority; eliminates probing, aliases, derived state drift, and format ambiguity | Pre-cutover outputs must be regenerated | Exactly one `manifest.json` per output directory |
-| Per-command or per-artifact codecs | Allows individual workflow domains to evolve formats independently | Recreates format fragmentation, competing authorities, and complex cross-command dispatch | n/a |
-| Versioned compatibility readers and migrations | Allows opening historical output directories | Preserves obsolete intermediate formats for disposable execution state | n/a |
+| Option                                                                 | Pros                                                                                                                | Cons                                                                                      | Quantitative Notes                               |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **One current, unversioned canonical manifest and clean-break reader** | Gives all commands and resume one authority; eliminates probing, aliases, derived state drift, and format ambiguity | Pre-cutover outputs must be regenerated                                                   | Exactly one `manifest.json` per output directory |
+| Per-command or per-artifact codecs                                     | Allows individual workflow domains to evolve formats independently                                                  | Recreates format fragmentation, competing authorities, and complex cross-command dispatch | n/a                                              |
+| Versioned compatibility readers and migrations                         | Allows opening historical output directories                                                                        | Preserves obsolete intermediate formats for disposable execution state                    | n/a                                              |
 
 ### Resume price planning
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Add `--price` dry-run preflight across all resume target types** | Provides consistent, safe, no-cost preflight across extract, write, and generation; prevents unexpected paid runs | Requires target-aware dry-run planning in each resume handler | Covers 6 resume domains: extract, write, TTS, image, video, music |
-| Add `--price` only for OCR resume | Smallest initial implementation | Leaves inconsistent CLI behavior and unbudgeted paid runs in other workflows | Covers 1 extract route only |
-| Reject `resume --price` | Requires no planning implementation | Users must manually calculate costs or risk unexpected paid provider calls | No implementation work |
+| Option                                                             | Pros                                                                                                              | Cons                                                                         | Quantitative Notes                                                |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Add `--price` dry-run preflight across all resume target types** | Provides consistent, safe, no-cost preflight across extract, write, and generation; prevents unexpected paid runs | Requires target-aware dry-run planning in each resume handler                | Covers 6 resume domains: extract, write, TTS, image, video, music |
+| Add `--price` only for OCR resume                                  | Smallest initial implementation                                                                                   | Leaves inconsistent CLI behavior and unbudgeted paid runs in other workflows | Covers 1 extract route only                                       |
+| Reject `resume --price`                                            | Requires no planning implementation                                                                               | Users must manually calculate costs or risk unexpected paid provider calls   | No implementation work                                            |
 
 ### Completed legacy TTS benchmark archives
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Retain completed legacy states immutably and append new canonical targets when inline source identity is unambiguous** | Preserves already-paid benchmark audio and enables additive model evaluations without weakening current render provenance | Requires a narrow read-time bridge and strict validation guardrails | Applies strictly to completed/skipped legacy standalone TTS items |
-| Require complete regeneration before additive TTS resume | Maintains an absolute clean break with no bridge logic | Repurchases every historical provider output to benchmark one new model | Multiplies paid API costs across retained cohorts |
-| Upgrade legacy states into current operation-scoped render evidence | Produces uniform manifest records | Synthesizes false checksums, dialogue plans, and render lineage never recorded in the original run | Rejected as false provenance |
+| Option                                                                                                                   | Pros                                                                                                                      | Cons                                                                                               | Quantitative Notes                                                |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Retain completed legacy states immutably and append new canonical targets when inline source identity is unambiguous** | Preserves already-paid benchmark audio and enables additive model evaluations without weakening current render provenance | Requires a narrow read-time bridge and strict validation guardrails                                | Applies strictly to completed/skipped legacy standalone TTS items |
+| Require complete regeneration before additive TTS resume                                                                 | Maintains an absolute clean break with no bridge logic                                                                    | Repurchases every historical provider output to benchmark one new model                            | Multiplies paid API costs across retained cohorts                 |
+| Upgrade legacy states into current operation-scoped render evidence                                                      | Produces uniform manifest records                                                                                         | Synthesizes false checksums, dialogue plans, and render lineage never recorded in the original run | Rejected as false provenance                                      |
 
 ## Decision
 
@@ -161,13 +161,13 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
+| Gains                                                                    | Sacrifices                                                                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | One canonical work/state authority with one bounded paid-evidence bridge | Pre-cutover output directories must be rebuilt (except eligible completed standalone TTS archives) |
-| Safe provider-neutral resume price planning | Resumable domains maintain dry-run planning logic alongside execution |
-| Canonical selection-to-resume parity | Typed selection descriptors become a required provider-addition boundary |
-| Crash-safe pooled page acceptance | Larger in-manifest page and attempt ledgers |
-| Accurate additive resume cost estimates | Missing manifest metrics require configuration/default fallbacks |
+| Safe provider-neutral resume price planning                              | Resumable domains maintain dry-run planning logic alongside execution                              |
+| Canonical selection-to-resume parity                                     | Typed selection descriptors become a required provider-addition boundary                           |
+| Crash-safe pooled page acceptance                                        | Larger in-manifest page and attempt ledgers                                                        |
+| Accurate additive resume cost estimates                                  | Missing manifest metrics require configuration/default fallbacks                                   |
 
 ## Implementation Note
 

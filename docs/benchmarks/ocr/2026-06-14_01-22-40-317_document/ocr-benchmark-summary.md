@@ -10,20 +10,20 @@
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506` | 1 |
+| Selected Provider                                         | Pages |
+| --------------------------------------------------------- | ----: |
+| `deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506` |     1 |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 1 |
-| majorLengthDriftPages | 1 |
-| highDisagreementPages | 1 |
-| werCerDivergencePages | 1 |
-| lowConfidencePages | 1 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      |          0 |
+| repeatedTextPages     |          1 |
+| majorLengthDriftPages |          1 |
+| highDisagreementPages |          1 |
+| werCerDivergencePages |          1 |
+| lowConfidencePages    |          1 |
 
 ## Selective Adjudication
 
@@ -33,6 +33,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 1.59% | 1.28% | 1 |
+| Reference              | Candidate           |   WER |   CER | Word Edits |
+| ---------------------- | ------------------- | ----: | ----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 1.59% | 1.28% |          1 |

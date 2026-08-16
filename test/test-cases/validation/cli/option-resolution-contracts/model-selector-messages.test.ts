@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   describeModelSelector,
+  formatModelSelector,
   getModelValidatorFlags
 } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import {
@@ -14,11 +15,10 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import {
-  validateKimiOcrModel,
-  validateMinimaxModel,
   validateWhisperModel,
   validateWhisperfileModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 
 // Importing setup-model-options above registers every createModelValidator key, so
 // getModelValidatorFlags() below sees all seven model modules.
@@ -86,17 +86,22 @@ describe('model validation selector contracts', () => {
     expect(unexpectedInWrite).toEqual([])
   })
 
-  test('messages name the selector a user can type, not the internal flag', () => {
-    // Retired IDs are assembled at runtime so they stay ungreppable in the registries.
-    const retiredKimiOcrModel = ['kimi-k2', '7-code'].join('.')
-    const retiredMinimaxModel = ['MiniMax-M2', '5'].join('.')
+  test('every registered model validator rejects an invalid model in-process', () => {
+    const failures: string[] = []
+    for (const flag of getModelValidatorFlags()) {
+      if (flag === 'whisper' || flag === 'whisperfile') {
+        continue
+      }
+      try {
+        expect(() => buildOptsFromFlags(false, { [flag]: 'invalid-model' })).toThrow(
+          `Invalid model "invalid-model" for ${formatModelSelector(flag)}`
+        )
+      } catch (error) {
+        failures.push(`${flag}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
 
-    expect(() => validateKimiOcrModel(retiredKimiOcrModel)).toThrow(
-      `Invalid model "${retiredKimiOcrModel}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`
-    )
-    expect(() => validateMinimaxModel(retiredMinimaxModel)).toThrow(
-      `Invalid model "${retiredMinimaxModel}" for --llm minimax[=model]. Allowed values: MiniMax-M3`
-    )
+    expect(failures).toEqual([])
   })
 
   // The two keys that predate the `<provider>-<category>` convention.

@@ -21,16 +21,16 @@ Why now: container users were paying the full native onboarding cost for a tool 
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Debian slim local-lite image (`oven/bun:1.3.14-slim`) alongside native host setup** | Installs full local-lite contract (`ffmpeg`, Tesseract, MuPDF, qpdf, Calibre) via `apt`; preserves native host development | Larger base size than Alpine; maintains dual distribution paths | 269 MB base disk usage / 67.6 MB compressed |
-| Alpine base without Calibre (`oven/bun:1.3.14-alpine`) | Smallest base image size | Package repositories lack Calibre, breaking ebook conversion workflows | 146 MB base disk usage / 43.7 MB compressed |
-| Full Bun Debian base (`oven/bun:1.3.14`) | Supplies all required packages via `apt` | Adds base size without capability gain | 335 MB base disk usage / 87.1 MB compressed |
-| Native setup only (no container distribution) | Avoids image, CI, and registry maintenance | Retains full onboarding cost for containerized environments | Rejected |
-| Docker as exclusive setup path | Single reproducible environment across platforms | Degrades native macOS workflow; complicates local GPU and engine integration | Rejected |
-| **Publish multi-architecture images to GHCR (`linux/amd64`, `linux/arm64`)** | Colocates package with repository; provides prebuilt images for release tags and manual dispatch | Adds registry, CI workflow, tag, cache, and provenance maintenance | Semantic-version tags (`v*.*.*`), `latest`, and manual tag |
-| Local container builds only | Zero release-operations surface | Every user incurs local build time and cannot pin published releases | Rejected |
-| Publish to a separate external registry | Serves users centered on third-party registries | Adds external credential, account, and retention management | Rejected |
+| Option                                                                                | Pros                                                                                                                       | Cons                                                                         | Quantitative Notes                                         |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Debian slim local-lite image (`oven/bun:1.3.14-slim`) alongside native host setup** | Installs full local-lite contract (`ffmpeg`, Tesseract, MuPDF, qpdf, Calibre) via `apt`; preserves native host development | Larger base size than Alpine; maintains dual distribution paths              | 269 MB base disk usage / 67.6 MB compressed                |
+| Alpine base without Calibre (`oven/bun:1.3.14-alpine`)                                | Smallest base image size                                                                                                   | Package repositories lack Calibre, breaking ebook conversion workflows       | 146 MB base disk usage / 43.7 MB compressed                |
+| Full Bun Debian base (`oven/bun:1.3.14`)                                              | Supplies all required packages via `apt`                                                                                   | Adds base size without capability gain                                       | 335 MB base disk usage / 87.1 MB compressed                |
+| Native setup only (no container distribution)                                         | Avoids image, CI, and registry maintenance                                                                                 | Retains full onboarding cost for containerized environments                  | Rejected                                                   |
+| Docker as exclusive setup path                                                        | Single reproducible environment across platforms                                                                           | Degrades native macOS workflow; complicates local GPU and engine integration | Rejected                                                   |
+| **Publish multi-architecture images to GHCR (`linux/amd64`, `linux/arm64`)**          | Colocates package with repository; provides prebuilt images for release tags and manual dispatch                           | Adds registry, CI workflow, tag, cache, and provenance maintenance           | Semantic-version tags (`v*.*.*`), `latest`, and manual tag |
+| Local container builds only                                                           | Zero release-operations surface                                                                                            | Every user incurs local build time and cannot pin published releases         | Rejected                                                   |
+| Publish to a separate external registry                                               | Serves users centered on third-party registries                                                                            | Adds external credential, account, and retention management                  | Rejected                                                   |
 
 ## Decision
 
@@ -91,15 +91,15 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| Complete local-lite tool coverage via Debian `apt` | Larger base image size than Alpine |
-| Calibre-backed ebook conversion support | Package versions governed by Debian repositories rather than pinned source builds |
-| Standard Linux tool resolution without runtime bypasses | Omitted or misconfigured tools surface as real runtime errors |
-| Non-root, credential-free image security | Bind mounts may require host UID/GID flags |
-| Direct image entrypoint without wrapper scripts | Callers must specify container flags and mount arguments explicitly |
-| Prebuilt `amd64` and `arm64` images on GHCR | CI workflow, cache, and registry maintenance |
-| Additive container distribution | Maintaining dual native host and container distribution paths |
+| Gains                                                   | Sacrifices                                                                        |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Complete local-lite tool coverage via Debian `apt`      | Larger base image size than Alpine                                                |
+| Calibre-backed ebook conversion support                 | Package versions governed by Debian repositories rather than pinned source builds |
+| Standard Linux tool resolution without runtime bypasses | Omitted or misconfigured tools surface as real runtime errors                     |
+| Non-root, credential-free image security                | Bind mounts may require host UID/GID flags                                        |
+| Direct image entrypoint without wrapper scripts         | Callers must specify container flags and mount arguments explicitly               |
+| Prebuilt `amd64` and `arm64` images on GHCR             | CI workflow, cache, and registry maintenance                                      |
+| Additive container distribution                         | Maintaining dual native host and container distribution paths                     |
 
 ## Implementation Note
 

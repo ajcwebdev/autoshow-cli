@@ -49,13 +49,6 @@ export const HELP_FLAG_GROUPS = [
   ['comic-audio', 'Comic Audio'],
   ['comic-presentation', 'Comic Presentation'],
   ['comic-run', 'Run Options'],
-  ['voice-registration', 'Registration & Identity'],
-  ['voice-consent', 'Consent'],
-  ['voice-discovery', 'Discovery'],
-  ['voice-design', 'Design & Materialize'],
-  ['voice-clone', 'Clone'],
-  ['voice-audition', 'Audition & Approve'],
-  ['voice-lifecycle', 'Lifecycle & Safety'],
   ['auth', 'Auth'],
   ['pricing', 'Pricing'],
   ['lyric-video', 'Lyric Video']

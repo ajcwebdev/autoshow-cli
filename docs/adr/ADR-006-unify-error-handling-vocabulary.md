@@ -34,17 +34,17 @@ Why now: Unifying error structures, test failure classifiers, and log formatting
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| `src`: do nothing | Plain Errors already funnel to exit 1 | Two-vocabulary split persists; the three workarounds keep accreting; ~994 throws stay structureless | ~994 unchanged throw sites |
-| `src`: surgical only (fix #3–#6, leave the plain-Error population) | Small, low-risk | The substring-hint table can't be retired (plain throws still lack hints); the root cause remains | Fixes 4 structural issues; leaves ~994 plain throws |
-| **`src`: full sweep + structural fixes** | Adopts `AppError` as the single vocabulary; #3/#4/#5 *dissolve*; every failure gains `kind`/`stage`/`hints`/`metadata`; reuses existing kinds/exit-code mapping/redaction | One large mechanical refactor (~994 sites); per-throw `kind` judgement | Chosen; ~994 sites and 5 duplicated guards |
-| `src`: add a 6th `pipeline` error kind | A dedicated bucket for step failures | Splinters the vocabulary; existing kinds already cover every case and all map to exit 1 | Adds 1 error kind |
-| **`test`: shared predicate registry; keep the two classifiers** | Eliminates duplication; one source of truth for transient predicates; both classifiers keep distinct return types | One new module + import churn across three files | Chosen; 1 new module and 3 importers |
-| `test`: fully merge into one classifier returning `{ pressureKind, reason }` | Single entry point | Couples concurrency back-off to provider reason strings; larger blast radius | Collapses 2 classifiers into 1 |
-| `test`: status quo (fix only the redundant `expect`s) | Minimal change | Leaves the duplication/scattered predicates and the Gemini double-definition | Removes 2 assertions only |
-| **Diagnostics: one local wall-clock timestamp and one line per logical result** | Consistent chronology, half as many price-preflight lines, and no duplicate prefix | Gives up the zero-relative stopwatch embedded in each output line | 338+ to 172 price-preflight lines |
-| Diagnostics: retain stopwatch plus wall-clock prefixes | Preserves both elapsed and local time inline | Cluttered dual prefixes repeat on every line and runner wrapping can add a third | Rejected |
+| Option                                                                          | Pros                                                                                                                                                                      | Cons                                                                                                | Quantitative Notes                                  |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `src`: do nothing                                                               | Plain Errors already funnel to exit 1                                                                                                                                     | Two-vocabulary split persists; the three workarounds keep accreting; ~994 throws stay structureless | ~994 unchanged throw sites                          |
+| `src`: surgical only (fix #3–#6, leave the plain-Error population)              | Small, low-risk                                                                                                                                                           | The substring-hint table can't be retired (plain throws still lack hints); the root cause remains   | Fixes 4 structural issues; leaves ~994 plain throws |
+| **`src`: full sweep + structural fixes**                                        | Adopts `AppError` as the single vocabulary; #3/#4/#5 *dissolve*; every failure gains `kind`/`stage`/`hints`/`metadata`; reuses existing kinds/exit-code mapping/redaction | One large mechanical refactor (~994 sites); per-throw `kind` judgement                              | Chosen; ~994 sites and 5 duplicated guards          |
+| `src`: add a 6th `pipeline` error kind                                          | A dedicated bucket for step failures                                                                                                                                      | Splinters the vocabulary; existing kinds already cover every case and all map to exit 1             | Adds 1 error kind                                   |
+| **`test`: shared predicate registry; keep the two classifiers**                 | Eliminates duplication; one source of truth for transient predicates; both classifiers keep distinct return types                                                         | One new module + import churn across three files                                                    | Chosen; 1 new module and 3 importers                |
+| `test`: fully merge into one classifier returning `{ pressureKind, reason }`    | Single entry point                                                                                                                                                        | Couples concurrency back-off to provider reason strings; larger blast radius                        | Collapses 2 classifiers into 1                      |
+| `test`: status quo (fix only the redundant `expect`s)                           | Minimal change                                                                                                                                                            | Leaves the duplication/scattered predicates and the Gemini double-definition                        | Removes 2 assertions only                           |
+| **Diagnostics: one local wall-clock timestamp and one line per logical result** | Consistent chronology, half as many price-preflight lines, and no duplicate prefix                                                                                        | Gives up the zero-relative stopwatch embedded in each output line                                   | 338+ to 172 price-preflight lines                   |
+| Diagnostics: retain stopwatch plus wall-clock prefixes                          | Preserves both elapsed and local time inline                                                                                                                              | Cluttered dual prefixes repeat on every line and runner wrapping can add a third                    | Rejected                                            |
 
 ## Decision
 
@@ -67,13 +67,13 @@ It does not apply to:
 
 1. **Typed subclasses become the canonical throw API.** Add terse factory helpers beside the existing `CLIUsageError` factory — `ProviderError`, `InfraError`, `InternalError`, `ValidationError` — and sweep plain `new Error(...)` call sites to the appropriate typed subclass:
 
-   | Throw describes… | Becomes |
-   |---|---|
-   | External/operational failure — subprocess exit, download, file corruption, missing binary | `AppInfrastructureError` |
-   | Provider HTTP rejection with status/header evidence | `AppProviderError` |
-   | "Should never happen" / config-invariant — no provider configured, unreachable branch | `AppInternalError` |
-   | Bad/parse/schema data | `AppValidationError` (or `validateData`) |
-   | Bad **user** input at a command boundary | `CLIUsageError` (unchanged) |
+   | Throw describes…                                                                          | Becomes                                  |
+   | ----------------------------------------------------------------------------------------- | ---------------------------------------- |
+   | External/operational failure — subprocess exit, download, file corruption, missing binary | `AppInfrastructureError`                 |
+   | Provider HTTP rejection with status/header evidence                                       | `AppProviderError`                       |
+   | "Should never happen" / config-invariant — no provider configured, unreachable branch     | `AppInternalError`                       |
+   | Bad/parse/schema data                                                                     | `AppValidationError` (or `validateData`) |
+   | Bad **user** input at a command boundary                                                  | `CLIUsageError` (unchanged)              |
 
    Each migrated throw attaches a `stage` and, where remediation exists, structured `hints`. Because non-usage kinds map to exit code 1, classification distinctions between `infrastructure` and `internal` refine diagnostic labels without altering process exit behavior.
 2. **Replace magic-string usage detection with `instanceof`.** Export `isCLIUsageError` using `error instanceof AppUsageError`, delete local string-matching re-implementations, and ensure usage error classes inherit from `AppUsageError`.
@@ -115,19 +115,19 @@ It does not apply to:
 
 `src/`:
 
-| Pattern | Reason kept |
-|---|---|
+| Pattern                                                | Reason kept                                                                                                                |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | The existing `AppError` kinds (no new `pipeline` kind) | `infrastructure`, `internal`, `validation`, and `usage` cover all runtime scenarios and map cleanly to process exit codes. |
 
 `test/`:
 
-| Pattern | Reason kept |
-|---|---|
-| Two **public** classifiers with different return types | Preserves intentional separation between semantic provider availability and adaptive concurrency pressure. |
-| Result-object `runCommand` + factory-layer throw | Deliberate separation: lower-level utilities treat failures as data while high-level factories convert them to throws. |
-| Three failure dispositions (throw / `test.skip` / `catch {}`) | Differentiates hard failures, missing environment/budget skips, and best-effort resource cleanup. |
-| Assertion-dominant leaf tests (`toThrow`/`rejects`) | Standard unit test error assertion, not error handling infrastructure. |
-| Graceful parser degradation in `parsers.ts` | Allows malformed JSONL/JUnit log lines to skip without crashing test summary generation. |
+| Pattern                                                       | Reason kept                                                                                                            |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Two **public** classifiers with different return types        | Preserves intentional separation between semantic provider availability and adaptive concurrency pressure.             |
+| Result-object `runCommand` + factory-layer throw              | Deliberate separation: lower-level utilities treat failures as data while high-level factories convert them to throws. |
+| Three failure dispositions (throw / `test.skip` / `catch {}`) | Differentiates hard failures, missing environment/budget skips, and best-effort resource cleanup.                      |
+| Assertion-dominant leaf tests (`toThrow`/`rejects`)           | Standard unit test error assertion, not error handling infrastructure.                                                 |
+| Graceful parser degradation in `parsers.ts`                   | Allows malformed JSONL/JUnit log lines to skip without crashing test summary generation.                               |
 
 ## Consequences
 
@@ -147,14 +147,14 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| `src`: Structured diagnostics on every failure | Large refactor touching ~994 throw sites |
-| `src`: Type-safe `instanceof` usage detection and centralized `rethrowAsUsage` | Custom error classes must extend `AppUsageError` |
-| `src`: Remediation hints at throw sites; `pollUntil` consistent with `withRetry` | Retired global substring matching table |
-| `test`: Single registry for transient provider detection and reusable retry helper | An extra module hop (`provider-failure-classifiers.ts`) for test utilities |
-| `test`: Deterministic runner failure reporting | Process-level error listeners in the runner |
-| Diagnostics: Unified `[HH:MM:SS.MMM]` prefix and concise single-line logs | Removed per-line stopwatch prefix; callers must format elapsed times explicitly |
+| Gains                                                                              | Sacrifices                                                                      |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src`: Structured diagnostics on every failure                                     | Large refactor touching ~994 throw sites                                        |
+| `src`: Type-safe `instanceof` usage detection and centralized `rethrowAsUsage`     | Custom error classes must extend `AppUsageError`                                |
+| `src`: Remediation hints at throw sites; `pollUntil` consistent with `withRetry`   | Retired global substring matching table                                         |
+| `test`: Single registry for transient provider detection and reusable retry helper | An extra module hop (`provider-failure-classifiers.ts`) for test utilities      |
+| `test`: Deterministic runner failure reporting                                     | Process-level error listeners in the runner                                     |
+| Diagnostics: Unified `[HH:MM:SS.MMM]` prefix and concise single-line logs          | Removed per-line stopwatch prefix; callers must format elapsed times explicitly |
 
 ## Implementation Note
 

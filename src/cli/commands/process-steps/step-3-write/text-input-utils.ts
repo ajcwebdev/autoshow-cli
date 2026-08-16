@@ -7,10 +7,10 @@ import type { LeafPrompt, PromptFileResult, RenderedTextArtifactResult, Step3Met
 import { ensureDirectory } from '~/utils/cli-utils'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { PROJECT_ROOT } from '~/utils/runtime-paths'
 
 const TEXT_INPUT_EXTENSIONS = new Set(['.md', '.txt'])
 const TRACK_LINE_PATTERN = /^\s*(\d+)\.\s+(.+?)\s*$/
-const PROJECT_ROOT = resolve(import.meta.dir, '../../../../../')
 
 const promptFileCache = new Map<string, string>()
 const promptFileResultCache = new Map<string, PromptFileResult>()

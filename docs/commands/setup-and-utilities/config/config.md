@@ -263,60 +263,60 @@ Model-selecting fields are arrays of models, not single strings.
 
 ### defaults.concurrency
 
-| Field | Flag |
-|-------|------|
+| Field  | Flag                                 |
+| ------ | ------------------------------------ |
 | `mode` | `--concurrency-mode ramp\|immediate` |
 
 The default mode is `ramp`. It starts each hosted provider/account lane at one logical request and adds one slot every five seconds while queued demand exists. `immediate` starts at the applicable configured cap. Both modes retain rate-limit pressure recovery, and neither mode changes local provider, rendering, preparation, or preflight scheduling.
 
 ### defaults.extract.stt
 
-| Field | Flag |
-|-------|------|
-| `whisper` and hosted STT model fields | `--stt provider[=model]` |
-| `youtubeCaptions` | `--youtube-captions` |
+| Field                                                             | Flag                                                                                    |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `whisper` and hosted STT model fields                             | `--stt provider[=model]`                                                                |
+| `youtubeCaptions`                                                 | `--youtube-captions`                                                                    |
 | `happyscribeOrganizationId`, `supadataLang`, `scrapecreatorsLang` | `--stt-happyscribe-organization-id`, `--stt-supadata-lang`, `--stt-scrapecreators-lang` |
-| `speakerCount`, `split` | `--speaker-count`, `--split` |
-| `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
-| `segmentConcurrency`, `preflightConcurrency` | `--stt-segment-concurrency`, `--stt-preflight-concurrency` |
+| `speakerCount`, `split`                                           | `--speaker-count`, `--split`                                                            |
+| `providerConcurrency`, `localConcurrency`                         | `--provider-concurrency`, `--local-concurrency`                                         |
+| `segmentConcurrency`, `preflightConcurrency`                      | `--stt-segment-concurrency`, `--stt-preflight-concurrency`                              |
 
 ### defaults.extract.ocr
 
-| Field | Flag |
-|-------|------|
-| Local OCR engine field | `--ocr tesseract` |
-| Hosted OCR model fields | `--ocr provider[=model]` |
-| `lang`, `out`, `dpi` | `--ocr-language`, `--format`, `--ocr-dpi` |
-| `pageConcurrency` | `--ocr-concurrency` |
+| Field                                     | Flag                                            |
+| ----------------------------------------- | ----------------------------------------------- |
+| Local OCR engine field                    | `--ocr tesseract`                               |
+| Hosted OCR model fields                   | `--ocr provider[=model]`                        |
+| `lang`, `out`, `dpi`                      | `--ocr-language`, `--format`, `--ocr-dpi`       |
+| `pageConcurrency`                         | `--ocr-concurrency`                             |
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
-| `chapters`, `length`, `pdfChapterMode` | `--chapters`, `--length`, `--pdf-chapter-mode` |
+| `chapters`, `length`, `pdfChapterMode`    | `--chapters`, `--length`, `--pdf-chapter-mode`  |
 
 ### defaults.extract.url
 
-| Field | Flag |
-|-------|------|
+| Field      | Flag                                                                     |
+| ---------- | ------------------------------------------------------------------------ |
 | `provider` | `--url-provider defuddle\|firecrawl\|glm-reader\|spider\|supadata\|zyte` |
 
 ### defaults.llm
 
-| Field | Flag |
-|-------|------|
-| `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` | `--llm provider[=model]` |
-| `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
+| Field                                                                                             | Flag                                            |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` | `--llm provider[=model]`                        |
+| `providerConcurrency`, `localConcurrency`                                                         | `--provider-concurrency`, `--local-concurrency` |
 
 ### defaults.post.tts
 
-| Field | Flag |
-|-------|------|
-| `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts`, `fishTts`, `inworldTts`, `deepinfraTts`, `replicateTts`, `falTts` | `--tts provider[=model]` |
-| `ttsSpeaker`, `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice` | generic `--tts-*` voice flags or matching provider-specific controls |
-| `ttsDialogueFormat`, `ttsSpeakers` | `--tts-dialogue-format`, `--tts-speaker` |
-| `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed` | generic `--tts-*` flags |
-| `geminiVoice` | Gemini voice flag |
-| `elevenlabsVoice`, `elevenlabsTtsOutputFormat`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators`, `elevenlabsTtsOptimizeStreamingLatency` | ElevenLabs existing-voice and synthesis flags |
-| `minimaxTtsVoice`, `minimaxTtsLanguageBoost`, `minimaxTtsSpeed`, `minimaxTtsVolume`, `minimaxTtsPitch`, `minimaxTtsEmotion`, `minimaxTtsEnglishNormalization`, `minimaxTtsPronunciations` | MiniMax voice and synthesis control flags |
-| `deepgramVoice`, `deepgramTtsEncoding`, `deepgramTtsContainer`, `deepgramTtsBitRate`, `deepgramTtsSampleRate`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsAudioFormat`, `speechifyTtsLanguage`, `humeTtsVoice`, `humeTtsVoiceProvider`, `cartesiaTtsVoice`, `cartesiaTtsLanguage` | provider voice, output, and reusable synthesis flags |
-| `providerConcurrency`, `localConcurrency`, `chunkConcurrency` | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
+| Field                                                                                                                                                                                                                                                                                                                                                             | Flag                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts`, `fishTts`, `inworldTts`, `deepinfraTts`, `replicateTts`, `falTts`                                                                                                                                           | `--tts provider[=model]`                                                   |
+| `ttsSpeaker`, `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice`                                                                                                                                                                                                                                                       | generic `--tts-*` voice flags or matching provider-specific controls       |
+| `ttsDialogueFormat`, `ttsSpeakers`                                                                                                                                                                                                                                                                                                                                | `--tts-dialogue-format`, `--tts-speaker`                                   |
+| `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed`                                                                                                                                                                                                                                                                                                          | generic `--tts-*` flags                                                    |
+| `geminiVoice`                                                                                                                                                                                                                                                                                                                                                     | Gemini voice flag                                                          |
+| `elevenlabsVoice`, `elevenlabsTtsOutputFormat`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators`, `elevenlabsTtsOptimizeStreamingLatency` | ElevenLabs existing-voice and synthesis flags                              |
+| `minimaxTtsVoice`, `minimaxTtsLanguageBoost`, `minimaxTtsSpeed`, `minimaxTtsVolume`, `minimaxTtsPitch`, `minimaxTtsEmotion`, `minimaxTtsEnglishNormalization`, `minimaxTtsPronunciations`                                                                                                                                                                         | MiniMax voice and synthesis control flags                                  |
+| `deepgramVoice`, `deepgramTtsEncoding`, `deepgramTtsContainer`, `deepgramTtsBitRate`, `deepgramTtsSampleRate`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsAudioFormat`, `speechifyTtsLanguage`, `humeTtsVoice`, `humeTtsVoiceProvider`, `cartesiaTtsVoice`, `cartesiaTtsLanguage`                                                                         | provider voice, output, and reusable synthesis flags                       |
+| `providerConcurrency`, `localConcurrency`, `chunkConcurrency`                                                                                                                                                                                                                                                                                                     | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
 
 One-off custom-voice provisioning and clone creation audio files are runtime-only options managed via `voice` and cannot be persisted as defaults. Synthesis defaults require an existing provider voice ID.
 
@@ -324,43 +324,43 @@ One-off custom-voice provisioning and clone creation audio files are runtime-onl
 
 ### defaults.post.image
 
-| Field | Flag |
-|-------|------|
-| `geminiImage`, `openaiImage`, `grokImage`, `bflImage`, `recraftImage`, `replicateImage`, `lumalabsImage`, `falImage` | `--image provider[=model]` |
-| `imageAspectRatio`, `imageSize`, `imageQuality`, `imageFormat`, `imageBackground`, `imageCount` | matching reusable image option flags |
-| `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
+| Field                                                                                                                | Flag                                            |
+| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `geminiImage`, `openaiImage`, `grokImage`, `bflImage`, `recraftImage`, `replicateImage`, `lumalabsImage`, `falImage` | `--image provider[=model]`                      |
+| `imageAspectRatio`, `imageSize`, `imageQuality`, `imageFormat`, `imageBackground`, `imageCount`                      | matching reusable image option flags            |
+| `providerConcurrency`, `localConcurrency`                                                                            | `--provider-concurrency`, `--local-concurrency` |
 
 One-shot image inputs, masks, and edit controls are per-generation flags accepted by processing commands and rejected by `config`.
 
 ### defaults.post.video
 
-| Field | Flag |
-|-------|------|
-| `geminiVideo`, `minimaxVideo`, `glmVideo`, `grokVideo`, `runwayVideo`, `ltxVideo`, `replicateVideo`, `lumalabsVideo`, `falVideo` | `--video provider[=model]` |
-| `videoDuration`, `videoSize`, `videoAspectRatio`, `videoResolution`, `videoMode`, `videoInputImage`, `videoLastFrame`, `videoReferenceImages`, `videoInputVideo`, `grokVideoStorageFilename`, `grokVideoStorageExpiresAfter` | matching video option flags |
-| `replicateVideoSeed`, `replicateVideoGenerateAudio`, `replicateVideoReferenceVideos`, `replicateVideoReferenceAudios`, `replicateVideoNegativePrompt`, `replicateVideoAudio`, `replicateVideoPromptExpansion` | `--replicate-video-*` option flags |
-| `falVideoGenerateAudio`, `falVideoReferenceVideos`, `falVideoReferenceAudios` | `--fal-video-*` option flags |
-| `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
+| Field                                                                                                                                                                                                                        | Flag                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `geminiVideo`, `minimaxVideo`, `glmVideo`, `grokVideo`, `runwayVideo`, `ltxVideo`, `replicateVideo`, `lumalabsVideo`, `falVideo`                                                                                             | `--video provider[=model]`                      |
+| `videoDuration`, `videoSize`, `videoAspectRatio`, `videoResolution`, `videoMode`, `videoInputImage`, `videoLastFrame`, `videoReferenceImages`, `videoInputVideo`, `grokVideoStorageFilename`, `grokVideoStorageExpiresAfter` | matching video option flags                     |
+| `replicateVideoSeed`, `replicateVideoGenerateAudio`, `replicateVideoReferenceVideos`, `replicateVideoReferenceAudios`, `replicateVideoNegativePrompt`, `replicateVideoAudio`, `replicateVideoPromptExpansion`                | `--replicate-video-*` option flags              |
+| `falVideoGenerateAudio`, `falVideoReferenceVideos`, `falVideoReferenceAudios`                                                                                                                                                | `--fal-video-*` option flags                    |
+| `providerConcurrency`, `localConcurrency`                                                                                                                                                                                    | `--provider-concurrency`, `--local-concurrency` |
 
 ### defaults.post.music
 
-| Field | Flag |
-|-------|------|
-| `elevenlabsMusic`, `minimaxMusic`, `geminiMusic` | `--music provider[=model]` |
-| `musicDuration` | `--music-duration` |
-| `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
+| Field                                            | Flag                                            |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `elevenlabsMusic`, `minimaxMusic`, `geminiMusic` | `--music provider[=model]`                      |
+| `musicDuration`                                  | `--music-duration`                              |
+| `providerConcurrency`, `localConcurrency`        | `--provider-concurrency`, `--local-concurrency` |
 
 One-shot lyrics files and instrumental switches describe single generations and are not persisted defaults.
 
 ### defaults.batch, defaults.prompts, pricing, auth
 
-| Field | Flag |
-|-------|------|
+| Field                                                                        | Flag                                                    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------- |
 | `defaults.batch.limit`, `defaults.batch.order`, `defaults.batch.concurrency` | `--batch-limit`, `--batch-order`, `--batch-concurrency` |
-| `defaults.prompts` | repeated `--prompt` |
-| `pricing.maxCents` | `--max-cents` |
-| `auth.cookies` | `--cookies` |
-| `auth.cookiesFromBrowser` | `--cookies-from-browser` |
+| `defaults.prompts`                                                           | repeated `--prompt`                                     |
+| `pricing.maxCents`                                                           | `--max-cents`                                           |
+| `auth.cookies`                                                               | `--cookies`                                             |
+| `auth.cookiesFromBrowser`                                                    | `--cookies-from-browser`                                |
 
 Cookie auth persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
 
@@ -426,14 +426,14 @@ bun autoshow config \
 
 Command flags:
 
-| Flag | Description |
-|------|-------------|
-| `--show` | Print resolved config path and effective config |
-| `--reset` | Clear the config file |
+| Flag      | Description                                     |
+| --------- | ----------------------------------------------- |
+| `--show`  | Print resolved config path and effective config |
+| `--reset` | Clear the config file                           |
 
 Global flags:
 
-| Flag | Description |
-|------|-------------|
-| `--config-path` | Path to config file |
+| Flag                             | Description                   |
+| -------------------------------- | ----------------------------- |
+| `--config-path`                  | Path to config file           |
 | `--verbose`, `--quiet`, `--json` | Runtime-only logging controls |

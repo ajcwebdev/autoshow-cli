@@ -1,38 +1,27 @@
 # extract URL and X
 
-Remote article URLs and local HTML files use article extraction, while X/Twitter Space inputs use the X API for metadata extraction.
+Remote article URLs use hosted article extraction, while X/Twitter Space inputs use the X API for metadata extraction.
 
 ## Outline
 
-- [URL Setup](#url-setup)
 - [URL and X Environment](#url-and-x-environment)
-- [Article and HTML Path](#article-and-html-path)
+- [Article Path](#article-path)
 - [Shared URL Options](#shared-url-options)
 - [All URL Backends](#all-url-backends)
 - [Article Services](#article-services)
-  - [Defuddle](#defuddle)
   - [Firecrawl](#firecrawl)
   - [GLM Reader](#glm-reader)
   - [Spider](#spider)
   - [Supadata](#supadata)
   - [Zyte](#zyte)
 - [URL Output](#url-output)
+- [Provider Capabilities](#provider-capabilities)
 - [X Space Path](#x-space-path)
 - [Supported URL Patterns](#supported-url-patterns)
 - [X Space Output](#x-space-output)
 - [X Space Notes](#x-space-notes)
 
-See the [`extract` overview](./01-extract.md) for input routing across STT, OCR, article HTML, and X/Twitter inputs.
-
-## URL Setup
-
-```bash
-# full setup
-bun autoshow setup
-
-# local URL article extraction only
-bun autoshow setup --step defuddle
-```
+See the [`extract` overview](./01-extract.md) for input routing and default article extraction.
 
 ## URL and X Environment
 
@@ -48,41 +37,36 @@ ZYTE_API_KEY=...
 X_BEARER_TOKEN=...
 ```
 
-Select an article backend using `--url-provider <backend>` or run all backends with `--all-providers`. Do not combine `--url-provider` with `--all-providers` or `--all-local`.
+Select a hosted article backend using `--url-provider <backend>` or run all hosted backends with `--all-providers`. Do not combine `--url-provider` with `--all-providers`.
 
-## Article and HTML Path
+## Article Path
 
-Article-style HTML inputs route through article extraction rather than OCR provider engines.
+Remote article URLs route through hosted article extraction rather than OCR provider engines.
 
-| Input family | Default path | Other available paths |
-|--------------|--------------|-----------------------|
-| Remote article URLs | `html+defuddle` | `--url-provider <backend>`, `--provider <backend>`, `--all-providers`, `--all-local` |
-| Local `.html` / `.htm` | `html+defuddle` | `--all-local` or `--all-providers` (runs `defuddle`, skips hosted backends) |
-
-In single-backend mode, `defuddle` falls back to `firecrawl` if local extraction fails. In `--all-providers` mode, each backend is run independently without automatic fallback.
+| Input family        | Hosted paths                                                                 |
+| ------------------- | ---------------------------------------------------------------------------- |
+| Remote article URLs | `--url-provider <backend>`, `--provider <backend>`, or `--all-providers`    |
 
 ## Shared URL Options
 
-| Flag | Description |
-|------|-------------|
-| `--url-provider <backend>` | Article backend for remote article URLs: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` |
-| `--provider <backend>` | Route-aware shorthand for a URL backend on article inputs |
-| `--all-providers` | For `extract`, run all URL article backends: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte` |
-| `--all-local` | Run local URL article backend (`defuddle`) |
-| `--provider-concurrency <n>` | Hosted URL backends to run concurrently per item; default `7` |
+| Flag                                  | Description                                                                                                                                                                       |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--url-provider <backend>`            | Hosted article backend for remote article URLs: `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                                                                        |
+| `--provider <backend>`                | Route-aware shorthand for a URL backend on article inputs                                                                                                                         |
+| `--all-providers`                     | For `extract`, run all hosted URL article backends: `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte`                                                                   |
+| `--provider-concurrency <n>`          | Hosted URL backends to run concurrently per item; default `7`                                                                                                                     |
 | `--concurrency-mode <ramp|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--url-request-timeout-ms <ms>` | Per-provider URL request timeout; default `60000` |
-| `--url-request-attempts <n>` | Total provider request attempts, including the first try; default `3` |
-| `--format <format>` | Output format: `text`, `json`, `tsv`, or `hocr` |
-| `--price` | Show the aggregated URL extraction estimate and exit |
-| `--batch-limit <n>` | Limit batch size |
-| `--batch-all` | Process all batch items |
-| `--batch-order <newest|oldest>` | Choose batch ordering |
-| `--batch-concurrency <n>` | Process batch items concurrently |
+| `--url-request-timeout-ms <ms>`       | Per-provider URL request timeout; default `60000`                                                                                                                                 |
+| `--url-request-attempts <n>`          | Total provider request attempts, including the first try; default `3`                                                                                                             |
+| `--format <format>`                   | Output format: `text`, `json`, `tsv`, or `hocr`                                                                                                                                   |
+| `--price`                             | Show the aggregated URL extraction estimate and exit                                                                                                                              |
+| `--batch-limit <n>`                   | Limit batch size                                                                                                                                                                  |
+| `--batch-all`                         | Process all batch items                                                                                                                                                           |
+| `--batch-order <newest|oldest>`       | Choose batch ordering                                                                                                                                                             |
+| `--batch-concurrency <n>`             | Process batch items concurrently                                                                                                                                                  |
 
 ```bash
 bun autoshow extract input/examples/batch/2-urls.md --batch-all
-bun autoshow extract input/article.html --format json
 bun autoshow extract https://example.com/article --all-providers --price
 bun autoshow extract https://example.com/article --all-providers --provider-concurrency 2
 bun autoshow extract https://example.com/article --all-providers --url-request-timeout-ms 90000 --url-request-attempts 2
@@ -90,45 +74,29 @@ bun autoshow extract https://example.com/article --all-providers --url-request-t
 
 ## All URL Backends
 
-`--all-providers` runs remote HTML/article inputs through all URL backends in canonical order:
+`--all-providers` runs remote HTML/article inputs through hosted URL backends in canonical order:
 
 ```text
-defuddle, firecrawl, glm-reader, spider, supadata, zyte
+firecrawl, glm-reader, spider, supadata, zyte
 ```
 
-`defuddle` runs locally in a single-slot lane; hosted backends run in a pool governed by `--provider-concurrency` and the run-scoped hosted concurrency mode.
+Hosted backends run in a pool governed by `--provider-concurrency` and the run-scoped hosted concurrency mode.
 
 Rules:
 - `--all-providers` conflicts with `--url-provider`.
 - `write --all-providers url` runs URL extraction first, stores per-backend artifacts under `providers/<backend>/`, then passes extracted text to the LLM.
-- Remote `--all-providers` runs disable the single-backend Defuddle-to-Firecrawl fallback.
-- Local `.html` / `.htm` inputs skip hosted backends in all-provider mode (use `--all-local` to run `defuddle`).
+- Each hosted backend is run independently without automatic fallback.
 
 ## Article Services
 
-### Defuddle
-
-| Option | Value |
-|--------|-------|
-| Selector | default, or `--url-provider defuddle` |
-| Inputs | Remote article URLs and local `.html` / `.htm` files |
-| Runtime | Local HTML/article extraction via Defuddle CLI |
-
-```bash
-bun autoshow extract https://ajcwebdev.com
-bun autoshow extract input/article.html --format json
-```
-
-Use `--bin-dir <dir>` to supply a custom `defuddle` binary path. Local `.html` and `.htm` files always use `defuddle`.
-
 ### Firecrawl
 
-| Option | Value |
-|--------|-------|
-| Selector | `--url-provider firecrawl` or `--provider firecrawl` |
-| Inputs | Remote article URLs |
-| Required env | `FIRECRAWL_API_KEY` |
-| Endpoint | `POST /v2/scrape` |
+| Option       | Value                                                |
+| ------------ | ---------------------------------------------------- |
+| Selector     | `--url-provider firecrawl` or `--provider firecrawl` |
+| Inputs       | Remote article URLs                                  |
+| Required env | `FIRECRAWL_API_KEY`                                  |
+| Endpoint     | `POST /v2/scrape`                                    |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider firecrawl
@@ -136,12 +104,12 @@ bun autoshow extract https://ajcwebdev.com --url-provider firecrawl
 
 ### GLM Reader
 
-| Option | Value |
-|--------|-------|
-| Selector | `--url-provider glm-reader` or `--provider glm-reader` |
-| Inputs | Remote article URLs |
-| Required env | `GLM_API_KEY` |
-| Endpoint | `POST /reader` |
+| Option       | Value                                                  |
+| ------------ | ------------------------------------------------------ |
+| Selector     | `--url-provider glm-reader` or `--provider glm-reader` |
+| Inputs       | Remote article URLs                                    |
+| Required env | `GLM_API_KEY`                                          |
+| Endpoint     | `POST /reader`                                         |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --provider glm-reader
@@ -149,12 +117,12 @@ bun autoshow extract https://ajcwebdev.com --provider glm-reader
 
 ### Spider
 
-| Option | Value |
-|--------|-------|
-| Selector | `--url-provider spider` or `--provider spider` |
-| Inputs | Remote article URLs |
-| Required env | `SPIDER_API_KEY` |
-| Endpoint | `POST /scrape` with `return_format: "markdown"` |
+| Option       | Value                                           |
+| ------------ | ----------------------------------------------- |
+| Selector     | `--url-provider spider` or `--provider spider`  |
+| Inputs       | Remote article URLs                             |
+| Required env | `SPIDER_API_KEY`                                |
+| Endpoint     | `POST /scrape` with `return_format: "markdown"` |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider spider
@@ -162,12 +130,12 @@ bun autoshow extract https://ajcwebdev.com --url-provider spider
 
 ### Supadata
 
-| Option | Value |
-|--------|-------|
-| Selector | `--url-provider supadata` or `--provider supadata` |
-| Inputs | Remote article URLs |
-| Required env | `SUPADATA_API_KEY` |
-| Endpoint | `GET /web/scrape?url=<source>` |
+| Option       | Value                                              |
+| ------------ | -------------------------------------------------- |
+| Selector     | `--url-provider supadata` or `--provider supadata` |
+| Inputs       | Remote article URLs                                |
+| Required env | `SUPADATA_API_KEY`                                 |
+| Endpoint     | `GET /web/scrape?url=<source>`                     |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider supadata
@@ -175,12 +143,12 @@ bun autoshow extract https://ajcwebdev.com --url-provider supadata
 
 ### Zyte
 
-| Option | Value |
-|--------|-------|
-| Selector | `--url-provider zyte` or `--provider zyte` |
-| Inputs | Remote article URLs |
-| Required env | `ZYTE_API_KEY` |
-| Endpoint | `POST /v1/extract` with `article: true` |
+| Option       | Value                                      |
+| ------------ | ------------------------------------------ |
+| Selector     | `--url-provider zyte` or `--provider zyte` |
+| Inputs       | Remote article URLs                        |
+| Required env | `ZYTE_API_KEY`                             |
+| Endpoint     | `POST /v1/extract` with `article: true`    |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider zyte
@@ -202,7 +170,6 @@ output/YYYY-MM-DD_HH-MM-SS_article/
 ```text
 output/YYYY-MM-DD_HH-MM-SS_article/
   providers/
-    defuddle/
     firecrawl/
     glm-reader/
     spider/
@@ -212,6 +179,18 @@ output/YYYY-MM-DD_HH-MM-SS_article/
 ```
 
 Each provider `result.json` contains raw extraction metadata and output. Root `manifest.json` tracks item status and canonical provider entries (identity, attempts, cost, timing, and error state).
+
+## Provider Capabilities
+
+Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.md#provider-capabilities): ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or API snapshot dates. Recency marks follow the TTS convention: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. Pricing is the AutoShow registry scrape rate. Cost rank orders providers cheapest-first (1 = cheapest) and ties share a rank.
+
+| Provider                | Released   | Endpoint                           | Remote URLs | Markdown            | Auth                | Pricing                                           | Cost rank |
+| ----------------------- | ---------- | ---------------------------------- | ----------- | ------------------- | ------------------- | ------------------------------------------------- | --------- |
+| GLM Reader `glm-reader` | ⚠️ 2025-03 | `POST /reader`                     | ✅ Yes      | ✅ Default markdown | `GLM_API_KEY`       | $10.00/1k pages                                   | 4/5       |
+| Supadata `supadata`     | ❌ 2024-08 | `GET /web/scrape?url=<source>`     | ✅ Yes      | ✅ Scrape markdown  | `SUPADATA_API_KEY`  | $10.00/1k pages (1 credit/page at $10/1k credits) | 4/5       |
+| Firecrawl `firecrawl`   | ❌ 2024-04 | `POST /v2/scrape`                  | ✅ Yes      | ✅ Scrape markdown  | `FIRECRAWL_API_KEY` | $0.83/1k pages                                    | 1/5       |
+| Spider `spider`         | ❌ 2024-01 | `POST /scrape` markdown return     | ✅ Yes      | ✅ `return_format`  | `SPIDER_API_KEY`    | $1.20/1k pages                                    | 2/5       |
+| Zyte `zyte`             | ❌ 2021-09 | `POST /v1/extract` `article: true` | ✅ Yes      | ⚠️ Article extract  | `ZYTE_API_KEY`      | $1.60/1k pages                                    | 3/5       |
 
 ## X Space Path
 
@@ -225,13 +204,13 @@ bun autoshow extract 1DXxyRYNejbKM
 
 ## Supported URL Patterns
 
-| Pattern | Example |
-|---------|---------|
-| Space URL | `https://x.com/i/spaces/<id>` |
-| Twitter Space URL | `https://twitter.com/i/spaces/<id>` |
+| Pattern           | Example                              |
+| ----------------- | ------------------------------------ |
+| Space URL         | `https://x.com/i/spaces/<id>`        |
+| Twitter Space URL | `https://twitter.com/i/spaces/<id>`  |
 | Post URL (handle) | `https://x.com/<handle>/status/<id>` |
-| Post URL (web) | `https://x.com/i/web/status/<id>` |
-| Raw Space ID | `1DXxyRYNejbKM` |
+| Post URL (web)    | `https://x.com/i/web/status/<id>`    |
+| Raw Space ID      | `1DXxyRYNejbKM`                      |
 
 Mobile (`mobile.x.com`, `mobile.twitter.com`) and www variants are also supported.
 

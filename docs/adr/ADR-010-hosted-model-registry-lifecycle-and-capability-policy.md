@@ -24,13 +24,13 @@ Why now: repeated refreshes across write/OCR, STT, TTS/music, and image/video ea
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
+| Option                                                                                                         | Pros                                                                                                                                                                                  | Cons                                                                                                                           | Quantitative Notes                                                       |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | **One durable cross-modality registry/lifecycle/capability policy with separate refresh and evidence records** | Gives every model family the same identity, eligibility, pricing, reasoning, validation, resume, and historical rules while keeping dated catalogs and benchmark chronology elsewhere | Requires maintainers to update three authorities when a refresh includes both policy-significant and evidence-significant work | Governs 7 hosted surfaces: write, OCR, STT, TTS, music, image, and video |
-| Keep one policy inside each modality refresh record | Keeps provider details close to their original implementation | Repeats fixed-ID, retirement, pricing, approval, and validation rules and lets modalities drift | 7 near-duplicate rule sets to keep in sync |
-| Merge policy, provider chronology, and benchmark evidence into one omnibus record | Makes one file exhaustive | Buries stable rules in release-by-release detail and makes routine refreshes rewrite the architecture authority | Every refresh edits the architecture authority |
-| Update selector validators without a shared policy | Produces small diffs | Can advertise models with wrong pricing, modes, voices, request fields, defaults, resume behavior, or historical attribution | No reliable runtime promise |
-| Mirror provider aliases and capability names directly | Closely follows upstream documentation | Makes manifests non-reproducible and the public CLI provider-specific | At least one moving or duplicate identity per affected provider |
+| Keep one policy inside each modality refresh record                                                            | Keeps provider details close to their original implementation                                                                                                                         | Repeats fixed-ID, retirement, pricing, approval, and validation rules and lets modalities drift                                | 7 near-duplicate rule sets to keep in sync                               |
+| Merge policy, provider chronology, and benchmark evidence into one omnibus record                              | Makes one file exhaustive                                                                                                                                                             | Buries stable rules in release-by-release detail and makes routine refreshes rewrite the architecture authority                | Every refresh edits the architecture authority                           |
+| Update selector validators without a shared policy                                                             | Produces small diffs                                                                                                                                                                  | Can advertise models with wrong pricing, modes, voices, request fields, defaults, resume behavior, or historical attribution   | No reliable runtime promise                                              |
+| Mirror provider aliases and capability names directly                                                          | Closely follows upstream documentation                                                                                                                                                | Makes manifests non-reproducible and the public CLI provider-specific                                                          | At least one moving or duplicate identity per affected provider          |
 
 ## Decision
 
@@ -147,14 +147,14 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| Reproducible concrete selectors | No moving convenience aliases or billing-only duplicate selectors |
-| Deterministic lifecycle-aware defaults and expansion | Explicit lifecycle metadata and replacement handling |
-| Truthful model-specific capabilities | More registry data, validation, and adapter branches |
-| One cross-provider reasoning surface | Unsupported values are rejected instead of coerced |
-| Historical identity and pricing continuity | Separate active and retired readers |
-| Evidence-gated calibration | Provisional estimates for newly introduced models |
+| Gains                                                | Sacrifices                                                        |
+| ---------------------------------------------------- | ----------------------------------------------------------------- |
+| Reproducible concrete selectors                      | No moving convenience aliases or billing-only duplicate selectors |
+| Deterministic lifecycle-aware defaults and expansion | Explicit lifecycle metadata and replacement handling              |
+| Truthful model-specific capabilities                 | More registry data, validation, and adapter branches              |
+| One cross-provider reasoning surface                 | Unsupported values are rejected instead of coerced                |
+| Historical identity and pricing continuity           | Separate active and retired readers                               |
+| Evidence-gated calibration                           | Provisional estimates for newly introduced models                 |
 
 ## Implementation Note
 
@@ -175,12 +175,12 @@ The policy is implemented across the model registries and loaders under `src/cli
 
 ## Follow-up Actions
 
-| Action | Owner | Current State |
-|---|---|---|
-| Maintain primary-source pricing, lifecycle, capability, and replacement evidence during each refresh | Model registry maintainers | Ongoing |
-| Calibrate materially different reasoning levels and provisional model heuristics | Benchmark maintainers | Deferred pending approval for paid benchmark runs |
-| Evaluate provider-specific reasoning levels outside the seven-value surface through explicit public-enum expansion | CLI maintainers | Deferred |
-| Evaluate out-of-scope modalities and non-standard transports (streaming, realtime, dedicated endpoints) through separate architecture decisions | Domain maintainers | Deferred |
+| Action                                                                                                                                          | Owner                      | Current State                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------- |
+| Maintain primary-source pricing, lifecycle, capability, and replacement evidence during each refresh                                            | Model registry maintainers | Ongoing                                           |
+| Calibrate materially different reasoning levels and provisional model heuristics                                                                | Benchmark maintainers      | Deferred pending approval for paid benchmark runs |
+| Evaluate provider-specific reasoning levels outside the seven-value surface through explicit public-enum expansion                              | CLI maintainers            | Deferred                                          |
+| Evaluate out-of-scope modalities and non-standard transports (streaming, realtime, dedicated endpoints) through separate architecture decisions | Domain maintainers         | Deferred                                          |
 
 ## Test Plan
 

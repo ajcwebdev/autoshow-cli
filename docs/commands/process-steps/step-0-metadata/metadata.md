@@ -16,20 +16,20 @@ bun autoshow metadata <input>
 
 ## Supported Inputs
 
-| Input | Behavior |
-|-------|----------|
-| YouTube / Twitch / TikTok URL | `yt-dlp --dump-json` metadata extraction (no download) |
-| Direct media URL (`.mp3`, `.mp4`, etc.) | URL-based metadata extraction (no download) |
-| Direct document URL (`.pdf`, `.epub`, `.acsm`, `.docx`, etc.) | HTTP fetch to temp file, detect format, extract metadata, clean up |
-| Remote article / HTML URL | Article metadata/extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
-| X/Twitter Space URL, raw Space ID, or X/Twitter post URL | X API metadata lookup for Space details, linked posts, users, and errors |
-| Local `.html` / `.htm` file | Article metadata/extraction with local `defuddle` |
-| Local media file | `ffprobe` metadata extraction (duration, title) |
-| Local document file | Format detection + `mutool` metadata (title, author, page count) |
-| YouTube channel URL | Batch metadata for latest videos |
-| RSS / podcast feed URL | Batch metadata for latest episodes |
-| URL list file (`.md` / `.txt`) | Batch metadata for each listed input |
-| Directory | Batch metadata for each supported local input |
+| Input                                                         | Behavior                                                                                                                        |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| YouTube / Twitch / TikTok URL                                 | `yt-dlp --dump-json` metadata extraction (no download)                                                                          |
+| Direct media URL (`.mp3`, `.mp4`, etc.)                       | URL-based metadata extraction (no download)                                                                                     |
+| Direct document URL (`.pdf`, `.epub`, `.acsm`, `.docx`, etc.) | HTTP fetch to temp file, detect format, extract metadata, clean up                                                              |
+| Remote article / HTML URL                                     | Article metadata/extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
+| X/Twitter Space URL, raw Space ID, or X/Twitter post URL      | X API metadata lookup for Space details, linked posts, users, and errors                                                        |
+| Local `.html` / `.htm` file                                   | Article metadata/extraction with local `defuddle`                                                                               |
+| Local media file                                              | `ffprobe` metadata extraction (duration, title)                                                                                 |
+| Local document file                                           | Format detection + `mutool` metadata (title, author, page count)                                                                |
+| YouTube channel URL                                           | Batch metadata for latest videos                                                                                                |
+| RSS / podcast feed URL                                        | Batch metadata for latest episodes                                                                                              |
+| URL list file (`.md` / `.txt`)                                | Batch metadata for each listed input                                                                                            |
+| Directory                                                     | Batch metadata for each supported local input                                                                                   |
 
 **Supported document formats:** PDF, EPUB, ACSM, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
 

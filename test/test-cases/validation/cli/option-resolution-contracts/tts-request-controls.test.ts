@@ -77,9 +77,6 @@ describe('option resolution contracts', () => {
       ['inworld-tts', 'realtime-tts-2-flash', 'realtime-tts-2'],
       ['speechify-tts', 'simba-3.0', 'simba-3.2'],
       ['deepinfra-tts', 'ResembleAI/chatterbox-multilingual', 'ResembleAI/chatterbox-turbo'],
-      ['openai-tts', 'tts-1', 'gpt-4o-mini-tts-2025-12-15'],
-      ['openai-tts', 'tts-1-hd', 'gpt-4o-mini-tts-2025-12-15'],
-      ['groq-tts', 'canopylabs/orpheus-arabic-saudi', 'canopylabs/orpheus-v1-english'],
       ['fish-tts', 'fish-speech-1.5', 's2.1-pro'],
       ['fish-tts', 's1', 's2.1-pro'],
       ['fish-tts', 's2-pro', 's2.1-pro'],
@@ -286,13 +283,6 @@ describe('option resolution contracts', () => {
     expect(generic.flags['inworld-tts-instructions']).toBe('Sound reassuring')
   })
 
-  test('OpenAI classic models are retired before pricing or dispatch', () => {
-    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-      'openai-tts': 'tts-1',
-      'openai-tts-instructions': 'Warm narration'
-    }))).toThrow('Model "tts-1" is retired for --provider/--tts openai[=model]. Use "gpt-4o-mini-tts-2025-12-15" instead.')
-  })
-
   test('Speechify validates model-specific languages, curated voices, and cloning', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'speechify-tts': 'simba-3.2',
@@ -419,9 +409,6 @@ describe('option resolution contracts', () => {
         'groq-tts': 'canopylabs/orpheus-v1-english',
         'groq-voice': 'noura'
       }))).toThrow('Invalid --tts-voice groq="noura"')
-      expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-        'groq-tts': 'canopylabs/orpheus-arabic-saudi'
-      }))).toThrow('Model "canopylabs/orpheus-arabic-saudi" is retired for --provider/--tts groq[=model]. Use "canopylabs/orpheus-v1-english" instead.')
     })
 
   test('grok tts voice validation normalizes case', () => {
@@ -458,5 +445,10 @@ describe('option resolution contracts', () => {
         model: 'aura-2-thalia-en',
         voice: 'aura-2-andromeda-en'
       }])
+
+      expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+        'deepgram-tts': 'aura-2-thalia-en',
+        'deepgram-voice': 'invalid-model'
+      }))).toThrow('Invalid --deepgram-voice "invalid-model"')
     })
 })

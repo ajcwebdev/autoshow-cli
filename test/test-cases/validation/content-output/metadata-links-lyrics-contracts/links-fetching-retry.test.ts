@@ -15,6 +15,16 @@ import { BLOB_PREFIXED_DOC_FETCH_LINK, BLOB_PREFIXED_DOC_LINK, linksTestOutputPa
 
 const LINKS_RETRY_TEST_URL = 'https://elevenlabs.io/docs/overview/models.md'
 
+const withZeroRetryBackoff = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const previousSleep = Bun.sleep
+  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+  try {
+    return await fn()
+  } finally {
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
+  }
+}
+
 const expectLinksRetryScenario = async (options: {
   outputSlug: string
   failure: Error | { body: string, status: number, statusText: string }
@@ -34,9 +44,11 @@ const expectLinksRetryScenario = async (options: {
     }
     return new Response(`# docs for ${url}\n`, { headers: { 'content-type': 'text/markdown' } })
   }
-  await runLinksWithArgv([
-    'bun', 'src/cli/create-cli.ts', 'links', '--elevenlabs', 'models'
-  ], { outputPath, fetchImpl })
+  await withZeroRetryBackoff(async () => {
+    await runLinksWithArgv([
+      'bun', 'src/cli/create-cli.ts', 'links', '--elevenlabs', 'models'
+    ], { outputPath, fetchImpl })
+  })
   const output = await Bun.file(outputPath).text()
   expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(options.expectedAttempts)
   const successMarker = `<!-- Source: ${LINKS_RETRY_TEST_URL} -->`

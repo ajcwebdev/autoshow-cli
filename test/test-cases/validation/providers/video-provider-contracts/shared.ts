@@ -18,7 +18,14 @@ import {
 } from '../../../../test-utils/rest-contract-helpers'
 
 export const envKeys = ['GEMINI_API_KEY', 'XAI_API_KEY', 'GLM_API_KEY', 'MINIMAX_API_KEY', 'RUNWAYML_API_SECRET', 'LTXV_API_KEY', 'REPLICATE_API_TOKEN', 'LUMA_AGENTS_API_KEY']
-const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-video-provider-contracts-' })
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys,
+  tempPrefix: 'autoshow-video-provider-contracts-',
+  restoreBunSleep: true,
+  beforeEachExtra: () => {
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+  }
+})
 export const videoBytes = new Uint8Array([9, 8, 7])
 export const inlineVideo = Buffer.from(videoBytes).toString('base64')
 export const defaultImageVideoPrompt = 'Animate the provided image with natural, subtle motion while preserving its subject and composition.'

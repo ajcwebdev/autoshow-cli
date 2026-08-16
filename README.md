@@ -127,7 +127,7 @@ bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=v
 bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --origin provider-stock --provenance-ref project:casting
 
 # Discover voices from a hosted ElevenLabs account
-bun autoshow voice discover --provider elevenlabs --source account
+bun autoshow voice list --provider elevenlabs --source account
 
 # Draft structured comic scenes with hosted OpenAI
 bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
@@ -144,11 +144,11 @@ bun autoshow comic generate-slideshow 01-01
 
 ## Command Map
 
-| Area | Commands |
-|------|----------|
+| Area                | Commands                                   |
+| ------------------- | ------------------------------------------ |
 | Inspect and process | `metadata`, `download`, `extract`, `write` |
-| Generate | `tts`, `image`, `video`, `music`, `comic` |
-| Setup & Utilities | `setup`, `config`, `links`, `resume` |
+| Generate            | `tts`, `image`, `video`, `music`, `comic`  |
+| Setup & Utilities   | `setup`, `config`, `links`, `resume`       |
 
 High-value notes:
 
@@ -262,7 +262,7 @@ Notable exceptions:
 ```bash
 bun run check
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
-bun test test/test-cases/validation/cli/cli-usage-errors.test.ts
+bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 

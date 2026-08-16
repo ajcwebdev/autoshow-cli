@@ -56,6 +56,9 @@ const flagGroup = (definition: CliFlagDefinition): string | undefined => {
 const isFlagHidden = (definition: CliFlagDefinition): boolean =>
   definition.help?.hidden === true
 
+const isCommandHidden = (command: CliCommandHelpDefinition): boolean =>
+  command.help?.hidden === true
+
 const formatFlagName = (name: string, definition: CliFlagDefinition): string => {
   if (definition.type === Boolean && definition.negatable === true) {
     return definition.short ? `--${name}, --no-${name}, -${definition.short}` : `--${name}, --no-${name}`
@@ -158,7 +161,7 @@ const renderParameters = (command: CliCommandHelpDefinition): string[] => {
 
 const renderSubcommands = (command: CliCommandHelpDefinition): string[] => {
   const prefix = `${command.name} `
-  const subcommands = (command.subcommands ?? []).map((subcommand) => [
+  const subcommands = (command.subcommands ?? []).filter((subcommand) => !isCommandHidden(subcommand)).map((subcommand) => [
     subcommand.name.startsWith(prefix) ? subcommand.name.slice(prefix.length) : subcommand.name,
     subcommand.description
   ] as const)

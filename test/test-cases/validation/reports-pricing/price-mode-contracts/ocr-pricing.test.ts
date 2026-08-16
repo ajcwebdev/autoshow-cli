@@ -2,14 +2,16 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
+import { estimateFirecrawlScrapeCost, estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
+import { buildArticleEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-article-estimates'
+import { formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { allocatePooledOcrPages, buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
 import {
   persistHostedOcrTokenUsageProfiles,
   readHostedOcrTokenUsageProfiles
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { buildOcrCostDiagnostics, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
-import { getExtractEstimation, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getExtractEstimation, getExtractPricing, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { formatRatesSummary } from '~/cli/commands/process-steps/write-manifest-log/manifest-log-formatting'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
@@ -67,6 +69,38 @@ const buildHostedOcrPricingOptions = (
 }
 
 describe('price mode contracts', () => {
+  test('URL article extract estimates use Firecrawl and glm-reader page rates without fetching', () => {
+      const firecrawl = estimateFirecrawlScrapeCost()
+      expect(firecrawl).toMatchObject({
+        provider: 'firecrawl',
+        model: 'firecrawl',
+        pageCount: 1,
+        totalCost: 0.083,
+        estimateType: 'exact'
+      })
+      expect(firecrawl.note).toContain('Firecrawl')
+
+      const glmCents = (1 / 1000) * (getExtractPricing('glm-reader', 'glm-reader').costPer1kPagesCents ?? 0)
+      expect(formatEstimatedCostWithExactCents(glmCents)).toBe('1.00¢ (1.000¢)')
+
+      const estimates = buildArticleEstimates(
+        { route: 'article', sourceKind: 'article', providers: [
+          { service: 'firecrawl', model: 'firecrawl', origin: 'explicit' },
+          { service: 'glm-reader', model: 'glm-reader', origin: 'explicit' }
+        ] },
+        { urlBackend: 'glm-reader' },
+        true
+      )
+      expect(estimates.estimates.map((step) => ({
+        provider: step.provider,
+        model: step.model,
+        totalCost: step.totalCost
+      }))).toEqual([
+        { provider: 'firecrawl', model: 'firecrawl', totalCost: 0.083 },
+        { provider: 'glm-reader', model: 'glm-reader', totalCost: 1 }
+      ])
+    })
+
   test('every token-priced OCR registry entry uses multiplier 1', () => {
     const registry = getModelRegistry().extract
     for (const [provider, service] of Object.entries(registry)) {

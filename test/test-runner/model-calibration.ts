@@ -394,23 +394,24 @@ export const buildModelCalibrationReport = async (
     }
   }
 
-  for (const entry of runEntries) {
-    if (!entry.isDirectory()) continue
-    runsScanned += 1
-    const manifestPaths = await collectCalibrationManifestPaths(resolve(rootDir, entry.name))
-
-    for (const metadataPath of manifestPaths) {
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
-      } catch {
-        continue
-      }
-      if (!isRecord(parsed)) continue
-
-      metadataFilesScanned += 1
-      observations.push(...collectObservationsFromMetadata(unwrapCalibrationMetadata(parsed)))
+  const runDirectories = runEntries.filter((entry) => entry.isDirectory())
+  runsScanned = runDirectories.length
+  const manifestPaths = (
+    await Promise.all(runDirectories.map((entry) => collectCalibrationManifestPaths(resolve(rootDir, entry.name))))
+  ).flat()
+  const parsedManifests = await Promise.all(manifestPaths.map(async (metadataPath) => {
+    try {
+      const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
+      return isRecord(parsed) ? parsed : null
+    } catch {
+      return null
     }
+  }))
+
+  for (const parsed of parsedManifests) {
+    if (!parsed) continue
+    metadataFilesScanned += 1
+    observations.push(...collectObservationsFromMetadata(unwrapCalibrationMetadata(parsed)))
   }
 
   const grouped = new Map<string, CalibrationStepObservation[]>()

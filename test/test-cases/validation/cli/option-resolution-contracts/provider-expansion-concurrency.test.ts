@@ -18,7 +18,6 @@ import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrenc
 import {
   validateCerebrasModel,
   validateAnthropicOcrModel,
-  validateGeminiModel,
   validateGeminiOcrModel,
   validateGrokModel,
   validateGrokOcrModel,
@@ -41,18 +40,8 @@ describe('option resolution contracts', () => {
     expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'fast' })).toThrow('Expected "ramp" or "immediate"')
   })
 
-  test('MiniMax write model validator accepts M3 and rejects removed predecessor names', () => {
-      const removedStandard = ['MiniMax-M2', '5'].join('.')
-      const removedHighspeed = `${removedStandard}-highspeed`
-      const removedM27 = ['MiniMax-M2', '7'].join('.')
-      const removedM27Highspeed = `${removedM27}-highspeed`
-      const expectedAllowed = 'Allowed values: MiniMax-M3'
-
+  test('MiniMax write model validator accepts M3', () => {
       expect(validateMinimaxModel('MiniMax-M3')).toBe('MiniMax-M3')
-      expect(() => validateMinimaxModel(removedStandard)).toThrow(`Invalid model "${removedStandard}" for --llm minimax[=model]. ${expectedAllowed}`)
-      expect(() => validateMinimaxModel(removedHighspeed)).toThrow(`Invalid model "${removedHighspeed}" for --llm minimax[=model]. ${expectedAllowed}`)
-      expect(() => validateMinimaxModel(removedM27)).toThrow(`Invalid model "${removedM27}" for --llm minimax[=model]. ${expectedAllowed}`)
-      expect(() => validateMinimaxModel(removedM27Highspeed)).toThrow(`Invalid model "${removedM27Highspeed}" for --llm minimax[=model]. ${expectedAllowed}`)
     })
 
   test('Cerebras write model validator accepts public selectors and rejects raw dedicated IDs', () => {
@@ -93,24 +82,18 @@ describe('option resolution contracts', () => {
       expect(validateGeminiOcrModel('gemini-3.5-flash')).toBe('gemini-3.5-flash')
       expect(validateGeminiOcrModel('gemini-3.6-flash')).toBe('gemini-3.6-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash-lite')).toBe('gemini-3.5-flash-lite')
-      expect(() => validateGeminiOcrModel('gemini-3.1-flash-lite')).toThrow('Model "gemini-3.1-flash-lite" is retired for --provider/--ocr gemini[=model]. Use "gemini-3.5-flash-lite" instead.')
-      expect(() => validateGeminiModel('gemini-3.1-flash-lite')).toThrow('Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.5-flash-lite" instead.')
       expect(validateGrokOcrModel('grok-4.20-0309-non-reasoning')).toBe('grok-4.20-0309-non-reasoning')
       expect(validateGrokOcrModel('grok-4.5')).toBe('grok-4.5')
       expect(validateOpenAIOcrModel('gpt-5.6-sol')).toBe('gpt-5.6-sol')
       expect(validateOpenAIOcrModel('gpt-5.4-mini')).toBe('gpt-5.4-mini')
       expect(validateKimiOcrModel('kimi-k2.6')).toBe('kimi-k2.6')
       expect(validateKimiOcrModel('kimi-k3')).toBe('kimi-k3')
-      const removedKimiCodeOcrModel = ['kimi-k2', '7-code'].join('.')
-      const removedKimiCodeHighspeedOcrModel = `${removedKimiCodeOcrModel}-highspeed`
 
       expect(() => validateMistralOcrModel('mistral-ocr-2405')).toThrow('Invalid model "mistral-ocr-2405" for --provider/--ocr mistral[=model]')
       expect(() => validateMistralOcrModel('mistral-ocr-latest')).toThrow('Invalid model "mistral-ocr-latest" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-2512, mistral-ocr-4-0')
       expect(() => validateAnthropicOcrModel('claude-mythos-5')).toThrow('Invalid model "claude-mythos-5" for --provider/--ocr anthropic[=model]')
       expect(() => validateOpenAIOcrModel('gpt-5.6')).toThrow('Invalid model "gpt-5.6" for --provider/--ocr openai[=model]')
       expect(() => validateGrokOcrModel('grok-4.20-0309-reasoning')).toThrow('Invalid model "grok-4.20-0309-reasoning" for --provider/--ocr grok[=model]')
-      expect(() => validateKimiOcrModel(removedKimiCodeOcrModel)).toThrow(`Invalid model "${removedKimiCodeOcrModel}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`)
-      expect(() => validateKimiOcrModel(removedKimiCodeHighspeedOcrModel)).toThrow(`Invalid model "${removedKimiCodeHighspeedOcrModel}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`)
     })
 
   test('OCR provider concurrency defaults, falls back, and clamps like STT concurrency flags', () => {

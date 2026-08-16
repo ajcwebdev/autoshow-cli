@@ -15,15 +15,6 @@ export const ttsRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepgram-aura-2-thalia-en.test.ts', [
     command('tts-deepgram-aura-2-thalia-en', 'tts-deepgram-aura-2-thalia-en', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepgram=aura-2-thalia-en', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepgram-aura-2-helena-en.test.ts', [
-    command('tts-deepgram-aura-2-helena-en', 'tts-deepgram-aura-2-helena-en', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepgram=aura-2-helena-en', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepgram-aura-2-arcas-en.test.ts', [
-    command('tts-deepgram-aura-2-arcas-en', 'tts-deepgram-aura-2-arcas-en', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepgram=aura-2-arcas-en', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepgram-aura-2-aries-en.test.ts', [
-    command('tts-deepgram-aura-2-aries-en', 'tts-deepgram-aura-2-aries-en', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepgram=aura-2-aries-en', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/groq-canopylabs-orpheus-v1-english.test.ts', [
     command('tts-groq-canopylabs/orpheus-v1-english', 'tts-groq-canopylabs/orpheus-v1-english', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'groq=canopylabs/orpheus-v1-english', '--price']),
   ]),

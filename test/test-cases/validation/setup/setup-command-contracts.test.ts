@@ -2,6 +2,9 @@ import { chmod, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { describe, expect, test } from 'bun:test'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
+import { parseCommandInvocation } from '~/cli/native/native-parser'
+import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-setup-command'
 import { runCommand } from '../../../test-utils/test-helpers'
 import { CALIBRE_REQUIRED_TOOLS } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { readDependencyMetadata } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
@@ -125,35 +128,32 @@ const findDoctorCheck = (
 }
 
 describe('setup command contracts', () => {
-  test('setup usage contracts include the defuddle step', async () => {
-    const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--step', 'not-real'], {
-      env: { NO_COLOR: '1' }
-    })
-
-    expect(result.exitCode).toBe(2)
-    expect(`${result.stdout}\n${result.stderr}`).toContain('defuddle')
-  })
-
-  test('setup usage lists the whisperfile step as valid', async () => {
-    const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--step', 'not-real'], {
-      env: { NO_COLOR: '1' }
-    })
-
-    const output = `${result.stdout}\n${result.stderr}`
-    expect(result.exitCode).toBe(2)
-    expect(output).toContain('whisperfile')
-    expect(output).not.toContain('llamafile')
-  })
-
-  test('setup usage lists ACSM setup and authorization as valid focused setup steps', async () => {
-    const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--step', 'not-real'], {
-      env: { NO_COLOR: '1' }
-    })
-
-    const output = `${result.stdout}\n${result.stderr}`
-    expect(result.exitCode).toBe(2)
-    expect(output).toContain('acsm')
-    expect(output).toContain('acsm-authorize')
+  test('setup usage lists valid focused steps when --step is unknown', async () => {
+    const parsed = parseCommandInvocation(
+      ['setup', '--step', 'not-real'],
+      setupCommand,
+      GLOBAL_FLAG_DEFINITIONS
+    )
+    if (!parsed.command) throw new Error('parsed setup command is missing')
+    let message = ''
+    try {
+      await setupCommand.handler({
+        argv: parsed.argv,
+        command: parsed.command,
+        flags: parsed.flags,
+        parameters: parsed.parameters,
+        rawParsed: parsed.rawParsed,
+        store: {}
+      })
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error)
+    }
+    expect(message).toContain('Invalid --step value: not-real')
+    expect(message).toContain('defuddle')
+    expect(message).toContain('whisperfile')
+    expect(message).toContain('acsm')
+    expect(message).toContain('acsm-authorize')
+    expect(message).not.toContain('llamafile')
   })
 
   test('setup --models rejects an unknown whisperfile model before downloading', async () => {

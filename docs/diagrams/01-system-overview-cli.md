@@ -67,22 +67,22 @@ debug log elapsed time
 
 Global flags:
 
-| Flag | Effect |
-|------|--------|
-| `--help`, `-h` | Show root or command help. |
-| `--version`, `-v` | Print CLI version. |
-| `--config-path` | Use a config file other than `config/autoshow.json`. |
-| `--output-root` | Base output directory under which per-step subdirectories are created. |
-| `--output-dir` | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, and `resume`, which do not create run directories. |
-| `--characters-root` | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only. |
-| `--bin-dir` | Directory of external tool binaries checked before the managed install and PATH. |
-| `--allow-over-budget` | Continue after cost preflight exceeds the configured budget. |
-| `--verbose` | Enable debug logging. |
-| `--quiet`, `-q` | Suppress non-error output. |
-| `--json` | Emit logs as JSON. |
-| `--log-level` | Minimum log level: `debug`, `info`, `success`, `warn`, or `error`. |
-| `--log-format` | Log output format: `human`, `json`, or `both`. |
-| `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY. |
+| Flag                    | Effect                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--help`, `-h`          | Show root or command help.                                                                                                                                                                                                                                                                              |
+| `--version`, `-v`       | Print CLI version.                                                                                                                                                                                                                                                                                      |
+| `--config-path`         | Use a config file other than `config/autoshow.json`.                                                                                                                                                                                                                                                    |
+| `--output-root`         | Base output directory under which per-step subdirectories are created.                                                                                                                                                                                                                                  |
+| `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, and `resume`, which do not create run directories. |
+| `--characters-root`     | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only.                                                                                                                                                                                    |
+| `--bin-dir`             | Directory of external tool binaries checked before the managed install and PATH.                                                                                                                                                                                                                        |
+| `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget.                                                                                                                                                                                                                                            |
+| `--verbose`             | Enable debug logging.                                                                                                                                                                                                                                                                                   |
+| `--quiet`, `-q`         | Suppress non-error output.                                                                                                                                                                                                                                                                              |
+| `--json`                | Emit logs as JSON.                                                                                                                                                                                                                                                                                      |
+| `--log-level`           | Minimum log level: `debug`, `info`, `success`, `warn`, or `error`.                                                                                                                                                                                                                                      |
+| `--log-format`          | Log output format: `human`, `json`, or `both`.                                                                                                                                                                                                                                                          |
+| `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY.                                                                                                                                                                                                                                          |
 
 Comic's public `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
 
@@ -151,27 +151,27 @@ Flag/config resolution is command-neutral, but processing is not built around an
 
 Current selector families:
 
-| Step | Providers |
-|------|-----------|
-| STT | `whisper`, `whisperfile`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`; `youtube-captions` is a special caption-backed service. |
-| OCR | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`. |
-| URL article | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`. |
-| LLM | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. |
-| TTS | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`. |
-| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`. |
-| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`. |
-| Music | `elevenlabs`, `minimax`, `gemini`. |
+| Step        | Providers                                                                                                                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| STT         | `whisper`, `whisperfile`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`; `youtube-captions` is a special caption-backed service. |
+| OCR         | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`.                                                                                                                                                  |
+| URL article | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                                                                              |
+| LLM         | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`.                                                                                                                                                                |
+| TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                                                                          |
+| Image       | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                                     |
+| Video       | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                              |
+| Music       | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                                                                |
 
 Command-to-flag mapping:
 
-| Command | Primary flags |
-|---------|---------------|
-| `metadata` | `--save`, document password, URL backend, batch flags. |
-| `download` | download/media flags, URL backend, batch flags. |
-| `extract` | STT/OCR/URL selectors, advanced OCR flags, `--youtube-captions`, batch flags, `--price`, `--transcript-video`. |
-| `write` | Step selectors for STT/OCR/URL/LLM/TTS/image/video/music, prompt/text-input flags, rendered text flags, batch flags, generation flags. |
-| `resume` | target-aware provider selectors for missing or failed providers. |
-| `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors. |
-| `voice` | standalone voice registration, audition, approval, consent, discovery, and deletion flags. |
-| `comic` | comic drafting, panel image generation, audio rendering, local slideshow presentation, and reference flags. |
-| `config` | persisted defaults for supported selectors and options; runtime-only flags are ignored. |
+| Command                       | Primary flags                                                                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `metadata`                    | `--save`, document password, URL backend, batch flags.                                                                                 |
+| `download`                    | download/media flags, URL backend, batch flags.                                                                                        |
+| `extract`                     | STT/OCR/URL selectors, advanced OCR flags, `--youtube-captions`, batch flags, `--price`, `--transcript-video`.                         |
+| `write`                       | Step selectors for STT/OCR/URL/LLM/TTS/image/video/music, prompt/text-input flags, rendered text flags, batch flags, generation flags. |
+| `resume`                      | target-aware provider selectors for missing or failed providers.                                                                       |
+| `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors.                                                                                    |
+| `voice`                       | standalone voice registration, audition, approval, consent, discovery, and deletion flags.                                             |
+| `comic`                       | comic drafting, panel image generation, audio rendering, local slideshow presentation, and reference flags.                            |
+| `config`                      | persisted defaults for supported selectors and options; runtime-only flags are ignored.                                                |

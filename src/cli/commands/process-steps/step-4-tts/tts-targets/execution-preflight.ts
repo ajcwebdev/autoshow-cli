@@ -180,7 +180,7 @@ const checkAdvancedVoiceReadiness = async (
     if (target.service === 'inworld') {
       const availableIds = await listInworldVoiceIdsForReadiness(apiKey)
       const missingVoiceIds = voiceIds.filter(voiceId => !availableIds.has(voiceId))
-      if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice discover --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
+      if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice list --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     if (target.service === 'minimax') {

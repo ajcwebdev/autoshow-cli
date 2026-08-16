@@ -46,22 +46,6 @@ export const runConsensusBuildReport = async (
   return { stdout, stderr }
 }
 
-export const deprecatedTierSplitKey = 'tier' + 'Split'
-
-export const deprecatedOverallTierKey = 'overall' + 'Tier'
-
-export const hasOwnKeyDeep = (value: unknown, key: string): boolean => {
-  if (Array.isArray(value)) {
-    return value.some((item) => hasOwnKeyDeep(item, key))
-  }
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>
-    return Object.prototype.hasOwnProperty.call(record, key) ||
-      Object.values(record).some((item) => hasOwnKeyDeep(item, key))
-  }
-  return false
-}
-
 export const expectRankingSurfaces = (report: {
   rankingSurfaces: Record<'local' | 'service', Record<'fastest' | 'cheapest' | 'highestQuality', unknown[]>>
 }): void => {

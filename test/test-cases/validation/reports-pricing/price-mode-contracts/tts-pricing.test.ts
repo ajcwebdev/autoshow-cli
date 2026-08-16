@@ -5,6 +5,7 @@ import { describe, expect, test } from 'bun:test'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
 import { getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { SUPPORTED_DEEPGRAM_TTS_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
@@ -424,6 +425,23 @@ describe('price mode contracts', () => {
       ])
 
     })
+
+  test('every Deepgram Aura-2 model resolves a flat per-character estimate', () => {
+    for (const model of SUPPORTED_DEEPGRAM_TTS_MODELS) {
+      expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
+
+      const cost = estimateTtsCosts({
+        deepgramTtsModels: [model]
+      } as Parameters<typeof estimateTtsCosts>[0], 1000)[0]
+
+      expect(cost).toMatchObject({
+        provider: 'deepgram',
+        model,
+        costPer1kCharactersCents: 3,
+        totalCost: 3
+      })
+    }
+  })
 
   test('revised TTS models expose approved pricing and provisional timing', () => {
     for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en']) {

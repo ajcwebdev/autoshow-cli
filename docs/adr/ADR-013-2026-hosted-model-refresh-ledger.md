@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-16
 - **Verification Status:** Passed
 - **Supersession:** Consolidates per-modality 2026 refresh records into one dated ledger. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
@@ -18,12 +18,12 @@ Why now: the refresh is complete across all seven hosted command surfaces, requi
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
+| Option                                                                                              | Pros                                                                                                                            | Cons                                                                                | Quantitative Notes                                                 |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **One dated cross-modality refresh ledger separated from durable policy and evidence architecture** | Keeps all 2026 additions, removals, provider constraints, corrections, and final counts discoverable without duplicating policy | Produces a long historical record and requires links to policy/evidence authorities | Consolidates refresh chronologies across 7 hosted command surfaces |
-| Keep one live refresh ADR per modality | Keeps provider details in smaller files | Repeats policy and paid-verification rules across multiple documents | Retains multiple dated refresh authorities |
-| Put all chronology into the durable policy ADR | Gives one model document | Buries stable lifecycle/capability rules under provider release history | More than 1,000 lines of mixed policy and evidence |
-| Preserve only current registry code and delete the decision history | Minimizes documentation | Loses why historical identities, provider branches, and exclusions exist | No audit trail for removed selectors or paid corrections |
+| Keep one live refresh ADR per modality                                                              | Keeps provider details in smaller files                                                                                         | Repeats policy and paid-verification rules across multiple documents                | Retains multiple dated refresh authorities                         |
+| Put all chronology into the durable policy ADR                                                      | Gives one model document                                                                                                        | Buries stable lifecycle/capability rules under provider release history             | More than 1,000 lines of mixed policy and evidence                 |
+| Preserve only current registry code and delete the decision history                                 | Minimizes documentation                                                                                                         | Loses why historical identities, provider branches, and exclusions exist            | No audit trail for removed selectors or paid corrections           |
 
 ## Decision
 
@@ -79,16 +79,16 @@ Latency and token heuristics for new or replacement selectors reuse the closest 
 
 The prioritized OCR expansion implemented P1–P8 entries across Replicate, fal.ai, and DeepInfra. DeepInfra additions were registry-only (`ocr-config/ocr-deepinfra.json`, `ocr-models.ts` validation) using the OpenAI-compatible vision API. Replicate and fal.ai introduced new step-2 OCR services (`ocr-services/replicate-ocr/`, `ocr-services/fal-ocr/`). Token-billed page costs reuse DeepInfra heuristics (~7,981 prompt and ~472 completion tokens per page) provisionally until calibrated.
 
-| Priority | Selector | Provider | Pricing basis | Est. cost per 1k pages | Rationale |
-|---|---|---|---|---|---|
-| P1 | `datalab-to/ocr` | Replicate (official) | $2 per 1,000 pages, flat page billing | $2.00 | Official page-billed model matching Mistral OCR price point; layout analysis, text detection, and tables in 90 languages. |
-| P2 | `datalab-to/marker` | Replicate (official) | $4 per 1,000 pages, pinned `fast` mode | $4.00 | Marker pipeline with markdown/JSON output (~0.18 s/page batched). Pinned `mode=fast` for deterministic pricing. |
-| P3 | `google/gemma-3-27b-it` | DeepInfra | $0.08/1M input, $0.16/1M output tokens | ~$0.72 | Low-cost multimodal addition with registry-only implementation. |
-| P4 | `mistralai/Mistral-Small-3.2-24B-Instruct-2506` | DeepInfra | $0.075/1M input, $0.20/1M output tokens | ~$0.69 | Solid OCR quality with improved instruction following; registry-only change. |
-| P5 | `lucataco/deepseek-ocr` | Replicate (community) | L40S hardware-billed, ~$0.0033 per ~4 s prediction | ~$3.30 (variable) | Document parsing (markdown, tables, LaTeX) with version pinning at dispatch. |
-| P6 | `meta-llama/Llama-4-Scout-17B-16E-Instruct` | DeepInfra | $0.10/1M input, $0.30/1M output tokens | ~$0.94 | Multimodal breadth for comparison runs; ranks on cost and model diversity. |
-| P7 | `fal-ai/got-ocr/v2` | fal.ai | $0.05 per image | $50.00 | Specialty coverage (formulas, geometry, molecular structures, sheet music); reserved for specialized content. |
-| P8 | `fal-ai/florence-2-large/ocr` | fal.ai | $0.00125 per GPU compute second | ~$7.55 (estimated) | Compute-second billing calibrated from 2026-08-14 run (~6.04 s/page estimate); billed duration varies by input. |
+| Priority | Selector                                        | Provider              | Pricing basis                                      | Est. cost per 1k pages | Rationale                                                                                                                 |
+| -------- | ----------------------------------------------- | --------------------- | -------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| P1       | `datalab-to/ocr`                                | Replicate (official)  | $2 per 1,000 pages, flat page billing              | $2.00                  | Official page-billed model matching Mistral OCR price point; layout analysis, text detection, and tables in 90 languages. |
+| P2       | `datalab-to/marker`                             | Replicate (official)  | $4 per 1,000 pages, pinned `fast` mode             | $4.00                  | Marker pipeline with markdown/JSON output (~0.18 s/page batched). Pinned `mode=fast` for deterministic pricing.           |
+| P3       | `google/gemma-3-27b-it`                         | DeepInfra             | $0.08/1M input, $0.16/1M output tokens             | ~$0.72                 | Low-cost multimodal addition with registry-only implementation.                                                           |
+| P4       | `mistralai/Mistral-Small-3.2-24B-Instruct-2506` | DeepInfra             | $0.075/1M input, $0.20/1M output tokens            | ~$0.69                 | Solid OCR quality with improved instruction following; registry-only change.                                              |
+| P5       | `lucataco/deepseek-ocr`                         | Replicate (community) | L40S hardware-billed, ~$0.0033 per ~4 s prediction | ~$3.30 (variable)      | Document parsing (markdown, tables, LaTeX) with version pinning at dispatch.                                              |
+| P6       | `meta-llama/Llama-4-Scout-17B-16E-Instruct`     | DeepInfra             | $0.10/1M input, $0.30/1M output tokens             | ~$0.94                 | Multimodal breadth for comparison runs; ranks on cost and model diversity.                                                |
+| P7       | `fal-ai/got-ocr/v2`                             | fal.ai                | $0.05 per image                                    | $50.00                 | Specialty coverage (formulas, geometry, molecular structures, sheet music); reserved for specialized content.             |
+| P8       | `fal-ai/florence-2-large/ocr`                   | fal.ai                | $0.00125 per GPU compute second                    | ~$7.55 (estimated)     | Compute-second billing calibrated from 2026-08-14 run (~6.04 s/page estimate); billed duration varies by input.           |
 
 Excluded from expansion:
 
@@ -106,15 +106,15 @@ Excluded from expansion:
 
 Standardized STT on 22 active selectors across general-purpose hosted batch models, excluding specialized, realtime, streaming, or moving products (Nova-3 Medical, Deepgram Flux, Mistral Realtime, Together streaming).
 
-| Provider | Active change and retained contract |
-|---|---|
-| AssemblyAI | Replaced `universal-3-pro` with `universal-3-5-pro` and `universal-2`. Bare selection defaults to cheaper Universal-2 ($0.17/hour); Universal-3.5 Pro ($0.23/hour) is retained in expansion. Async request sends singleton `speech_models`, diarization, and optional speaker count. |
-| Deepgram | Retained concrete `nova-3` ($0.582/hour diarization-inclusive); excluded redundant `nova-3-general` and domain-specific `nova-3-medical`. |
-| Gemini | Replaced `gemini-3-flash-preview` with `gemini-3.6-flash` on GenerateContent/Files adapter ($1.50/1M input, $7.50/1M output, ~$0.1728/hour baseline). |
-| Gladia | Replaced `default` with `solaria-1` (bare default) and `solaria-3` ($0.61/hour). Async request sends model, diarization, and optional speaker count. Segment checkpoint isolation prevents remote job cross-talk. |
-| Soniox | Replaced `stt-async-v4` with `stt-async-v5` on compatible async lifecycle (~$0.10/hour). |
-| Speechmatics | Retained `enhanced` ($0.40/hour) and added batch-only `melia-1` ($0.129/hour). Request uses `model` parameter; Enhanced sets `language: "auto"`, Melia sets `language: "multi"`. |
-| Together | Retained `openai/whisper-large-v3` and added `nvidia/parakeet-tdt-0.6b-v3` ($0.09/hour). Parakeet enforces a 20 MiB chunk cap based on batch execution limits. |
+| Provider     | Active change and retained contract                                                                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AssemblyAI   | Replaced `universal-3-pro` with `universal-3-5-pro` and `universal-2`. Bare selection defaults to cheaper Universal-2 ($0.17/hour); Universal-3.5 Pro ($0.23/hour) is retained in expansion. Async request sends singleton `speech_models`, diarization, and optional speaker count. |
+| Deepgram     | Retained concrete `nova-3` ($0.582/hour diarization-inclusive); excluded redundant `nova-3-general` and domain-specific `nova-3-medical`.                                                                                                                                            |
+| Gemini       | Replaced `gemini-3-flash-preview` with `gemini-3.6-flash` on GenerateContent/Files adapter ($1.50/1M input, $7.50/1M output, ~$0.1728/hour baseline).                                                                                                                                |
+| Gladia       | Replaced `default` with `solaria-1` (bare default) and `solaria-3` ($0.61/hour). Async request sends model, diarization, and optional speaker count. Segment checkpoint isolation prevents remote job cross-talk.                                                                    |
+| Soniox       | Replaced `stt-async-v4` with `stt-async-v5` on compatible async lifecycle (~$0.10/hour).                                                                                                                                                                                             |
+| Speechmatics | Retained `enhanced` ($0.40/hour) and added batch-only `melia-1` ($0.129/hour). Request uses `model` parameter; Enhanced sets `language: "auto"`, Melia sets `language: "multi"`.                                                                                                     |
+| Together     | Retained `openai/whisper-large-v3` and added `nvidia/parakeet-tdt-0.6b-v3` ($0.09/hour). Parakeet enforces a 20 MiB chunk cap based on batch execution limits.                                                                                                                       |
 
 Compacted STT resume prioritizes canonical `result.json` before falling back to `transcription.txt`.
 
@@ -122,40 +122,40 @@ Compacted STT resume prioritizes canonical `result.json` before falling back to 
 
 Standardized hosted TTS on 111 active selectors across 15 hosted providers. Moving aliases and unsteerable models were replaced or retired with explicit refusal guidance.
 
-| Provider | 2026 decision and active implementation |
-|---|---|
-| Speechify | Replaced legacy `simba-english`/`simba-3.0` with `simba-3.2`; added language/voice validation and historical identity handling. |
-| Cartesia | Replaced `sonic-3` and moving `sonic-3.5` with fixed `sonic-3.5-2026-05-04`. |
-| OpenAI | Replaced moving `gpt-4o-mini-tts` with fixed `gpt-4o-mini-tts-2025-12-15`. Retired `tts-1` and `tts-1-hd` due to lack of instruction steering. Custom voices serialize as `{ id: "voice_…" }`. |
-| Deepgram | Expanded from 8 to all 91 documented Aura-2 voice models across seven languages; single-default policy avoids multiplying all-provider runs. Excluded Aura-1 and Flux. |
-| ElevenLabs | Retained flagship `eleven_v3`; retired multilingual/flash variants to keep only native-dialogue flagship. |
-| Mistral | Retained canonical API ID `voxtral-mini-tts-2603`. |
-| Groq | Retained English Orpheus (`canopylabs/orpheus-v1-english`, default voice `abdullah`). Retired narrow Arabic selector. |
-| xAI | Kept `grok-tts` product selector; expanded stock voices to 26 documented IDs with `eve` default. |
-| Gemini | Kept `gemini-3.1-flash-tts-preview` with 30 prebuilt voices supporting single and two-speaker synthesis. |
-| Inworld | Added `realtime-tts-2` ($25/1M chars, API ID `inworld-tts-2`). Removed legacy 1.5 Max/Mini and Flash variants. |
-| DeepInfra | Added `ResembleAI/chatterbox-turbo` ($1/1M chars), `XiaomiMiMo/MiMo-V2.5-tts` ($0/1M promo), `XiaomiMiMo/MiMo-V2.5-tts-voicedesign` ($0/1M), `Qwen/Qwen3-TTS` ($20/1M), and `Qwen/Qwen3-TTS-VoiceDesign` ($20/1M). Retired failing `chatterbox-multilingual`. |
-| Replicate | Added pinned `jaaari/kokoro-82m` ($0.00022/pred). Removed unmaintained community variants lacking compatible schemas. |
-| Fish | Standardized on `s2.1-pro` ($15/1M UTF-8 bytes) as sole synthesis model with native dialogue and timestamps. Exposed `voice-design-1` via `--creation-model` rather than synthesis selector. |
+| Provider   | 2026 decision and active implementation                                                                                                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Speechify  | Replaced legacy `simba-english`/`simba-3.0` with `simba-3.2`; added language/voice validation and historical identity handling.                                                                                                                               |
+| Cartesia   | Replaced `sonic-3` and moving `sonic-3.5` with fixed `sonic-3.5-2026-05-04`.                                                                                                                                                                                  |
+| OpenAI     | Replaced moving `gpt-4o-mini-tts` with fixed `gpt-4o-mini-tts-2025-12-15`. Retired `tts-1` and `tts-1-hd` due to lack of instruction steering. Custom voices serialize as `{ id: "voice_…" }`.                                                                |
+| Deepgram   | Expanded from 8 to all 91 documented Aura-2 voice models across seven languages; single-default policy avoids multiplying all-provider runs. Excluded Aura-1 and Flux.                                                                                        |
+| ElevenLabs | Retained flagship `eleven_v3`; retired multilingual/flash variants to keep only native-dialogue flagship.                                                                                                                                                     |
+| Mistral    | Retained canonical API ID `voxtral-mini-tts-2603`.                                                                                                                                                                                                            |
+| Groq       | Retained English Orpheus (`canopylabs/orpheus-v1-english`, default voice `abdullah`). Retired narrow Arabic selector.                                                                                                                                         |
+| xAI        | Kept `grok-tts` product selector; expanded stock voices to 26 documented IDs with `eve` default.                                                                                                                                                              |
+| Gemini     | Kept `gemini-3.1-flash-tts-preview` with 30 prebuilt voices supporting single and two-speaker synthesis.                                                                                                                                                      |
+| Inworld    | Added `realtime-tts-2` ($25/1M chars, API ID `inworld-tts-2`). Removed legacy 1.5 Max/Mini and Flash variants.                                                                                                                                                |
+| DeepInfra  | Added `ResembleAI/chatterbox-turbo` ($1/1M chars), `XiaomiMiMo/MiMo-V2.5-tts` ($0/1M promo), `XiaomiMiMo/MiMo-V2.5-tts-voicedesign` ($0/1M), `Qwen/Qwen3-TTS` ($20/1M), and `Qwen/Qwen3-TTS-VoiceDesign` ($20/1M). Retired failing `chatterbox-multilingual`. |
+| Replicate  | Added pinned `jaaari/kokoro-82m` ($0.00022/pred). Removed unmaintained community variants lacking compatible schemas.                                                                                                                                         |
+| Fish       | Standardized on `s2.1-pro` ($15/1M UTF-8 bytes) as sole synthesis model with native dialogue and timestamps. Exposed `voice-design-1` via `--creation-model` rather than synthesis selector.                                                                  |
 
 #### Refused / do not reimplement
 
 These twelve selectors are permanently retired. Direct selection fails with replacement guidance.
 
-| Refused selector | Replacement | Why not come back |
-|---|---|---|
-| `fish/fish-speech-1.5` | `s2.1-pro` | Superseded generation; absent from official API |
-| `fish/s1` | `s2.1-pro` | Previous-generation parenthesis-tag model |
-| `fish/s2-pro` | `s2.1-pro` | Previous S2 generation replaced by production default |
-| `fish/voice-design-1` | `s2.1-pro` | Voice Design creation endpoint, not a synthesis selector |
-| `elevenlabs/eleven_multilingual_v2` | `eleven_v3` | Superseded by native-dialogue flagship |
-| `elevenlabs/eleven_flash_v2_5` | `eleven_v3` | Latency sibling of retired generation |
-| `inworld/realtime-tts-2-flash` | `realtime-tts-2` | Latency sibling rejecting `--tts-instructions` |
-| `speechify/simba-3.0` | `simba-3.2` | Superseded by current Speechify default |
-| `deepinfra/ResembleAI/chatterbox-multilingual` | `ResembleAI/chatterbox-turbo` | Unreliable upstream HTTP 500 errors |
-| `openai/tts-1` | `gpt-4o-mini-tts-2025-12-15` | Classic model rejecting instruction steering |
-| `openai/tts-1-hd` | `gpt-4o-mini-tts-2025-12-15` | Classic model rejecting instruction steering |
-| `groq/canopylabs/orpheus-arabic-saudi` | `canopylabs/orpheus-v1-english` | Narrow 200-character WAV-only model without vocal directions |
+| Refused selector                               | Replacement                     | Why not come back                                            |
+| ---------------------------------------------- | ------------------------------- | ------------------------------------------------------------ |
+| `fish/fish-speech-1.5`                         | `s2.1-pro`                      | Superseded generation; absent from official API              |
+| `fish/s1`                                      | `s2.1-pro`                      | Previous-generation parenthesis-tag model                    |
+| `fish/s2-pro`                                  | `s2.1-pro`                      | Previous S2 generation replaced by production default        |
+| `fish/voice-design-1`                          | `s2.1-pro`                      | Voice Design creation endpoint, not a synthesis selector     |
+| `elevenlabs/eleven_multilingual_v2`            | `eleven_v3`                     | Superseded by native-dialogue flagship                       |
+| `elevenlabs/eleven_flash_v2_5`                 | `eleven_v3`                     | Latency sibling of retired generation                        |
+| `inworld/realtime-tts-2-flash`                 | `realtime-tts-2`                | Latency sibling rejecting `--tts-instructions`               |
+| `speechify/simba-3.0`                          | `simba-3.2`                     | Superseded by current Speechify default                      |
+| `deepinfra/ResembleAI/chatterbox-multilingual` | `ResembleAI/chatterbox-turbo`   | Unreliable upstream HTTP 500 errors                          |
+| `openai/tts-1`                                 | `gpt-4o-mini-tts-2025-12-15`    | Classic model rejecting instruction steering                 |
+| `openai/tts-1-hd`                              | `gpt-4o-mini-tts-2025-12-15`    | Classic model rejecting instruction steering                 |
+| `groq/canopylabs/orpheus-arabic-saudi`         | `canopylabs/orpheus-v1-english` | Narrow 200-character WAV-only model without vocal directions |
 
 ### Music refresh
 
@@ -171,14 +171,14 @@ Standardized active music generation on 5 selectors across 3 hosted providers.
 
 Standardized hosted raster image generation on 34 selectors across 6 providers, removing 7 outdated selectors.
 
-| Provider | 2026 decision and implementation |
-|---|---|
-| Gemini | Replaced `gemini-3.1-flash-image-preview` with `gemini-3.1-flash-lite-image` (default), `gemini-3.1-flash-image`, and `gemini-3-pro-image`. Added model-specific pricing, dimensions, and historical reader. |
-| Reve | Removed direct Reve provider and `latest`/`reve-create@20250915` selectors ahead of the 2026-08-14 API sunset; historical results retain direct-Reve identities. |
-| Recraft | Removed four SVG/vector selectors; hosted generation standardized on raster-only output. |
-| BFL | Added fixed `flux-2-klein-4b` and `flux-2-klein-9b` endpoints; excluded moving previews. |
-| Replicate | Added `bytedance/seedream-5-pro`, Ideogram v4 (Turbo/Balanced/Quality), and Pruna ERNIE Image (Standard/Turbo with version pinning). |
-| fal.ai | Added `fal-ai/hidream-o1-image`, `microsoft/mai-image-2.5`, `microsoft/mai-image-2.5-pro`, `alibaba/qwen-image-3`, and `reve/2.1` with queue/poll lifecycle and mode routing. |
+| Provider  | 2026 decision and implementation                                                                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Gemini    | Replaced `gemini-3.1-flash-image-preview` with `gemini-3.1-flash-lite-image` (default), `gemini-3.1-flash-image`, and `gemini-3-pro-image`. Added model-specific pricing, dimensions, and historical reader. |
+| Reve      | Removed direct Reve provider and `latest`/`reve-create@20250915` selectors ahead of the 2026-08-14 API sunset; historical results retain direct-Reve identities.                                             |
+| Recraft   | Removed four SVG/vector selectors; hosted generation standardized on raster-only output.                                                                                                                     |
+| BFL       | Added fixed `flux-2-klein-4b` and `flux-2-klein-9b` endpoints; excluded moving previews.                                                                                                                     |
+| Replicate | Added `bytedance/seedream-5-pro`, Ideogram v4 (Turbo/Balanced/Quality), and Pruna ERNIE Image (Standard/Turbo with version pinning).                                                                         |
+| fal.ai    | Added `fal-ai/hidream-o1-image`, `microsoft/mai-image-2.5`, `microsoft/mai-image-2.5-pro`, `alibaba/qwen-image-3`, and `reve/2.1` with queue/poll lifecycle and mode routing.                                |
 
 ### Video refresh
 
@@ -190,6 +190,92 @@ Standardized hosted video generation on 32 selectors across 7 providers.
 - Retained: LTX 2.3 Fast/Pro, Seedance 2.0/2.0 Fast, Wan 2.7 T2V, Veo 3.1 Lite, Ray 3.2. Excluded unreleased Meta Muse, unavailable SkyReels V4, realtime Helios, and interactive stream tools.
 - MiniMax: retained direct 01-series selectors (`T2V-01` 19¢ bare default).
 - Veo: standardized on raw REST response boundary (`response.generateVideoResponse.generatedSamples[0].video`, `encodedVideo`), removing deprecated SDK wrapper types.
+
+### 2026-08-16 Claude/Gemini/Grok/OpenAI text-catalog gap audit
+
+Compared the active AutoShow write/OCR/STT/TTS/image/music/video registries against the 2026-08-16 primary-source dump `project/links/claude-models-text--gemini-models-text--grok-models-text--openai-models-text-links.md`. This section records recommended additions and explicit exclusions; it is not an implemented refresh.
+
+Current write coverage already includes Anthropic `claude-fable-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, and `claude-haiku-4-5`; Gemini `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, and `gemini-3.5-flash-lite`; Grok `grok-4.3` and `grok-4.5`; and OpenAI `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, and `gpt-5.4-nano`. The `gpt-5.6` alias remains unregistered. Invitation-only `claude-mythos-5` remains excluded.
+
+| Priority | Selector | Category | Rationale |
+| -------- | -------- | -------- | --------- |
+| P1 | `gemini-3.7-flash` | llm + extract | New generally available Flash flagship on Google's latest-model page; 1M context; introductory `$0.75/$3.75` per 1M input/output tokens. |
+| P1 | `grok-4.6` | llm + extract | New xAI frontier text model and documented default for code/chat; 500K context; `$2.00/$0.50/$6.00` per 1M input/cached-input/output tokens below 200K input, `$4.00/$1.00/$12.00` above. |
+| P2 | `grok-4.20-0309-reasoning` | llm | Current reasoning sibling of the extract-only `grok-4.20-0309-non-reasoning` selector. |
+| P2 | `grok-4.20-0309-non-reasoning` | llm | Already registered for extract; missing from write. |
+| P2 | `grok-build-0.1` | llm | Documented coding replacement for retired `grok-code-fast-1`; 256K context; `$1.00/$0.20/$2.00` below 200K input. |
+| P2 | `gpt-5.4` | llm + extract | Still-documented full GPT-5.4 sibling of the already registered mini/nano tiers. |
+| P2 | `grok-imagine-image-2.0` | image | Owned by the 2026-08-16 image/video/music planned refresh below; replace `grok-imagine-image` rather than keep both. |
+| P3 | `grok-4.20-multi-agent-0309` | llm | Current multi-agent text sibling; same published token bands as Grok 4.20. |
+| P3 | `gpt-5.5-pro` | llm + extract | Still-documented separate Pro slug; GPT-5.6 Pro is a `reasoning.mode` on the existing Sol/Terra/Luna selectors, not a new ID. |
+| P3 | `gemini-omni-flash` | video | Preview conversational video generation/editing; requires confirming the existing Veo adapter can host it. |
+| P3 | `gemini-2.5-flash-preview-tts` | tts | Older Flash TTS sibling of registered `gemini-3.1-flash-tts-preview`. |
+| P3 | `gemini-2.5-pro-preview-tts` | tts | Older Pro TTS sibling; Google recommends migrating to `gemini-3.1-flash-tts-preview`. |
+| P3 | `gpt-audio-1.5` | tts | Documented audio replacement for retiring `gpt-4o-audio` / `gpt-audio` families; confirm it fits the hosted TTS lifecycle before adding. |
+
+Excluded from this refresh under ADR-010:
+
+| Selector | Why excluded |
+| -------- | ------------ |
+| `gpt-5.6` | Duplicate alias of registered `gpt-5.6-sol`. |
+| `claude-mythos-5`, `claude-mythos-preview` | Invitation-only / non-GA. |
+| `claude-opus-4-7`, `claude-opus-4-6`, `claude-opus-4-5`, `claude-sonnet-4-5` | Superseded generations still marked Active upstream. |
+| `gemini-3.1-flash-lite` | Already retired in favor of `gemini-3.5-flash-lite`. |
+| `gemini-3-flash-preview`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite` | Preview or superseded Gemini generations. |
+| `gemini-2.5-flash-image`, `imagen-4.0-*` | Superseded image generations; Nano Banana 2 / Pro already registered. |
+| `lyria-realtime-exp` | Streaming RealTime music, already excluded. |
+| `gpt-4o-mini-transcribe-2025-12-15` | OpenAI STT remains deferred to a separate architecture decision. |
+| `gemini-3.1-flash-live-preview`, `gemini-3.5-live-translate-preview`, `gpt-realtime-2.1`, `gpt-realtime-2.1-mini`, `grok-voice-think-fast-2.0` | Live/realtime/speech-to-speech transports. |
+| Embeddings, computer-use, deep-research, Antigravity, robotics, and retired GPT/o-series / Sora 2 slugs | Outside implemented AutoShow command lifecycles or already shut down. |
+
+### 2026-08-16 image, video, and music planned refresh
+
+Compared the active image, video, and music catalogs plus the xAI Imagine/Voice snapshots `project/links/grok-image-links.md`, `project/links/grok-tts-links.md`, and `project/links/grok-video-links.md`. This section records three pending next steps. It is not an implemented refresh. Removed selectors must stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance. Grok TTS speed, output-format, `replace`, and timestamp controls remain deferred.
+
+#### TTS / STT watches
+
+Cartesia Sonic 3.6 is documented as a beta on the moving alias `sonic-preview` (44 languages, locale codes such as `en-GB`, Odia/Urdu, improved Hinglish). AutoShow stays on the fixed snapshot `sonic-3.5-2026-05-04`. Do not register `sonic-preview`. Add 3.6 only when Cartesia publishes a dated snapshot ID comparable to `sonic-3.5-2026-05-04`.
+
+deAPI whisper diarization is not a catalog tweak. deAPI STT is not implemented; curated links exist only. Upstream `WhisperLargeV3` has no diarization. `WhisperLargeV3Ct2` adds `diarize=true` and `ts_level: "word"` at +50% of the duration price (segment timestamps stay free). Adding that model is part of the deferred deAPI STT architecture decision in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), not this image/video/music refresh.
+
+#### Image
+
+Remove 12 selectors and add `grok-imagine-image-2.0` as the `grok-imagine-image` successor. Keep `grok-imagine-image-quality`. Retire the Recraft provider and `recraft-image` flag. Planned active count: 34 − 12 + 1 = 23.
+
+| Remove | Successor |
+| ------ | --------- |
+| `grok-imagine-image` | `grok-imagine-image-2.0` |
+| `microsoft/mai-image-2.5`, `microsoft/mai-image-2.5-pro` | `alibaba/qwen-image-3` |
+| `ideogram-ai/ideogram-v4-turbo`, `ideogram-ai/ideogram-v4-balanced`, `ideogram-ai/ideogram-v4-quality` | `bytedance/seedream-5-lite` |
+| `recraftv4_1`, `recraftv4_1_pro`, `recraftv4_1_utility`, `recraftv4_1_utility_pro` | `flux-2-klein-4b` |
+| `prunaai/ernie-image`, `prunaai/ernie-image-turbo` | `qwen/qwen-image-2` |
+
+Also implement on `grok-imagine-image-2.0`: generate plus edit/multi-ref (up to 3), `--image-quality` `low`/`medium`, and WebP inputs. Do not first-class quality aliases (`grok-imagine-image-pro`, `…-latest`, `…-20260403`). Defer Files API `file_id` inputs and `storage_options`.
+
+#### Video
+
+Remove 16 selectors. Retire GLM video and Runway (`glm-video`, `runway-video`). Keep MiniMax and replace Hailuo/01-series with direct `MiniMax-H3`. Keep fal.ai `minimax/h3` as a separate path. Planned active count: 32 − 16 + 1 = 17.
+
+| Remove | Successor |
+| ------ | --------- |
+| `MiniMax-Hailuo-2.3`, `MiniMax-Hailuo-2.3-Fast`, `T2V-01`, `T2V-01-Director`, `I2V-01`, `I2V-01-Director`, `I2V-01-live`, `S2V-01` | `MiniMax-H3` |
+| `cogvideox-3`, `viduq1-text`, `vidu2-image`, `vidu2-start-end`, `vidu2-reference` | `ltx-2-3-fast` |
+| `gen4.5` | `ray-3.2` |
+| `runwayml/aleph-2` | `grok-imagine-video` edit |
+| `wan-video/wan-2.7-t2v` | `bytedance/seedance-2.0-fast` |
+
+`MiniMax-H3` is a new V2 adapter, not a rename of `/v1/video_generation`. Create on `POST /v2/video_generation` with required `model`, `content[]`, `resolution` (`768P`/`2K`), and `duration` (4–15). Poll `GET /v2/query/video_generation/{task_id}` for `task.content.url`; do not use the V1 file_id retrieve path. Mode mapping: text uses a single `text` item and requires a concrete `ratio` (not `adaptive`); image-to-video uses `role=first_frame` and ignores `ratio`; interpolate uses first plus last frame; reference-to-video accepts up to 9 images, 3 videos, and 3 audios with a mixed cap of 12. Defer H3-Context-IR and 768P→2K regeneration.
+
+Also add Grok `grok-imagine-video-1.5` `reference_audios` (up to 3 TTS `voice_id`s; audio-only R2V allowed). Keep current Grok limits: edit/extend on `grok-imagine-video` only, 1080p on 1.5 text/image-to-video, reference-to-video capped at 720p. Ignore 1.5 aliases.
+
+#### Music
+
+Remove 2 selectors. Keep `music-3.0`. Planned active count: 5 − 2 = 3.
+
+| Remove | Successor |
+| ------ | --------- |
+| `music_v1` | `music_v2` |
+| `lyria-3-clip-preview` | `lyria-3-pro-preview` |
 
 ## API / Type Impact
 
@@ -218,23 +304,29 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| Consolidated 2026 provider chronology | Maintains a large dated document |
+| Gains                                                       | Sacrifices                                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Consolidated 2026 provider chronology                       | Maintains a large dated document                                         |
 | Clean separation from durable policy and benchmark evidence | Requires cross-referencing ADR-010 and ADR-012 for policy/evidence rules |
-| Preserved historical identity and adapter context | Historical adapter branches remain in codebase |
+| Preserved historical identity and adapter context           | Historical adapter branches remain in codebase                           |
 
 ## Implementation Note
 
-All 2026 refresh phases are implemented across active model registries, provider adapters, pricing metadata, help documentation, resume handlers, and local test contracts. Advanced multi-track capabilities remain governed by [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md), while benchmark run artifacts and report generation remain governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+All earlier 2026 refresh phases are implemented across active model registries, provider adapters, pricing metadata, help documentation, resume handlers, and local test contracts. The 2026-08-16 text-catalog gap audit and the 2026-08-16 image/video/music planned refresh remain pending. Advanced multi-track capabilities remain governed by [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md), while benchmark run artifacts and report generation remain governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Follow-up Actions
 
-| Action | Owner | Current State |
-|---|---|---|
-| Record future large hosted-model refreshes in a new dated ledger section while preserving ADR-010 policy | Model registry maintainers | Ongoing guardrail |
-| Recheck deferred specialized, streaming, realtime, cover, and reference-audio products via separate architecture ADRs | Domain maintainers | Deferred |
-| Promote provisional OCR token-billed heuristics and Florence compute-second estimates through approved ADR-012 calibration | OCR maintainers | Deferred pending paid calibration approval |
+| Action                                                                                                                     | Owner                      | Current State                              |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------ |
+| Record future large hosted-model refreshes in a new dated ledger section while preserving ADR-010 policy                   | Model registry maintainers | Ongoing guardrail                          |
+| Implement the 2026-08-16 P1 write/OCR additions `gemini-3.7-flash` and `grok-4.6`                                          | Model registry maintainers | Pending                                    |
+| Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing                | Model registry maintainers | Pending                                    |
+| Image: remove the 12 listed selectors, retire Recraft, add `grok-imagine-image-2.0` with edit/quality/WebP                 | Model registry maintainers | Pending                                    |
+| Video: remove the 16 listed selectors, retire GLM video and Runway, add direct `MiniMax-H3` and Grok `reference_audios`    | Model registry maintainers | Pending                                    |
+| Music: remove `music_v1` and `lyria-3-clip-preview`; keep `music_v2`, `music-3.0`, and `lyria-3-pro-preview`                | Model registry maintainers | Pending                                    |
+| Watch Cartesia for a dated Sonic 3.6 snapshot; do not register `sonic-preview`                                             | Model registry maintainers | Deferred until a fixed 3.6 ID exists       |
+| Recheck deferred specialized, streaming, realtime, cover, and reference-audio products via separate architecture ADRs      | Domain maintainers         | Deferred                                   |
+| Promote provisional OCR token-billed heuristics and Florence compute-second estimates through approved ADR-012 calibration | OCR maintainers            | Deferred pending paid calibration approval |
 
 ## Test Plan
 
@@ -257,5 +349,8 @@ All 2026 refresh phases are implemented across active model registries, provider
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
 - Primary-source snapshots: `src/cli/commands/setup-and-utilities/links/model-links/`
+- 2026-08-16 text-catalog dump: `project/links/claude-models-text--gemini-models-text--grok-models-text--openai-models-text-links.md`
+- 2026-08-16 Imagine/Voice snapshots: `project/links/grok-image-links.md`, `project/links/grok-tts-links.md`, `project/links/grok-video-links.md`
+- MiniMax H3: https://platform.minimax.io/docs/guides/video-generation.md, https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md
 - STT benchmark artifacts: `docs/benchmarks/stt/`
 - Music benchmark artifacts: `docs/benchmarks/music/`

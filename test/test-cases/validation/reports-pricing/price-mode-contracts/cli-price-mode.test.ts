@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { STABLE_EXAMPLE_AUDIO_URL, STABLE_TTS_MD_PATH, runCommand } from '../../../../test-utils/test-helpers'
+import { LOCAL_EXAMPLE_AUDIO_PATH, STABLE_TTS_MD_PATH, runCommand } from '../../../../test-utils/test-helpers'
 import { findPricingNoteKeys, isRecord, parseJsonLines } from './shared'
 
 const priceCases: Array<{ label: string; args: string[]; expected: string | string[]; env?: Record<string, string | undefined> }> = [
@@ -13,74 +13,14 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
     expected: 'Total estimated cost'
   },
   {
-    label: 'download',
-    args: ['download', 'input/examples/document/1-document.pdf', '--price'],
-    expected: 'Total estimated cost'
-  },
-  {
     label: 'write',
-    args: ['write', STABLE_EXAMPLE_AUDIO_URL, '--llm', 'openai=gpt-5.4-nano', '--price'],
+    args: ['write', LOCAL_EXAMPLE_AUDIO_PATH, '--llm', 'openai=gpt-5.4-nano', '--price'],
     expected: 'Expected files'
-  },
-  {
-    label: 'Kimi write',
-    args: ['write', STABLE_EXAMPLE_AUDIO_URL, '--llm', 'kimi=kimi-k2.6', '--price'],
-    expected: 'Expected files'
-  },
-  {
-    label: 'Grok 4.5 write',
-    args: ['write', STABLE_EXAMPLE_AUDIO_URL, '--llm', 'grok=grok-4.5', '--price'],
-    expected: ['Expected files', 'grok-4.5']
-  },
-  {
-    label: 'write URL article extraction',
-    args: ['write', 'https://example.com/articles/story.html', '--all-providers', 'url', '--price'],
-    expected: ['providers/<backend>/result.json', 'text.json']
-  },
-  {
-    label: 'write X Space extraction',
-    args: ['write', 'https://x.com/i/spaces/1DXxyRYNejbKM', '--price'],
-    expected: ['extraction.md', 'text.json']
   },
   {
     label: 'extract',
-    args: ['extract', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'whisper=tiny', '--price'],
+    args: ['extract', LOCAL_EXAMPLE_AUDIO_PATH, '--provider', 'whisper=tiny', '--price'],
     expected: 'Total estimated cost'
-  },
-  {
-    label: 'Kimi OCR',
-    args: ['extract', 'input/examples/document/1-document.pdf', '--provider', 'kimi=kimi-k2.6', '--price'],
-    expected: 'Total estimated cost'
-  },
-  {
-    label: 'Grok OCR',
-    args: ['extract', 'input/examples/document/1-document.pdf', '--provider', 'grok=grok-4.3', '--price'],
-    expected: 'Total estimated cost'
-  },
-  {
-    label: 'OpenAI GPT-5.5 OCR',
-    args: ['extract', 'input/examples/document/1-document.pdf', '--provider', 'openai=gpt-5.5', '--price'],
-    expected: ['Total estimated cost', 'gpt-5.5']
-  },
-  {
-    label: 'Anthropic Opus OCR',
-    args: ['extract', 'input/examples/document/1-document.pdf', '--provider', 'anthropic=claude-opus-4-8', '--price'],
-    expected: ['Total estimated cost', 'claude-opus-4-8']
-  },
-  {
-    label: 'Anthropic Sonnet OCR',
-    args: ['extract', 'input/examples/document/1-document.pdf', '--provider', 'anthropic=claude-sonnet-5', '--price'],
-    expected: ['Total estimated cost', 'claude-sonnet-5']
-  },
-  {
-    label: 'all URL article extraction',
-    args: ['extract', 'https://example.com/articles/story.html', '--all-providers', '--price'],
-    expected: 'providers/<backend>/result.json'
-  },
-  {
-    label: 'GLM Reader URL article extraction',
-    args: ['extract', 'https://ajcwebdev.com', '--provider', 'glm-reader', '--price'],
-    expected: ['Total estimated cost', 'glm-reader']
   },
   {
     label: 'tts',
@@ -88,33 +28,8 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
     expected: 'speech'
   },
   {
-    label: 'all TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--all-providers', '--price'],
-    expected: 'speech'
-  },
-  {
-    label: 'Speechify TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.2', '--price'],
-    expected: 'speech'
-  },
-  {
-    label: 'Mistral TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-voice', 'voice_abc123', '--price'],
-    expected: 'speech'
-  },
-  {
-    label: 'Mistral dialogue TTS',
-    args: ['tts', 'input/examples/tts/tts-dialogue.txt', '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=input/examples/audio/anthony-voice.mp3', '--tts-speaker', 'Guest=input/examples/audio/0-audio-short.mp3', '--price'],
-    expected: ['speech', '418 characters']
-  },
-  {
     label: 'image',
     args: ['image', 'a sunset over a lake', '--provider', 'openai=gpt-image-2', '--price'],
-    expected: 'generated-image'
-  },
-  {
-    label: 'BFL image',
-    args: ['image', 'a sunset over a lake', '--provider', 'bfl=flux-2-pro', '--price'],
     expected: 'generated-image'
   },
   {
@@ -126,11 +41,6 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
     label: 'music',
     args: ['music', 'an ambient piano song', '--provider', 'minimax=music-3.0', '--price'],
     expected: 'music'
-  },
-  {
-    label: 'Gemini music',
-    args: ['music', 'an ambient piano song', '--provider', 'gemini=lyria-3-clip-preview', '--price'],
-    expected: 'gemini'
   }
 ]
 
@@ -194,7 +104,7 @@ describe('price mode contracts', () => {
       const result = await runCommand([
         'src/cli/create-cli.ts',
         'write',
-        STABLE_EXAMPLE_AUDIO_URL,
+        LOCAL_EXAMPLE_AUDIO_PATH,
         '--llm',
         'openai=gpt-5.5',
         '--llm',

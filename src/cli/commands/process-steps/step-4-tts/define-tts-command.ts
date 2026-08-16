@@ -1,7 +1,9 @@
 import { mkdtemp, rename, rm, stat } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags } from '~/cli/commands/process-steps/generation-command-utils'
-import { createManifest, createPipelineItemFromRecord, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createManifest, createPipelineItemFromRecord, readManifest, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { getPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
+import { assertCompatibleTtsDirectoryBatch, priceExistingTtsDirectoryBatch, resumeExistingTtsDirectoryBatch } from '~/cli/commands/setup-and-utilities/resume/generation/tts-batch-resume'
 import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/pipeline-item-record-builder'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { logBatchCompletionTable, logBatchItemStatus } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
@@ -904,12 +906,30 @@ export const runTtsDirectoryBatch = async (
   targets: TtsTarget[],
   maxCents: number | undefined
 ): Promise<void> => {
-  const createdAt = new Date().toISOString()
   const inputFiles = await collectTextInputFiles(inputPath)
   if (inputFiles.length === 0) {
     l.warn(`No .md or .txt files found in ${inputPath}`)
     return
   }
+
+  const pinnedDir = getPinnedRunDir()
+  if (pinnedDir) {
+    const existing = await readManifest(pinnedDir)
+    if (existing?.command === 'tts' && existing.scope === 'batch') {
+      await assertCompatibleTtsDirectoryBatch(pinnedDir, existing, inputFiles, targets)
+      const estimate = await priceExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+      if (ttsOptions.price) {
+        l.report.estimate(estimate)
+        return
+      }
+      enforceTtsBatchBudget(estimate.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
+      await createGenerationOutputDir(getInputStem(inputPath))
+      await resumeExistingTtsDirectoryBatch(pinnedDir, ttsOptions)
+      return
+    }
+  }
+
+  const createdAt = new Date().toISOString()
 
   const preparedInputs = await Promise.all(inputFiles.map(async (file, index) => {
     const prepared = await prepareTtsInput(file, ttsOptions, createdAt)
@@ -980,10 +1000,9 @@ export const runTtsDirectoryBatch = async (
 
   const batchStartedAt = Date.now()
 
-  try {
-    for (const plan of plans) {
-      logBatchItemStatus('info', plan.prepared.inputPath, 'processing')
-    }
+  for (const plan of plans) {
+    logBatchItemStatus('info', plan.prepared.inputPath, 'processing')
+  }
 
     const runPromises: Promise<void>[] = []
     const hostedCoordinator = targets.length > 0
@@ -1034,9 +1053,6 @@ export const runTtsDirectoryBatch = async (
       schedulerTelemetry = hostedCoordinator.getTelemetry()
       logHostedTtsSchedulerSummary(schedulerTelemetry)
     }
-  } finally {
-    await Promise.all(plans.map((plan) => rm(plan.workspaceDir, { recursive: true, force: true })))
-  }
 
   const finalRecords = buildTtsBatchInitialRecords(preparedInputs, targets, accumulators)
   for (const accumulator of accumulators) {
@@ -1143,6 +1159,13 @@ export const runTtsDirectoryBatch = async (
     steps: [],
     includeOutputDir: true
   })
+
+  await Promise.all(plans.map(async (plan, index) => {
+    const accumulator = accumulators[index]
+    if (accumulator && accumulator.errors.length === 0 && accumulator.metadata.length === targets.length) {
+      await rm(plan.workspaceDir, { recursive: true, force: true })
+    }
+  }))
 
   if (ok === 0 && fail > 0) {
     throw InfraError(`TTS batch processing failed for ${fail} item(s)`, { stage: 'tts:batch' })

@@ -22,18 +22,18 @@ Why now: hosted OCR estimates were drifting against actual billed usage, repeate
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Tesseract as the only local OCR engine, with source grouped by input type** | Fastest and highest-mean engine in local comparison; smallest provisioning and maintenance surface; mirrors runtime classification | No local fallback for difficult inputs | 1 engine; 4 input-type areas (ebook, image, PDF, office/native) |
-| Keep OCRmyPDF and PaddleOCR alongside Tesseract | Local engine diversity for hard inputs | Duplicate provisioning, slower defaults, ongoing dependency maintenance | Rejected |
-| **Evidence-gated token shapes with `costMultiplier: 1`** | Preserves published rate and tier semantics; keeps profile estimates from being multiplied twice; makes wrong component visible | Requires an audit helper and a migration-aware profile store | Promotion needs ≥3 matching healthy samples and >20% median absolute percentage error |
-| Tune `costMultiplier` until total estimate matches benchmark | Small metadata change | Hides which token component is wrong, distorts tier selection, and double-adjusts profile estimates | Rejected for token-priced OCR |
-| Replace registry values from one paid or historical run | Fast calibration | Overfits document mode, page band, reasoning policy, and provider variance | Rejected |
-| **Derive batch diagnostics from final canonical manifest** | Deterministic, sanitized rollup of repeated blockers and cost gaps; no second source of authority | Another regenerable artifact schema to version | Emitted only for actionable batches |
-| Add blocker/cost aggregates as mutable top-level manifest state | Easy for readers to find | Duplicates child provider authority and can drift during partial writes or resume | Rejected |
-| **Retain full-document fan-out by default and add an explicit composite page pool** | Preserves comparison artifacts; avoids charging every target for every page when pooling; supports dynamic handoff | Two execution and artifact contracts must remain distinct | `fanout` default; `pool` selected by `--ocr-provider-mode pool` |
-| **Ordinal-first plus source-locator chapter names: `NN-PPP-title` / `NN-III-title`** | Sorts every chapter producer by reading order; preserves source traceability; one documented contract | Changes public artifact paths and requires docs/tests updates | Applies to the 2 direct `chapters/` producers |
-| Keep source-page-first PDF names beside EPUB `NN-title` | Avoids path churn | Preserves inconsistent first-token meaning and sorting | No implementation work |
+| Option                                                                               | Pros                                                                                                                               | Cons                                                                                                | Quantitative Notes                                                                    |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Tesseract as the only local OCR engine, with source grouped by input type**        | Fastest and highest-mean engine in local comparison; smallest provisioning and maintenance surface; mirrors runtime classification | No local fallback for difficult inputs                                                              | 1 engine; 4 input-type areas (ebook, image, PDF, office/native)                       |
+| Keep OCRmyPDF and PaddleOCR alongside Tesseract                                      | Local engine diversity for hard inputs                                                                                             | Duplicate provisioning, slower defaults, ongoing dependency maintenance                             | Rejected                                                                              |
+| **Evidence-gated token shapes with `costMultiplier: 1`**                             | Preserves published rate and tier semantics; keeps profile estimates from being multiplied twice; makes wrong component visible    | Requires an audit helper and a migration-aware profile store                                        | Promotion needs ≥3 matching healthy samples and >20% median absolute percentage error |
+| Tune `costMultiplier` until total estimate matches benchmark                         | Small metadata change                                                                                                              | Hides which token component is wrong, distorts tier selection, and double-adjusts profile estimates | Rejected for token-priced OCR                                                         |
+| Replace registry values from one paid or historical run                              | Fast calibration                                                                                                                   | Overfits document mode, page band, reasoning policy, and provider variance                          | Rejected                                                                              |
+| **Derive batch diagnostics from final canonical manifest**                           | Deterministic, sanitized rollup of repeated blockers and cost gaps; no second source of authority                                  | Another regenerable artifact schema to version                                                      | Emitted only for actionable batches                                                   |
+| Add blocker/cost aggregates as mutable top-level manifest state                      | Easy for readers to find                                                                                                           | Duplicates child provider authority and can drift during partial writes or resume                   | Rejected                                                                              |
+| **Retain full-document fan-out by default and add an explicit composite page pool**  | Preserves comparison artifacts; avoids charging every target for every page when pooling; supports dynamic handoff                 | Two execution and artifact contracts must remain distinct                                           | `fanout` default; `pool` selected by `--ocr-provider-mode pool`                       |
+| **Ordinal-first plus source-locator chapter names: `NN-PPP-title` / `NN-III-title`** | Sorts every chapter producer by reading order; preserves source traceability; one documented contract                              | Changes public artifact paths and requires docs/tests updates                                       | Applies to the 2 direct `chapters/` producers                                         |
+| Keep source-page-first PDF names beside EPUB `NN-title`                              | Avoids path churn                                                                                                                  | Preserves inconsistent first-token meaning and sorting                                              | No implementation work                                                                |
 
 ## Decision
 
@@ -130,17 +130,17 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| One local engine and a smaller dependency surface | Local engine diversity |
-| Navigable input-type ownership with shared plumbing retained | A perfectly partitioned OCR directory tree |
-| Deterministic blocker handling and auditable fallback | More provider-state metadata |
-| Faster bounded large-document defaults | More scheduler and profile logic |
-| Explicit evidence-gated token shapes | Profile lifecycle and periodic evidence review |
-| One derived batch diagnostic | Another regenerable artifact schema |
-| Correct pure/command dependency direction | A larger command-owned pricing directory |
-| Composite multi-provider OCR with dynamic handoff | No complete per-provider result in pool mode |
-| Attempt-level cost and failure attribution | More provider artifact and telemetry records |
+| Gains                                                        | Sacrifices                                     |
+| ------------------------------------------------------------ | ---------------------------------------------- |
+| One local engine and a smaller dependency surface            | Local engine diversity                         |
+| Navigable input-type ownership with shared plumbing retained | A perfectly partitioned OCR directory tree     |
+| Deterministic blocker handling and auditable fallback        | More provider-state metadata                   |
+| Faster bounded large-document defaults                       | More scheduler and profile logic               |
+| Explicit evidence-gated token shapes                         | Profile lifecycle and periodic evidence review |
+| One derived batch diagnostic                                 | Another regenerable artifact schema            |
+| Correct pure/command dependency direction                    | A larger command-owned pricing directory       |
+| Composite multi-provider OCR with dynamic handoff            | No complete per-provider result in pool mode   |
+| Attempt-level cost and failure attribution                   | More provider artifact and telemetry records   |
 
 ## Implementation Note
 
@@ -182,11 +182,11 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 
 ## Follow-up Actions
 
-| Action | Owner | Current State |
-|---|---|---|
-| Maintain provider error classifiers and billed-component normalizers as hosted response formats drift | OCR maintainers | Ongoing |
-| Keep every direct chapter producer on the shared ordinal/source-locator helper | Extract maintainers | Ongoing guardrail |
-| Collect reasoning-qualified token samples so registry shapes can become promotion-eligible | OCR & pricing maintainers | Pending (requires explicit approval for paid provider runs) |
+| Action                                                                                                | Owner                     | Current State                                               |
+| ----------------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------- |
+| Maintain provider error classifiers and billed-component normalizers as hosted response formats drift | OCR maintainers           | Ongoing                                                     |
+| Keep every direct chapter producer on the shared ordinal/source-locator helper                        | Extract maintainers       | Ongoing guardrail                                           |
+| Collect reasoning-qualified token samples so registry shapes can become promotion-eligible            | OCR & pricing maintainers | Pending (requires explicit approval for paid provider runs) |
 
 ## Test Plan
 

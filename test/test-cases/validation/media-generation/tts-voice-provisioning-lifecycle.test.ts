@@ -180,7 +180,7 @@ describe('Phase 1 provisioning journal', () => {
       attempt: attempt('attempt_one'),
       mutate: async () => {
         calls++
-        await Bun.sleep(20)
+        await Bun.sleep(10)
         return {
           state: { state: 'ready', providerVoice: providerVoice('voice-one') },
           issuedResources: [{ providerVoice: providerVoice('voice-one'), observedAt: '2026-08-11T00:01:00.000Z', sanitizedResponseHash: 'e'.repeat(64) }],
@@ -331,7 +331,7 @@ describe('Phase 1 Mistral saved-reference management', () => {
     let calls = 0
     const request: MistralVoiceManagementRequest = async <T>(options: Parameters<MistralVoiceManagementRequest>[0]): Promise<T> => {
       calls++
-      await Bun.sleep(15)
+      await Bun.sleep(8)
       const body = options.body as { name: string, slug: string }
       return { id: 'voice-shared', name: body.name, slug: body.slug, created_at: '2026-08-11T00:01:00.000Z', languages: [] } as T
     }

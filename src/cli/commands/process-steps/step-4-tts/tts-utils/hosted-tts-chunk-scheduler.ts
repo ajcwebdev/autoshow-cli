@@ -67,27 +67,10 @@ const hasRemainingChunks = (job: HostedTtsChunkJob): boolean =>
   && job.abortSignal?.aborted !== true
   && job.nextChunkIndex < job.chunks.length
 
-const remainingChunks = (job: HostedTtsChunkJob): number =>
-  Math.max(0, job.chunks.length - job.completedChunks)
-
 const compareJobPriority = (
   left: HostedTtsChunkJob,
   right: HostedTtsChunkJob
 ): number => {
-  const leftRemaining = remainingChunks(left)
-  const rightRemaining = remainingChunks(right)
-  if (leftRemaining !== rightRemaining) {
-    return leftRemaining - rightRemaining
-  }
-  if (left.active !== right.active) {
-    return left.active - right.active
-  }
-  if (left.startedChunks !== right.startedChunks) {
-    return left.startedChunks - right.startedChunks
-  }
-  if (left.lastDispatchSequence !== right.lastDispatchSequence) {
-    return left.lastDispatchSequence - right.lastDispatchSequence
-  }
   return (left.originalOrder ?? left.internalId) - (right.originalOrder ?? right.internalId)
 }
 
@@ -205,41 +188,22 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       return undefined
     }
 
-    const dynamicWindow = Math.max(1, Math.ceil(state.currentLimit / runnable.length))
-    const effectiveWindow = this.#maxActiveChunksPerJob === undefined
-      ? dynamicWindow
-      : Math.min(dynamicWindow, this.#maxActiveChunksPerJob)
-    const eligible = runnable.filter((job) => job.active < effectiveWindow)
+    const maxActiveChunksPerJob = this.#maxActiveChunksPerJob
+    const eligible = maxActiveChunksPerJob === undefined
+      ? runnable
+      : runnable.filter((job) => job.active < maxActiveChunksPerJob)
     if (eligible.length === 0) {
       return undefined
     }
 
-    const starvationThreshold = Math.max(1, runnable.length - 1)
-    const aged = eligible
-      .filter((job) => job.dispatchDebt >= starvationThreshold)
-      .sort((left, right) => {
-        if (left.dispatchDebt !== right.dispatchDebt) {
-          return right.dispatchDebt - left.dispatchDebt
-        }
-        if (left.lastDispatchSequence !== right.lastDispatchSequence) {
-          return left.lastDispatchSequence - right.lastDispatchSequence
-        }
-        return (left.originalOrder ?? left.internalId) - (right.originalOrder ?? right.internalId)
-      })
-    const selected = aged[0] ?? eligible.slice().sort(compareJobPriority)[0]
+    const selected = eligible.slice().sort(compareJobPriority)[0]
     if (!selected) {
       return undefined
     }
 
     state.dispatchSequence += 1
-    for (const job of eligible) {
-      if (job === selected) {
-        job.dispatchDebt = 0
-        job.lastDispatchSequence = state.dispatchSequence
-      } else {
-        job.dispatchDebt += 1
-      }
-    }
+    selected.dispatchDebt = 0
+    selected.lastDispatchSequence = state.dispatchSequence
     return selected
   }
 

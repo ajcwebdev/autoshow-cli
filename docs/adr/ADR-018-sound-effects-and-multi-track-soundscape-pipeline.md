@@ -23,12 +23,12 @@ Why now: ADR-014 makes speech identity, timing, caching, artifacts, and resume t
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| Add ElevenLabs-specific fields and mixing directly to `comic generate-audio` | Smallest initial implementation; reuses an existing credential and transport | Couples source files to one API, duplicates shared scheduling and persistence, makes cue timing depend on one dialogue path, and repeats SFX generation for multi-provider dialogue comparisons | 1 provider; 1 command-specific path; high migration cost |
-| Integrate several SFX providers before defining the timeline and artifact contracts | Broad provider choice immediately | Multiplies serializer, capability, pricing, async-polling, and failure behavior before the common contract is proven | At least 4 adapters before one verified vertical slice |
-| Build only a local mixer and require users to supply every clip | Enables entirely offline development and deterministic mastering | Does not satisfy text-to-sound generation or exercise hosted generation, price, readiness, cache, and resume contracts | 0 hosted adapters |
-| **Build the complete provider-neutral vertical slice with ElevenLabs, then add capability-scoped providers in seven phases** | Proves schema, timeline, stem, cache, price, artifact, and hosted execution boundaries in Phase 1; keeps authored intent portable; adds each later provider only where its documented API fits | Requires explicit phase gates and truthful unsupported capabilities; the final AudioGen phase depends on a pinned community deployment | 7 independently verifiable phases; 2 dedicated SFX targets by Phase 7 |
+| Option                                                                                                                       | Pros                                                                                                                                                                                           | Cons                                                                                                                                                                                            | Quantitative Notes                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Add ElevenLabs-specific fields and mixing directly to `comic generate-audio`                                                 | Smallest initial implementation; reuses an existing credential and transport                                                                                                                   | Couples source files to one API, duplicates shared scheduling and persistence, makes cue timing depend on one dialogue path, and repeats SFX generation for multi-provider dialogue comparisons | 1 provider; 1 command-specific path; high migration cost              |
+| Integrate several SFX providers before defining the timeline and artifact contracts                                          | Broad provider choice immediately                                                                                                                                                              | Multiplies serializer, capability, pricing, async-polling, and failure behavior before the common contract is proven                                                                            | At least 4 adapters before one verified vertical slice                |
+| Build only a local mixer and require users to supply every clip                                                              | Enables entirely offline development and deterministic mastering                                                                                                                               | Does not satisfy text-to-sound generation or exercise hosted generation, price, readiness, cache, and resume contracts                                                                          | 0 hosted adapters                                                     |
+| **Build the complete provider-neutral vertical slice with ElevenLabs, then add capability-scoped providers in seven phases** | Proves schema, timeline, stem, cache, price, artifact, and hosted execution boundaries in Phase 1; keeps authored intent portable; adds each later provider only where its documented API fits | Requires explicit phase gates and truthful unsupported capabilities; the final AudioGen phase depends on a pinned community deployment                                                          | 7 independently verifiable phases; 2 dedicated SFX targets by Phase 7 |
 
 ## Decision
 
@@ -49,13 +49,13 @@ This applies to:
 
 Each voice-managed model must keep a working expressiveness path. The methods differ and are not rewritten into one markup dialect:
 
-| Model | Expressiveness method | Compatible path |
-|---|---|---|
-| ElevenLabs `eleven_v3` | v3 audio tags plus style, stability, and similarity | Authored `[whispers]`/`[laughs]` stay in spoken text; dialogue `delivery` converts to the documented v3 tag allowlist; `--elevenlabs-tts-style`, `--elevenlabs-tts-stability`, and `--elevenlabs-tts-similarity-boost` serialize as `voice_settings` |
-| Inworld `realtime-tts-2` | Request-level instruction plus inline vocal tags | `--tts-instructions` serializes as `instruction`; `[happy]`, `[laugh]`, and `[breathe]` stay in `text` |
-| Fish `s2.1-pro` | In-text `[emotion]` and delivery markup | Dialogue `delivery` converts to the documented Fish tag allowlist; inline `[emotion]` stays in spoken text |
-| Cartesia `sonic-3.5-2026-05-04` | SSML-like performance tags plus `[laughter]` | `<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`, and `[laughter]` stay in the transcript |
-| Speechify `simba-3.2` | SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style` | Authored SSML stays in `input`; wrap SSML in `<speak>` |
+| Model                           | Expressiveness method                                                    | Compatible path                                                                                                                                                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ElevenLabs `eleven_v3`          | v3 audio tags plus style, stability, and similarity                      | Authored `[whispers]`/`[laughs]` stay in spoken text; dialogue `delivery` converts to the documented v3 tag allowlist; `--elevenlabs-tts-style`, `--elevenlabs-tts-stability`, and `--elevenlabs-tts-similarity-boost` serialize as `voice_settings` |
+| Inworld `realtime-tts-2`        | Request-level instruction plus inline vocal tags                         | `--tts-instructions` serializes as `instruction`; `[happy]`, `[laugh]`, and `[breathe]` stay in `text`                                                                                                                                               |
+| Fish `s2.1-pro`                 | In-text `[emotion]` and delivery markup                                  | Dialogue `delivery` converts to the documented Fish tag allowlist; inline `[emotion]` stays in spoken text                                                                                                                                           |
+| Cartesia `sonic-3.5-2026-05-04` | SSML-like performance tags plus `[laughter]`                             | `<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`, and `[laughter]` stay in the transcript                                                                                                                                                    |
+| Speechify `simba-3.2`           | SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style` | Authored SSML stays in `input`; wrap SSML in `<speak>`                                                                                                                                                                                               |
 
 This does not:
 
@@ -68,15 +68,15 @@ This does not:
 
 ### Architectural Boundaries
 
-| Owner | Responsibilities | Must not own |
-|---|---|---|
-| Comic source workflow | Authored sound intent, stable source-segment references, source spans, optional scene-level mix-profile selection | Provider/model IDs, credentials, billing, retry policy, provider response formats |
-| Soundscape planner | Intent validation, immutable synthesis tasks, timeline anchors, required/optional policy, generation identity, mix identity | Provider HTTP clients, canonical run persistence, voice casting |
-| Audio provider adapter | Exact provider/model/modality capability fixture, request serialization, response decoding metadata, sanitized errors, observed usage, and provider voice lifecycle ports where applicable | Source parsing, final placement, bus gain, panning, ducking, or invented fallback capabilities |
-| Shared execution layer | Static validation, `--price`, readiness, bounded provider lanes, request evidence, cache materialization, cancellation, resume | A second scheduler or unbounded cue fan-out |
-| Local mastering layer | Canonical format conversion, anchor resolution, stem assembly, deterministic transforms, master and timeline output | Provider selection, remote calls, silent timing approximation |
-| Canonical artifact layer | One scene-run `manifest.json`, checksummed domain artifacts, append-only attempts, selected-success pointers | A soundscape-specific manifest or unversioned cache side channel |
-| ADR-019 presentation layer | Read-only consumption of retained cue sources, cue placement evidence, ambience, and the selected soundscape run | Mutation or replacement of the original soundscape timeline, stems, master, or selected-success pointers |
+| Owner                      | Responsibilities                                                                                                                                                                           | Must not own                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Comic source workflow      | Authored sound intent, stable source-segment references, source spans, optional scene-level mix-profile selection                                                                          | Provider/model IDs, credentials, billing, retry policy, provider response formats                        |
+| Soundscape planner         | Intent validation, immutable synthesis tasks, timeline anchors, required/optional policy, generation identity, mix identity                                                                | Provider HTTP clients, canonical run persistence, voice casting                                          |
+| Audio provider adapter     | Exact provider/model/modality capability fixture, request serialization, response decoding metadata, sanitized errors, observed usage, and provider voice lifecycle ports where applicable | Source parsing, final placement, bus gain, panning, ducking, or invented fallback capabilities           |
+| Shared execution layer     | Static validation, `--price`, readiness, bounded provider lanes, request evidence, cache materialization, cancellation, resume                                                             | A second scheduler or unbounded cue fan-out                                                              |
+| Local mastering layer      | Canonical format conversion, anchor resolution, stem assembly, deterministic transforms, master and timeline output                                                                        | Provider selection, remote calls, silent timing approximation                                            |
+| Canonical artifact layer   | One scene-run `manifest.json`, checksummed domain artifacts, append-only attempts, selected-success pointers                                                                               | A soundscape-specific manifest or unversioned cache side channel                                         |
+| ADR-019 presentation layer | Read-only consumption of retained cue sources, cue placement evidence, ambience, and the selected soundscape run                                                                           | Mutation or replacement of the original soundscape timeline, stems, master, or selected-success pointers |
 
 Types belong in a new `src/types/soundscape-workflow/` domain and remain exported only through `src/types/index.ts`. Shared execution may live beside the current script-to-audio implementation while Step 4 remains the repository's audio-rendering host, but comic must consume it through shared contracts rather than importing provider adapters.
 
@@ -227,15 +227,15 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| Portable authored intent and provider-qualified execution | More planning types and validation stages |
-| Exact, auditable placement | Strict failures when canonical timing evidence is unavailable |
-| Provider-output reuse across many mixes | Additional retained artifacts and checksums |
-| Offline mixer verification | Hosted quality still requires a separately approved calibration run |
-| Ordered, evidence-gated provider expansion | Seven gated phases before the complete provider set is delivered |
-| Fish coverage across applicable `voice` workflows | Broader provider lifecycle and reconciliation surface |
-| A second dedicated SFX target | Dependence on a pinned Replicate community model in Phase 7 |
+| Gains                                                     | Sacrifices                                                          |
+| --------------------------------------------------------- | ------------------------------------------------------------------- |
+| Portable authored intent and provider-qualified execution | More planning types and validation stages                           |
+| Exact, auditable placement                                | Strict failures when canonical timing evidence is unavailable       |
+| Provider-output reuse across many mixes                   | Additional retained artifacts and checksums                         |
+| Offline mixer verification                                | Hosted quality still requires a separately approved calibration run |
+| Ordered, evidence-gated provider expansion                | Seven gated phases before the complete provider set is delivered    |
+| Fish coverage across applicable `voice` workflows         | Broader provider lifecycle and reconciliation surface               |
+| A second dedicated SFX target                             | Dependence on a pinned Replicate community model in Phase 7         |
 
 ## Test Plan
 

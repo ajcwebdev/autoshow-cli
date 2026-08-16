@@ -6,9 +6,10 @@ import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-
 import { createCurrentTtsRenderAttempt } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-readiness-attempt'
 import { priceGenerationTarget, resumeGenerationTarget } from '~/cli/commands/setup-and-utilities/resume/generation-resume'
+import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { resolveStoredTtsTargetsForResume, ttsResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
 import { resolveTtsResumeSourceContext } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume-source-context'
-import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import type { CanonicalAudioProviderProjection, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PipelineProviderState, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
@@ -211,6 +212,7 @@ const materializeFailedProviderState = async (options: {
   sourceIdentity: GenericTtsSourceIdentity
   dialoguePlan: GenericTtsDialoguePlan
   admitted?: boolean | undefined
+  artifactRoot?: string | undefined
 }): Promise<PipelineProviderState> => {
   let latest: PipelineProviderState | undefined
   const runnable: TtsTarget = {
@@ -238,6 +240,8 @@ const materializeFailedProviderState = async (options: {
   await runTtsForTargets(options.text, options.rootDir, {}, [runnable], {
     sourceIdentity: options.sourceIdentity,
     dialoguePlan: options.dialoguePlan,
+    artifactOutputDir: options.rootDir,
+    ...(options.artifactRoot ? { artifactRoot: options.artifactRoot } : {}),
     onProviderState: async (state) => { latest = state }
   }).catch(() => undefined)
   if (!latest || latest.status !== 'failed') throw new Error('Fixture lifecycle did not produce a failed canonical TTS state.')
@@ -1134,7 +1138,7 @@ describe('canonical TTS resume', () => {
     })
   })
 
-  test('rejects batch TTS resume before selecting or running an item', async () => {
+  test('resumes every TTS batch item without rewriting the manifest as a single run', async () => {
     await withTempDir('autoshow-tts-resume-batch-', async (dir) => {
       const target = ttsTarget()
       const createdAt = new Date(0).toISOString()
@@ -1154,16 +1158,179 @@ describe('canonical TTS resume', () => {
           )]
         })
       }))
-      await writeManifest(dir, createManifest('tts', 'batch', items))
+      await writeManifest(dir, { ...createManifest('tts', 'batch', items), createdAt, updatedAt: createdAt })
       const ranTargetKeys: string[] = []
 
       await expect(resumeGenerationTarget(
         { kind: 'tts', scope: 'batch', dir, manifestPath: join(dir, PIPELINE_MANIFEST_FILE) },
         localTtsResumeConfig([target], new Map(), ranTargetKeys),
         {} as TtsOptions
-      )).rejects.toThrow('single-run manifest.json outputs only')
+      )).resolves.toEqual({ full: 2, incomplete: 0, failed: 0 })
       expect(ranTargetKeys).toEqual([])
+      const manifest = await readManifest(dir)
+      expect(manifest?.scope).toBe('batch')
+      expect(manifest?.createdAt).toBe(createdAt)
+      expect(manifest?.items).toHaveLength(2)
+    })
+  })
+
+  test('batch TTS resume with authorization redispatches only unresolved items', async () => {
+    await withTempDir('autoshow-tts-resume-batch-redispatch-', async (dir) => {
+      const createdAt = new Date(0).toISOString()
+      const target = { ...ttsTarget(), voice: 'alloy' }
+      const firstPath = join(dir, 'first.txt')
+      const secondPath = join(dir, 'second.txt')
+      const firstText = 'Completed batch chapter stays retained.'
+      const secondText = 'Unresolved batch chapter may be repurchased.'
+      await Bun.write(firstPath, firstText)
+      await Bun.write(secondPath, secondText)
+      const firstIdentity = await createFileTtsSourceIdentity(firstPath, firstText)
+      const secondIdentity = await createFileTtsSourceIdentity(secondPath, secondText)
+      const firstPlan = createSingleTurnTtsDialoguePlan(firstIdentity, firstText, createdAt)
+      const secondPlan = createSingleTurnTtsDialoguePlan(secondIdentity, secondText, createdAt)
+      const skipped = bindTtsDialoguePlanArtifact(
+        policySkippedState(target, 'items/first/providers'),
+        await materializeTtsDialoguePlanArtifact(dir, firstPlan)
+      )
+      const failed = await materializeFailedProviderState({
+        rootDir: dir,
+        target,
+        text: secondText,
+        sourceIdentity: secondIdentity,
+        dialoguePlan: secondPlan,
+        admitted: true,
+        artifactRoot: 'items/second/providers'
+      })
+      await writeManifest(dir, {
+        ...createManifest('tts', 'batch', [
+          createManifestItem(dir, {
+            input: canonicalFileInput(firstIdentity),
+            status: 'skipped',
+            metadata: { tts: [] },
+            providers: [skipped]
+          }),
+          createManifestItem(dir, {
+            input: canonicalFileInput(secondIdentity),
+            status: 'failed',
+            metadata: { tts: [] },
+            providers: [failed]
+          })
+        ]),
+        createdAt,
+        updatedAt: createdAt
+      })
+
+      await expect(resumeGenerationTarget(
+        { kind: 'tts', scope: 'batch', dir, manifestPath: join(dir, PIPELINE_MANIFEST_FILE) },
+        ttsResumeConfig,
+        {} as TtsOptions
+      )).rejects.toThrow(/failed items|automatic redispatch is blocked/)
+
+      let providerCalls = 0
+      const candidate = successfulTarget(target, () => { providerCalls += 1 })
+      await expect(ttsResumeConfig.runMissingTargets(
+        [candidate],
+        secondText,
+        dir,
+        { ttsAllowAmbiguousRedispatch: true },
+        {
+          outputDir: dir,
+          runtimeOptions: { ttsAllowAmbiguousRedispatch: true },
+          targets: [candidate],
+          existingEntries: [],
+          currentManifestMetadata: {},
+          currentProviderStates: [failed],
+          itemIndex: 1
+        }
+      )).resolves.toHaveLength(1)
+      expect(providerCalls).toBe(1)
+      expect((await readManifest(dir))?.createdAt).toBe(createdAt)
       expect((await readManifest(dir))?.items).toHaveLength(2)
+    })
+  })
+
+  test('batch TTS resume price reports unresolved remainder instead of full chapter text', async () => {
+    await withTempDir('autoshow-tts-resume-batch-price-remainder-', async (dir) => {
+      const createdAt = new Date(0).toISOString()
+      const target = { ...ttsTarget(), voice: 'alloy' }
+      const firstPath = join(dir, 'first.txt')
+      const secondPath = join(dir, 'second.txt')
+      const firstText = 'Already complete batch chapter.'
+      const secondText = 'Host: First turn.\nGuest: Second turn.\nHost: Third turn.'
+      const dialogueOptions: TtsOptions = {
+        ttsDialogueFormat: 'labeled',
+        ttsSpeakers: ['Host=alloy', 'Guest=verse'],
+        ttsMaxGenerationSlots: 1,
+        ttsTurnControls: {
+          'dialogue-turn-001': { openai: {} },
+          'dialogue-turn-002': { openai: {} },
+          'dialogue-turn-003': { openai: {} }
+        },
+        ttsCanonicalTurns: [
+          { turnId: 'dialogue-turn-001', speaker: 'Host', text: 'First turn.' },
+          { turnId: 'dialogue-turn-002', speaker: 'Guest', text: 'Second turn.' },
+          { turnId: 'dialogue-turn-003', speaker: 'Host', text: 'Third turn.' }
+        ]
+      }
+      await Bun.write(firstPath, firstText)
+      await Bun.write(secondPath, secondText)
+      const firstIdentity = await createFileTtsSourceIdentity(firstPath, firstText)
+      const secondIdentity = await createFileTtsSourceIdentity(secondPath, secondText)
+      const firstPlan = createSingleTurnTtsDialoguePlan(firstIdentity, firstText, createdAt)
+      const secondPlan = createGenericTtsDialoguePlan(secondIdentity, secondText, dialogueOptions, createdAt)
+      const skipped = bindTtsDialoguePlanArtifact(
+        policySkippedState(target, 'items/first/providers'),
+        await materializeTtsDialoguePlanArtifact(dir, firstPlan)
+      )
+      const partialRun = await runTtsForTargets(
+        secondText,
+        dir,
+        dialogueOptions,
+        [successfulTarget(target)],
+        {
+          sourceIdentity: secondIdentity,
+          dialoguePlan: secondPlan,
+          artifactOutputDir: dir,
+          artifactRoot: 'items/second/providers'
+        }
+      )
+      const partialState = bindTtsDialoguePlanArtifact(
+        buildCurrentTtsProviderState(partialRun.metadata[0] as Step4Metadata),
+        await materializeTtsDialoguePlanArtifact(dir, secondPlan)
+      )
+      await writeManifest(dir, {
+        ...createManifest('tts', 'batch', [
+          createManifestItem(dir, {
+            input: canonicalFileInput(firstIdentity),
+            status: 'skipped',
+            metadata: { tts: [] },
+            providers: [skipped]
+          }),
+          createManifestItem(dir, {
+            input: canonicalFileInput(secondIdentity),
+            status: 'incomplete',
+            metadata: { tts: [] },
+            providers: [partialState]
+          })
+        ]),
+        createdAt,
+        updatedAt: createdAt
+      })
+
+      const { ttsMaxGenerationSlots: _limit, ...unboundedOptions } = dialogueOptions
+      const fullSecond = await buildTtsTargetEstimates([target], unboundedOptions, secondText.length)
+      const estimate = await priceGenerationTarget(
+        { kind: 'tts', scope: 'batch', dir, manifestPath: join(dir, PIPELINE_MANIFEST_FILE) },
+        { ...ttsResumeConfig, collectTargets: () => [target] },
+        unboundedOptions,
+        new Set(['openai-tts'])
+      )
+      const fullBook = await buildTtsTargetEstimates([target], unboundedOptions, firstText.length + secondText.length)
+
+      expect(estimate.totalEstimatedCost).toBeGreaterThan(0)
+      expect(estimate.totalEstimatedCost).toBeLessThan(fullSecond[0]?.totalCost ?? Number.POSITIVE_INFINITY)
+      expect(estimate.totalEstimatedCost).toBeLessThan(fullBook[0]?.totalCost ?? Number.POSITIVE_INFINITY)
+      expect(estimate.steps.some((step) => step.step === 'tts' && (step.characterCount ?? 0) < secondText.length)).toBe(true)
     })
   })
 })

@@ -52,8 +52,13 @@ const spokenSourceSpans = (
 
 const attachSourceSpans = (source: string, beats: StructuredScriptBeat[]): StructuredScriptBeat[] => {
   let cursor = 0
-  return beats.map((beat) => {
-    const speakerAnchor = beat.speakerLabel ? `**${beat.speakerLabel}**` : undefined
+  return beats.map((beat, beatIndex) => {
+    const priorBeat = beats[beatIndex - 1]
+    const speakerAnchor = beat.speakerLabel
+      && beat.speakerLabel !== priorBeat?.speakerLabel
+      && (beat.type === 'dialogue' || beat.type === 'narration')
+      ? `**${beat.speakerLabel}**`
+      : undefined
     const anchorIndex = speakerAnchor ? source.indexOf(speakerAnchor, cursor) : -1
     const textSearchStart = anchorIndex >= 0 && speakerAnchor ? anchorIndex + speakerAnchor.length : Math.max(cursor, anchorIndex)
     const textIndex = source.indexOf(beat.text, textSearchStart)

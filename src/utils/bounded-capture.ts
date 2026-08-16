@@ -99,11 +99,17 @@ export const readBoundedTextStream = async (
   return capture.result()
 }
 
+let httpCaptureBytesForTests: number | undefined
+
+export const setHttpCaptureBytesForTests = (bytes?: number): void => {
+  httpCaptureBytesForTests = bytes
+}
+
 export const readBoundedResponseText = async (
   response: Response,
   options: BoundedCaptureOptions = {}
 ): Promise<BoundedCaptureResult> =>
-  await readBoundedTextStream(response.body, options, DEFAULT_HTTP_CAPTURE_BYTES)
+  await readBoundedTextStream(response.body, options, httpCaptureBytesForTests ?? DEFAULT_HTTP_CAPTURE_BYTES)
 
 export const buildCaptureMetadata = (
   result: BoundedCaptureResult,

@@ -90,6 +90,13 @@ export const normalizeLocationKey = (value: string): string => value
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
 
+const normalizeTypedLocationKey = (value: string): string => value
+  .normalize('NFKC').toLowerCase()
+  .replace(/^\s*(?:(?:cut|smash cut|match cut|dissolve|fade)\s+to|later|moments later)\s*:\s*/i, '')
+  .replace(/\s*[–—-]\s*(?:(?:early|late)\s+)?(?:day|night|morning|afternoon|evening|continuous|later|moments later|seconds later|minutes later|same time|dawn|dusk|in flight)\s*$/i, '')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+
 const parseCatalog = (value: unknown, path: string): LocationReferenceCatalog => {
   const data = value as Partial<LocationReferenceCatalog>
   if (data?.schemaVersion !== 1 || typeof data.styleImage !== 'string' || !Array.isArray(data.locations)) throw ValidationError(`Invalid location catalog at ${path}`, { stage: 'comic:location-reference' })
@@ -122,6 +129,10 @@ export const readLocationReferenceCatalogSync = (): LocationReferenceCatalog => 
 }
 
 export const resolveLocationCatalogEntry = (rawLocation: string, catalog: LocationReferenceCatalog): LocationReferenceEntry => {
+  const typedNormalized = normalizeTypedLocationKey(rawLocation)
+  const typedMatches = catalog.locations.filter(entry => [entry.key, entry.name, ...(entry.aliases ?? [])].some(candidate => normalizeTypedLocationKey(candidate) === typedNormalized))
+  if (typedMatches.length === 1) return typedMatches[0]!
+  if (typedMatches.length > 1) throw ValidationError(`Location "${rawLocation}" is ambiguous across canonical keys: ${typedMatches.map(entry => entry.key).sort().join(', ')}`, { stage: 'comic:location-reference' })
   const normalized = normalizeLocationKey(rawLocation)
   const matches = catalog.locations.filter(entry => [entry.key, entry.name, ...(entry.aliases ?? [])].some(candidate => normalizeLocationKey(candidate) === normalized))
   if (matches.length === 0) throw ValidationError(`Location "${rawLocation}" does not resolve to a canonical location key`, { stage: 'comic:location-reference' })

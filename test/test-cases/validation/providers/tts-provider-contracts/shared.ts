@@ -24,7 +24,10 @@ export const setupTtsContractLifecycle = (): { makeTempDir: (prefix: string) => 
   const tempDirs = setupContractSuiteLifecycle({
     envKeys: TTS_CONTRACT_ENV_KEYS,
     tempPrefix: 'autoshow-tts-contract-',
-    restoreBunSleep: true
+    restoreBunSleep: true,
+    beforeEachExtra: () => {
+      ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+    }
   })
 
   return { makeTempDir: tempDirs.make }

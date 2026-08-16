@@ -1,4 +1,7 @@
-import { isAbsolute, normalize, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, normalize, relative, resolve } from 'node:path'
+import { stripAnsi } from '~/utils/terminal-colors'
+
+export const COMMAND_OUTPUT_PARSE_TAIL_CHARS = 64 * 1024
 
 export const normalizeRepoPath = (path: string | null | undefined): string | null => {
   if (!path || path.trim().length === 0) {
@@ -10,10 +13,19 @@ export const normalizeRepoPath = (path: string | null | undefined): string | nul
   return normalize(relative(process.cwd(), abs)).replace(/\\/g, '/')
 }
 
-const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, '')
-
 export const getFiniteNumber = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null
+
+export const prepareCommandOutputForParse = (text: string): string => {
+  if (text.length <= COMMAND_OUTPUT_PARSE_TAIL_CHARS) {
+    return stripAnsi(text)
+  }
+
+  const sliced = text.slice(-COMMAND_OUTPUT_PARSE_TAIL_CHARS)
+  const newlineIndex = sliced.indexOf('\n')
+  const tail = newlineIndex === -1 ? sliced : sliced.slice(newlineIndex + 1)
+  return stripAnsi(tail)
+}
 
 const parseEstimatedCostValue = (line: string): number | null => {
   const exactCents = line.match(/\(([0-9]+(?:\.[0-9]+)?)¢\)/)
@@ -50,8 +62,7 @@ const parseEstimatedCostValue = (line: string): number | null => {
   return null
 }
 
-export const parseCommandEstimatedTotal = (text: string): number | null => {
-  const clean = stripAnsi(text)
+const parseEstimatedTotalFromClean = (clean: string): number | null => {
   const matches: Array<{ index: number; value: number }> = []
 
   for (const match of clean.matchAll(/(?:Suite total estimated cost|Total estimated cost):[^\r\n]*/gi)) {
@@ -81,6 +92,51 @@ export const parseCommandEstimatedTotal = (text: string): number | null => {
     return null
   }
   return last.value
+}
+
+const parseOutputDirFromClean = (clean: string): string | null => {
+  const patterns = [
+    /(?:^|\n)\s*(?:outputDir|output dir|retryOutputDir|retry output dir):\s*([^\n\r]+)/g,
+    /(?:^|\n)\s*(?:manifest):\s*([^\n\r]+\/manifest\.json)/g,
+    /Locations[\s\S]*?│\s*(?:outputDir|output dir|retryOutputDir|retry output dir)\s*│\s*([^\n\r│]+?)\s*│/g,
+    /Artifacts[\s\S]*?│\s*manifest\s*│\s*([^\n\r│]+\/manifest\.json)\s*│/g,
+    /"artifact"\s*:\s*"outputDir"[\s\S]*?"path"\s*:\s*"([^"\n\r]+)"/g,
+    /"manifest"\s*:\s*"([^"\n\r]+\/manifest\.json)"/g,
+  ]
+
+  for (const pattern of patterns) {
+    const matches = Array.from(clean.matchAll(pattern))
+    const last = matches[matches.length - 1]
+    if (!last) {
+      continue
+    }
+    const value = last[1]?.trim()
+    if (value && value.length > 0) {
+      if (value.endsWith('/manifest.json')) {
+        return dirname(value)
+      }
+      return value
+    }
+  }
+
+  return null
+}
+
+export const parseCommandEstimatedTotal = (text: string): number | null =>
+  parseEstimatedTotalFromClean(prepareCommandOutputForParse(text))
+
+export const parseOutputDirFromText = (text: string): string | null =>
+  parseOutputDirFromClean(prepareCommandOutputForParse(text))
+
+export const parseCommandOutputText = (text: string): {
+  outputDir: string | null
+  estimatedCostCents: number | null
+} => {
+  const clean = prepareCommandOutputForParse(text)
+  return {
+    outputDir: parseOutputDirFromClean(clean),
+    estimatedCostCents: parseEstimatedTotalFromClean(clean),
+  }
 }
 
 export const decodeXml = (text: string): string => {

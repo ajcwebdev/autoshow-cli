@@ -222,7 +222,7 @@ bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=ly
 
 ### Step 8: comic
 
-[`comic`](./commands/process-steps/step-8-comic/comic.md) runs staged episode-script-to-comic workflows.
+[`comic`](./commands/process-steps/step-8-comic/00-comic-overview.md) runs staged episode-script-to-comic workflows.
 
 - Primary inputs/providers:
   - episode script Markdown files under `input/scripts/NN-script/*.md`, or strict episode-scene shorthands such as `02-01`
@@ -350,7 +350,7 @@ bun autoshow resume ./output/<run-or-batch-dir> --provider deepinfra
 
 ### voice
 
-[`voice`](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md#voice) manages durable provider voice registrations separately from speech synthesis.
+[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) manages durable provider voice registrations separately from speech synthesis.
 
 - Primary inputs/providers:
   - authored character voice briefs in `input/characters/character-voices.json`

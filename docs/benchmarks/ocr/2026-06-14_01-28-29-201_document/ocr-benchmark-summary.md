@@ -10,20 +10,20 @@
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct` | 1 |
+| Selected Provider                                     | Pages |
+| ----------------------------------------------------- | ----: |
+| `deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct` |     1 |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 1 |
-| highDisagreementPages | 1 |
-| werCerDivergencePages | 1 |
-| lowConfidencePages | 1 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      |          0 |
+| repeatedTextPages     |          0 |
+| majorLengthDriftPages |          1 |
+| highDisagreementPages |          1 |
+| werCerDivergencePages |          1 |
+| lowConfidencePages    |          1 |
 
 ## Selective Adjudication
 
@@ -33,6 +33,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 29.63% | 4.57% | 40 |
+| Reference              | Candidate           |    WER |   CER | Word Edits |
+| ---------------------- | ------------------- | -----: | ----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 29.63% | 4.57% |         40 |

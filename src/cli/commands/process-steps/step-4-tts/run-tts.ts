@@ -12,6 +12,7 @@ import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested } from './dialogue-normalizer'
 import { runMultiSpeakerTts } from './run-multi-speaker-tts'
 import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
+import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
 import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
@@ -51,7 +52,11 @@ const describeFailedTtsRecovery = async (options: {
     const redispatchFlag = options.sourceContext?.comicContext
       ? '--allow-ambiguous-redispatch'
       : '--tts-allow-ambiguous-redispatch'
-    return `${checkpoint} ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot has' : 'slots have'} ambiguous provider admission. Rerun the same command with ${redispatchFlag} to reconcile those slots, reuse retained audio, and resume without deleting the output directory; authorized slots may be purchased again.`
+    const manifest = await readManifest(options.rootDir)
+    const resumeHint = manifest?.scope === 'batch'
+      ? `Run bun autoshow resume ${options.rootDir} ${redispatchFlag}`
+      : `Rerun the same command with ${redispatchFlag}`
+    return `${checkpoint} ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot has' : 'slots have'} ambiguous provider admission. ${resumeHint} to reconcile those slots, reuse retained audio, and resume without deleting the output directory; authorized slots may be purchased again.`
   } catch {
     return undefined
   }

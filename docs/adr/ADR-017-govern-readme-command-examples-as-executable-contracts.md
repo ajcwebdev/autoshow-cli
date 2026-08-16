@@ -19,13 +19,13 @@ Why now: A repository-wide documentation audit identified 1,455 shell-like candi
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Govern every command occurrence in the root `README.md` and all Markdown beneath `docs/` through one classified inventory and policy-aware harness** | Matches the literal user-facing surface, catches cross-document drift, makes unsafe examples explicit, supports deduplicated execution with occurrence-based reporting, and covers generated/historical material safely | Requires a Markdown-aware extractor, a typed inventory, risk-specific policies, stable offline fixtures, and generator integration | Covers 164 files, 1,455 candidates, and 785 concrete AutoShow occurrences |
-| Govern only the root `README.md` | Smallest implementation and fastest test execution | Leaves 732 concrete AutoShow occurrences outside the contract and misses the majority of user-facing failures and option drift | Covers only 53 of 785 concrete AutoShow occurrences |
-| Govern `README.md` plus primary command references, excluding ADRs, reports, diagrams, templates, and test guides | Covers most usage docs with less initial classification work | Permits stale or unsafe commands in operational, architectural, generated, and historical documents; leaves boundaries ambiguous | Omits 110 concrete AutoShow occurrences and 679 other shell-like candidates |
-| Parse and execute every shell-looking candidate indiscriminately | Minimal policy design and superficially broad runtime coverage | Can install unwanted software, mutate config or Git state, build containers, contact paid APIs, and mistake expected output for executable commands | Threatens repository state with 674 non-AutoShow and 259 stateful/utility candidates |
-| Rely on manual documentation review and ad-hoc price audits | No committed inventory or test infrastructure | Drift recurrences are frequent, verification is non-reproducible, and aggregate cost accuracy cannot be guaranteed | High ongoing maintenance burden with zero automated regression protection |
+| Option                                                                                                                                                 | Pros                                                                                                                                                                                                                    | Cons                                                                                                                                                | Quantitative Notes                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Govern every command occurrence in the root `README.md` and all Markdown beneath `docs/` through one classified inventory and policy-aware harness** | Matches the literal user-facing surface, catches cross-document drift, makes unsafe examples explicit, supports deduplicated execution with occurrence-based reporting, and covers generated/historical material safely | Requires a Markdown-aware extractor, a typed inventory, risk-specific policies, stable offline fixtures, and generator integration                  | Covers 164 files, 1,455 candidates, and 785 concrete AutoShow occurrences            |
+| Govern only the root `README.md`                                                                                                                       | Smallest implementation and fastest test execution                                                                                                                                                                      | Leaves 732 concrete AutoShow occurrences outside the contract and misses the majority of user-facing failures and option drift                      | Covers only 53 of 785 concrete AutoShow occurrences                                  |
+| Govern `README.md` plus primary command references, excluding ADRs, reports, diagrams, templates, and test guides                                      | Covers most usage docs with less initial classification work                                                                                                                                                            | Permits stale or unsafe commands in operational, architectural, generated, and historical documents; leaves boundaries ambiguous                    | Omits 110 concrete AutoShow occurrences and 679 other shell-like candidates          |
+| Parse and execute every shell-looking candidate indiscriminately                                                                                       | Minimal policy design and superficially broad runtime coverage                                                                                                                                                          | Can install unwanted software, mutate config or Git state, build containers, contact paid APIs, and mistake expected output for executable commands | Threatens repository state with 674 non-AutoShow and 259 stateful/utility candidates |
+| Rely on manual documentation review and ad-hoc price audits                                                                                            | No committed inventory or test infrastructure                                                                                                                                                                           | Drift recurrences are frequent, verification is non-reproducible, and aggregate cost accuracy cannot be guaranteed                                  | High ongoing maintenance burden with zero automated regression protection            |
 
 ## Decision
 
@@ -92,13 +92,13 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| Full documentation coverage across all Markdown files | Larger typed inventory and Markdown-aware AST extraction |
+| Gains                                                         | Sacrifices                                                                |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Full documentation coverage across all Markdown files         | Larger typed inventory and Markdown-aware AST extraction                  |
 | Safe verification of paid, stateful, and destructive examples | Multiple discrete execution policies instead of a single universal runner |
-| Deterministic, zero-cost offline price verification | Maintenance of committed offline fixtures for multi-stage workflows |
-| Granular cross-document drift detection | Occurrence-based inventory maintenance for duplicated command strings |
-| Transparent, auditable documentation cost estimates | Formal snapshot updates required when CLI pricing or models change |
+| Deterministic, zero-cost offline price verification           | Maintenance of committed offline fixtures for multi-stage workflows       |
+| Granular cross-document drift detection                       | Occurrence-based inventory maintenance for duplicated command strings     |
+| Transparent, auditable documentation cost estimates           | Formal snapshot updates required when CLI pricing or models change        |
 
 ## Test Plan
 
@@ -118,24 +118,24 @@ When the dedicated documentation harness is implemented:
 
 ## Follow-up Actions
 
-| Action | Owner | Current State |
-|---|---|---|
-| Implement fail-closed provider/network guards and isolated temporary filesystem/config harnesses for documentation tests | Test Maintainers | Pending |
-| Add validation rejecting `config --price` mutations before state access | Config Maintainers | Pending |
-| Build the Markdown-aware extractor, typed occurrence inventory, and bidirectional coverage test suite | Test Maintainers | Pending |
-| Standardize structured price result envelopes across all AutoShow commands | CLI Maintainers | Pending |
-| Commit offline fixtures for document, transcript, batch, image, video, comic, and voice workflows | Workflow Maintainers | Pending |
-| Fix quiet-price output, end-of-options (`--`) parsing, hosted EPUB planning, and article route resolution | CLI Maintainers | Pending |
-| Define static risk and parse-only validation policies for utilities, Docker, Git, external tools, and credentials | Test Maintainers | Pending |
-| Implement cross-checks validating documented flags and models against CLI parsers and model registries | CLI Maintainers | Pending |
-| Generate occurrence-based and deduplicated documentation cost reports | Test Maintainers | Pending |
+| Action                                                                                                                   | Owner                | Current State |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------- | ------------- |
+| Implement fail-closed provider/network guards and isolated temporary filesystem/config harnesses for documentation tests | Test Maintainers     | Pending       |
+| Add validation rejecting `config --price` mutations before state access                                                  | Config Maintainers   | Pending       |
+| Build the Markdown-aware extractor, typed occurrence inventory, and bidirectional coverage test suite                    | Test Maintainers     | Pending       |
+| Standardize structured price result envelopes across all AutoShow commands                                               | CLI Maintainers      | Pending       |
+| Commit offline fixtures for document, transcript, batch, image, video, comic, and voice workflows                        | Workflow Maintainers | Pending       |
+| Fix quiet-price output, end-of-options (`--`) parsing, hosted EPUB planning, and article route resolution                | CLI Maintainers      | Pending       |
+| Define static risk and parse-only validation policies for utilities, Docker, Git, external tools, and credentials        | Test Maintainers     | Pending       |
+| Implement cross-checks validating documented flags and models against CLI parsers and model registries                   | CLI Maintainers      | Pending       |
+| Generate occurrence-based and deduplicated documentation cost reports                                                    | Test Maintainers     | Pending       |
 
 ## References
 
 - [`README.md`](../../README.md)
 - [`docs/commands.md`](../commands.md)
 - [`docs/commands/`](../commands/)
-- [`docs/tests/`](../tests/)
+- [`docs/commands/testing.md`](../commands/testing.md)
 - [`docs/docker.md`](../docker.md)
 - [`docs/diagrams/`](../diagrams/)
 - [`docs/reports/`](../reports/)

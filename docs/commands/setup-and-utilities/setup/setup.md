@@ -35,10 +35,10 @@ A full `bun autoshow setup` downloads several gigabytes and builds a number of t
 
 Setup writes to four places, not just the repo:
 
-| Location | Holds | Approx. size |
-| --- | --- | --- |
-| `runtime/` | Managed binaries, Python envs, and local STT models | ~7 GiB |
-| `~/.cache/uv` (macOS and Linux) | uv's shared Python package cache | ~2.5 GB |
+| Location                        | Holds                                               | Approx. size |
+| ------------------------------- | --------------------------------------------------- | ------------ |
+| `runtime/`                      | Managed binaries, Python envs, and local STT models | ~7 GiB       |
+| `~/.cache/uv` (macOS and Linux) | uv's shared Python package cache                    | ~2.5 GB      |
 
 Notes:
 
@@ -143,3 +143,5 @@ bun autoshow setup --models whisperfile:large-v3
 ```
 
 Supported whisperfile models: `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3`.
+
+Setup test coverage is documented in [Setup Service Tests](setup-tests.md).

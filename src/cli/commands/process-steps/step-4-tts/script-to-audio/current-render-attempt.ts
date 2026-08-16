@@ -2766,6 +2766,7 @@ export type CurrentTtsResumePricePlan = Readonly<{
   plannedCost: PlannedCost
   plannedSlotCount: number
   unresolvedSlotCount: number
+  unresolvedCharacterCount: number
   recoveredSlotCount: number
   recoveryKind: 'none' | CurrentTtsCompletedRecovery['kind'] | CurrentTtsPartialRecovery['kind'] | CurrentTtsSafeRedispatch['kind']
   reconciliationBlockers: readonly CurrentTtsReconciliationBlocker[]
@@ -2776,8 +2777,9 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
   state?: PipelineProviderState | undefined
 }): Promise<CurrentTtsResumePricePlan> => {
   const { rootDir, state, ...planOptions } = options
+  const planned = buildPureCurrentTtsRenderPlan(planOptions)
   const readiness = planCurrentTtsReadiness(planOptions)
-  const slots = readiness.renderPlan.batches.flatMap((batch) => batch.generationSlots)
+  const slots = planned.planned.slots
   const requestedSlotLimit = planOptions.ttsOptions.ttsMaxGenerationSlots
   if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) {
     throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
@@ -2810,6 +2812,7 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
     plannedCost,
     plannedSlotCount: selectedSlots.length,
     unresolvedSlotCount: unresolvedSlots.length,
+    unresolvedCharacterCount: selectedSlots.reduce((count, slot) => count + [...slot.providerText].length, 0),
     recoveredSlotCount: slots.length - unresolvedSlots.length,
     recoveryKind: effectiveRecovery?.kind ?? 'none',
     reconciliationBlockers: effectiveRecovery?.reconciliationBlockers ?? []

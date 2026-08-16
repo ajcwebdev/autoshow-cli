@@ -59,10 +59,6 @@ describe('music provider contracts', () => {
     expect(() => buildOptsFromFlags(false, {
       'minimax-music': previousModel
     })).toThrow(`Invalid model "${previousModel}" for --provider/--music minimax[=model]`)
-    const retiredFreeModel = previousModel + '-free'
-    expect(() => buildOptsFromFlags(false, {
-      'minimax-music': retiredFreeModel
-    })).toThrow(`Invalid model "${retiredFreeModel}" for --provider/--music minimax[=model]`)
     expect(() => buildOptsFromFlags(false, {
       'minimax-music': 'music-cover'
     })).toThrow('Invalid model "music-cover" for --provider/--music minimax[=model]')

@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, mock } from 'bun:test'
+import { mock } from 'bun:test'
 import * as bunTest from 'bun:test'
+import { AsyncLocalStorage } from 'node:async_hooks'
 
 type ConsoleMethod = 'log' | 'warn' | 'error' | 'info' | 'debug'
 type TestBuffer = {
@@ -13,7 +14,7 @@ const installed = globalThis as typeof globalThis & { [harnessFlag]?: true }
 if (installed[harnessFlag] !== true) {
   installed[harnessFlag] = true
 
-  let current: TestBuffer | undefined
+  const buffers = new AsyncLocalStorage<TestBuffer>()
   const originalConsole: Record<ConsoleMethod, (...args: unknown[]) => void> = {
     log: console.log.bind(console),
     warn: console.warn.bind(console),
@@ -30,8 +31,9 @@ if (installed[harnessFlag] !== true) {
   }).join(' ')
 
   const write = (method: ConsoleMethod, args: unknown[]): void => {
-    if (current) {
-      current.lines.push(formatArgs(args))
+    const store = buffers.getStore()
+    if (store) {
+      store.lines.push(formatArgs(args))
       return
     }
     originalConsole[method](...args)
@@ -59,22 +61,73 @@ if (installed[harnessFlag] !== true) {
           const result = value.apply(target, args)
           if (result && typeof (result as Promise<unknown>).then === 'function') {
             return (result as Promise<unknown>).catch((error: unknown) => {
-              if (current) {
-                current.failed = true
+              const store = buffers.getStore()
+              if (store) {
+                store.failed = true
               }
               throw error
             })
           }
           return result
         } catch (error) {
-          if (current) {
-            current.failed = true
+          const store = buffers.getStore()
+          if (store) {
+            store.failed = true
           }
           throw error
         }
       }
     },
   })
+
+  const runWithBuffer = (fn: (...args: unknown[]) => unknown) =>
+    (...args: unknown[]) => {
+      const incoming = buffers.getStore()
+      const store = incoming ?? { lines: [], failed: false }
+      const run = (): unknown => {
+        const finish = (threw: boolean): void => {
+          if (store.failed || threw) {
+            dump(store)
+          }
+        }
+        try {
+          const result = fn(...args)
+          if (result && typeof (result as Promise<unknown>).then === 'function') {
+            return (result as Promise<unknown>).then(
+              (value) => {
+                finish(false)
+                return value
+              },
+              (error: unknown) => {
+                finish(true)
+                throw error
+              }
+            )
+          }
+          finish(false)
+          return result
+        } catch (error) {
+          finish(true)
+          throw error
+        }
+      }
+      return incoming ? run() : buffers.run(store, run)
+    }
+
+  const wrapRegistrar = (original: unknown): unknown => {
+    if (typeof original !== 'function') {
+      return original
+    }
+    const wrapped = (...args: unknown[]) => {
+      const next = args.map((arg) => typeof arg === 'function' ? runWithBuffer(arg as (...inner: unknown[]) => unknown) : arg)
+      return original(...next)
+    }
+    return new Proxy(wrapped, {
+      get(_target, property) {
+        return wrapRegistrar(Reflect.get(original, property, original))
+      },
+    })
+  }
 
   const rawExpect = bunTest.expect
   const wrappedExpect = ((actual?: unknown, message?: string) => {
@@ -91,16 +144,7 @@ if (installed[harnessFlag] !== true) {
   mock.module('bun:test', () => ({
     ...bunTest,
     expect: wrappedExpect,
+    test: wrapRegistrar(bunTest.test),
+    it: wrapRegistrar(bunTest.it),
   }))
-
-  beforeEach(() => {
-    current = { lines: [], failed: false }
-  })
-
-  afterEach(() => {
-    if (current?.failed) {
-      dump(current)
-    }
-    current = undefined
-  })
 }

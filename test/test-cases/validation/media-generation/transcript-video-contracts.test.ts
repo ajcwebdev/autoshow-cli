@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test'
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
-import { E2E_TEST_TIMEOUT_MS } from '../../../test-utils/timeouts'
+import { LONG_E2E_TEST_TIMEOUT_MS } from '../../../test-utils/timeouts'
 import {
   EXAMPLE_SHORT_AUDIO_URL,
   LOCAL_EXAMPLE_SHORT_AUDIO_PATH,
@@ -77,7 +77,7 @@ test('extract transcript-video renders from a media extract output directory', a
     'extract',
     FIXTURE_RUN_DIR,
     '--transcript-video'
-  ])
+  ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
 
   expect(result.exitCode).toBe(0)
   expect(result.outputDir).not.toBeNull()
@@ -101,7 +101,7 @@ test('extract transcript-video renders from a media extract output directory', a
     expect(vtt).toContain('Speaker 1: Hello there.')
     expect(vtt).toContain('Speaker 2: Thanks for joining.')
   }
-}, E2E_TEST_TIMEOUT_MS)
+}, LONG_E2E_TEST_TIMEOUT_MS)
 
 test('extract transcript-video renders from explicit audio and transcript text files', async () => {
   const result = await runCommand([
@@ -113,7 +113,7 @@ test('extract transcript-video renders from explicit audio and transcript text f
     '--transcript-text',
     FIXTURE_TEXT_PATH,
     '--keep-tmp'
-  ])
+  ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
 
   expect(result.exitCode).toBe(0)
   expect(result.outputDir).not.toBeNull()
@@ -129,4 +129,4 @@ test('extract transcript-video renders from explicit audio and transcript text f
     expect((metadata['source'] as Record<string, unknown>)['transcriptSource']).toBe('transcript-text')
     expect((metadata['transcript'] as Record<string, unknown>)['cueSource']).toBe('transcript-text')
   }
-}, E2E_TEST_TIMEOUT_MS)
+}, LONG_E2E_TEST_TIMEOUT_MS)

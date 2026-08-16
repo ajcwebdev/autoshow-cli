@@ -92,25 +92,25 @@ resolvedStep2 + extractRoute + supported/skipReason
 
 Extract route mapping:
 
-| Input family | Step 2 route | Extract route |
-|--------------|--------------|---------------|
-| `media` | STT | `media` |
-| `document` | OCR or native document extraction | `document` |
-| `html_article` | URL/article extraction | `article` |
-| `x_space` | X Space metadata extraction | `x-space` |
-| `unsupported` | none | skipped in batch, usage error for single |
+| Input family   | Step 2 route                      | Extract route                            |
+| -------------- | --------------------------------- | ---------------------------------------- |
+| `media`        | STT                               | `media`                                  |
+| `document`     | OCR or native document extraction | `document`                               |
+| `html_article` | URL/article extraction            | `article`                                |
+| `x_space`      | X Space metadata extraction       | `x-space`                                |
+| `unsupported`  | none                              | skipped in batch, usage error for single |
 
 The document family includes `.pdf`, `.epub`, `.acsm`, `.docx`, `.pptx`, `.xlsx`, `.odt`, `.ods`, `.odp`, `.mobi`, `.prc`, `.azw3`, `.azw`, `.fb2`, `.lit`, `.cbz`, `.rtf`, `.csv`, and image files `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`. Local `.html`/`.htm` files classify as `html_article`.
 
 ## Command Matrix
 
-| Family | `metadata` | `download` | `extract` | `write` |
-|--------|------------|------------|-----------|---------|
-| Media | metadata only | download/stage media | STT route | STT + LLM + optional generation |
-| Document/image | metadata only | download/copy document | OCR/native document route | OCR/native document + LLM + optional generation |
-| HTML/article | metadata only | article prep/download metadata | URL/article route | URL/article + LLM + optional generation |
-| X Space | X API metadata lookup | Space audio download | X Space route | X Space report + LLM |
-| Text input | unsupported | unsupported | unsupported | only when `--text-input` is active |
+| Family         | `metadata`            | `download`                     | `extract`                 | `write`                                         |
+| -------------- | --------------------- | ------------------------------ | ------------------------- | ----------------------------------------------- |
+| Media          | metadata only         | download/stage media           | STT route                 | STT + LLM + optional generation                 |
+| Document/image | metadata only         | download/copy document         | OCR/native document route | OCR/native document + LLM + optional generation |
+| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | URL/article + LLM + optional generation         |
+| X Space        | X API metadata lookup | Space audio download           | X Space route             | X Space report + LLM                            |
+| Text input     | unsupported           | unsupported                    | unsupported               | only when `--text-input` is active              |
 
 Unsupported batch items are kept in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`. They are not sent to child batch execution.
 
@@ -200,11 +200,11 @@ The media child uses the STT batch coordinator and records caption-backed or STT
 
 ## Entry Points
 
-| Source | Planner/handler | Item discovery |
-|--------|-----------------|----------------|
-| Directory | `resolveProcessTargetPlan()` -> `planProcessTargetBatchExecution()` | `collectInputFiles()` plus optional `input/2-urls.md`. |
-| Input list | `resolveInputListBatch()` | Line parser for `.md`/`.txt`, markdown links, bullets, and relative paths. |
-| Podcast or YouTube source | `tryResolveBatchSource()` | Feed/channel/source enumeration stored in the canonical manifest's optional `source` object. |
-| YouTube collection | `resolveYoutubeCollectionItems()` | Playlist/channel collection expansion. |
-| Text-input write | `collectTextInputFiles()` or single `.md`/`.txt` | Raw text source files for `write --text-input`. |
-| Single item | `handleSingleTarget()` | Route resolved by `resolveInputRoutingForCommand()`. |
+| Source                    | Planner/handler                                                     | Item discovery                                                                               |
+| ------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Directory                 | `resolveProcessTargetPlan()` -> `planProcessTargetBatchExecution()` | `collectInputFiles()` plus optional `input/2-urls.md`.                                       |
+| Input list                | `resolveInputListBatch()`                                           | Line parser for `.md`/`.txt`, markdown links, bullets, and relative paths.                   |
+| Podcast or YouTube source | `tryResolveBatchSource()`                                           | Feed/channel/source enumeration stored in the canonical manifest's optional `source` object. |
+| YouTube collection        | `resolveYoutubeCollectionItems()`                                   | Playlist/channel collection expansion.                                                       |
+| Text-input write          | `collectTextInputFiles()` or single `.md`/`.txt`                    | Raw text source files for `write --text-input`.                                              |
+| Single item               | `handleSingleTarget()`                                              | Route resolved by `resolveInputRoutingForCommand()`.                                         |

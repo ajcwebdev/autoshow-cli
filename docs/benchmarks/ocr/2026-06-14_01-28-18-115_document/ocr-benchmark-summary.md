@@ -10,20 +10,20 @@
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `deepinfra/google/gemma-3-27b-it` | 1 |
+| Selected Provider                 | Pages |
+| --------------------------------- | ----: |
+| `deepinfra/google/gemma-3-27b-it` |     1 |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 0 |
-| highDisagreementPages | 0 |
-| werCerDivergencePages | 0 |
-| lowConfidencePages | 0 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      |          0 |
+| repeatedTextPages     |          0 |
+| majorLengthDriftPages |          0 |
+| highDisagreementPages |          0 |
+| werCerDivergencePages |          0 |
+| lowConfidencePages    |          0 |
 
 ## Selective Adjudication
 
@@ -33,6 +33,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 2.35% | 0.73% | 5 |
+| Reference              | Candidate           |   WER |   CER | Word Edits |
+| ---------------------- | ------------------- | ----: | ----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 2.35% | 0.73% |          5 |

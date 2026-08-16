@@ -5,6 +5,7 @@ import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { createOpenAIResponse } from '~/utils/openai/openai-client'
 import { runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
+import { setHttpCaptureBytesForTests } from '~/utils/bounded-capture'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 setupContractSuiteLifecycle({
@@ -128,15 +129,20 @@ describe('provider REST client differential contracts', () => {
     })
 
     test(`${client.name} bounds oversized error diagnostics`, async () => {
-      const oversizedBody = `${'x'.repeat(16 * 1024 * 1024)}tail-marker`
-      installMockFetch(() => new Response(oversizedBody, { status: 422 }))
+      setHttpCaptureBytesForTests(64)
+      try {
+        const oversizedBody = `${'x'.repeat(65)}tail-marker`
+        installMockFetch(() => new Response(oversizedBody, { status: 422 }))
 
-      const error = await captureError(client)
-      expect(error.name).toBe(client.errorName)
-      expect(error['bodyBytes']).toBe(new TextEncoder().encode(oversizedBody).byteLength)
-      expect(error['bodyTruncated']).toBe(true)
-      expect(error['bodyPreview']).toBeString()
-      expect(error['bodyPreview']).toEndWith('tail-marker')
+        const error = await captureError(client)
+        expect(error.name).toBe(client.errorName)
+        expect(error['bodyBytes']).toBe(oversizedBody.length)
+        expect(error['bodyTruncated']).toBe(true)
+        expect(error['bodyPreview']).toBeString()
+        expect(error['bodyPreview']).toEndWith('tail-marker')
+      } finally {
+        setHttpCaptureBytesForTests()
+      }
     })
   }
 

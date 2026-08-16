@@ -249,14 +249,14 @@ Domain option slices:
 
 Provider unions:
 
-| Type | Values |
-|------|--------|
-| `TtsProvider` | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
-| `ImageProvider` | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
-| `VideoProvider` | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
-| `MusicProvider` | `elevenlabs`, `minimax`, `gemini` |
-| `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal` |
-| `HtmlArticleBackend` | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte` |
+| Type                   | Values                                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TtsProvider`          | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
+| `ImageProvider`        | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`                                                                                            |
+| `VideoProvider`        | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                     |
+| `MusicProvider`        | `elevenlabs`, `minimax`, `gemini`                                                                                                                                       |
+| `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`                                                         |
+| `HtmlArticleBackend`   | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`                                                                                                     |
 
 `DetectResult` values:
 
@@ -268,17 +268,17 @@ Provider unions:
 
 Important metadata fields by step:
 
-| Step | Metadata highlights |
-|------|---------------------|
-| Step 1 media | title, slug, duration, author, source URL/path, publish metadata, audio file name/size, and staged source media details. |
-| Step 1 document | title, slug, author, page count when available, format, file size, source URL/path. |
-| Step 2 STT | transcription service, model, output files, segment counts, token/character counts, timings, runtime/provider info, billing/cost fields, caption fields `captionKind`, `captionLanguage`, `captionFormat` for YouTube captions. |
-| Step 2 extraction | extraction method, provider/model/backend, format, page counts, OCR/text page counts, language/DPI/chapter fields, HTML/web/source info, conversion/normalization details, provider cost/usage and timing. |
-| Step 3 LLM | LLM service/model, output file, token counts, structured mode/preset names, processing time, provider cost/usage. |
-| Step 4 TTS | TTS provider/model, voice/speaker/language, audio file names/sizes, chunk counts, operation-scoped target/transport, voice/settings/output-aware render/result/audio-run identities, canonical `ttsAudio` projection, processing time, and provider cost. Voice creation and protected consent/sample data are not synthesis metadata. |
-| Step 5 image | image provider/model, file names/sizes, image count/dimensions, size/quality/format, request mode, revised prompt, returned model, moderation/grounding, provider cost. |
-| Step 6 video | video provider/model, file name/size/duration, request mode, resolution/aspect ratio, input/reference media, provider IDs/URLs/progress/moderation/storage, provider cost. |
-| Step 7 music | music provider/model, file name/size/duration, lyrics source, generated lyrics/title/style fields, audio technical metadata, provider IDs/traces, provider cost. |
-| Step 8 comic | script slug, stage progress (structure, image, audio), character catalog, scene run identity, structured script, dialogue plan, snapshot, and selected audio runs. |
+| Step              | Metadata highlights                                                                                                                                                                                                                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Step 1 media      | title, slug, duration, author, source URL/path, publish metadata, audio file name/size, and staged source media details.                                                                                                                                                                                                               |
+| Step 1 document   | title, slug, author, page count when available, format, file size, source URL/path.                                                                                                                                                                                                                                                    |
+| Step 2 STT        | transcription service, model, output files, segment counts, token/character counts, timings, runtime/provider info, billing/cost fields, caption fields `captionKind`, `captionLanguage`, `captionFormat` for YouTube captions.                                                                                                        |
+| Step 2 extraction | extraction method, provider/model/backend, format, page counts, OCR/text page counts, language/DPI/chapter fields, HTML/web/source info, conversion/normalization details, provider cost/usage and timing.                                                                                                                             |
+| Step 3 LLM        | LLM service/model, output file, token counts, structured mode/preset names, processing time, provider cost/usage.                                                                                                                                                                                                                      |
+| Step 4 TTS        | TTS provider/model, voice/speaker/language, audio file names/sizes, chunk counts, operation-scoped target/transport, voice/settings/output-aware render/result/audio-run identities, canonical `ttsAudio` projection, processing time, and provider cost. Voice creation and protected consent/sample data are not synthesis metadata. |
+| Step 5 image      | image provider/model, file names/sizes, image count/dimensions, size/quality/format, request mode, revised prompt, returned model, moderation/grounding, provider cost.                                                                                                                                                                |
+| Step 6 video      | video provider/model, file name/size/duration, request mode, resolution/aspect ratio, input/reference media, provider IDs/URLs/progress/moderation/storage, provider cost.                                                                                                                                                             |
+| Step 7 music      | music provider/model, file name/size/duration, lyrics source, generated lyrics/title/style fields, audio technical metadata, provider IDs/traces, provider cost.                                                                                                                                                                       |
+| Step 8 comic      | script slug, stage progress (structure, image, audio), character catalog, scene run identity, structured script, dialogue plan, snapshot, and selected audio runs.                                                                                                                                                                     |
 
 Item metadata commonly includes cost, timing, errors, and route-specific evidence such as `resolvedStep2` and `web`. Completion and provider progress live only in the canonical item `status` and `providers` fields; requested, missing, and blocked lists are derived views rather than duplicated persisted state.

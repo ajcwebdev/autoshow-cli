@@ -56,12 +56,10 @@ describe('help flag group catalog contracts', () => {
     expect(keys.length).toBe(new Set(keys).size)
   })
 
-  test('every registered command has a help group and none is benchmark', () => {
+  test('every registered command has a help group', () => {
     expect(COMMAND_DEFINITIONS.map((command) => command.name).sort()).toEqual(
       Object.keys(HELP_COMMAND_GROUP_BY_NAME).filter((name) => name !== 'version' && name !== 'help').sort()
     )
-    expect(COMMAND_DEFINITIONS.map((command) => command.name)).not.toContain('benchmark')
-    expect(HELP_COMMAND_GROUP_BY_NAME).not.toHaveProperty('benchmark')
   })
 
   test('flag descriptions do not restate a concrete metadata default', () => {

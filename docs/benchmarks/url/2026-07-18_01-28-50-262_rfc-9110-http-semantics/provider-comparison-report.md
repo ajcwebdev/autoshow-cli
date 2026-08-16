@@ -41,33 +41,33 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>firecrawl</code> | $0.0008 |
-| 2 | <code>spider</code> | $0.0012 |
-| 3 | <code>zyte</code> | $0.0016 |
-| 4 | <code>glm-reader</code> | $0.0100 |
-| 5 | <code>supadata</code> | $0.0100 |
+| Rank | Provider                | Evidence |
+| ---: | ----------------------- | -------- |
+|    1 | <code>firecrawl</code>  | $0.0008  |
+|    2 | <code>spider</code>     | $0.0012  |
+|    3 | <code>zyte</code>       | $0.0016  |
+|    4 | <code>glm-reader</code> | $0.0100  |
+|    5 | <code>supadata</code>   | $0.0100  |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>firecrawl</code> | 1.05s |
-| 2 | <code>spider</code> | 1.67s |
-| 3 | <code>glm-reader</code> | 7.54s |
-| 4 | <code>zyte</code> | 10.87s |
-| 5 | <code>supadata</code> | 13.41s |
+| Rank | Provider                | Evidence |
+| ---: | ----------------------- | -------- |
+|    1 | <code>firecrawl</code>  | 1.05s    |
+|    2 | <code>spider</code>     | 1.67s    |
+|    3 | <code>glm-reader</code> | 7.54s    |
+|    4 | <code>zyte</code>       | 10.87s   |
+|    5 | <code>supadata</code>   | 13.41s   |
 
 ### Automated Quality
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>firecrawl</code> | 99.83 accuracy (0.22% WER, 0.14% CER, 99.90% coverage) |
-| 2 | <code>spider</code> | 98.31 accuracy (2.24% WER, 2.29% CER, 100.00% coverage) |
-| 3 | <code>glm-reader</code> | 96.76 accuracy (4.45% WER, 4.08% CER, 100.00% coverage) |
-| 4 | <code>supadata</code> | 96.28 accuracy (5.13% WER, 4.58% CER, 99.97% coverage) |
-| 5 | <code>zyte</code> | 6.80 accuracy (96.62% WER, 96.47% CER, 16.92% coverage) |
+| Rank | Provider                | Evidence                                                |
+| ---: | ----------------------- | ------------------------------------------------------- |
+|    1 | <code>firecrawl</code>  | 99.83 accuracy (0.22% WER, 0.14% CER, 99.90% coverage)  |
+|    2 | <code>spider</code>     | 98.31 accuracy (2.24% WER, 2.29% CER, 100.00% coverage) |
+|    3 | <code>glm-reader</code> | 96.76 accuracy (4.45% WER, 4.08% CER, 100.00% coverage) |
+|    4 | <code>supadata</code>   | 96.28 accuracy (5.13% WER, 4.58% CER, 99.97% coverage)  |
+|    5 | <code>zyte</code>       | 6.80 accuracy (96.62% WER, 96.47% CER, 16.92% coverage) |
 
 ### Human Quality
 
@@ -75,13 +75,13 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider | Quality Evidence | Processing Time | Monetary Cost |
-| --- | --- | ---: | ---: |
-| <code>firecrawl</code> | 0.22% WER, 0.14% CER, 99.90% coverage | 1.05s | $0.0008 |
-| <code>glm-reader</code> | 4.45% WER, 4.08% CER, 100.00% coverage | 7.54s | $0.0100 |
-| <code>spider</code> | 2.24% WER, 2.29% CER, 100.00% coverage | 1.67s | $0.0012 |
-| <code>supadata</code> | 5.13% WER, 4.58% CER, 99.97% coverage | 13.41s | $0.0100 |
-| <code>zyte</code> | 96.62% WER, 96.47% CER, 16.92% coverage | 10.87s | $0.0016 |
+| Provider                | Quality Evidence                        | Processing Time | Monetary Cost |
+| ----------------------- | --------------------------------------- | --------------: | ------------: |
+| <code>firecrawl</code>  | 0.22% WER, 0.14% CER, 99.90% coverage   |           1.05s |       $0.0008 |
+| <code>glm-reader</code> | 4.45% WER, 4.08% CER, 100.00% coverage  |           7.54s |       $0.0100 |
+| <code>spider</code>     | 2.24% WER, 2.29% CER, 100.00% coverage  |           1.67s |       $0.0012 |
+| <code>supadata</code>   | 5.13% WER, 4.58% CER, 99.97% coverage   |          13.41s |       $0.0100 |
+| <code>zyte</code>       | 96.62% WER, 96.47% CER, 16.92% coverage |          10.87s |       $0.0016 |
 
 ## Notes
 

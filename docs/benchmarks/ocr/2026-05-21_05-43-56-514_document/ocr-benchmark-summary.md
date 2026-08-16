@@ -10,20 +10,20 @@
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `fal/fal-ai/got-ocr/v2` | 1 |
+| Selected Provider       | Pages |
+| ----------------------- | ----: |
+| `fal/fal-ai/got-ocr/v2` |     1 |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 1 |
-| highDisagreementPages | 1 |
-| werCerDivergencePages | 1 |
-| lowConfidencePages | 1 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      |          0 |
+| repeatedTextPages     |          0 |
+| majorLengthDriftPages |          1 |
+| highDisagreementPages |          1 |
+| werCerDivergencePages |          1 |
+| lowConfidencePages    |          1 |
 
 ## Selective Adjudication
 
@@ -33,6 +33,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 99.52% | 98.91% | 1457 |
+| Reference              | Candidate           |    WER |    CER | Word Edits |
+| ---------------------- | ------------------- | -----: | -----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 99.52% | 98.91% |       1457 |

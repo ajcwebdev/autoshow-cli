@@ -14,15 +14,15 @@ Phases 1–5 cleaned command help, removed `benchmark`, and locked the contracts
 
 Live surfaces: root, `config`, `setup`, `links`, `resume`, `metadata`, `download`, `extract`, `write`, `tts`, `voice`, `image`, `video`, `music`, `comic`, and the comic children `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice`. Built-in `version` and `help` stay under contract tests but are not separate audit rows. `benchmark` is gone: production code, registration, dedicated tests, and the command doc are deleted; `docs/benchmarks/` run data and shared pipeline code remain.
 
-| Surface | Current globals | Notes |
-|---|---|---|
-| Root | Remaining `GLOBAL_FLAG_DEFINITIONS` | Still lists `--characters-root` and `--allow-over-budget`. `--model-path` is gone. Cookie flags are gone. |
-| Config | No `--output-dir`, `--model-path`, or `--characters-root` | `--price` gone. Cookie flags live under Auth. `--allow-over-budget` still advertised. ElevenLabs streaming-latency default is gone. |
-| Setup, links | No `--output-dir`, `--model-path`, or `--characters-root` | `--repeat` gone from setup. `--allow-over-budget` still advertised. |
-| Resume, write | No `--model-path` or `--characters-root` | Cookie flags gone. `--keep-ocr-page-inputs` gone. `--model-path` is no longer a current flag. |
-| Metadata, download, extract, tts, image, video, music | No `--model-path` or `--characters-root` | Cookie flags gone from metadata/download/extract. `--keep-ocr-page-inputs` gone from extract/write/resume. |
-| Voice, comic, and comic children | `--characters-root` advertised; no `--model-path` | `--output-dir` hidden on `voice` and `comic reference-voice`. Comic generate-audio no longer exposes WAV mastering flags. `--allow-over-budget` still advertised, including on `voice`. |
-| Benchmark | Removed | `benchmark --help` is an unknown command. |
+| Surface                                               | Current globals                                           | Notes                                                                                                                                                                                   |
+| ----------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Root                                                  | Remaining `GLOBAL_FLAG_DEFINITIONS`                       | Still lists `--characters-root` and `--allow-over-budget`. `--model-path` is gone. Cookie flags are gone.                                                                               |
+| Config                                                | No `--output-dir`, `--model-path`, or `--characters-root` | `--price` gone. Cookie flags live under Auth. `--allow-over-budget` still advertised. ElevenLabs streaming-latency default is gone.                                                     |
+| Setup, links                                          | No `--output-dir`, `--model-path`, or `--characters-root` | `--repeat` gone from setup. `--allow-over-budget` still advertised.                                                                                                                     |
+| Resume, write                                         | No `--model-path` or `--characters-root`                  | Cookie flags gone. `--keep-ocr-page-inputs` gone. `--model-path` is no longer a current flag.                                                                                           |
+| Metadata, download, extract, tts, image, video, music | No `--model-path` or `--characters-root`                  | Cookie flags gone from metadata/download/extract. `--keep-ocr-page-inputs` gone from extract/write/resume.                                                                              |
+| Voice, comic, and comic children                      | `--characters-root` advertised; no `--model-path`         | `--output-dir` hidden on `voice` and `comic reference-voice`. Comic generate-audio no longer exposes WAV mastering flags. `--allow-over-budget` still advertised, including on `voice`. |
+| Benchmark                                             | Removed                                                   | `benchmark --help` is an unknown command.                                                                                                                                               |
 
 ## Completed Work
 

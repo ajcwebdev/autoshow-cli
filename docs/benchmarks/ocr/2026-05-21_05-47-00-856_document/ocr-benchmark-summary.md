@@ -10,21 +10,21 @@
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct` | 3 |
-| `deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506` | 1 |
+| Selected Provider                                         | Pages |
+| --------------------------------------------------------- | ----: |
+| `deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct`     |     3 |
+| `deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506` |     1 |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 3 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 4 |
-| highDisagreementPages | 1 |
-| werCerDivergencePages | 0 |
-| lowConfidencePages | 1 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      |          3 |
+| repeatedTextPages     |          0 |
+| majorLengthDriftPages |          4 |
+| highDisagreementPages |          1 |
+| werCerDivergencePages |          0 |
+| lowConfidencePages    |          1 |
 
 ## Selective Adjudication
 
@@ -34,6 +34,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 0.90% | 0.83% | 12 |
+| Reference              | Candidate           |   WER |   CER | Word Edits |
+| ---------------------- | ------------------- | ----: | ----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 0.90% | 0.83% |         12 |

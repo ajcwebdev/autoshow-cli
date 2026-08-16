@@ -1,1 +1,1 @@
-export { defineMusicServicePriceTests, defineMusicServiceTest } from './define-generation-service-test'
+export { defineMusicServiceTest } from './define-generation-service-test'

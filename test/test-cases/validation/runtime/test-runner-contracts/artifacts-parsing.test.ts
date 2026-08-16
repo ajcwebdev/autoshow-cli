@@ -14,9 +14,14 @@ import {
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog } from '../../../../test-runner/artifacts'
+import { appendRunnerLog, cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog } from '../../../../test-runner/artifacts'
 import { parseJunit } from '../../../../test-runner/parsers'
-import { lineHasTimedOutputPrefix, parseCommandEstimatedTotal } from '../../../../test-runner/utils'
+import {
+  COMMAND_OUTPUT_PARSE_TAIL_CHARS,
+  lineHasTimedOutputPrefix,
+  parseCommandEstimatedTotal,
+  parseOutputDirFromText
+} from '../../../../test-runner/utils'
 
 const tempDirs: string[] = []
 
@@ -38,6 +43,17 @@ describe('test-runner contracts', () => {
       expect(parseCommandEstimatedTotal('Total estimated cost: 16.00¢')).toBe(16)
       expect(parseCommandEstimatedTotal('Total estimated cost: free')).toBe(0)
       expect(parseCommandEstimatedTotal('{"estimate":{"totalEstimatedCostCents":12.345}}')).toBe(12.345)
+      expect(parseOutputDirFromText('outputDir: /tmp/autoshow/latest-run\n')).toBe('/tmp/autoshow/latest-run')
+      expect(parseOutputDirFromText('manifest: /tmp/autoshow/latest-run/manifest.json\n')).toBe('/tmp/autoshow/latest-run')
+    })
+
+  test('output-dir and estimated-cost parsers only scan the last 64KB', () => {
+      const padding = `${'x'.repeat(COMMAND_OUTPUT_PARSE_TAIL_CHARS + 1024)}\n`
+      const tail = 'outputDir: /tmp/autoshow/latest-run\nTotal estimated cost: 16.00¢\n'
+      expect(parseOutputDirFromText(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}${tail}`)).toBe('/tmp/autoshow/latest-run')
+      expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}${tail}`)).toBe(16)
+      expect(parseOutputDirFromText(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}`)).toBeNull()
+      expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\nTotal estimated cost: 1.00¢\n${padding}`)).toBeNull()
     })
 
   test('test-output cleanup preserves latest.log only', async () => {
@@ -92,7 +108,7 @@ describe('test-runner contracts', () => {
       tempDirs.push(dir)
 
       const artifacts = await createRunArtifacts(dir)
-      await writeFile(artifacts.runnerLogPath, 'runner transcript\n')
+      appendRunnerLog(artifacts, 'runner transcript\n')
       await writeFile(artifacts.commandLogPath, 'command transcript\n')
       await writeFile(artifacts.reportJsonPath, `${JSON.stringify({
         run: {
@@ -127,6 +143,33 @@ describe('test-runner contracts', () => {
       expect(latestLog).toContain('test/test-cases/example.test.ts :: fails usefully: expected true')
       expect(latestLog).toContain('runner transcript')
       expect(latestLog).toContain('command transcript')
+    })
+
+  test('runner log sink flushes appended lines into latest.log', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'autoshow-test-output-runner-sink-'))
+      tempDirs.push(dir)
+
+      const artifacts = await createRunArtifacts(dir)
+      for (let index = 0; index < 100; index++) {
+        appendRunnerLog(artifacts, `line-${index}\n`)
+      }
+
+      const latestLog = await readFile(await writeLatestRunLog(artifacts, 0), 'utf8')
+      expect(latestLog).toContain('line-0')
+      expect(latestLog).toContain('line-99')
+    })
+
+  test('latest log tail-truncates oversized commands.log', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'autoshow-test-output-command-tail-'))
+      tempDirs.push(dir)
+
+      const artifacts = await createRunArtifacts(dir)
+      await writeFile(artifacts.commandLogPath, `HEAD-SHOULD-DROP\n${'x'.repeat(300_000)}KEEP-ME\n`)
+
+      const latestLog = await readFile(await writeLatestRunLog(artifacts, 0), 'utf8')
+      expect(latestLog).toContain('truncated')
+      expect(latestLog).toContain('KEEP-ME')
+      expect(latestLog).not.toContain('HEAD-SHOULD-DROP')
     })
 
   test('JUnit XML parsing returns pass, fail, and skip counts', async () => {

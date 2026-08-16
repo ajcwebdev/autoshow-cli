@@ -196,6 +196,14 @@ describe('comic character handling flat-reference contracts', () => {
       catalog,
     )).not.toThrow()
     expect(() => validateSceneCharacters(
+      scene('A monitor shows telemetry. Hero is a free-standing hologram.', 'Hero shines above a projector base. The monitor remains physically separate.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'Hero shines above a projector base. The monitor displays telemetry only, never Hero.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
       scene('Hero appears on a monitor.', 'Medium shot of the monitor.'),
       catalog,
     )).toThrow(/must satisfy canonical rule: Hero must be identified as a hologram/)

@@ -8,10 +8,7 @@ import { join } from 'node:path'
 import type { MetricName, MetricRankingEntry } from '~/types'
 import { writeMultiProviderManifestFixture } from '../../../../test-utils/manifest-helpers'
 import {
-  deprecatedOverallTierKey,
-  deprecatedTierSplitKey,
   expectMetricRankings,
-  hasOwnKeyDeep,
   runConsensusBuildReport,
   setupTempRoots
 } from './shared'
@@ -64,9 +61,7 @@ describe('grouped report contracts', () => {
   	      }
   	    }
 
-  	    expect(hasOwnKeyDeep(report, deprecatedTierSplitKey)).toBe(false)
-  	    expect(hasOwnKeyDeep(report, deprecatedOverallTierKey)).toBe(false)
-  	    expect(report.rankingSurfaces).toBeUndefined()
+   	    expect(report.rankingSurfaces).toBeUndefined()
   	    expect(report.overall).toBeUndefined()
   	    expect(report.overallMetric).toBeUndefined()
   	    expect(report.overallWeights).toBeUndefined()

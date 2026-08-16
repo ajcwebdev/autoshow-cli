@@ -1,49 +1,38 @@
-import type { CliCommandContext, CliCommandDefinition, CliParameterValues } from '~/types'
+import type { CliCommandDefinition } from '~/types'
 import { defineCliCommand } from '~/cli/native/native-types'
-import { CLIUsageError } from '~/utils/error-handler'
-import { VOICE_ACTIONS, VOICE_SUBCOMMAND_DEFINITIONS, voiceReferenceAliasFlags } from '../../../step-4-tts/voice-management/define-voice-command'
+import { VOICE_SUBCOMMAND_DEFINITIONS, voiceActionName } from '../../../step-4-tts/voice-management/define-voice-command'
 
-const identityParameterName = (definition: CliCommandDefinition): string | undefined => {
-  const key = definition.parameters?.[0]?.key
-  if (!key) return undefined
-  return key.replace(/^[<[{]/, '').replace(/[>\]}]$/, '').replace(/-([a-zA-Z0-9])/g, (_match, char: string) => char.toUpperCase())
-}
-
-const handleReferenceVoice = async (ctx: CliCommandContext): Promise<void> => {
-  const action = ctx.parameters['action']
-  if (typeof action !== 'string' || !VOICE_ACTIONS.includes(action)) {
-    throw CLIUsageError(`comic reference-voice action must be one of: ${VOICE_ACTIONS.join(', ')}.`)
-  }
-  const definition = VOICE_SUBCOMMAND_DEFINITIONS.find(entry => entry.name === `voice ${action}`)
-  if (!definition) throw CLIUsageError(`Voice management action ${action} is unavailable.`)
-  const identity = ctx.parameters['identity']
-  const identityKey = identityParameterName(definition)
-  if (identityKey && (typeof identity !== 'string' || !identity.trim())) {
-    throw CLIUsageError(`comic reference-voice ${action} requires a character/role key, consent locator, or registration ID.`)
-  }
-  const resolvedIdentity = typeof identity === 'string' ? identity.trim() : ''
-  await definition.handler({
-    ...ctx,
-    calledAs: `comic reference-voice ${action}`,
-    command: definition,
-    parameters: (identityKey ? { [identityKey]: resolvedIdentity } : {}) as CliParameterValues
+const wrapVoiceChild = (definition: CliCommandDefinition): CliCommandDefinition => {
+  const action = voiceActionName(definition.name)
+  return defineCliCommand({
+    name: `comic reference-voice ${action}`,
+    description: definition.description,
+    ...(definition.parameters ? { parameters: definition.parameters } : {}),
+    ...(definition.flags ? { flags: definition.flags } : {}),
+    ...(definition.help ? { help: definition.help } : {}),
+  }, async (ctx) => {
+    await definition.handler({
+      ...ctx,
+      calledAs: `comic reference-voice ${action}`,
+      command: definition,
+    })
   })
 }
 
 export const referenceVoiceCommandDefinition = defineCliCommand({
   name: 'comic reference-voice',
-  description: 'Create, import, audition, approve, reconcile, and retire durable character voice registrations',
-  parameters: [
-    { key: '<action>', description: `Voice management action: ${VOICE_ACTIONS.join('|')}` },
-    { key: '[identity]', description: 'Character/role key, candidate ID, protected consent locator, or registration ID, depending on the action' }
-  ],
-  flags: voiceReferenceAliasFlags,
+  description: 'Create, import, audition, approve, and retire durable character voice registrations',
+  defaultSubcommand: 'list',
+  subcommands: VOICE_SUBCOMMAND_DEFINITIONS.map(wrapVoiceChild),
   help: {
     examples: [
       ['bun autoshow comic reference-voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting', 'Register an existing character voice'],
-      ['bun autoshow comic reference-voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate the canonical audition'],
-      ['bun autoshow comic reference-voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve and promote the audition locally']
+      ['bun autoshow comic reference-voice audition vr_123 --representative-line "We leave at dawn." --price', 'Estimate the canonical audition'],
+      ['bun autoshow comic reference-voice approve vr_123 --actor-id editor', 'Approve and promote the audition locally']
     ],
-    notes: ['This is the comic-native alias of the shared voice management surface. It never generates scene audio.']
+    notes: [
+      'This is the comic-native alias of the shared voice management surface. It never generates scene audio.',
+      'Each action has its own flags: bun autoshow comic reference-voice <action> --help'
+    ]
   }
-}, handleReferenceVoice)
+}, () => {})

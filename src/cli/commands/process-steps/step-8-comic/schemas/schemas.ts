@@ -311,8 +311,12 @@ const assertKnownUniqueKeys = (values: readonly string[], catalog: CharacterCata
 
 const positiveDepictionText = (value: string): string => value
   .split(/(?<=[.!?;])\s+|,?\s+(?:but|and|while|with)\s+(?=(?:exclude|never|no\b|not\b|do not\b|don't\b|without\b))/iu)
-  .filter(sentence => !/^\s*(?:(?:exclude|never|no\b|not\b|do not\b|don't\b|without\b)|[^.!?;]{0,80}\b(?:is|are|was|were|be|been|being|may|must|should|can|could|will|would)\s+(?:not|never)\b)/iu.test(sentence))
-  .join(' ')
+  .filter(sentence => !(
+    /^\s*(?:(?:exclude|never|no\b|not\b|do not\b|don't\b|without\b)|[^.!?;]{0,80}\b(?:is|are|was|were|be|been|being|may|must|should|can|could|will|would)\s+(?:not|never)\b)/iu.test(sentence)
+    || /\b(?:shows?|displays?|contains?|holds?|frames?)\b[^.!?;]{0,100}\b(?:no|not|never)\b/iu.test(sentence)
+    || /\b(?:no|not|never)\b[^.!?;]{0,60}\b(?:shows?|displays?|contains?|holds?|frames?)\b/iu.test(sentence)
+  ))
+  .join('\n')
 
 export const validateStructuredScriptCharacters = (data: v.InferOutput<typeof StructuredScriptDataSchema>, catalog: CharacterCatalogService): void => {
   assertKnownUniqueKeys(data.characterKeys, catalog, 'structured script characterKeys')

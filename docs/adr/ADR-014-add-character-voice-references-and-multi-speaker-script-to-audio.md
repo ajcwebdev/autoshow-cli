@@ -27,14 +27,14 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 
 ## Options Considered
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement five voice-managed model adapters with a truthful segmented baseline across all 16 providers** | Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume across five dedicated voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`) | Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies | 16 providers; 5 voice-managed models with distinct expressiveness paths; 11 synthesis-only providers; 2 new comic commands |
-| Patch per-turn voice arguments and add comic flags directly to the existing `TtsOptions` bag | Smaller short-term change; can make basic speaker switching work | Leaves identity, consent, capabilities, provider-qualified casting, snapshots, resource lifecycle, and native dialogue unmodeled; generic options continue to mix selection and invocation | Fixes one defect but leaves the report's architectural gaps intact |
-| Build an ElevenLabs-only script-to-audio workflow | Fastest route to the broadest managed provider feature set | Locks script-to-audio artifacts and commands to one provider, bypasses shared TTS, and makes Hume/Mistral/Gemini or local fallback expensive to add later | 1 provider; no portable baseline |
-| Use only independent turn synthesis and local assembly | Works for nearly every provider; simplest cache and repair model | Discards native conversational context, timestamps, and continuation available from ElevenLabs, Fish, Hume, and Gemini | 16 potential segmented providers; 0 native capability use |
-| Use only provider-native dialogue | Maximizes provider-owned context | Excludes providers without native dialogue, fails on speaker/length ceilings, weakens targeted repair, and creates provider-specific artifacts | At most a few current providers; Gemini is exactly two speakers |
-| Add voice fields directly to the visual character catalog | One character file to inspect | Couples provider resources, consent, expiry, and audio settings to a strict visual schema and forces unrelated schema migrations | Visual catalog is strict schema version 3 |
+| Option                                                                                                                                                                                                                                          | Pros                                                                                                                                                                                                                                                                                                                                                                                 | Cons                                                                                                                                                                                       | Quantitative Notes                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| **Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement five voice-managed model adapters with a truthful segmented baseline across all 16 providers** | Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume across five dedicated voice-managed models (ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`) | Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies                                                               | 16 providers; 5 voice-managed models with distinct expressiveness paths; 11 synthesis-only providers; 2 new comic commands |
+| Patch per-turn voice arguments and add comic flags directly to the existing `TtsOptions` bag                                                                                                                                                    | Smaller short-term change; can make basic speaker switching work                                                                                                                                                                                                                                                                                                                     | Leaves identity, consent, capabilities, provider-qualified casting, snapshots, resource lifecycle, and native dialogue unmodeled; generic options continue to mix selection and invocation | Fixes one defect but leaves the report's architectural gaps intact                                                         |
+| Build an ElevenLabs-only script-to-audio workflow                                                                                                                                                                                               | Fastest route to the broadest managed provider feature set                                                                                                                                                                                                                                                                                                                           | Locks script-to-audio artifacts and commands to one provider, bypasses shared TTS, and makes Hume/Mistral/Gemini or local fallback expensive to add later                                  | 1 provider; no portable baseline                                                                                           |
+| Use only independent turn synthesis and local assembly                                                                                                                                                                                          | Works for nearly every provider; simplest cache and repair model                                                                                                                                                                                                                                                                                                                     | Discards native conversational context, timestamps, and continuation available from ElevenLabs, Fish, Hume, and Gemini                                                                     | 16 potential segmented providers; 0 native capability use                                                                  |
+| Use only provider-native dialogue                                                                                                                                                                                                               | Maximizes provider-owned context                                                                                                                                                                                                                                                                                                                                                     | Excludes providers without native dialogue, fails on speaker/length ceilings, weakens targeted repair, and creates provider-specific artifacts                                             | At most a few current providers; Gemini is exactly two speakers                                                            |
+| Add voice fields directly to the visual character catalog                                                                                                                                                                                       | One character file to inspect                                                                                                                                                                                                                                                                                                                                                        | Couples provider resources, consent, expiry, and audio settings to a strict visual schema and forces unrelated schema migrations                                                           | Visual catalog is strict schema version 3                                                                                  |
 
 ## Decision
 
@@ -54,13 +54,13 @@ This applies to:
 
 Each voice-managed model must expose a working expressiveness path. The methods are not unified:
 
-| Model | Expressiveness method | Compatible path |
-|---|---|---|
-| ElevenLabs `eleven_v3` | v3 audio tags plus style, stability, and similarity | Authored `[whispers]`/`[laughs]` stay in spoken text; dialogue `delivery` converts to the documented v3 tag allowlist; `--elevenlabs-tts-style`, `--elevenlabs-tts-stability`, and `--elevenlabs-tts-similarity-boost` serialize as `voice_settings` |
-| Inworld `realtime-tts-2` | Request-level instruction plus inline vocal tags | `--tts-instructions` serializes as `instruction`; `[happy]`, `[laugh]`, and `[breathe]` stay in `text` |
-| Fish `s2.1-pro` | In-text `[emotion]` and delivery markup | Dialogue `delivery` converts to the documented Fish tag allowlist; inline `[emotion]` stays in spoken text |
-| Cartesia `sonic-3.5-2026-05-04` | SSML-like performance tags plus `[laughter]` | `<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`, and `[laughter]` stay in the transcript |
-| Speechify `simba-3.2` | SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style` | Authored SSML stays in `input`; wrap SSML in `<speak>` |
+| Model                           | Expressiveness method                                                    | Compatible path                                                                                                                                                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ElevenLabs `eleven_v3`          | v3 audio tags plus style, stability, and similarity                      | Authored `[whispers]`/`[laughs]` stay in spoken text; dialogue `delivery` converts to the documented v3 tag allowlist; `--elevenlabs-tts-style`, `--elevenlabs-tts-stability`, and `--elevenlabs-tts-similarity-boost` serialize as `voice_settings` |
+| Inworld `realtime-tts-2`        | Request-level instruction plus inline vocal tags                         | `--tts-instructions` serializes as `instruction`; `[happy]`, `[laugh]`, and `[breathe]` stay in `text`                                                                                                                                               |
+| Fish `s2.1-pro`                 | In-text `[emotion]` and delivery markup                                  | Dialogue `delivery` converts to the documented Fish tag allowlist; inline `[emotion]` stays in spoken text                                                                                                                                           |
+| Cartesia `sonic-3.5-2026-05-04` | SSML-like performance tags plus `[laughter]`                             | `<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`, and `[laughter]` stay in the transcript                                                                                                                                                    |
+| Speechify `simba-3.2`           | SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style` | Authored SSML stays in `input`; wrap SSML in `<speak>`                                                                                                                                                                                               |
 
 This decision itself does not:
 
@@ -86,12 +86,12 @@ structured-script.json
   -> comic timeline, versioned render result, canonical scene-run update, and final recording
 ```
 
-| Owner | Responsibilities | Must not own |
-|---|---|---|
-| Comic workflow | `CharacterVoiceBrief`, canonical character/role resolution, reference approval, `ComicDialoguePlan`, scene voice snapshot, source provenance required by downstream consumers, effect intent, comic output paths | Provider HTTP clients, provider model registries, request retry policy, provider pricing, presentation timing or video rendering |
-| Script-to-audio workflow | Provider voice references and registrations, capability facets, access state, explicit synthesis invocation, provider preflight, render planning, timing normalization, segmented/native execution, audio assembly, cache keys, synthesis metadata | Comic scene drafting, panel semantics, visual character schema |
-| Provider adapter | Exact catalog, design, clone, lifecycle, request, response, limit, timing, continuation, and access-state mappings for one provider/model | Cross-provider casting policy, comic source parsing, silent fallback |
-| Local artifact layer | Checksums, atomic promotion, versioned domain artifacts, caches, canonical-manifest references, mastering and effects | A second pipeline manifest, an independent resume authority, remote deletion as ordinary cleanup, secrets or raw consent PII in artifacts |
+| Owner                    | Responsibilities                                                                                                                                                                                                                                   | Must not own                                                                                                                              |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Comic workflow           | `CharacterVoiceBrief`, canonical character/role resolution, reference approval, `ComicDialoguePlan`, scene voice snapshot, source provenance required by downstream consumers, effect intent, comic output paths                                   | Provider HTTP clients, provider model registries, request retry policy, provider pricing, presentation timing or video rendering          |
+| Script-to-audio workflow | Provider voice references and registrations, capability facets, access state, explicit synthesis invocation, provider preflight, render planning, timing normalization, segmented/native execution, audio assembly, cache keys, synthesis metadata | Comic scene drafting, panel semantics, visual character schema                                                                            |
+| Provider adapter         | Exact catalog, design, clone, lifecycle, request, response, limit, timing, continuation, and access-state mappings for one provider/model                                                                                                          | Cross-provider casting policy, comic source parsing, silent fallback                                                                      |
+| Local artifact layer     | Checksums, atomic promotion, versioned domain artifacts, caches, canonical-manifest references, mastering and effects                                                                                                                              | A second pipeline manifest, an independent resume authority, remote deletion as ordinary cleanup, secrets or raw consent PII in artifacts |
 
 Types remain grouped under the existing `tts-workflow` and `comic-workflow` domains behind the `~/types` barrel in accordance with ADR-003. Shared types may not import comic implementation modules; comic maps its `CharacterKey` and role keys into shared speaker/profile identifiers at the boundary.
 
@@ -161,10 +161,10 @@ If synthesis instead terminates after any request dispatch, target finalization 
 
 Output storage is partitioned into three lifetime classes:
 
-| Class | When it exists | Retention and Compaction Rule |
-|---|---|---|
-| Working | In-flight only | Written to `audio/work/<targetKey>/<renderIdentity>/`. Deleted automatically when that target's selected success publishes. |
-| Resume | Incomplete or failed | Preserves working tree, `journal.jsonl`, completed `audio/slots/<slotHash>.wav`, and matching `result.json`. Never deletes paid audio. |
+| Class   | When it exists           | Retention and Compaction Rule                                                                                                                                                                                                       |
+| ------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Working | In-flight only           | Written to `audio/work/<targetKey>/<renderIdentity>/`. Deleted automatically when that target's selected success publishes.                                                                                                         |
+| Resume  | Incomplete or failed     | Preserves working tree, `journal.jsonl`, completed `audio/slots/<slotHash>.wav`, and matching `result.json`. Never deletes paid audio.                                                                                              |
 | Archive | After successful compact | Retains published masters (`audio/final/<targetKey>.wav`), soundscape stems, referenced slot WAVs, bound voice snapshots, compact records (`render.json`, `sfx.json`, `mix.json`, `presentation.json`), and slim manifest pointers. |
 
 When a target publishes selected success:
@@ -175,23 +175,23 @@ When a target publishes selected success:
 
 ### Provider Support Profiles
 
-| Provider | Portable Baseline | Advanced Capabilities / Adapter Commitment |
-|---|---|---|
-| ElevenLabs | Segmented explicit voice | Shared `voice` catalog, design, remix, clone, audition, Text-to-Dialogue, timestamps, and v3 audio-tag plus `voice_settings` expressiveness |
-| MiniMax | Segmented stock/custom voice | Synthesis-only; stock and custom voice support with explicit emotion selectors, volume, pitch, and interjection tags |
-| Groq | Segmented stock voice | English Orpheus direction support |
-| xAI/Grok | Segmented stock/custom ID | 26-voice catalog and custom voice access gates |
-| Mistral | Segmented saved/reference voice | Reference audio caching and lifecycle management |
-| OpenAI | Segmented stock voice | Active model validation and gated custom-voice facets |
-| Gemini | Native 2-speaker & segmented turns | 30-voice catalog, exactly-two-speaker native dialogue, single-speaker fallback |
-| Deepgram | Segmented Aura voice | ~90-voice catalog with demographic/language metadata |
-| Speechify | Segmented pre-provisioned ID | Shared `voice` catalog, instant clone, inspect, and delete; SSML `<speak>` expressiveness |
-| Hume | Segmented explicit voice | Synthesis-only; Octave 1 acting direction, Octave 2 native utterances, timestamps, continuation |
-| Cartesia | Segmented voice ID | Shared `voice` catalog, instant clone, inspect, and delete; in-text SSML-like expressiveness |
-| Inworld | Segmented stock/custom voice ID | Shared `voice` catalog, design, instant clone, inspect, and delete; `--tts-instructions` steering plus preserved inline vocal tags |
-| DeepInfra | Segmented model-qualified synthesis | Reliable hosted single-voice inference; model-specific dialogue, design, clone, and protected-reference facets remain gated by ADR-018 |
-| Replicate | Segmented Kokoro stock voice | Version-pinned `jaaari/kokoro-82m` with exact stock-voice and speed serialization; speculative reference/dialogue models remain excluded |
-| Fish | Segmented approved-reference synthesis | Shared `voice` catalog, design, instant clone, inspect, delete, and reconcile; native dialogue plus in-text `[emotion]` markup |
+| Provider   | Portable Baseline                      | Advanced Capabilities / Adapter Commitment                                                                                                  |
+| ---------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| ElevenLabs | Segmented explicit voice               | Shared `voice` catalog, design, remix, clone, audition, Text-to-Dialogue, timestamps, and v3 audio-tag plus `voice_settings` expressiveness |
+| MiniMax    | Segmented stock/custom voice           | Synthesis-only; stock and custom voice support with explicit emotion selectors, volume, pitch, and interjection tags                        |
+| Groq       | Segmented stock voice                  | English Orpheus direction support                                                                                                           |
+| xAI/Grok   | Segmented stock/custom ID              | 26-voice catalog and custom voice access gates                                                                                              |
+| Mistral    | Segmented saved/reference voice        | Reference audio caching and lifecycle management                                                                                            |
+| OpenAI     | Segmented stock voice                  | Active model validation and gated custom-voice facets                                                                                       |
+| Gemini     | Native 2-speaker & segmented turns     | 30-voice catalog, exactly-two-speaker native dialogue, single-speaker fallback                                                              |
+| Deepgram   | Segmented Aura voice                   | ~90-voice catalog with demographic/language metadata                                                                                        |
+| Speechify  | Segmented pre-provisioned ID           | Shared `voice` catalog, instant clone, inspect, and delete; SSML `<speak>` expressiveness                                                   |
+| Hume       | Segmented explicit voice               | Synthesis-only; Octave 1 acting direction, Octave 2 native utterances, timestamps, continuation                                             |
+| Cartesia   | Segmented voice ID                     | Shared `voice` catalog, instant clone, inspect, and delete; in-text SSML-like expressiveness                                                |
+| Inworld    | Segmented stock/custom voice ID        | Shared `voice` catalog, design, instant clone, inspect, and delete; `--tts-instructions` steering plus preserved inline vocal tags          |
+| DeepInfra  | Segmented model-qualified synthesis    | Reliable hosted single-voice inference; model-specific dialogue, design, clone, and protected-reference facets remain gated by ADR-018      |
+| Replicate  | Segmented Kokoro stock voice           | Version-pinned `jaaari/kokoro-82m` with exact stock-voice and speed serialization; speculative reference/dialogue models remain excluded    |
+| Fish       | Segmented approved-reference synthesis | Shared `voice` catalog, design, instant clone, inspect, delete, and reconcile; native dialogue plus in-text `[emotion]` markup              |
 
 ## Rationale
 
@@ -220,15 +220,15 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| Stable provider-neutral character identity | Additional domain schemas and lifecycle state |
-| Broad segmented compatibility plus provider-native quality | Dual render strategies and strategy planning |
-| Crash-safe selected-take continuation across provider batches | In-flight journal plus per-slot result files until compact |
-| Five-model voice management and expressiveness | Model-specific capability facets and expressiveness mappings |
-| Auditable consent, provenance, and request identity | Stricter preflight and protected asset isolation |
-| Targeted line repair without repeating full synthesis | One retained slot WAV per paid generation hash |
-| Compact archive after success | No post-success admission-journal or mastering-intermediate reconstruction |
+| Gains                                                         | Sacrifices                                                                 |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Stable provider-neutral character identity                    | Additional domain schemas and lifecycle state                              |
+| Broad segmented compatibility plus provider-native quality    | Dual render strategies and strategy planning                               |
+| Crash-safe selected-take continuation across provider batches | In-flight journal plus per-slot result files until compact                 |
+| Five-model voice management and expressiveness                | Model-specific capability facets and expressiveness mappings               |
+| Auditable consent, provenance, and request identity           | Stricter preflight and protected asset isolation                           |
+| Targeted line repair without repeating full synthesis         | One retained slot WAV per paid generation hash                             |
+| Compact archive after success                                 | No post-success admission-journal or mastering-intermediate reconstruction |
 
 ## API / Type Impact
 

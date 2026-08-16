@@ -9,6 +9,7 @@ import {
   getStructuredScriptPath,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
 import { parseScriptMarkdownToStructuredData as parseStructuredScript } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
+import { validateStructuredScriptSourceSpans } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { generateJsonPrompt } from '~/cli/commands/process-steps/step-8-comic/comic-utils/json-prompt-utils'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import {
@@ -324,6 +325,40 @@ describe('comic source coverage contracts', () => {
     expect(lowercaseDialogueBeat?.type).toBe('dialogue')
     expect(lowercaseDialogueBeat?.speakerKey).toBe('pilot')
     expect(lowercaseDialogueBeat?.delivery).toBe('softly')
+  })
+
+  test('structured parser keeps exact spans after a speaker-associated direction', () => {
+    const source = [
+      '# Episode Test',
+      '',
+      '**STARSHIP HORIZON**',
+      '',
+      '---',
+      '',
+      '## Scene: "Repeated Speaker"',
+      '',
+      '**INT. CARGO BAY - MORNING**',
+      '',
+      '**CAPTAIN**',
+      '',
+      'First line.',
+      '',
+      '(the room goes quiet)',
+      '',
+      'Second line.',
+      '',
+      '_The engineer crosses the room._',
+      '',
+      '**CAPTAIN**',
+      '',
+      'Third line.',
+    ].join('\n')
+    const structured = parseScriptMarkdownToStructuredData(source, 'input/test-repeated-speaker.md')
+
+    expect(() => validateStructuredScriptSourceSpans(structured, source)).not.toThrow()
+    expect(structured.beats.every(beat => beat.sourceSpans.length > 0)).toBe(true)
+    expect(structured.beats.find(beat => beat.text === 'the room goes quiet')?.sourceSpans[0]?.text).toContain('the room goes quiet')
+    expect(structured.beats.find(beat => beat.text === 'The engineer crosses the room.')?.sourceSpans[0]?.text).toContain('The engineer crosses the room.')
   })
 
   test('structured parser strips screenplay timing notation from spoken dialogue', () => {

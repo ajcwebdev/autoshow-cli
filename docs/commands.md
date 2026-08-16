@@ -187,7 +187,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voic
 bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 
 # voice catalog discovery and registration
-bun autoshow voice discover --provider elevenlabs --source account
+bun autoshow voice list --provider elevenlabs --source account
 bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting
 
 # image generation, then edit/reference the generated image; run this block in order
@@ -278,11 +278,11 @@ bun as links --help
 - `extract`: [extract](./commands/process-steps/step-2-extract/01-extract.md) — routes media to STT, documents/images to OCR, article HTML to URL extraction, and X/Twitter Space or post links to the X API.
 - `write`: [command](./commands/process-steps/step-3-write/write-text.md) | [setup](./commands/process-steps/step-3-write/write-text.md#setup)
 - `tts`: [command](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md) | [setup](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md#setup)
-- `voice`: [voice](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md#voice) — manages durable provider voice registrations separately from speech synthesis.
+- `voice`: [voice](./commands/process-steps/step-9-voice/00-voice-overview.md) — manages durable provider voice registrations separately from speech synthesis.
 - `image`: [command](./commands/process-steps/step-5-image/text-to-image.md) | [setup](./commands/process-steps/step-5-image/text-to-image.md#setup)
 - `video`: [video](./commands/process-steps/step-6-video/text-to-video-services.md)
 - `music`: [music](./commands/process-steps/step-7-music/text-to-music-services.md)
-- `comic`: [comic](./commands/process-steps/step-8-comic/comic.md)
+- `comic`: [comic](./commands/process-steps/step-8-comic/00-comic-overview.md)
 - `resume`: [resume](./commands/setup-and-utilities/resume/resume.md)
 - `config`: [config](./commands/setup-and-utilities/config/config.md)
 - `links`: [links](./commands/setup-and-utilities/links/links.md)
@@ -294,7 +294,7 @@ bun as links --help
 - Use `extract` when you only need step-2 extraction or transcription without LLM writing, to create an X Space report, or to render transcript videos from an extract run or explicit audio/transcript files.
 - Use `write` for full summary pipeline with optional TTS/image/video generation, and for lyric draft generation from `./output/<name>/text`.
 - Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, and `fal`; Recraft is raster generation-only in this CLI surface.
-- Use `voice` to discover provider voice catalogs or manage durable voice registrations (import, design, audition, approve, or revoke voices) separately from speech synthesis.
+- Use `voice` to list provider voice catalogs or manage durable voice registrations (import, design, audition, approve, or revoke voices) separately from speech synthesis.
 - Use `music --audio`, `music --captions`, or `music --batch` for local lyric-video rendering from repo audio under `input/`; hosted music generation uses a prompt or local text file plus `--provider`.
 - Use `comic` for staged or complete episode-script to comic workflows: scene drafting, character sketch references, panel prompt bundles, review sketches, final panel images, grouped page images, manifest-backed dialogue/soundscape audio, and local synchronized still-panel slideshows.
 - Use `resume` to backfill missing extract, write LLM, TTS, image, video, or music providers in an existing output directory, including `extract` parent batches.
@@ -329,7 +329,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
-bun autoshow voice discover --provider cartesia --source provider-library --price
+bun autoshow voice list --provider cartesia --source provider-library --price
 bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm guide" --preview-text "Passing passage for previewing a designed voice..." --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow image "a sunset" --provider bfl=flux-2-klein-4b --price

@@ -26,23 +26,23 @@ Why now: both source classes are implemented and share one ingestion contract, o
 
 ### Convertible Ebook Formats
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
+| Option                                                                          | Pros                                                                                                                                                      | Cons                                                                                                    | Quantitative Notes                                                                                  |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **Normalize supported convertible ebooks to EPUB with Calibre `ebook-convert`** | Reuses native EPUB chapter extraction; one implementation for TOC/spine/chunk behavior; no new package dependencies; default path stays local and no-cost | Requires Calibre; conversion quality depends on Calibre; DRM or malformed inputs fail before extraction | 4 canonical formats plus 2 aliases; 0 package dependencies; 1 local subprocess per normalized ebook |
-| Add one-off AZW3 handling | Smallest immediate implementation | Leaves MOBI, AZW, FB2, LIT, and PRC inconsistent; creates precedent for per-format branches | Misses the broader ebook class |
-| Implement native parsers per ebook format | Avoids an external conversion tool | High maintenance; inconsistent chapter semantics; more metadata and navigation edge cases | High code cost across at least 4 formats |
-| Convert ebooks to PDF and use OCR/chapter detection | Reuses PDF path | Lower fidelity; slower; can enter OCR provider paths when provider flags are selected | Higher CPU cost and possible paid-provider risk |
-| Add ebook parsing libraries | Direct parsing for some formats | Adds dependencies; still leaves format-specific behavior and DRM failures | Rejected under the no-new-dependency constraint |
+| Add one-off AZW3 handling                                                       | Smallest immediate implementation                                                                                                                         | Leaves MOBI, AZW, FB2, LIT, and PRC inconsistent; creates precedent for per-format branches             | Misses the broader ebook class                                                                      |
+| Implement native parsers per ebook format                                       | Avoids an external conversion tool                                                                                                                        | High maintenance; inconsistent chapter semantics; more metadata and navigation edge cases               | High code cost across at least 4 formats                                                            |
+| Convert ebooks to PDF and use OCR/chapter detection                             | Reuses PDF path                                                                                                                                           | Lower fidelity; slower; can enter OCR provider paths when provider flags are selected                   | Higher CPU cost and possible paid-provider risk                                                     |
+| Add ebook parsing libraries                                                     | Direct parsing for some formats                                                                                                                           | Adds dependencies; still leaves format-specific behavior and DRM failures                               | Rejected under the no-new-dependency constraint                                                     |
 
 ### ACSM Fulfillment
 
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
+| Option                                                                      | Pros                                                                                                                                                                                                                                                            | Cons                                                                                                                                                                                                           | Quantitative Notes                                                                                                      |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | **Calibre ACSM Input plugin / DeACSM behind a local fulfillment interface** | Aligns with the existing Calibre dependency; produces EPUB/PDF without requiring Adobe Digital Editions; supports Adobe ID authorization, anonymous authorization, ADE activation import, and activation backups; frames as local user-authorized preprocessing | Less headless than a purpose-built CLI tool; authorization state is sensitive; DRM may still require user-managed key handling; GPLv3 installation and redistribution boundaries need explicit setup ownership | Implemented behind the `calibre-acsm-fulfill` interface; fulfillment is local but may contact Adobe/distributor servers |
-| `libgourou` | CLI-native fit; purpose-built around ADEPT/ACSM fulfillment | Adds an ACSM-specific toolchain beside Calibre; pushes AutoShow toward managing ADEPT activation state directly | Not chosen; viable fallback if plugin integration proves unsuitable |
-| Adobe Digital Editions / ByteBooks | Official fulfillment route; produces EPUB/PDF that users can pass to AutoShow afterward | Desktop/manual workflow; not a clean CLI integration; users must locate downloaded files themselves | Remains a documented manual workaround outside the CLI conversion path |
-| Online ACSM services | Low setup for one-off conversion | ACSM files can carry fulfillment/license data and the service retrieves the actual book; no acceptable default for silently uploading user files | 0 integration surface; not used |
-| Commercial desktop converters | Packaged user experience | Poor CLI fit; commercial licensing; desktop automation fragility; often depend on ADE-managed libraries | 0 integration surface |
+| `libgourou`                                                                 | CLI-native fit; purpose-built around ADEPT/ACSM fulfillment                                                                                                                                                                                                     | Adds an ACSM-specific toolchain beside Calibre; pushes AutoShow toward managing ADEPT activation state directly                                                                                                | Not chosen; viable fallback if plugin integration proves unsuitable                                                     |
+| Adobe Digital Editions / ByteBooks                                          | Official fulfillment route; produces EPUB/PDF that users can pass to AutoShow afterward                                                                                                                                                                         | Desktop/manual workflow; not a clean CLI integration; users must locate downloaded files themselves                                                                                                            | Remains a documented manual workaround outside the CLI conversion path                                                  |
+| Online ACSM services                                                        | Low setup for one-off conversion                                                                                                                                                                                                                                | ACSM files can carry fulfillment/license data and the service retrieves the actual book; no acceptable default for silently uploading user files                                                               | 0 integration surface; not used                                                                                         |
+| Commercial desktop converters                                               | Packaged user experience                                                                                                                                                                                                                                        | Poor CLI fit; commercial licensing; desktop automation fragility; often depend on ADE-managed libraries                                                                                                        | 0 integration surface                                                                                                   |
 
 ## Decision
 
@@ -101,10 +101,10 @@ It does not apply to:
 
 Both conversion paths write standard Step 1 conversion metadata fields that Step 2 extraction preserves:
 
-| Source class | `sourceFormat` | `normalizedFormat` | `conversionChain` |
-|---|---|---|---|
-| Convertible ebook | `mobi` \| `azw3` \| `fb2` \| `lit` (after alias resolution) | `epub` | `["calibre"]` |
-| ACSM fulfillment | `acsm` | `epub` \| `pdf` | `["calibre-acsm-plugin"]` |
+| Source class      | `sourceFormat`                                              | `normalizedFormat` | `conversionChain`         |
+| ----------------- | ----------------------------------------------------------- | ------------------ | ------------------------- |
+| Convertible ebook | `mobi` \| `azw3` \| `fb2` \| `lit` (after alias resolution) | `epub`             | `["calibre"]`             |
+| ACSM fulfillment  | `acsm`                                                      | `epub` \| `pdf`    | `["calibre-acsm-plugin"]` |
 
 - `ConvertibleEbookFormat` type union defines explicitly supported convertible formats (`mobi`, `azw3`, `fb2`, `lit`).
 - `.acsm` is registered as a recognized document input format.
@@ -141,15 +141,15 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains | Sacrifices |
-|---|---|
-| Broad book-like input support with minimal extraction code | No byte-level native parser for each ebook format |
-| One chapter export and EPUB inspection implementation | Calibre remains an external tool prerequisite |
-| No new runtime package dependencies | Unsupported Calibre-capable formats are not auto-tried until added to the registry |
-| Clear source-vs-normalized metadata for both conversion chains | Conversion fidelity depends on Calibre output |
-| Reuse of the existing Calibre and EPUB/PDF extraction model for ACSM | Less clean headless ACSM automation than `libgourou` |
-| No Adobe Digital Editions application requirement | Users still manage authorization; setup mechanics remain an ADR-004 concern |
-| Local, user-controlled fulfillment that avoids online ACSM uploads | AutoShow must carefully avoid persisting activation secrets; no one-click hosted conversion path |
+| Gains                                                                | Sacrifices                                                                                       |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Broad book-like input support with minimal extraction code           | No byte-level native parser for each ebook format                                                |
+| One chapter export and EPUB inspection implementation                | Calibre remains an external tool prerequisite                                                    |
+| No new runtime package dependencies                                  | Unsupported Calibre-capable formats are not auto-tried until added to the registry               |
+| Clear source-vs-normalized metadata for both conversion chains       | Conversion fidelity depends on Calibre output                                                    |
+| Reuse of the existing Calibre and EPUB/PDF extraction model for ACSM | Less clean headless ACSM automation than `libgourou`                                             |
+| No Adobe Digital Editions application requirement                    | Users still manage authorization; setup mechanics remain an ADR-004 concern                      |
+| Local, user-controlled fulfillment that avoids online ACSM uploads   | AutoShow must carefully avoid persisting activation secrets; no one-click hosted conversion path |
 
 ## Test Plan
 

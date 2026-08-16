@@ -9,6 +9,9 @@ const COMMANDS_WITHOUT_RUN_DIRECTORIES = new Set([
   'comic reference-voice'
 ])
 
-export const commandCreatesRunDirectory = (commandName: string): boolean =>
-  !COMMANDS_WITHOUT_RUN_DIRECTORIES.has(commandName)
-  && !COMMANDS_WITHOUT_RUN_DIRECTORIES.has(commandName.split(' ')[0]!)
+export const commandCreatesRunDirectory = (commandName: string): boolean => {
+  const parts = commandName.split(' ')
+  return !COMMANDS_WITHOUT_RUN_DIRECTORIES.has(commandName)
+    && !COMMANDS_WITHOUT_RUN_DIRECTORIES.has(parts[0]!)
+    && !COMMANDS_WITHOUT_RUN_DIRECTORIES.has(parts.slice(0, 2).join(' '))
+}

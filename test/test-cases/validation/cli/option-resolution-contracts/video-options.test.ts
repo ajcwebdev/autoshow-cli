@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
+import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/process-steps/step-6-video/video-targets'
 
 describe('option resolution contracts', () => {
   test('Luma Labs video resolution follows the documented Ray 3.2 values', () => {
@@ -257,5 +257,37 @@ describe('option resolution contracts', () => {
         'gemini-video': 'veo-3.1-generate-preview',
         'video-resolution': '4k'
       }))).toHaveLength(1)
+    })
+
+  test('Grok video rejects 1080p on Imagine Video', () => {
+      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+        'grok-video': 'grok-imagine-video',
+        'video-resolution': '1080p'
+      }))).toThrow('Expected 480p or 720p')
+    })
+
+  test('all-video image-to-video keeps compatible I2V targets', () => {
+      const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
+      const targets = collectVideoTargets(buildOptsFromFlags(false, {
+        'all-video': true,
+        'video-mode': 'image-to-video',
+        'video-input-image': imageDataUrl
+      })).map(target => `${target.service}/${target.model}`)
+
+      expect(targets).toContain('gemini/veo-3.1-fast-generate-preview')
+      expect(targets).toContain('minimax/MiniMax-Hailuo-2.3')
+      expect(targets).toContain('glm/vidu2-image')
+      expect(targets).toContain('ltx/ltx-2-3-fast')
+      expect(targets).toContain('replicate/alibaba/happyhorse-1.1')
+      expect(targets).not.toContain('runway/gen4.5')
+      expect(targets).not.toContain('minimax/T2V-01')
+      expect(targets).not.toContain('glm/viduq1-text')
+      expect(targets).not.toContain('replicate/wan-video/wan-2.7-t2v')
+    })
+
+  test('video artifact names use the single-file name or a sanitized multi-target name', () => {
+      expect(getVideoArtifactFileName({ service: 'gemini', model: 'veo-3.1-generate-preview' }, true)).toBe('generated-video.mp4')
+      expect(getVideoArtifactFileName({ service: 'gemini', model: 'veo-3.1-generate-preview' }, false)).toBe('generated-video-gemini-veo-3.1-generate-preview.mp4')
+      expect(getVideoArtifactFileName({ service: 'replicate', model: 'wan-video/wan-2.7-t2v' }, false)).toBe('generated-video-replicate-wan-video-wan-2.7-t2v.mp4')
     })
 })

@@ -59,7 +59,7 @@ type Dependencies = {
 }
 
 const CAMERA_CONTRACTS: Record<LocationView, string> = {
-  establishing: 'Use a clean wide three-quarter establishing camera that clearly explains the location layout, depth, major fixed anchors, and traversable space.',
+  establishing: 'Use a standing eye-level wide three-quarter establishing camera that clearly explains the location layout, depth, major fixed anchors, and traversable space. Keep the camera at adult standing height; never use aerial, isometric, overhead, bird\'s-eye, or plan views.',
   reverse: 'Use a materially opposite reverse camera looking back across the same space toward the establishing camera position. Reveal the reverse faces of fixed anchors and do not repeat or mirror the establishing composition.',
   side: 'Use a materially perpendicular side camera across the same space. Reveal a lateral relationship that neither the establishing nor reverse view shows; do not repeat, mirror, or slightly pan an existing composition.',
 }

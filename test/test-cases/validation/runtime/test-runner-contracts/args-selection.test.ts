@@ -7,11 +7,14 @@ import {
 import { rm } from 'node:fs/promises'
 import {
   DEFAULT_TEST_RUNNER_CONCURRENCY,
+  E2E_TEST_RUNNER_PARALLEL,
+  buildBunTestFlags,
   isE2EOnlyTestSelection,
   parseRunnerArgs,
   withDefaultTestConcurrency
 } from '../../../../test-runner/args'
-import { formatSelectedPathsLabel } from '../../../../test-runner/path-selection'
+import { formatSelectedPathsLabel, orderTestFiles } from '../../../../test-runner/path-selection'
+import { VALIDATION_TEST_TIMEOUT_MS } from '../../../../test-utils/timeouts'
 
 const tempDirs: string[] = []
 
@@ -124,6 +127,51 @@ describe('test-runner contracts', () => {
         '--bail',
       ])
     })
+
+  test('e2e-only selections raise the default parallel worker count', () => {
+      expect(withDefaultTestConcurrency(['--bail'], { e2eOnly: true })).toEqual([
+        `--max-concurrency=${DEFAULT_TEST_RUNNER_CONCURRENCY}`,
+        `--parallel=${E2E_TEST_RUNNER_PARALLEL}`,
+        '--bail',
+      ])
+    })
+
+  test('bun test flags use a 10 minute default timeout and retry only for e2e-only selections', () => {
+      const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
+      const e2e = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-replicate.test.ts'
+      expect(buildBunTestFlags([validation], ['--bail'])).toEqual([
+        '--timeout',
+        String(VALIDATION_TEST_TIMEOUT_MS),
+        `--max-concurrency=${DEFAULT_TEST_RUNNER_CONCURRENCY}`,
+        `--parallel=${DEFAULT_TEST_RUNNER_CONCURRENCY}`,
+        '--bail',
+      ])
+      expect(buildBunTestFlags([e2e], [])).toEqual([
+        '--timeout',
+        String(VALIDATION_TEST_TIMEOUT_MS),
+        '--retry',
+        '1',
+        `--max-concurrency=${DEFAULT_TEST_RUNNER_CONCURRENCY}`,
+        `--parallel=${E2E_TEST_RUNNER_PARALLEL}`,
+      ])
+    })
+
+  test('orderTestFiles hoists known-slow e2e files and keeps other files stable', () => {
+    const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
+    const replicate = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-replicate.test.ts'
+    const other = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-mistral.test.ts'
+    expect(orderTestFiles([validation, replicate, other])).toEqual([replicate, validation, other])
+
+    const unchanged = [validation, other]
+    expect(orderTestFiles(unchanged)).toEqual(unchanged)
+    expect(orderTestFiles(unchanged)).toHaveLength(unchanged.length)
+
+    expect(orderTestFiles([validation, replicate, other], new Map([
+      [validation, 50_000],
+      [other, 80_000],
+      [replicate, 10_000],
+    ]))).toEqual([other, validation, replicate])
+  })
 
   test('path-selection labels strip the test/test-cases prefix for validation paths', () => {
       expect(formatSelectedPathsLabel(['test/test-cases/validation/runtime/'])).toBe('Selected paths: validation/runtime')
