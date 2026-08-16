@@ -10,7 +10,7 @@
 
 ## Context
 
-AutoShow completed a broad 2026 refresh of every hosted model registry. The work updated selectors, provider request shapes, prices, defaults, all-provider expansion, resume identity, historical readers, and capability contracts across write, OCR, STT, TTS, music, image, and video. Active surfaces moved to 22 STT selectors, 111 hosted TTS selectors, 5 music selectors, 34 hosted raster image selectors, and 32 video selectors.
+AutoShow completed a broad 2026 refresh of every hosted model registry. The work updated selectors, provider request shapes, prices, defaults, all-provider expansion, resume identity, historical readers, and capability contracts across write, OCR, STT, TTS, music, image, and video. Active surfaces moved to 22 STT selectors, 111 hosted TTS selectors, 3 music selectors, 22 hosted raster image selectors, and 16 video selectors.
 
 These provider releases represent historical change records rather than durable registry policy. ADR-010 governs registry and lifecycle rules, while ADR-012 governs benchmark evidence and report architecture. This ledger records what changed during the 2026 refresh and why provider-specific adapter branches remain.
 
@@ -159,11 +159,11 @@ These twelve selectors are permanently retired. Direct selection fails with repl
 
 ### Music refresh
 
-Standardized active music generation on 5 selectors across 3 hosted providers.
+Standardized active music generation on 3 selectors across 3 hosted providers.
 
-- Added ElevenLabs `music_v2` while retaining `music_v1` during transition. Output formats resolve automatically (`mp3_44100_128` for v1, `mp3_48000_192` for v2).
+- Added ElevenLabs `music_v2` and later retired transitional `music_v1`. Active output format is `mp3_48000_192`. Historical readers preserve the v1 per-minute rate and `mp3_44100_128` identity.
 - Replaced MiniMax `music-2.6` with `music-3.0` on prompt/lyrics/instrumental lifecycle. Historical readers preserve 2.6 rate ($0.15/track + $0.01 for lyrics).
-- Retained Gemini `lyria-3-clip-preview` and `lyria-3-pro-preview` with per-track pricing.
+- Retained Gemini `lyria-3-pro-preview` and retired `lyria-3-clip-preview`. Historical readers preserve the clip per-track rate.
 - Excluded streaming Lyria RealTime, cover generation, and reference-audio products.
 - Music resume promotes outputs to provider/model filenames before merging metadata to avoid artifact collisions.
 
@@ -205,7 +205,6 @@ Current write coverage already includes Anthropic `claude-fable-5`, `claude-opus
 | P2 | `grok-4.20-0309-non-reasoning` | llm | Already registered for extract; missing from write. |
 | P2 | `grok-build-0.1` | llm | Documented coding replacement for retired `grok-code-fast-1`; 256K context; `$1.00/$0.20/$2.00` below 200K input. |
 | P2 | `gpt-5.4` | llm + extract | Still-documented full GPT-5.4 sibling of the already registered mini/nano tiers. |
-| P2 | `grok-imagine-image-2.0` | image | Owned by the 2026-08-16 image/video/music planned refresh below; replace `grok-imagine-image` rather than keep both. |
 | P3 | `grok-4.20-multi-agent-0309` | llm | Current multi-agent text sibling; same published token bands as Grok 4.20. |
 | P3 | `gpt-5.5-pro` | llm + extract | Still-documented separate Pro slug; GPT-5.6 Pro is a `reasoning.mode` on the existing Sol/Terra/Luna selectors, not a new ID. |
 | P3 | `gemini-omni-flash` | video | Preview conversational video generation/editing; requires confirming the existing Veo adapter can host it. |
@@ -228,9 +227,9 @@ Excluded from this refresh under ADR-010:
 | `gemini-3.1-flash-live-preview`, `gemini-3.5-live-translate-preview`, `gpt-realtime-2.1`, `gpt-realtime-2.1-mini`, `grok-voice-think-fast-2.0` | Live/realtime/speech-to-speech transports. |
 | Embeddings, computer-use, deep-research, Antigravity, robotics, and retired GPT/o-series / Sora 2 slugs | Outside implemented AutoShow command lifecycles or already shut down. |
 
-### 2026-08-16 image, video, and music planned refresh
+### 2026-08-16 image, video, and music refresh
 
-Compared the active image, video, and music catalogs plus the xAI Imagine/Voice snapshots `project/links/grok-image-links.md`, `project/links/grok-tts-links.md`, and `project/links/grok-video-links.md`. This section records three pending next steps. It is not an implemented refresh. Removed selectors must stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance. Grok TTS speed, output-format, `replace`, and timestamp controls remain deferred.
+Compared the active image, video, and music catalogs plus the xAI Imagine/Voice snapshots `project/links/grok-image-links.md`, `project/links/grok-tts-links.md`, and `project/links/grok-video-links.md`. Image, music, and video removals are implemented. Removed selectors stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance where the provider surface remains. Grok TTS speed, output-format, `replace`, and timestamp controls remain deferred.
 
 #### TTS / STT watches
 
@@ -240,7 +239,17 @@ deAPI whisper diarization is not a catalog tweak. deAPI STT is not implemented; 
 
 #### Image
 
-Remove 12 selectors and add `grok-imagine-image-2.0` as the `grok-imagine-image` successor. Keep `grok-imagine-image-quality`. Retire the Recraft provider and `recraft-image` flag. Planned active count: 34 − 12 + 1 = 23.
+Implemented 2026-08-16. Removed 12 selectors, kept `grok-imagine-image-quality`, and retired the Recraft provider and `recraft-image` flag. Active count: 34 − 12 = 22. The recorded `grok-imagine-image-2.0` successor is unavailable and was not added; the refresh was removal-only.
+
+| Provider | Released | Max resolution | Aspect ratio | Count | Formats |
+| -------- | -------- | -------------- | ------------ | ----- | ------- |
+| fal.ai `microsoft/mai-image-2.5-pro` | ✅ 2026-07-28 | ❌ Unpublished | ✅ 8 ratios | ✅ 1–4 | ✅ png/jpeg/webp |
+| Replicate `ideogram-ai/ideogram-v4-turbo` / `ideogram-v4-balanced` / `ideogram-v4-quality` | ✅ 2026-06-03 | ⚠️ Presets to 3328 | ❌ No | ❌ 1 | ❌ PNG |
+| fal.ai `microsoft/mai-image-2.5` | ✅ 2026-06-02 | ❌ Unpublished | ✅ 8 ratios | ✅ 1–4 | ✅ png/jpeg/webp |
+| Recraft `recraftv4_1` / `recraftv4_1_utility` | ✅ 2026-05-14 | ❌ 1MP presets | ✅ Size or ratio, not both | ✅ 1–6 | ❌ PNG |
+| Recraft `recraftv4_1_pro` / `recraftv4_1_utility_pro` | ✅ 2026-05-14 | ✅ 4MP presets | ✅ Size or ratio, not both | ✅ 1–6 | ❌ PNG |
+| Replicate `prunaai/ernie-image` / `ernie-image-turbo` | ✅ 2026-04-14 | ⚠️ Custom 64–2048 | ❌ No | ✅ 1–4 | ⚠️ png/jpeg |
+| Grok `grok-imagine-image` | ✅ 2026-01-28 | ⚠️ 2K | ✅ 14 ratios | ✅ 1–10 | ❌ JPEG |
 
 | Remove | Successor |
 | ------ | --------- |
@@ -250,11 +259,27 @@ Remove 12 selectors and add `grok-imagine-image-2.0` as the `grok-imagine-image`
 | `recraftv4_1`, `recraftv4_1_pro`, `recraftv4_1_utility`, `recraftv4_1_utility_pro` | `flux-2-klein-4b` |
 | `prunaai/ernie-image`, `prunaai/ernie-image-turbo` | `qwen/qwen-image-2` |
 
-Also implement on `grok-imagine-image-2.0`: generate plus edit/multi-ref (up to 3), `--image-quality` `low`/`medium`, and WebP inputs. Do not first-class quality aliases (`grok-imagine-image-pro`, `…-latest`, `…-20260403`). Defer Files API `file_id` inputs and `storage_options`.
+`grok-imagine-image-2.0` does not exist and was not added. The existing `grok-imagine-image-quality` selector remains active with its current generation and edit/reference behavior.
 
 #### Video
 
-Remove 16 selectors. Retire GLM video and Runway (`glm-video`, `runway-video`). Keep MiniMax and replace Hailuo/01-series with direct `MiniMax-H3`. Keep fal.ai `minimax/h3` as a separate path. Planned active count: 32 − 16 + 1 = 17.
+Implemented 2026-08-16. Removed 16 selectors and retired standalone GLM video and Runway (`glm-video`, `runway-video`). Direct `MiniMax-H3` was not added and remains unavailable; fal.ai `minimax/h3` remains a separate active path. Active count: 32 − 16 = 16.
+
+| Provider | Released | text-to-video | image-to-video | reference-to-video | interpolate | edit | extend | Duration | Max resolution | Aspect ratio | Native audio | References |
+| -------- | -------- | ------------- | -------------- | ------------------ | ----------- | ---- | ------ | -------- | -------------- | ------------ | ------------ | ---------- |
+| Replicate `runwayml/aleph-2` | ✅ 2026-05-21 | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ Clip 2–30s | ⚠️ Source | ❌ No | ❌ No | ❌ No |
+| Replicate `wan-video/wan-2.7-t2v` | ✅ 2026-04-01 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 2–15s | ⚠️ 1080p | ✅ 5 ratios | ❌ No | ❌ No |
+| Runway `gen4.5` | ⚠️ 2025-12-01 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ 2–10s | ❌ 720p | ✅ 16:9 or 9:16 | ❌ No | ❌ No |
+| MiniMax `MiniMax-Hailuo-2.3` | ⚠️ 2025-10-28 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ 6–10s | ⚠️ 1080p | ❌ No | ❌ No | ❌ No |
+| MiniMax `MiniMax-Hailuo-2.3-Fast` | ⚠️ 2025-10-28 | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ 6–10s | ⚠️ 1080p | ❌ No | ❌ No | ❌ No |
+| GLM `cogvideox-3` | ⚠️ 2025 | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ⚠️ 5–10s | ✅ 4K | ✅ 5 ratios | ❌ Off | ❌ No |
+| GLM `viduq1-text` | ⚠️ 2025 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ 5s | ⚠️ 1080p | ✅ 5 ratios | ❌ No | ❌ No |
+| MiniMax `T2V-01` / `T2V-01-Director` | ⚠️ 2025-01 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ 6s | ❌ 720p | ❌ No | ❌ No | ❌ No |
+| MiniMax `I2V-01` / `I2V-01-Director` / `I2V-01-live` | ⚠️ 2025-01 | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ 6s | ❌ 720p | ❌ No | ❌ No | ❌ No |
+| MiniMax `S2V-01` | ⚠️ 2025-01 | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ 6s | ❌ 720p | ❌ No | ❌ No | ⚠️ 1 |
+| GLM `vidu2-image` | ❌ 2024-11 | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ 4s | ❌ 720p | ✅ 5 ratios | ❌ No | ❌ No |
+| GLM `vidu2-start-end` | ❌ 2024-11 | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ 4s | ❌ 720p | ✅ 5 ratios | ❌ No | ❌ No |
+| GLM `vidu2-reference` | ❌ 2024-11 | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ 4s | ❌ 720p | ✅ 5 ratios | ❌ Off | ⚠️ Up to 3 |
 
 | Remove | Successor |
 | ------ | --------- |
@@ -270,7 +295,12 @@ Also add Grok `grok-imagine-video-1.5` `reference_audios` (up to 3 TTS `voice_id
 
 #### Music
 
-Remove 2 selectors. Keep `music-3.0`. Planned active count: 5 − 2 = 3.
+Implemented 2026-08-16. Removed 2 selectors. Keep `music-3.0`. Active count: 5 − 2 = 3 (`music_v2`, `music-3.0`, `lyria-3-pro-preview`). Direct selection of the removed IDs fails with replacement guidance; historical manifests and pricing readers retain the retired rates.
+
+| Provider | Released | Duration | Duration control | Instrumental | Lyrics | Output |
+| -------- | -------- | -------- | ---------------- | ------------ | ------ | ------ |
+| Gemini `lyria-3-clip-preview` | ✅ 2026-03-25 | ❌ 30s fixed | ❌ Fixed 30s | ✅ `--instrumental` | ⚠️ File appended to prompt | ❌ MP3, rate unpublished |
+| ElevenLabs `music_v1` | ⚠️ 2025-08-05 | ✅ 3–600s | ✅ `--duration` | ✅ `--instrumental` | ❌ Prompt vocals only | ⚠️ 44.1 kHz / 128 kbps MP3 |
 
 | Remove | Successor |
 | ------ | --------- |
@@ -280,7 +310,7 @@ Remove 2 selectors. Keep `music-3.0`. Planned active count: 5 − 2 = 3.
 ## API / Type Impact
 
 - Write and OCR unions accept concrete 2026 OpenAI, Anthropic, Grok, Gemini, and Kimi identifiers.
-- Active selector counts: 22 STT, 111 hosted TTS, 5 music, 34 hosted raster image, and 32 video selectors.
+- Active selector counts: 22 STT, 111 hosted TTS, 3 music, 22 hosted raster image, and 16 video selectors.
 - Removed selectors are excluded from active CLI help, configuration defaults, and expansion lists, while remaining parseable in historical manifests and pricing readers.
 
 ## Rationale
@@ -312,7 +342,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-All earlier 2026 refresh phases are implemented across active model registries, provider adapters, pricing metadata, help documentation, resume handlers, and local test contracts. The 2026-08-16 text-catalog gap audit and the 2026-08-16 image/video/music planned refresh remain pending. Advanced multi-track capabilities remain governed by [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md), while benchmark run artifacts and report generation remain governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+All earlier 2026 refresh phases are implemented across active model registries, provider adapters, pricing metadata, help documentation, resume handlers, and local test contracts. The 2026-08-16 image, music, and video removals are implemented. `grok-imagine-image-2.0` and direct `MiniMax-H3` were deliberately not added and remain unavailable. The 2026-08-16 text-catalog gap audit remains pending. Advanced multi-track capabilities remain governed by [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md), while benchmark run artifacts and report generation remain governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Follow-up Actions
 
@@ -321,9 +351,6 @@ All earlier 2026 refresh phases are implemented across active model registries, 
 | Record future large hosted-model refreshes in a new dated ledger section while preserving ADR-010 policy                   | Model registry maintainers | Ongoing guardrail                          |
 | Implement the 2026-08-16 P1 write/OCR additions `gemini-3.7-flash` and `grok-4.6`                                          | Model registry maintainers | Pending                                    |
 | Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing                | Model registry maintainers | Pending                                    |
-| Image: remove the 12 listed selectors, retire Recraft, add `grok-imagine-image-2.0` with edit/quality/WebP                 | Model registry maintainers | Pending                                    |
-| Video: remove the 16 listed selectors, retire GLM video and Runway, add direct `MiniMax-H3` and Grok `reference_audios`    | Model registry maintainers | Pending                                    |
-| Music: remove `music_v1` and `lyria-3-clip-preview`; keep `music_v2`, `music-3.0`, and `lyria-3-pro-preview`                | Model registry maintainers | Pending                                    |
 | Watch Cartesia for a dated Sonic 3.6 snapshot; do not register `sonic-preview`                                             | Model registry maintainers | Deferred until a fixed 3.6 ID exists       |
 | Recheck deferred specialized, streaming, realtime, cover, and reference-audio products via separate architecture ADRs      | Domain maintainers         | Deferred                                   |
 | Promote provisional OCR token-billed heuristics and Florence compute-second estimates through approved ADR-012 calibration | OCR maintainers            | Deferred pending paid calibration approval |

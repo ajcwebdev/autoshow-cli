@@ -36,8 +36,6 @@ export const buildVideoOptions = (ctx: ResolvedFlagContext): VideoRuntimeOptions
     replicateVideoReferenceVideos: readOptionalStringListFlag(mergedFlags, 'replicate-video-reference-video'),
     replicateVideoReferenceAudios: readOptionalStringListFlag(mergedFlags, 'replicate-video-reference-audio'),
     replicateVideoNegativePrompt: readOptionalStringFlag(mergedFlags, 'replicate-video-negative-prompt'),
-    replicateVideoAudio: readOptionalStringFlag(mergedFlags, 'replicate-video-audio'),
-    replicateVideoPromptExpansion: readOptionalBooleanFlag(mergedFlags, 'replicate-video-prompt-expansion'),
     replicateVideoMultiPrompt: readOptionalStringFlag(mergedFlags, 'replicate-video-multi-prompt'),
     replicateVideoMultiClip: readOptionalBooleanFlag(mergedFlags, 'replicate-video-multi-clip'),
     falVideoGenerateAudio: readOptionalBooleanFlag(mergedFlags, 'fal-video-generate-audio'),

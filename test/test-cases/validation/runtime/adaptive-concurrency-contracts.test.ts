@@ -220,9 +220,9 @@ describe('adaptive provider group parser', () => {
       '--image',
       'openai=gpt-image-2',
       '--video',
-      'runway=gen4.5',
+      'ltx=ltx-2-3-fast',
       '--music',
-      'gemini=lyria-3-clip-preview'
+      'gemini=lyria-3-pro-preview'
     ])).toEqual([
       'extract/anthropic',
       'image/openai',
@@ -230,7 +230,7 @@ describe('adaptive provider group parser', () => {
       'transcribe/deepgram',
       'tts/minimax',
       'url/supadata',
-      'video/runway',
+      'video/ltx',
       'write/openai',
     ])
 
@@ -255,15 +255,15 @@ describe('adaptive provider group parser', () => {
       'video',
       'a prompt',
       '--provider',
-      'minimax=MiniMax-Hailuo-2.3'
-    ])).toEqual(['video/minimax'])
+      'grok=grok-imagine-video'
+    ])).toEqual(['video/grok'])
 
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
       'music',
       'a prompt',
       '--provider',
-      'elevenlabs=music_v1'
+      'elevenlabs=music_v2'
     ])).toEqual(['music/elevenlabs'])
 
     expect(extractAdaptiveProviderGroups([

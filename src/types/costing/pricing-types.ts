@@ -184,7 +184,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   openaiImageModel?: string | undefined
   grokImageModel?: string | undefined
   bflImageModel?: string | undefined
-  recraftImageModel?: string | undefined
   replicateImageModel?: string | undefined
   lumalabsImageModel?: string | undefined
   falImageModel?: string | undefined
@@ -193,9 +192,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   imageCount?: number | undefined
   geminiVideoModel?: string | undefined
   minimaxVideoModel?: string | undefined
-  glmVideoModel?: string | undefined
   grokVideoModel?: string | undefined
-  runwayVideoModel?: string | undefined
   ltxVideoModel?: string | undefined
   replicateVideoModel?: string | undefined
   lumalabsVideoModel?: string | undefined

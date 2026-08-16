@@ -50,7 +50,7 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['extract', 'https://example.com/article', '--url-backend', 'firecrawl'], flag: '--url-backend' },
   { argv: ['image', 'a sunset', '--openai', 'gpt-image-2'], flag: '--openai' },
   { argv: ['video', 'a sunset', '--gemini-video', 'veo-3.1-fast-generate-preview'], flag: '--gemini-video' },
-  { argv: ['music', 'ambient', '--elevenlabs', 'music_v1'], flag: '--elevenlabs' },
+  { argv: ['music', 'ambient', '--elevenlabs', 'music_v2'], flag: '--elevenlabs' },
   { argv: ['extract', 'input.pdf', '--glm-ocr', 'glm-ocr'], flag: '--glm-ocr' },
   { argv: ['extract', 'https://example.com/a.mp3', '--glm-stt', 'x'], flag: '--glm-stt' },
   { argv: ['tts', 'input/examples/tts/1-tts.md', '--minimax-tts-ref-audio', 'x.mp3'], flag: '--minimax-tts-ref-audio' },

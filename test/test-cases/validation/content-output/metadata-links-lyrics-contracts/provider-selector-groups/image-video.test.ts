@@ -12,7 +12,6 @@ import {
   LTX_ALL_LINKS,
   LTX_VIDEO_LINKS,
   LTX_MODELS_LINKS,
-  RECRAFT_IMAGE_LINKS,
   REPLICATE_ALL_LINKS,
   REPLICATE_GENERAL_LINKS,
   REPLICATE_MODELS_LINKS,
@@ -128,46 +127,6 @@ test('links selector accepts ltx provider with models and video sections', async
     '--ltx',
     'image'
   ], 'Unknown links section(s) for --ltx: image')
-})
-
-test('links selector accepts recraft provider with only image section', async () => {
-  const recraftSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--recraft'
-  ])
-
-  expect(recraftSelection.serviceSelections.get('recraft')).toEqual([])
-  expect(collectLinks(
-    recraftSelection.serviceSelections,
-    recraftSelection.globalSections
-  )).toEqual(RECRAFT_IMAGE_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    recraftSelection.serviceSelections,
-    recraftSelection.globalSections
-  )).toBe('recraft-all-links.md')
-
-  const recraftImageSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--recraft',
-    'image'
-  ])
-
-  expect(collectLinks(
-    recraftImageSelection.serviceSelections,
-    recraftImageSelection.globalSections
-  )).toEqual(RECRAFT_IMAGE_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--recraft',
-    'video'
-  ], 'Unknown links section(s) for --recraft: video')
 })
 
 test('links selector accepts replicate provider with general and models sections', async () => {

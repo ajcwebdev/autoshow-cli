@@ -60,17 +60,14 @@ import {
   validateGrokImageModel,
   validateOpenAIImageModel,
   validateBflImageModel,
-  validateRecraftImageModel,
   validateReplicateImageModel,
   validateLumalabsImageModel,
   validateFalImageModel,
   validateGeminiVideoModel,
   validateMinimaxVideoModel,
-  validateGlmVideoModel,
   validateGrokVideoModel,
   validateLtxVideoModel,
   validateReplicateVideoModel,
-  validateRunwayVideoModel,
   validateLumalabsVideoModel,
   validateFalVideoModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
@@ -199,7 +196,6 @@ export const readRuntimeModelOptions = (
   const openaiImageModels = readValidatedMany('openai-image', validateOpenAIImageModel)
   const grokImageModels = readValidatedMany('grok-image', validateGrokImageModel)
   const bflImageModels = readValidatedMany('bfl-image', validateBflImageModel)
-  const recraftImageModels = readValidatedMany('recraft-image', validateRecraftImageModel)
   const replicateImageModels = readValidatedMany('replicate-image', validateReplicateImageModel)
   const lumalabsImageModels = readValidatedMany('lumalabs-image', validateLumalabsImageModel)
   const falImageModels = readValidatedMany('fal-image', validateFalImageModel)
@@ -208,9 +204,7 @@ export const readRuntimeModelOptions = (
   const geminiMusicModels = readValidatedMany('gemini-music', validateGeminiMusicModel)
   const geminiVideoModels = readValidatedMany('gemini-video', validateGeminiVideoModel)
   const minimaxVideoModels = readValidatedMany('minimax-video', validateMinimaxVideoModel)
-  const glmVideoModels = readValidatedMany('glm-video', validateGlmVideoModel)
   const grokVideoModels = readValidatedMany('grok-video', validateGrokVideoModel)
-  const runwayVideoModels = readValidatedMany('runway-video', validateRunwayVideoModel)
   const ltxVideoModels = readValidatedMany('ltx-video', validateLtxVideoModel)
   const replicateVideoModels = readValidatedMany('replicate-video', validateReplicateVideoModel)
   const lumalabsVideoModels = readValidatedMany('lumalabs-video', validateLumalabsVideoModel)
@@ -331,8 +325,6 @@ export const readRuntimeModelOptions = (
     grokImageModel: first(grokImageModels),
     bflImageModels,
     bflImageModel: first(bflImageModels),
-    recraftImageModels,
-    recraftImageModel: first(recraftImageModels),
     replicateImageModels,
     replicateImageModel: first(replicateImageModels),
     lumalabsImageModels,
@@ -349,12 +341,8 @@ export const readRuntimeModelOptions = (
     geminiVideoModel: first(geminiVideoModels),
     minimaxVideoModels,
     minimaxVideoModel: first(minimaxVideoModels),
-    glmVideoModels,
-    glmVideoModel: first(glmVideoModels),
     grokVideoModels,
     grokVideoModel: first(grokVideoModels),
-    runwayVideoModels,
-    runwayVideoModel: first(runwayVideoModels),
     ltxVideoModels,
     ltxVideoModel: first(ltxVideoModels),
     replicateVideoModels,

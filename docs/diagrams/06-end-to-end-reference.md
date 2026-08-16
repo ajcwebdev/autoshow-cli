@@ -146,7 +146,7 @@ These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
 | OpenAI        | `OPENAI_API_KEY` for write/OCR/TTS/image.                                                                                                                |
 | Grok/xAI      | `XAI_API_KEY` for write/STT/OCR/TTS/image/video.                                                                                                         |
 | Gemini        | `GEMINI_API_KEY` for write/STT/OCR/TTS/image/video/music.                                                                                                |
-| GLM           | `GLM_API_KEY` for write/OCR/video.                                                                                                                       |
+| GLM           | `GLM_API_KEY` for write/OCR.                                                                                                                             |
 | Kimi          | `KIMI_API_KEY` for write/OCR.                                                                                                                            |
 | Together      | `TOGETHER_API_KEY` for write/STT.                                                                                                                        |
 | Cerebras      | `CEREBRAS_API_KEY` for write.                                                                                                                            |
@@ -154,13 +154,13 @@ These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
 | Mistral       | `MISTRAL_API_KEY` for STT/OCR/TTS.                                                                                                                       |
 | Groq          | `GROQ_API_KEY` for write/STT/TTS.                                                                                                                        |
 | DeepInfra     | `DEEPINFRA_API_KEY` for STT/OCR/TTS.                                                                                                                     |
-| MiniMax       | `MINIMAX_API_KEY` for write/TTS/video/music.                                                                                                             |
+| MiniMax       | `MINIMAX_API_KEY` for write/TTS/music.                                                                                                                   |
 | ElevenLabs    | `ELEVENLABS_API_KEY` for TTS/music.                                                                                                                      |
 | fal.ai        | `FAL_API_KEY` for OCR/image/video/TTS.                                                                                                                   |
 | Replicate     | `REPLICATE_API_TOKEN` for OCR/image/video/TTS.                                                                                                           |
-| Image-only    | `BFL_API_KEY`, `RECRAFT_API_TOKEN`.                                                                                                                      |
+| Image-only    | `BFL_API_KEY`.                                                                                                                                            |
 | Image/Video   | `LUMA_AGENTS_API_KEY` for Luma Labs image/video.                                                                                                         |
-| Video-only    | `RUNWAYML_API_SECRET`, `LTXV_API_KEY`.                                                                                                                   |
+| Video-only    | `LTXV_API_KEY`.                                                                                                                   |
 | Sound effects | `STABILITY_API_KEY` for Stability AI sound effects.                                                                                                      |
 | STT-only      | `ASSEMBLYAI_API_KEY`, `GLADIA_API_KEY`, `SONIOX_API_KEY`, `SPEECHMATICS_API_KEY`, `REVAI_ACCESS_TOKEN`, `HAPPYSCRIBE_API_KEY`, `SCRAPECREATORS_API_KEY`. |
 | STT/TTS       | `DEEPGRAM_API_KEY`.                                                                                                                                      |

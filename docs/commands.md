@@ -205,9 +205,6 @@ bun autoshow image "a cinematic product photo of a red enamel camping mug" --pro
 # image generation with BFL
 bun autoshow image "a sunset over mountains" --provider bfl=flux-2-klein-4b --size 1024x1024
 
-# image generation with Recraft
-bun autoshow image "a premium product photo of a red enamel camping mug on white seamless" --provider recraft=recraftv4_1 --size 1024x1024 --count 3
-
 # image generation with Luma Labs
 bun autoshow image "a sunset over mountains" --provider lumalabs=uni-1 --aspect-ratio 16:9
 
@@ -226,8 +223,8 @@ bun autoshow video "a cinematic mountain sunrise" --provider gemini=veo-3.1-lite
 bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k
 
 # video generation with multiple providers
-bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider runway=gen4.5 --provider ltx=ltx-2-3-fast --provider lumalabs=ray-3.2
-bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider runway=gen4.5 --provider ltx=ltx-2-3-fast
+bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider grok=grok-imagine-video --provider ltx=ltx-2-3-fast --provider lumalabs=ray-3.2
+bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider ltx=ltx-2-3-fast
 
 # local lyric-video render from repo audio
 # bundled lyrics fixtures: input/examples/lyrics/01-example-song.mp3, input/examples/lyrics/01-cover.jpeg, and input/examples/lyrics/01-example-song.txt
@@ -238,7 +235,7 @@ bun autoshow music --input-dir input/examples/lyrics --batch --model small
 # music generation
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0
 bun autoshow music "an ambient piano instrumental with soft strings" --provider minimax=music-3.0 --instrumental
-bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
+bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-pro-preview
 
 # inspect or set persistent defaults
 bun autoshow config --show
@@ -255,7 +252,6 @@ bun autoshow links --openai
 bun autoshow links --better-auth
 bun autoshow links --kimi
 bun autoshow links stt
-bun autoshow links --recraft image
 
 # fetch documentation from URLs listed in a local file
 bun autoshow links urls.md
@@ -293,13 +289,13 @@ bun as links --help
 - Use `download` for downloading media/documents, X Space audio, and collecting metadata.
 - Use `extract` when you only need step-2 extraction or transcription without LLM writing, to create an X Space report, or to render transcript videos from an extract run or explicit audio/transcript files.
 - Use `write` for full summary pipeline with optional TTS/image/video generation, and for lyric draft generation from `./output/<name>/text`.
-- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, and `fal`; Recraft is raster generation-only in this CLI surface.
+- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, and `fal`.
 - Use `voice` to list provider voice catalogs or manage durable voice registrations (import, design, audition, approve, or revoke voices) separately from speech synthesis.
 - Use `music --audio`, `music --captions`, or `music --batch` for local lyric-video rendering from repo audio under `input/`; hosted music generation uses a prompt or local text file plus `--provider`.
 - Use `comic` for staged or complete episode-script to comic workflows: scene drafting, character sketch references, panel prompt bundles, review sketches, final panel images, grouped page images, manifest-backed dialogue/soundscape audio, and local synchronized still-panel slideshows.
 - Use `resume` to backfill missing extract, write LLM, TTS, image, video, or music providers in an existing output directory, including `extract` parent batches.
 - Use `config --show`, `config --reset`, or selector flags such as `--llm`, `--stt`, `--image`, and `--max-cents` to inspect or persist reusable CLI defaults.
-- Use `links` to fetch the curated provider documentation registry, either all docs, a global section such as `stt`, a provider section such as `--recraft image`, or URLs listed in a local `.md` / `.txt` file.
+- Use `links` to fetch the curated provider documentation registry, either all docs, a global section such as `stt`, a provider section, or URLs listed in a local `.md` / `.txt` file.
 
 ## Pricing Preflight
 
@@ -333,13 +329,9 @@ bun autoshow voice list --provider cartesia --source provider-library --price
 bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm guide" --preview-text "Passing passage for previewing a designed voice..." --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow image "a sunset" --provider bfl=flux-2-klein-4b --price
-bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3 --price
 bun autoshow image "a sunset" --provider lumalabs=uni-1 --aspect-ratio 16:9 --price
 bun autoshow video "a sunset timelapse" --provider gemini=veo-3.1-lite-generate-preview --price
-bun autoshow video "a sunset timelapse" --provider minimax=MiniMax-Hailuo-2.3 --price
-bun autoshow video "a sunset timelapse" --provider glm=cogvideox-3 --price
 bun autoshow video "a sunset timelapse" --provider grok=grok-imagine-video --price
-bun autoshow video "a sunset timelapse" --provider runway=gen4.5 --duration 5 --price
 bun autoshow video "a sunset timelapse" --provider ltx=ltx-2-3-fast --duration 6 --resolution 1080p --price
 bun autoshow video "a sunset timelapse" --provider lumalabs=ray-3.2 --duration 5 --resolution 720p --price
 bun autoshow video "a sunset timelapse" --all-providers --price

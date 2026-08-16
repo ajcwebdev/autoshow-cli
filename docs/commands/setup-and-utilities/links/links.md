@@ -115,10 +115,9 @@ Accepted provider selectors are the lowercase names below.
 | `--whisperfile`    | `stt`                                                                       |
 | `--ltx`            | `models`, `video`                                                           |
 | `--lumalabs`       | `general`, `image`, `models`, `video`                                       |
-| `--minimax`        | `general`, `music`, `text`, `tts`, `video`                                  |
+| `--minimax`        | `general`, `music`, `text`, `tts`                                           |
 | `--mistral`        | `general`, `models`, `ocr`, `stt`, `tts`                                    |
 | `--openai`         | `general`, `image`, `models`, `ocr`, `text`, `tts`                          |
-| `--recraft`        | `image`                                                                     |
 | `--replicate`      | `general`, `models`                                                         |
 | `--resend`         | `general`                                                                   |
 | `--rev`            | `general`, `stt`                                                            |
@@ -224,8 +223,6 @@ bun autoshow links --ltx video
 bun autoshow links --lumalabs image video
 bun autoshow links --fal image video
 
-# Fetch Recraft image API docs
-bun autoshow links --recraft image
 
 # Fetch Replicate general and model docs
 bun autoshow links --replicate general models

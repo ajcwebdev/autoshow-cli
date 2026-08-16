@@ -39,11 +39,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'GLM_API_KEY',
-    label: 'GLM write/OCR/video',
+    label: 'GLM write/OCR',
     configPaths: [
       'defaults.llm.glm',
-      'defaults.extract.ocr.glmOcr',
-      'defaults.post.video.glmVideo'
+      'defaults.extract.ocr.glmOcr'
     ]
   },
   {
@@ -55,11 +54,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'CEREBRAS_API_KEY',
     label: 'Cerebras write',
     configPaths: ['defaults.llm.cerebras']
-  },
-  {
-    envVar: 'RUNWAYML_API_SECRET',
-    label: 'Runway video',
-    configPaths: ['defaults.post.video.runwayVideo']
   },
   {
     envVar: 'LTXV_API_KEY',
@@ -99,11 +93,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'STABILITY_API_KEY',
     label: 'Stability AI sound effects',
     configPaths: []
-  },
-  {
-    envVar: 'RECRAFT_API_TOKEN',
-    label: 'Recraft image',
-    configPaths: ['defaults.post.image.recraftImage']
   },
   {
     envVar: 'REPLICATE_API_TOKEN',

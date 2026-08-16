@@ -4,7 +4,6 @@ import { collectGeminiImageTargets } from '../image-generation-services/image-ge
 import { collectOpenAIImageTargets } from '../image-generation-services/image-openai/openai-image-targets'
 import { collectGrokImageTargets } from '../image-generation-services/image-grok/grok-image-targets'
 import { collectBflImageTargets } from '../image-generation-services/bfl/bfl-image-targets'
-import { collectRecraftImageTargets } from '../image-generation-services/recraft/recraft-image-targets'
 import { collectReplicateImageTargets } from '../image-generation-services/replicate/replicate-image-targets'
 import { collectLumalabsImageTargets } from '../image-generation-services/lumalabs/lumalabs-image-targets'
 import { collectFalImageTargets } from '../image-generation-services/fal-image-service/fal-image-targets'
@@ -20,7 +19,6 @@ export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => 
     ...collectOpenAIImageTargets(options),
     ...collectGrokImageTargets(options),
     ...collectBflImageTargets(options),
-    ...collectRecraftImageTargets(options),
     ...collectReplicateImageTargets(options),
     ...collectLumalabsImageTargets(options),
     ...collectFalImageTargets(options)

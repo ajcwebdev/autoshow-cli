@@ -2,7 +2,6 @@ import type { ComputeEstimatedProcessingTimesInput, TimingStepEntry, TimingSteps
 import { getMusicEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { roundMs, withNormalizedTiming } from './timing-shared'
 
-const GEMINI_CLIP_MUSIC_DURATION_SECONDS = 30
 const GEMINI_PRO_DEFAULT_MUSIC_DURATION_SECONDS = 120
 const ELEVENLABS_DEFAULT_MUSIC_DURATION_SECONDS = 180
 const MINIMAX_DEFAULT_MUSIC_DURATION_SECONDS = 120
@@ -19,12 +18,7 @@ const resolveMusicTimingDurationSeconds = (
   }
 
   if (target.service === 'gemini') {
-    if (target.model === 'lyria-3-clip-preview') {
-      return GEMINI_CLIP_MUSIC_DURATION_SECONDS
-    }
-    if (target.model === 'lyria-3-pro-preview') {
-      return target.durationSeconds ?? GEMINI_PRO_DEFAULT_MUSIC_DURATION_SECONDS
-    }
+    return target.durationSeconds ?? GEMINI_PRO_DEFAULT_MUSIC_DURATION_SECONDS
   }
 
   return target.durationSeconds

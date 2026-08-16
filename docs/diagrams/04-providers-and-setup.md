@@ -76,8 +76,8 @@ Current hosted/local provider families:
 | URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                      |
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
 | TTS   | Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                         |
-| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`.                                                                                                                                            |
-| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                     |
+| Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
+| Video | `gemini`, `minimax`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`; MiniMax remains parseable only to provide replacement guidance for retired direct-video selectors.                                                                    |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
 
 ## Setup Pipeline
@@ -129,22 +129,20 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `OPENAI_API_KEY`         | OpenAI write/OCR/TTS/image                 |
 | `XAI_API_KEY`            | Grok write/STT/OCR/TTS/image/video         |
 | `GEMINI_API_KEY`         | Gemini write/STT/OCR/TTS/image/video/music |
-| `GLM_API_KEY`            | GLM write/OCR/video                        |
+| `GLM_API_KEY`            | GLM write/OCR                              |
 | `KIMI_API_KEY`           | Kimi write/OCR                             |
 | `CEREBRAS_API_KEY`       | Cerebras write                             |
-| `RUNWAYML_API_SECRET`    | Runway video                               |
 | `LTXV_API_KEY`           | LTX video                                  |
 | `MISTRAL_API_KEY`        | Mistral STT/OCR/TTS                        |
 | `BFL_API_KEY`            | BFL image                                  |
 | `LUMA_AGENTS_API_KEY`    | Luma Labs image/video                      |
 | `FAL_API_KEY`            | fal.ai image/video/TTS/OCR                 |
 | `STABILITY_API_KEY`      | Stability AI sound effects                 |
-| `RECRAFT_API_TOKEN`      | Recraft image                              |
 | `REPLICATE_API_TOKEN`    | Replicate OCR/image/video/TTS              |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                        |
 | `GROQ_API_KEY`           | Groq write/STT/TTS                         |
 | `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR/TTS                      |
-| `MINIMAX_API_KEY`        | MiniMax write/TTS/video/music              |
+| `MINIMAX_API_KEY`        | MiniMax write/TTS/music                    |
 | `ELEVENLABS_API_KEY`     | ElevenLabs TTS/music                       |
 | `ASSEMBLYAI_API_KEY`     | AssemblyAI STT                             |
 | `GLADIA_API_KEY`         | Gladia STT                                 |
@@ -182,7 +180,7 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `write`                      | Route-specific extract dependencies. Write has no local LLM.                                 | Selected hosted LLM key.                                                                                                                                                  |
 | `write --text-input`         | local `.md`/`.txt` files.                                                                    | Selected hosted LLM/generation keys.                                                                                                                                      |
 | `tts`                        | none for hosted-only providers.                                                              | Selected hosted TTS key.                                                                                                                                                  |
-| `image`                      | none for hosted-only providers.                                                              | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.                    |
-| `video`                      | local input media/image validation where used.                                               | `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
+| `image`                      | none for hosted-only providers.                                                              | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.                                         |
+| `video`                      | local input media/image validation where used.                                               | `GEMINI_API_KEY`, `XAI_API_KEY`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
 | `music` hosted               | none for hosted-only generation.                                                             | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`.                                                                                                             |
 | `music --audio`/`--batch`    | ffmpeg, ffprobe, `whisper-cli`, local Whisper `large-v3-turbo`.                              | No hosted music key required for local lyric-video rendering.                                                                                                             |

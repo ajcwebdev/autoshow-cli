@@ -30,20 +30,17 @@ import {
 import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
-  GLM_COGVIDEOX_SIZE_VALUES,
-  GLM_VIDU2_SIZE_VALUES,
   GROK_VIDEO_ASPECT_RATIOS,
   LTX_2_3_SIZE_VALUES,
   LUMA_ASPECT_RATIOS,
   LUMA_RESOLUTIONS,
-  REPLICATE_VIDEO_RESOLUTIONS,
-  RUNWAY_ASPECT_RATIO_INPUTS
+  REPLICATE_VIDEO_RESOLUTIONS
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { GEMINI_IMAGE_RESPONSE_MODES, GEMINI_IMAGE_SIZE_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-gemini/gemini-image-targets'
 import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/openai-image-targets'
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
-import { GEMINI_CLIP_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
+
 import { SPEECHIFY_CUSTOM_VOICE_GENDERS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
 import {
   SUPPORTED_HUME_TTS_VOICE_PROVIDERS,
@@ -452,7 +449,7 @@ test.concurrent('write and config help expose shared selectors and concurrency f
   expect(writeResult.stdout).toContain('grok=grok-4.5')
   expect(writeResult.stdout).toContain('--tts')
   expect(writeResult.stdout).toContain('--image')
-  expect(writeResult.stdout).toContain('gemini|openai|grok|bfl|recraft|replicate')
+  expect(writeResult.stdout).toContain('gemini|openai|grok|bfl|replicate')
   expect(writeResult.stdout).toContain('--video')
   expect(writeResult.stdout).toContain('--music')
   expect(writeResult.stdout).toContain('--all-providers')
@@ -465,7 +462,7 @@ test.concurrent('write and config help expose shared selectors and concurrency f
   expect(configResult.stdout).toContain('--ocr')
   expect(configResult.stdout).toContain('--llm')
   expect(configResult.stdout).toContain('--tts')
-  expect(configResult.stdout).toContain('gemini|openai|grok|bfl|recraft|replicate')
+  expect(configResult.stdout).toContain('gemini|openai|grok|bfl|replicate')
   expect(configResult.stdout).toContain('--tts-chunk-concurrency')
   expect(writeResult.stdout).toContain('Grok-only default 50')
   expect(configResult.stdout).toContain('Grok-only default 50')
@@ -533,7 +530,7 @@ test.concurrent('image and video help expose generic provider selection plus the
   expect(imageResult.stdout).toContain('wan-video/wan-2.7-image')
   expect(videoResult.stdout).toContain('ltx')
   expect(videoResult.stdout).toContain('ltx-2-3-fast')
-  expect(videoResult.stdout).toContain('wan-video/wan-2.7-t2v')
+  expect(videoResult.stdout).not.toContain('wan-video/wan-2.7-t2v')
   expect(imageResult.stdout).toContain('--provider-concurrency')
   expect(imageResult.stdout).not.toContain('--local-concurrency')
   expect(imageResult.stdout).toContain('--provider')
@@ -605,7 +602,7 @@ test.concurrent('Luma, ratio, and music duration descriptions match supported be
   expect(image.stdout).toContain(`Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS}`)
   expect(music.stdout).toContain(`ElevenLabs configurable from ${ELEVENLABS_MIN_DURATION_SECONDS}-${ELEVENLABS_MAX_DURATION_SECONDS}`)
   expect(music.stdout).toContain('MiniMax currently ignores this flag')
-  expect(music.stdout).toContain(`Gemini Lyria Clip is fixed at ${GEMINI_CLIP_DURATION_SECONDS} seconds`)
+  expect(music.stdout).not.toContain('Gemini Lyria Clip is fixed')
   expect(music.stdout).toContain('Gemini Lyria Pro uses the requested duration')
 })
 
@@ -613,12 +610,9 @@ test.concurrent('Luma, ratio, and music duration descriptions match supported be
 // supported value without documenting it fails here instead of shipping a stale list.
 const derivedHelpLists = [
   { command: 'video', label: '--video-mode', values: VIDEO_MODES },
-  { command: 'video', label: '--video-size (GLM CogVideoX)', values: GLM_COGVIDEOX_SIZE_VALUES },
-  { command: 'video', label: '--video-size (GLM Vidu 2)', values: GLM_VIDU2_SIZE_VALUES },
   { command: 'video', label: '--video-size (LTX)', values: LTX_2_3_SIZE_VALUES },
   { command: 'video', label: '--video-aspect-ratio (Luma Labs)', values: LUMA_ASPECT_RATIOS },
   { command: 'video', label: '--video-aspect-ratio (Grok)', values: GROK_VIDEO_ASPECT_RATIOS },
-  { command: 'video', label: '--video-aspect-ratio (Runway)', values: RUNWAY_ASPECT_RATIO_INPUTS },
   { command: 'video', label: '--video-resolution (Gemini)', values: GEMINI_VIDEO_RESOLUTIONS },
   { command: 'video', label: '--video-resolution (Replicate)', values: REPLICATE_VIDEO_RESOLUTIONS },
   { command: 'video', label: '--video-resolution (Luma Labs)', values: LUMA_RESOLUTIONS },
@@ -719,9 +713,9 @@ test.concurrent('resume help exposes unified multi-target provider selector', as
   expect(result.stdout).toContain('whisper')
   expect(result.stdout).toContain('tesseract')
   expect(result.stdout).toContain('bfl')
-  expect(result.stdout).toContain('recraft')
+  expect(result.stdout).not.toContain('recraft')
   expect(result.stdout).toContain('replicate')
-  expect(result.stdout).toContain('runway')
+  expect(result.stdout).not.toContain('runway')
   expect(result.stdout).toContain('ltx')
 })
 

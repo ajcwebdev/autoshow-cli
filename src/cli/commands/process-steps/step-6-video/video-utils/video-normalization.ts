@@ -1,4 +1,4 @@
-import type { GeminiDurationSeconds, GeminiResolution, GlmVideoDurationSeconds, GlmVideoFps, GlmVideoModel, GlmVideoQuality, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, MinimaxApiResolution, MinimaxDurationSeconds, MinimaxResolution, MinimaxVideoModel, ReplicateVideoModel, ReplicateVideoResolution, RunwayDurationSeconds, RunwayRatio, VideoMode } from '~/types'
+import type { GeminiDurationSeconds, GeminiResolution, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, MinimaxApiResolution, MinimaxDurationSeconds, MinimaxResolution, MinimaxVideoModel, ReplicateVideoModel, ReplicateVideoResolution, VideoMode } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
 export const REPLICATE_COMMON_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4'] as const
@@ -43,18 +43,11 @@ export const isReplicateKlingOmniVideoModel = (model: ReplicateVideoModel): bool
 export const isReplicatePixVerseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'pixverse/pixverse-v6'
 
-export const isReplicateAlephVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'runwayml/aleph-2'
-
-export const isReplicateWanVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'wan-video/wan-2.7-t2v'
-
 export const isReplicateSeedanceFastVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'bytedance/seedance-2.0-fast'
 
 export const REPLICATE_HAPPYHORSE_DURATION_RANGE = [3, 15] as const
 export const REPLICATE_SEEDANCE_DURATION_RANGE = [-1, 15] as const
-export const REPLICATE_WAN_DURATION_RANGE = [2, 15] as const
 
 export const normalizeReplicateVideoDuration = (
   model: ReplicateVideoModel,
@@ -74,10 +67,7 @@ export const normalizeReplicateVideoDuration = (
     if (value === 5 || value === 8 || value === 10 || value === 15) return value
     throw CLIUsageError(`Invalid --video-duration value "${String(duration)}" for Replicate/${model}. Expected 5, 8, 10, or 15.`)
   }
-  if (isReplicateAlephVideoModel(model)) {
-    return clampIntegerDuration(duration, 5, 2, 30, `Replicate/${model}`)
-  }
-  return clampIntegerDuration(duration, 5, ...REPLICATE_WAN_DURATION_RANGE, `Replicate/${model}`)
+  return clampIntegerDuration(duration, 5, 3, 15, `Replicate/${model}`)
 }
 
 export const resolveReplicateBilledDuration = (
@@ -95,7 +85,6 @@ export const normalizeReplicateVideoResolution = (
   resolution: string | undefined
 ): ReplicateVideoResolution => {
   if (resolution === undefined || resolution === '') return '720p'
-  if (isReplicateAlephVideoModel(model)) return '720p'
   if (isReplicateKlingVideoModel(model)) {
     if (resolution === '720p' || resolution === '1080p' || resolution === '4k') return resolution
     throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 720p, 1080p, or 4k.`)
@@ -104,7 +93,7 @@ export const normalizeReplicateVideoResolution = (
     if (resolution === '360p' || resolution === '540p' || resolution === '720p' || resolution === '1080p') return resolution
     throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 360p, 540p, 720p, or 1080p.`)
   }
-  if (isReplicateHappyHorseVideoModel(model) || isReplicateWanVideoModel(model)) {
+  if (isReplicateHappyHorseVideoModel(model)) {
     if (resolution === '720p' || resolution === '1080p') return resolution
     throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 720p or 1080p.`)
   }
@@ -226,61 +215,6 @@ export const normalizeMinimaxDurationForApi = (
   return Math.floor(duration) <= 6 ? 6 : 10
 }
 
-export const GLM_COGVIDEOX_SIZE_VALUES = [
-  '1280x720',
-  '720x1280',
-  '1024x1024',
-  '1920x1080',
-  '1080x1920',
-  '2048x1080',
-  '3840x2160'
-] as const
-
-const GLM_COGVIDEOX_SIZES = new Set<string>(GLM_COGVIDEOX_SIZE_VALUES)
-
-export const GLM_COGVIDEOX_DURATION_SECONDS = [5, 10] as const
-export const GLM_VIDUQ1_FIXED_DURATION_SECONDS = 5
-export const GLM_VIDU2_FIXED_DURATION_SECONDS = 4
-
-export const normalizeGlmDuration = (
-  model: GlmVideoModel,
-  duration: number | undefined
-): GlmVideoDurationSeconds => {
-  const [shorter, longer] = GLM_COGVIDEOX_DURATION_SECONDS
-  if (model.startsWith('viduq1-')) return GLM_VIDUQ1_FIXED_DURATION_SECONDS
-  if (model.startsWith('vidu2-')) return GLM_VIDU2_FIXED_DURATION_SECONDS
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) return shorter
-  return Math.floor(duration) <= shorter ? shorter : longer
-}
-
-export const GLM_VIDU2_SIZE_VALUES = [
-  '720x480',
-  '1280x720'
-] as const
-
-const GLM_VIDU2_SIZES = new Set<string>(GLM_VIDU2_SIZE_VALUES)
-
-export const normalizeGlmSize = (model: GlmVideoModel, size: string | undefined): string => {
-  if (model.startsWith('viduq1-')) return '1920x1080'
-  if (model.startsWith('vidu2-')) return size && GLM_VIDU2_SIZES.has(size) ? size : '1280x720'
-  return size && GLM_COGVIDEOX_SIZES.has(size) ? size : '1920x1080'
-}
-
-export const normalizeGlmQuality = (quality: string | undefined): GlmVideoQuality => {
-  return quality === 'quality' ? 'quality' : 'speed'
-}
-
-export const normalizeGlmFps = (fps: number | undefined): GlmVideoFps => {
-  return fps === 60 ? 60 : 30
-}
-
-export const GLM_VIDEO_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4'] as const
-
-export const normalizeGlmAspectRatio = (aspectRatio: string | undefined): string => {
-  const allowed = new Set<string>(GLM_VIDEO_ASPECT_RATIOS)
-  return aspectRatio && allowed.has(aspectRatio) ? aspectRatio : '16:9'
-}
-
 export const GROK_VIDEO_DURATION_RANGE = [1, 15] as const
 
 export const normalizeGrokVideoDuration = (duration: number | undefined): GrokVideoDurationSeconds => {
@@ -308,22 +242,6 @@ export const GROK_VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3
 export const normalizeGrokVideoAspectRatio = (aspectRatio: string | undefined): string => {
   const allowed = new Set<string>(GROK_VIDEO_ASPECT_RATIOS)
   return aspectRatio && allowed.has(aspectRatio) ? aspectRatio : '16:9'
-}
-
-export const RUNWAY_DURATION_RANGE = [2, 10] as const
-
-export const normalizeRunwayDuration = (duration: number | undefined): RunwayDurationSeconds => {
-  const [min, max] = RUNWAY_DURATION_RANGE
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) return 5
-  return Math.min(max, Math.max(min, Math.floor(duration))) as RunwayDurationSeconds
-}
-
-// Runway's API takes pixel ratios; the friendly 16:9 / 9:16 forms are accepted and mapped.
-export const RUNWAY_ASPECT_RATIO_INPUTS = ['16:9', '9:16', '1280:720', '720:1280'] as const
-
-export const normalizeRunwayRatio = (aspectRatio: string | undefined): RunwayRatio => {
-  if (aspectRatio === '9:16' || aspectRatio === '720:1280') return '720:1280'
-  return '1280:720'
 }
 
 export const LTX_2_3_SIZE_VALUES = [

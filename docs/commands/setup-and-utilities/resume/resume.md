@@ -46,8 +46,8 @@ Examples of provider names:
 | URL extract | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`                                                                                                                                      |
 | Write LLM   | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`                                                                                                        |
 | TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`                                                                                      |
-| Image       | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`                                                                                                                             |
-| Video       | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                                                      |
+| Image       | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`                                                                                                                                        |
+| Video       | `gemini`, `minimax`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                                                                         |
 | Music       | `elevenlabs`, `minimax`, `gemini`                                                                                                                                                                        |
 
 ## Examples
@@ -93,10 +93,10 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider cartesia=son
 
 # Retry or append image, video, and music providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-lite-image
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider runway=gen4.5
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider ltx=ltx-2-3-fast
+bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider grok=grok-imagine-video-1.5
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=music-3.0
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria-3-clip-preview
+bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria-3-pro-preview
 
 # Add every supported provider for the resolved target
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-providers

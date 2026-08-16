@@ -15,7 +15,7 @@ import {
 import { referenceSketchCommandDefinition } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
-import { getReferenceImageCapabilities, trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
+import { trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
 import { characterSketchCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/character-sketch/character-sketch-command'
 
 const parseReferenceSketchArgs = (args: string[]) =>
@@ -352,7 +352,6 @@ describe('comic character handling flat-reference contracts', () => {
   })
 
   test('registry capabilities never trim required references and trim optional continuity deterministically', () => {
-    expect(getReferenceImageCapabilities('recraftv4_1')).toEqual({ supported: false, maxInputs: 0 })
     expect(() => trimOptionalContinuityReferences('gpt-image-2', Array.from({ length: 17 }, (_, index) => `required-${index}`), [])).toThrow(/requires 17/)
     const result = trimOptionalContinuityReferences('gpt-image-2', ['sheet', 'source'], Array.from({ length: 20 }, (_, index) => `continuity-${index}`))
     expect(result.references.slice(0, 2)).toEqual(['sheet', 'source'])

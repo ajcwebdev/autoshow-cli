@@ -76,23 +76,6 @@ const qualityRank = (selection: { size?: string | undefined, resolution?: string
   return 1
 }
 
-const isDefaultVideoSelectionModel = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal',
-  model: string
-): boolean => {
-  if (provider === 'minimax') {
-    return model === 'MiniMax-Hailuo-2.3'
-      || model === 'T2V-01-Director'
-      || model === 'T2V-01'
-  }
-
-  if (provider === 'glm') {
-    return model === 'cogvideox-3' || model === 'viduq1-text'
-  }
-
-  return true
-}
-
 const selectCheapestSttModel = (service: string): string => {
   const serviceConfig = getModelRegistry().stt[service]
   if (!serviceConfig) {
@@ -210,14 +193,14 @@ const selectCheapestMusicModel = (service: string): string => {
 }
 
 export const selectCheapestVideoSelection = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'minimax' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): CheapestVideoSelection => {
   const serviceConfig = getModelRegistry().video[provider]
   if (!serviceConfig) {
     throw InternalError(`Missing video service config: ${provider}`, { stage: 'models:cheapest' })
   }
 
-  const models = Object.keys(serviceConfig.models).filter((model) => isDefaultVideoSelectionModel(provider, model))
+  const models = Object.keys(serviceConfig.models)
   const durations = serviceConfig.billedDurations && serviceConfig.billedDurations.length > 0
     ? serviceConfig.billedDurations
     : [4]
@@ -271,9 +254,7 @@ export const selectCheapestVideoSelection = (
             estimate = estimateVideoCost({
               ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
               ...(provider === 'minimax' ? { minimaxVideoModel: model } : {}),
-              ...(provider === 'glm' ? { glmVideoModel: model } : {}),
               ...(provider === 'grok' ? { grokVideoModel: model } : {}),
-              ...(provider === 'runway' ? { runwayVideoModel: model } : {}),
               ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
               ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
               ...(provider === 'fal' ? { falVideoModel: model } : {}),
@@ -329,10 +310,10 @@ export const selectCheapestVideoSelection = (
 }
 
 const selectCheapestVideoModel = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'minimax' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): string => selectCheapestVideoSelection(provider).model
 
-const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
+const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
 
 const providerVideoEstimateOptions = (
   provider: typeof TEXT_VIDEO_PROVIDERS[number],
@@ -340,9 +321,7 @@ const providerVideoEstimateOptions = (
 ): Parameters<typeof estimateVideoCost>[0] => ({
   ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
   ...(provider === 'minimax' ? { minimaxVideoModel: model } : {}),
-  ...(provider === 'glm' ? { glmVideoModel: model } : {}),
   ...(provider === 'grok' ? { grokVideoModel: model } : {}),
-  ...(provider === 'runway' ? { runwayVideoModel: model } : {}),
   ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
   ...(provider === 'replicate' ? { replicateVideoModel: model } : {}),
   ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
@@ -359,7 +338,7 @@ export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelectio
       continue
     }
 
-    const models = Object.keys(serviceConfig.models).filter((model) => isDefaultVideoSelectionModel(provider, model))
+    const models = Object.keys(serviceConfig.models)
     for (const model of models) {
       let estimate: ReturnType<typeof estimateVideoCost>
       try {
@@ -535,7 +514,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'openai-image': () => selectCheapestImageModel('openai'),
   'grok-image': () => selectCheapestImageModel('grok'),
   'bfl-image': () => selectCheapestImageModel('bfl'),
-  'recraft-image': () => selectCheapestImageModel('recraft'),
   'replicate-image': () => selectCheapestImageModel('replicate'),
   'lumalabs-image': () => selectCheapestImageModel('lumalabs'),
   'fal-image': () => selectCheapestImageModel('fal'),
@@ -544,9 +522,7 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'gemini-music': () => selectCheapestMusicModel('gemini'),
   'gemini-video': () => selectCheapestVideoModel('gemini'),
   'minimax-video': () => selectCheapestVideoModel('minimax'),
-  'glm-video': () => selectCheapestVideoModel('glm'),
   'grok-video': () => selectCheapestVideoModel('grok'),
-  'runway-video': () => selectCheapestVideoModel('runway'),
   'ltx-video': () => selectCheapestVideoModel('ltx'),
   'replicate-video': () => selectCheapestVideoModel('replicate'),
   'lumalabs-video': () => selectCheapestVideoModel('lumalabs'),

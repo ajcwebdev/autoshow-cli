@@ -24,7 +24,7 @@ describe('price mode contracts', () => {
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
         videoTargets: [{ service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4 }],
-        musicTargets: [{ service: 'gemini', model: 'lyria-3-clip-preview' }]
+        musicTargets: [{ service: 'gemini', model: 'lyria-3-pro-preview' }]
       })
 
       const rows = new Map(timing.steps.map((step) => [step.step, step]))
@@ -387,7 +387,7 @@ describe('price mode contracts', () => {
         },
         { step: 'image', provider: 'openai', model: 'gpt-image-2', imageCount: 2, totalCost: 1 },
         { step: 'video', provider: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4, totalCost: 1 },
-        { step: 'music', provider: 'gemini', model: 'lyria-3-clip-preview', durationSeconds: 30, lyricsSource: 'generated', totalCost: 1 }
+        { step: 'music', provider: 'gemini', model: 'lyria-3-pro-preview', durationSeconds: 120, lyricsSource: 'generated', totalCost: 1 }
       ]
 
       const timing = buildAggregateTiming(steps, undefined)
@@ -427,7 +427,6 @@ describe('price mode contracts', () => {
   test('Gemini music timing estimates use Lyria defaults', () => {
       const timing = computeEstimatedProcessingTimes({
         musicTargets: [
-          { service: 'gemini', model: 'lyria-3-clip-preview' },
           { service: 'gemini', model: 'lyria-3-pro-preview' }
         ]
       })
@@ -439,14 +438,9 @@ describe('price mode contracts', () => {
       }))
       expect(rows).toEqual([
         {
-          model: 'lyria-3-clip-preview',
-          processingTimeMs: Math.round((rows[0]?.inputValue ?? 0) * getMusicEstimation('gemini', 'lyria-3-clip-preview').msPerSecond),
-          inputValue: rows[0]?.inputValue
-        },
-        {
           model: 'lyria-3-pro-preview',
-          processingTimeMs: Math.round((rows[1]?.inputValue ?? 0) * getMusicEstimation('gemini', 'lyria-3-pro-preview').msPerSecond),
-          inputValue: rows[1]?.inputValue
+          processingTimeMs: Math.round((rows[0]?.inputValue ?? 0) * getMusicEstimation('gemini', 'lyria-3-pro-preview').msPerSecond),
+          inputValue: rows[0]?.inputValue
         }
       ])
     })

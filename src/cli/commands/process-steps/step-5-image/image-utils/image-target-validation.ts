@@ -60,8 +60,6 @@ export const IMAGE_OPTION_LABELS = {
   grokImageModel: '--grok-image',
   bflImageModels: '--bfl-image',
   bflImageModel: '--bfl-image',
-  recraftImageModels: '--recraft-image',
-  recraftImageModel: '--recraft-image',
   replicateImageModels: '--replicate-image',
   replicateImageModel: '--replicate-image',
   lumalabsImageModels: '--lumalabs-image',

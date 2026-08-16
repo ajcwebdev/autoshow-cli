@@ -120,8 +120,6 @@ export const buildProcessingOptions = (
     replicateVideoReferenceVideos: runtimeOptions.replicateVideoReferenceVideos,
     replicateVideoReferenceAudios: runtimeOptions.replicateVideoReferenceAudios,
     replicateVideoNegativePrompt: runtimeOptions.replicateVideoNegativePrompt,
-    replicateVideoAudio: runtimeOptions.replicateVideoAudio,
-    replicateVideoPromptExpansion: runtimeOptions.replicateVideoPromptExpansion,
     replicateVideoMultiPrompt: runtimeOptions.replicateVideoMultiPrompt,
     replicateVideoMultiClip: runtimeOptions.replicateVideoMultiClip,
     falVideoGenerateAudio: runtimeOptions.falVideoGenerateAudio,

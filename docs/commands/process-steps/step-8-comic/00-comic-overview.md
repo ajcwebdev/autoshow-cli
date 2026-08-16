@@ -49,7 +49,7 @@ XAI_API_KEY=...
 - `OPENAI_API_KEY` is required for OpenAI text and image models.
 - `GEMINI_API_KEY` is required for Gemini text and image models.
 - `XAI_API_KEY` is required for Grok text and image models.
-- Text and image models resolve against central registries, so any other centrally registered provider you select (e.g. BFL, Recraft, Replicate, Luma Labs, fal.ai for images) requires its respective provider key. See [Supported Models](#supported-models) for the full list.
+- Text and image models resolve against central registries, so any other centrally registered provider you select (e.g. BFL, Replicate, Luma Labs, fal.ai for images) requires its respective provider key. See [Supported Models](#supported-models) for the full list.
 - `--price` is side-effect-free and does not call image or LLM generation APIs. `comic generate-audio --price` performs static source, casting, strategy, and cost planning without provider calls or artifact writes; `comic generate-slideshow --price` reports `$0.00` without writes.
 
 Hosted comic LLM, image, QA, dialogue, and sound-effect work defaults to `--concurrency-mode ramp`. Each provider/account lane starts one request immediately and adds one slot every five seconds while demand is queued, up to the applicable command cap; independent providers ramp independently. `--concurrency-mode immediate` begins at those caps. Price mode simulates a clean ramp with no rate-limit events.
@@ -245,7 +245,7 @@ Reviewed panels may optionally declare `designReferences` entries with `key`, `s
 
 ### Image Models
 
-`--image-model` accepts any model ID from the central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`). Comic routes generation through shared image dispatch across all registered providers (OpenAI, Google Gemini, xAI Grok, BFL, Recraft, Replicate, Luma Labs, fal.ai).
+`--image-model` accepts any model ID from the central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`). Comic routes generation through shared image dispatch across all registered providers (OpenAI, Google Gemini, xAI Grok, BFL, Replicate, Luma Labs, fal.ai).
 
 The default is `gpt-image-2`. Common choices:
 

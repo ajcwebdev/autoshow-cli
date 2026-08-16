@@ -268,7 +268,7 @@ test('show notes render generated media assets with relative embeds and links', 
     }]
     const step7Metadata: Step7MusicMetadata[] = [{
       musicService: 'elevenlabs',
-      musicModel: 'music_v1',
+      musicModel: 'music_v2',
       processingTime: 1,
       musicFileName: 'generated-music.mp3',
       musicFileSize: 100,

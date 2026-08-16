@@ -1,17 +1,14 @@
 import { mkdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
 import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateReplicateCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
   isReplicateHappyHorseVideoModel,
-  isReplicateAlephVideoModel,
   isReplicateKlingOmniVideoModel,
   isReplicateKlingVideoModel,
   isReplicatePixVerseVideoModel,
   isReplicateSeedanceVideoModel,
-  isReplicateWanVideoModel,
   normalizeReplicateVideoAspectRatio,
   normalizeReplicateVideoDuration,
   normalizeReplicateVideoResolution
@@ -25,7 +22,6 @@ import { downloadVideoOutputBytes } from '../../video-utils/video-output-downloa
 import { ensureReplicateSetup, getReplicateBaseUrl } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/replicate-image-gen'
 import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 
-const MAX_WAN_AUDIO_BYTES = 15 * 1024 * 1024
 const MAX_SEEDANCE_REFERENCE_DURATION_SECONDS = 15
 
 type ReplicateVideoGenOptions = {
@@ -41,8 +37,6 @@ type ReplicateVideoGenOptions = {
   referenceVideos?: string[] | undefined
   referenceAudios?: string[] | undefined
   negativePrompt?: string | undefined
-  audio?: string | undefined
-  promptExpansion?: boolean | undefined
   generateAudio?: boolean | undefined
   seed?: number | undefined
   multiPrompt?: string | undefined
@@ -98,21 +92,6 @@ const statusTimingFromPrediction = (
   ...(prediction.started_at ? { startedAt: prediction.started_at } : {}),
   ...(prediction.completed_at ? { completedAt: prediction.completed_at } : {})
 })
-
-const validateWanAudioProbe = async (audio: string): Promise<void> => {
-  const probe = await tryResolveLocalAudioProbe(audio)
-  if (!probe) return
-
-  if (typeof probe.sizeBytes === 'number' && probe.sizeBytes > MAX_WAN_AUDIO_BYTES) {
-    throw CLIUsageError(`--replicate-video-audio must be 15MB or smaller for Replicate/wan-video/wan-2.7-t2v.`)
-  }
-  if (
-    typeof probe.durationSeconds === 'number'
-    && (probe.durationSeconds < 3 || probe.durationSeconds > 30)
-  ) {
-    throw CLIUsageError(`--replicate-video-audio duration must be between 3 and 30 seconds for Replicate/wan-video/wan-2.7-t2v.`)
-  }
-}
 
 const validateSeedanceReferenceDurations = async (
   references: readonly string[],
@@ -241,29 +220,6 @@ const buildPixVerseInput = async (
   }
 }
 
-const buildAlephInput = async (
-  prompt: string | undefined,
-  options: { model: ReplicateVideoModel, inputVideo?: string | undefined, seed?: number | undefined }
-): Promise<ReplicateVideoBuildResult> => {
-  const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
-  if (!options.inputVideo) throw CLIUsageError('Replicate/runwayml/aleph-2 requires --video-input-video.')
-  if (existsSync(options.inputVideo) && Bun.file(options.inputVideo).size > 16 * 1024 * 1024) {
-    throw CLIUsageError('Replicate/runwayml/aleph-2 input video must be 16MB or smaller.')
-  }
-  const video = await videoMediaReferenceToUrlOrDataUrl(options.inputVideo, 'video')
-  const inputVideoDurationSeconds = await tryResolveLocalVideoDurationSeconds(options.inputVideo)
-  if (inputVideoDurationSeconds !== undefined && (inputVideoDurationSeconds < 2 || inputVideoDurationSeconds > 30)) {
-    throw CLIUsageError('Replicate/runwayml/aleph-2 input video duration must be between 2 and 30 seconds.')
-  }
-  return {
-    input: { prompt: resolvedPrompt, video, ...(options.seed !== undefined ? { seed: options.seed } : {}) },
-    requestMode: 'edit',
-    durationForApi: inputVideoDurationSeconds ?? 5,
-    resolution: 'source',
-    ...(inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds } : {})
-  }
-}
-
 const buildSeedanceInput = async (
   prompt: string | undefined,
   options: ReplicateVideoGenOptions & { mode: VideoMode }
@@ -320,39 +276,6 @@ const buildSeedanceInput = async (
   }
 }
 
-const buildWanInput = async (
-  prompt: string | undefined,
-  options: ReplicateVideoGenOptions
-): Promise<ReplicateVideoBuildResult> => {
-  const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
-  const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
-  const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
-  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio)
-  const audio = options.audio
-    ? await videoMediaReferenceToUrlOrDataUrl(options.audio, 'audio')
-    : undefined
-  if (options.audio) {
-    await validateWanAudioProbe(options.audio)
-  }
-
-  return {
-    input: {
-      prompt: resolvedPrompt,
-      duration: durationForApi,
-      resolution,
-      aspect_ratio: aspectRatio,
-      ...(hasText(options.negativePrompt) ? { negative_prompt: options.negativePrompt } : {}),
-      ...(audio ? { audio } : {}),
-      ...(options.promptExpansion !== undefined ? { enable_prompt_expansion: options.promptExpansion } : {}),
-      ...(options.seed !== undefined ? { seed: options.seed } : {})
-    },
-    requestMode: 'text',
-    durationForApi,
-    resolution,
-    aspectRatio
-  }
-}
-
 const buildReplicateVideoInput = async (
   prompt: string | undefined,
   options: ReplicateVideoGenOptions
@@ -369,12 +292,6 @@ const buildReplicateVideoInput = async (
   }
   if (isReplicatePixVerseVideoModel(options.model)) {
     return await buildPixVerseInput(prompt, { ...options, mode })
-  }
-  if (isReplicateAlephVideoModel(options.model)) {
-    return await buildAlephInput(prompt, options)
-  }
-  if (isReplicateWanVideoModel(options.model)) {
-    return await buildWanInput(prompt, options)
   }
   throw CLIUsageError(`Unsupported Replicate video model: ${options.model}`)
 }
@@ -452,7 +369,6 @@ export const runReplicateVideoGen = async (
       ...(options.referenceAudios && options.referenceAudios.length > 0 ? { referenceAudios: options.referenceAudios } : {}),
       ...(options.inputVideo ? { inputVideo: options.inputVideo } : {}),
       ...(request.inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds: request.inputVideoDurationSeconds } : {}),
-      ...(options.audio ? { inputAudio: options.audio } : {}),
       ...(prediction.id ? { providerRequestId: prediction.id } : {}),
       ...(prediction.version ? { providerModelVersion: prediction.version } : {}),
       ...(prediction.model && prediction.model !== options.model ? { providerReturnedModel: prediction.model } : {}),

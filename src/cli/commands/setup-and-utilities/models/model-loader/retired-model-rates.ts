@@ -52,16 +52,46 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
   },
   image: {
     'gemini:gemini-3.1-flash-image-preview': { costPerImageCents: 6.7 },
+    'grok:grok-imagine-image': { costPerImageCents: 2 },
+    'fal:microsoft/mai-image-2.5': { costPerImageCents: 0.21 },
+    'fal:microsoft/mai-image-2.5-pro': { costPerImageCents: 150 },
+    'replicate:ideogram-ai/ideogram-v4-turbo': { costPerImageCents: 3 },
+    'replicate:ideogram-ai/ideogram-v4-balanced': { costPerImageCents: 6 },
+    'replicate:ideogram-ai/ideogram-v4-quality': { costPerImageCents: 10 },
+    'replicate:prunaai/ernie-image': { costPerImageCents: 5.28 },
+    'replicate:prunaai/ernie-image-turbo': { costPerImageCents: 1.15 },
+    'recraft:recraftv4_1': { costPerImageCents: 4 },
+    'recraft:recraftv4_1_utility': { costPerImageCents: 4 },
+    'recraft:recraftv4_1_pro': { costPerImageCents: 25 },
+    'recraft:recraftv4_1_utility_pro': { costPerImageCents: 25 },
     'reve:latest': { costPerImageCents: 0.13333333333333333 },
     'reve:reve-create@20250915': { costPerImageCents: 0.13333333333333333 }
   },
   music: {
+    'elevenlabs:music_v1': { costPerMinuteCents: 15 },
+    'gemini:lyria-3-clip-preview': { costPerTrackCents: 4 },
     'minimax:music-2.6': { costPerTrackCents: 15, lyricsCostPerTrackCents: 1 }
   },
   video: {
     'replicate:alibaba/happyhorse-1.0': {
       costPerSecondByResolutionCents: { '720p': 14, '1080p': 28 }
-    }
+    },
+    'minimax:MiniMax-Hailuo-2.3': { blockSizeSec: 6, blockCost720pCents: 28, blockCost1080pCents: 49 },
+    'minimax:MiniMax-Hailuo-2.3-Fast': { fixedCostByResolutionDurationCents: { '720p': { '6': 19, '10': 32 }, '1080p': { '6': 33 } } },
+    'minimax:T2V-01': { blockSizeSec: 6, blockCost720pCents: 19 },
+    'minimax:T2V-01-Director': { blockSizeSec: 6, blockCost720pCents: 19 },
+    'minimax:I2V-01': { blockSizeSec: 6, blockCost720pCents: 19 },
+    'minimax:I2V-01-Director': { blockSizeSec: 6, blockCost720pCents: 19 },
+    'minimax:I2V-01-live': { blockSizeSec: 6, blockCost720pCents: 19 },
+    'minimax:S2V-01': { blockSizeSec: 6, blockCost720pCents: 19 },
+    'glm:cogvideox-3': { baseJobFeeCents: 20 },
+    'glm:viduq1-text': { baseJobFeeCents: 40 },
+    'glm:vidu2-image': { baseJobFeeCents: 20 },
+    'glm:vidu2-start-end': { baseJobFeeCents: 20 },
+    'glm:vidu2-reference': { baseJobFeeCents: 40 },
+    'runway:gen4.5': { baseCostPerSecondCents: 12 },
+    'replicate:runwayml/aleph-2': { baseCostPerSecondCents: 33.6 },
+    'replicate:wan-video/wan-2.7-t2v': { baseCostPerSecondCents: 10, costPerSecondByResolutionCents: { '720p': 10, '1080p': 10 } }
   }
 }
 
@@ -87,9 +117,42 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'openai:tts-1-hd': 'gpt-4o-mini-tts-2025-12-15',
     'speechify:simba-3.0': 'simba-3.2'
   },
-  image: {},
-  music: {},
-  video: {}
+  image: {
+    'grok:grok-imagine-image': 'grok-imagine-image-2.0',
+    'fal:microsoft/mai-image-2.5': 'alibaba/qwen-image-3',
+    'fal:microsoft/mai-image-2.5-pro': 'alibaba/qwen-image-3',
+    'replicate:ideogram-ai/ideogram-v4-turbo': 'bytedance/seedream-5-lite',
+    'replicate:ideogram-ai/ideogram-v4-balanced': 'bytedance/seedream-5-lite',
+    'replicate:ideogram-ai/ideogram-v4-quality': 'bytedance/seedream-5-lite',
+    'replicate:prunaai/ernie-image': 'qwen/qwen-image-2',
+    'replicate:prunaai/ernie-image-turbo': 'qwen/qwen-image-2',
+    'recraft:recraftv4_1': 'flux-2-klein-4b',
+    'recraft:recraftv4_1_pro': 'flux-2-klein-4b',
+    'recraft:recraftv4_1_utility': 'flux-2-klein-4b',
+    'recraft:recraftv4_1_utility_pro': 'flux-2-klein-4b'
+  },
+  music: {
+    'elevenlabs:music_v1': 'music_v2',
+    'gemini:lyria-3-clip-preview': 'lyria-3-pro-preview'
+  },
+  video: {
+    'minimax:MiniMax-Hailuo-2.3': 'MiniMax-H3',
+    'minimax:MiniMax-Hailuo-2.3-Fast': 'MiniMax-H3',
+    'minimax:T2V-01': 'MiniMax-H3',
+    'minimax:T2V-01-Director': 'MiniMax-H3',
+    'minimax:I2V-01': 'MiniMax-H3',
+    'minimax:I2V-01-Director': 'MiniMax-H3',
+    'minimax:I2V-01-live': 'MiniMax-H3',
+    'minimax:S2V-01': 'MiniMax-H3',
+    'glm:cogvideox-3': 'ltx-2-3-fast',
+    'glm:viduq1-text': 'ltx-2-3-fast',
+    'glm:vidu2-image': 'ltx-2-3-fast',
+    'glm:vidu2-start-end': 'ltx-2-3-fast',
+    'glm:vidu2-reference': 'ltx-2-3-fast',
+    'runway:gen4.5': 'ray-3.2',
+    'replicate:runwayml/aleph-2': 'grok-imagine-video',
+    'replicate:wan-video/wan-2.7-t2v': 'bytedance/seedance-2.0-fast'
+  }
 }
 
 export const getRetiredModelRate = <Category extends ModelCategory>(

@@ -15,22 +15,6 @@ export const REPLICATE_SEEDREAM_MODELS = new Set<ReplicateImageModel>([
   'bytedance/seedream-5-pro'
 ])
 
-export const REPLICATE_IDEOGRAM_MODELS = new Set<ReplicateImageModel>([
-  'ideogram-ai/ideogram-v4-turbo',
-  'ideogram-ai/ideogram-v4-balanced',
-  'ideogram-ai/ideogram-v4-quality'
-])
-
-export const REPLICATE_ERNIE_MODELS = new Set<ReplicateImageModel>([
-  'prunaai/ernie-image',
-  'prunaai/ernie-image-turbo'
-])
-
-export const REPLICATE_ERNIE_VERSION_IDS: Readonly<Partial<Record<ReplicateImageModel, string>>> = {
-  'prunaai/ernie-image': 'd5bfa4984edc317383025be5fd59a6a2d2b1992cf98bdddd788e5d5fa12a3ba4',
-  'prunaai/ernie-image-turbo': 'fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f'
-}
-
 export const REPLICATE_QWEN_MODELS = new Set<ReplicateImageModel>([
   'qwen/qwen-image-2-pro',
   'qwen/qwen-image-2'
@@ -65,37 +49,11 @@ export const REPLICATE_QWEN_ASPECT_RATIO_VALUES = [
   '1:2'
 ] as const
 
-export const REPLICATE_IDEOGRAM_RESOLUTION_VALUES = [
-  '2048x2048',
-  '1440x2880',
-  '2880x1440',
-  '1664x2496',
-  '2496x1664',
-  '1792x2240',
-  '2240x1792',
-  '1440x2560',
-  '2560x1440',
-  '1600x2560',
-  '2560x1600',
-  '1728x2304',
-  '2304x1728',
-  '1296x3168',
-  '3168x1296',
-  '1152x2944',
-  '2944x1152',
-  '1248x3328',
-  '3328x1248',
-  '1280x3072',
-  '3072x1280'
-] as const
-
 export const REPLICATE_WAN_IMAGE_COUNT_RANGE = [1, 4] as const
-export const REPLICATE_ERNIE_IMAGE_COUNT_RANGE = [1, 4] as const
 
 const REPLICATE_SEEDREAM_ASPECT_RATIOS = new Set<string>(REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES)
 
 const REPLICATE_QWEN_ASPECT_RATIOS = new Set<string>(REPLICATE_QWEN_ASPECT_RATIO_VALUES)
-const REPLICATE_IDEOGRAM_RESOLUTIONS = new Set<string>(REPLICATE_IDEOGRAM_RESOLUTION_VALUES)
 
 const normalizeImageDimensions = (
   size: string,
@@ -133,12 +91,6 @@ export const isReplicateQwenModel = (model: ReplicateImageModel): boolean =>
 
 export const isReplicateWanModel = (model: ReplicateImageModel): boolean =>
   REPLICATE_WAN_MODELS.has(model)
-
-export const isReplicateIdeogramModel = (model: ReplicateImageModel): boolean =>
-  REPLICATE_IDEOGRAM_MODELS.has(model)
-
-export const isReplicateErnieModel = (model: ReplicateImageModel): boolean =>
-  REPLICATE_ERNIE_MODELS.has(model)
 
 export const normalizeReplicateSeedreamAspectRatio = (
   model: ReplicateImageModel,
@@ -216,39 +168,6 @@ export const normalizeReplicateSeedreamSize = (
   throw CLIUsageError(`Invalid --image-size value "${imageSize}" for Replicate/${model}. Supported values: ${supported}.`)
 }
 
-export const normalizeReplicateIdeogramSize = (
-  model: ReplicateImageModel,
-  imageSize: string | undefined
-): ReplicateImageSize | undefined => {
-  if (imageSize === undefined || imageSize.length === 0) return undefined
-  const normalized = imageSize.trim()
-  if (!REPLICATE_IDEOGRAM_RESOLUTIONS.has(normalized)) {
-    throw CLIUsageError(
-      `Invalid --image-size value "${imageSize}" for Replicate/${model}. Supported values: ${REPLICATE_IDEOGRAM_RESOLUTION_VALUES.join(', ')}.`
-    )
-  }
-  const dimensions = normalizeImageDimensions(normalized, `Replicate/${model}`, { min: 1152, max: 3328 })
-  return {
-    requestValue: normalized,
-    width: dimensions.width,
-    height: dimensions.height,
-    metadataValue: normalized
-  }
-}
-
-export const normalizeReplicateErnieSize = (
-  model: ReplicateImageModel,
-  imageSize: string | undefined
-): ReplicateImageSize | undefined => {
-  if (imageSize === undefined || imageSize.length === 0) return undefined
-  const dimensions = normalizeImageDimensions(imageSize, `Replicate/${model}`, { min: 64, max: 2048 })
-  return {
-    width: dimensions.width,
-    height: dimensions.height,
-    metadataValue: `${dimensions.width}x${dimensions.height}`
-  }
-}
-
 export const normalizeReplicateWanSize = (
   model: ReplicateImageModel,
   imageSize: string | undefined,
@@ -292,9 +211,8 @@ export const normalizeReplicateImageOutputFormat = (
   const normalized = outputFormat.toLowerCase()
   const supportsFormat = model === 'bytedance/seedream-5-lite'
     || model === 'bytedance/seedream-5-pro'
-    || isReplicateErnieModel(model)
   if (!supportsFormat) {
-    throw CLIUsageError(`--image-format is supported only by Replicate Seedream 5 and ERNIE image models. Omit --image-format for Replicate/${model}.`)
+    throw CLIUsageError(`--image-format is supported only by Replicate Seedream 5 image models. Omit --image-format for Replicate/${model}.`)
   }
   if (normalized === 'png' || normalized === 'jpeg') {
     return normalized
@@ -311,13 +229,11 @@ export const normalizeReplicateImageCount = (
     return 1
   }
 
-  if (!isReplicateWanModel(model) && !isReplicateErnieModel(model)) {
-    throw CLIUsageError(`--image-count is supported only by Replicate Wan and ERNIE image models. Omit --image-count for Replicate/${model}.`)
+  if (!isReplicateWanModel(model)) {
+    throw CLIUsageError(`--image-count is supported only by Replicate Wan image models. Omit --image-count for Replicate/${model}.`)
   }
 
-  const [minCount, maxCount] = isReplicateErnieModel(model)
-    ? REPLICATE_ERNIE_IMAGE_COUNT_RANGE
-    : REPLICATE_WAN_IMAGE_COUNT_RANGE
+  const [minCount, maxCount] = REPLICATE_WAN_IMAGE_COUNT_RANGE
   if (!Number.isInteger(count) || count < minCount || count > maxCount) {
     throw CLIUsageError(`Invalid --image-count value "${String(count)}" for Replicate/${model}. Supported range: ${minCount}-${maxCount}.`)
   }
@@ -336,10 +252,6 @@ export const getReplicateImageExtension = (
   }
   if (model === 'bytedance/seedream-5-pro') {
     const format = normalizeReplicateImageOutputFormat(model, outputFormat) ?? 'png'
-    return format === 'jpeg' ? 'jpg' : format
-  }
-  if (model === 'prunaai/ernie-image' || model === 'prunaai/ernie-image-turbo') {
-    const format = normalizeReplicateImageOutputFormat(model, outputFormat) ?? 'jpeg'
     return format === 'jpeg' ? 'jpg' : format
   }
   return 'png'
@@ -401,51 +313,6 @@ const buildReplicateImageInput = async (
     }
   }
 
-  if (isReplicateIdeogramModel(options.model)) {
-    if (references.length > 0) {
-      throw CLIUsageError(`--image-input is not supported by Replicate/${options.model}. Ideogram V4 Replicate endpoints are text-to-image only.`)
-    }
-    if (options.aspectRatio !== undefined) {
-      throw CLIUsageError(`--image-aspect-ratio is not supported by Replicate/${options.model}. Use --image-size WIDTHxHEIGHT or omit it for automatic sizing.`)
-    }
-    normalizeReplicateImageOutputFormat(options.model, options.outputFormat)
-    normalizeReplicateImageCount(options.model, options.count)
-    const imageSize = normalizeReplicateIdeogramSize(options.model, options.imageSize)
-    return {
-      input: {
-        prompt,
-        ...(imageSize?.requestValue ? { resolution: imageSize.requestValue } : {})
-      },
-      imageSize,
-      count: 1,
-      mode
-    }
-  }
-
-  if (isReplicateErnieModel(options.model)) {
-    if (references.length > 0) {
-      throw CLIUsageError(`--image-input is not supported by Replicate/${options.model}. ERNIE Image Replicate endpoints are text-to-image only.`)
-    }
-    if (options.aspectRatio !== undefined) {
-      throw CLIUsageError(`--image-aspect-ratio is not supported by Replicate/${options.model}. Use --image-size WIDTHxHEIGHT.`)
-    }
-    const imageSize = normalizeReplicateErnieSize(options.model, options.imageSize)
-    const outputFormat = normalizeReplicateImageOutputFormat(options.model, options.outputFormat)
-    const count = normalizeReplicateImageCount(options.model, options.count)
-    return {
-      input: {
-        prompt,
-        ...(imageSize?.width !== undefined ? { width: imageSize.width } : {}),
-        ...(imageSize?.height !== undefined ? { height: imageSize.height } : {}),
-        ...(count !== 1 ? { num_outputs: count } : {}),
-        ...(outputFormat ? { output_format: outputFormat === 'jpeg' ? 'jpg' : outputFormat } : {})
-      },
-      imageSize,
-      count,
-      mode
-    }
-  }
-
   if (options.aspectRatio !== undefined) {
     throw CLIUsageError(`--image-aspect-ratio is not supported by Replicate/${options.model}. Use --image-size 1K|2K|4K or WIDTHxHEIGHT for Wan dimensions.`)
   }
@@ -491,7 +358,6 @@ export const runReplicateImageGen = async (
     outputFormat: options.outputFormat
   })
   const fallbackExt = getReplicateImageExtension(options.model, options.outputFormat)
-  const requestedVersion = REPLICATE_ERNIE_VERSION_IDS[options.model]
 
   const estimate = estimateImageCosts({ replicateImageModel: options.model, imageCount: count, imageSize: imageSize?.metadataValue ?? options.imageSize })[0]
   if (estimate) {
@@ -507,7 +373,6 @@ export const runReplicateImageGen = async (
     apiToken,
     baseUrl: getReplicateBaseUrl(),
     model: options.model,
-    version: requestedVersion,
     input,
     operationName: 'replicate-image-gen',
     onStatus: (status) => {
@@ -531,7 +396,7 @@ export const runReplicateImageGen = async (
   const processingTime = Date.now() - startTime
   const primaryImagePath = imagePaths[0] as string
   const imageFile = Bun.file(primaryImagePath)
-  const returnedModel = providerReturnedModel(options.model, prediction.model ?? (requestedVersion ? undefined : prediction.version))
+  const returnedModel = providerReturnedModel(options.model, prediction.model ?? prediction.version)
 
   logGenCompleted('image', 'replicate', options.model, processingTime, imagePaths)
 

@@ -5,12 +5,8 @@ export type VideoRuntimeOptions = {
   geminiVideoModel: string | undefined
   minimaxVideoModels: string[] | undefined
   minimaxVideoModel: string | undefined
-  glmVideoModels: string[] | undefined
-  glmVideoModel: string | undefined
   grokVideoModels: string[] | undefined
   grokVideoModel: string | undefined
-  runwayVideoModels: string[] | undefined
-  runwayVideoModel: string | undefined
   ltxVideoModels: string[] | undefined
   ltxVideoModel: string | undefined
   replicateVideoModels: string[] | undefined
@@ -34,8 +30,6 @@ export type VideoRuntimeOptions = {
   replicateVideoReferenceVideos: string[] | undefined
   replicateVideoReferenceAudios: string[] | undefined
   replicateVideoNegativePrompt: string | undefined
-  replicateVideoAudio: string | undefined
-  replicateVideoPromptExpansion: boolean | undefined
   replicateVideoMultiPrompt: string | undefined
   replicateVideoMultiClip: boolean | undefined
   falVideoGenerateAudio: boolean | undefined

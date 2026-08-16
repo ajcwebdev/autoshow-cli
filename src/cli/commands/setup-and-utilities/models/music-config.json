@@ -3,26 +3,13 @@
     "description": "ElevenLabs music generation",
     "type": "api",
     "models": {
-      "music_v1": {
-        "description": "music_v1 — text prompt to complete song generation",
-        "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "ElevenLabs API music generation pricing",
-        "pricingNotes": "ElevenLabs music generation is estimated at the published per-minute API reference rate. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMinuteCents": 15,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 1820
-        }
-      },
       "music_v2": {
         "description": "music_v2 — next-generation text prompt to complete song generation",
         "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
         "pricingCheckedAt": "2026-08-06",
         "pricingCurrency": "USD",
         "pricingTier": "ElevenLabs API music generation pricing",
-        "pricingNotes": "ElevenLabs publishes one API music-generation rate for Music v1 and Music v2. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingNotes": "ElevenLabs publishes one API music-generation rate for Music v2. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "costPerMinuteCents": 15,
         "estimation": {
           "costMultiplier": 1,
@@ -55,19 +42,6 @@
     "description": "Gemini Lyria music generation",
     "type": "api",
     "models": {
-      "lyria-3-clip-preview": {
-        "description": "Lyria 3 Clip Preview — 30-second text-to-music clips with MP3 output",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard Lyria pricing",
-        "pricingNotes": "Gemini Lyria estimates use published per-track prices for the selected preview model. Free tier, priority pricing, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerTrackCents": 4,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 491
-        }
-      },
       "lyria-3-pro-preview": {
         "description": "Lyria 3 Pro Preview — full song generation with MP3 output",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",

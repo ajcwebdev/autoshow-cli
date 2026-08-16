@@ -2,6 +2,8 @@
 
 This release note explains what AutoShow is, what ships in v0.1, and how to start using the Bun CLI.
 
+This is a historical release snapshot. Provider selectors and examples reflect v0.1 and may no longer be accepted by the current CLI; use the command documentation and `--help` for current models.
+
 Current CLI help in this repo reports `bun autoshow v0.1.0`; this document uses `v0.1` as the release label.
 
 ## Outline
@@ -217,7 +219,7 @@ Examples:
 
 ```bash
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
-bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
+bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-pro-preview
 ```
 
 ### Step 8: comic

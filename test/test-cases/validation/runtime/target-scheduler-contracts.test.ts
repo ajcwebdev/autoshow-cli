@@ -163,8 +163,6 @@ describe('target scheduler contracts', () => {
           grokImageModel: undefined,
           bflImageModels: undefined,
           bflImageModel: undefined,
-          recraftImageModels: undefined,
-          recraftImageModel: undefined,
           imageAspectRatio: undefined,
           imageSize: undefined,
           imageQuality: undefined,

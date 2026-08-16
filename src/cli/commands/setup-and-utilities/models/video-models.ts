@@ -1,5 +1,7 @@
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import type { FalVideoModel, GeminiVideoModel, GlmVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, RunwayVideoModel } from '~/types'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
+import { throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import type { FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel } from '~/types'
 
 export const SUPPORTED_GEMINI_VIDEO_MODELS = [
   'veo-3.1-fast-generate-preview',
@@ -9,28 +11,14 @@ export const SUPPORTED_GEMINI_VIDEO_MODELS = [
 
 export const validateGeminiVideoModel = createModelValidator<GeminiVideoModel>(SUPPORTED_GEMINI_VIDEO_MODELS, 'gemini-video')
 
-export const SUPPORTED_MINIMAX_VIDEO_MODELS = [
-  'T2V-01',
-  'T2V-01-Director',
-  'MiniMax-Hailuo-2.3',
-  'MiniMax-Hailuo-2.3-Fast',
-  'I2V-01-Director',
-  'I2V-01-live',
-  'I2V-01',
-  'S2V-01'
-] as const satisfies readonly string[]
+export const SUPPORTED_MINIMAX_VIDEO_MODELS = [] as const satisfies readonly string[]
 
-export const validateMinimaxVideoModel = createModelValidator<MinimaxVideoModel>(SUPPORTED_MINIMAX_VIDEO_MODELS, 'minimax-video')
-
-export const SUPPORTED_GLM_VIDEO_MODELS = [
-  'cogvideox-3',
-  'viduq1-text',
-  'vidu2-image',
-  'vidu2-start-end',
-  'vidu2-reference'
-] as const satisfies readonly string[]
-
-export const validateGlmVideoModel = createModelValidator<GlmVideoModel>(SUPPORTED_GLM_VIDEO_MODELS, 'glm-video')
+const validateActiveMinimaxVideoModel = createModelValidator<MinimaxVideoModel>(SUPPORTED_MINIMAX_VIDEO_MODELS, 'minimax-video')
+export const validateMinimaxVideoModel = (model: string): MinimaxVideoModel => {
+  const replacement = getRetiredModelReplacement('video', 'minimax', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'minimax-video', replacement)
+  return validateActiveMinimaxVideoModel(model)
+}
 
 export const SUPPORTED_GROK_VIDEO_MODELS = [
   'grok-imagine-video',
@@ -38,12 +26,6 @@ export const SUPPORTED_GROK_VIDEO_MODELS = [
 ] as const satisfies readonly string[]
 
 export const validateGrokVideoModel = createModelValidator<GrokVideoModel>(SUPPORTED_GROK_VIDEO_MODELS, 'grok-video')
-
-export const SUPPORTED_RUNWAY_VIDEO_MODELS = [
-  'gen4.5'
-] as const satisfies readonly string[]
-
-export const validateRunwayVideoModel = createModelValidator<RunwayVideoModel>(SUPPORTED_RUNWAY_VIDEO_MODELS, 'runway-video')
 
 export const SUPPORTED_LTX_VIDEO_MODELS = [
   'ltx-2-3-fast',
@@ -58,12 +40,15 @@ export const SUPPORTED_REPLICATE_VIDEO_MODELS = [
   'bytedance/seedance-2.0-fast',
   'kwaivgi/kling-v3-video',
   'kwaivgi/kling-v3-omni-video',
-  'pixverse/pixverse-v6',
-  'runwayml/aleph-2',
-  'wan-video/wan-2.7-t2v'
+  'pixverse/pixverse-v6'
 ] as const satisfies readonly string[]
 
-export const validateReplicateVideoModel = createModelValidator<ReplicateVideoModel>(SUPPORTED_REPLICATE_VIDEO_MODELS, 'replicate-video')
+const validateActiveReplicateVideoModel = createModelValidator<ReplicateVideoModel>(SUPPORTED_REPLICATE_VIDEO_MODELS, 'replicate-video')
+export const validateReplicateVideoModel = (model: string): ReplicateVideoModel => {
+  const replacement = getRetiredModelReplacement('video', 'replicate', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'replicate-video', replacement)
+  return validateActiveReplicateVideoModel(model)
+}
 
 export const SUPPORTED_LUMALABS_VIDEO_MODELS = [
   'ray-3.2'

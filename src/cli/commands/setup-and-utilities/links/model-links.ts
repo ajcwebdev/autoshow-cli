@@ -27,7 +27,6 @@ import lumalabsLinks from './model-links/lumalabs.json'
 import minimaxLinks from './model-links/minimax.json'
 import mistralLinks from './model-links/mistral.json'
 import openaiLinks from './model-links/openai.json'
-import recraftLinks from './model-links/recraft.json'
 import replicateLinks from './model-links/replicate.json'
 import resendLinks from './model-links/resend.json'
 import revLinks from './model-links/rev.json'
@@ -75,7 +74,6 @@ const providerLinks = [
   speechmaticsLinks,
   speechifyLinks,
   revLinks,
-  recraftLinks,
   replicateLinks,
   runwayLinks,
   resendLinks,

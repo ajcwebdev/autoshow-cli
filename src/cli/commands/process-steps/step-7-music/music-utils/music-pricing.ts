@@ -18,7 +18,6 @@ export const MUSIC_PRICING_MODEL_KEYS = passThroughKeys(MUSIC_PRICING_PROVIDERS)
 const formatRate = (amount: number): string => `${amount.toFixed(2)}¢`
 export const DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS = 180
 const DEFAULT_MINIMAX_MUSIC_DURATION_SECONDS = 120
-const GEMINI_CLIP_MUSIC_DURATION_SECONDS = 30
 const DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS = 120
 
 const assertValidMusicDuration = (durationSeconds: number | undefined): void => {
@@ -106,14 +105,10 @@ export const estimateMusicCosts = (options: EstimateMusicCostOptions): MusicCost
         results.push({
           provider: 'gemini',
           model,
-          durationSeconds: model === 'lyria-3-clip-preview'
-            ? GEMINI_CLIP_MUSIC_DURATION_SECONDS
-            : options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS,
+          durationSeconds: options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS,
           totalCost: baseCost,
           lyricsSource,
-          note: model === 'lyria-3-clip-preview'
-            ? 'Gemini Lyria 3 Clip is billed per 30-second song request.'
-            : `Gemini Lyria 3 Pro is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS}s.`
+          note: `Gemini Lyria 3 Pro is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_PRO_MUSIC_DURATION_SECONDS}s.`
         })
         break
       }

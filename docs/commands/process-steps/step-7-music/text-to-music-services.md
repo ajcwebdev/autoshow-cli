@@ -109,7 +109,7 @@ bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider 
 | Option       | Value                                                         |
 | ------------ | ------------------------------------------------------------- |
 | Selector     | `--provider elevenlabs[=<model>]`                             |
-| Models       | `music_v1`, `music_v2`                                        |
+| Models       | `music_v2`                                                    |
 | Duration     | `--duration <seconds>` from `3` to `600`; default 180 seconds |
 | Instrumental | `--instrumental`                                              |
 
@@ -119,7 +119,7 @@ bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider
 bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v2 --price
 ```
 
-ElevenLabs returns audio directly (`mp3_44100_128` for `music_v1`, `mp3_48000_192` for `music_v2`). Pricing estimates use explicit `--duration` or default to 180 seconds.
+ElevenLabs returns audio directly (`mp3_48000_192` for `music_v2`). Pricing estimates use explicit `--duration` or default to 180 seconds.
 
 ### MiniMax
 
@@ -144,18 +144,18 @@ MiniMax auto-generates lyrics when `--lyrics-file` is omitted, which is included
 | Option              | Value                                                                                  |
 | ------------------- | -------------------------------------------------------------------------------------- |
 | Selector            | `--provider gemini[=<model>]`                                                          |
-| Models              | `lyria-3-clip-preview`, `lyria-3-pro-preview`                                          |
-| Duration            | Gemini Clip is fixed at 30 seconds; Gemini Pro uses `--duration` (default 120 seconds) |
+| Models              | `lyria-3-pro-preview`                                                                  |
+| Duration            | Gemini Pro uses `--duration` (default 120 seconds)                                     |
 | Lyrics/instrumental | `--lyrics-file <path>` or `--instrumental`                                             |
 
 ```bash
-bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
+bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-pro-preview
 bun autoshow music "cinematic synth pop with verses, chorus, and bridge" --provider gemini=lyria-3-pro-preview --duration 120
 bun autoshow music input/examples/tts/1-tts.md --provider gemini=lyria-3-pro-preview --lyrics-file input/examples/tts/1-tts.md
-bun autoshow music "ambient piano and strings" --provider gemini=lyria-3-clip-preview --price
+bun autoshow music "ambient piano and strings" --provider gemini=lyria-3-pro-preview --price
 ```
 
-Gemini Lyria 3 Clip always generates a 30-second MP3 clip. Lyria 3 Pro uses duration instructions from `--duration` (default 120 seconds). `--lyrics-file` appends lyrics to the prompt. If `--instrumental` is also set, instrumental takes precedence and the lyrics file is ignored with a warning.
+Lyria 3 Pro uses duration instructions from `--duration` (default 120 seconds). `--lyrics-file` appends lyrics to the prompt. If `--instrumental` is also set, instrumental takes precedence and the lyrics file is ignored with a warning.
 
 ### Lyric-Video Rendering
 
@@ -200,10 +200,8 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 
 | Provider                      | Released      | Duration                          | Duration control | Instrumental        | Lyrics                          | Output                     | Pricing                                        | Cost rank |
 | ----------------------------- | ------------- | --------------------------------- | ---------------- | ------------------- | ------------------------------- | -------------------------- | ---------------------------------------------- | --------- |
-| MiniMax `music-3.0`           | ✅ 2026-08-13 | ✅ Up to 5 minutes billed         | ❌ Ignored       | ✅ `--instrumental` | ✅ `--lyrics-file` or generated | ✅ 44.1 kHz / 256 kbps MP3 | $0.15/track (+$0.01 generated lyrics)          | 3/5       |
-| ElevenLabs `music_v2`         | ✅ 2026-05-26 | ✅ 3–600s                         | ✅ `--duration`  | ✅ `--instrumental` | ❌ Prompt vocals only           | ✅ 48 kHz / 192 kbps MP3   | $0.15/min ($0.45 at the 180s default estimate) | 4/5       |
-| Gemini `lyria-3-pro-preview`  | ✅ 2026-03-25 | ⚠️ Default 120s, no published max | ⚠️ Prompt only   | ✅ `--instrumental` | ⚠️ File appended to prompt      | ❌ MP3, rate unpublished   | $0.08/track                                    | 2/5       |
-| Gemini `lyria-3-clip-preview` | ✅ 2026-03-25 | ❌ 30s fixed                      | ❌ Fixed 30s     | ✅ `--instrumental` | ⚠️ File appended to prompt      | ❌ MP3, rate unpublished   | $0.04/track                                    | 1/5       |
-| ElevenLabs `music_v1`         | ⚠️ 2025-08-05 | ✅ 3–600s                         | ✅ `--duration`  | ✅ `--instrumental` | ❌ Prompt vocals only           | ⚠️ 44.1 kHz / 128 kbps MP3 | $0.15/min ($0.45 at the 180s default estimate) | 4/5       |
+| MiniMax `music-3.0`           | ✅ 2026-08-13 | ✅ Up to 5 minutes billed         | ❌ Ignored       | ✅ `--instrumental` | ✅ `--lyrics-file` or generated | ✅ 44.1 kHz / 256 kbps MP3 | $0.15/track (+$0.01 generated lyrics)          | 2/3       |
+| ElevenLabs `music_v2`         | ✅ 2026-05-26 | ✅ 3–600s                         | ✅ `--duration`  | ✅ `--instrumental` | ❌ Prompt vocals only           | ✅ 48 kHz / 192 kbps MP3   | $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
+| Gemini `lyria-3-pro-preview`  | ✅ 2026-03-25 | ⚠️ Default 120s, no published max | ⚠️ Prompt only   | ✅ `--instrumental` | ⚠️ File appended to prompt      | ❌ MP3, rate unpublished   | $0.08/track                                    | 1/3       |
 
-ElevenLabs sends `music_length_ms` only when `--duration` is set; omitted requests let the provider choose length while estimates still use 180 seconds. MiniMax ignores `--duration`, auto-generates lyrics when `--lyrics-file` is omitted, and caps prompts at 2000 characters and lyrics at 3500 characters. Gemini instrumental mode wins over `--lyrics-file`. Lyric-video rendering is local and mutually exclusive with hosted generation flags.
+ElevenLabs sends `music_length_ms` only when `--duration` is set; omitted requests let the provider choose length while estimates still use 180 seconds. MiniMax ignores `--duration`, auto-generates lyrics when `--lyrics-file` is omitted, and caps prompts at 2000 characters and lyrics at 3500 characters. Gemini instrumental mode wins over `--lyrics-file`. Lyric-video rendering is local and mutually exclusive with hosted generation flags. Direct selection of retired `music_v1` and `lyria-3-clip-preview` fails with replacement guidance to `music_v2` and `lyria-3-pro-preview`.

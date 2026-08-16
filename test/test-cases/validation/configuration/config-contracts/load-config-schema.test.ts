@@ -68,19 +68,16 @@ describe('config load schema contracts', () => {
           },
           image: {
             bflImage: ['flux-2-pro'],
-            recraftImage: ['recraftv4_1'],
             replicateImage: ['wan-video/wan-2.7-image'],
             imageFormat: 'jpeg'
           },
           video: {
-            replicateVideo: ['wan-video/wan-2.7-t2v'],
+            replicateVideo: ['bytedance/seedance-2.0-fast'],
             replicateVideoSeed: 123,
             replicateVideoGenerateAudio: false,
             replicateVideoReferenceVideos: ['input/examples/video/reference.mp4'],
             replicateVideoReferenceAudios: ['input/examples/audio/reference.mp3'],
             replicateVideoNegativePrompt: 'blur',
-            replicateVideoAudio: 'input/examples/audio/narration.wav',
-            replicateVideoPromptExpansion: true,
             videoDuration: -1
           }
         }

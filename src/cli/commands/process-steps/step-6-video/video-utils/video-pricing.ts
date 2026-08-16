@@ -1,11 +1,10 @@
-import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GlmVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, RunwayVideoModel, VideoCostEstimate, VideoProvider } from '~/types'
-import { validateFalVideoModel, validateGeminiVideoModel, validateGlmVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateMinimaxVideoModel, validateReplicateVideoModel, validateRunwayVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, VideoCostEstimate, VideoProvider } from '~/types'
+import { validateFalVideoModel, validateGeminiVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateMinimaxVideoModel, validateReplicateVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { deriveGenerationPricingProviders, VIDEO_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import {
   normalizeGeminiDuration,
   normalizeGeminiResolution,
-  normalizeGlmDuration,
   normalizeGrokVideoDuration,
   normalizeGrokVideoExtensionDuration,
   normalizeGrokVideoResolution,
@@ -15,11 +14,9 @@ import {
   normalizeMinimaxResolution,
   normalizeReplicateVideoResolution,
   resolveReplicateBilledDuration,
-  normalizeRunwayDuration,
   normalizeLumaVideoDuration,
   normalizeLumaVideoResolution,
   isReplicateSeedanceVideoModel,
-  isReplicateAlephVideoModel,
   isMinimaxHailuoModel
 } from './video-normalization'
 import * as l from '~/utils/app-logger/app-logger'
@@ -117,21 +114,6 @@ const estimateGeminiCost = (model: GeminiVideoModel, options: EstimateVideoCostO
   return estimateGeminiModelCost(model, options.videoDuration, options.videoResolution, options.videoMode)
 }
 
-const estimateGlmCost = (model: GlmVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
-  const meta = getVideoModelMeta('glm', model)
-  const durationSeconds = normalizeGlmDuration(model, options.videoDuration)
-  const totalCost = meta?.baseJobFeeCents ?? 0
-  return {
-    provider: 'glm',
-    model,
-    durationSeconds,
-    billedDurationSeconds: durationSeconds,
-    costPerSecond: durationSeconds > 0 ? totalCost / durationSeconds : 0,
-    totalCost,
-    note: 'Flat per-video estimate'
-  }
-}
-
 const estimateGrokCost = (model: GrokVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
   const meta = getVideoModelMeta('grok', model)
   const durationSeconds = options.videoMode === 'extend'
@@ -163,21 +145,6 @@ const estimateGrokCost = (model: GrokVideoModel, options: EstimateVideoCostOptio
     costPerSecond,
     totalCost,
     note: `Approximate estimate using ${normalizedResolution} per-second pricing${mediaNote}`
-  }
-}
-
-const estimateRunwayCost = (model: RunwayVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
-  const meta = getVideoModelMeta('runway', model)
-  const durationSeconds = normalizeRunwayDuration(options.videoDuration)
-  const costPerSecond = meta?.baseCostPerSecondCents ?? 12
-  return {
-    provider: 'runway',
-    model,
-    durationSeconds,
-    billedDurationSeconds: durationSeconds,
-    costPerSecond,
-    totalCost: durationSeconds * costPerSecond,
-    note: 'Estimate uses Runway credits at $0.01 per credit'
   }
 }
 
@@ -261,9 +228,7 @@ const estimateFalCost = (model: FalVideoModel, options: EstimateVideoCostOptions
 
 export const estimateReplicateCost = (model: ReplicateVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
   const resolution = normalizeReplicateVideoResolution(model, options.videoResolution)
-  const durationSeconds = isReplicateAlephVideoModel(model) && options.replicateInputVideoDurationSeconds !== undefined
-    ? options.replicateInputVideoDurationSeconds
-    : resolveReplicateBilledDuration(model, options.videoDuration)
+  const durationSeconds = resolveReplicateBilledDuration(model, options.videoDuration)
   const hasVideoInput = isReplicateSeedanceVideoModel(model)
     && Math.max(0, Math.floor(options.replicateVideoReferenceVideoCount ?? 0)) > 0
   const generateAudio = options.replicateVideoGenerateAudio === true
@@ -294,14 +259,8 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
       case 'minimax':
         estimates.push(estimateMinimaxCost(validateMinimaxVideoModel(selection.model), options))
         break
-      case 'glm':
-        estimates.push(estimateGlmCost(validateGlmVideoModel(selection.model), options))
-        break
       case 'grok':
         estimates.push(estimateGrokCost(validateGrokVideoModel(selection.model), options))
-        break
-      case 'runway':
-        estimates.push(estimateRunwayCost(validateRunwayVideoModel(selection.model), options))
         break
       case 'ltx':
         estimates.push(estimateLtxCost(validateLtxVideoModel(selection.model), options))

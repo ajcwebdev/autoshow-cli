@@ -4,51 +4,6 @@ import { collectImageTargets, getExpectedImageArtifactFileNames, getExpectedImag
 import { withTempImageFixture, withTempImageFixtures } from './shared'
 
 describe('provider selection contracts', () => {
-  test('Recraft image options validate supported shared controls and reject edit/output flags', () => {
-    const valid = buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1_pro',
-      'image-count': '6',
-      'image-size': '2560x1664'
-    })
-    expect(collectImageTargets(valid).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'recraft:recraftv4_1_pro'
-    ])
-    expect(getExpectedImageCount(collectImageTargets(valid)[0]!, valid)).toBe(6)
-    expect(getExpectedImageArtifactFileNames(collectImageTargets(valid)[0]!, valid, true)).toEqual([
-      'generated-image.png',
-      'generated-image-2.png',
-      'generated-image-3.png',
-      'generated-image-4.png',
-      'generated-image-5.png',
-      'generated-image-6.png'
-    ])
-
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1',
-      'image-count': '7'
-    }))).toThrow('Supported range: 1-6')
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1',
-      'image-size': '1024x1024',
-      'image-aspect-ratio': '1:1'
-    }))).toThrow('cannot be used together')
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1',
-      'image-size': '1024x1024'
-    }))).not.toThrow()
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1_vector'
-    }))).toThrow('Invalid model "recraftv4_1_vector" for --provider/--image recraft[=model]')
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1',
-      'image-input': ['reference.png']
-    }))).toThrow('--image-input')
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1',
-      'image-format': 'webp'
-    }))).toThrow('--image-format')
-  })
-
   test('BFL accepts newly mapped shared image options', () => {
     withTempImageFixture('autoshow-image-provider-flags-', (imagePath) => {
       const bflOpts = buildOptsFromFlags(false, {
@@ -216,34 +171,6 @@ describe('provider selection contracts', () => {
         'image-input': Array.from({ length: 11 }, (_, index) => `https://example.com/reference-${index}.png`)
       }))).toThrow('--image-input supports at most 10 reference images')
 
-      const ideogram = buildOptsFromFlags(false, {
-        'replicate-image': ['ideogram-ai/ideogram-v4-balanced'],
-        'image-size': '2048x2048'
-      })
-      expect(collectImageTargets(ideogram).map((target) => target.model)).toEqual(['ideogram-ai/ideogram-v4-balanced'])
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
-        'replicate-image': ['ideogram-ai/ideogram-v4-turbo'],
-        'image-input': [firstRef]
-      }))).toThrow('text-to-image only')
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
-        'replicate-image': ['ideogram-ai/ideogram-v4-quality'],
-        'image-size': '1024x1024'
-      }))).toThrow('Supported values: 2048x2048')
-
-      const ernie = buildOptsFromFlags(false, {
-        'replicate-image': ['prunaai/ernie-image-turbo'],
-        'image-size': '1264x848',
-        'image-count': '4',
-        'image-format': 'jpeg'
-      })
-      const ernieTargets = collectImageTargets(ernie)
-      expect(getExpectedImageCount(ernieTargets[0]!, ernie)).toBe(4)
-      expect(getExpectedImageArtifactFileNames(ernieTargets[0]!, ernie, true)).toEqual([
-        'generated-image.jpg',
-        'generated-image-2.jpg',
-        'generated-image-3.jpg',
-        'generated-image-4.jpg'
-      ])
     })
   })
 })

@@ -84,15 +84,6 @@ test('image command rejections name the spellings the image command registers', 
     '--image-search-grounding is not supported by Grok/grok-imagine-image-quality',
     imageCommandOptionNames
   )).toContain('--search-grounding is not supported by Grok/grok-imagine-image-quality')
-
-  expect(() => collectImageTargets(buildOptsFromFlags(false, {
-    'recraft-image': 'recraftv4_1',
-    'image-count': '7'
-  }))).toThrow('Invalid --image-count value "7" for Recraft/recraftv4_1')
-  expect(renameFlagSpellings(
-    'Invalid --image-count value "7" for Recraft/recraftv4_1',
-    imageCommandOptionNames
-  )).toContain('Invalid --count value "7" for Recraft/recraftv4_1')
 })
 
 test('video command rejections name the spellings the video command registers', () => {

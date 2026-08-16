@@ -13,7 +13,6 @@ Generate images from a text prompt with hosted image providers.
   - [OpenAI](#openai)
   - [Grok](#grok)
   - [BFL](#bfl)
-  - [Recraft](#recraft)
   - [Replicate](#replicate)
   - [Luma Labs](#luma-labs)
   - [fal.ai](#falai)
@@ -21,7 +20,6 @@ Generate images from a text prompt with hosted image providers.
 - [Notes](#notes)
 - [Provider Capabilities](#provider-capabilities)
   - [Reference Images](#reference-images)
-  - [No Reference Images](#no-reference-images)
   - [1–5 Reference Images](#15-reference-images)
 
 ## Setup
@@ -39,7 +37,6 @@ OPENAI_API_KEY=...
 GEMINI_API_KEY=...
 XAI_API_KEY=...
 BFL_API_KEY=...
-RECRAFT_API_TOKEN=...
 REPLICATE_API_TOKEN=...
 LUMA_AGENTS_API_KEY=...
 FAL_API_KEY=...
@@ -67,7 +64,7 @@ The standalone `image` command uses `--size` instead of `--image-size` (which ca
 | `--quality <q>`                        | OpenAI quality: `low`, `medium`, `high`, or `auto`                                                                                                                                |
 | `--format <fmt>`                       | Output format: `png`, `jpeg`, or `webp` depending on provider                                                                                                                     |
 | `--background <bg>`                    | OpenAI background mode: `transparent`, `opaque`, or `auto`                                                                                                                        |
-| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Recraft: `1-6`, Replicate/fal.ai: `1-4`)                                                                                       |
+| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Replicate/fal.ai: `1-4`)                                                                                                      |
 | `--input <path-or-url>`                | Repeatable source/reference image for edits or image-to-image workflows                                                                                                           |
 | `--mask <path>`                        | OpenAI mask image for inpainting                                                                                                                                                  |
 | `--compression <0-100>`                | OpenAI JPEG/WebP output compression                                                                                                                                               |
@@ -126,7 +123,7 @@ bun autoshow image "replace the background with a sunlit forest" --provider open
 | Option         | Value                                                                                                       |
 | -------------- | ----------------------------------------------------------------------------------------------------------- |
 | Selector       | `--provider grok[=<model>]`                                                                                 |
-| Models         | `grok-imagine-image-quality`, `grok-imagine-image`                                                          |
+| Models         | `grok-imagine-image-quality`                                                                                |
 | Size           | `--size 1K\|2K`                                                                                             |
 | Aspect ratio   | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` |
 | Count          | `--count 1-10`                                                                                              |
@@ -152,33 +149,16 @@ bun autoshow image "a handmade ceramic espresso cup on a marble counter" --provi
 bun autoshow image "place the subject in a cozy cabin kitchen" --provider bfl=flux-2-pro --input input/subject.png --size 1024x1024
 ```
 
-### Recraft
-
-| Option      | Value                                                                              |
-| ----------- | ---------------------------------------------------------------------------------- |
-| Selector    | `--provider recraft[=<model>]`                                                     |
-| Models      | `recraftv4_1`, `recraftv4_1_pro`, `recraftv4_1_utility`, `recraftv4_1_utility_pro` |
-| Count       | `--count 1-6`; default `1`                                                         |
-| Size/aspect | Use either `--size` or `--aspect-ratio`, not both                                  |
-| Output      | PNG                                                                                |
-
-```bash
-bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3
-bun autoshow image "a compact illustrated travel postcard of a desert observatory" --provider recraft --aspect-ratio 16:9
-```
-
-Standard V4.1 models accept 1MP sizes (`1024x1024`, `1536x768`, etc.); Pro V4.1 models accept 4MP sizes (`2048x2048`, `3072x1536`, etc.).
-
 ### Replicate
 
 | Option       | Value                                                                                                                                                                                                                                                                                                                                                 |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Selector     | `--provider replicate[=<model>]`                                                                                                                                                                                                                                                                                                                      |
-| Models       | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `ideogram-ai/ideogram-v4-turbo`, `ideogram-ai/ideogram-v4-balanced`, `ideogram-ai/ideogram-v4-quality`, `prunaai/ernie-image`, `prunaai/ernie-image-turbo`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image` |
-| Size         | Model-family dependent (`2K`/`4K`/`WIDTHxHEIGHT` for Seedream, preset sizes for Ideogram, custom sizes for ERNIE/Wan)                                                                                                                                                                                                                                 |
+| Models       | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image`                                                                                                        |
+| Size         | Model-family dependent (`1K`/`2K`/`3K`/`4K`/`WIDTHxHEIGHT` for Seedream and Wan)                                                                                                                                                                                                                                                                       |
 | Aspect ratio | Seedream and Qwen models only                                                                                                                                                                                                                                                                                                                         |
-| Count        | `--count 1-4` (Wan/ERNIE models); 1 image per request for others                                                                                                                                                                                                                                                                                      |
-| Format       | `--format png\|jpeg` (Seedream 5/ERNIE models)                                                                                                                                                                                                                                                                                                        |
+| Count        | `--count 1-4` (Wan models); 1 image per request for others                                                                                                                                                                                                                                                                                            |
+| Format       | `--format png\|jpeg` (Seedream 5 models)                                                                                                                                                                                                                                                                                                              |
 | References   | Repeatable `--input` (up to 14 for Seedream 4.5/5-Lite, 10 for Seedream 5-Pro, 1 for Qwen, 9 for Wan)                                                                                                                                                                                                                                                 |
 
 ```bash
@@ -207,10 +187,10 @@ bun autoshow image "make the subject matte black and keep the same camera angle"
 | Option     | Value                                                                                                                   |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Selector   | `--provider fal[=<model>]`                                                                                              |
-| Models     | `fal-ai/hidream-o1-image`, `microsoft/mai-image-2.5`, `microsoft/mai-image-2.5-pro`, `alibaba/qwen-image-3`, `reve/2.1` |
+| Models     | `fal-ai/hidream-o1-image`, `alibaba/qwen-image-3`, `reve/2.1`                                                     |
 | Count      | `--count 1-4`; default `1`                                                                                              |
 | Format     | `--format png\|jpeg\|webp`; default `png`                                                                               |
-| References | HiDream (up to 9), Qwen (up to 3), Reve (1); MAI is text-to-image only                                                  |
+| References | HiDream (up to 9), Qwen (up to 3), Reve (1)                                                                            |
 
 ```bash
 bun autoshow image "a technical cutaway illustration of a lunar greenhouse" --provider fal=fal-ai/hidream-o1-image --size 1024x1024
@@ -228,7 +208,7 @@ bun autoshow image "turn this into a dusk scene" --provider fal=reve/2.1 --input
 ## Notes
 
 - **OpenAI Latency**: Low quality is fastest; JPEG output is faster than PNG.
-- **Pricing & Estimates**: Recraft prices vary by model family; use `--price` to check estimated cost before running.
+- **Pricing & Estimates**: Use `--price` to check estimated cost before running.
 
 ## Provider Capabilities
 
@@ -250,18 +230,6 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 | Replicate `bytedance/seedream-5-lite`           | ✅ 2026-02-24 | ✅ Up to 14 | ⚠️ 3K                 | ✅ 9 ratios     | ❌ 1    | ⚠️ png/jpeg                            | $0.035/image                    | 6/15                 |
 | Replicate `bytedance/seedream-4.5`              | ⚠️ 2025-12-03 | ✅ Up to 14 | ✅ 4K                 | ✅ 9 ratios     | ❌ 1    | ❌ JPEG                                | $0.04/image                     | 7/15                 |
 | BFL `flux-2-pro` / `flux-2-max` / `flux-2-flex` | ⚠️ 2025-11-25 | ✅ Up to 8  | ⚠️ Custom WxH, min 64 | ❌ Use `--size` | ❌ 1    | ✅ jpeg/png/webp                       | $0.03 / $0.07 / $0.06 per image | 2/15 / 13/15 / 11/15 |
-
-### No Reference Images
-
-| Provider                                                                                   | Released      | Max resolution     | Aspect ratio               | Count   | Formats          | Pricing                         | Cost rank          |
-| ------------------------------------------------------------------------------------------ | ------------- | ------------------ | -------------------------- | ------- | ---------------- | ------------------------------- | ------------------ |
-| fal.ai `microsoft/mai-image-2.5-pro`                                                       | ✅ 2026-07-28 | ❌ Unpublished     | ✅ 8 ratios                | ✅ 1–4  | ✅ png/jpeg/webp | $1.50/image                     | 12/12              |
-| Replicate `ideogram-ai/ideogram-v4-turbo` / `ideogram-v4-balanced` / `ideogram-v4-quality` | ✅ 2026-06-03 | ⚠️ Presets to 3328 | ❌ No                      | ❌ 1    | ❌ PNG           | $0.03 / $0.06 / $0.10 per image | 4/12 / 8/12 / 9/12 |
-| fal.ai `microsoft/mai-image-2.5`                                                           | ✅ 2026-06-02 | ❌ Unpublished     | ✅ 8 ratios                | ✅ 1–4  | ✅ png/jpeg/webp | $0.0021/image                   | 1/12               |
-| Recraft `recraftv4_1` / `recraftv4_1_utility`                                              | ✅ 2026-05-14 | ❌ 1MP presets     | ✅ Size or ratio, not both | ✅ 1–6  | ❌ PNG           | $0.04/image                     | 5/12               |
-| Recraft `recraftv4_1_pro` / `recraftv4_1_utility_pro`                                      | ✅ 2026-05-14 | ✅ 4MP presets     | ✅ Size or ratio, not both | ✅ 1–6  | ❌ PNG           | $0.25/image                     | 10/12              |
-| Replicate `prunaai/ernie-image` / `ernie-image-turbo`                                      | ✅ 2026-04-14 | ⚠️ Custom 64–2048  | ❌ No                      | ✅ 1–4  | ⚠️ png/jpeg      | $0.0528 / $0.0115 per image     | 7/12 / 2/12        |
-| Grok `grok-imagine-image`                                                                  | ✅ 2026-01-28 | ⚠️ 2K              | ✅ 14 ratios               | ✅ 1–10 | ❌ JPEG          | $0.02/image                     | 3/12               |
 
 ### 1–5 Reference Images
 

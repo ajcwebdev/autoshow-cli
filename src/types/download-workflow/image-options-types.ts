@@ -9,8 +9,6 @@ export type ImageRuntimeOptions = {
   grokImageModel: string | undefined
   bflImageModels: string[] | undefined
   bflImageModel: string | undefined
-  recraftImageModels: string[] | undefined
-  recraftImageModel: string | undefined
   replicateImageModels: string[] | undefined
   replicateImageModel: string | undefined
   lumalabsImageModels: string[] | undefined

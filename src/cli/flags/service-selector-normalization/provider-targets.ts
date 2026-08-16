@@ -22,7 +22,6 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
   openai: 'openai-image',
   grok: 'grok-image',
   bfl: 'bfl-image',
-  recraft: 'recraft-image',
   replicate: 'replicate-image',
   lumalabs: 'lumalabs-image',
   fal: 'fal-image'
@@ -31,9 +30,7 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
 export const STANDALONE_VIDEO_PROVIDER_TARGETS = {
   gemini: 'gemini-video',
   minimax: 'minimax-video',
-  glm: 'glm-video',
   grok: 'grok-video',
-  runway: 'runway-video',
   ltx: 'ltx-video',
   replicate: 'replicate-video',
   lumalabs: 'lumalabs-video',
@@ -127,7 +124,6 @@ export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
     openai: { modelsKey: 'openaiImageModels', modelKey: 'openaiImageModel' },
     grok: { modelsKey: 'grokImageModels', modelKey: 'grokImageModel' },
     bfl: { modelsKey: 'bflImageModels', modelKey: 'bflImageModel' },
-    recraft: { modelsKey: 'recraftImageModels', modelKey: 'recraftImageModel' },
     replicate: { modelsKey: 'replicateImageModels', modelKey: 'replicateImageModel' },
     lumalabs: { modelsKey: 'lumalabsImageModels', modelKey: 'lumalabsImageModel' },
     fal: { modelsKey: 'falImageModels', modelKey: 'falImageModel' }
@@ -139,9 +135,7 @@ export const VIDEO_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   {
     gemini: { modelsKey: 'geminiVideoModels', modelKey: 'geminiVideoModel' },
     minimax: { modelsKey: 'minimaxVideoModels', modelKey: 'minimaxVideoModel' },
-    glm: { modelsKey: 'glmVideoModels', modelKey: 'glmVideoModel' },
     grok: { modelsKey: 'grokVideoModels', modelKey: 'grokVideoModel' },
-    runway: { modelsKey: 'runwayVideoModels', modelKey: 'runwayVideoModel' },
     ltx: { modelsKey: 'ltxVideoModels', modelKey: 'ltxVideoModel' },
     replicate: { modelsKey: 'replicateVideoModels', modelKey: 'replicateVideoModel' },
     lumalabs: { modelsKey: 'lumalabsVideoModels', modelKey: 'lumalabsVideoModel' },

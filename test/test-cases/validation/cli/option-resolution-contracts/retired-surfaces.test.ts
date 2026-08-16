@@ -58,6 +58,31 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: 'Model "canopylabs/orpheus-arabic-saudi" is retired for --provider/--tts groq[=model]. Use "canopylabs/orpheus-v1-english" instead.'
   },
   {
+    flag: 'elevenlabs-music',
+    model: 'music_v1',
+    message: 'Model "music_v1" is retired for --provider/--music elevenlabs[=model]. Use "music_v2" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gemini-music',
+    model: 'lyria-3-clip-preview',
+    message: 'Model "lyria-3-clip-preview" is retired for --provider/--music gemini[=model]. Use "lyria-3-pro-preview" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'minimax-video',
+    model: 'MiniMax-Hailuo-2.3',
+    message: 'Model "MiniMax-Hailuo-2.3" is retired for --provider/--video minimax[=model]. Use "MiniMax-H3" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'replicate-video',
+    model: 'runwayml/aleph-2',
+    message: 'Model "runwayml/aleph-2" is retired for --provider/--video replicate[=model]. Use "grok-imagine-video" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'replicate-video',
+    model: 'wan-video/wan-2.7-t2v',
+    message: 'Model "wan-video/wan-2.7-t2v" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.0-fast" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
     flag: 'minimax-music',
     model: retiredMusicFree,
     message: `Invalid model "${retiredMusicFree}" for ${formatModelSelector('minimax-music')}`

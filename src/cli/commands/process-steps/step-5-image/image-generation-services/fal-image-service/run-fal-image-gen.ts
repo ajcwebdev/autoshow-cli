@@ -11,7 +11,6 @@ import { ensureFalImageGenSetup } from './fal-image-gen'
 
 export const FAL_IMAGE_FORMATS = ['png', 'jpeg', 'webp'] as const
 export const FAL_IMAGE_COUNT_RANGE = [1, 4] as const
-export const FAL_MAI_ASPECT_RATIOS = ['auto', '1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3'] as const
 export const FAL_REVE_ASPECT_RATIOS = ['4:1', '3:1', '21:9', '2:1', '17:9', '16:9', '3:2', '4:3', '5:4', '1:1', '4:5', '3:4', '2:3', '9:16', '1:2', '1:3', '1:4', 'auto'] as const
 
 type FalImageFile = { url?: unknown, content_type?: unknown }
@@ -51,7 +50,7 @@ const normalizeDimensions = (size: string | undefined, model: FalImageModel, edi
 
 export const normalizeFalImageAspectRatio = (model: FalImageModel, ratio: string | undefined): string | undefined => {
   if (!ratio) return undefined
-  const allowed = model === 'reve/2.1' ? FAL_REVE_ASPECT_RATIOS : FAL_MAI_ASPECT_RATIOS
+  const allowed = FAL_REVE_ASPECT_RATIOS
   if ((allowed as readonly string[]).includes(ratio)) return ratio
   throw CLIUsageError(`Invalid --image-aspect-ratio value "${ratio}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
 }
@@ -84,13 +83,6 @@ const buildRequest = async (prompt: string, options: {
       mode: editing ? 'edit' : 'generation',
       ...(dimensions ? { metadataSize: `${dimensions.width}x${dimensions.height}` } : {})
     }
-  }
-
-  if (options.model === 'microsoft/mai-image-2.5' || options.model === 'microsoft/mai-image-2.5-pro') {
-    if (editing) throw CLIUsageError(`--image-input is not supported by fal.ai/${options.model}; MAI Image 2.5 endpoints are text-to-image only.`)
-    if (options.imageSize) throw CLIUsageError(`--image-size is not supported by fal.ai/${options.model}; use --image-aspect-ratio.`)
-    const aspectRatio = normalizeFalImageAspectRatio(options.model, options.aspectRatio)
-    return { endpointId: options.model, input: { prompt, num_images: count, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}), ...(format ? { output_format: format } : {}) }, count, mode: 'generation' }
   }
 
   if (options.model === 'alibaba/qwen-image-3') {

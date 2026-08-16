@@ -260,7 +260,7 @@ describe('music provider contracts', () => {
     })
   })
 
-  test('ElevenLabs music uses model-specific output formats and records response headers', async () => {
+  test('ElevenLabs music uses the v2 output format and records response headers', async () => {
     const requests: Array<{ url: string, body: Record<string, unknown> }> = []
 
     await withTempDir('autoshow-music-provider-', async (dir) => {
@@ -269,7 +269,7 @@ describe('music provider contracts', () => {
         ELEVENLABS_BASE_URL: 'https://mock.elevenlabs.local/v1'
       }, (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
         const url = String(input)
-        if (url.endsWith('/music?output_format=mp3_44100_128') || url.endsWith('/music?output_format=mp3_48000_192')) {
+        if (url.endsWith('/music?output_format=mp3_48000_192')) {
           requests.push({ url, body: readJsonBody(init?.body) })
           return new Response(audioBytes, {
             status: 200,
@@ -281,11 +281,6 @@ describe('music provider contracts', () => {
         }
         throw new Error(`Unexpected ElevenLabs mock fetch: ${init?.method ?? 'GET'} ${url}`)
       }) as typeof fetch, async () => {
-        const v1Result = await runElevenLabsMusicGen('lo-fi instrumental', dir, {
-          model: 'music_v1',
-          durationSeconds: 12,
-          forceInstrumental: true
-        })
         const v2Result = await runElevenLabsMusicGen('cinematic instrumental', dir, {
           model: 'music_v2',
           durationSeconds: 15,
@@ -293,15 +288,6 @@ describe('music provider contracts', () => {
         })
 
         expect(requests).toEqual([
-          {
-            url: 'https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128',
-            body: {
-              model_id: 'music_v1',
-              prompt: 'lo-fi instrumental',
-              music_length_ms: 12000,
-              force_instrumental: true
-            }
-          },
           {
             url: 'https://api.elevenlabs.io/v1/music?output_format=mp3_48000_192',
             body: {
@@ -312,14 +298,6 @@ describe('music provider contracts', () => {
             }
           }
         ])
-        expect(v1Result.metadata).toMatchObject({
-          providerRequestId: 'eleven-request-123',
-          audioMimeType: 'audio/mpeg',
-          audioSampleRate: 44100,
-          audioBitrate: 128000,
-          providerAudioByteSize: audioBytes.byteLength,
-          outputFormat: 'mp3_44100_128'
-        })
         expect(v2Result.metadata).toMatchObject({
           providerRequestId: 'eleven-request-123',
           audioMimeType: 'audio/mpeg',

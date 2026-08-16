@@ -13,11 +13,11 @@ export const getExpectedImageCount = (
   target: Pick<ImageTarget, 'service' | 'model'>,
   options: ImageGenOptions
 ): number => {
-  if (target.service === 'openai' || target.service === 'grok' || target.service === 'recraft' || target.service === 'fal') {
+  if (target.service === 'openai' || target.service === 'grok' || target.service === 'fal') {
     return Math.max(1, options.imageCount ?? 1)
   }
 
-  if (target.service === 'replicate' && (target.model.startsWith('wan-video/') || target.model.startsWith('prunaai/ernie-image'))) {
+  if (target.service === 'replicate' && target.model.startsWith('wan-video/')) {
     return Math.max(1, options.imageCount ?? 1)
   }
 
@@ -38,10 +38,6 @@ const getExpectedImageExtension = (
 
   if (target.service === 'bfl') {
     return getBflImageExtension(options.imageFormat)
-  }
-
-  if (target.service === 'recraft') {
-    return 'png'
   }
 
   if (target.service === 'replicate') {

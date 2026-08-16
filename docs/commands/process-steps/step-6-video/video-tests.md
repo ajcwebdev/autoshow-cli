@@ -20,12 +20,12 @@ bun t test/test-cases/e2e/service/step-6-video-gen-e2e/
 
 ## Provider Env Vars
 
-Live video generation tests run only when their provider key is configured: `FAL_API_KEY`, `GEMINI_API_KEY`, `GLM_API_KEY`, `LTXV_API_KEY`, `LUMA_AGENTS_API_KEY`, `MINIMAX_API_KEY`, `REPLICATE_API_TOKEN`, `RUNWAYML_API_SECRET`, or `XAI_API_KEY`.
+Live video generation tests run only when their provider key is configured: `FAL_API_KEY`, `GEMINI_API_KEY`, `LTXV_API_KEY`, `LUMA_AGENTS_API_KEY`, `REPLICATE_API_TOKEN`, or `XAI_API_KEY`.
 
 ## Current Coverage
 
-- Model-level service files under `test/test-cases/e2e/service/step-6-video-gen-e2e/` cover fal.ai, Gemini, GLM, Grok, LTX, MiniMax, Replicate, and Runway using `defineVideoServiceTest` for model/provider rejection, option validation, and live generation.
-- Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/video-provider-contracts/` (mocked Gemini, GLM, Grok, LTX, Luma Labs, MiniMax, Replicate, and Runway requests), `test/test-cases/validation/providers/fal-provider-contracts.test.ts`, and `test/test-cases/validation/providers/provider-selection-contracts/`.
+- Model-level service files under `test/test-cases/e2e/service/step-6-video-gen-e2e/` cover fal.ai, Gemini, Grok, LTX, and Replicate using `defineVideoServiceTest` for model/provider rejection, option validation, and live generation.
+- Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/video-provider-contracts/` (mocked Gemini, Grok, LTX, Luma Labs, and Replicate requests), `test/test-cases/validation/providers/fal-provider-contracts.test.ts`, and `test/test-cases/validation/providers/provider-selection-contracts/`.
 - Focused `--price` validation lives in `test/test-cases/price-flag/video-price.test.ts`.
 
 ## Price Preflight
@@ -35,7 +35,7 @@ bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --price
 bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --budget 2500
 ```
 
-The mapped video price preflight covers fal.ai, Gemini, GLM, Grok, LTX, MiniMax, Replicate, and Runway generation files.
+The mapped video price preflight covers fal.ai, Gemini, Grok, LTX, and Replicate generation files.
 
 ## Related Docs
 

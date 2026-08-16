@@ -252,8 +252,8 @@ Provider unions:
 | Type                   | Values                                                                                                                                                                  |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TtsProvider`          | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
-| `ImageProvider`        | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`                                                                                            |
-| `VideoProvider`        | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                     |
+| `ImageProvider`        | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`                                                                                                       |
+| `VideoProvider`        | `gemini`, `minimax`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                     |
 | `MusicProvider`        | `elevenlabs`, `minimax`, `gemini`                                                                                                                                       |
 | `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`                                                         |
 | `HtmlArticleBackend`   | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`                                                                                                     |

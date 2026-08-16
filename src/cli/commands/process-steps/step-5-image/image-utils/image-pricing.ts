@@ -1,5 +1,5 @@
 import { getImageCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateRecraftImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageOutputPricing, OpenAIImageQuality } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
@@ -157,33 +157,17 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
         })
         break
       }
-      case 'recraft': {
-        const model = validateRecraftImageModel(selection.model)
-        const costPerImageCents = getImageCost('recraft', model)
-        const imageCount = Math.max(1, options.imageCount ?? 1)
-        estimates.push({
-          provider: 'recraft',
-          model,
-          imageCount,
-          costPerImageCents,
-          totalCost: costPerImageCents * imageCount,
-          note: 'Approximate Recraft published per-image API unit price; local estimates cover generation output only'
-        })
-        break
-      }
       case 'replicate': {
         const model = validateReplicateImageModel(selection.model)
         const normalizedSize = options.imageSize?.toUpperCase() ?? '1K'
         const costPerImageCents = model === 'bytedance/seedream-5-pro'
           ? (REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS[normalizedSize] ?? REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS['1K']!)
           : getImageCost('replicate', model)
-        const supportsCount = model.startsWith('wan-video/') || model.startsWith('prunaai/ernie-image')
+        const supportsCount = model.startsWith('wan-video/')
         const imageCount = supportsCount ? Math.max(1, options.imageCount ?? 1) : 1
         const note = model === 'bytedance/seedream-5-pro'
           ? `Published Replicate Seedream 5 Pro ${normalizedSize} per-output-image price; provider-reported billing is used when returned`
-          : model.startsWith('prunaai/ernie-image')
-            ? 'Approximate Replicate H100 runtime estimate at the default 1024x1024 settings; actual cost varies with runtime, resolution, prompt enhancement, and output count'
-            : 'Approximate Replicate published per-output-image price; provider-reported billing is used when returned'
+          : 'Approximate Replicate published per-output-image price; provider-reported billing is used when returned'
         estimates.push({
           provider: 'replicate',
           model,

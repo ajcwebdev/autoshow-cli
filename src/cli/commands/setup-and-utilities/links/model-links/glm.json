@@ -9,10 +9,7 @@
     ],
     "Models": [
       "https://docs.z.ai/guides/llm/glm-5.1.md",
-      "https://docs.z.ai/guides/vlm/glm-ocr.md",
-      "https://docs.z.ai/guides/video/cogvideox-3.md",
-      "https://docs.z.ai/guides/video/vidu-q1.md",
-      "https://docs.z.ai/guides/video/vidu2.md"
+      "https://docs.z.ai/guides/vlm/glm-ocr.md"
     ],
     "Text": [
       "https://docs.z.ai/guides/overview/migrate-to-glm-new.md",

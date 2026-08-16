@@ -94,8 +94,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'replicate-video-reference-video',
   'replicate-video-reference-audio',
   'replicate-video-negative-prompt',
-  'replicate-video-audio',
-  'replicate-video-prompt-expansion',
   'grok-video-storage-filename',
   'grok-video-storage-expires-after',
   'stt-happyscribe-organization-id',
@@ -356,15 +354,6 @@ describe('resume target-aware provider selectors', () => {
     expect(image.flags['openai-image']).toBe('gpt-image-2')
     expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2'])
 
-    const video = normalizeResumeSelectorFlagsForTarget(
-      target('video'),
-      { provider: ['runway=gen4.5'] },
-      new Set(['provider']),
-      ['resume', 'out', '--provider', 'runway=gen4.5']
-    )
-    expect(video.flags['runway-video']).toBe('gen4.5')
-    expect(buildOpts(video.flags, video.explicitFlags, video.flagOccurrences).runwayVideoModels).toEqual(['gen4.5'])
-
     const ltxVideo = normalizeResumeSelectorFlagsForTarget(
       target('video'),
       { provider: ['ltx=ltx-2-3-pro'] },
@@ -376,12 +365,12 @@ describe('resume target-aware provider selectors', () => {
 
     const music = normalizeResumeSelectorFlagsForTarget(
       target('music'),
-      { provider: ['elevenlabs=music_v1'] },
+      { provider: ['elevenlabs=music_v2'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'elevenlabs=music_v1']
+      ['resume', 'out', '--provider', 'elevenlabs=music_v2']
     )
-    expect(music.flags['elevenlabs-music']).toBe('music_v1')
-    expect(buildOpts(music.flags, music.explicitFlags, music.flagOccurrences).elevenlabsMusicModels).toEqual(['music_v1'])
+    expect(music.flags['elevenlabs-music']).toBe('music_v2')
+    expect(buildOpts(music.flags, music.explicitFlags, music.flagOccurrences).elevenlabsMusicModels).toEqual(['music_v2'])
 
     const currentMusic = normalizeResumeSelectorFlagsForTarget(
       target('music'),
@@ -721,10 +710,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'music' as const,
           metadataKey: 'music',
-          requestedProvider: { service: 'elevenlabs', model: 'music_v1' },
+          requestedProvider: { service: 'elevenlabs', model: 'music_v2' },
           metadata: {
             musicService: 'elevenlabs',
-            musicModel: 'music_v1',
+            musicModel: 'music_v2',
             processingTime: 1,
             musicFileName: 'music.mp3',
             musicFileSize: 1,

@@ -217,7 +217,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'openai-image':      ['defaults', 'post', 'image', 'openaiImage'],
   'grok-image':        ['defaults', 'post', 'image', 'grokImage'],
   'bfl-image':         ['defaults', 'post', 'image', 'bflImage'],
-  'recraft-image':     ['defaults', 'post', 'image', 'recraftImage'],
   'replicate-image':   ['defaults', 'post', 'image', 'replicateImage'],
   'lumalabs-image':    ['defaults', 'post', 'image', 'lumalabsImage'],
   'fal-image':         ['defaults', 'post', 'image', 'falImage'],

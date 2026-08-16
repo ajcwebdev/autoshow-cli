@@ -7,8 +7,6 @@
     ],
     "Image": [
       "https://fal.ai/models/fal-ai/hidream-o1-image/api",
-      "https://fal.ai/models/microsoft/mai-image-2.5/api",
-      "https://fal.ai/models/microsoft/mai-image-2.5-pro/api",
       "https://fal.ai/models/alibaba/qwen-image-3/text-to-image/api",
       "https://fal.ai/models/alibaba/qwen-image-3/edit/api",
       "https://fal.ai/models/reve/2.1/text-to-image/api",
