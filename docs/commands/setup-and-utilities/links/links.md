@@ -289,7 +289,7 @@ Token counts are reference-tokenizer estimates using `tiktoken` with `o200k_base
 | `--refresh`      | Boolean | Write a refresh metadata sidecar with per-link SHA-256 hashes, reference token counts, and change status. |
 | `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing Markdown bundle file.                 |
 
-Global flags like `--config-path` and `--allow-over-budget` may still appear in help output, but they do not change link selection or the output file path for this command.
+Universal global flags like `--config-path` and `--output-root` appear in help output, but command-inapplicable flags like `--allow-over-budget`, `--output-dir`, and `--characters-root` are omitted and rejected.
 
 ## Notes
 

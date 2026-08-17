@@ -25,9 +25,6 @@ const getReplicateSupportedVideoModes = (model: ReplicateVideoModel): readonly V
 
 export const hasReplicateSpecificOptions = (options: VideoGenOptions): boolean =>
   options.replicateVideoSeed !== undefined
-  || options.replicateVideoGenerateAudio !== undefined
-  || (options.replicateVideoReferenceVideos?.length ?? 0) > 0
-  || (options.replicateVideoReferenceAudios?.length ?? 0) > 0
   || hasValue(options.replicateVideoNegativePrompt)
   || hasValue(options.replicateVideoMultiPrompt)
   || options.replicateVideoMultiClip !== undefined
@@ -47,8 +44,8 @@ const validateReplicateSeedanceReferences = (
   options: VideoGenOptions
 ): void => {
   const referenceImageCount = options.videoReferenceImages?.length ?? 0
-  const referenceVideoCount = (options.videoInputVideo ? 1 : 0) + (options.replicateVideoReferenceVideos?.length ?? 0)
-  const referenceAudioCount = options.replicateVideoReferenceAudios?.length ?? 0
+  const referenceVideoCount = (options.videoInputVideo ? 1 : 0) + (options.videoReferenceVideos?.length ?? 0)
+  const referenceAudioCount = options.videoReferenceAudios?.length ?? 0
   if (referenceImageCount > 9) {
     throw CLIUsageError(`--video-reference-image supports at most 9 images for Replicate/${model}.`)
   }
@@ -56,10 +53,10 @@ const validateReplicateSeedanceReferences = (
     throw CLIUsageError(`Replicate/${model} supports at most 3 reference videos including --video-input-video.`)
   }
   if (referenceAudioCount > 3) {
-    throw CLIUsageError(`--replicate-video-reference-audio supports at most 3 audio references for Replicate/${model}.`)
+    throw CLIUsageError(`--video-reference-audio supports at most 3 audio references for Replicate/${model}.`)
   }
   if (referenceAudioCount > 0 && referenceImageCount === 0 && referenceVideoCount === 0) {
-    throw CLIUsageError(`--replicate-video-reference-audio requires at least one --video-reference-image, --video-input-video, or --replicate-video-reference-video for Replicate/${model}.`)
+    throw CLIUsageError(`--video-reference-audio requires at least one --video-reference-image, --video-input-video, or --video-reference-video for Replicate/${model}.`)
   }
   if ((options.videoInputImage || options.videoLastFrame) && referenceImageCount > 0) {
     throw CLIUsageError(`--video-reference-image cannot be combined with --video-input-image or --video-last-frame for Replicate/${model}.`)
@@ -83,9 +80,9 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
 
     if (isReplicateHappyHorseVideoModel(model)) {
       rejectReplicateFlags(model, [
-        [options.replicateVideoGenerateAudio !== undefined, '--replicate-video-generate-audio'],
-        [(options.replicateVideoReferenceVideos?.length ?? 0) > 0, '--replicate-video-reference-video'],
-        [(options.replicateVideoReferenceAudios?.length ?? 0) > 0, '--replicate-video-reference-audio'],
+        [options.videoGenerateAudio !== undefined, '--video-generate-audio'],
+        [(options.videoReferenceVideos?.length ?? 0) > 0, '--video-reference-video'],
+        [(options.videoReferenceAudios?.length ?? 0) > 0, '--video-reference-audio'],
         [hasValue(options.replicateVideoNegativePrompt), '--replicate-video-negative-prompt'],
         [hasValue(options.replicateVideoMultiPrompt), '--replicate-video-multi-prompt'],
         [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
@@ -102,25 +99,25 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
       validateReplicateSeedanceReferences(model, options)
     } else if (isReplicateKlingVideoModel(model)) {
       rejectReplicateFlags(model, [
-        [(options.replicateVideoReferenceAudios?.length ?? 0) > 0, '--replicate-video-reference-audio'],
-        [!isReplicateKlingOmniVideoModel(model) && (options.replicateVideoReferenceVideos?.length ?? 0) > 0, '--replicate-video-reference-video'],
+        [(options.videoReferenceAudios?.length ?? 0) > 0, '--video-reference-audio'],
+        [!isReplicateKlingOmniVideoModel(model) && (options.videoReferenceVideos?.length ?? 0) > 0, '--video-reference-video'],
         [isReplicateKlingOmniVideoModel(model) && hasValue(options.replicateVideoNegativePrompt), '--replicate-video-negative-prompt'],
         [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
       ])
-      if (isReplicateKlingOmniVideoModel(model) && (options.replicateVideoReferenceVideos?.length ?? 0) > 1) {
-        throw CLIUsageError(`--replicate-video-reference-video supports at most 1 video for Replicate/${model}.`)
+      if (isReplicateKlingOmniVideoModel(model) && (options.videoReferenceVideos?.length ?? 0) > 1) {
+        throw CLIUsageError(`--video-reference-video supports at most 1 video for Replicate/${model}.`)
       }
-      const hasOmniVideoReference = !!options.videoInputVideo || (options.replicateVideoReferenceVideos?.length ?? 0) > 0
-      if (isReplicateKlingOmniVideoModel(model) && hasOmniVideoReference && options.replicateVideoGenerateAudio === true) {
-        throw CLIUsageError(`--replicate-video-generate-audio cannot be combined with a video input or reference for Replicate/${model}.`)
+      const hasOmniVideoReference = !!options.videoInputVideo || (options.videoReferenceVideos?.length ?? 0) > 0
+      if (isReplicateKlingOmniVideoModel(model) && hasOmniVideoReference && options.videoGenerateAudio === true) {
+        throw CLIUsageError(`--video-generate-audio cannot be combined with a video input or reference for Replicate/${model}.`)
       }
       if (isReplicateKlingOmniVideoModel(model) && hasOmniVideoReference && options.videoResolution === '4k') {
         throw CLIUsageError(`--video-resolution 4k cannot be combined with a video input or reference for Replicate/${model}.`)
       }
     } else if (isReplicatePixVerseVideoModel(model)) {
       rejectReplicateFlags(model, [
-        [(options.replicateVideoReferenceVideos?.length ?? 0) > 0, '--replicate-video-reference-video'],
-        [(options.replicateVideoReferenceAudios?.length ?? 0) > 0, '--replicate-video-reference-audio'],
+        [(options.videoReferenceVideos?.length ?? 0) > 0, '--video-reference-video'],
+        [(options.videoReferenceAudios?.length ?? 0) > 0, '--video-reference-audio'],
         [hasValue(options.replicateVideoMultiPrompt), '--replicate-video-multi-prompt']
       ])
     }
@@ -140,11 +137,11 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
     if (options.videoInputVideo) {
       validateVideoMediaReferences([options.videoInputVideo], { flagName: '--video-input-video', provider: 'replicate', model, kind: 'video' })
     }
-    if (options.replicateVideoReferenceVideos) {
-      validateVideoMediaReferences(options.replicateVideoReferenceVideos, { flagName: '--replicate-video-reference-video', provider: 'replicate', model, kind: 'video', maxInputs: 3 })
+    if (options.videoReferenceVideos) {
+      validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--video-reference-video', provider: 'replicate', model, kind: 'video', maxInputs: 3 })
     }
-    if (options.replicateVideoReferenceAudios) {
-      validateVideoMediaReferences(options.replicateVideoReferenceAudios, { flagName: '--replicate-video-reference-audio', provider: 'replicate', model, kind: 'audio', maxInputs: 3 })
+    if (options.videoReferenceAudios) {
+      validateVideoMediaReferences(options.videoReferenceAudios, { flagName: '--video-reference-audio', provider: 'replicate', model, kind: 'audio', maxInputs: 3 })
     }
 
     return [{
@@ -161,10 +158,10 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
           lastFrameImage: options.videoLastFrame,
           referenceImages: options.videoReferenceImages,
           inputVideo: options.videoInputVideo,
-          referenceVideos: options.replicateVideoReferenceVideos,
-          referenceAudios: options.replicateVideoReferenceAudios,
+          referenceVideos: options.videoReferenceVideos,
+          referenceAudios: options.videoReferenceAudios,
           negativePrompt: options.replicateVideoNegativePrompt,
-          generateAudio: options.replicateVideoGenerateAudio,
+          generateAudio: options.videoGenerateAudio,
           seed: options.replicateVideoSeed,
           multiPrompt: options.replicateVideoMultiPrompt,
           multiClip: options.replicateVideoMultiClip

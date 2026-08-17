@@ -1,8 +1,7 @@
 import type { BatchOrder } from '~/types'
 
 export type BatchRuntimeOptions = {
-  batchLimit: number
-  batchAll: boolean
+  batchLimit: number | 'all'
   batchOrder: BatchOrder
   batchConcurrency: number
   keepOriginalMedia: boolean

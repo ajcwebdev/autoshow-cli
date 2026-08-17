@@ -1,7 +1,7 @@
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
 import { throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import type { FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel } from '~/types'
+import type { FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, ReplicateVideoModel } from '~/types'
 
 export const SUPPORTED_GEMINI_VIDEO_MODELS = [
   'veo-3.1-fast-generate-preview',
@@ -10,15 +10,6 @@ export const SUPPORTED_GEMINI_VIDEO_MODELS = [
 ] as const satisfies readonly string[]
 
 export const validateGeminiVideoModel = createModelValidator<GeminiVideoModel>(SUPPORTED_GEMINI_VIDEO_MODELS, 'gemini-video')
-
-export const SUPPORTED_MINIMAX_VIDEO_MODELS = [] as const satisfies readonly string[]
-
-const validateActiveMinimaxVideoModel = createModelValidator<MinimaxVideoModel>(SUPPORTED_MINIMAX_VIDEO_MODELS, 'minimax-video')
-export const validateMinimaxVideoModel = (model: string): MinimaxVideoModel => {
-  const replacement = getRetiredModelReplacement('video', 'minimax', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'minimax-video', replacement)
-  return validateActiveMinimaxVideoModel(model)
-}
 
 export const SUPPORTED_GROK_VIDEO_MODELS = [
   'grok-imagine-video',

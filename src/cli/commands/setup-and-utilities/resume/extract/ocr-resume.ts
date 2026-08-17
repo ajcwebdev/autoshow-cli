@@ -382,7 +382,6 @@ const buildResumeExtractionOpts = (
     chapterChunkLimitChars: opts.chapterChunkLimitChars,
     pdfChapterMode: opts.pdfChapterMode,
     configPath: opts.configPath,
-    ...(opts.useEpubBun ? { useEpubBun: true } : {}),
     ...(step2SelectionOrigins ? { step2SelectionOrigins } : {}),
     ...(reasoningEffort ? { reasoningEffort } : {})
   }

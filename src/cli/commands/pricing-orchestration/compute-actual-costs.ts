@@ -182,14 +182,12 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
 
   const estimate = estimateVideoCost({
     ...(entry.videoGenService === 'gemini' ? { geminiVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'minimax' ? { minimaxVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'grok' ? { grokVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'ltx' ? { ltxVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'replicate' ? { replicateVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'lumalabs' ? { lumalabsVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'fal' ? { falVideoModel: entry.videoGenModel } : {}),
     ...(typeof entry.videoDuration === 'number' ? { videoDuration: entry.videoDuration } : {}),
-    ...(typeof entry.videoSize === 'string' ? { videoSize: entry.videoSize } : {}),
     ...(typeof entry.videoAspectRatio === 'string' ? { videoAspectRatio: entry.videoAspectRatio } : {}),
     ...(typeof entry.videoResolution === 'string' ? { videoResolution: entry.videoResolution } : {}),
     ...(typeof entry.requestMode === 'string' ? { videoMode: entry.requestMode } : {}),

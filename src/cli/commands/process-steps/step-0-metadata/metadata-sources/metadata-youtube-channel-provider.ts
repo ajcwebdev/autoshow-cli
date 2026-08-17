@@ -48,7 +48,7 @@ const ensureAbsoluteYoutubeUrl = (idOrUrl: string): string => {
 
 const buildYoutubeChannelListArgs = async (
   url: string,
-  opts: YtDlpListOptions & { limit: number; all: boolean; order: 'newest' | 'oldest' }
+  opts: YtDlpListOptions & { limit: number | 'all'; order: 'newest' | 'oldest' }
 ): Promise<string[]> => await buildYtDlpListArgs(url, opts)
 
 const parseUploadDate = (uploadDate: string | undefined): string | undefined => {
@@ -80,7 +80,7 @@ const parseEntry = (raw: unknown): BatchItem | null => {
 
 export const tryEnumerateYoutubeChannel = async (
   url: string,
-  batchOpts: { limit: number; all: boolean; order: 'newest' | 'oldest' } = { limit: 5, all: false, order: 'newest' }
+  batchOpts: { limit: number | 'all'; order: 'newest' | 'oldest' } = { limit: 5, order: 'newest' }
 ): Promise<BatchSource | null> => {
   if (!isYoutubeChannelUrl(url)) return null
 

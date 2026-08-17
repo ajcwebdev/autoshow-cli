@@ -10,6 +10,8 @@ import { commandAcceptsGlobalFlag, globalFlagsForCommand } from '~/cli/native/gl
 import { HELP_EXAMPLE_ALIGN_COLUMN_CAP, renderCommandHelp, renderRootHelp } from '~/cli/native/help-renderer'
 import { commandCreatesRunDirectory } from '~/cli/native/run-directory-support'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
+import { colorizeHelpDescription } from '~/cli/help-colors'
+import { configureColor, stripAnsi } from '~/utils/terminal-colors'
 import { runCommand } from '../../../test-utils/test-helpers'
 import type { CliCommandDefinition, CliFlagsDefinition } from '~/types'
 import {
@@ -31,7 +33,6 @@ import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
   GROK_VIDEO_ASPECT_RATIOS,
-  LTX_2_3_SIZE_VALUES,
   LUMA_ASPECT_RATIOS,
   LUMA_RESOLUTIONS,
   REPLICATE_VIDEO_RESOLUTIONS
@@ -41,11 +42,8 @@ import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES } from '
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
 
-import { SPEECHIFY_CUSTOM_VOICE_GENDERS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
 import {
-  SUPPORTED_HUME_TTS_VOICE_PROVIDERS,
   SUPPORTED_MINIMAX_TTS_EMOTIONS,
-  SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS,
   SUPPORTED_WHISPER_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
@@ -220,7 +218,6 @@ test.concurrent('extract help exposes shared batch and all-provider flags', asyn
   const documentSection = getFlagGroupSection(result.stdout, 'OCR / Document Extraction')
   const articleSection = getFlagGroupSection(result.stdout, 'Article Extraction')
   const batchSection = getFlagGroupSection(result.stdout, 'Batch Processing')
-  const epubSection = getFlagGroupSection(result.stdout, 'EPUB Inspect')
   const transcriptVideoSection = getFlagGroupSection(result.stdout, 'Transcript Video')
   const pricingSection = getFlagGroupSection(result.stdout, 'Pricing')
 
@@ -241,16 +238,15 @@ test.concurrent('extract help exposes shared batch and all-provider flags', asyn
   expect(documentSection).toContain('hosted OCR defaults to auto')
   expect(documentSection).toContain('--chapters')
   expect(documentSection).toContain('--no-chapters')
-  expect(articleSection).toContain('--url-request-timeout-ms')
-  expect(articleSection).toContain('--url-request-attempts')
+  expect(articleSection).not.toContain('--url-request-timeout-ms')
+  expect(articleSection).not.toContain('--url-request-attempts')
   expect(batchSection).toContain('--batch-limit')
-  expect(epubSection).toContain('--epub-bun')
   expect(transcriptVideoSection).toContain('--transcript-video')
   expect(transcriptVideoSection).toContain('--transcript-result')
   expect(transcriptVideoSection).toContain('--transcript-text')
   expect(pricingSection).toContain('--price')
   expect(result.stdout).toContain('--batch-limit')
-  expect(result.stdout).toContain('--batch-all')
+  expect(result.stdout).not.toContain('--batch-all')
   expect(result.stdout).toContain('--batch-concurrency')
   expect(result.stdout).toContain('--provider')
   expect(result.stdout).toContain('--all-providers')
@@ -267,8 +263,9 @@ test.concurrent('extract help exposes shared batch and all-provider flags', asyn
   expect(result.stdout).toContain('--local-concurrency')
   expect(result.stdout).not.toContain('--ocr-provider-concurrency')
   expect(result.stdout).not.toContain('--url-provider-concurrency')
-  expect(result.stdout).toContain('--url-request-timeout-ms')
-  expect(result.stdout).toContain('--url-request-attempts')
+  expect(result.stdout).not.toContain('--url-request-timeout-ms')
+  expect(result.stdout).not.toContain('--url-request-attempts')
+  expect(result.stdout).not.toContain('--stt-preflight-concurrency')
   expect(result.stdout).toContain('--transcript-video')
   expect(result.stdout).toContain('--transcript-result')
   expect(result.stdout).toContain('--transcript-text')
@@ -299,10 +296,10 @@ test.concurrent('tts help exposes hosted TTS provider flags', async () => {
   expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-voice')
   expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-chunk-concurrency')
   expect(getFlagGroupSection(result.stdout, 'Batch Processing')).toContain('--batch-concurrency')
-  expect(getFlagGroupSection(result.stdout, 'MiniMax TTS')).toContain('--minimax-tts-language-boost')
-  expect(getFlagGroupSection(result.stdout, 'Deepgram TTS')).toContain('--deepgram-tts-sample-rate')
-  expect(getFlagGroupSection(result.stdout, 'Speechify TTS')).toContain('--speechify-tts-voice-locale')
-  expect(getFlagGroupSection(result.stdout, 'Hume TTS')).toContain('--hume-tts-voice-provider')
+  expect(getFlagGroupSection(result.stdout, 'MiniMax TTS')).toContain('--minimax-tts-volume')
+  expect(result.stdout).not.toContain('Deepgram TTS')
+  expect(result.stdout).not.toContain('Speechify TTS')
+  expect(result.stdout).not.toContain('Hume TTS')
   expect(getFlagGroupSection(result.stdout, 'Multi-Speaker / Dialogue')).toContain('--tts-dialogue-format')
   expect(getFlagGroupSection(result.stdout, 'ElevenLabs TTS')).toContain('--elevenlabs-tts-stability')
   expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')
@@ -310,20 +307,22 @@ test.concurrent('tts help exposes hosted TTS provider flags', async () => {
   expect(result.stdout).toContain('--all-providers')
   expect(result.stdout).not.toContain('--all-local')
   expect(result.stdout).toContain('--provider-concurrency')
-  expect(result.stdout).toContain('--local-concurrency')
+  expect(result.stdout).not.toContain('--local-concurrency')
   expect(result.stdout).toContain('--tts-voice')
   expect(result.stdout).toContain('--tts-speed')
   expect(result.stdout).toContain('--tts-language')
   expect(result.stdout).toContain('--tts-ref-audio')
-  expect(result.stdout).toContain('--tts-voice-name')
+  expect(result.stdout).not.toContain('--tts-voice-name')
   expect(result.stdout).not.toContain('--tts-consent-audio')
   expect(result.stdout).not.toContain('--tts-consent-language')
-  expect(result.stdout).toContain('--tts-consent-name')
-  expect(result.stdout).toContain('--tts-consent-email')
+  expect(result.stdout).not.toContain('--tts-consent-name')
+  expect(result.stdout).toContain('--allow-ambiguous-redispatch')
+  expect(result.stdout).not.toContain('--tts-allow-ambiguous-redispatch')
   expect(result.stdout).toContain('--tts-text-normalization')
   expect(result.stdout).toContain('--tts-instructions')
+  expect(result.stdout).not.toContain('--tts-output-format')
   expect(result.stdout).toContain('--tts-chunk-concurrency')
-  expect(result.stdout).toContain('Grok-only default 50')
+  expect(result.stdout).toContain('Grok-only uses 50')
   expect(result.stdout).toContain('--batch-concurrency')
   expect(result.stdout).not.toContain('--batch-limit')
   expect(result.stdout).not.toContain('--batch-all')
@@ -336,9 +335,9 @@ test.concurrent('tts help exposes hosted TTS provider flags', async () => {
   expect(result.stdout).not.toContain('--mistral-tts-ref-audio')
   expect(result.stdout).not.toContain('--mistral-tts-voice-name')
   expect(result.stdout).not.toContain('--deepgram-tts-encoding')
-  expect(result.stdout).toContain('--deepgram-tts-container')
-  expect(result.stdout).toContain('--deepgram-tts-bit-rate')
-  expect(result.stdout).toContain('--deepgram-tts-sample-rate')
+  expect(result.stdout).not.toContain('--deepgram-tts-container')
+  expect(result.stdout).not.toContain('--deepgram-tts-bit-rate')
+  expect(result.stdout).not.toContain('--deepgram-tts-sample-rate')
   expect(result.stdout).not.toContain('--deepgram-tts-speed')
   expect(result.stdout).not.toContain('--minimax-tts-voice')
   expect(result.stdout).not.toContain('--minimax-tts-ref-audio')
@@ -346,7 +345,7 @@ test.concurrent('tts help exposes hosted TTS provider flags', async () => {
   expect(result.stdout).not.toContain('--minimax-tts-prompt-text')
   expect(result.stdout).not.toContain('--minimax-tts-clone-noise-reduction')
   expect(result.stdout).not.toContain('--minimax-tts-clone-volume-normalization')
-  expect(result.stdout).toContain('--minimax-tts-language-boost')
+  expect(result.stdout).not.toContain('--minimax-tts-language-boost')
   expect(result.stdout).not.toContain('--minimax-tts-speed')
   expect(result.stdout).toContain('--minimax-tts-volume')
   expect(result.stdout).toContain('--minimax-tts-pitch')
@@ -371,15 +370,16 @@ test.concurrent('tts help exposes hosted TTS provider flags', async () => {
   expect(result.stdout).not.toContain('--speechify-tts-voice-name')
   expect(result.stdout).not.toContain('--speechify-tts-consent-name')
   expect(result.stdout).not.toContain('--speechify-tts-consent-email')
-  expect(result.stdout).toContain('--speechify-tts-voice-locale')
-  expect(result.stdout).toContain('--speechify-tts-voice-gender')
+  expect(result.stdout).not.toContain('--speechify-tts-voice-locale')
+  expect(result.stdout).not.toContain('--speechify-tts-voice-gender')
   expect(result.stdout).not.toContain('--hume-tts  ')
-  expect(result.stdout).toContain('--hume-tts-voice-provider')
+  expect(result.stdout).not.toContain('--hume-tts-voice-provider')
   expect(result.stdout).not.toContain('--cartesia-tts  ')
   expect(result.stdout).not.toContain('--cartesia-tts-voice')
   expect(result.stdout).not.toContain('--cartesia-tts-language')
   expect(result.stdout).not.toContain('--elevenlabs-tts-output-format')
   expect(result.stdout).not.toContain('--elevenlabs-tts-language-code')
+  expect(result.stdout).not.toContain('--elevenlabs-tts-clone-remove-background-noise')
   expect(result.stdout).toContain('--elevenlabs-tts-stability')
   expect(result.stdout).toContain('--elevenlabs-tts-similarity-boost')
   expect(result.stdout).toContain('--elevenlabs-tts-style')
@@ -417,7 +417,6 @@ test.concurrent('write and config help expose shared selectors and concurrency f
   expect(getFlagGroupSection(writeResult.stdout, 'OCR / Document Extraction')).toContain('--ocr-provider-mode')
   expect(getFlagGroupSection(writeResult.stdout, 'OCR / Document Extraction')).toContain('Local OCR defaults to 10')
   expect(getFlagGroupSection(writeResult.stdout, 'Article Extraction')).toContain('--url-provider')
-  expect(getFlagGroupSection(writeResult.stdout, 'EPUB Inspect')).toContain('--epub-bun')
   expect(getFlagGroupSection(writeResult.stdout, 'Writing')).toContain('--prompt')
   expect(getFlagGroupSection(writeResult.stdout, 'Text to Speech')).toContain('--tts-voice')
   expect(getFlagGroupSection(writeResult.stdout, 'Text to Speech')).toContain('--tts-chunk-concurrency')
@@ -464,9 +463,15 @@ test.concurrent('write and config help expose shared selectors and concurrency f
   expect(configResult.stdout).toContain('--tts')
   expect(configResult.stdout).toContain('gemini|openai|grok|bfl|replicate')
   expect(configResult.stdout).toContain('--tts-chunk-concurrency')
-  expect(writeResult.stdout).toContain('Grok-only default 50')
-  expect(configResult.stdout).toContain('Grok-only default 50')
+  expect(writeResult.stdout).toContain('Grok-only uses 50')
+  expect(configResult.stdout).toContain('Grok-only uses 50')
   expect(configResult.stdout).toContain('--ocr-concurrency')
+  expect(configResult.stdout).toContain('--ocr-provider-mode')
+  expect(configResult.stdout).toContain('--music-instrumental')
+  expect(configResult.stdout).not.toContain('--music-lyrics-file')
+  expect(configResult.stdout).not.toContain('--prompt-md')
+  expect(configResult.stdout).not.toContain('--allow-ambiguous-redispatch')
+  expect(configResult.stdout).not.toContain('--tts-allow-ambiguous-redispatch')
   expect(configResult.stdout).not.toContain('--llm-provider-concurrency')
   expect(configResult.stdout).not.toContain('--mistral-stt')
   expect(configResult.stdout).not.toContain('openai=gpt-5.4 --stt')
@@ -501,7 +506,8 @@ test.concurrent('music help includes hosted generation and lyric-video flags', a
   expect(result.stdout).toContain('--batch')
   expect(result.stdout).toContain('--model')
   expect(result.stdout).toContain('--font')
-  expect(result.stdout).toContain('--keep-tmp')
+  expect(result.stdout).not.toContain('--input-dir')
+  expect(result.stdout).not.toContain('--keep-tmp')
   expect(result.stdout).not.toContain('--openai')
   expect(result.stdout).not.toContain('--prompt')
   expect(result.stdout).not.toContain('--prompt-file')
@@ -521,9 +527,12 @@ test.concurrent('image and video help expose generic provider selection plus the
   expect(getFlagGroupSection(imageResult.stdout, 'Pricing')).toContain('--price')
   expect(getFlagGroupSection(videoResult.stdout, 'Provider Selection')).toContain('--provider')
   expect(getFlagGroupSection(videoResult.stdout, 'Video Options')).toContain('--mode')
+  expect(getFlagGroupSection(videoResult.stdout, 'Video Options')).toContain('--generate-audio')
   expect(getFlagGroupSection(videoResult.stdout, 'Video Inputs')).toContain('--input-image')
+  expect(getFlagGroupSection(videoResult.stdout, 'Video Inputs')).toContain('--reference-video')
+  expect(getFlagGroupSection(videoResult.stdout, 'Video Inputs')).toContain('--reference-audio')
   expect(getFlagGroupSection(videoResult.stdout, 'Replicate Video')).toContain('--replicate-video-seed')
-  expect(getFlagGroupSection(videoResult.stdout, 'Grok Storage Options')).toContain('--grok-video-storage-filename')
+  expect(videoResult.stdout).not.toContain('fal.ai Video')
   expect(getFlagGroupSection(videoResult.stdout, 'Pricing')).toContain('--price')
   expect(imageResult.stdout).toContain('gpt-image-2')
   expect(imageResult.stdout).toContain('replicate')
@@ -555,6 +564,8 @@ test.concurrent('image and video help expose generic provider selection plus the
   expect(videoResult.stdout).toContain('--last-frame')
   expect(videoResult.stdout).toContain('--reference-image')
   expect(videoResult.stdout).toContain('--input-video')
+  expect(videoResult.stdout).not.toContain('--size')
+  expect(videoResult.stdout).not.toContain('--video-size')
   expect(videoResult.stdout).not.toContain('--video-mode')
   expect(videoResult.stdout).not.toContain('--video-input-image')
   expect(videoResult.stdout).not.toContain('--video-resolution')
@@ -562,7 +573,8 @@ test.concurrent('image and video help expose generic provider selection plus the
   expect(videoResult.stdout).toContain('Luma Labs')
   expect(videoResult.stdout).toContain('540p|720p|1080p')
   expect(videoResult.stdout).toContain('21:9|9:21|adaptive')
-  expect(videoResult.stdout).toContain('--grok-video-storage-filename')
+  expect(videoResult.stdout).not.toContain('--grok-video-storage-filename')
+  expect(videoResult.stdout).not.toContain('--grok-video-storage-expires-after')
 })
 
 test.concurrent('provider help lists are derived from the supported selector registries', async () => {
@@ -601,16 +613,27 @@ test.concurrent('Luma, ratio, and music duration descriptions match supported be
   expect(image.stdout).not.toContain('Replicate Seedream also supports adaptive')
   expect(image.stdout).toContain(`Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS}`)
   expect(music.stdout).toContain(`ElevenLabs configurable from ${ELEVENLABS_MIN_DURATION_SECONDS}-${ELEVENLABS_MAX_DURATION_SECONDS}`)
-  expect(music.stdout).toContain('MiniMax currently ignores this flag')
+  expect(music.stdout).not.toContain('MiniMax currently ignores this flag')
   expect(music.stdout).not.toContain('Gemini Lyria Clip is fixed')
   expect(music.stdout).toContain('Gemini Lyria Pro uses the requested duration')
+  expect(image.stdout).toContain('(default: 1)')
+})
+
+test.concurrent('--replicate-video-multi-prompt description dynamically adapts to command surface', async () => {
+  const video = await loadHelp(['video', '--help'])
+  const write = await loadHelp(['write', '--help'])
+
+  expect(video.stdout).toContain('durations sum to --duration)')
+  expect(video.stdout).not.toContain('durations sum to --video-duration)')
+
+  expect(write.stdout).toContain('durations sum to --video-duration)')
+  expect(write.stdout).not.toContain('durations sum to --duration)')
 })
 
 // Each entry pins one help description to the constant its validator uses, so adding a
 // supported value without documenting it fails here instead of shipping a stale list.
 const derivedHelpLists = [
   { command: 'video', label: '--video-mode', values: VIDEO_MODES },
-  { command: 'video', label: '--video-size (LTX)', values: LTX_2_3_SIZE_VALUES },
   { command: 'video', label: '--video-aspect-ratio (Luma Labs)', values: LUMA_ASPECT_RATIOS },
   { command: 'video', label: '--video-aspect-ratio (Grok)', values: GROK_VIDEO_ASPECT_RATIOS },
   { command: 'video', label: '--video-resolution (Gemini)', values: GEMINI_VIDEO_RESOLUTIONS },
@@ -626,10 +649,7 @@ const derivedHelpLists = [
   { command: 'extract', label: '--pdf-chapter-mode', values: PDF_CHAPTER_MODES },
   { command: 'extract', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
   { command: 'extract', label: '--primary-ocr', values: Object.keys(WRITE_OCR_PROVIDER_TARGETS) },
-  { command: 'tts', label: '--minimax-tts-language-boost', values: SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS },
   { command: 'tts', label: '--minimax-tts-emotion', values: SUPPORTED_MINIMAX_TTS_EMOTIONS },
-  { command: 'tts', label: '--hume-tts-voice-provider', values: SUPPORTED_HUME_TTS_VOICE_PROVIDERS },
-  { command: 'tts', label: '--speechify-tts-voice-gender', values: SPEECHIFY_CUSTOM_VOICE_GENDERS },
   { command: 'music', label: '--model', values: SUPPORTED_WHISPER_MODELS }
 ] as const
 
@@ -684,7 +704,7 @@ test.concurrent('every run-producing command exposes the global deterministic ou
 
   const writeResult = await loadHelp(['write', '--help'])
   expect(writeResult.exitCode).toBe(0)
-  expect(writeResult.stdout).toContain('Output format: text|json|tsv|hocr')
+  expect(writeResult.stdout).toContain('Output format: text|json')
   expect(writeResult.stdout).not.toContain('Alias for --output-dir')
 }, HELP_TREE_TIMEOUT_MS)
 
@@ -822,6 +842,34 @@ test.concurrent('config, resume, and write help omit the empty prompt parser def
   }
 })
 
+test.concurrent('off-by-default boolean flags do not render [default: false] in help output', async () => {
+  const root = await loadHelp(['--help'])
+  expect(root.exitCode).toBe(0)
+  expect(root.stdout).not.toContain('[default: false]')
+
+  for (const command of helpSurfaces) {
+    const result = await loadHelp(helpArgv(command.name))
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).not.toContain('[default: false]')
+  }
+})
+
+test('colorizeHelpDescription paints prose default values with terminal colors when enabled', () => {
+  try {
+    configureColor('force')
+    const colorized = colorizeHelpDescription('Path to config file (default: config/autoshow.json in project root)')
+    expect(colorized).toContain('\x1b[')
+    expect(stripAnsi(colorized)).toBe('Path to config file (default: config/autoshow.json in project root)')
+
+    configureColor('disable')
+    const uncolored = colorizeHelpDescription('Path to config file (default: config/autoshow.json in project root)')
+    expect(uncolored).not.toContain('\x1b[')
+    expect(uncolored).toBe('Path to config file (default: config/autoshow.json in project root)')
+  } finally {
+    configureColor('disable')
+  }
+})
+
 test.concurrent('config examples use the canonical bun autoshow prefix', async () => {
   const result = await loadHelp(['config', '--help'])
 
@@ -847,6 +895,7 @@ test.concurrent('comic generate-audio help shows --slideshow and hides the --pan
   const flags = getCommandFlagsSection(result.stdout)
   expect(flags).toContain('--slideshow')
   expect(flags).not.toContain('--panel-video')
+  expect(flags).not.toContain('--local-concurrency')
 })
 
 test.concurrent('comic reference-voice help lists public children without a flag wall', async () => {
@@ -969,7 +1018,41 @@ test.concurrent('commandAcceptsGlobalFlag keeps universal flags and restricts ch
   expect(commandAcceptsGlobalFlag('comic draft-scenes', 'characters-root')).toBe(true)
   expect(commandAcceptsGlobalFlag('extract', 'characters-root')).toBe(false)
   expect(commandAcceptsGlobalFlag('config', 'characters-root')).toBe(false)
+  expect(commandAcceptsGlobalFlag('download', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('extract', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('write', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('tts', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('image', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('video', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('music', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('comic draft-scenes', 'allow-over-budget')).toBe(true)
+  expect(commandAcceptsGlobalFlag('config', 'allow-over-budget')).toBe(false)
+  expect(commandAcceptsGlobalFlag('setup', 'allow-over-budget')).toBe(false)
+  expect(commandAcceptsGlobalFlag('links', 'allow-over-budget')).toBe(false)
+  expect(commandAcceptsGlobalFlag('voice', 'allow-over-budget')).toBe(false)
+  expect(commandAcceptsGlobalFlag('voice clone', 'allow-over-budget')).toBe(false)
+  expect(commandAcceptsGlobalFlag('comic reference-voice', 'allow-over-budget')).toBe(false)
 })
+
+test.concurrent('command help hides --allow-over-budget on unbudgeted commands', async () => {
+  for (const command of ['download', 'extract', 'write', 'tts', 'image', 'video', 'music', 'comic draft-scenes']) {
+    const result = await loadHelp(helpArgv(command))
+    expect(result.exitCode).toBe(0)
+    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
+    expect(globalFlagsSection).toContain('--allow-over-budget')
+  }
+
+  for (const command of ['config', 'setup', 'links', 'voice', 'comic reference-voice']) {
+    const result = await loadHelp(helpArgv(command))
+    expect(result.exitCode).toBe(0)
+    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
+    expect(globalFlagsSection).not.toContain('--allow-over-budget')
+    expect(globalFlagsSection).toContain('--output-root')
+  }
+
+  const root = await loadHelp(['--help'])
+  expect(root.stdout).toContain('--allow-over-budget')
+}, HELP_TREE_TIMEOUT_MS)
 
 test.concurrent('command help does not advertise --model-path', async () => {
   for (const command of ['write', 'resume', 'tts', 'config', 'extract', 'voice', 'comic']) {

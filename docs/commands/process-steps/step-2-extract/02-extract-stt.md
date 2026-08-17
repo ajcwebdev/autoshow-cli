@@ -64,8 +64,7 @@ The standalone `extract` command uses route-aware `--provider provider[=model]` 
 | `--youtube-captions`                  | Prefer English YouTube captions before STT when available; falls back to the selected STT provider path                                                                           |
 | `--speaker-count <n>`                 | Diarization speaker-count hint for supported services                                                                                                                             |
 | `--split`                             | Split audio into 30-minute segments before transcription                                                                                                                          |
-| `--batch-limit <n>`                   | Limit batch size                                                                                                                                                                  |
-| `--batch-all`                         | Process all batch items                                                                                                                                                           |
+| `--batch-limit <n|all>`               | Limit batch size or process all items (`all`)                                                                                                                                     |
 | `--batch-order <newest|oldest>`       | Choose batch ordering                                                                                                                                                             |
 | `--batch-concurrency <n>`             | Process batch items concurrently; default `7`                                                                                                                                     |
 | `--provider-concurrency <n>`          | Max cloud providers running in parallel for one item; default `7`                                                                                                                 |
@@ -86,7 +85,7 @@ bun autoshow extract https://www.youtube.com/watch?v=MORMZXEaONk --youtube-capti
 bun autoshow extract https://ajc.pics/autoshow/examples/2-video.mp4 --provider deepgram=nova-3 --split
 
 # Process a whole YouTube channel batch with caption-first routing
-bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --batch-all
+bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --batch-limit all
 ```
 
 ## Transcript Videos

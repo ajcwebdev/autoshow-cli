@@ -53,7 +53,7 @@ const writeCollectionCache = (url: string, items: string[]): void => {
 }
 
 const buildYoutubeCollectionListArgs = async (url: string): Promise<string[]> =>
-  await buildYtDlpListArgs(url, { all: true, order: 'newest' })
+  await buildYtDlpListArgs(url, { limit: 'all', order: 'newest' })
 
 const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
   const cached = readCollectionCache()[url]

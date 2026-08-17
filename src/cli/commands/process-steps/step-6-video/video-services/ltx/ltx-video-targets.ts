@@ -18,7 +18,7 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
     if (!isSupportedOrSkippedForAllVideo(options, 'ltx', model, mode, getLtxSupportedVideoModes(model))) {
       return []
     }
-    normalizeLtxVideoSize(model, options.videoSize, options.videoResolution, options.videoAspectRatio)
+    normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
     if (options.videoInputImage) {
       validateVideoMediaReferences([options.videoInputImage], { flagName: '--video-input-image', provider: 'ltx', model, kind: 'image' })
     }
@@ -37,7 +37,6 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
           model,
           mode,
           durationSeconds: options.videoDuration,
-          size: options.videoSize,
           aspectRatio: options.videoAspectRatio,
           resolution: options.videoResolution,
           inputImage: options.videoInputImage,

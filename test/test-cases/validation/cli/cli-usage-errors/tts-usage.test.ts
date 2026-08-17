@@ -57,32 +57,19 @@ test('tts rejects --tts-voice combined with dialogue flags', () => {
   )).toThrow('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 })
 
-test('tts rejects reference audio and saved voice names combined with dialogue flags', () => {
+test('tts rejects reference audio combined with dialogue flags', () => {
   expect(() => assertNoVoiceIdentityWithDialogue(
     { ttsSpeakers: ['Host=Jasper'] },
     new Set(['mistral-tts-ref-audio'])
-  )).toThrow('Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
-  expect(() => buildOptsFromFlags(false, {
-    'mistral-tts': 'voxtral-mini-tts-2603',
-    'mistral-tts-voice-name': 'AutoShowVoice'
-  })).toThrow('Synthesis option --mistral-tts-voice-name cannot perform named saved-reference creation during TTS synthesis.')
+  )).toThrow('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 })
 
-test('write rejects explicit TTS voice identity combined with dialogue flags', () => {
+test('write rejects explicit TTS voice reference input', () => {
   expect(() => buildOptsFromFlags(false, {
     'mistral-tts': 'voxtral-mini-tts-2603',
     'mistral-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
   }, {}, new Set(['mistral-tts-ref-audio'])))
     .toThrow('--mistral-tts-ref-audio is an authorized edge input only for the standalone `tts` command.')
-})
-
-test('resume rejects explicit TTS voice identity combined with dialogue flags', () => {
-  expect(() => buildOptsFromFlags(false, {
-    'mistral-tts': 'voxtral-mini-tts-2603',
-    'mistral-tts-voice-name': 'AutoShowVoice',
-    'tts-dialogue-format': 'labeled',
-    'tts-speaker': ['Host=Jasper']
-  })).toThrow('Synthesis option --mistral-tts-voice-name cannot perform named saved-reference creation during TTS synthesis.')
 })
 
 test('tts rejects --tts-dialogue-format without speaker mappings', () => {

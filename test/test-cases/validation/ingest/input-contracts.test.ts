@@ -149,7 +149,8 @@ describe('input classification contracts', () => {
       'src/cli/create-cli.ts',
       'write',
       listPath,
-      '--batch-all',
+      '--batch-limit',
+      'all',
       '--price'
     ], { env: { X_BEARER_TOKEN: '' } })
 

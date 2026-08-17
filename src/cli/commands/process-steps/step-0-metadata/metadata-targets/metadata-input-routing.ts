@@ -1,6 +1,6 @@
 import { commandSupportsInputFamily, isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { resolveOcrStep2ExecutionFromFormat, resolveSttStep2Execution } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import type { InputFamily, OcrRuntimeOptions, OcrSelectionOptions, ProcessCommand, ResolvedInputRouting, SttSelectionOptions, UrlRuntimeOptions } from '~/types'
+import type { InputFamily, OcrSelectionOptions, ProcessCommand, ResolvedInputRouting, SttSelectionOptions, UrlRuntimeOptions } from '~/types'
 import { classifyInputFamily, isLikelyUrl, resolveDocumentFormatHint } from './metadata-input-classifier'
 
 export const describeUnsupportedInputForCommand = (
@@ -30,7 +30,6 @@ export const resolveInputRoutingForCommand = async (
   opts?: SttSelectionOptions
     & OcrSelectionOptions
     & Pick<UrlRuntimeOptions, 'urlBackendExplicit' | 'urlBackend' | 'urlBackends'>
-    & Pick<OcrRuntimeOptions, 'useEpubBun'>
 ): Promise<ResolvedInputRouting> => {
   const family = await classifyInputFamily(target, opts)
   const documentFormatHint = await resolveDocumentFormatHint(target, family)

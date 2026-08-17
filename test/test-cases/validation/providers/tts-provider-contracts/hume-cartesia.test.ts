@@ -51,7 +51,7 @@ describe('TTS provider service contracts', () => {
       })
     }, 10_000)
 
-  test('Hume TTS sends UUID voice IDs unless a provider is explicit', async () => {
+  test('Hume TTS sends UUID voice IDs and resolves other values as library voice names', async () => {
       const idDir = await makeTempDir('autoshow-hume-tts-id-')
       const providerDir = await makeTempDir('autoshow-hume-tts-provider-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
@@ -65,10 +65,9 @@ describe('TTS provider service contracts', () => {
         model: 'octave-2',
         voice: '123e4567-e89b-12d3-a456-426614174000'
       })
-      await runHumeTts('Hume explicit provider synthesis.', providerDir, {
+      await runHumeTts('Hume named voice synthesis.', providerDir, {
         model: 'octave-2',
-        voice: 'Studio Voice',
-        voiceProvider: 'CUSTOM_VOICE'
+        voice: 'Studio Voice'
       })
 
       expect(((calls[0]?.bodyJson?.['utterances'] as Array<{ voice: unknown }>)[0] as { voice: unknown }).voice).toEqual({
@@ -76,7 +75,7 @@ describe('TTS provider service contracts', () => {
       })
       expect(((calls[1]?.bodyJson?.['utterances'] as Array<{ voice: unknown }>)[0] as { voice: unknown }).voice).toEqual({
         name: 'Studio Voice',
-        provider: 'CUSTOM_VOICE'
+        provider: 'HUME_AI'
       })
     }, 10_000)
 

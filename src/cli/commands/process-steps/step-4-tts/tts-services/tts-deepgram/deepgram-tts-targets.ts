@@ -24,20 +24,12 @@ export const collectDeepgramTtsTargets = (
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('deepgram', invocation)
         const controls = resolveTtsTargetInvocationControls('deepgram', invocation, {
-          encoding: selection.deepgramEncoding,
-          container: selection.deepgramContainer,
-          bitRate: selection.deepgramBitRate,
-          sampleRate: selection.deepgramSampleRate,
           speed: selection.deepgramSpeed,
         })
         await ensureDeepgramTtsSetup()
         return await runDeepgramTts(text, outputDir, {
           model,
           voiceId: invocationVoiceId ?? voiceId,
-          encoding: controls.encoding,
-          container: controls.container,
-          bitRate: controls.bitRate,
-          sampleRate: controls.sampleRate,
           speed: controls.speed,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,

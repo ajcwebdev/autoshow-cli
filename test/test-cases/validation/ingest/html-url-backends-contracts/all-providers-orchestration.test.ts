@@ -352,7 +352,7 @@ test('local HTML with a single hosted URL provider still runs and records defudd
 
     const item = (await readManifest(output.outputDir))?.items[0]
 
-    expect(await Bun.file(join(output.outputDir, 'result.json')).exists()).toBe(true)
+    expect(await Bun.file(join(output.outputDir, 'extraction.txt')).exists()).toBe(true)
     expect(await Bun.file(join(output.outputDir, 'providers', 'defuddle', 'result.json')).exists()).toBe(false)
     expect(await Bun.file(join(output.outputDir, 'providers', 'firecrawl', 'result.json')).exists()).toBe(false)
     expect(item?.status).toBe('full')

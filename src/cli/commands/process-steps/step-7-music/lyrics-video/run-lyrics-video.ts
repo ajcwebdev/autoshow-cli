@@ -1,4 +1,4 @@
-import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
 import { validateWhisperModel } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { ensureProviderReady } from '~/utils/bootstrap-broker'
@@ -23,9 +23,7 @@ import {
   renderLyricsVideo
 } from './render'
 import type { CaptionCue, LyricsCueSource } from '~/types'
-import { PROJECT_ROOT, baseStem, resolveUserPath, toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
-
-const DEFAULT_INPUT_ROOT = join(PROJECT_ROOT, 'input')
+import { PROJECT_ROOT, baseStem, resolveUserPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 
 const logLyricsBatchSummary = (total: number, succeeded: number, failed: number): void => {
   l.write(failed > 0 ? 'warn' : 'success', 'Batch Summary', {
@@ -38,28 +36,6 @@ const logLyricsBatchSummary = (total: number, succeeded: number, failed: number)
   })
 }
 const AUDIO_EXTENSIONS = new Set(['.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac'])
-
-const resolveInputRoot = (flags?: Record<string, unknown>): string => {
-  const override = typeof flags?.['input-dir'] === 'string' ? flags['input-dir'] : undefined
-  return override ? resolve(PROJECT_ROOT, override) : DEFAULT_INPUT_ROOT
-}
-
-const isWithinDir = (targetPath: string, directory: string): boolean => {
-  const rel = relative(directory, targetPath)
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
-}
-
-const ensureRepoPath = (flag: '--audio' | '--captions', filePath: string, requiredDir: string): void => {
-  if (!isWithinDir(filePath, requiredDir)) {
-    throw CLIUsageError(`${flag} must point to a file inside ./${toPosixPath(relative(PROJECT_ROOT, requiredDir))}`)
-  }
-}
-
-const ensureProjectPath = (flag: '--captions', filePath: string): void => {
-  if (!isWithinDir(filePath, PROJECT_ROOT)) {
-    throw CLIUsageError(`${flag} must point to a file inside the project tree`)
-  }
-}
 
 const findAudioFiles = async (inputDir: string): Promise<string[]> => {
   if (!await fileExists(inputDir)) {
@@ -107,7 +83,6 @@ const processLyricsRun = async (options: {
   outputDirAbsolute: string
   outputDirRelative: string
   font: string
-  keepTmp: boolean
   model: string
   captionsPath?: string | undefined
   emitCompletion: boolean
@@ -122,7 +97,6 @@ const processLyricsRun = async (options: {
     outputDirAbsolute,
     outputDirRelative,
     font,
-    keepTmp,
     model,
     captionsPath,
     emitCompletion
@@ -159,8 +133,7 @@ const processLyricsRun = async (options: {
       const transcriptionStartedAt = Date.now()
       const whisperRun = await runWhisperTranscribe(audioPath, tempDir, {
         model,
-        segmentOffsetMinutes: 0,
-        preserveJson: keepTmp
+        segmentOffsetMinutes: 0
       })
       transcriptionMs = Date.now() - transcriptionStartedAt
       transcriptionDescriptor = whisperRun.metadata.transcriptionModel
@@ -235,8 +208,7 @@ const processLyricsRun = async (options: {
         video: videoFileName,
         vtt: vttFileName,
         srt: srtFileName,
-        manifest: PIPELINE_MANIFEST_FILE,
-        tempDirKept: keepTmp
+        manifest: PIPELINE_MANIFEST_FILE
       },
       timing: {
         totalMs,
@@ -270,16 +242,17 @@ const processLyricsRun = async (options: {
       }])
     }
 
+    await rm(tempDir, { recursive: true, force: true })
+
     return {
       outputDir: outputDirRelative,
       stem,
       cueCount: cues.length,
       cueSource
     }
-  } finally {
-    if (!keepTmp) {
-      await rm(tempDir, { recursive: true, force: true })
-    }
+  } catch (error) {
+    l.write('debug', `Retaining ${toProjectDisplayPath(tempDir)} for debugging after a failed lyric video run`)
+    throw error
   }
 }
 
@@ -290,14 +263,13 @@ const failWithExitCode = (message: string, exitCode: number): never => {
 }
 
 export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promise<void> => {
-  const inputRoot = resolveInputRoot(flags)
   const outputRoot = getOutputRootAbsolute(PROJECT_ROOT)
-  const batch = flags['batch'] === true
+  const batchFlag = typeof flags['batch'] === 'string' ? flags['batch'] : undefined
+  const batch = typeof batchFlag === 'string' && batchFlag.length > 0
   const audioFlag = typeof flags['audio'] === 'string' ? flags['audio'] : undefined
   const captionsFlag = typeof flags['captions'] === 'string' ? flags['captions'] : undefined
   const modelRaw = typeof flags['model'] === 'string' ? flags['model'] : 'large-v3-turbo'
   const font = typeof flags['font'] === 'string' && flags['font'].trim().length > 0 ? flags['font'] : 'DejaVu Sans'
-  const keepTmp = flags['keep-tmp'] === true
   const price = flags['price'] === true
 
   if (batch) {
@@ -308,12 +280,13 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
       throw CLIUsageError('Do not use --captions with --batch')
     }
   } else if (!audioFlag) {
-    throw CLIUsageError('Missing --audio (or use --batch)')
+    throw CLIUsageError('Missing --audio (or use --batch <dir>)')
   }
 
   const model = validateWhisperModel(modelRaw)
 
   if (batch) {
+    const inputRoot = resolveUserPath(batchFlag!)
     const files = await findAudioFiles(inputRoot)
     if (files.length === 0) {
       throw InfraError(`No audio files found in ${toProjectDisplayPath(inputRoot)}`, { stage: 'music:lyrics-video' })
@@ -353,7 +326,6 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
           outputDirAbsolute: childDirAbsolute,
           outputDirRelative: childDirRelative,
           font,
-          keepTmp,
           model,
           emitCompletion: false
         })
@@ -402,10 +374,6 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
 
   const audioPath = resolveUserPath(audioFlag!)
   const captionsPath = captionsFlag ? resolveUserPath(captionsFlag) : undefined
-  ensureRepoPath('--audio', audioPath, inputRoot)
-  if (captionsPath) {
-    ensureProjectPath('--captions', captionsPath)
-  }
 
   if (!await fileExists(audioPath)) {
     throw InfraError(`Audio file not found: ${toProjectDisplayPath(audioPath)}`, { stage: 'music:lyrics-video' })
@@ -435,7 +403,6 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
     outputDirAbsolute,
     outputDirRelative,
     font,
-    keepTmp,
     model,
     emitCompletion: true
   })

@@ -3,8 +3,6 @@ export type VideoRuntimeOptions = {
   videoLocalConcurrency: number
   geminiVideoModels: string[] | undefined
   geminiVideoModel: string | undefined
-  minimaxVideoModels: string[] | undefined
-  minimaxVideoModel: string | undefined
   grokVideoModels: string[] | undefined
   grokVideoModel: string | undefined
   ltxVideoModels: string[] | undefined
@@ -17,7 +15,6 @@ export type VideoRuntimeOptions = {
   falVideoModel: string | undefined
   allVideo: boolean | undefined
   videoDuration: number | undefined
-  videoSize: string | undefined
   videoAspectRatio: string | undefined
   videoResolution: string | undefined
   videoMode: string | undefined
@@ -26,15 +23,10 @@ export type VideoRuntimeOptions = {
   videoReferenceImages: string[] | undefined
   videoInputVideo: string | undefined
   replicateVideoSeed: number | undefined
-  replicateVideoGenerateAudio: boolean | undefined
-  replicateVideoReferenceVideos: string[] | undefined
-  replicateVideoReferenceAudios: string[] | undefined
+  videoGenerateAudio: boolean | undefined
+  videoReferenceVideos: string[] | undefined
+  videoReferenceAudios: string[] | undefined
   replicateVideoNegativePrompt: string | undefined
   replicateVideoMultiPrompt: string | undefined
   replicateVideoMultiClip: boolean | undefined
-  falVideoGenerateAudio: boolean | undefined
-  falVideoReferenceVideos: string[] | undefined
-  falVideoReferenceAudios: string[] | undefined
-  grokVideoStorageFilename: string | undefined
-  grokVideoStorageExpiresAfter: number | undefined
 }

@@ -87,24 +87,6 @@ describe('price mode contracts', () => {
         ],
         [
           buildVideoMetadata({
-            videoGenService: 'minimax',
-            videoGenModel: 'MiniMax-Hailuo-2.3-Fast',
-            videoDuration: 10,
-            videoResolution: '720p'
-          }),
-          32
-        ],
-        [
-          buildVideoMetadata({
-            videoGenService: 'minimax',
-            videoGenModel: 'MiniMax-Hailuo-2.3-Fast',
-            videoDuration: 6,
-            videoResolution: '1080p'
-          }),
-          33
-        ],
-        [
-          buildVideoMetadata({
             videoGenService: 'grok',
             videoGenModel: 'grok-imagine-video',
             videoDuration: 5,
@@ -129,10 +111,11 @@ describe('price mode contracts', () => {
             videoGenService: 'ltx',
             videoGenModel: 'ltx-2-3-fast',
             videoDuration: 8,
-            videoSize: '2560x1440',
+            videoResolution: '1080p',
+            videoAspectRatio: '16:9',
             requestMode: 'text'
           }),
-          96
+          48
         ],
         [
           buildVideoMetadata({
@@ -197,17 +180,16 @@ describe('price mode contracts', () => {
       expect(cost({ replicateVideoModel: 'alibaba/happyhorse-1.1', videoDuration: 5, videoResolution: '720p' })).toBe('70.00¢')
       expect(cost({ replicateVideoModel: 'alibaba/happyhorse-1.1', videoDuration: 5, videoResolution: '1080p' })).toBe('90.00¢')
       expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-video', videoDuration: 5, videoResolution: '720p' })).toBe('84.00¢')
-      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-video', videoDuration: 5, videoResolution: '1080p', replicateVideoGenerateAudio: true })).toBe('$1.68')
-      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-omni-video', videoDuration: 5, videoResolution: '1080p', replicateVideoGenerateAudio: true })).toBe('$1.40')
+      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-video', videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.68')
+      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-omni-video', videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.40')
       expect(cost({ replicateVideoModel: 'pixverse/pixverse-v6', videoDuration: 5, videoResolution: '360p' })).toBe('25.00¢')
-      expect(cost({ replicateVideoModel: 'pixverse/pixverse-v6', videoDuration: 5, videoResolution: '1080p', replicateVideoGenerateAudio: true })).toBe('$1.15')
+      expect(cost({ replicateVideoModel: 'pixverse/pixverse-v6', videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.15')
       expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0', videoDuration: 5, videoResolution: '480p' })).toBe('40.00¢')
       expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0', videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('$1.10')
       expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0-fast', videoDuration: -1, videoResolution: '720p' })).toBe('75.00¢')
       expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0-fast', videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('85.00¢')
 
       expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8 })).toBe('48.00¢')
-      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8, videoSize: '2560x1440' })).toBe('96.00¢')
       expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8, videoResolution: '4k' })).toBe('$1.92')
       expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 12, videoResolution: '4k', videoAspectRatio: '9:16' })).toBe('$2.40')
       expect(cost({ ltxVideoModel: 'ltx-2-3-pro', videoMode: 'extend', videoDuration: 5 })).toBe('50.00¢')
@@ -261,7 +243,6 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
       expect(resolveCheapestModelForFlag('gemini-video')).toBe('veo-3.1-lite-generate-preview')
-      expect(resolveCheapestModelForFlag('minimax-video')).toBeUndefined()
       expect(resolveCheapestModelForFlag('glm-video')).toBeUndefined()
       expect(resolveCheapestModelForFlag('ltx-video')).toBe('ltx-2-3-fast')
       expect(resolveCheapestModelForFlag('replicate-video')).toBe('pixverse/pixverse-v6')

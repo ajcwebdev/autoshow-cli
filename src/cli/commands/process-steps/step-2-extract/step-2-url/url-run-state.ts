@@ -171,18 +171,6 @@ export const writeExtractionArtifact = async (
     return
   }
 
-  if (outputFormat === 'tsv') {
-    const tsv = extractionResult.pages.map(page => `${page.pageNumber}\t${page.text.replace(/\n/g, ' ')}`).join('\n')
-    await writeFile(join(outputDir, 'extraction.tsv'), `${tsv}\n`)
-    return
-  }
-
-  if (outputFormat === 'hocr') {
-    const hocr = extractionResult.pages.map(page => `<div class="page" data-page="${page.pageNumber}">${page.text}</div>`).join('\n')
-    await writeFile(join(outputDir, 'extraction.hocr'), `${hocr}\n`)
-    return
-  }
-
   await writeFile(join(outputDir, 'extraction.txt'), `${extractionResult.text}\n`)
 }
 

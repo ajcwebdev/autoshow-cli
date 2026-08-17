@@ -1,7 +1,7 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { extractStep2CommandFlags } from '~/cli/flags/extract-flags'
 import { handleProcessTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/handle-process-target'
-import { validateEpubInspectCommandFlags, validateOcrProviderModeCommandFlags } from './step-2-ocr/command-validation'
+import { validateOcrProviderModeCommandFlags } from './step-2-ocr/command-validation'
 import { runExtractTranscriptVideo } from './transcript-video/run-transcript-video'
 import { CLIUsageError } from '~/utils/error-handler'
 import { withHelpGroup } from '~/cli/flags/flag-utils'
@@ -67,7 +67,7 @@ export const extractCommand = defineCliCommand({
       ['bun autoshow extract https://example.com/article --url-provider spider', 'Extract a remote article with a URL backend'],
       ['bun autoshow extract output/<extract-run-dir> --transcript-video', 'Render a synced speaker transcript video from a media extract run'],
       ['bun autoshow extract --transcript-video --audio input/audio.mp3 --transcript-result output/<extract-run-dir>/result.json', 'Render a transcript video from explicit files'],
-      ['bun autoshow extract input/examples/batch/2-urls.md --batch-all', 'Process every routed item from a mixed input list'],
+      ['bun autoshow extract input/examples/batch/2-urls.md --batch-limit all', 'Process every routed item from a mixed input list'],
       ['bun autoshow extract https://x.com/i/spaces/1DXxyRYNejbKM', 'Extract X Space metadata via the X API']
     ]
   }
@@ -85,7 +85,6 @@ export const extractCommand = defineCliCommand({
     throw CLIUsageError(`${transcriptVideoOnlyFlags.join(', ')} require --transcript-video`)
   }
 
-  validateEpubInspectCommandFlags(ctx)
   validateOcrProviderModeCommandFlags(ctx)
   await handleProcessTarget('extract', ctx.parameters.input, ctx.flags, ctx.rawParsed)
 })

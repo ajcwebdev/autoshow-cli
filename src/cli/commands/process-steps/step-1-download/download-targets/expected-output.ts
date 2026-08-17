@@ -32,18 +32,8 @@ const getExpectedLlmJsonArtifact = (llmOutputCount: number): string =>
 const getExpectedShowNoteArtifact = (llmOutputCount: number): string =>
   llmOutputCount <= 1 ? 'show-note.md' : 'show-note-<model>.md'
 
-const getExpectedOcrArtifact = (opts: Pick<OcrRuntimeOptions, 'out'>): string => {
-  if (opts.out === 'tsv') {
-    return 'extraction.tsv'
-  }
-  if (opts.out === 'hocr') {
-    return 'extraction.hocr'
-  }
-  if (opts.out === 'json') {
-    return 'result.json'
-  }
-  return 'extraction.txt'
-}
+const getExpectedOcrArtifact = (opts: Pick<OcrRuntimeOptions, 'out'>): string =>
+  opts.out === 'json' ? 'result.json' : 'extraction.txt'
 
 const POOLED_OCR_ATTEMPT_ARTIFACTS = [
   'providers/<service>-<model>/attempts/page-<number>/attempt-<number>/result.json',
@@ -97,9 +87,6 @@ export const buildExpectedFilesList = async (
     const ocrArtifact = getExpectedOcrArtifact(opts)
     const ocrExportArtifacts = getExpectedOcrExportArtifacts(opts, routing)
     const htmlArticleInput = routing?.family === 'html_article'
-    if (opts.useEpubBun) {
-      return ['manifest.json (includes EPUB inspection payload)', 'Extracted text (non-EPUB fallback inputs only)', ...ocrExportArtifacts]
-    }
     if (htmlArticleInput && opts.urlBackends) {
       return ['providers/<backend>/result.json', 'providers/<backend>/extraction.txt', 'manifest.json']
     }
@@ -171,11 +158,9 @@ export const buildExpectedFilesList = async (
     && (routing?.family === 'document' || routing?.family === 'html_article')
   if (documentWrite) {
     const htmlArticleInput = routing?.family === 'html_article'
-    const files = opts.useEpubBun
-      ? [summaryFile, 'manifest.json (includes EPUB inspection payload)']
-      : htmlArticleInput && opts.urlBackends
-        ? ['providers/<backend>/result.json', 'providers/<backend>/extraction.txt', summaryFile]
-        : [getExpectedOcrArtifact(opts), summaryFile]
+    const files = htmlArticleInput && opts.urlBackends
+      ? ['providers/<backend>/result.json', 'providers/<backend>/extraction.txt', summaryFile]
+      : [getExpectedOcrArtifact(opts), summaryFile]
     files.push(showNoteFile)
     files.push(...getExpectedOcrExportArtifacts(opts))
     if (!htmlArticleInput && opts.ocrProviderMode === 'pool') {

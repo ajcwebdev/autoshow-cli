@@ -327,7 +327,6 @@ const buildCompositeOutput = (
     extractionMethod: 'ocr-pool',
     step1Metadata: ctx.step1Metadata,
     opts: ctx.effectiveOpts,
-    epubPayload: undefined,
     inputFamily: ctx.step1Metadata.format === 'pdf' ? 'pdf' : ctx.step1Metadata.format === 'cbz' ? 'cbz' : 'image',
     normalizedFrom: undefined,
     conversionChain: undefined,
@@ -525,7 +524,7 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
       ocrLocalConcurrency: ctx.opts.ocrLocalConcurrency,
       hostedOcrScheduler: ctx.hostedOcrScheduler.snapshot()
     })
-    await writeExtractionArtifact(ctx.outputDir, composite.result, ctx.opts.outputFormat ?? 'text', false, 'result.json')
+    await writeExtractionArtifact(ctx.outputDir, composite.result, ctx.opts.outputFormat ?? 'text', 'result.json')
     await writePipelineItemRecords(ctx.outputDir, 'extract', 'single', [{
       ...payload,
       ocrProviderMode: 'pool',
@@ -581,7 +580,6 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
         await writeProviderArtifacts(
           absoluteArtifactDir,
           extracted.result,
-          extracted.step2Metadata,
           ctx.opts.outputFormat ?? 'text',
           extracted.artifactFiles
         )

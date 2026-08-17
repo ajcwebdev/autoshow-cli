@@ -64,7 +64,6 @@ import {
   validateLumalabsImageModel,
   validateFalImageModel,
   validateGeminiVideoModel,
-  validateMinimaxVideoModel,
   validateGrokVideoModel,
   validateLtxVideoModel,
   validateReplicateVideoModel,
@@ -203,7 +202,6 @@ export const readRuntimeModelOptions = (
   const minimaxMusicModels = readValidatedMany('minimax-music', validateMinimaxMusicModel)
   const geminiMusicModels = readValidatedMany('gemini-music', validateGeminiMusicModel)
   const geminiVideoModels = readValidatedMany('gemini-video', validateGeminiVideoModel)
-  const minimaxVideoModels = readValidatedMany('minimax-video', validateMinimaxVideoModel)
   const grokVideoModels = readValidatedMany('grok-video', validateGrokVideoModel)
   const ltxVideoModels = readValidatedMany('ltx-video', validateLtxVideoModel)
   const replicateVideoModels = readValidatedMany('replicate-video', validateReplicateVideoModel)
@@ -339,8 +337,6 @@ export const readRuntimeModelOptions = (
     geminiMusicModel: first(geminiMusicModels),
     geminiVideoModels,
     geminiVideoModel: first(geminiVideoModels),
-    minimaxVideoModels,
-    minimaxVideoModel: first(minimaxVideoModels),
     grokVideoModels,
     grokVideoModel: first(grokVideoModels),
     ltxVideoModels,

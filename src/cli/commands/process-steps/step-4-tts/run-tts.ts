@@ -49,9 +49,7 @@ const describeFailedTtsRecovery = async (options: {
       return `${checkpoint} Rerun the same command to reuse retained audio and resume synthesis without deleting the output directory.`
     }
 
-    const redispatchFlag = options.sourceContext?.comicContext
-      ? '--allow-ambiguous-redispatch'
-      : '--tts-allow-ambiguous-redispatch'
+    const redispatchFlag = '--allow-ambiguous-redispatch'
     const manifest = await readManifest(options.rootDir)
     const resumeHint = manifest?.scope === 'batch'
       ? `Run bun autoshow resume ${options.rootDir} ${redispatchFlag}`

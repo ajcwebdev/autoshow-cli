@@ -133,11 +133,11 @@ describe('provider selection contracts', () => {
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
         'replicate-image': ['bytedance/seedream-4.5'],
         'image-count': '2'
-      }))).toThrow('--image-count is supported only by Replicate Wan and ERNIE image models')
+      }))).toThrow('--image-count is supported only by Replicate Wan image models')
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
         'replicate-image': ['bytedance/seedream-4.5'],
         'image-format': 'webp'
-      }))).toThrow('--image-format is supported only by Replicate Seedream 5 and ERNIE image models')
+      }))).toThrow('--image-format is supported only by Replicate Seedream 5 image models')
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
         'replicate-image': ['bytedance/seedream-5-lite'],
         'image-size': '1536x1024'

@@ -4,7 +4,7 @@ export const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tt
 
 export type ProcessCommand = typeof PROCESS_COMMANDS[number]
 
-export const OUTPUT_FORMATS = ['text', 'json', 'tsv', 'hocr'] as const
+export const OUTPUT_FORMATS = ['text', 'json'] as const
 export type OutputFormat = typeof OUTPUT_FORMATS[number]
 
 export type Step2ProviderSelectionOrigin = 'default' | 'explicit' | 'all-shortcut'
@@ -74,8 +74,7 @@ export type MetadataOutputOptions = {
 
 export type ProcessPlanningOptions = SttSelectionOptions
   & OcrSelectionOptions
-  & Pick<OcrRuntimeOptions, 'useEpubBun'>
-  & Pick<BatchRuntimeOptions, 'batchLimit' | 'batchAll' | 'batchOrder'>
+  & Pick<BatchRuntimeOptions, 'batchLimit' | 'batchOrder'>
   & Pick<UrlRuntimeOptions, 'urlBackend' | 'urlBackendExplicit' | 'urlBackends'>
   & Pick<PromptRuntimeOptions, 'textInput'>
 

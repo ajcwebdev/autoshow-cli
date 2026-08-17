@@ -99,7 +99,6 @@ export type Step6VideoMetadata = {
   providerProgress?: number | undefined
   providerModeration?: unknown
   providerFileOutput?: unknown
-  providerStorageError?: unknown
   providerCostCents?: number | undefined
   providerCostSource?: GenerationProviderCostSource | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined

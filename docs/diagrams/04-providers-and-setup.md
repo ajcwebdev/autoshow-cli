@@ -77,7 +77,7 @@ Current hosted/local provider families:
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
 | TTS   | Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                         |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
-| Video | `gemini`, `minimax`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`; MiniMax remains parseable only to provide replacement guidance for retired direct-video selectors.                                                                    |
+| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is fully retired; `--provider minimax` is rejected, and a model-qualified selector still reports its fal.ai `minimax/h3` replacement.                                                                    |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
 
 ## Setup Pipeline

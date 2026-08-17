@@ -8,15 +8,6 @@ import { validateElevenLabsTtsIvcAudio } from '~/cli/commands/process-steps/step
 import { LOCAL_SHORT_AUDIO_PATH } from './shared'
 
 describe('ElevenLabs clone option contracts', () => {
-  test('synthesis option resolution rejects ElevenLabs clone creation with management guidance', () => {
-      expect(() => buildOptsFromFlags(false, {
-        'elevenlabs-tts': 'eleven_v3',
-        'elevenlabs-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
-        'elevenlabs-tts-voice-name': 'AutoShow Anthony',
-        'elevenlabs-tts-clone-remove-background-noise': true
-      }, {}, new Set(['elevenlabs-tts-ref-audio']))).toThrow('cannot perform reference-audio cloning during TTS synthesis')
-    })
-
   test('elevenlabs synthesis accepts only an existing voice identity', () => {
       const existingVoice = buildOptsFromFlags(false, {
         'elevenlabs-tts': 'eleven_v3',

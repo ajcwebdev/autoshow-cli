@@ -1,4 +1,4 @@
-import type { GeminiDurationSeconds, GeminiResolution, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, MinimaxApiResolution, MinimaxDurationSeconds, MinimaxResolution, MinimaxVideoModel, ReplicateVideoModel, ReplicateVideoResolution, VideoMode } from '~/types'
+import type { GeminiDurationSeconds, GeminiResolution, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, ReplicateVideoModel, ReplicateVideoResolution, VideoMode } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
 export const REPLICATE_COMMON_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4'] as const
@@ -152,69 +152,6 @@ export const normalizeGeminiResolution = (
   return '720p'
 }
 
-export const isMinimaxHailuoModel = (model: MinimaxVideoModel): boolean => {
-  return model === 'MiniMax-Hailuo-2.3'
-    || model === 'MiniMax-Hailuo-2.3-Fast'
-}
-
-export const normalizeMinimaxResolution = (
-  model: MinimaxVideoModel,
-  resolution: string | undefined
-): MinimaxResolution => {
-  if (!isMinimaxHailuoModel(model)) {
-    return '720p'
-  }
-  return resolution === '1080p' ? '1080p' : '720p'
-}
-
-export const normalizeMinimaxResolutionForApi = (
-  model: MinimaxVideoModel,
-  resolution: string | undefined
-): MinimaxApiResolution => {
-  if (resolution === '1080p') {
-    return isMinimaxHailuoModel(model) ? '1080P' : '720P'
-  }
-  return isMinimaxHailuoModel(model) ? '768P' : '720P'
-}
-
-export const MINIMAX_HAILUO_DURATION_SECONDS = [6, 10] as const
-export const MINIMAX_RESOLUTIONS = ['720p', '1080p'] as const
-
-export const normalizeMinimaxDuration = (
-  model: MinimaxVideoModel,
-  resolution: MinimaxResolution,
-  duration: number | undefined
-): MinimaxDurationSeconds => {
-  const [shorter, longer] = MINIMAX_HAILUO_DURATION_SECONDS
-  if (!isMinimaxHailuoModel(model)) {
-    return shorter
-  }
-  if (resolution === '1080p') {
-    return shorter
-  }
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) {
-    return shorter
-  }
-  return Math.floor(duration) <= shorter ? shorter : longer
-}
-
-export const normalizeMinimaxDurationForApi = (
-  model: MinimaxVideoModel,
-  resolution: MinimaxApiResolution,
-  duration: number | undefined
-): MinimaxDurationSeconds => {
-  if (!isMinimaxHailuoModel(model)) {
-    return 6
-  }
-  if (resolution === '1080P') {
-    return 6
-  }
-  if (typeof duration !== 'number' || !Number.isFinite(duration)) {
-    return 6
-  }
-  return Math.floor(duration) <= 6 ? 6 : 10
-}
-
 export const GROK_VIDEO_DURATION_RANGE = [1, 15] as const
 
 export const normalizeGrokVideoDuration = (duration: number | undefined): GrokVideoDurationSeconds => {
@@ -244,17 +181,6 @@ export const normalizeGrokVideoAspectRatio = (aspectRatio: string | undefined): 
   return aspectRatio && allowed.has(aspectRatio) ? aspectRatio : '16:9'
 }
 
-export const LTX_2_3_SIZE_VALUES = [
-  '1920x1080',
-  '1080x1920',
-  '2560x1440',
-  '1440x2560',
-  '3840x2160',
-  '2160x3840'
-] as const
-
-const LTX_2_3_SIZES = new Set<string>(LTX_2_3_SIZE_VALUES)
-
 const isLtxFastModel = (model: LtxVideoModel): boolean => model.endsWith('-fast')
 
 export const normalizeLtxVideoResolution = (resolution: string | undefined): '1080p' | '4k' => {
@@ -272,15 +198,9 @@ export const normalizeLtxVideoAspectRatio = (model: LtxVideoModel, aspectRatio: 
 
 export const normalizeLtxVideoSize = (
   model: LtxVideoModel,
-  size: string | undefined,
   resolution: string | undefined,
   aspectRatio: string | undefined
 ): string => {
-  if (size !== undefined && size !== '') {
-    if (LTX_2_3_SIZES.has(size)) return size
-    throw CLIUsageError(`Invalid --video-size value "${size}" for LTX ${model}. Expected ${[...LTX_2_3_SIZES].join(', ')}.`)
-  }
-
   const normalizedResolution = normalizeLtxVideoResolution(resolution)
   const normalizedAspectRatio = normalizeLtxVideoAspectRatio(model, aspectRatio)
   if (normalizedResolution === '4k') return normalizedAspectRatio === '9:16' ? '2160x3840' : '3840x2160'

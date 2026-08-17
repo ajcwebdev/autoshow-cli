@@ -4,10 +4,7 @@ export const HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING = 'OCR flags are ignored for
 export const CSV_OCR_FLAGS_IGNORED_WARNING = 'OCR flags are ignored for CSV inputs (CSV content is read as raw text).'
 export const CHAPTER_EXPORT_FLAGS_IGNORED_WARNING = 'Chapter export flags (--chapters, --no-chapters, --length) are ignored for inputs other than EPUB and PDF.'
 export const PDF_LENGTH_WITHOUT_CHAPTERS_WARNING = 'For PDF inputs, --length is ignored when --no-chapters is set.'
-export const EPUB_EXPORT_FLAGS_IGNORED_INSPECT_WARNING = 'EPUB export flags (--chapters, --no-chapters, --length) are ignored when using EPUB inspect mode.'
 export const EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING = 'EPUB export flags (--chapters, --no-chapters, --length) are ignored when an OCR engine is selected for EPUB input.'
-export const EPUB_INSPECT_NON_EPUB_INFO = 'EPUB inspect flag was provided for a non-EPUB input. Falling back to normal extract flow for this file.'
-export const EPUB_INSPECT_JSON_ONLY_ERROR = 'EPUB inspect mode supports JSON output only. Use --format json with --epub-bun.'
 
 const hasSelectedModel = (
   values: string[] | undefined,

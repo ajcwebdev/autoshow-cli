@@ -49,7 +49,9 @@ export const resolveProviderSelector = (
   const parsed = parseProviderSelectorValue(value, selectorFlag)
   const target = targetByProvider[parsed.provider]
   if (!target) {
-    throw CLIUsageError(`Unknown provider "${parsed.provider}" for --${selectorFlag}.`)
+    throw CLIUsageError(
+      `Unknown provider "${parsed.provider}" for --${selectorFlag}. Expected ${Object.keys(targetByProvider).join('|')}.`
+    )
   }
 
   if (parsed.model !== true && booleanTargets.has(target)) {

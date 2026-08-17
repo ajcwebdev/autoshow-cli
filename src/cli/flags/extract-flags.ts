@@ -12,7 +12,6 @@ import {
   sharedConcurrencyFlags,
   transcriptionFlags
 } from './shared-flags'
-import { epubInspectFlags } from './ocr-flags'
 import { formatProviderList, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from './service-selector-normalization/extract-selectors'
@@ -39,6 +38,5 @@ export const extractStep2CommandFlags = {
   ...withHelpGroup(reasoningEffortFlag, 'ocr-document'),
   ...withHelpGroup(allArticleFlags, 'article-extraction'),
   ...withHelpGroup(batchFlags, 'batch-processing'),
-  ...withHelpGroup(epubInspectFlags, 'epub-inspect'),
   ...withHelpGroup(priceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition

@@ -190,8 +190,7 @@ bun autoshow extract input/examples/document
 
 Common batch controls:
 
-- `--batch-limit`
-- `--batch-all`
+- `--batch-limit <n|all>`
 - `--batch-order newest|oldest`
 - `--batch-concurrency`
 
@@ -202,7 +201,7 @@ Persistent defaults live in `config/autoshow.json`. You can save provider choice
 ```bash
 bun autoshow config --show
 bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
-bun autoshow config --tts elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3
+bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
 bun autoshow config --tts minimax=speech-2.8-turbo --tts-voice English_expressive_narrator
 bun autoshow config --tts hume=octave-2 --tts-voice "Male English Actor"
 bun autoshow config --tts cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02

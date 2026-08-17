@@ -1,4 +1,4 @@
-import { readElevenLabsError } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-utils'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
@@ -52,7 +52,7 @@ export const runElevenLabsTts = async (
 
   const startTime = Date.now()
   const voiceId = options.voiceId?.trim() ?? ELEVENLABS_DEFAULT_VOICE_ID
-  const outputFormat = options.controls?.outputFormat?.trim() || 'mp3_44100_128'
+  const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
   const languageCode = options.controls?.languageCode?.trim() || undefined
   const pronunciationDictionaryLocators = options.controls?.pronunciationDictionaryLocators
     ?.map((item) => item.trim())

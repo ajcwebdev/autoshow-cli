@@ -36,7 +36,6 @@ export type OcrRuntimeOptions = {
   chapterFiles: boolean | undefined
   chapterChunkLimitChars: number | undefined
   pdfChapterMode: 'local' | 'auto' | 'llm'
-  useEpubBun: boolean
   reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }
 

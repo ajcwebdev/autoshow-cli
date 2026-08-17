@@ -34,17 +34,17 @@ describe('config image and TTS default contracts', () => {
     expectConfigPatchRoundTrip({
       'replicate-video': ['bytedance/seedance-2.0-fast'],
       'replicate-video-seed': '123',
-      'replicate-video-generate-audio': false,
-      'replicate-video-reference-video': ['input/examples/video/reference.mp4'],
-      'replicate-video-reference-audio': ['input/examples/audio/reference.mp3'],
+      'video-generate-audio': false,
+      'video-reference-video': ['input/examples/video/reference.mp4'],
+      'video-reference-audio': ['input/examples/audio/reference.mp3'],
       'replicate-video-negative-prompt': 'blur',
       'video-duration': '-1'
     }, 'video', {
       replicateVideo: ['bytedance/seedance-2.0-fast'],
       replicateVideoSeed: 123,
-      replicateVideoGenerateAudio: false,
-      replicateVideoReferenceVideos: ['input/examples/video/reference.mp4'],
-      replicateVideoReferenceAudios: ['input/examples/audio/reference.mp3'],
+      videoGenerateAudio: false,
+      videoReferenceVideos: ['input/examples/video/reference.mp4'],
+      videoReferenceAudios: ['input/examples/audio/reference.mp3'],
       replicateVideoNegativePrompt: 'blur',
       videoDuration: -1
     })
@@ -54,34 +54,29 @@ describe('config image and TTS default contracts', () => {
     expectConfigPatchRoundTrip({
       'speechify-tts': ['simba-3.2'],
       'speechify-voice': 'narrator_voice',
-      'speechify-tts-audio-format': 'wav',
       'speechify-tts-language': 'en-US',
       'hume-tts': ['octave-2'],
       'hume-tts-voice': 'Studio Voice',
-      'hume-tts-voice-provider': 'CUSTOM_VOICE',
       'cartesia-tts': ['sonic-3.5-2026-05-04'],
       'cartesia-tts-voice': 'cartesia-voice-id',
       'cartesia-tts-language': 'en'
     }, 'tts', {
       speechifyTts: ['simba-3.2'],
       speechifyVoice: 'narrator_voice',
-      speechifyTtsAudioFormat: 'wav',
       speechifyTtsLanguage: 'en-US',
       humeTts: ['octave-2'],
       humeTtsVoice: 'Studio Voice',
-      humeTtsVoiceProvider: 'CUSTOM_VOICE',
       cartesiaTts: ['sonic-3.5-2026-05-04'],
       cartesiaTtsVoice: 'cartesia-voice-id',
       cartesiaTtsLanguage: 'en'
     })
   })
 
-  test('buildConfigPatchFromFlags persists safe Mistral defaults but excludes request references and save intent', () => {
+  test('buildConfigPatchFromFlags persists safe Mistral defaults but excludes request references', () => {
     expectConfigPatchRoundTrip({
       'mistral-tts': ['voxtral-mini-tts-2603'],
       'mistral-tts-voice': 'voice_abc123',
-      'mistral-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
-      'mistral-tts-voice-name': 'AutoShow Saved Voice'
+      'mistral-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
     }, 'tts', {
       mistralTts: ['voxtral-mini-tts-2603'],
       mistralTtsVoice: 'voice_abc123'
@@ -111,12 +106,7 @@ describe('config image and TTS default contracts', () => {
       'minimax-tts-emotion': 'calm',
       'minimax-tts-english-normalization': true,
       'minimax-tts-pronunciation': ['AutoShow/auto show', 'TTS/tee tee ess'],
-      'deepgram-tts-encoding': 'linear16',
-      'deepgram-tts-container': 'wav',
-      'deepgram-tts-bit-rate': '128000',
-      'deepgram-tts-sample-rate': '24000',
       'deepgram-tts-speed': '1.1',
-      'elevenlabs-tts-output-format': 'mp3_22050_32',
       'elevenlabs-tts-language-code': 'en',
       'elevenlabs-tts-stability': '0.4',
       'elevenlabs-tts-similarity-boost': '0.8',
@@ -139,12 +129,7 @@ describe('config image and TTS default contracts', () => {
       minimaxTtsEmotion: 'calm',
       minimaxTtsEnglishNormalization: true,
       minimaxTtsPronunciations: ['AutoShow/auto show', 'TTS/tee tee ess'],
-      deepgramTtsEncoding: 'linear16',
-      deepgramTtsContainer: 'wav',
-      deepgramTtsBitRate: 128000,
-      deepgramTtsSampleRate: 24000,
       deepgramTtsSpeed: 1.1,
-      elevenlabsTtsOutputFormat: 'mp3_22050_32',
       elevenlabsTtsLanguageCode: 'en',
       elevenlabsTtsStability: 0.4,
       elevenlabsTtsSimilarityBoost: 0.8,
@@ -155,16 +140,5 @@ describe('config image and TTS default contracts', () => {
       elevenlabsTtsTextNormalization: 'on',
       elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3']
     })
-  })
-
-  test('buildConfigPatchFromFlags excludes ElevenLabs synthesis-time clone intent', () => {
-    expectConfigPatchRoundTrip({
-      'elevenlabs-tts': ['eleven_v3'],
-      'elevenlabs-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
-      'elevenlabs-tts-voice-name': 'AutoShow Anthony',
-      'elevenlabs-tts-clone-remove-background-noise': true
-    }, 'tts', {
-      elevenlabsTts: ['eleven_v3']
-    }, { merge: false })
   })
 })

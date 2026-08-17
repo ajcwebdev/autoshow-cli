@@ -80,8 +80,7 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 | `--all-providers <step>`                                            | Enable every hosted/API-backed provider for one write step: `stt`, `ocr`, `url`, `llm`, `tts`, `image`, `video`, or `music`                                                       |
 | `--all-local <step>`                                                | Enable every local engine/backend for one write step: `stt`, `ocr`, or `url`                                                                                                      |
 | `--reasoning-effort <policy>`                                       | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max`                                                                       |
-| `--batch-limit <n>`                                                 | Limit batch size; default `5`                                                                                                                                                     |
-| `--batch-all`                                                       | Process every batch item                                                                                                                                                          |
+| `--batch-limit <n\|all>`                                             | Limit batch size or process all items (`all`); default `5`                                                                                                                        |
 | `--batch-order <newest\|oldest>`                                    | Choose batch item order; default `newest`                                                                                                                                         |
 | `--batch-concurrency <n>`                                           | Batch items to process concurrently; default `7`                                                                                                                                  |
 | `--provider-concurrency <n>`                                        | Hosted providers/models to run concurrently per write item; default `7`                                                                                                           |
@@ -343,12 +342,10 @@ Prompt names are assembled at runtime from JSON files discovered recursively und
 - `--prompt-md` writes a second prompt file (`prompt-md.md`) with markdown-formatted examples alongside the JSON prompt.
 - Project lyric draft mode defaults `--rendered-out-dir` to `./output/<name>/lyrics`.
 - Providers with native structured output use it directly; other providers use the internal schema-guided fallback path.
-- EPUB inspect mode keeps the extraction payload in the canonical item's metadata and still writes the normal step-3 JSON output.
 
 ## Notes
 
 - `write` accepts the same step-2 STT flags documented in [`extract STT`](../step-2-extract/02-extract-stt.md#shared-stt-options) and provider sections, plus the same step-2 OCR flags documented in [`extract OCR`](../step-2-extract/03-extract-ocr.md#shared-ocr-options) and provider sections. Provider/model flags are repeatable, so routed step-2 media and document work can fan out across multiple selected providers.
-- `write` also accepts `--epub-bun`; when `--format` is set alongside it, the format must be `json`.
 - Resume is exposed as the top-level `resume` command for extract, write, TTS, image, video, and music outputs, not as a `write` flag.
 - `write` also accepts post-generation flags for [`tts`](../step-4-tts/text-to-speech-and-voice.md), [`image`](../step-5-image/text-to-image.md), [`video`](../step-6-video/text-to-video-services.md), and [`music`](../step-7-music/text-to-music-services.md). Those options are documented on their own command pages instead of being repeated here.
 - Post-generation steps still require exactly one step-3 LLM output. Repeating `--llm` for multiple models produces multiple step-3 outputs and therefore skips TTS, image, video, and music generation for that run.

@@ -55,7 +55,7 @@ export const validateSpeechifyTtsCustomVoiceGender = (
     return normalized
   }
 
-  throw CLIUsageError('Invalid --speechify-tts-voice-gender value. Expected male, female, or notSpecified.')
+  throw CLIUsageError('Invalid Speechify custom voice gender. Expected male, female, or notSpecified.')
 }
 
 const resolveSpeechifyTtsCustomVoiceLocale = (value: string | undefined): string => {
@@ -74,13 +74,13 @@ const resolveSpeechifyTtsCustomVoiceConsent = (
   const email = consentEmail?.trim()
 
   if (!fullName) {
-    throw CLIUsageError('Speechify TTS custom voice creation requires --speechify-tts-consent-name.')
+    throw CLIUsageError('Speechify TTS custom voice creation requires consent full name.')
   }
   if (!email) {
-    throw CLIUsageError('Speechify TTS custom voice creation requires --speechify-tts-consent-email.')
+    throw CLIUsageError('Speechify TTS custom voice creation requires consent email.')
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw CLIUsageError('Invalid --speechify-tts-consent-email value. Expected an email address.')
+    throw CLIUsageError('Invalid Speechify TTS custom voice consent email value. Expected an email address.')
   }
 
   return { fullName, email }

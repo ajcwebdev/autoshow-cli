@@ -77,8 +77,8 @@ const providerModelsFromTargets = (
 const countGrokInputImages = (opts: Pick<VideoRuntimeOptions, 'videoInputImage' | 'videoReferenceImages'>): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)
 
-const countReplicateInputVideos = (opts: Pick<VideoRuntimeOptions, 'videoInputVideo' | 'replicateVideoReferenceVideos'>): number =>
-  (opts.videoInputVideo ? 1 : 0) + (opts.replicateVideoReferenceVideos?.length ?? 0)
+const countReplicateInputVideos = (opts: Pick<VideoRuntimeOptions, 'videoInputVideo' | 'videoReferenceVideos'>): number =>
+  (opts.videoInputVideo ? 1 : 0) + (opts.videoReferenceVideos?.length ?? 0)
 
 const buildPricingOptionsForTargets = <T extends VideoRuntimeOptions>(
   opts: T,
@@ -175,7 +175,7 @@ export const videoCommand = defineCliCommand({
   const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
   const videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
-    throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|grok|ltx|replicate|lumalabs|fal[=model]')
+    throw CLIUsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
   }
 
   const pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
@@ -208,7 +208,6 @@ export const videoCommand = defineCliCommand({
     applyCostMultipliers: false,
     videoTargets: estimatedVideoTargets,
     videoDuration: videoOpts.videoDuration,
-    videoSize: videoOpts.videoSize,
     videoAspectRatio: videoOpts.videoAspectRatio,
     videoResolution: videoOpts.videoResolution,
     videoMode: videoOpts.videoMode,
@@ -226,7 +225,6 @@ export const videoCommand = defineCliCommand({
     estimated: computeEstimatedProcessingTimes({
       videoTargets: estimatedVideoTargets,
       ...(videoOpts.videoResolution !== undefined ? { videoResolution: videoOpts.videoResolution } : {}),
-      ...(videoOpts.videoSize !== undefined ? { videoSize: videoOpts.videoSize } : {}),
       ...(videoOpts.videoAspectRatio !== undefined ? { videoAspectRatio: videoOpts.videoAspectRatio } : {}),
       ...(videoOpts.videoMode !== undefined ? { videoMode: videoOpts.videoMode } : {}),
     }),

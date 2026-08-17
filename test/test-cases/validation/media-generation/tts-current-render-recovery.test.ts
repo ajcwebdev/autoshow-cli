@@ -423,7 +423,7 @@ describe('TTS completed-render recovery', () => {
         dialoguePlan,
         beforeDispatch: async () => {},
         onProviderState: async (state) => { states.push(state) }
-      })).rejects.toThrow(/Recovery checkpoint: 0\/1 generation slots retained; 1 unresolved\. 1 unresolved slot has ambiguous provider admission\. Rerun the same command with --tts-allow-ambiguous-redispatch/)
+      })).rejects.toThrow(/Recovery checkpoint: 0\/1 generation slots retained; 1 unresolved\. 1 unresolved slot has ambiguous provider admission\. Rerun the same command with --allow-ambiguous-redispatch/)
       const retained = states.at(-1)
       if (!retained) throw new Error('Missing retained accepted-error provider state')
       const callsBeforeResume = providerCalls

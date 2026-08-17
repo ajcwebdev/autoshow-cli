@@ -10,7 +10,6 @@ import {
   validateGrokTtsLanguage,
   validateMinimaxTtsEmotion,
   validateMinimaxTtsLanguageBoost,
-  validateSpeechifyTtsAudioFormat,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { CLIUsageError } from '~/utils/error-handler'
 
@@ -22,7 +21,6 @@ export type TtsInvocationControlsByProvider = {
     speed?: OptionalControl<number>
   }>
   elevenlabs: Readonly<{
-    outputFormat?: OptionalControl<string>
     languageCode?: OptionalControl<string>
     stability?: OptionalControl<number>
     similarityBoost?: OptionalControl<number>
@@ -50,14 +48,9 @@ export type TtsInvocationControlsByProvider = {
   mistral: Readonly<{ responseFormat?: OptionalControl<'wav' | 'mp3' | 'flac' | 'opus'> }>
   gemini: Readonly<{ languageCode?: OptionalControl<string> }>
   deepgram: Readonly<{
-    encoding?: OptionalControl<string>
-    container?: OptionalControl<string>
-    bitRate?: OptionalControl<number>
-    sampleRate?: OptionalControl<number>
     speed?: OptionalControl<number>
   }>
   speechify: Readonly<{
-    audioFormat?: OptionalControl<string>
     language?: OptionalControl<string>
   }>
   hume: Readonly<{
@@ -115,7 +108,6 @@ const CONTROL_SPECS = {
     speed: { kind: 'number', min: 0.25, max: 4 },
   },
   elevenlabs: {
-    outputFormat: { kind: 'string', normalize: trim },
     languageCode: { kind: 'string', normalize: trim },
     stability: { kind: 'number', min: 0, max: 1 },
     similarityBoost: { kind: 'number', min: 0, max: 1 },
@@ -149,14 +141,9 @@ const CONTROL_SPECS = {
     languageCode: { kind: 'string', normalize: trim, allowedValues: GEMINI_TTS_LANGUAGE_CODES },
   },
   deepgram: {
-    encoding: { kind: 'string', normalize: trim },
-    container: { kind: 'string', normalize: trim },
-    bitRate: { kind: 'number', min: 1, max: 1_000_000, integer: true },
-    sampleRate: { kind: 'number', min: 1, max: 192_000, integer: true },
     speed: { kind: 'number', min: 0.5, max: 2 },
   },
   speechify: {
-    audioFormat: { kind: 'string', normalize: validateSpeechifyTtsAudioFormat },
     language: { kind: 'string', normalize: trim },
   },
   hume: {

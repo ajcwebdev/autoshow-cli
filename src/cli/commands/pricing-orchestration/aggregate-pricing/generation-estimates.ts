@@ -35,14 +35,14 @@ export const buildImageEstimates = (opts: EstimateImageCostOptions): ImageStepEs
 
 type VideoEstimateOptions = EstimateVideoCostOptions & Partial<Pick<
   VideoRuntimeOptions,
-  'videoInputImage' | 'videoReferenceImages' | 'videoInputVideo' | 'replicateVideoReferenceVideos'
+  'videoInputImage' | 'videoReferenceImages' | 'videoInputVideo' | 'videoReferenceVideos'
 >>
 
 const countGrokInputImages = (opts: VideoEstimateOptions): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)
 
 const countReplicateInputVideos = (opts: VideoEstimateOptions): number =>
-  (opts.videoInputVideo ? 1 : 0) + (opts.replicateVideoReferenceVideos?.length ?? 0)
+  (opts.videoInputVideo ? 1 : 0) + (opts.videoReferenceVideos?.length ?? 0)
 
 export const buildVideoEstimates = async (opts: VideoEstimateOptions): Promise<VideoStepEstimate[]> => {
   const selections = collectSelections(opts, VIDEO_PRICING_PROVIDERS)
@@ -59,14 +59,13 @@ export const buildVideoEstimates = async (opts: VideoEstimateOptions): Promise<V
   return estimateVideoCosts({
     ...pick(opts, VIDEO_PRICING_MODEL_KEYS),
     videoDuration: opts.videoDuration,
-    videoSize: opts.videoSize,
     videoAspectRatio: opts.videoAspectRatio,
     videoResolution: opts.videoResolution,
     videoMode: opts.videoMode,
     ...(hasGrokVideo ? { grokInputImageCount: countGrokInputImages(opts) } : {}),
     ...(grokInputVideoDurationSeconds !== undefined ? { grokInputVideoDurationSeconds } : {}),
     replicateVideoReferenceVideoCount: countReplicateInputVideos(opts),
-    replicateVideoGenerateAudio: opts.replicateVideoGenerateAudio,
+    videoGenerateAudio: opts.videoGenerateAudio,
     ...(replicateInputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds } : {})
   }).map((estimate) => {
     const estimation = getVideoEstimation(estimate.provider, estimate.model)

@@ -18,7 +18,6 @@ import { collectSpeechifyTtsTargets } from '../tts-services/speechify/speechify-
 import { createTtsTargetSelection } from './tts-target-selection'
 import { validateTtsTargetSelection } from './target-validation'
 import { getMultiSpeakerStrategy } from './multi-speaker-capability'
-import { validateTtsSynthesisCreationOptions } from '../synthesis-creation-guard'
 import { resolveGeminiDialogueStrategy } from '../tts-services/tts-gemini/gemini-tts-config'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -29,7 +28,6 @@ const getTtsTransport = (): string => 'hosted-api'
 export const preflightTtsTargetSelection = (
   options: TtsOptions
 ): TtsTargetSelection => {
-  validateTtsSynthesisCreationOptions(options)
   const rawMistralReference = (options as { mistralTtsRefAudio?: unknown }).mistralTtsRefAudio
   if (typeof rawMistralReference === 'string' && rawMistralReference.trim()) {
     throw CLIUsageError(

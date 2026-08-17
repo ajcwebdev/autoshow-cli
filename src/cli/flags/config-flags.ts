@@ -38,9 +38,13 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
   'provider-concurrency',
   'local-concurrency',
   'batch-concurrency',
-  'price'
+  'price',
+  'tts-ref-audio',
+  'allow-ambiguous-redispatch',
+  'tts-allow-ambiguous-redispatch'
 ])
 const configOcrInputFlags = omitFlags(ocrInputFlags, ['password'])
+const configPromptFlags = omitFlags(promptFlag, ['prompt-md'])
 
 // Per-run inputs, not defaults: each names a specific file, mask, or one-shot
 // switch for a single generation. They used to be accepted here and silently
@@ -56,6 +60,9 @@ const configVideoGenFlags = omitFlags(videoGenFlags, [
   'replicate-video-multi-prompt',
   'replicate-video-multi-clip'
 ])
+const configMusicGenFlags = omitFlags(musicGenFlags, [
+  'music-lyrics-file'
+])
 
 export const configCommandFlags = {
   ...withHelpGroup(configFlags, 'config'),
@@ -70,7 +77,7 @@ export const configCommandFlags = {
   ...withHelpGroup(ocrTuningFlags, 'ocr-document'),
   ...withHelpGroup(ocrProviderModeFlag, 'ocr-document'),
   ...withHelpGroup(llmProviderFlags, 'writing'),
-  ...withHelpGroup(promptFlag, 'writing'),
+  ...withHelpGroup(configPromptFlags, 'writing'),
   ...withHelpGroup({ tts: stepProviderSelectorFlags.tts }, 'tts-options'),
   ...withHelpGroup(configTtsFlags, 'tts-options'),
   ...withHelpGroup({ image: stepProviderSelectorFlags.image }, 'image-options'),
@@ -78,5 +85,5 @@ export const configCommandFlags = {
   ...withHelpGroup({ video: stepProviderSelectorFlags.video }, 'video-options'),
   ...withHelpGroup(configVideoGenFlags, 'video-options'),
   ...withHelpGroup({ music: stepProviderSelectorFlags.music }, 'hosted-music'),
-  ...withHelpGroup(musicGenFlags, 'hosted-music')
+  ...withHelpGroup(configMusicGenFlags, 'hosted-music')
 } as const satisfies CliFlagsDefinition

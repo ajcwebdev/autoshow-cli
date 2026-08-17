@@ -218,19 +218,10 @@ export const processOcrSingle = async (
   const artifactFiles: Record<string, string> = {
     manifest: 'manifest.json'
   }
-  switch (opts.out) {
-    case 'json':
-      artifactFiles['result'] = 'result.json'
-      break
-    case 'tsv':
-      artifactFiles['extraction'] = 'extraction.tsv'
-      break
-    case 'hocr':
-      artifactFiles['extraction'] = 'extraction.hocr'
-      break
-    default:
-      artifactFiles['extraction'] = 'extraction.txt'
-      break
+  if (opts.out === 'json') {
+    artifactFiles['result'] = 'result.json'
+  } else {
+    artifactFiles['extraction'] = 'extraction.txt'
   }
   await appendChapterExportArtifacts(artifactFiles, extraction.step2Metadata, extraction.outputDir)
 

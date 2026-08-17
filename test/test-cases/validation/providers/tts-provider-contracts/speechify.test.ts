@@ -42,7 +42,6 @@ describe('TTS provider service contracts', () => {
       const result = await runSpeechifyTts('a'.repeat(2100), dir, {
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
-        audioFormat: 'wav',
         language: 'en-US',
         allowAmbiguousRedispatch: true
       })
@@ -129,7 +128,6 @@ describe('TTS provider service contracts', () => {
       const runPromise = runSpeechifyTts(`${'A'.repeat(2000)} ${'B'.repeat(100)}`, dir, {
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
-        audioFormat: 'wav',
         chunkConcurrency: 2
       })
       let waitError: unknown
@@ -232,7 +230,7 @@ describe('TTS provider service contracts', () => {
         method: 'POST',
         bodyJson: {
           voice_id: 'speechify_custom_voice_123',
-          audio_format: 'mp3',
+          audio_format: 'wav',
           model: 'simba-3.2',
           input: 'Speechify custom voice synthesis.'
         }

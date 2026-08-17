@@ -14,8 +14,7 @@ export type MetadataScalar = string | number | boolean | null
 export type YtDlpAuthMode = 'cookies-file' | 'cookies-from-browser' | 'none'
 
 export type YtDlpListOptions = {
-  limit?: number
-  all?: boolean
+  limit?: number | 'all'
   order?: 'newest' | 'oldest'
 }
 

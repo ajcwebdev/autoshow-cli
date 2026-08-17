@@ -37,7 +37,7 @@ export const imageGenFlags = {
     { provider: 'Grok', values: [formatRange(GROK_IMAGE_COUNT_RANGE)] },
     { provider: 'Replicate Wan', values: [formatRange(REPLICATE_WAN_IMAGE_COUNT_RANGE)] },
     { provider: 'fal.ai', values: [formatRange(FAL_IMAGE_COUNT_RANGE)] }
-  ])}; default: 1`),
+  ])} (default: 1)`),
   'image-input': strListFlag(`Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, BFL, Replicate, Luma Labs, fal.ai; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`),
   'image-mask': strFlag('Mask image path for inpainting/edit workflows (OpenAI only)'),
   'image-response-mode': strFlag(`Gemini native response mode: ${formatValueList(GEMINI_IMAGE_RESPONSE_MODES)} (default: image)`),

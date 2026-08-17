@@ -78,7 +78,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'minimax-music',
   'gemini-music',
   'gemini-video',
-  'minimax-video',
   'grok-video',
   'ltx-video',
   'replicate-video',
@@ -157,8 +156,7 @@ const ROUTING_SELECTION_PROBE = {
   ...OCR_SELECTION_PROBE,
   urlBackend: 'defuddle',
   urlBackendExplicit: false,
-  urlBackends: undefined,
-  useEpubBun: false
+  urlBackends: undefined
 } satisfies NonNullable<Parameters<typeof resolveInputRoutingForCommand>[2]>
 
 const registrySelectionKeys = (step: 'stt' | 'ocr'): string[] => [

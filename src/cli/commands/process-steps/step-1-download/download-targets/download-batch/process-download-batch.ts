@@ -51,9 +51,9 @@ const prepareBatchRun = async (
     const selectedCount = prefilledRecords?.length ?? items.length
     if (selectedCount < runOpts.totalCount) {
       if (items.length < selectedCount) {
-        l.warn(`Processing ${items.length} runnable items from ${selectedCount} selected of ${runOpts.totalCount} total. Some selected inputs were skipped as unsupported for this command; use --batch-all to select more items.`)
+        l.warn(`Processing ${items.length} runnable items from ${selectedCount} selected of ${runOpts.totalCount} total. Some selected inputs were skipped as unsupported for this command; use --batch-limit all to select more items.`)
       } else {
-        l.warn(`Processing ${items.length} of ${runOpts.totalCount} items. Use --batch-all to process all.`)
+        l.warn(`Processing ${items.length} of ${runOpts.totalCount} items. Use --batch-limit all to process all.`)
       }
     } else {
       l.warn(`Processing ${items.length} of ${selectedCount} selected items. Some inputs were skipped as unsupported for this command.`)

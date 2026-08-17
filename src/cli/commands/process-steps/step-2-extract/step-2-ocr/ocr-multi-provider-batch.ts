@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import type { ExtractionMetadata, ExistingOcrRun, OcrBatchFinalization, OcrBatchRunContext, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderFailureSummary, OcrProviderSuccess, OcrTarget, ProcessDocumentOutput, ResolvedStep2Execution } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { isEpubInspectMode, writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
+import { writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
 import { buildDocumentMetadataPayload, resolveRecordedOcrStep2 } from './ocr-document-metadata'
 import { logOcrProviderLifecycle } from './ocr-logging'
 import { writePipelineItemRecords } from '../../pipeline-manifest'
@@ -137,7 +137,6 @@ const createOcrProviderTargetRunner = (params: {
       await writeProviderArtifacts(
         providerDir,
         extracted.result,
-        extracted.step2Metadata,
         opts.outputFormat ?? 'text',
         extracted.artifactFiles
       )
@@ -377,7 +376,6 @@ export const runOcrMultiProviderBatch = async (ctx: OcrBatchRunContext): Promise
       outputDir,
       primary.result,
       opts.outputFormat ?? 'text',
-      isEpubInspectMode(primary.metadata),
       'result.json'
     )
   }

@@ -160,8 +160,8 @@ bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2
 # text-to-speech with Gemini
 bun autoshow tts input/examples/tts/1-tts.md --provider gemini=gemini-3.1-flash-tts-preview
 
-# text-to-speech with ElevenLabs Instant Voice Cloning
-bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3
+# text-to-speech with ElevenLabs
+bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
 
 # text-to-speech with xAI Grok
 bun autoshow tts input/examples/tts/1-tts.md --provider grok=grok-tts --tts-voice eve
@@ -225,7 +225,7 @@ bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=v
 # bundled lyrics fixtures: input/examples/lyrics/01-example-song.mp3, input/examples/lyrics/01-cover.jpeg, and input/examples/lyrics/01-example-song.txt
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions output/<run-dir>/01-example-song.vtt
-bun autoshow music --input-dir input/examples/lyrics --batch --model small
+bun autoshow music --batch input/examples/lyrics --model small
 
 # music generation
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0
@@ -236,7 +236,7 @@ bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=ly
 bun autoshow config --show
 bun autoshow config --llm openai=gpt-5.4-mini --stt whisper=base
 bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
-bun autoshow config --tts elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3
+bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
 bun autoshow config --tts minimax=speech-2.8-turbo --tts-voice English_expressive_narrator
 bun autoshow config --tts hume=octave-2 --tts-voice "Male English Actor"
 bun autoshow config --tts cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
@@ -311,7 +311,6 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm glm=glm-
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k2.6 --price
 bun autoshow write ./output/demo/text --price
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --price
-bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider groq=canopylabs/orpheus-v1-english --price
 bun autoshow tts input/examples/tts/1-tts.md --provider grok=grok-tts --price
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --price

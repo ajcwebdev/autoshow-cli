@@ -150,9 +150,6 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
   if (typeof opts.chapterChunkLimitChars === 'number') {
     extractionOpts.chapterChunkLimitChars = opts.chapterChunkLimitChars
   }
-  if (opts.useEpubBun) {
-    extractionOpts.useEpubBun = true
-  }
   if (step2SelectionOrigins) {
     extractionOpts.step2SelectionOrigins = step2SelectionOrigins
   }

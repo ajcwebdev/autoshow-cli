@@ -53,7 +53,7 @@ test('video positional image rejects conflicting explicit text mode', async () =
 
 test('music lyric-video mode rejects missing audio or batch', async () => {
   await expect(runMusicLyricVideo({ model: 'tiny' }))
-    .rejects.toThrow('Missing --audio (or use --batch)')
+    .rejects.toThrow('Missing --audio (or use --batch <dir>)')
 })
 
 test('music rejects mixed hosted generation and lyric-video modes', async () => {

@@ -57,8 +57,7 @@ export const sharedConcurrencyFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const batchFlags = {
-  'batch-limit': strFlag('Batch: number of items to process', '5'),
-  'batch-all': boolFlag('Batch: process all items'),
+  'batch-limit': strFlag('Batch: number of items to process or "all"', '5'),
   'batch-order': strFlag('Batch: item order newest|oldest', 'newest'),
   'batch-concurrency': strFlag('Batch: number of items to process concurrently', DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
@@ -71,7 +70,10 @@ export const transcriptionFlags = {
   'speaker-count': strFlag('Optional diarization speaker-count hint (positive integer); unsupported providers report one aggregated warning at runtime'),
   split: boolFlag('Split audio into 30-minute segments for transcription'),
   'stt-segment-concurrency': strFlag('STT: max split segments in flight per provider (local clamps to 1)', DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'stt-preflight-concurrency': strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE),
+  'stt-preflight-concurrency': {
+    ...strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE),
+    help: { hidden: true }
+  }
 } as const satisfies CliFlagsDefinition
 
 export const llmProviderFlags = {
@@ -112,8 +114,14 @@ export const allArticleFlags = {
     default: DEFAULT_CONCURRENCY_FLAG_VALUE,
     help: { hidden: true }
   },
-  'url-request-timeout-ms': strFlag('URL article extraction: per-provider request timeout in milliseconds', '60000'),
-  'url-request-attempts': strFlag('URL article extraction: total provider request attempts including retries', '3')
+  'url-request-timeout-ms': {
+    ...strFlag('URL article extraction: per-provider request timeout in milliseconds', '60000'),
+    help: { hidden: true }
+  },
+  'url-request-attempts': {
+    ...strFlag('URL article extraction: total provider request attempts including retries', '3'),
+    help: { hidden: true }
+  }
 } as const satisfies CliFlagsDefinition
 
 export const ocrTuningFlags = {

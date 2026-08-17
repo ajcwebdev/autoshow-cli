@@ -116,6 +116,18 @@ export const readOptionalBooleanFlag = (flags: Record<string, unknown>, key: str
   return typeof value === 'boolean' ? value : undefined
 }
 
+export const readBatchLimit = (flags: Record<string, unknown>): number | 'all' => {
+  const raw = flags['batch-limit']
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw
+  if (typeof raw === 'string') {
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === 'all') return 'all'
+    const parsed = Number.parseInt(normalized, 10)
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  return 5
+}
+
 export const readBatchOrder = (flags: Record<string, unknown>): BatchOrder => {
   const v = readFlagValue(flags, 'batch-order')
   return v === 'oldest' ? 'oldest' : 'newest'

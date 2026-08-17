@@ -79,6 +79,24 @@ describe('help flag group catalog contracts', () => {
 
     expect(restated).toEqual([])
   })
+
+  test('flag descriptions do not contain conflicting parenthetical default annotations when metadata default is present', () => {
+    const conflicting: string[] = []
+    const flagSets: (CliFlagsDefinition | undefined)[] = [...GROUPED_FLAG_SETS, GLOBAL_FLAG_DEFINITIONS]
+    for (const flags of flagSets) {
+      if (!isRecord(flags)) continue
+      for (const [name, definition] of Object.entries(flags)) {
+        if (!isRecord(definition) || !('default' in definition) || definition['default'] === undefined) continue
+        const description = definition['description']
+        if (typeof description !== 'string') continue
+        if (/\(default/i.test(description.replace(ANSI_ESCAPE_PATTERN, ''))) {
+          conflicting.push(`--${name}`)
+        }
+      }
+    }
+
+    expect(conflicting).toEqual([])
+  })
 })
 
 const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/g

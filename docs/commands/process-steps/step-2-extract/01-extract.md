@@ -19,7 +19,7 @@ Routes each input to the right step-2 extractor: media to STT, documents/images 
 bun autoshow extract [input] [flags]
 ```
 
-Batch inputs use the same shared controls as other processing commands. The default batch limit is `5`; use `--batch-all` to process every discovered item.
+Batch inputs use the same shared controls as other processing commands. The default batch limit is `5`; use `--batch-limit all` to process every discovered item.
 
 Hosted extraction defaults to `--concurrency-mode ramp`: each provider/account lane starts one logical request immediately and adds one slot every five seconds while demand is queued, without exceeding the existing provider, segment, or OCR page cap. Use `--concurrency-mode immediate` to begin at those caps. Local engines, document rendering, batch preparation, and preflight probes remain immediate.
 
@@ -191,13 +191,13 @@ Directory batches and URL-list batches classify each item independently. A singl
 
 ```bash
 # Process every item in a URL list
-bun autoshow extract input/examples/batch/2-urls.md --batch-all
+bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
 
 # Compare every URL article backend for one remote article
 bun autoshow extract https://example.com/article --all-providers
 
 # Process a whole YouTube channel batch with caption-first STT routing
-bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --batch-all
+bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --batch-limit all
 ```
 
 ## Detailed Extract Docs

@@ -9,17 +9,4 @@ describe('Mistral saved voice option contracts', () => {
         'mistral-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
       }, {}, new Set(['mistral-tts-ref-audio']))).toThrow('authorized edge input only for the standalone `tts` command')
     })
-
-  test('mistral named saved-voice creation is rejected during synthesis', () => {
-      expect(() => buildOptsFromFlags(false, {
-        'mistral-tts': 'voxtral-mini-tts-2603',
-        'mistral-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
-        'mistral-tts-voice-name': 'AutoShow Saved Voice'
-      }, {}, new Set(['mistral-tts-voice-name']))).toThrow('cannot perform named saved-reference creation during TTS synthesis')
-
-      expect(() => buildOptsFromFlags(false, {
-        'mistral-tts': 'voxtral-mini-tts-2603',
-        'mistral-tts-voice-name': 'AutoShow Saved Voice'
-      })).toThrow('cannot perform named saved-reference creation during TTS synthesis')
-    })
 })

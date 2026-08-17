@@ -35,7 +35,6 @@ import {
   SUPPORTED_GROK_VIDEO_MODELS,
   SUPPORTED_LTX_VIDEO_MODELS,
   SUPPORTED_LUMALABS_VIDEO_MODELS,
-  SUPPORTED_MINIMAX_VIDEO_MODELS,
   SUPPORTED_REPLICATE_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/video-models'
 import type { ImageProvider, MusicProvider, VideoProvider } from '~/types'
@@ -54,7 +53,6 @@ const IMAGE_MODELS = {
 
 const VIDEO_MODELS = {
   gemini: SUPPORTED_GEMINI_VIDEO_MODELS,
-  minimax: SUPPORTED_MINIMAX_VIDEO_MODELS,
   grok: SUPPORTED_GROK_VIDEO_MODELS,
   ltx: SUPPORTED_LTX_VIDEO_MODELS,
   replicate: SUPPORTED_REPLICATE_VIDEO_MODELS,
@@ -74,7 +72,7 @@ describe('generation pricing model-selection tables', () => {
       'gemini', 'openai', 'grok', 'bfl', 'replicate', 'lumalabs', 'fal'
     ])
     expect(VIDEO_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'minimax', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'
+      'gemini', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'
     ])
     expect(MUSIC_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
       'elevenlabs', 'minimax', 'gemini'

@@ -60,6 +60,7 @@ import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tt
 import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../dialogue-normalizer'
 import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
 import { planElevenLabsNativeDialogueBatches, prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
 import {
   FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION,
@@ -390,7 +391,6 @@ const resolveEffectiveInvocationControls = (
     }
     case 'elevenlabs':
       return resolveTtsTargetInvocationControls('elevenlabs', invocation, {
-        outputFormat: selection.elevenLabsOutputFormat,
         languageCode: selection.elevenLabsLanguageCode,
         stability: selection.elevenLabsStability,
         similarityBoost: selection.elevenLabsSimilarityBoost,
@@ -424,15 +424,10 @@ const resolveEffectiveInvocationControls = (
       return resolveTtsTargetInvocationControls('gemini', invocation, {})
     case 'deepgram':
       return resolveTtsTargetInvocationControls('deepgram', invocation, {
-        encoding: selection.deepgramEncoding,
-        container: selection.deepgramContainer,
-        bitRate: selection.deepgramBitRate,
-        sampleRate: selection.deepgramSampleRate,
         speed: selection.deepgramSpeed,
       })
     case 'speechify': {
       const controls = resolveTtsTargetInvocationControls('speechify', invocation, {
-        audioFormat: selection.speechifyAudioFormat,
         language: selection.speechifyLanguage,
       })
       const language = validateSpeechifyTtsLanguageForModel(
@@ -489,9 +484,9 @@ const serializerContract = (
       if (strategy === 'native-utterances') return { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
       return { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: 'mp3' }, numGenerations: 1, ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}), ...(numberValue('trailingSilence') !== undefined ? { trailingSilence: numberValue('trailingSilence') } : {}), ...(stringValue('description') ? { description: stringValue('description') } : {}) } }
     case 'speechify':
-      return { endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: stringValue('audioFormat') ?? 'mp3', ...(stringValue('language') ? { language: stringValue('language') } : {}) } }
+      return { endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: 'wav', ...(stringValue('language') ? { language: stringValue('language') } : {}) } }
     case 'deepgram':
-      return { endpointKind: 'speech-synthesis', serializerVersion: 'deepgram.tts.phase-0-v1', controls: { ...(stringValue('encoding') ? { encoding: stringValue('encoding') } : {}), ...(stringValue('container') ? { container: stringValue('container') } : {}), ...(numberValue('bitRate') !== undefined ? { bitRate: numberValue('bitRate') } : {}), ...(numberValue('sampleRate') !== undefined ? { sampleRate: numberValue('sampleRate') } : {}), ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
+      return { endpointKind: 'speech-synthesis', serializerVersion: 'deepgram.tts.phase-0-v1', controls: { encoding: 'linear16', container: 'wav', ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
     case 'fish':
       if (strategy === 'native-dialogue') return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION, controls: { format: 'wav', model: 's2.1-pro' } }
       if (isFishTimestampModel(target.model)) return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_TIMESTAMP_SERIALIZER_VERSION, controls: { format: 'wav', model: target.model } }
@@ -511,7 +506,7 @@ const serializerContract = (
         endpointKind: 'text-to-dialogue-with-timestamps',
         serializerVersion: 'elevenlabs.dialogue.phase-3-v1',
         controls: {
-          outputFormat: stringValue('outputFormat') ?? 'mp3_44100_128',
+          outputFormat: ELEVENLABS_TTS_OUTPUT_FORMAT,
           modelId: 'eleven_v3',
           ...(stringValue('languageCode') ? { languageCode: stringValue('languageCode') } : {}),
           ...(numberValue('seed') !== undefined ? { seed: numberValue('seed') } : {}),
@@ -536,7 +531,7 @@ const serializerContract = (
         endpointKind: 'speech-synthesis',
         serializerVersion: 'elevenlabs.tts.phase-0-v1',
         controls: {
-          outputFormat: stringValue('outputFormat') ?? 'mp3_44100_128',
+          outputFormat: ELEVENLABS_TTS_OUTPUT_FORMAT,
           ...(stringValue('languageCode') ? { languageCode: stringValue('languageCode') } : {}),
           ...(Object.keys(voiceSettings).length > 0 ? { voiceSettings } : {}),
           ...(numberValue('seed') !== undefined ? { seed: numberValue('seed') } : {}),
@@ -2199,8 +2194,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     }
     const blocker = reconciliationBlockers.find((entry) => entry.generationSlotId === slotId)
     if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
-      const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
-      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
     }
   }
   for (const batch of loadedBatches) {
@@ -2629,8 +2623,7 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
     const report = await prepareCurrentTtsCompatibleSlotRecovery({ ...options, materialize: false, reconciliationMode: 'report' })
     const blocker = report?.reconciliationBlockers[0]
     if (blocker) {
-      const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
-      throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+      throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
     }
   }
   const projection = readAudioProjection(options.state)
@@ -2750,8 +2743,7 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
     .sort((left, right) => left.attempt - right.attempt || left.requestOrdinal - right.requestOrdinal)
   const blocker = reconciliationBlockers[0]
   if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
-    const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
-    throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+    throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
   }
   if (recovered.size === 0) {
     return reconciliationBlockers.length === 0

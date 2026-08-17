@@ -85,19 +85,6 @@ test('normalizable ebook extraction follows EPUB chapter, length, and inspect be
       expect(lengthRun.step2Metadata.chapterExport?.normalizedFrom).toBe('azw3')
       expect(lengthRun.step2Metadata.chapterExport?.chunkLimitChars).toBe(30)
       expect(lengthRun.artifactFiles?.some((file) => file.relativePath.includes('-part-'))).toBe(true)
-
-      const inspectRun = await runOcr(
-        epubPath,
-        prepared.step1Metadata,
-        buildExtractionOptions(epubPath, outputDir, {
-          outputFormat: 'json',
-          useEpubBun: true
-        })
-      )
-      expect(inspectRun.step2Metadata.extractionMethod).toBe('epub-bun')
-      expect(inspectRun.step2Metadata.normalizedFrom).toBe('azw3')
-      expect(inspectRun.step2Metadata.conversionChain).toEqual(['calibre'])
-      expect(inspectRun.step2Metadata.epub).toBeDefined()
     } finally {
       await prepared.tempCleanup?.()
       await rm(outputDir, { recursive: true, force: true })

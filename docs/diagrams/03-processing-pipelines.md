@@ -109,9 +109,6 @@ resolveDocumentFormatHint()
   +--> CSV
   |      native-document/csv
   |
-  +--> EPUB inspect
-  |      native-document/epub-inspect
-  |
   +--> DOCX/PPTX/XLSX/ODF/ebook/RTF
   |      native document extraction or conversion path
   |
@@ -136,12 +133,12 @@ Document extract output:
 
 ```
 single provider/native route:
-  extraction.txt | result.json | extraction.tsv | extraction.hocr
+  extraction.txt | result.json
   manifest.json
 
 multi-provider OCR:
   providers/<provider-model>/
-    extraction.txt | extraction.tsv | extraction.hocr
+    extraction.txt
     result.json              # raw OCR/domain payload
   extraction.<format>         # primary provider output when --primary-ocr is set
   manifest.json
@@ -151,7 +148,7 @@ Article output:
 
 ```
 single backend:
-  extraction.txt | result.json | extraction.tsv | extraction.hocr
+  extraction.txt | result.json
   manifest.json
 
 all URL backends:

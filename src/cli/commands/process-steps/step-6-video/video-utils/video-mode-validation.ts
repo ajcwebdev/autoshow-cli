@@ -13,10 +13,8 @@ export const hasValue = (value: unknown): boolean =>
 
 export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): void => {
   const referenceImages = options.videoReferenceImages ?? []
-  const replicateReferenceVideos = options.replicateVideoReferenceVideos ?? []
-  const replicateReferenceAudios = options.replicateVideoReferenceAudios ?? []
-  const falReferenceVideos = options.falVideoReferenceVideos ?? []
-  const falReferenceAudios = options.falVideoReferenceAudios ?? []
+  const referenceVideos = options.videoReferenceVideos ?? []
+  const referenceAudios = options.videoReferenceAudios ?? []
 
   const unexpected: string[] = []
   const addUnexpected = (condition: boolean, flagName: string): void => {
@@ -28,13 +26,17 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoLastFrame), '--video-last-frame')
     addUnexpected(referenceImages.length > 0, '--video-reference-image')
     addUnexpected(hasValue(options.videoInputVideo), '--video-input-video')
+    addUnexpected(referenceVideos.length > 0, '--video-reference-video')
+    addUnexpected(referenceAudios.length > 0, '--video-reference-audio')
   } else if (mode === 'image-to-video') {
     if (!options.videoInputImage) throw CLIUsageError('--video-mode image-to-video requires --video-input-image.')
     addUnexpected(hasValue(options.videoLastFrame), '--video-last-frame')
     addUnexpected(referenceImages.length > 0, '--video-reference-image')
     addUnexpected(hasValue(options.videoInputVideo), '--video-input-video')
+    addUnexpected(referenceVideos.length > 0, '--video-reference-video')
+    addUnexpected(referenceAudios.length > 0, '--video-reference-audio')
   } else if (mode === 'reference-to-video') {
-    if (referenceImages.length === 0 && replicateReferenceVideos.length === 0 && replicateReferenceAudios.length === 0 && falReferenceVideos.length === 0 && falReferenceAudios.length === 0) {
+    if (referenceImages.length === 0 && referenceVideos.length === 0 && referenceAudios.length === 0) {
       throw CLIUsageError('--video-mode reference-to-video requires at least one image, video, or audio reference.')
     }
     addUnexpected(hasValue(options.videoInputImage), '--video-input-image')
@@ -45,16 +47,22 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     if (!options.videoLastFrame) throw CLIUsageError('--video-mode interpolate requires --video-last-frame.')
     addUnexpected(referenceImages.length > 0, '--video-reference-image')
     addUnexpected(hasValue(options.videoInputVideo), '--video-input-video')
+    addUnexpected(referenceVideos.length > 0, '--video-reference-video')
+    addUnexpected(referenceAudios.length > 0, '--video-reference-audio')
   } else if (mode === 'extend') {
     if (!options.videoInputVideo) throw CLIUsageError('--video-mode extend requires --video-input-video.')
     addUnexpected(hasValue(options.videoInputImage), '--video-input-image')
     addUnexpected(hasValue(options.videoLastFrame), '--video-last-frame')
     addUnexpected(referenceImages.length > 0, '--video-reference-image')
+    addUnexpected(referenceVideos.length > 0, '--video-reference-video')
+    addUnexpected(referenceAudios.length > 0, '--video-reference-audio')
   } else if (mode === 'edit') {
     if (!options.videoInputVideo) throw CLIUsageError('--video-mode edit requires --video-input-video.')
     addUnexpected(hasValue(options.videoInputImage), '--video-input-image')
     addUnexpected(hasValue(options.videoLastFrame), '--video-last-frame')
     addUnexpected(referenceImages.length > 0, '--video-reference-image')
+    addUnexpected(referenceVideos.length > 0, '--video-reference-video')
+    addUnexpected(referenceAudios.length > 0, '--video-reference-audio')
   }
 
   if (unexpected.length > 0) {

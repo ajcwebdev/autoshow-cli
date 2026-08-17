@@ -8,6 +8,7 @@ import {
 } from '~/cli/help-colors'
 import { dispatchNativeCli } from '~/cli/native/dispatcher'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-definitions'
 
 export { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-definitions'
@@ -61,6 +62,7 @@ const applyUniversalHelpDescriptionColors = (): void => {
     return
   }
 
+  colorizeFlagDescriptions(GLOBAL_FLAG_DEFINITIONS as Record<string, unknown> | undefined)
   for (const command of COMMAND_DEFINITIONS) {
     colorizeFlagDescriptions(command.flags as Record<string, unknown> | undefined)
     for (const subcommand of command.subcommands ?? []) {

@@ -24,7 +24,6 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsModels: string[] | undefined
   elevenlabsTtsModel: string | undefined
   elevenlabsVoiceId: string | undefined
-  elevenlabsTtsOutputFormat: string | undefined
   elevenlabsTtsLanguageCode: string | undefined
   elevenlabsTtsStability: number | undefined
   elevenlabsTtsSimilarityBoost: number | undefined
@@ -37,10 +36,6 @@ export type TtsRuntimeOptions = {
   deepgramTtsModels: string[] | undefined
   deepgramTtsModel: string | undefined
   deepgramVoiceId: string | undefined
-  deepgramTtsEncoding: string | undefined
-  deepgramTtsContainer: string | undefined
-  deepgramTtsBitRate: number | undefined
-  deepgramTtsSampleRate: number | undefined
   deepgramTtsSpeed: number | undefined
   minimaxTtsModels: string[] | undefined
   minimaxTtsModel: string | undefined
@@ -55,12 +50,10 @@ export type TtsRuntimeOptions = {
   speechifyTtsModels: string[] | undefined
   speechifyTtsModel: string | undefined
   speechifyVoice: string | undefined
-  speechifyTtsAudioFormat: string | undefined
   speechifyTtsLanguage: string | undefined
   humeTtsModels: string[] | undefined
   humeTtsModel: string | undefined
   humeTtsVoice: string | undefined
-  humeTtsVoiceProvider: string | undefined
   cartesiaTtsModels: string[] | undefined
   cartesiaTtsModel: string | undefined
   cartesiaTtsVoice: string | undefined
@@ -85,23 +78,6 @@ export type TtsRuntimeOptions = {
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions
-
-// These keys remain readable only long enough to reject legacy CLI/config creation inputs with
-// migration guidance. They are deliberately not part of any synthesis runtime option bag.
-export type TtsLegacyCreationDiagnosticOptions = {
-  mistralTtsVoiceName: string | undefined
-  elevenlabsTtsRefAudio: string | undefined
-  elevenlabsTtsVoiceName: string | undefined
-  elevenlabsTtsCloneRemoveBackgroundNoise: boolean
-  speechifyTtsRefAudio: string | undefined
-  speechifyTtsVoiceName: string | undefined
-  speechifyTtsConsentName: string | undefined
-  speechifyTtsConsentEmail: string | undefined
-  speechifyTtsVoiceLocale: string | undefined
-  speechifyTtsVoiceGender: string | undefined
-}
-
-export type TtsLegacyCreationDiagnosticOptionKey = keyof TtsLegacyCreationDiagnosticOptions
 
 export type TtsOptionResolutionAuthority = Readonly<{
   cliReferenceInput?: 'standalone-mistral' | undefined

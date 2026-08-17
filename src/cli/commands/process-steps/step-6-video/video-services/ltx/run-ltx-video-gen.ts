@@ -55,7 +55,6 @@ export const runLtxVideoGen = async (
     model: LtxVideoModel
     mode?: VideoMode | undefined
     durationSeconds?: number | undefined
-    size?: string | undefined
     aspectRatio?: string | undefined
     resolution?: string | undefined
     inputImage?: string | undefined
@@ -67,7 +66,7 @@ export const runLtxVideoGen = async (
 
   const mode = options.mode ?? 'text'
   const endpoint = resolveLtxEndpoint(mode)
-  const size = normalizeLtxVideoSize(options.model, options.size, options.resolution, options.aspectRatio)
+  const size = normalizeLtxVideoSize(options.model, options.resolution, options.aspectRatio)
   const resolution = normalizeLtxVideoResolution(options.resolution)
   const aspectRatio = normalizeLtxVideoAspectRatio(options.model, options.aspectRatio)
   const duration = normalizeLtxVideoDuration(options.model, size, options.durationSeconds, mode)
@@ -82,7 +81,6 @@ export const runLtxVideoGen = async (
   const estimate = estimateVideoCost({
     ltxVideoModel: options.model,
     videoDuration: options.durationSeconds,
-    videoSize: options.size,
     videoAspectRatio: options.aspectRatio,
     videoResolution: options.resolution,
     videoMode: mode

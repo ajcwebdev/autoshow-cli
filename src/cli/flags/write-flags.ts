@@ -16,7 +16,6 @@ import {
   priceFlag,
   reasoningEffortFlag
 } from './shared-flags'
-import { epubInspectFlags } from './ocr-flags'
 import { imageGenFlags } from './image-flags'
 import { musicGenFlags } from './music-flags'
 import { ttsCommandFlags } from './tts-flags'
@@ -57,7 +56,8 @@ const writeTtsOptionFlags = omitFlags(ttsCommandFlags, [
   'concurrency-mode',
   'provider-concurrency',
   'local-concurrency',
-  'price'
+  'price',
+  'tts-ref-audio'
 ])
 
 const writePipelineFlags = {
@@ -77,7 +77,6 @@ export const writeFlags = {
   ...withHelpGroup(ocrTuningFlags, 'ocr-document'),
   ...withHelpGroup({ ...ocrProviderModeFlag, ...primaryOcrFlag }, 'ocr-document'),
   ...withHelpGroup(allArticleFlags, 'article-extraction'),
-  ...withHelpGroup(epubInspectFlags, 'epub-inspect'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup(writeTextInputFlags, 'writing'),
   ...writeTtsOptionFlags,

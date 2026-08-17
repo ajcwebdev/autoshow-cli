@@ -46,9 +46,7 @@ import {
 import {
   CHAPTER_EXPORT_FLAGS_IGNORED_WARNING,
   CSV_OCR_FLAGS_IGNORED_WARNING,
-  EPUB_EXPORT_FLAGS_IGNORED_INSPECT_WARNING,
   EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING,
-  EPUB_INSPECT_NON_EPUB_INFO,
   PDF_LENGTH_WITHOUT_CHAPTERS_WARNING
 } from '../step-2-shared/inactive-flag-warnings'
 
@@ -64,7 +62,6 @@ export const runOcr = async (
 
   let pages: PageResult[] = []
   let extractionMethod: string
-  let epubPayload: Record<string, unknown> | undefined
   let inputFamily: string | undefined
   let normalizedFrom: string | undefined = typeof step1Metadata.sourceFormat === 'string'
     && step1Metadata.sourceFormat.length > 0
@@ -113,20 +110,14 @@ export const runOcr = async (
     }
   }
 
-  const useEpubBun = opts.useEpubBun === true
-  const useEpubInspect = step1Metadata.format === 'epub' && useEpubBun
   const ocrEngineCount = countSelectedOcrEngines(opts)
 
   if (!hasPreparedMarkdownInput(opts) && ocrEngineCount > 1) {
     throw CLIUsageError('Use at most one OCR provider at a time. Select one with --provider provider[=model].')
   }
 
-  if (step1Metadata.format !== 'epub' && useEpubBun) {
-    l.write('info', EPUB_INSPECT_NON_EPUB_INFO)
-  }
-
   const writeExtractionTextCheckpoint = async (): Promise<void> => {
-    if (opts.outputFormat !== 'text' || extractionMethod === 'epub-bun') {
+    if (opts.outputFormat !== 'text') {
       return
     }
 
@@ -161,19 +152,6 @@ export const runOcr = async (
     extractionMethod = `html+${opts.htmlArticleBackend ?? 'defuddle'}`
     inputFamily = 'html'
     outputFidelity = 'markdown'
-  } else if (useEpubInspect) {
-    if (epubExportFlagsActive) {
-      l.warn(EPUB_EXPORT_FLAGS_IGNORED_INSPECT_WARNING)
-    }
-    l.write('info', 'Inspecting EPUB with Bun ZIP/XML parser')
-    const inspected = await runEpubBunInspect(filePath)
-    pages = inspected.payload.chapters.map((chapter) => ({
-      pageNumber: chapter.index,
-      method: 'text',
-      text: chapter.text
-    }))
-    extractionMethod = 'epub-bun'
-    epubPayload = inspected.payload as Record<string, unknown>
   } else if (inputAdapter.family === 'epub' && !hasOcrFlag(opts)) {
     l.write('info', 'Extracting EPUB chapter text with Bun ZIP/XML parser')
     const inspected = await runEpubBunInspect(filePath)
@@ -412,7 +390,6 @@ export const runOcr = async (
     extractionMethod,
     step1Metadata,
     opts,
-    epubPayload,
     inputFamily,
     normalizedFrom,
     conversionChain,

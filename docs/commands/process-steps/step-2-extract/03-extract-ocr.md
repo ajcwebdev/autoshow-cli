@@ -64,7 +64,7 @@ Hosted OCR engines are selected by provider. Calibre `ebook-convert` remains ava
 | Input family                                       | Default path                                                         | Hosted paths                                             |
 | -------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------- |
 | PDF                                                | See the [`extract` overview](./01-extract.md#local-ocr)              | hosted OCR engines                                       |
-| EPUB                                               | cleaned native extraction (`epub-text`)                              | hosted OCR engines, `--epub-bun`                         |
+| EPUB                                               | cleaned native extraction (`epub-text`)                              | hosted OCR engines                                       |
 | Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | normalize to EPUB, then follow the EPUB path                         | same                                                     |
 | DOCX / PPTX / XLSX / ODF                           | native ZIP/XML text extraction                                       | OCR flags are ignored with a warning                     |
 | RTF                                                | native RTF text extraction                                           | OCR flags are ignored with a warning                     |
@@ -80,7 +80,7 @@ Hosted direct-image inputs retain native uploads when supported by the provider.
 
 | Flag                                   | Description                                                                                                                                                        |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--format <format>`                    | Output format: `text`, `json`, `tsv`, or `hocr`                                                                                                                    |
+| `--format <format>`                    | Output format: `text` or `json`                                                                                                                                    |
 | `--password <value>`                   | Password for encrypted PDFs                                                                                                                                        |
 | `--all-providers`                      | Enable every supported hosted OCR provider/model for this route                                                                                                    |
 | `--ocr-provider-mode <mode>`           | Multi-provider execution: `fanout` or `pool`; default `fanout`                                                                                                     |
@@ -135,19 +135,11 @@ Pool mode is accepted for PDFs, CBZ archives, and supported images where selecte
 
 ## EPUB Options
 
-### Inspect Modes
-
-| Flag         | Result                                                                                               |
-| ------------ | ---------------------------------------------------------------------------------------------------- |
-| `--epub-bun` | Inspect EPUB structure with the Bun ZIP/XML parser and write structured EPUB data into item metadata |
+EPUB inputs are always read with the native Bun ZIP/XML parser, which extracts full chapter text. There is no separate inspect mode.
 
 ```bash
-bun autoshow extract input/examples/document/1-epub.epub --epub-bun --format json
+bun autoshow extract input/examples/document/1-epub.epub --format json
 ```
-
-- Inspect mode is metadata-only for EPUB inputs.
-- When `--format` is set in inspect mode, it must be `json`.
-- Chapter flags (`--chapters`, `--no-chapters`, `--length`) are ignored in inspect mode.
 
 ### Native EPUB Export
 
@@ -355,7 +347,7 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 
 Pricing is the AutoShow registry rate. Cost rank orders models cheapest-first within each table (1 = cheapest) and ties share a rank; token-priced models rank on the registry-estimated cost per 1,000 pages (per-page token estimates times token rates), shown as the ≈ figure.
 
-`--format text|json|tsv|hocr` is available for every engine. Written TSV and hOCR artifacts are synthesized from page text for all providers. Password PDFs are decrypted before upload or render except Anthropic, which rejects encrypted PDFs.
+`--format text|json` is available for every engine; no backend emits TSV or hOCR, and the synthetic writers for those formats were removed. Password PDFs are decrypted before upload or render except Anthropic, which rejects encrypted PDFs.
 
 ### Dedicated OCR
 

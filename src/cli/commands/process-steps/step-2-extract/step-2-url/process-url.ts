@@ -117,11 +117,7 @@ export const processUrlArticle = async (
   } else {
     artifactFiles[extractionOpts.outputFormat === 'json' ? 'result' : 'extraction'] = extractionOpts.outputFormat === 'json'
       ? 'result.json'
-      : extractionOpts.outputFormat === 'tsv'
-        ? 'extraction.tsv'
-        : extractionOpts.outputFormat === 'hocr'
-          ? 'extraction.hocr'
-          : 'extraction.txt'
+      : 'extraction.txt'
   }
 
   if (completionStatus !== 'full') {

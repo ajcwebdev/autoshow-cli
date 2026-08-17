@@ -8,10 +8,6 @@ import { validateVideoMediaReferences } from '../../video-utils/video-media-inpu
 
 export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
   const models = options.grokVideoModels ?? []
-  const hasGrokStorageControls = options.grokVideoStorageFilename || options.grokVideoStorageExpiresAfter !== undefined
-  if (hasGrokStorageControls && models.length === 0) {
-    throw CLIUsageError('Grok video storage flags require a Grok video provider target.')
-  }
 
   return models.flatMap((rawModel) => {
     const model: GrokVideoModel = validateGrokVideoModel(rawModel)
@@ -55,9 +51,7 @@ export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMod
           resolution: options.videoResolution,
           inputImage: options.videoInputImage,
           referenceImages: options.videoReferenceImages,
-          inputVideo: options.videoInputVideo,
-          storageFilename: options.grokVideoStorageFilename,
-          storageExpiresAfter: options.grokVideoStorageExpiresAfter
+          inputVideo: options.videoInputVideo
         })
       }
     }]

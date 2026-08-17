@@ -6,7 +6,6 @@ export type OcrResultBuilderInput = {
   extractionMethod: string
   step1Metadata: DocumentMetadata
   opts: ExtractionOptions
-  epubPayload: Record<string, unknown> | undefined
   inputFamily: string | undefined
   normalizedFrom: string | undefined
   conversionChain: string[] | undefined

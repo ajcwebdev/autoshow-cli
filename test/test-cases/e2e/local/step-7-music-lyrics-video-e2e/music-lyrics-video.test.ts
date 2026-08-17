@@ -80,7 +80,7 @@ afterAll(async () => {
   await rm(MATCHING_IMAGE_PATH, { force: true })
 })
 
-test('music lyric-video rerender uses edited captions, preserves tmp when requested, and writes fixed render outputs', async () => {
+test('music lyric-video rerender uses edited captions, cleans tmp on success, and writes fixed render outputs', async () => {
   await cleanupTestOutput(RERENDER_SUFFIX)
 
   const result = await runCommand([
@@ -89,8 +89,7 @@ test('music lyric-video rerender uses edited captions, preserves tmp when reques
     '--audio',
     SHORT_AUDIO_PATH,
     '--captions',
-    CAPTION_FIXTURE_PATH,
-    '--keep-tmp'
+    CAPTION_FIXTURE_PATH
   ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
 
   expect(result.exitCode).toBe(0)
@@ -102,7 +101,7 @@ test('music lyric-video rerender uses edited captions, preserves tmp when reques
     expect(await fileExists(`${outputDir}/0-audio-short-fixed.mp4`)).toBe(true)
     expect(await fileExists(`${outputDir}/0-audio-short-fixed.vtt`)).toBe(true)
     expect(await fileExists(`${outputDir}/0-audio-short-fixed.srt`)).toBe(true)
-    expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(true)
+    expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(false)
 
     const manifest = await readCanonicalManifest(outputDir)
     const record = await readCanonicalRecord(outputDir)
@@ -110,7 +109,7 @@ test('music lyric-video rerender uses edited captions, preserves tmp when reques
     expect(record['mode']).toBe('lyric-video')
     expect((record['transcription'] as Record<string, unknown>)['mode']).toBe('captions')
     expect((record['render'] as Record<string, unknown>)['backgroundMode']).toBe('image')
-    expect((record['artifacts'] as Record<string, unknown>)['tempDirKept']).toBe(true)
+    expect((record['artifacts'] as Record<string, unknown>)['tempDirKept']).toBeUndefined()
 
     const videoStream = await probeVideoStream(`${outputDir}/0-audio-short-fixed.mp4`)
     expect(videoStream.codecName).toBe('h264')
@@ -210,7 +209,6 @@ budgetedTest('transcribe-whisper-tiny', 'music lyric-video batch writes one batc
     'src/cli/create-cli.ts',
     'music',
     '--batch',
-    '--input-dir',
     BATCH_INPUT_DIR,
     '--model',
     'tiny'

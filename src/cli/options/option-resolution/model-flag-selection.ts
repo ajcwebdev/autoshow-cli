@@ -34,7 +34,6 @@ import {
   SUPPORTED_GEMINI_VIDEO_MODELS,
   SUPPORTED_GROK_VIDEO_MODELS,
   SUPPORTED_LTX_VIDEO_MODELS,
-  SUPPORTED_MINIMAX_VIDEO_MODELS,
   SUPPORTED_REPLICATE_VIDEO_MODELS,
   SUPPORTED_LUMALABS_VIDEO_MODELS,
   SUPPORTED_FAL_VIDEO_MODELS
@@ -91,7 +90,6 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'minimax-music': { shortcut: 'all-music', supported: SUPPORTED_MINIMAX_MUSIC_MODELS },
   'gemini-music': { shortcut: 'all-music', supported: SUPPORTED_GEMINI_MUSIC_MODELS },
   'gemini-video': { shortcut: 'all-video', supported: SUPPORTED_GEMINI_VIDEO_MODELS },
-  'minimax-video': { shortcut: 'all-video', supported: SUPPORTED_MINIMAX_VIDEO_MODELS },
   'grok-video': { shortcut: 'all-video', supported: SUPPORTED_GROK_VIDEO_MODELS },
   'ltx-video': { shortcut: 'all-video', supported: SUPPORTED_LTX_VIDEO_MODELS },
   'replicate-video': { shortcut: 'all-video', supported: SUPPORTED_REPLICATE_VIDEO_MODELS },

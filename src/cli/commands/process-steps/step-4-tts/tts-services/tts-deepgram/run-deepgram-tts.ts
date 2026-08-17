@@ -13,16 +13,19 @@ import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-ev
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
+// Every synthesized segment is remastered into a fixed-format `speech.wav`, so the
+// intermediate is baked to Deepgram's lossless PCM/WAV pair instead of the lossy
+// default the remaster cannot recover. Bit rate and sample rate stay unset so aura
+// returns its native rate.
+const DEEPGRAM_TTS_ENCODING = 'linear16'
+const DEEPGRAM_TTS_CONTAINER = 'wav'
+
 export const runDeepgramTts = async (
   text: string,
   outputDir: string,
   options: {
     model: DeepgramTtsModel
     voiceId?: string | undefined
-    encoding?: string | undefined
-    container?: string | undefined
-    bitRate?: number | undefined
-    sampleRate?: number | undefined
     speed?: number | undefined
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
@@ -35,8 +38,6 @@ export const runDeepgramTts = async (
   const baseURL = trimTrailingSlash(DEEPGRAM_DEFAULT_BASE_URL)
   const rawVoice = options.voiceId?.trim() || options.model || DEEPGRAM_DEFAULT_VOICE
   const voice = validateDeepgramTtsVoice(rawVoice)
-  const encoding = options.encoding?.trim() || undefined
-  const container = options.container?.trim() || undefined
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.deepgram)
 
   if (chunks.length === 0) {
@@ -46,10 +47,8 @@ export const runDeepgramTts = async (
   logTtsConfig('Deepgram', [
     { label: 'model', value: options.model },
     { label: 'voice', value: voice },
-    { label: 'encoding', value: encoding },
-    { label: 'container', value: container },
-    { label: 'bit rate', value: options.bitRate },
-    { label: 'sample rate', value: options.sampleRate },
+    { label: 'encoding', value: DEEPGRAM_TTS_ENCODING },
+    { label: 'container', value: DEEPGRAM_TTS_CONTAINER },
     { label: 'speed', value: options.speed },
     { label: 'chunk count', value: chunks.length }
   ])
@@ -61,18 +60,18 @@ export const runDeepgramTts = async (
     speaker: voice,
     chunks,
     outputDir,
-    chunkExtension: 'mp3',
+    chunkExtension: DEEPGRAM_TTS_CONTAINER,
     startTime: Date.now(),
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
-      const params = new URLSearchParams({ model: voice })
-      if (encoding) params.set('encoding', encoding)
-      if (container) params.set('container', container)
-      if (typeof options.bitRate === 'number') params.set('bit_rate', String(options.bitRate))
-      if (typeof options.sampleRate === 'number') params.set('sample_rate', String(options.sampleRate))
+      const params = new URLSearchParams({
+        model: voice,
+        encoding: DEEPGRAM_TTS_ENCODING,
+        container: DEEPGRAM_TTS_CONTAINER
+      })
       if (typeof options.speed === 'number') params.set('speed', String(options.speed))
 
       const requestBody = { text: chunk }
@@ -85,10 +84,8 @@ export const runDeepgramTts = async (
         voiceField: 'query.model',
         voices: [{ kind: 'provider-id', value: voice }],
         requestControls: {
-          ...(encoding ? { encoding } : {}),
-          ...(container ? { container } : {}),
-          ...(typeof options.bitRate === 'number' ? { bitRate: options.bitRate } : {}),
-          ...(typeof options.sampleRate === 'number' ? { sampleRate: options.sampleRate } : {}),
+          encoding: DEEPGRAM_TTS_ENCODING,
+          container: DEEPGRAM_TTS_CONTAINER,
           ...(typeof options.speed === 'number' ? { speed: options.speed } : {})
         },
         continuation: { kind: 'none' }
@@ -98,7 +95,7 @@ export const runDeepgramTts = async (
         headers: {
           Authorization: `Token ${apiKey}`,
           'Content-Type': 'application/json',
-          Accept: 'audio/mpeg'
+          Accept: 'audio/wav'
         },
         body: JSON.stringify(requestBody),
         ...(signal ? { signal } : {})

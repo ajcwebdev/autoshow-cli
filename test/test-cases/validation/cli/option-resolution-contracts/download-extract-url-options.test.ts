@@ -41,23 +41,16 @@ describe('option resolution contracts', () => {
         'mistral-tts': 'voxtral-mini-tts-2603',
         'mistral-tts-voice': 'voice_abc123',
         'deepgram-tts': 'aura-2-apollo-en',
-        'deepgram-tts-encoding': 'linear16',
-        'deepgram-tts-container': 'wav',
-        'deepgram-tts-bit-rate': '128000',
-        'deepgram-tts-sample-rate': '24000',
         'deepgram-tts-speed': '1.1',
         'speechify-tts': 'simba-3.2',
         'speechify-voice': 'narrator_voice',
-        'speechify-tts-audio-format': 'wav',
         'speechify-tts-language': 'en-US',
         'hume-tts': 'octave-2',
         'hume-tts-voice': 'Studio Voice',
-        'hume-tts-voice-provider': 'CUSTOM_VOICE',
         'cartesia-tts': 'sonic-3.5-2026-05-04',
         'cartesia-tts-voice': 'cartesia-voice-id',
         'cartesia-tts-language': 'en',
         'elevenlabs-tts': 'eleven_v3',
-        'elevenlabs-tts-output-format': 'mp3_22050_32',
         'elevenlabs-tts-language-code': 'en',
         'elevenlabs-tts-stability': '0.4',
         'elevenlabs-tts-similarity-boost': '0.8',
@@ -100,23 +93,16 @@ describe('option resolution contracts', () => {
       expect(opts.mistralTtsModel).toBe('voxtral-mini-tts-2603')
       expect(opts.mistralTtsVoice).toBe('voice_abc123')
       expect(opts.deepgramTtsModel).toBe('aura-2-apollo-en')
-      expect(opts.deepgramTtsEncoding).toBe('linear16')
-      expect(opts.deepgramTtsContainer).toBe('wav')
-      expect(opts.deepgramTtsBitRate).toBe(128000)
-      expect(opts.deepgramTtsSampleRate).toBe(24000)
       expect(opts.deepgramTtsSpeed).toBe(1.1)
       expect(opts.speechifyTtsModel).toBe('simba-3.2')
       expect(opts.speechifyVoice).toBe('narrator_voice')
-      expect(opts.speechifyTtsAudioFormat).toBe('wav')
       expect(opts.speechifyTtsLanguage).toBe('en-US')
       expect(opts.humeTtsModel).toBe('octave-2')
       expect(opts.humeTtsVoice).toBe('Studio Voice')
-      expect(opts.humeTtsVoiceProvider).toBe('CUSTOM_VOICE')
       expect(opts.cartesiaTtsModel).toBe('sonic-3.5-2026-05-04')
       expect(opts.cartesiaTtsVoice).toBe('cartesia-voice-id')
       expect(opts.cartesiaTtsLanguage).toBe('en')
       expect(opts.elevenlabsTtsModel).toBe('eleven_v3')
-      expect(opts.elevenlabsTtsOutputFormat).toBe('mp3_22050_32')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)
       expect(opts.elevenlabsTtsSimilarityBoost).toBe(0.8)

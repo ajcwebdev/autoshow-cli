@@ -4,7 +4,6 @@ import {
   parseIntWithDefault,
   parseOptionalPositiveIntFlag,
   parsePdfChapterMode,
-  readBooleanFlag,
   readOptionalBooleanFlag,
   readOptionalStringFlag,
   readStringFlag
@@ -27,8 +26,13 @@ const OCR_MODEL_KEYS = [
 export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions } = ctx
 
-  const outputFormat = readStringFlag(mergedFlags, 'format', 'json')
-  const normalizedOut: OutputFormat = outputFormat === 'text' || outputFormat === 'tsv' || outputFormat === 'hocr' ? outputFormat : 'json'
+  const outputFormat = readStringFlag(mergedFlags, 'format', 'text')
+  if (outputFormat === 'tsv' || outputFormat === 'hocr') {
+    throw CLIUsageError(
+      `--format "${outputFormat}" was removed because no extraction backend emits it natively. Use --format text or --format json.`
+    )
+  }
+  const normalizedOut: OutputFormat = outputFormat === 'json' ? 'json' : 'text'
   const epubLengthThousands = parseOptionalPositiveIntFlag(readOptionalStringFlag(mergedFlags, 'length'), 'length')
   const pdfChapterMode = parsePdfChapterMode(readOptionalStringFlag(mergedFlags, 'pdf-chapter-mode'))
   const useTesseract = isStep2BooleanProviderSelected('tesseract-ocr', mergedFlags, allShortcutFlags)
@@ -83,7 +87,6 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
     chapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
     chapterChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
     pdfChapterMode,
-    useEpubBun: readBooleanFlag(mergedFlags, 'epub-bun'),
     reasoningEffort: parseReasoningEffort(readOptionalStringFlag(mergedFlags, 'reasoning-effort'))
   }
 }

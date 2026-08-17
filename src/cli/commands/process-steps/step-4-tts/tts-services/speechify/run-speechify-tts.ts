@@ -18,6 +18,11 @@ const SpeechifySpeechResponseSchema = v.object({
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
+// Every synthesized segment is remastered into a fixed-format `speech.wav`, so the
+// intermediate is baked to Speechify's lossless WAV instead of the lossy MP3 the
+// remaster cannot recover.
+const SPEECHIFY_TTS_AUDIO_FORMAT = 'wav'
+
 const decodeSpeechifyAudioData = (audioData: string): Uint8Array => {
   const cleaned = audioData.includes(',')
     ? audioData.slice(audioData.indexOf(',') + 1)
@@ -36,7 +41,6 @@ export const runSpeechifyTts = async (
   options: {
     model: SpeechifyTtsModel
     voiceId?: string | undefined
-    audioFormat?: string | undefined
     language?: string | undefined
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
@@ -56,14 +60,13 @@ export const runSpeechifyTts = async (
 
   const startTime = Date.now()
   const voice = validateSpeechifyTtsVoiceForModel(options.model, options.voiceId?.trim() || SPEECHIFY_DEFAULT_TTS_VOICE)
-  const audioFormat = options.audioFormat?.trim() || 'mp3'
   const language = validateSpeechifyTtsLanguageForModel(options.model, options.language)
   const speaker = voice
 
   logTtsConfig('Speechify', [
     { label: 'model', value: options.model },
     { label: 'voice', value: voice },
-    { label: 'audio format', value: audioFormat },
+    { label: 'audio format', value: SPEECHIFY_TTS_AUDIO_FORMAT },
     { label: 'language', value: language },
     { label: 'chunk count', value: chunks.length }
   ])
@@ -75,7 +78,7 @@ export const runSpeechifyTts = async (
     speaker,
     chunks,
     outputDir,
-    chunkExtension: audioFormat,
+    chunkExtension: SPEECHIFY_TTS_AUDIO_FORMAT,
     startTime,
     abortSignal: options.abortSignal,
     allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
@@ -86,7 +89,7 @@ export const runSpeechifyTts = async (
       const requestBody = {
         input: chunk,
         voice_id: voice,
-        audio_format: audioFormat,
+        audio_format: SPEECHIFY_TTS_AUDIO_FORMAT,
         model: options.model,
         ...(language ? { language } : {})
       }
@@ -99,7 +102,7 @@ export const runSpeechifyTts = async (
         voiceField: 'voice_id',
         voices: [{ kind: 'provider-id', value: voice }],
         requestControls: {
-          audioFormat,
+          audioFormat: SPEECHIFY_TTS_AUDIO_FORMAT,
           ...(language ? { language } : {})
         },
         continuation: { kind: 'none' }

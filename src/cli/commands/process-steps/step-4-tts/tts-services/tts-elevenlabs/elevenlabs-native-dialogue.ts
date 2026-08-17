@@ -16,7 +16,7 @@ import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { providerSecondsToMilliseconds } from '../../script-to-audio/advanced-provider-contracts'
-import { readElevenLabsError } from './elevenlabs-utils'
+import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from './elevenlabs-utils'
 
 export const ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS = 2000
 export const ELEVENLABS_NATIVE_DIALOGUE_MAX_VOICES = 10
@@ -218,7 +218,7 @@ export const runElevenLabsNativeDialogue = async (
   if (turns.length === 0) throw CLIUsageError('ElevenLabs native Text-to-Dialogue requires at least one turn.')
   const apiKey = requireApiKey('ELEVENLABS_API_KEY', 'tts:elevenlabs', 'ElevenLabs Text-to-Dialogue')
   const batches = planElevenLabsNativeDialogueBatches(turns)
-  const outputFormat = options.controls?.outputFormat?.trim() || 'mp3_44100_128'
+  const outputFormat = ELEVENLABS_TTS_OUTPUT_FORMAT
   const paths: string[] = []
   let completed = false
   const startedAt = Date.now()

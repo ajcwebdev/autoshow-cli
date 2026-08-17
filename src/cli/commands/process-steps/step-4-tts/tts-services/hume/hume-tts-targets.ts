@@ -1,8 +1,7 @@
 import type { HumeTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import {
   validateHumeTtsModel,
-  validateHumeTtsVoice,
-  validateHumeTtsVoiceProvider
+  validateHumeTtsVoice
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureHumeTtsSetup } from './hume-tts'
 import { runHumeTts } from './run-hume-tts'
@@ -19,7 +18,6 @@ export const collectHumeTtsTargets = (
   for (const rawModel of selection.humeModels) {
     const model: HumeTtsModel = validateHumeTtsModel(rawModel)
     const voice = selection.humeVoice ? validateHumeTtsVoice(selection.humeVoice) : undefined
-    const voiceProvider = selection.humeVoiceProvider ? validateHumeTtsVoiceProvider(selection.humeVoiceProvider) : undefined
 
     targets.push({
       service: 'hume',
@@ -55,7 +53,6 @@ export const collectHumeTtsTargets = (
         return await runHumeTts(text, outputDir, {
           model,
           voice: invocationVoice ?? voice,
-          voiceProvider,
           speed: controls.speed,
           trailingSilence: controls.trailingSilence,
           description: controls.description,

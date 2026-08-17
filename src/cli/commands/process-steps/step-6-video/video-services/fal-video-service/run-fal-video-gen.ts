@@ -61,7 +61,7 @@ const buildFalVideoRequest = async (prompt: string, options: {
   const referenceAudios = await Promise.all((options.referenceAudios ?? []).map(value => videoMediaReferenceToUrlOrDataUrl(value, 'audio')))
 
   if (options.model === 'minimax/h3') {
-    if (options.generateAudio !== undefined) throw CLIUsageError(`--fal-video-generate-audio is not configurable for fal.ai/${options.model}; H3 generates native audio according to its model behavior.`)
+    if (options.generateAudio !== undefined) throw CLIUsageError(`--video-generate-audio is not configurable for fal.ai/${options.model}; H3 generates native audio according to its model behavior.`)
     if (options.mode === 'text') return { endpointId: 'minimax/h3/text-to-video', input: { prompt, duration, resolution, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) }, duration, resolution, aspectRatio }
     if (options.mode === 'image-to-video' || options.mode === 'interpolate') return { endpointId: 'minimax/h3/image-to-video', input: { prompt, duration, resolution, image_url: image, ...(lastFrame ? { end_image_url: lastFrame } : {}) }, duration, resolution }
     return {

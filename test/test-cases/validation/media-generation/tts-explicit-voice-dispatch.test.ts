@@ -217,7 +217,6 @@ const cases: readonly VoiceMatrixCase[] = [
     flags: {
       'speechify-tts': 'simba-3.2',
       'speechify-voice': 'voice-captured',
-      'speechify-tts-audio-format': 'wav',
       'speechify-tts-language': 'en-US'
     },
     capturedVoice: 'voice-captured',
@@ -331,7 +330,7 @@ describe('explicit TTS target voice dispatch', () => {
     }, 20_000)
   }
 
-  test('hume preserves the configured provider for an explicit named turn voice', async () => {
+  test('hume resolves an explicit named turn voice against the Hume voice library', async () => {
     const root = await tempDirs.make()
     const outputDir = join(root, 'turn-0')
     await mkdir(outputDir, { recursive: true })
@@ -339,8 +338,7 @@ describe('explicit TTS target voice dispatch', () => {
     const calls = installMockFetch(byteResponse)
     const options = buildOptsFromFlags(false, {
       'hume-tts': 'octave-2',
-      'hume-tts-voice': 'Captured Voice',
-      'hume-tts-voice-provider': 'CUSTOM_VOICE'
+      'hume-tts-voice': 'Captured Voice'
     })
     const target = collectTtsTargets(options).find(candidate => candidate.service === 'hume')
     if (!target) throw new Error('Missing Hume TTS target')
@@ -357,7 +355,7 @@ describe('explicit TTS target voice dispatch', () => {
     const utterances = calls[0]?.bodyJson?.['utterances'] as Array<Record<string, unknown>> | undefined
     expect(utterances?.[0]?.['voice']).toEqual({
       name: 'Alice Studio Voice',
-      provider: 'CUSTOM_VOICE'
+      provider: 'HUME_AI'
     })
   }, 10_000)
 })

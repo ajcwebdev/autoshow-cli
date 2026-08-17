@@ -54,8 +54,7 @@ Step-1 item metadata in `manifest.json` also includes `slug`, which is derived f
 --best-quality       Download the best available video+audio media and skip audio-only normalization
 --flat-batch         Batch download: place primary media files directly in the batch output directory
 --url-provider       Article/HTML extraction backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
---batch-limit        Batch: number of items to process (default 5)
---batch-all          Batch: process all items
+--batch-limit        Batch: number of items to process or "all" (default 5)
 --batch-order        Batch: item order newest|oldest (default newest)
 --batch-concurrency  Batch: number of items to process concurrently (default 7)
 --price              Show aggregated cost estimate for all active pipeline steps and exit
@@ -74,7 +73,7 @@ bun autoshow download https://youtube.com/watch?v=abc -- --postprocessor-args "f
 
 # Compose passthrough with AutoShow batch flags
 bun autoshow download input/examples/batch/2-urls.md --batch-limit 3 -- --format bestaudio
-bun autoshow download https://example.com/feed --batch-all --keep-original-media --flat-batch -- --format bestaudio
+bun autoshow download https://example.com/feed --batch-limit all --keep-original-media --flat-batch -- --format bestaudio
 ```
 
 Passthrough is supported only for media URL downloads. For direct media URLs, podcast feed items, and X Space downloads that would normally use another resolver first, AutoShow uses yt-dlp for the final media download so the extra args are honored. Local files, documents, and articles reject passthrough with a usage error.
@@ -149,13 +148,13 @@ bun autoshow download https://x.com/i/spaces/1DXxyRYNejbKM
 bun autoshow download https://example.com/feed --batch-limit 3
 
 # Download every podcast episode MP3 into one batch directory
-bun autoshow download https://example.com/feed --batch-all --keep-original-media --flat-batch
+bun autoshow download https://example.com/feed --batch-limit all --keep-original-media --flat-batch
 
 # Download 2 latest videos from a YouTube channel
 bun autoshow download https://www.youtube.com/@channelname --batch-limit 2
 
 # Download all items from a URL list
-bun autoshow download input/examples/batch/2-urls.md --batch-all
+bun autoshow download input/examples/batch/2-urls.md --batch-limit all
 
 # Download one item with extra yt-dlp flags
 bun autoshow download https://youtube.com/watch?v=abc -- --write-thumbnail

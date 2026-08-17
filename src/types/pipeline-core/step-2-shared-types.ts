@@ -144,7 +144,7 @@ export type ProviderErrorSummaryFields = {
 }
 
 
-export type OcrStep2ResolutionOptions = OcrSelectionOptions & Partial<Pick<OcrRuntimeOptions, 'useEpubBun'>> & Partial<UrlSelectionOptions> & {
+export type OcrStep2ResolutionOptions = OcrSelectionOptions & Partial<UrlSelectionOptions> & {
   preparedMarkdown?: string | undefined
   localHtmlDocument?: boolean | undefined
 }

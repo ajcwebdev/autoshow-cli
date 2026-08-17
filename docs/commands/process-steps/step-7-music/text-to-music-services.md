@@ -85,13 +85,11 @@ Lyric-video flags:
 
 | Flag                | Description                                                                                        |
 | ------------------- | -------------------------------------------------------------------------------------------------- |
-| `--input-dir <dir>` | Input directory for lyric-video audio roots                                                        |
-| `--batch`           | Process every supported audio file under `--input-dir`, or `input` when omitted, recursively       |
-| `--audio <file>`    | Single-run audio file inside `input`                                                               |
-| `--captions <file>` | Edited `.vtt` or `.srt` file inside `./output`; skips Whisper and rerenders only                   |
+| `--batch <dir>`     | Process every supported audio file under directory recursively                                     |
+| `--audio <file>`    | Single-run lyric-video audio file                                                                 |
+| `--captions <file>` | Edited `.vtt` or `.srt` file; skips Whisper and rerenders only                                     |
 | `--model <name>`    | Local Whisper model: `tiny`, `base`, `small`, `medium`, `large-v3-turbo`; default `large-v3-turbo` |
 | `--font <name>`     | Font family for lyric overlays; default `DejaVu Sans`                                              |
-| `--keep-tmp`        | Keep the per-run `.lyrics-tmp` workspace inside the output directory                               |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model release date, duration, duration-control, instrumental, lyrics, and output matrix.
 
@@ -161,21 +159,17 @@ Lyria 3 Pro uses duration instructions from `--duration` (default 120 seconds). 
 
 | Option          | Value                                                                     |
 | --------------- | ------------------------------------------------------------------------- |
-| Single audio    | `--audio <file>` inside `input`                                           |
-| Input root      | `--input-dir <dir>`                                                       |
-| Rerender        | `--captions <file>` inside `./output`                                     |
-| Batch           | `--batch`                                                                 |
+| Single audio    | `--audio <file>`                                                          |
+| Batch directory | `--batch <dir>`                                                           |
+| Rerender        | `--captions <file>`                                                       |
 | Whisper model   | `--model tiny|base|small|medium|large-v3-turbo`, default `large-v3-turbo` |
 | Overlay         | `--font <name>`                                                           |
-| Debug artifacts | `--keep-tmp`                                                              |
 
 ```bash
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --model small
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions output/<run-dir>/01-example-song.vtt
-bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --keep-tmp
-bun autoshow music --input-dir input/examples/lyrics --batch --model small
-bun autoshow music --batch --model tiny
+bun autoshow music --batch input/examples/lyrics --model small
 ```
 
 Lyric-video rendering uses local Whisper captions and ffmpeg rendering. In rerender mode, output stems come from the caption filename. If an image beside the lyric-video audio file matches by exact basename or track number, it is used as the background; otherwise a spectrogram background is rendered.
@@ -184,7 +178,7 @@ Lyric-video rendering uses local Whisper captions and ffmpeg rendering. In reren
 
 - **Single-target hosted runs**: write `output/<timestamp>_music-gen/generated-music.mp3` and `manifest.json`.
 - **Multi-target hosted runs**: write `generated-music-<provider>-<sanitized-model>.mp3` per target and `manifest.json`.
-- **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json` (plus `.lyrics-tmp/` when `--keep-tmp` is set).
+- **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`. The per-run `.lyrics-tmp/` workspace is deleted on success and retained only when the run fails, so failures stay debuggable.
 - **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
 - **`--output-dir`**: pins an exact output directory; filenames remain provider-deterministic.
 - **`manifest.json`**: records single-run metadata including `music` array, `cost`, and `timing`.

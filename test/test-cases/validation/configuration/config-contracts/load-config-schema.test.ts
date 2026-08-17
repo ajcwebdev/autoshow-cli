@@ -40,19 +40,13 @@ describe('config load schema contracts', () => {
           tts: {
             speechifyTts: ['simba-3.2'],
             speechifyVoice: 'narrator_voice',
-            speechifyTtsAudioFormat: 'wav',
             speechifyTtsLanguage: 'en-US',
             mistralTts: ['voxtral-mini-tts-2603'],
             mistralTtsVoice: 'voice_abc123',
-            deepgramTtsEncoding: 'linear16',
-            deepgramTtsContainer: 'wav',
-            deepgramTtsBitRate: 128000,
-            deepgramTtsSampleRate: 24000,
             deepgramTtsSpeed: 1.1,
             openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
             openaiVoice: 'alloy',
             elevenlabsTts: ['eleven_v3'],
-            elevenlabsTtsOutputFormat: 'mp3_22050_32',
             elevenlabsTtsLanguageCode: 'en',
             elevenlabsTtsStability: 0.4,
             elevenlabsTtsSimilarityBoost: 0.8,
@@ -88,7 +82,7 @@ describe('config load schema contracts', () => {
     await expect(loadConfig(configPath)).resolves.toMatchObject(fullConfig)
   })
 
-  test('loadConfig rejects synthesis-time voice creation and raw reference defaults with migration guidance', async () => {
+  test('loadConfig rejects raw reference defaults with migration guidance', async () => {
     const mistralReference = await writeTempConfig({
       defaults: { post: { tts: { mistralTtsRefAudio: 'private-reference.wav' } } }
     })
@@ -100,8 +94,8 @@ describe('config load schema contracts', () => {
     })
 
     await expect(loadConfig(mistralReference)).rejects.toThrow('Configured --mistral-tts-ref-audio paths cannot be used as synthesis defaults')
-    await expect(loadConfig(elevenLabsClone)).rejects.toThrow('Configured synthesis default --elevenlabs-tts-ref-audio')
-    await expect(loadConfig(speechifyConsent)).rejects.toThrow('Configured synthesis default --speechify-tts-consent-email')
+    await expect(loadConfig(elevenLabsClone)).rejects.toThrow('autoshow config')
+    await expect(loadConfig(speechifyConsent)).rejects.toThrow('autoshow config')
   })
 
   test('removed schema shapes are rejected', async () => {

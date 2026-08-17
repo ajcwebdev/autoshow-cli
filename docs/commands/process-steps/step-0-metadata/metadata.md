@@ -42,8 +42,7 @@ bun autoshow metadata <input>
 --save               Save the canonical manifest.json (and metadata.md with --markdown)
 --password           Password for encrypted PDFs
 --url-provider       Article/HTML extraction backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
---batch-limit        Batch: number of items to process (default 5)
---batch-all          Batch: process all items
+--batch-limit        Batch: number of items to process or "all" (default 5)
 --batch-order        Batch: item order newest|oldest (default newest)
 --batch-concurrency  Batch: number of items to process concurrently (default 7)
 --price              Show aggregated cost estimate for all active pipeline steps and exit
@@ -149,7 +148,7 @@ bun autoshow metadata https://example.com/feed --batch-limit 3
 bun autoshow metadata https://www.youtube.com/@channelname --batch-limit 5
 
 # Batch metadata from a URL list, save all to disk
-bun autoshow metadata input/examples/batch/2-urls.md --batch-all --save
+bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
 ```
 
 ## How It Works

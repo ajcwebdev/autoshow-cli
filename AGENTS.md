@@ -19,7 +19,7 @@
 # Work Preservation & Slot Recovery Rules
 
 - Never delete output directories or temporary TTS working directories (`rm -rf output/...` or `.tts-tmp-...`) when a process is interrupted, fails, or requires configuration adjustments. Deleting output directories destroys cached audio segment files that were already synthesized and paid for, forcing duplicate provider API calls and double billing.
-- When a TTS run is blocked with `automatic redispatch is blocked pending reconciliation`, pass `--tts-allow-ambiguous-redispatch` (or `--allow-ambiguous-redispatch`). This flag safely reconciles the in-flight slot, reuses all completed segment audio files already saved on disk, and resumes synthesis without deleting output directories or losing work.
+- When a TTS run is blocked with `automatic redispatch is blocked pending reconciliation`, pass `--allow-ambiguous-redispatch` (or `--tts-allow-ambiguous-redispatch`). This flag safely reconciles the in-flight slot, reuses all completed segment audio files already saved on disk, and resumes synthesis without deleting output directories or losing work.
 
 # Git Command Rules
 

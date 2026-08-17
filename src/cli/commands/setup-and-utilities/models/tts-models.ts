@@ -109,7 +109,7 @@ export const validateMinimaxTtsLanguageBoost = (value: string): string => {
   const normalized = normalizeListedValue(value, SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS)
   if (!normalized) {
     throw CLIUsageError(
-      `Invalid --minimax-tts-language-boost "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS)}`
+      `Invalid --tts-language "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS)}`
     )
   }
   return normalized
@@ -420,13 +420,6 @@ export const SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES = [
   'carly',
   'sophia'
 ] as const satisfies readonly string[]
-export const SUPPORTED_SPEECHIFY_TTS_AUDIO_FORMATS = [
-  'mp3',
-  'ogg',
-  'aac',
-  'wav',
-  'pcm'
-] as const satisfies readonly string[]
 
 const validateActiveSpeechifyTtsModel = createModelValidator<SpeechifyTtsModel>(SUPPORTED_SPEECHIFY_TTS_MODELS, 'speechify-tts')
 export const validateSpeechifyTtsModel = (model: string): SpeechifyTtsModel => {
@@ -474,26 +467,15 @@ export const validateSpeechifyTtsVoiceForModel = (
   return normalized
 }
 
-export const validateSpeechifyTtsAudioFormat = (value: string): string => {
-  const normalized = normalizeListedValue(value, SUPPORTED_SPEECHIFY_TTS_AUDIO_FORMATS)
-  if (!normalized) {
-    throw CLIUsageError(
-      `Invalid --speechify-tts-audio-format "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_SPEECHIFY_TTS_AUDIO_FORMATS)}`
-    )
-  }
-  return normalized
-}
-
 export const SUPPORTED_HUME_TTS_MODELS = [
   'octave-1',
   'octave-2'
 ] as const satisfies readonly string[]
 
 export const HUME_DEFAULT_TTS_VOICE = 'Male English Actor'
-export const SUPPORTED_HUME_TTS_VOICE_PROVIDERS = [
-  'HUME_AI',
-  'CUSTOM_VOICE'
-] as const satisfies readonly string[]
+// Hume resolves a voice by name only within one namespace. Named lookups go to the shared Hume
+// library; account-owned custom voices are addressed by their stable UUID through --tts-voice.
+export const HUME_LIBRARY_VOICE_PROVIDER = 'HUME_AI'
 
 export const validateHumeTtsModel = createModelValidator<HumeTtsModel>(SUPPORTED_HUME_TTS_MODELS, 'hume-tts')
 
@@ -501,16 +483,6 @@ export const validateHumeTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
     throw CLIUsageError('Invalid --hume-tts-voice value. Expected a non-empty Hume voice name or ID.')
-  }
-  return normalized
-}
-
-export const validateHumeTtsVoiceProvider = (value: string): string => {
-  const normalized = normalizeListedValue(value, SUPPORTED_HUME_TTS_VOICE_PROVIDERS)
-  if (!normalized) {
-    throw CLIUsageError(
-      `Invalid --hume-tts-voice-provider "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_HUME_TTS_VOICE_PROVIDERS)}`
-    )
   }
   return normalized
 }

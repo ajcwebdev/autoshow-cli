@@ -57,19 +57,6 @@
       }
     }
   },
-  "minimax": {
-    "description": "MiniMax video generation",
-    "type": "api",
-    "resolutions": [
-      "720p",
-      "1080p"
-    ],
-    "billedDurations": [
-      6,
-      10
-    ],
-    "models": {}
-  },
   "grok": {
     "description": "xAI Grok video generation",
     "type": "api",

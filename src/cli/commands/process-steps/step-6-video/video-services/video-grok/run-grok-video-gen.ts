@@ -36,9 +36,7 @@ const GrokPollVideoResponseSchema = v.object({
   video: v.optional(v.object({
     url: v.optional(v.nullable(v.string()), undefined),
     duration: v.optional(v.number(), undefined),
-    respect_moderation: v.optional(v.boolean(), undefined),
-    file_output: v.optional(v.unknown(), undefined),
-    storage_error: v.optional(v.unknown(), undefined)
+    respect_moderation: v.optional(v.boolean(), undefined)
   }), undefined)
 })
 
@@ -54,8 +52,6 @@ export const runGrokVideoGen = async (
     inputImage?: string | undefined
     referenceImages?: string[] | undefined
     inputVideo?: string | undefined
-    storageFilename?: string | undefined
-    storageExpiresAfter?: number | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const apiKey = requireApiKey('XAI_API_KEY', 'video:grok', 'Grok video generation')
@@ -67,12 +63,6 @@ export const runGrokVideoGen = async (
     : normalizeGrokVideoDuration(options.durationSeconds)
   const aspectRatio = mode === 'edit' || mode === 'extend' ? undefined : normalizeGrokVideoAspectRatio(options.aspectRatio)
   const resolution = mode === 'edit' || mode === 'extend' ? undefined : normalizeGrokVideoResolution(options.resolution, options.model)
-  const storageOptions = options.storageFilename || options.storageExpiresAfter !== undefined
-    ? {
-        ...(options.storageFilename ? { filename: options.storageFilename } : {}),
-        ...(options.storageExpiresAfter !== undefined ? { expires_after: options.storageExpiresAfter } : {})
-      }
-    : undefined
   const endpoint = mode === 'edit'
     ? '/videos/edits'
     : mode === 'extend'
@@ -108,8 +98,7 @@ export const runGrokVideoGen = async (
 
   const requestBody: Record<string, unknown> = {
     model: options.model,
-    ...(prompt !== undefined ? { prompt } : {}),
-    ...(storageOptions ? { storage_options: storageOptions } : {})
+    ...(prompt !== undefined ? { prompt } : {})
   }
   if (mode === 'edit') {
     requestBody['video'] = inputVideo
@@ -193,8 +182,6 @@ export const runGrokVideoGen = async (
       providerVideoUrl: videoUrl,
       ...(typeof taskData.progress === 'number' ? { providerProgress: taskData.progress } : {}),
       ...(taskData.video?.respect_moderation !== undefined ? { providerModeration: taskData.video.respect_moderation } : {}),
-      ...(taskData.video?.file_output !== undefined ? { providerFileOutput: taskData.video.file_output } : {}),
-      ...(taskData.video?.storage_error !== undefined ? { providerStorageError: taskData.video.storage_error } : {}),
       ...(typeof taskData.usage?.cost_in_usd_ticks === 'number'
         ? {
             providerCostCents: taskData.usage.cost_in_usd_ticks / 100_000_000,

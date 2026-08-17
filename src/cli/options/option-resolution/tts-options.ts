@@ -1,9 +1,8 @@
-import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost,   validateFalTtsVoice, validateReplicateTtsVoice, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsLegacyCreationDiagnosticOptions, TtsOptionResolutionAuthority, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
+import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost,   validateFalTtsVoice, validateReplicateTtsVoice, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsOptionResolutionAuthority, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalOccurrenceStringFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
 import { pick } from '~/utils/cli-utils'
-import { validateTtsSynthesisCreationOptions } from '~/cli/commands/process-steps/step-4-tts/synthesis-creation-guard'
 import { CLIUsageError } from '~/utils/error-handler'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { parseSpeakerVoiceMappings } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
@@ -118,19 +117,6 @@ export const buildTtsOptions = (
     cartesiaTtsModels,
   } = modelOptions
 
-  const creationDiagnostics: TtsLegacyCreationDiagnosticOptions = {
-    mistralTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'mistral-tts-voice-name') ?? readOptionalStringFlag(flags, 'mistral-tts-voice-name'),
-    elevenlabsTtsRefAudio: readOptionalStringFlag(flags, 'elevenlabs-tts-ref-audio'),
-    elevenlabsTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'elevenlabs-tts-voice-name') ?? readOptionalStringFlag(flags, 'elevenlabs-tts-voice-name'),
-    elevenlabsTtsCloneRemoveBackgroundNoise: readBooleanFlag(flags, 'elevenlabs-tts-clone-remove-background-noise'),
-    speechifyTtsRefAudio: readOptionalStringFlag(flags, 'speechify-tts-ref-audio'),
-    speechifyTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'speechify-tts-voice-name') ?? readOptionalStringFlag(flags, 'speechify-tts-voice-name'),
-    speechifyTtsConsentName: readOptionalOccurrenceStringFlag(flagOccurrences, 'speechify-tts-consent-name') ?? readOptionalStringFlag(flags, 'speechify-tts-consent-name'),
-    speechifyTtsConsentEmail: readOptionalStringFlag(flags, 'speechify-tts-consent-email'),
-    speechifyTtsVoiceLocale: readOptionalStringFlag(flags, 'speechify-tts-voice-locale'),
-    speechifyTtsVoiceGender: readOptionalStringFlag(flags, 'speechify-tts-voice-gender')
-  }
-  validateTtsSynthesisCreationOptions(creationDiagnostics, originContext)
   resolveStandaloneMistralTtsCliReferenceInput(flags, originContext)
 
   const ttsSpeakers = readOptionalStringListFlag(flags, 'tts-speaker')
@@ -147,7 +133,7 @@ export const buildTtsOptions = (
 
   const options: TtsRuntimeOptions = {
     ...pick(modelOptions, TTS_MODEL_KEYS),
-    ttsAllowAmbiguousRedispatch: readBooleanFlag(flags, 'tts-allow-ambiguous-redispatch'),
+    ttsAllowAmbiguousRedispatch: readBooleanFlag(flags, 'allow-ambiguous-redispatch') || readBooleanFlag(flags, 'tts-allow-ambiguous-redispatch'),
     grokTtsVoice: (() => {
       const value = readOptionalStringFlag(flags, 'grok-tts-voice')
       if (value === undefined) return undefined
@@ -169,22 +155,12 @@ export const buildTtsOptions = (
       if (speechifyTtsModels === undefined) return value
       return validateCliValue(validateSpeechifyTtsVoice, value)
     })(),
-    speechifyTtsAudioFormat: (() => {
-      const value = readOptionalStringFlag(flags, 'speechify-tts-audio-format')
-      if (value === undefined) return undefined
-      return validateCliValue(validateSpeechifyTtsAudioFormat, value)
-    })(),
     speechifyTtsLanguage: readOptionalStringFlag(flags, 'speechify-tts-language'),
     humeTtsVoice: (() => {
       const value = readOptionalOccurrenceStringFlag(flagOccurrences, 'hume-tts-voice') ?? readOptionalStringFlag(flags, 'hume-tts-voice')
       if (value === undefined) return undefined
       if (humeTtsModels === undefined) return value
       return validateCliValue(validateHumeTtsVoice, value)
-    })(),
-    humeTtsVoiceProvider: (() => {
-      const value = readOptionalStringFlag(flags, 'hume-tts-voice-provider')
-      if (value === undefined) return undefined
-      return validateCliValue(validateHumeTtsVoiceProvider, value)
     })(),
     cartesiaTtsVoice: (() => {
       const value = readOptionalStringFlag(flags, 'cartesia-tts-voice')
@@ -256,12 +232,7 @@ export const buildTtsOptions = (
       if (deepgramTtsModels === undefined) return value
       return validateCliValue(validateDeepgramTtsVoice, value)
     })(),
-    deepgramTtsEncoding: readOptionalStringFlag(flags, 'deepgram-tts-encoding'),
-    deepgramTtsContainer: readOptionalStringFlag(flags, 'deepgram-tts-container'),
-    deepgramTtsBitRate: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-bit-rate'), 'deepgram-tts-bit-rate', { min: 1, max: 1000000, integer: true }),
-    deepgramTtsSampleRate: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-sample-rate'), 'deepgram-tts-sample-rate', { min: 1, max: 192000, integer: true }),
     deepgramTtsSpeed: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-speed'), 'deepgram-tts-speed', { min: 0.5, max: 2 }),
-    elevenlabsTtsOutputFormat: readOptionalStringFlag(flags, 'elevenlabs-tts-output-format'),
     elevenlabsTtsLanguageCode: readOptionalStringFlag(flags, 'elevenlabs-tts-language-code'),
     elevenlabsTtsStability: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-stability'), 'elevenlabs-tts-stability', { min: 0, max: 1 }),
     elevenlabsTtsSimilarityBoost: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-similarity-boost'), 'elevenlabs-tts-similarity-boost', { min: 0, max: 1 }),

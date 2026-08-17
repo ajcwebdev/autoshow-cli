@@ -175,4 +175,30 @@ describe('config provider and concurrency default contracts', () => {
       'all-url': true
     }, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set(['all-url']))).not.toHaveProperty('url-provider')
   })
+
+  test('OCR provider mode and music instrumental save and merge through config defaults', () => {
+    const patch = buildConfigPatchFromFlags({
+      'ocr-provider-mode': 'pool',
+      'music-instrumental': true
+    }, new Set(['ocr-provider-mode', 'music-instrumental']))
+
+    expect(patch).toEqual({
+      defaults: {
+        extract: {
+          ocr: {
+            providerMode: 'pool'
+          }
+        },
+        post: {
+          music: {
+            musicInstrumental: true
+          }
+        }
+      }
+    })
+    expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject({
+      'ocr-provider-mode': 'pool',
+      'music-instrumental': true
+    })
+  })
 })

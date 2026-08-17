@@ -193,7 +193,7 @@ const selectCheapestMusicModel = (service: string): string => {
 }
 
 export const selectCheapestVideoSelection = (
-  provider: 'gemini' | 'minimax' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): CheapestVideoSelection => {
   const serviceConfig = getModelRegistry().video[provider]
   if (!serviceConfig) {
@@ -253,7 +253,6 @@ export const selectCheapestVideoSelection = (
           try {
             estimate = estimateVideoCost({
               ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
-              ...(provider === 'minimax' ? { minimaxVideoModel: model } : {}),
               ...(provider === 'grok' ? { grokVideoModel: model } : {}),
               ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
               ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
@@ -310,17 +309,16 @@ export const selectCheapestVideoSelection = (
 }
 
 const selectCheapestVideoModel = (
-  provider: 'gemini' | 'minimax' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): string => selectCheapestVideoSelection(provider).model
 
-const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
+const TEXT_VIDEO_PROVIDERS = ['gemini', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
 
 const providerVideoEstimateOptions = (
   provider: typeof TEXT_VIDEO_PROVIDERS[number],
   model: string
 ): Parameters<typeof estimateVideoCost>[0] => ({
   ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
-  ...(provider === 'minimax' ? { minimaxVideoModel: model } : {}),
   ...(provider === 'grok' ? { grokVideoModel: model } : {}),
   ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
   ...(provider === 'replicate' ? { replicateVideoModel: model } : {}),
@@ -521,7 +519,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'minimax-music': () => selectCheapestMusicModel('minimax'),
   'gemini-music': () => selectCheapestMusicModel('gemini'),
   'gemini-video': () => selectCheapestVideoModel('gemini'),
-  'minimax-video': () => selectCheapestVideoModel('minimax'),
   'grok-video': () => selectCheapestVideoModel('grok'),
   'ltx-video': () => selectCheapestVideoModel('ltx'),
   'replicate-video': () => selectCheapestVideoModel('replicate'),

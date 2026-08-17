@@ -21,6 +21,6 @@ export const selectBatchItems = (items: BatchItem[], opts: MetadataBatchSelectOp
 
   const ordered = [...dated, ...withoutDate]
 
-  if (opts.all) return ordered
+  if (opts.limit === 'all') return ordered
   return ordered.slice(0, Math.max(1, opts.limit))
 }

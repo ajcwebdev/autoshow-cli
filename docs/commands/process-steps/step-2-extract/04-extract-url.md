@@ -58,15 +58,14 @@ Remote article URLs route through hosted article extraction rather than OCR prov
 | `--concurrency-mode <ramp|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--url-request-timeout-ms <ms>`       | Per-provider URL request timeout; default `60000`                                                                                                                                 |
 | `--url-request-attempts <n>`          | Total provider request attempts, including the first try; default `3`                                                                                                             |
-| `--format <format>`                   | Output format: `text`, `json`, `tsv`, or `hocr`                                                                                                                                   |
+| `--format <format>`                   | Output format: `text` or `json`                                                                                                                                                   |
 | `--price`                             | Show the aggregated URL extraction estimate and exit                                                                                                                              |
-| `--batch-limit <n>`                   | Limit batch size                                                                                                                                                                  |
-| `--batch-all`                         | Process all batch items                                                                                                                                                           |
+| `--batch-limit <n|all>`               | Limit batch size or process all items (`all`)                                                                                                                                     |
 | `--batch-order <newest|oldest>`       | Choose batch ordering                                                                                                                                                             |
 | `--batch-concurrency <n>`             | Process batch items concurrently                                                                                                                                                  |
 
 ```bash
-bun autoshow extract input/examples/batch/2-urls.md --batch-all
+bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
 bun autoshow extract https://example.com/article --all-providers --price
 bun autoshow extract https://example.com/article --all-providers --provider-concurrency 2
 bun autoshow extract https://example.com/article --all-providers --url-request-timeout-ms 90000 --url-request-attempts 2
@@ -223,6 +222,6 @@ X Space extraction writes:
 
 ## X Space Notes
 
-- X inputs work in batch lists (`.md` / `.txt`) with `--batch-all`.
+- X inputs work in batch lists (`.md` / `.txt`) with `--batch-limit all`.
 - Supported by `metadata` (lookup), `download` (audio), and `write` (LLM processing). Standalone generation commands reject X links.
 - Posts without Spaces produce metadata reports with empty Spaces sections.

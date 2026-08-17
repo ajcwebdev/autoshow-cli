@@ -83,7 +83,7 @@ describe('TTS provider service contracts', () => {
       expect(calls).toHaveLength(0)
     }, 10_000)
 
-  test('ElevenLabs TTS sends output format, voice settings, seed, text normalization, and pronunciation dictionaries controls', async () => {
+  test('ElevenLabs TTS sends the baked output format, voice settings, seed, text normalization, and pronunciation dictionaries controls', async () => {
       const dir = await makeTempDir('autoshow-elevenlabs-tts-controls-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
 
@@ -95,7 +95,6 @@ describe('TTS provider service contracts', () => {
         model: 'eleven_v3',
         voiceId: 'voice_existing123',
         controls: {
-          outputFormat: 'mp3_22050_32',
           languageCode: 'en',
           voiceSettings: {
             stability: 0.4,
@@ -113,7 +112,7 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(1)
       expect(calls[0]?.headers.get('xi-api-key')).toBe('elevenlabs-key')
-      expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_22050_32')
+      expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_44100_128')
       expect(calls[0]?.method).toBe('POST')
       expect(calls[0]?.bodyJson).toEqual({
         text: 'ElevenLabs control synthesis.',

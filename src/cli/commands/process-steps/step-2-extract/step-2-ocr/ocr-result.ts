@@ -97,7 +97,6 @@ export const buildOcrOutput = (
   if (typeof input.completionTokens === 'number') {
     step2MetadataPayload['completionTokens'] = input.completionTokens
   }
-  if (input.epubPayload) step2MetadataPayload['epub'] = input.epubPayload
   if (input.chapterExportSummary) step2MetadataPayload['chapterExport'] = input.chapterExportSummary
   if (input.pdfChapterDetectionSummary) step2MetadataPayload['pdfChapterDetection'] = input.pdfChapterDetectionSummary
   if (input.inputFamily) step2MetadataPayload['inputFamily'] = input.inputFamily

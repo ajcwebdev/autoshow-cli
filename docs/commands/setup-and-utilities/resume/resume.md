@@ -133,7 +133,7 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 | `--youtube-captions`                | Prefer English YouTube captions before STT when available                                                                         |
 | `--speaker-count <n>`               | Diarization speaker-count hint                                                                                                    |
 | `--split`                           | Split audio into 30-minute segments before transcription                                                                          |
-| `--format <format>`                 | OCR output format: `text`, `json`, `tsv`, or `hocr`                                                                               |
+| `--format <format>`                 | OCR output format: `text` or `json`                                                                                               |
 | `--password <value>`                | Password for encrypted PDFs                                                                                                       |
 | `--ocr-language <codes>`            | Tesseract language codes such as `eng` or `eng+fra`                                                                               |
 | `--ocr-dpi <n>`                     | Render DPI for OCR pages                                                                                                          |
@@ -147,22 +147,18 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 | `--url-provider-concurrency <n>`    | Max hosted URL providers running in parallel for one item                                                                         |
 | `--url-request-timeout-ms <ms>`     | Per-provider URL request timeout                                                                                                  |
 | `--url-request-attempts <n>`        | Per-provider URL retry attempts                                                                                                   |
-| `--epub-bun`                        | Inspect EPUB structure with the Bun parser                                                                                        |
 
 ## TTS Options
 
-Resume accepts only provider-neutral TTS options. Provider-named tuning flags such as `--elevenlabs-tts-stability`, `--minimax-tts-emotion`, `--deepgram-tts-container`, `--speechify-tts-voice-gender`, `--hume-tts-voice-provider`, and `--minimax-tts-pitch` are not part of the resume surface.
+Resume accepts only provider-neutral TTS options. Provider-named tuning flags such as `--elevenlabs-tts-stability`, `--minimax-tts-emotion`, `--minimax-tts-pitch`, and `--minimax-tts-volume` are not part of the resume surface.
 
 | Flag                                                            | Description                                                                                                                     |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `--tts-voice <provider=value|value>`                            | Generic TTS voice selector                                                                                                      |
 | `--tts-speed <provider=value|value>`                            | Generic TTS speed                                                                                                               |
 | `--tts-language <provider=value|value>`                         | Generic TTS language                                                                                                            |
-| `--tts-ref-audio <provider=path|path>`                          | Explicit authorized one-off reference input where the synthesis adapter supports it                                             |
-| `--tts-voice-name`, `--tts-consent-name`, `--tts-consent-email` | Retired creation inputs; rejected with guidance to run voice management separately                                              |
 | `--tts-text-normalization <provider=value|value>`               | Generic text normalization                                                                                                      |
 | `--tts-instructions <provider=value|value>`                     | Generic voice/style instructions                                                                                                |
-| `--tts-output-format <provider=value|value>`                    | Generic output format                                                                                                           |
 | `--tts-chunk-concurrency <n>`                                   | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, or `50` for Grok-only hosted TTS |
 | `--tts-dialogue-format <screenplay\|labeled>`                   | Dialogue input format for multi-speaker TTS                                                                                     |
 | `--tts-speaker <SPEAKER=VOICE\|path>`                           | Multi-speaker TTS voice mapping; repeatable                                                                                     |
@@ -173,12 +169,12 @@ Resume never creates, imports, saves, verifies, approves, reconciles, or deletes
 
 ## Image, Video, And Music Options
 
-Resume keeps the pipeline/config option names for media generation options, because one flag set serves image, video, music, and OCR at once and the short `image`/`video`/`music` command names would collide. Provider-named options such as `--replicate-video-seed` and `--grok-video-storage-filename` are not part of the resume surface.
+Resume keeps the pipeline/config option names for media generation options, because one flag set serves image, video, music, and OCR at once and the short `image`/`video`/`music` command names would collide. Provider-named options such as `--replicate-video-seed` and `--replicate-video-negative-prompt` are not part of the resume surface.
 
 | Target | Option flags                                                                                                                                                                                                                    |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Image  | `--image-aspect-ratio`, `--image-size`, `--image-quality`, `--image-format`, `--image-background`, `--image-count`, `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, `--image-compression` |
-| Video  | `--video-mode`, `--video-duration`, `--video-size`, `--video-aspect-ratio`, `--video-resolution`, `--video-input-image`, `--video-last-frame`, `--video-reference-image`, `--video-input-video`                                 |
+| Video  | `--video-mode`, `--video-duration`, `--video-aspect-ratio`, `--video-resolution`, `--video-generate-audio`, `--video-input-image`, `--video-last-frame`, `--video-reference-image`, `--video-input-video`, `--video-reference-video`, `--video-reference-audio` |
 | Music  | `--music-duration`, `--music-lyrics-file`, `--music-instrumental`                                                                                                                                                               |
 
 ## Notes
@@ -186,5 +182,5 @@ Resume keeps the pipeline/config option names for media generation options, beca
 - `resume` updates the existing output directory in place.
 - `resume --price` leaves `manifest.json`, raw provider artifacts, and generated media/text files unchanged.
 - Write LLM resume is additive and writes service-qualified files when needed to avoid overwriting existing short-model outputs, such as `text-together-glm-5.1.json` beside an existing `text-glm-5.1.json`.
-- No `resume` flag is named after a provider. Provider-named option flags such as `--elevenlabs-tts-stability`, `--replicate-video-seed`, `--grok-video-storage-filename`, and `--stt-happyscribe-organization-id` exit with their exact typed spelling, for example `Unexpected flag: --elevenlabs-tts-stability`. A provider entry's `options` object is the only persisted option slot; when a domain cannot reconstruct a tuning value from canonical state, its option slice resolves that value from `autoshow.config` or the provider default.
+- No `resume` flag is named after a provider. Provider-named option flags such as `--elevenlabs-tts-stability`, `--replicate-video-seed`, and `--stt-happyscribe-organization-id` exit with their exact typed spelling, for example `Unexpected flag: --elevenlabs-tts-stability`. A provider entry's `options` object is the only persisted option slot; when a domain cannot reconstruct a tuning value from canonical state, its option slice resolves that value from `autoshow.config` or the provider default.
 - `resume` exits with code `2` when items are still incomplete or failed after the backfill attempt.

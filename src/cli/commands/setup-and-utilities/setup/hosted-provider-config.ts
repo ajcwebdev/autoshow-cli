@@ -133,7 +133,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: [
       'defaults.llm.minimax',
       'defaults.post.tts.minimaxTts',
-      'defaults.post.video.minimaxVideo',
       'defaults.post.music.minimaxMusic'
     ]
   },

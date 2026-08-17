@@ -66,9 +66,19 @@ const formatFlagName = (name: string, definition: CliFlagDefinition): string => 
   return definition.short ? `--${name}, -${definition.short}` : `--${name}`
 }
 
+const shouldRenderDefault = (definition: CliFlagDefinition): boolean => {
+  if (!('default' in definition) || definition.default === undefined) {
+    return false
+  }
+  if (definition.type === Boolean && definition.default === false) {
+    return false
+  }
+  return true
+}
+
 const renderFlagRows = (flags: CliFlagsDefinition, indent = '  '): string[] => {
   const rows = Object.entries(flags).filter(([, definition]) => !isFlagHidden(definition)).map(([name, definition]) => {
-    const defaultSuffix = 'default' in definition ? ` ${formatDefault(definition.default)}` : ''
+    const defaultSuffix = shouldRenderDefault(definition) ? ` ${formatDefault(definition.default)}` : ''
     return [
       formatFlagName(name, definition),
       formatType(definition),

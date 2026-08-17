@@ -26,7 +26,6 @@ export const collectSpeechifyTtsTargets = (
         invocation?.signal?.throwIfAborted()
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('speechify', invocation)
         const controls = resolveTtsTargetInvocationControls('speechify', invocation, {
-          audioFormat: selection.speechifyAudioFormat,
           language,
         })
         const invocationLanguage = validateSpeechifyTtsLanguageForModel(model, controls.language)
@@ -35,7 +34,6 @@ export const collectSpeechifyTtsTargets = (
         return await runSpeechifyTts(text, outputDir, {
           model,
           voiceId: invocationVoiceId ?? voiceId,
-          audioFormat: controls.audioFormat,
           language: invocationLanguage,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,

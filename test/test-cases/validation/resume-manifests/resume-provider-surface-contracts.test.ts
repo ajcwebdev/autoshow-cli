@@ -3,7 +3,6 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resumeFlags } from '~/cli/flags/resume-flags'
 import { allArticleFlags, ocrInputFlags, ocrTuningFlags } from '~/cli/flags/shared-flags'
-import { epubInspectFlags } from '~/cli/flags/ocr-flags'
 import { dialogueTtsCommandOptionNames, genericTtsOptionFlags } from '~/cli/flags/tts-flags'
 import { imageGenerationOptionNames, imageInputOptionNames, imageProviderSpecificOptionNames } from '~/cli/flags/image-flags'
 import { videoGenerationOptionNames, videoInputOptionNames } from '~/cli/flags/video-flags'
@@ -76,9 +75,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'minimax-tts-pitch',
   'minimax-tts-emotion',
   'minimax-tts-pronunciation',
-  'deepgram-tts-container',
-  'deepgram-tts-bit-rate',
-  'deepgram-tts-sample-rate',
   'speechify-tts-voice-locale',
   'speechify-tts-voice-gender',
   'hume-tts-voice-provider',
@@ -94,8 +90,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'replicate-video-reference-video',
   'replicate-video-reference-audio',
   'replicate-video-negative-prompt',
-  'grok-video-storage-filename',
-  'grok-video-storage-expires-after',
   'stt-happyscribe-organization-id',
   'stt-supadata-lang',
   'stt-scrapecreators-lang',
@@ -257,8 +251,8 @@ describe('resume provider flag surface', () => {
     expectResumeHasFlags(Object.keys(ocrInputFlags))
     expectResumeHasFlags(Object.keys(ocrTuningFlags))
     expectResumeHasFlags(Object.keys(allArticleFlags))
-    expectResumeHasFlags(Object.keys(epubInspectFlags))
     expectResumeHasFlags(Object.keys(genericTtsOptionFlags))
+    expect(buildOptsFromFlags(false, { 'allow-ambiguous-redispatch': true }).ttsAllowAmbiguousRedispatch).toBe(true)
     expect(buildOptsFromFlags(false, { 'tts-allow-ambiguous-redispatch': true }).ttsAllowAmbiguousRedispatch).toBe(true)
     expectResumeHasFlags(dialogueTtsCommandOptionNames)
     expectResumeHasFlags([
@@ -292,29 +286,34 @@ describe('resume provider flag surface', () => {
 
   test('resume keeps generic TTS options in place of provider-specific tuning', () => {
     expectResumeHasFlags([
-      'tts-voice', 'tts-speed', 'tts-language', 'tts-ref-audio',
-      'tts-voice-name',
-      'tts-consent-name', 'tts-consent-email', 'tts-text-normalization',
-      'tts-instructions', 'tts-output-format', 'tts-chunk-concurrency'
+      'tts-voice', 'tts-speed', 'tts-language', 'tts-text-normalization',
+      'tts-instructions', 'tts-chunk-concurrency'
     ])
     expectResumeLacksFlags([
+      'tts-ref-audio',
+      'tts-voice-name',
+      'tts-consent-name',
+      'tts-consent-email',
       'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost',
       'hume-tts-voice-provider',
       'minimax-tts-language-boost', 'minimax-tts-emotion'
     ])
   })
 
-  test('resume accepts generic video mode and input flags but not provider storage flags', () => {
+  test('resume accepts generic video mode and input flags but not provider-specific video flags', () => {
     expectResumeHasFlags([
       'video-mode',
+      'video-generate-audio',
       'video-input-image',
       'video-last-frame',
       'video-reference-image',
-      'video-input-video'
+      'video-input-video',
+      'video-reference-video',
+      'video-reference-audio'
     ])
     expectResumeLacksFlags([
-      'grok-video-storage-filename',
-      'grok-video-storage-expires-after'
+      'replicate-video-multi-prompt',
+      'replicate-video-seed'
     ])
   })
 })

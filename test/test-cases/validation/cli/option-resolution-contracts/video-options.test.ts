@@ -17,8 +17,6 @@ describe('option resolution contracts', () => {
 
   test('retired video selectors fail with replacement guidance', () => {
     for (const [provider, model, replacement] of [
-      ['minimax', 'MiniMax-Hailuo-2.3', 'MiniMax-H3'],
-      ['minimax', 'S2V-01', 'MiniMax-H3'],
       ['replicate', 'runwayml/aleph-2', 'grok-imagine-video'],
       ['replicate', 'wan-video/wan-2.7-t2v', 'bytedance/seedance-2.0-fast']
     ] as const) {
@@ -98,18 +96,18 @@ describe('option resolution contracts', () => {
         'replicate-video': ['bytedance/seedance-2.0-fast'],
         'video-mode': 'reference-to-video',
         'video-reference-image': [imageDataUrl, bmpDataUrl],
-        'replicate-video-reference-video': [videoDataUrl],
-        'replicate-video-reference-audio': [audioDataUrl],
+        'video-reference-video': [videoDataUrl],
+        'video-reference-audio': [audioDataUrl],
         'replicate-video-seed': '123',
-        'replicate-video-generate-audio': false,
+        'video-generate-audio': false,
         'video-duration': '-1',
         'video-aspect-ratio': 'adaptive'
       })
       expect(explicitOpts.replicateVideoModels).toEqual(['bytedance/seedance-2.0-fast'])
       expect(explicitOpts.replicateVideoSeed).toBe(123)
-      expect(explicitOpts.replicateVideoGenerateAudio).toBe(false)
-      expect(explicitOpts.replicateVideoReferenceVideos).toEqual([videoDataUrl])
-      expect(explicitOpts.replicateVideoReferenceAudios).toEqual([audioDataUrl])
+      expect(explicitOpts.videoGenerateAudio).toBe(false)
+      expect(explicitOpts.videoReferenceVideos).toEqual([videoDataUrl])
+      expect(explicitOpts.videoReferenceAudios).toEqual([audioDataUrl])
       expect(collectVideoTargets(explicitOpts).map(target => `${target.service}/${target.model}`)).toEqual([
         'replicate/bytedance/seedance-2.0-fast'
       ])
@@ -136,7 +134,7 @@ describe('option resolution contracts', () => {
       })).toThrow('Use "bytedance/seedance-2.0-fast" instead')
 
       expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'replicate-video-reference-audio': audioDataUrl
+        'replicate-video-seed': '123'
       }))).toThrow('Replicate video flags require a Replicate video provider target')
     })
 
@@ -160,7 +158,8 @@ describe('option resolution contracts', () => {
         'video-mode': 'interpolate',
         'video-input-image': imageDataUrl,
         'video-last-frame': lastFrameDataUrl,
-        'video-size': '1440x2560'
+        'video-resolution': '4k',
+        'video-aspect-ratio': '9:16'
       })).map(target => `${target.service}/${target.model}`)).toEqual([
         'ltx/ltx-2-3-pro'
       ])
@@ -189,11 +188,6 @@ describe('option resolution contracts', () => {
         'ltx-video': 'ltx-2-3-fast',
         'video-resolution': '1440p'
       }))).toThrow('Expected 1080p or 4k')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'ltx-video': 'ltx-2-3-fast',
-        'video-size': '1024x1024'
-      }))).toThrow('Invalid --video-size')
     })
 
   test('Gemini video media modes enforce Lite and 4k capability limits', () => {

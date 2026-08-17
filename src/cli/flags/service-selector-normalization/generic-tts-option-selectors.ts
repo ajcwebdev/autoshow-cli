@@ -44,35 +44,14 @@ const TTS_GENERIC_OPTION_TARGETS = {
       grok: 'grok-tts-language',
       speechify: 'speechify-tts-language',
       cartesia: 'cartesia-tts-language',
-      elevenlabs: 'elevenlabs-tts-language-code'
+      elevenlabs: 'elevenlabs-tts-language-code',
+      minimax: 'minimax-tts-language-boost'
     }
   },
   'tts-ref-audio': {
     voiceIdentity: true,
     targets: {
-      mistral: 'mistral-tts-ref-audio',
-      speechify: 'speechify-tts-ref-audio',
-      elevenlabs: 'elevenlabs-tts-ref-audio'
-    }
-  },
-  'tts-voice-name': {
-    voiceIdentity: true,
-    targets: {
-      mistral: 'mistral-tts-voice-name',
-      speechify: 'speechify-tts-voice-name',
-      elevenlabs: 'elevenlabs-tts-voice-name'
-    }
-  },
-  'tts-consent-name': {
-    voiceIdentity: false,
-    targets: {
-      speechify: 'speechify-tts-consent-name'
-    }
-  },
-  'tts-consent-email': {
-    voiceIdentity: false,
-    targets: {
-      speechify: 'speechify-tts-consent-email'
+      mistral: 'mistral-tts-ref-audio'
     }
   },
   'tts-text-normalization': {
@@ -89,14 +68,6 @@ const TTS_GENERIC_OPTION_TARGETS = {
       openai: 'openai-tts-instructions',
       fal: 'fal-tts-instructions',
       inworld: 'inworld-tts-instructions'
-    }
-  },
-  'tts-output-format': {
-    voiceIdentity: false,
-    targets: {
-      deepgram: 'deepgram-tts-encoding',
-      speechify: 'speechify-tts-audio-format',
-      elevenlabs: 'elevenlabs-tts-output-format'
     }
   }
 } as const satisfies Record<string, {
@@ -130,7 +101,7 @@ export const assertNoVoiceIdentityWithDialogue = (
     throw CLIUsageError('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
   }
 
-  throw CLIUsageError('Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
+  throw CLIUsageError('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 }
 
 const genericTtsOptionFlags = Object.keys(TTS_GENERIC_OPTION_TARGETS)

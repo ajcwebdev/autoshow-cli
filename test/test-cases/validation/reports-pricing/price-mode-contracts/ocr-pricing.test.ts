@@ -57,7 +57,6 @@ const buildHostedOcrPricingOptions = (
     useTesseract: false,
     urlBackend: 'defuddle',
     urlBackendExplicit: false,
-    useEpubBun: false,
     textInput: false
   }
 

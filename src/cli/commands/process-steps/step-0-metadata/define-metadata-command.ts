@@ -13,7 +13,7 @@ export const metadataCommand = defineCliCommand({
     examples: [
       ['bun autoshow metadata https://youtube.com/watch?v=abc', 'Get metadata for a YouTube video'],
       ['bun autoshow metadata https://x.com/i/spaces/1DXxyRYNejbKM', 'Get metadata for an X Space'],
-      ['bun autoshow metadata input/examples/batch/2-urls.md --batch-all', 'Get metadata for all URLs in a file']
+      ['bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all', 'Get metadata for all URLs in a file']
     ]
   }
 }, async (ctx) => {

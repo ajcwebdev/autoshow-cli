@@ -264,7 +264,6 @@ export const runTextWrite = async (
       ...(opts.videoDuration !== undefined ? { durationSeconds: opts.videoDuration } : {})
     })),
     videoDuration: opts.videoDuration,
-    videoSize: opts.videoSize,
     videoAspectRatio: opts.videoAspectRatio,
     videoResolution: opts.videoResolution,
     videoMode: opts.videoMode,
@@ -302,7 +301,6 @@ export const runTextWrite = async (
             model: entry.model,
             ...(opts.videoDuration !== undefined ? { durationSeconds: opts.videoDuration } : {})
           })),
-          ...(opts.videoSize !== undefined ? { videoSize: opts.videoSize } : {}),
           ...(opts.videoAspectRatio !== undefined ? { videoAspectRatio: opts.videoAspectRatio } : {}),
           ...(opts.videoResolution !== undefined ? { videoResolution: opts.videoResolution } : {}),
           ...(opts.videoMode !== undefined ? { videoMode: opts.videoMode } : {})

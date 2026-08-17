@@ -66,7 +66,6 @@ export const computeWriteCostAndTiming = async (ctx: ComputeWriteCostAndTimingCo
       ...(processingOptions.videoDuration !== undefined ? { durationSeconds: processingOptions.videoDuration } : {})
     })),
     videoDuration: processingOptions.videoDuration,
-    videoSize: processingOptions.videoSize,
     videoAspectRatio: processingOptions.videoAspectRatio,
     videoResolution: processingOptions.videoResolution,
     videoMode: processingOptions.videoMode,
@@ -116,7 +115,6 @@ export const computeWriteCostAndTiming = async (ctx: ComputeWriteCostAndTimingCo
             model: t.model,
             ...(processingOptions.videoDuration !== undefined ? { durationSeconds: processingOptions.videoDuration } : {})
           })),
-          ...(processingOptions.videoSize !== undefined ? { videoSize: processingOptions.videoSize } : {}),
           ...(processingOptions.videoAspectRatio !== undefined ? { videoAspectRatio: processingOptions.videoAspectRatio } : {}),
           ...(processingOptions.videoResolution !== undefined ? { videoResolution: processingOptions.videoResolution } : {}),
           ...(processingOptions.videoMode !== undefined ? { videoMode: processingOptions.videoMode } : {})

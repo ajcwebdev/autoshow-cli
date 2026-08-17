@@ -68,11 +68,6 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: 'Model "lyria-3-clip-preview" is retired for --provider/--music gemini[=model]. Use "lyria-3-pro-preview" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
-    flag: 'minimax-video',
-    model: 'MiniMax-Hailuo-2.3',
-    message: 'Model "MiniMax-Hailuo-2.3" is retired for --provider/--video minimax[=model]. Use "MiniMax-H3" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
     flag: 'replicate-video',
     model: 'runwayml/aleph-2',
     message: 'Model "runwayml/aleph-2" is retired for --provider/--video replicate[=model]. Use "grok-imagine-video" instead. AutoShow will not silently substitute a different model identity.'

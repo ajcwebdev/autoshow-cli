@@ -143,7 +143,7 @@ describe('combined-report weighted ranking contracts', () => {
     )
   })
 
-  test.each([
+  for (const [count, expectedSizes] of [
     [0, [0, 0, 0]],
     [1, [1, 0, 0]],
     [2, [1, 1, 0]],
@@ -151,99 +151,103 @@ describe('combined-report weighted ranking contracts', () => {
     [4, [2, 1, 1]],
     [8, [3, 3, 2]],
     [10, [4, 3, 3]]
-  ] as const)('front-loads the remainder for a %i-model group', (count, expectedSizes) => {
-    const ranking = qualityCostFixture(count)
-    const tiering = buildQualityCostTiering(ranking)
-    const flattened = tiering.tiers.flatMap((tier) => tier.providers)
+  ] as const) {
+    test(`front-loads the remainder for a ${count}-model group`, () => {
+      const ranking = qualityCostFixture(count)
+      const tiering = buildQualityCostTiering(ranking)
+      const flattened = tiering.tiers.flatMap((tier) => tier.providers)
 
-    expect(tiering.tiers).toHaveLength(3)
-    expect(tiering.tiers.map((tier) => tier.count)).toEqual([...expectedSizes])
-    expect(flattened.map((entry) => entry.providerKey)).toEqual(ranking.map((entry) => entry.providerKey))
-    expect(flattened.map((entry) => entry.qualityCostRank)).toEqual(ranking.map((entry) => entry.rank))
-    expect(new Set(flattened.map((entry) => entry.providerKey)).size).toBe(count)
-  })
+      expect(tiering.tiers).toHaveLength(3)
+      expect(tiering.tiers.map((tier) => tier.count)).toEqual([...expectedSizes])
+      expect(flattened.map((entry) => entry.providerKey)).toEqual(ranking.map((entry) => entry.providerKey))
+      expect(flattened.map((entry) => entry.qualityCostRank)).toEqual(ranking.map((entry) => entry.rank))
+      expect(new Set(flattened.map((entry) => entry.providerKey)).size).toBe(count)
+    })
+  }
 
-  test.each([
+  for (const [category, schemaVersion] of [
     ['ocr', 2],
     ['stt', 3],
     ['url', 1]
-  ] as const)('generated %s artifacts use quality-cost terciles', (category, schemaVersion) => {
-    const artifactRoot = join(projectRoot, 'docs', 'benchmarks', category)
-    const jsonText = readFileSync(join(artifactRoot, 'combined-comparison-report.json'), 'utf8')
-    const markdown = readFileSync(join(artifactRoot, 'combined-comparison-report.md'), 'utf8')
-    const html = readFileSync(join(artifactRoot, 'combined-comparison-report.html'), 'utf8')
-    const report = JSON.parse(jsonText) as ArtifactReport
+  ] as const) {
+    test(`generated ${category} artifacts use quality-cost terciles`, () => {
+      const artifactRoot = join(projectRoot, 'docs', 'benchmarks', category)
+      const jsonText = readFileSync(join(artifactRoot, 'combined-comparison-report.json'), 'utf8')
+      const markdown = readFileSync(join(artifactRoot, 'combined-comparison-report.md'), 'utf8')
+      const html = readFileSync(join(artifactRoot, 'combined-comparison-report.html'), 'utf8')
+      const report = JSON.parse(jsonText) as ArtifactReport
 
-    expect(report.schemaVersion).toBe(schemaVersion)
-    expect(markdown).toContain('`quality-cost-terciles-v1`')
-    expect(markdown).toContain("`qualityCost` weighted ranking")
-    expect(markdown).toContain('| Models (quality-cost rank · composite) |')
-    expect(html).toContain('<h3>Quality-cost terciles</h3>')
-    expect(html).toContain('<code>quality-cost-terciles-v1</code>')
-    expect(html).toContain('<code>qualityCost</code>')
+      expect(report.schemaVersion).toBe(schemaVersion)
+      expect(markdown).toContain('`quality-cost-terciles-v1`')
+      expect(markdown).toContain("`qualityCost` weighted ranking")
+      expect(markdown).toMatch(/\|\s*Models \(quality-cost rank · composite\)\s*\|/)
+      expect(html).toContain('<h3>Quality-cost terciles</h3>')
+      expect(html).toContain('<code>quality-cost-terciles-v1</code>')
+      expect(html).toContain('<code>qualityCost</code>')
 
-    for (const [group, tiering] of Object.entries(report.tiering)) {
-      expect(Object.keys(report.weightedRankings[group] ?? {}).sort()).toEqual([...WEIGHT_SET_KEYS].sort())
-      const qualityCost = report.weightedRankings[group]!.qualityCost
-      const flattened = tiering.tiers.flatMap((tier) => tier.providers)
+      for (const [group, tiering] of Object.entries(report.tiering)) {
+        expect(Object.keys(report.weightedRankings[group] ?? {}).sort()).toEqual([...WEIGHT_SET_KEYS].sort())
+        const qualityCost = report.weightedRankings[group]!.qualityCost
+        const flattened = tiering.tiers.flatMap((tier) => tier.providers)
 
-      expect(Object.keys(tiering).sort()).toEqual(['method', 'providerCount', 'ranking', 'tieBreak', 'tiers'])
-      expect(tiering.method).toBe(TIERING_METHOD)
-      expect(tiering.ranking).toBe(TIERING_RANKING)
-      expect(tiering.tieBreak).toBe(TIERING_TIE_BREAK)
-      expect(tiering.providerCount).toBe(qualityCost.length)
-      expect(tiering.tiers).toHaveLength(3)
-      expect(tiering.tiers.map((tier) => tier.count)).toEqual(qualityCostTercileSizes(qualityCost.length))
-      expect(
-        flattened.map((entry) => ({
-          providerKey: entry.providerKey,
-          rank: entry.qualityCostRank,
-          composite: entry.qualityCostComposite
-        }))
-      ).toEqual(
-        qualityCost.map((entry) => ({
-          providerKey: entry.providerKey,
-          rank: entry.rank,
-          composite: entry.composite
-        }))
-      )
-      expect(new Set(flattened.map((entry) => entry.providerKey)).size).toBe(qualityCost.length)
+        expect(Object.keys(tiering).sort()).toEqual(['method', 'providerCount', 'ranking', 'tieBreak', 'tiers'])
+        expect(tiering.method).toBe(TIERING_METHOD)
+        expect(tiering.ranking).toBe(TIERING_RANKING)
+        expect(tiering.tieBreak).toBe(TIERING_TIE_BREAK)
+        expect(tiering.providerCount).toBe(qualityCost.length)
+        expect(tiering.tiers).toHaveLength(3)
+        expect(tiering.tiers.map((tier) => tier.count)).toEqual(qualityCostTercileSizes(qualityCost.length))
+        expect(
+          flattened.map((entry) => ({
+            providerKey: entry.providerKey,
+            rank: entry.qualityCostRank,
+            composite: entry.qualityCostComposite
+          }))
+        ).toEqual(
+          qualityCost.map((entry) => ({
+            providerKey: entry.providerKey,
+            rank: entry.rank,
+            composite: entry.composite
+          }))
+        )
+        expect(new Set(flattened.map((entry) => entry.providerKey)).size).toBe(qualityCost.length)
 
-      for (const provider of flattened) {
-        const display = provider.display ?? provider.provider
-        const rankAndComposite = `#${provider.qualityCostRank} · ${provider.qualityCostComposite.toFixed(2)}`
-        expect(markdown).toContain(`<code>${display}</code> (${rankAndComposite})`)
-        expect(html).toContain(`<code>${htmlEscape(display)}</code> <span class="n">${rankAndComposite}</span>`)
+        for (const provider of flattened) {
+          const display = provider.display ?? provider.provider
+          const rankAndComposite = `#${provider.qualityCostRank} · ${provider.qualityCostComposite.toFixed(2)}`
+          expect(markdown).toContain(`<code>${display}</code> (${rankAndComposite})`)
+          expect(html).toContain(`<code>${htmlEscape(display)}</code> <span class="n">${rankAndComposite}</span>`)
+        }
       }
-    }
 
-    if (category === 'url') {
-      expect(report.tiering['service']?.tiers.map((tier) => tier.count)).toEqual([2, 2, 1])
-    }
+      if (category === 'url') {
+        expect(report.tiering['service']?.tiers.map((tier) => tier.count)).toEqual([2, 2, 1])
+      }
 
-    // Deny-list over the generated artifact, matched at key position (`"<field>":`) rather
-    // than as a bare quoted token, so a string *value* that happens to equal one of these
-    // names cannot trip it. All three builders emit `JSON.stringify(report, null, 2)`, so
-    // every real key carries the colon.
-    for (const legacyField of [
-      // Tombstones. Fields of the retired placement-surface schema (ADR-012: the current
-      // versions "do not expose the former placement-surface counts, thresholds, or
-      // placement lists"). No builder can produce these any more, so they guard a revert.
-      'surfaceCount',
-      'topN',
-      'thresholds',
-      'surfaces',
-      'topPlacements',
-      'placementSurfaces',
-      // Not a tombstone — this is the entry guarding a live regression path.
-      // `balancedComposite` is a real in-memory field: `computeGroupSubscores` sets it on
-      // every `ProviderSubscores` row and the HTML dashboard ranks by it via
-      // `balancedCells`. It stays out of the JSON only because each builder routes
-      // `subscoresByGroup` into `buildDashboardGroup` and never into `jsonReport`.
-      // Serializing a subscore row directly would leak it, and this is what catches that.
-      'balancedComposite'
-    ]) {
-      expect(jsonText).not.toContain(`"${legacyField}":`)
-    }
-  })
+      // Deny-list over the generated artifact, matched at key position (`"<field>":`) rather
+      // than as a bare quoted token, so a string *value* that happens to equal one of these
+      // names cannot trip it. All three builders emit `JSON.stringify(report, null, 2)`, so
+      // every real key carries the colon.
+      for (const legacyField of [
+        // Tombstones. Fields of the retired placement-surface schema (ADR-012: the current
+        // versions "do not expose the former placement-surface counts, thresholds, or
+        // placement lists"). No builder can produce these any more, so they guard a revert.
+        'surfaceCount',
+        'topN',
+        'thresholds',
+        'surfaces',
+        'topPlacements',
+        'placementSurfaces',
+        // Not a tombstone — this is the entry guarding a live regression path.
+        // `balancedComposite` is a real in-memory field: `computeGroupSubscores` sets it on
+        // every `ProviderSubscores` row and the HTML dashboard ranks by it via
+        // `balancedCells`. It stays out of the JSON only because each builder routes
+        // `subscoresByGroup` into `buildDashboardGroup` and never into `jsonReport`.
+        // Serializing a subscore row directly would leak it, and this is what catches that.
+        'balancedComposite'
+      ]) {
+        expect(jsonText).not.toContain(`"${legacyField}":`)
+      }
+    })
+  }
 })

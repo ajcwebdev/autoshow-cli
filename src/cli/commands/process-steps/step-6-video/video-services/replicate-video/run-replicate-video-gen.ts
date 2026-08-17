@@ -310,7 +310,7 @@ export const runReplicateVideoGen = async (
     videoResolution: options.resolution,
     videoMode: request.requestMode,
     replicateVideoReferenceVideoCount: referenceVideoCount,
-    replicateVideoGenerateAudio: options.generateAudio,
+    videoGenerateAudio: options.generateAudio,
     ...(request.inputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds: request.inputVideoDurationSeconds } : {})
   })
   logVideoEstimate(estimate)

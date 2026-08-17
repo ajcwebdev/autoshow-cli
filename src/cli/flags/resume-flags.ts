@@ -13,7 +13,6 @@ import {
   transcriptionFlags
 } from './shared-flags'
 import { formatProviderList, pickFlags, strListFlag, withHelpGroup } from './flag-utils'
-import { epubInspectFlags } from './ocr-flags'
 import { dialogueTtsCommandOptionNames, genericTtsOptionFlags, ttsFlags } from './tts-flags'
 import { imageGenFlags, imageGenerationOptionNames, imageInputOptionNames, imageProviderSpecificOptionNames } from './image-flags'
 import { videoGenFlags, videoGenerationOptionNames, videoInputOptionNames } from './video-flags'
@@ -62,7 +61,6 @@ export const resumeFlags = {
   ...withHelpGroup(pickFlags(transcriptionFlags, resumeTranscriptionOptionNames), 'transcription'),
   ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...ocrProviderModeFlag, ...reasoningEffortFlag }, 'ocr-document'),
   ...withHelpGroup(allArticleFlags, 'article-extraction'),
-  ...withHelpGroup(epubInspectFlags, 'epub-inspect'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup({
     ...genericTtsOptionFlags,

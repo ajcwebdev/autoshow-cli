@@ -289,48 +289,11 @@ describe('OCR PDF chapter detection contracts', () => {
       ocrPages: 1,
       textPages: 0
     }
-    const metadata: ExtractionMetadata = {
-      extractionMethod: 'pdf+gemini-ocr',
-      totalPages: 11,
-      ocrPages: 1,
-      textPages: 0,
-      processingTime: 100,
-      dpi: 300,
-      languages: 'eng',
-      tokenEstimate: 2,
-      ocrService: 'gemini',
-      ocrModel: 'gemini-3.5-flash',
-      chapterExport: {
-        sourceFormat: 'pdf',
-        mode: 'chapters',
-        sectionsKept: 1,
-        sectionsDropped: 0,
-        dividerSectionsMerged: 0,
-        filesWritten: files.length,
-        chapterFilesWritten: files.length,
-        directories: ['chapters']
-      },
-      pdfChapterDetection: {
-        mode: 'local',
-        strategyUsed: 'toc',
-        overallConfidence: 0.9,
-        warnings: [],
-        tocPages: [3],
-        pageMapSpans: [],
-        chapters: [{
-          title: 'Introduction',
-          pdfStartPage: 11,
-          source: 'toc',
-          confidence: 0.9
-        }]
-      }
-    }
 
     try {
       await writeProviderArtifacts(
         tempDir,
         result,
-        metadata,
         'json',
         files
       )

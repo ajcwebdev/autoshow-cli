@@ -491,8 +491,13 @@ describe('committed URL combined dashboard', () => {
     const summary = readFileSync(join(benchmarkRoot, 'summary.md'), 'utf8')
     const urlSection = summary.split('## URL\n')[1]?.split('\n## Video')[0] ?? ''
 
-    expect(summary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
-    expect(summary).toContain('| **Total** | **38** | **610** | **5 groups** |')
+    const normalizeTable = (text: string) =>
+      text.split('\n').map((line) => line.split('|').map((c) => c.trim()).join(' | ')).join('\n')
+    const normalizedSummary = normalizeTable(summary)
+    const normalizedUrlSection = normalizeTable(urlSection)
+
+    expect(normalizedSummary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
+    expect(normalizedSummary).toContain('| **Total** | **38** | **610** | **5 groups** |')
     expect(urlSection).not.toContain('2/2 runs')
 
     for (const group of ['local', 'service'] as const) {
@@ -504,7 +509,7 @@ describe('committed URL combined dashboard', () => {
             : metric === 'speed'
               ? `${(entry.value / 1000).toFixed(2)}s`
               : `${entry.value.toFixed(2)}/100`
-          expect(urlSection).toContain(
+          expect(normalizedUrlSection).toContain(
             `| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${report.runCount} runs | ${average} |`
           )
         }

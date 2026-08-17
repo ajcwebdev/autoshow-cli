@@ -126,20 +126,13 @@ export const validateTtsTargetSelection = (
     )
   }
 
-  const hasDeepgramRequestControlFlags = Boolean(
-    selection.deepgramEncoding
-    || selection.deepgramContainer
-    || typeof selection.deepgramBitRate === 'number'
-    || typeof selection.deepgramSampleRate === 'number'
-    || typeof selection.deepgramSpeed === 'number'
-  )
+  const hasDeepgramRequestControlFlags = typeof selection.deepgramSpeed === 'number'
   if (hasDeepgramRequestControlFlags && selection.deepgramModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('Deepgram TTS', 'deepgram', 'request control flags'))
   }
 
   const hasElevenLabsRequestControlFlags = Boolean(
-    selection.elevenLabsOutputFormat
-    || selection.elevenLabsLanguageCode
+    selection.elevenLabsLanguageCode
     || typeof selection.elevenLabsStability === 'number'
     || typeof selection.elevenLabsSimilarityBoost === 'number'
     || typeof selection.elevenLabsStyle === 'number'
@@ -152,11 +145,11 @@ export const validateTtsTargetSelection = (
   if (hasElevenLabsRequestControlFlags && selection.elevenlabsModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('ElevenLabs TTS', 'elevenlabs', 'request control flags'))
   }
-  if ((selection.speechifyAudioFormat || selection.speechifyLanguage) && selection.speechifyModels.length === 0) {
+  if (selection.speechifyLanguage && selection.speechifyModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('Speechify TTS', 'speechify', 'request control flags'))
   }
 
-  if ((selection.humeVoice || selection.humeVoiceProvider) && selection.humeModels.length === 0) {
+  if (selection.humeVoice && selection.humeModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('Hume TTS', 'hume', 'voice flags'))
   }
 

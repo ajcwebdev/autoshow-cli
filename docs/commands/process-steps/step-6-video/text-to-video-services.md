@@ -73,7 +73,7 @@ bun autoshow video "character walking through lagoon" --provider grok=grok-imagi
 
 ## Shared Video Options
 
-The standalone `video` command drops the `video-` prefix these options carry elsewhere (e.g. `--size` here is `--video-size` on `write`, `config`, and `resume`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
+The standalone `video` command drops the `video-` prefix these options carry elsewhere (e.g. `--duration` here is `--video-duration` on `write`, `config`, and `resume`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
 | Flag                                           | Description                                                                                                                                                                            |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,7 +82,6 @@ The standalone `video` command drops the `video-` prefix these options carry els
 | `--provider-concurrency <n>`                   | Hosted video providers/models to run concurrently per item; default `7`                                                                                                                |
 | `--concurrency-mode <ramp\|immediate>`         | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`)      |
 | `--duration <seconds>`                         | Requested video duration                                                                                                                                                               |
-| `--size <size>`                                | Provider-dependent size control                                                                                                                                                        |
 | `--aspect-ratio <ratio>`                       | Provider-dependent aspect ratio                                                                                                                                                        |
 | `--resolution <res>`                           | Provider-dependent resolution control                                                                                                                                                  |
 | `--mode <mode>`                                | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `extend`, or `edit`; default `text`                                                                                     |
@@ -90,8 +89,6 @@ The standalone `video` command drops the `video-` prefix these options carry els
 | `--last-frame <path-or-url>`                   | Last-frame image for `interpolate`                                                                                                                                                     |
 | `--reference-image <path-or-url>`              | Reference image for `reference-to-video`; repeat up to 3 times (Replicate Seedance/Happy Horse accepts up to 9; fal.ai MiniMax H3 accepts up to 9; fal.ai PixVerse C1 accepts up to 7) |
 | `--input-video <path-or-url>`                  | Input MP4 for `extend` or `edit`                                                                                                                                                       |
-| `--grok-video-storage-filename <name>`         | xAI/Grok storage filename                                                                                                                                                              |
-| `--grok-video-storage-expires-after <seconds>` | xAI/Grok storage expiration, max 30 days                                                                                                                                               |
 | `--price`                                      | Show the estimate and exit                                                                                                                                                             |
 | `--output-dir <dir>`                           | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                                                                                     |
 
@@ -129,7 +126,6 @@ bun autoshow video "a sweeping Grand Canyon drone shot" --provider gemini=veo-3.
 | Selector            | `--provider grok[=<model>]`                                                        |
 | Models              | `grok-imagine-video`, `grok-imagine-video-1.5`                                     |
 | Duration/resolution | `--duration <seconds>`, `--resolution 480p\|720p`; Video 1.5 also supports `1080p` |
-| Storage             | `--grok-video-storage-filename`, `--grok-video-storage-expires-after`              |
 
 ```bash
 bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video --duration 8 --resolution 720p
@@ -162,12 +158,11 @@ bun autoshow video "transition between studio frames" --provider ltx=ltx-2-3-pro
 | Selector     | `--provider replicate[=<model>]`                                                                                                                                                                                |
 | Models       | `alibaba/happyhorse-1.1`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `kwaivgi/kling-v3-video`, `kwaivgi/kling-v3-omni-video`, `pixverse/pixverse-v6` |
 | Duration     | Happy Horse/Kling `3`–`15`s, PixVerse `5\|8\|10\|15`s, Seedance `-1`–`15`s (default `5`s)                                                                                         |
-| Resolution   | Kling `720p\|1080p\|4k`, PixVerse `360p\|540p\|720p\|1080p`, Happy Horse `720p\|1080p`, Seedance `480p\|720p\|1080p`, Seedance Fast `480p\|720p` (default `720p`)                 |
 | Aspect ratio | Happy Horse `16:9`, `9:16`, `1:1`, `4:3`, `3:4`; Kling/PixVerse `16:9`, `9:16`, `1:1`; Seedance adds `21:9`, `9:21`, `adaptive` (default `16:9`)                                                                |
 
 ```bash
 bun autoshow video "cinematic mountain sunrise" --provider replicate=bytedance/seedance-2.0-fast
-bun autoshow video "multi-shot launch" --provider replicate=kwaivgi/kling-v3-video --duration 8 --resolution 1080p --replicate-video-generate-audio --replicate-video-multi-prompt '[{"prompt":"macro detail","duration":3},{"prompt":"wide reveal","duration":5}]'
+bun autoshow video "multi-shot launch" --provider replicate=kwaivgi/kling-v3-video --duration 8 --resolution 1080p --generate-audio --replicate-video-multi-prompt '[{"prompt":"macro detail","duration":3},{"prompt":"wide reveal","duration":5}]'
 ```
 
 - Kling Video 3.0 supports multi-shot prompts via `--replicate-video-multi-prompt`. Kling Omni adds reference images, video, and editing.
@@ -181,7 +176,7 @@ bun autoshow video "multi-shot launch" --provider replicate=kwaivgi/kling-v3-vid
 | Selector     | `--provider lumalabs[=<model>]`                                    |
 | Models       | `ray-3.2`                                                          |
 | Duration     | `--duration <seconds>`; normalized to `5s` (`<8`) or `10s` (`>=8`) |
-| Resolution   | `--resolution 540p\|720p\|1080p`; default `720p`                   |
+| Resolution   | `--resolution 540p|720p|1080p`; default `720p`                   |
 | Aspect ratio | `9:16`, `3:4`, `1:1`, `4:3`, `16:9`, or `21:9`; default `16:9`     |
 
 ```bash
@@ -198,15 +193,15 @@ Supports `text` and `image-to-video` modes.
 | Models     | `minimax/h3`, `fal-ai/pixverse/c1`                                             |
 | Modes      | Both support `text`, `image-to-video`, `reference-to-video`, and `interpolate` |
 | Duration   | H3 `5-15`s; PixVerse C1 `1-15`s; default `5`s                                  |
-| Resolution | H3 `768p\|2k`; PixVerse C1 `360p\|540p\|720p\|1080p`                           |
+| Resolution | H3 `768p|2k`; PixVerse C1 `360p|540p|720p|1080p`                           |
 
 ```bash
 bun autoshow video "rain-soaked detective enters diner" --provider fal=minimax/h3 --duration 5 --resolution 2k
-bun autoshow video "product turntable" --provider fal=fal-ai/pixverse/c1 --mode image-to-video --input-image input/product.png --fal-video-generate-audio
+bun autoshow video "product turntable" --provider fal=fal-ai/pixverse/c1 --mode image-to-video --input-image input/product.png --generate-audio
 ```
 
 - MiniMax H3 accepts up to 9 image, 3 video, and 3 audio references (max 12 combined).
-- PixVerse C1 accepts up to 7 image references and supports `--fal-video-generate-audio`.
+- PixVerse C1 accepts up to 7 image references and supports `--generate-audio`.
 
 ## Output
 
@@ -230,15 +225,14 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 | Replicate `alibaba/happyhorse-1.1`                                  | ✅ 2026-06-22 | ✅            | ✅             | ✅                 | ❌          | ❌   | ❌     | ✅ 3–15s               | ⚠️ 1080p       | ✅ 5 ratios     | ❌ No                                 | ✅ Up to 9 | $0.14/s at 720p ($0.18 at 1080p)                           | 9/16          |
 | Luma Labs `ray-3.2`                                                 | ✅ 2026-06-09 | ✅            | ✅             | ❌                 | ❌          | ❌   | ❌     | ⚠️ 5s or 10s           | ⚠️ 1080p       | ✅ 6 ratios     | ❌ No                                 | ❌ No      | $0.30 per 5s 720p clip ($0.06–$3.60 by tier)               | 4/16          |
 | Grok `grok-imagine-video-1.5`                                       | ✅ 2026-05-30 | ✅            | ✅             | ✅                 | ❌          | ❌   | ❌     | ✅ 1–15s               | ⚠️ 1080p       | ✅ 7 ratios     | ❌ No                                 | ⚠️ Up to 5 | $0.14/s at 720p ($0.08 at 480p, $0.25 at 1080p)            | 9/16          |
-| Replicate `pixverse/pixverse-v6`                                    | ✅ 2026-04-22 | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ✅ 5–15s               | ⚠️ 1080p       | ✅ 3 ratios     | ✅ `--replicate-video-generate-audio` | ❌ No      | $0.09/s at 720p ($0.05–$0.18 by resolution)                | 7/16          |
+| Replicate `pixverse/pixverse-v6`                                    | ✅ 2026-04-22 | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ✅ 5–15s               | ⚠️ 1080p       | ✅ 3 ratios     | ✅ `--video-generate-audio`           | ❌ No      | $0.09/s at 720p ($0.05–$0.18 by resolution)                | 7/16          |
 | Gemini `veo-3.1-lite-generate-preview`                              | ✅ 2026-04-02 | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ⚠️ 4 / 6 / 8s          | ⚠️ 1080p       | ✅ Forwarded    | ❌ No                                 | ❌ No      | $0.05/s at 720p ($0.08 at 1080p)                           | 2/16          |
-| Replicate `kwaivgi/kling-v3-video`                                  | ✅ 2026-02-16 | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ✅ 3–15s               | ✅ 4K          | ✅ 3 ratios     | ✅ `--replicate-video-generate-audio` | ❌ No      | $0.168/s at 720p ($0.224 at 1080p, $0.42 at 4K)            | 12/16         |
-| Replicate `kwaivgi/kling-v3-omni-video`                             | ✅ 2026-02-16 | ✅            | ✅             | ✅                 | ✅          | ✅   | ❌     | ✅ 3–15s               | ✅ 4K          | ✅ 3 ratios     | ✅ `--replicate-video-generate-audio` | ✅ Up to 7 | $0.168/s at 720p ($0.224 at 1080p, $0.42 at 4K)            | 12/16         |
-| Replicate `bytedance/seedance-2.0`                                  | ✅ 2026-02-12 | ✅            | ✅             | ✅                 | ✅          | ✅   | ✅     | ✅ −1–15s              | ⚠️ 1080p       | ✅ 8 ratios     | ✅ `--replicate-video-generate-audio` | ✅ Up to 9 | $0.18/s at 720p ($0.08 at 480p, $0.45 at 1080p)            | 14/16         |
-| Replicate `bytedance/seedance-2.0-fast`                             | ✅ 2026-02-12 | ✅            | ✅             | ✅                 | ✅          | ✅   | ✅     | ✅ −1–15s              | ❌ 720p        | ✅ 8 ratios     | ✅ `--replicate-video-generate-audio` | ✅ Up to 9 | $0.15/s at 720p ($0.07 at 480p)                            | 11/16         |
+| Replicate `kwaivgi/kling-v3-video`                                  | ✅ 2026-02-16 | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ✅ 3–15s               | ✅ 4K          | ✅ 3 ratios     | ✅ `--video-generate-audio`           | ❌ No      | $0.168/s at 720p ($0.224 at 1080p, $0.42 at 4K)            | 12/16         |
+| Replicate `kwaivgi/kling-v3-omni-video`                             | ✅ 2026-02-16 | ✅            | ✅             | ✅                 | ✅          | ✅   | ❌     | ✅ 3–15s               | ✅ 4K          | ✅ 3 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 7 | $0.168/s at 720p ($0.224 at 1080p, $0.42 at 4K)            | 12/16         |
+| Replicate `bytedance/seedance-2.0`                                  | ✅ 2026-02-12 | ✅            | ✅             | ✅                 | ✅          | ✅   | ✅     | ✅ −1–15s              | ⚠️ 1080p       | ✅ 8 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 9 | $0.18/s at 720p ($0.08 at 480p, $0.45 at 1080p)            | 14/16         |
+| Replicate `bytedance/seedance-2.0-fast`                             | ✅ 2026-02-12 | ✅            | ✅             | ✅                 | ✅          | ✅   | ✅     | ✅ −1–15s              | ❌ 720p        | ✅ 8 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 9 | $0.15/s at 720p ($0.07 at 480p)                            | 11/16         |
 | Grok `grok-imagine-video`                                           | ✅ 2026-01    | ✅            | ✅             | ✅                 | ❌          | ✅   | ✅     | ✅ 1–15s               | ❌ 720p        | ✅ 7 ratios     | ❌ No                                 | ⚠️ Up to 3 | $0.05/s                                                    | 2/16          |
 | LTX `ltx-2-3-fast`                                                  | ✅ 2026       | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ✅ 6–20s               | ✅ 4K          | ✅ 16:9 or 9:16 | ❌ No                                 | ❌ No      | $0.06/s at 1080p (2x at 1440p, 4x at 4K)                   | 4/16          |
 | LTX `ltx-2-3-pro`                                                   | ✅ 2026       | ✅            | ✅             | ❌                 | ✅          | ❌   | ✅     | ⚠️ 6–10s; extend 2–20s | ✅ 4K          | ✅ 16:9 or 9:16 | ❌ No                                 | ❌ No      | $0.08/s at 1080p (2x at 1440p, 4x at 4K)                   | 6/16          |
-| fal.ai `fal-ai/pixverse/c1`                                         | ✅ 2026       | ✅            | ✅             | ✅                 | ✅          | ❌   | ❌     | ✅ 1–15s               | ⚠️ 1080p       | ✅ 8 ratios     | ✅ `--fal-video-generate-audio`       | ✅ Up to 7 | $0.005/s                                                   | 1/16          |
-| Gemini `veo-3.1-generate-preview` / `veo-3.1-fast-generate-preview` | ⚠️ 2025-10-15 | ✅            | ✅             | ✅                 | ✅          | ❌   | ✅     | ⚠️ 4 / 6 / 8s          | ✅ 4K          | ✅ Forwarded    | ❌ No                                 | ⚠️ Up to 3 | $0.40/s / $0.10/s at 720p                                  | 16/16 / 8/16  |
+| fal.ai `fal-ai/pixverse/c1`                                         | ✅ 2026       | ✅            | ✅             | ✅                 | ✅          | ❌   | ❌     | ✅ 1–15s               | ⚠️ 1080p       | ✅ 8 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 7 | $0.005/s                                                   | 1/16          |
 Gemini 1080p, 4K, reference-to-video, and extend requests are forced to 8 seconds; extend also forces 720p. Veo 3.1 Lite has no 4K, references, or extend. Grok text/image/reference is 1–15 seconds; edit/extend is 1–10 seconds and rejects aspect/resolution overrides. Grok 1.5 reference-to-video is capped at 720p. Seedance `−1` is intelligent duration, billed as 5 seconds. fal.ai MiniMax H3 audio is always on and also accepts up to 3 video and 3 audio references (12 combined).

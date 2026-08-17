@@ -8,7 +8,6 @@ export const classifyOcrSourceKind = (
   metadata: Pick<DocumentMetadata, 'format'>,
   options?: {
     preparedMarkdown?: string | undefined
-    epubInspect?: boolean | undefined
     forceOcr?: boolean | undefined
   }
 ): OcrSourceKind => {
@@ -17,10 +16,6 @@ export const classifyOcrSourceKind = (
   }
 
   const epubClassInput = metadata.format === 'epub' || isConvertibleEbookFormat(metadata.format)
-
-  if (epubClassInput && options?.epubInspect) {
-    return 'epub-inspect'
-  }
 
   if (epubClassInput) {
     return options?.forceOcr ? 'epub-pdf' : 'office-native'

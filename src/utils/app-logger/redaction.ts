@@ -51,8 +51,7 @@ const SENSITIVE_FLAG_NAMES = new Set<string>([
   'supadata-api-key',
   'scrapecreators-api-key',
   'elevenlabs-api-key',
-  'minimax-api-key',
-  'speechify-tts-consent-email'
+  'minimax-api-key'
 ])
 
 const SENSITIVE_OBJECT_KEY_PATTERN = /(?:token|api[_-]?key|authorization|secret|password|cookie|credential|account[_-]?id|organization[_-]?id|project[_-]?id|request[_-]?id|trace[_-]?id|traceparent|traceresponse|tracestate|cloud[_-]?trace|amzn[_-]?trace|b3[_-]?(?:traceid|spanid)|cf[_-]?ray|^auth$|[_-]auth$|auth[_-])/i

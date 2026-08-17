@@ -2,7 +2,7 @@ import type { OcrSingleRunContext, ProcessDocumentOutput } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { writePipelineItemRecords } from '../../pipeline-manifest'
-import { isEpubInspectMode, writeExtractionArtifact, writeTextArtifactFiles } from './ocr-artifacts'
+import { writeExtractionArtifact, writeTextArtifactFiles } from './ocr-artifacts'
 import { buildDocumentMetadataPayload, buildSuccessfulResolvedProviderStates, resolveRecordedOcrStep2, toResolvedRequestedProviders } from './ocr-document-metadata'
 import { buildExtractionOptionsForTarget } from './ocr-targets'
 import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token-profiles'
@@ -64,7 +64,6 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
     outputDir,
     extracted.result,
     opts.outputFormat ?? 'text',
-    isEpubInspectMode(extracted.step2Metadata),
     'result.json'
   )
   if (Array.isArray(extracted.artifactFiles)) {

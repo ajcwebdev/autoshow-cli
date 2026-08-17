@@ -27,7 +27,6 @@ describe('provider selection contracts', () => {
       ['openai', 'gpt-5.6'],
       ['openai-ocr', 'gpt-5.6'],
       ['minimax-music', 'music-2' + '.5'],
-      ['minimax-video', 'MiniMax-Hailuo-' + '02'],
       ['gemini-image', 'imagen-4.0-generate-001'],
       ['gemini-image', 'gemini-3.1-flash-image-preview'],
       ['bfl-image', 'flux-2-pro-preview'],

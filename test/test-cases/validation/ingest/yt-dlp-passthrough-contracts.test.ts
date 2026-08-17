@@ -320,7 +320,6 @@ describe('yt-dlp passthrough execution contracts', () => {
       { id: 'episode-3', url: 'https://example.com/feed-audio-3.mp3', directDownload: true }
     ], {
       limit: opts.batchLimit,
-      all: opts.batchAll,
       order: opts.batchOrder
     })
 

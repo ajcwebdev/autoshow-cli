@@ -29,7 +29,6 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
 
 export const STANDALONE_VIDEO_PROVIDER_TARGETS = {
   gemini: 'gemini-video',
-  minimax: 'minimax-video',
   grok: 'grok-video',
   ltx: 'ltx-video',
   replicate: 'replicate-video',
@@ -134,7 +133,6 @@ export const VIDEO_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   {
     gemini: { modelsKey: 'geminiVideoModels', modelKey: 'geminiVideoModel' },
-    minimax: { modelsKey: 'minimaxVideoModels', modelKey: 'minimaxVideoModel' },
     grok: { modelsKey: 'grokVideoModels', modelKey: 'grokVideoModel' },
     ltx: { modelsKey: 'ltxVideoModels', modelKey: 'ltxVideoModel' },
     replicate: { modelsKey: 'replicateVideoModels', modelKey: 'replicateVideoModel' },

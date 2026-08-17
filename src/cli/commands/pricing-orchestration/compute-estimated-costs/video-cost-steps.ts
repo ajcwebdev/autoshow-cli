@@ -12,7 +12,6 @@ export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStep
   }
 
   const sharedOptions = {
-    videoSize: input.videoSize,
     videoAspectRatio: input.videoAspectRatio,
     videoResolution: input.videoResolution,
     videoMode: input.videoMode,

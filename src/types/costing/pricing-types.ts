@@ -191,7 +191,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   imageQuality?: string | undefined
   imageCount?: number | undefined
   geminiVideoModel?: string | undefined
-  minimaxVideoModel?: string | undefined
   grokVideoModel?: string | undefined
   ltxVideoModel?: string | undefined
   replicateVideoModel?: string | undefined
@@ -199,7 +198,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   falVideoModel?: string | undefined
   videoTargets?: VideoPricingTarget[] | undefined
   videoDuration?: number | undefined
-  videoSize?: string | undefined
   videoAspectRatio?: string | undefined
   videoResolution?: string | undefined
   videoMode?: string | undefined
@@ -254,7 +252,6 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
   videoModel?: string | undefined
   videoDurationSeconds?: number | undefined
   videoTargets?: VideoPricingTarget[] | undefined
-  videoSize?: string | undefined
   videoAspectRatio?: string | undefined
   videoResolution?: string | undefined
   videoMode?: string | undefined

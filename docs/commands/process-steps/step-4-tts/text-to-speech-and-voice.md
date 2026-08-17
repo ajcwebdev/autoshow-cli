@@ -83,7 +83,6 @@ bun autoshow tts <input> [flags]
 | `--provider provider[=model]`                      | TTS provider/model selector; repeat to run multiple targets                                                                                                                       |
 | `--all-providers`                                  | Select the default all-provider TTS target set                                                                                                                                    |
 | `--provider-concurrency <n>`                       | Hosted TTS provider/model targets to run concurrently per item; this does not limit chunks inside one target; default `7`                                                         |
-| `--local-concurrency <n>`                          | Local TTS providers to run concurrently per item; default `7`                                                                                                                     |
 | `--batch-concurrency <n>`                          | Batch text files to process concurrently; default `7`                                                                                                                             |
 | `--concurrency-mode <ramp\|immediate>`             | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--tts-voice <provider=value\|value>`              | Generic TTS voice selector                                                                                                                                                        |
@@ -92,11 +91,10 @@ bun autoshow tts <input> [flags]
 | `--tts-ref-audio <provider=path\|path>`            | Explicit one-off Mistral reference input                                                                                                                                          |
 | `--tts-text-normalization <provider=value\|value>` | Generic text normalization                                                                                                                                                        |
 | `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                                                                                                  |
-| `--tts-output-format <provider=value\|value>`      | Generic output format                                                                                                                                                             |
 | `--tts-chunk-concurrency <n>`                      | Hosted TTS chunk starts allowed in parallel per provider; default `30` (or `50` for Grok-only)                                                                                    |
-| `--tts-allow-ambiguous-redispatch`                 | Explicitly authorize bounded in-process retries and later repurchase when a paid request has ambiguous provider admission                                                         |
-| `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                                                             |
-| `--tts-speaker SPEAKER=VOICE\|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                                                                |
+| `--allow-ambiguous-redispatch`                     | Explicitly authorize bounded in-process retries and later repurchase when a paid request has ambiguous provider admission                                                         |
+| `--tts-dialogue-format <screenplay|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                                                             |
+| `--tts-speaker SPEAKER=VOICE|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                                                                |
 | `--price`                                          | Show the aggregated estimate and exit                                                                                                                                             |
 | `--output-dir <dir>`                               | Global flag: pin an exact run directory instead of a timestamped output directory                                                                                                 |
 
@@ -106,7 +104,7 @@ See [Provider Capabilities](#provider-capabilities) for the per-provider stock-v
 
 When a hosted target fails after producing some chunks, AutoShow retains the target's `.tts-tmp-*` workspace and completed audio files. Do not delete that directory before resuming: the render journal uses retained output evidence to avoid purchasing completed segments again. Successful finalization removes the temporary chunk files normally.
 
-Paid requests with ambiguous admission are not retried by default. `--tts-allow-ambiguous-redispatch` explicitly authorizes a provider's bounded in-process retry policy and subsequent checkpoint resume; it may purchase the same immutable generation slot more than once. DeepInfra uses up to eight attempts with exponential jittered backoff. Every attempt is recorded in the admission journal, completed slots remain reusable, and an exhausted run reports the exact retained/unresolved checkpoint for the next invocation.
+Paid requests with ambiguous admission are not retried by default. `--allow-ambiguous-redispatch` explicitly authorizes a provider's bounded in-process retry policy and subsequent checkpoint resume; it may purchase the same immutable generation slot more than once. DeepInfra uses up to eight attempts with exponential jittered backoff. Every attempt is recorded in the admission journal, completed slots remain reusable, and an exhausted run reports the exact retained/unresolved checkpoint for the next invocation.
 
 AutoShow generally splits TTS text into 2000-character chunks, with provider/model registry limits taking precedence: Groq Orpheus uses 200, DeepInfra MiMo uses 1000, DeepInfra Qwen uses 4000, and DeepInfra Chatterbox uses 5000. `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that.
 
@@ -127,7 +125,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3
 | Selector       | `--provider elevenlabs[=<model>]`                                                                                                                                                                                                                                                                   |
 | Models         | `eleven_v3`                                                                                                                                                                                                                                                                                         |
 | Existing voice | `--tts-voice <id>`, default `hpp4J3VqNfWAUOO0d1Us`                                                                                                                                                                                                                                                  |
-| Controls       | `--tts-output-format`, `--tts-language`, `--elevenlabs-tts-stability`, `--elevenlabs-tts-similarity-boost`, `--elevenlabs-tts-style`, `--elevenlabs-tts-use-speaker-boost`, `--tts-speed`, `--elevenlabs-tts-seed`, `--tts-text-normalization`, `--elevenlabs-tts-pronunciation-dictionary-locator` |
+| Controls       | `--tts-language`, `--elevenlabs-tts-stability`, `--elevenlabs-tts-similarity-boost`, `--elevenlabs-tts-style`, `--elevenlabs-tts-use-speaker-boost`, `--tts-speed`, `--elevenlabs-tts-seed`, `--tts-text-normalization`, `--elevenlabs-tts-pronunciation-dictionary-locator` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
@@ -144,11 +142,11 @@ Use `voice list --provider` for catalogs, `voice design` for candidate generatio
 | Selector | `--provider minimax[=<model>]`                                                                                                                                                   |
 | Models   | `speech-2.8-hd`, `speech-2.8-turbo`                                                                                                                                              |
 | Voice    | `--tts-voice <id>`, default `English_expressive_narrator`                                                                                                                        |
-| Controls | `--minimax-tts-language-boost`, `--tts-speed`, `--minimax-tts-volume`, `--minimax-tts-pitch`, `--minimax-tts-emotion`, `--tts-text-normalization`, `--minimax-tts-pronunciation` |
+| Controls | `--tts-language`, `--tts-speed`, `--minimax-tts-volume`, `--minimax-tts-pitch`, `--minimax-tts-emotion`, `--tts-text-normalization`, `--minimax-tts-pronunciation` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator
-bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-hd --minimax-tts-language-boost English --tts-speed 1.15 --minimax-tts-emotion calm
+bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-hd --tts-language English --tts-speed 1.15 --minimax-tts-emotion calm
 bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator --price
 ```
 
@@ -250,12 +248,14 @@ Gemini multispeaker mode uses native two-speaker synthesis when eligible. Explic
 | Selector             | `--provider deepgram[=<model>]`                                                                                                    |
 | Models               | Aura 2 voice models listed by `bun autoshow tts --help`; default `aura-2-thalia-en`                                                |
 | Voice/model override | `--tts-voice <model>`, default selected model                                                                                      |
-| Controls             | `--deepgram-tts-container <container>`, `--deepgram-tts-bit-rate <bps>`, `--deepgram-tts-sample-rate <hz>`, `--tts-speed <0.5..2>` |
+| Controls             | `--tts-speed <0.5..2>`                                                                                                             |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider deepgram=aura-2-thalia-en --tts-voice aura-2-andromeda-en
-bun autoshow tts input/examples/tts/1-tts.md --provider deepgram=aura-2-thalia-en --deepgram-tts-container wav --deepgram-tts-sample-rate 24000
+bun autoshow tts input/examples/tts/1-tts.md --provider deepgram=aura-2-thalia-en --tts-speed 1.1
 ```
+
+Deepgram requests are pinned to `encoding=linear16` in a WAV container so the intermediate stays lossless before the run remasters it into `speech.wav`.
 
 ### Speechify
 
@@ -264,15 +264,15 @@ bun autoshow tts input/examples/tts/1-tts.md --provider deepgram=aura-2-thalia-e
 | Selector | `--provider speechify[=<model>]`                                      |
 | Models   | `simba-3.2`                                                           |
 | Voice    | `--tts-voice <id>`, default `geffen_32`                               |
-| Controls | `--tts-output-format mp3\|ogg\|aac\|wav\|pcm`, `--tts-language <tag>` |
+| Controls | `--tts-language <tag>`                                                |
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tts-voice geffen_32 --tts-language en-US --tts-output-format mp3
+bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tts-voice geffen_32 --tts-language en-US
 bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tts-voice speechify_custom_voice_123
 bun autoshow config --tts speechify=simba-3.2 --tts-voice speechify_custom_voice_123
 ```
 
-Speechify TTS sends text chunks to `POST /v1/audio/speech` and converts the output to `speech.wav`. Input may be plain text or SSML; wrap SSML in `<speak>` to control pitch, rate, volume, pauses, emphasis, substitutions, and emotion via `<speechify:style emotion="...">`. Simba 3.2 is English-only with curated built-ins.
+Speechify TTS sends text chunks to `POST /v1/audio/speech` with `audio_format` pinned to lossless `wav` and converts the output to `speech.wav`. Input may be plain text or SSML; wrap SSML in `<speak>` to control pitch, rate, volume, pauses, emphasis, substitutions, and emotion via `<speechify:style emotion="...">`. Simba 3.2 is English-only with curated built-ins.
 
 ### Hume
 
@@ -281,17 +281,16 @@ Speechify TTS sends text chunks to `POST /v1/audio/speech` and converts the outp
 | Selector       | `--provider hume[=<model>]`                                         |
 | Models         | `octave-1`, `octave-2`                                              |
 | Voice          | `--tts-voice <name-or-id>`, default `Male English Actor`            |
-| Voice provider | `--hume-tts-voice-provider HUME_AI|CUSTOM_VOICE`, default `HUME_AI` |
 | API settings   | `HUME_API_KEY`                                                      |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice "Male English Actor"
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice 00000000-0000-4000-8000-000000000000
-bun autoshow config --tts hume=octave-2 --tts-voice "Studio Voice" --hume-tts-voice-provider CUSTOM_VOICE
+bun autoshow config --tts hume=octave-2 --tts-voice 00000000-0000-4000-8000-000000000000
 ```
 
-Single-voice Hume TTS uses Octave 2 via `POST /v0/tts/file`. Multi-speaker plans use ordered Octave 2 utterances via `POST /v0/tts`. Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`.
+Single-voice Hume TTS uses Octave 2 via `POST /v0/tts/file`. Multi-speaker plans use ordered Octave 2 utterances via `POST /v0/tts`. Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`. A UUID is sent as a stable voice ID and resolves against any voice the account can reach, including account-owned custom voices; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID, which `voice list` reports.
 
 ### Cartesia
 
@@ -361,7 +360,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS
 bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS-VoiceDesign
 ```
 
-DeepInfra request fields are model-specific: Chatterbox uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Registry chunk limits take precedence over the 2000-character default: MiMo uses 1000, Qwen uses 4000, and Chatterbox uses 5000. Paid requests with ambiguous admission are not retried unless `--tts-allow-ambiguous-redispatch` is set. Multi-speaker dialogue uses the segmented renderer. DeepInfra is synthesis-only: pass an existing account or VoiceDesign voice ID with `--tts-voice`.
+DeepInfra request fields are model-specific: Chatterbox uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Registry chunk limits take precedence over the 2000-character default: MiMo uses 1000, Qwen uses 4000, and Chatterbox uses 5000. Paid requests with ambiguous admission are not retried unless `--allow-ambiguous-redispatch` is set. Multi-speaker dialogue uses the segmented renderer. DeepInfra is synthesis-only: pass an existing account or VoiceDesign voice ID with `--tts-voice`.
 
 ### Replicate
 
