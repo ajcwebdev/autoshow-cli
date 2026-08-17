@@ -17,6 +17,8 @@ import {
   isGlmRetryable429Exhaustion,
   isDeepInfraWhisperLargeV3CommandTimeout,
   isGeminiImageAvailabilityFailure,
+  isGeminiImageEmptyResponse,
+  isSupadataPlanLimitFailure,
   isBflResultDownloadAvailabilityFailure,
   isTogetherSttAvailabilityFailure
 } from './provider-failure-classifiers'
@@ -43,6 +45,12 @@ export const classifyLiveProviderAvailabilityFailure = (output: string): string 
   }
   if (isGeminiImageAvailabilityFailure(cleanOutput)) {
     return 'Gemini image provider is temporarily unavailable or rate limited'
+  }
+  if (isGeminiImageEmptyResponse(cleanOutput)) {
+    return 'Gemini image provider returned a response with no image content (refusal or filtered prompt)'
+  }
+  if (isSupadataPlanLimitFailure(cleanOutput)) {
+    return 'Supadata account plan limit is exhausted'
   }
   if (isBflResultDownloadAvailabilityFailure(cleanOutput)) {
     return 'BFL image result download hit a transient provider availability failure'

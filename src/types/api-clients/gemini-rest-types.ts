@@ -43,6 +43,7 @@ export type GeminiGenerateContentResponse = {
       parts?: GeminiPart[] | undefined
       [key: string]: unknown
     } | undefined
+    finishReason?: string | undefined
     groundingMetadata?: unknown
     [key: string]: unknown
   }> | undefined

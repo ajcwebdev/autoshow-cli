@@ -87,6 +87,9 @@ type HelpResult = { exitCode: number, stdout: string, stderr: string }
 const findHelpCommand = (name: string) =>
   helpSurfaces.find((command) => command.name === name)
 
+// These contracts assert help structure, not palette. The spawned help checks
+// below force NO_COLOR for the same reason; the in-process renderer honors
+// FORCE_COLOR (which `bun t` sets), so strip ANSI here instead.
 const loadHelp = async (args: string[]): Promise<HelpResult> => {
   if (args[0] === 'benchmark') {
     return {
@@ -96,7 +99,7 @@ const loadHelp = async (args: string[]): Promise<HelpResult> => {
     }
   }
   if (args.length === 1 && args[0] === '--help') {
-    return { exitCode: 0, stdout: renderRootHelp(nativeRoot, COMMAND_DEFINITIONS), stderr: '' }
+    return { exitCode: 0, stdout: stripAnsi(renderRootHelp(nativeRoot, COMMAND_DEFINITIONS)), stderr: '' }
   }
   const withoutHelp = args.filter((arg) => arg !== '--help')
   const commandName = withoutHelp[0] === 'comic' && withoutHelp[1] === 'help' && withoutHelp[2]
@@ -106,7 +109,7 @@ const loadHelp = async (args: string[]): Promise<HelpResult> => {
   if (!command) {
     return { exitCode: 2, stdout: '', stderr: `Unknown command "${commandName}"` }
   }
-  return { exitCode: 0, stdout: renderCommandHelp(nativeRoot, command), stderr: '' }
+  return { exitCode: 0, stdout: stripAnsi(renderCommandHelp(nativeRoot, command)), stderr: '' }
 }
 
 const getSection = (output: string, heading: string, nextHeading?: string): string => {

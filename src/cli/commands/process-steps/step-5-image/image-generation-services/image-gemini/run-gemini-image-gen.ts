@@ -10,6 +10,21 @@ import { imageReferenceToInlineDataPart } from '../../image-utils/image-inputs'
 import { getProviderReturnedModel } from '../../image-utils/image-output'
 import { InfraError } from '~/utils/error-handler'
 
+// A 200 response carrying no image part is the shape Gemini uses for a refusal or a filtered
+// prompt. The reason lives in promptFeedback.blockReason / candidates[].finishReason, so surface
+// it: without it the failure is indistinguishable from a provider outage.
+const describeGeminiEmptyImageReason = (
+  response: { promptFeedback?: { blockReason?: string | undefined } | undefined, candidates?: Array<{ finishReason?: string | undefined }> | undefined }
+): string => {
+  const blockReason = response.promptFeedback?.blockReason
+  const finishReason = response.candidates?.find((candidate) => typeof candidate.finishReason === 'string')?.finishReason
+  const reasons = [
+    ...(typeof blockReason === 'string' && blockReason.length > 0 ? [`blockReason=${blockReason}`] : []),
+    ...(typeof finishReason === 'string' && finishReason.length > 0 ? [`finishReason=${finishReason}`] : [])
+  ]
+  return reasons.length > 0 ? ` (${reasons.join(', ')})` : ''
+}
+
 export const runGeminiImageGen = async (
   prompt: string,
   outputDir: string,
@@ -65,7 +80,10 @@ export const runGeminiImageGen = async (
 
   const candidates = response.candidates ?? []
   if (candidates.length === 0 || !candidates[0]?.content?.parts) {
-    throw InfraError('No image content in Gemini response', { stage: 'image:gemini' })
+    throw InfraError(
+      `No image content in Gemini response${describeGeminiEmptyImageReason(response)}`,
+      { stage: 'image:gemini' }
+    )
   }
 
   let imageIndex = 0

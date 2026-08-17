@@ -1,4 +1,5 @@
 import type { RetryClass, Step2Metadata, SupadataHttpError, SupadataStage } from '~/types'
+import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import { describeSupadataUnsupportedSource } from './supadata'
 import { extractSupadataErrorMessage, isRecord } from './supadata-response-parsers'
 export const buildSupadataUrl = (baseURL: string, path: string): string =>
@@ -44,16 +45,22 @@ export const toSupadataHttpError = (
   response: Response,
   payload: unknown,
   messagePrefix = 'Supadata request failed'
-): SupadataHttpError => Object.assign(
-  new Error(`${messagePrefix} (${response.status}): ${extractSupadataErrorMessage(payload) ?? 'Unknown error'}`),
-  {
-    status: response.status,
-    headers: response.headers,
-    stage,
-    retryClass,
-    rawResponse: payload
-  } satisfies Pick<SupadataHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'rawResponse'>
-)
+): SupadataHttpError => {
+  const message = extractSupadataErrorMessage(payload)
+  return Object.assign(
+    new Error(`${messagePrefix} (${response.status}): ${message ?? 'Unknown error'}`),
+    {
+      status: response.status,
+      headers: response.headers,
+      stage,
+      retryClass,
+      rawResponse: payload,
+      // Plan-quota exhaustion is terminal for this run; retrying only spends more
+      // quota-denied requests. Burst 429s keep the default retryable behavior.
+      ...(isSupadataPlanLimitExhausted(payload, message) ? { retryable: false } : {})
+    } satisfies Pick<SupadataHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'rawResponse'> & { retryable?: false }
+  )
+}
 
 export const attachSupadataErrorContext = (
   error: unknown,

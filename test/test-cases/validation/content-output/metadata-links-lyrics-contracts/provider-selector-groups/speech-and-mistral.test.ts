@@ -11,6 +11,7 @@ import {
   CARTESIA_MODELS_LINKS,
   CARTESIA_TTS_LINKS,
   DEAPI_ALL_LINKS,
+  DEAPI_GENERAL_LINKS,
   DEAPI_MODELS_LINKS,
   DEAPI_STT_LINKS,
   GROK_ALL_LINKS,
@@ -298,7 +299,7 @@ test('links selector accepts inworld provider with general models and tts sectio
   ], 'Unknown links section(s) for --inworld: stt')
 })
 
-test('links selector accepts deapi provider with models and stt sections', async () => {
+test('links selector accepts deapi provider with general models and stt sections', async () => {
   const deapiSelection = parseLinksArgv([
     'bun',
     'src/cli/create-cli.ts',
@@ -346,13 +347,31 @@ test('links selector accepts deapi provider with models and stt sections', async
     deapiModelsSelection.globalSections
   )).toEqual(DEAPI_MODELS_LINKS)
 
+  const deapiGeneralSttSelection = parseLinksArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--deapi',
+    'general',
+    'stt'
+  ])
+
+  expect(collectLinks(
+    deapiGeneralSttSelection.serviceSelections,
+    deapiGeneralSttSelection.globalSections
+  )).toEqual([...DEAPI_GENERAL_LINKS, ...DEAPI_STT_LINKS])
+  expect(getDefaultLinksOutputFileName(
+    deapiGeneralSttSelection.serviceSelections,
+    deapiGeneralSttSelection.globalSections
+  )).toBe('deapi-general-stt-links.md')
+
   await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--deapi',
-    'general'
-  ], 'Unknown links section(s) for --deapi: general')
+    'tts'
+  ], 'Unknown links section(s) for --deapi: tts')
 })
 
 test('links selector accepts grok provider with models and tts sections', async () => {

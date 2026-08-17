@@ -126,7 +126,10 @@ export const createUrlProviderHttpError = (
   providerLabel: string,
   action: string,
   response: Response,
-  message: string | undefined
+  message: string | undefined,
+  // Providers that answer both burst throttling and terminal quota exhaustion with the same
+  // retryable status pass true here to suppress retries for the terminal case.
+  terminal = false
 ): Error => {
   const error = new Error(
     `${providerLabel} ${action} failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`
@@ -135,7 +138,8 @@ export const createUrlProviderHttpError = (
     status: response.status,
     headers: response.headers,
     provider: providerLabel,
-    retryable: response.status === 408 || response.status === 429 || response.status >= 500
+    retryable: !terminal
+      && (response.status === 408 || response.status === 429 || response.status >= 500)
   })
   return error
 }
@@ -183,7 +187,8 @@ export const fetchUrlProviderJson = async (
   endpoint: string,
   init: Omit<RequestInit, 'signal'>,
   options: UrlRequestOptions | undefined,
-  errorKeys: readonly string[]
+  errorKeys: readonly string[],
+  isTerminalFailure?: (payload: unknown, message: string | undefined) => boolean
 ): Promise<unknown> => {
   const response = await withUrlProviderTimeout(providerLabel, options, async (signal) =>
     await fetch(endpoint, { ...init, signal })
@@ -203,7 +208,13 @@ export const fetchUrlProviderJson = async (
         errorMessage ??= cleanString(payload[key])
       }
     }
-    throw createUrlProviderHttpError(providerLabel, action, response, errorMessage)
+    throw createUrlProviderHttpError(
+      providerLabel,
+      action,
+      response,
+      errorMessage,
+      isTerminalFailure?.(payload, errorMessage) === true
+    )
   }
 
   return payload

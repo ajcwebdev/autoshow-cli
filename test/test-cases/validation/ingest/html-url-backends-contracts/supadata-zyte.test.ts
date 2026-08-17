@@ -74,6 +74,32 @@ test('Supadata URL backend reports provider HTTP errors with message/details', a
   ).rejects.toThrow('Supadata scrape failed (401 Unauthorized): Unauthorized')
 })
 
+// Supadata uses 429 for both burst throttling and terminal plan exhaustion. Retrying the
+// terminal case spends more quota-denied requests and stalls the run for minutes, so the
+// error must carry retryable: false while an ordinary 429 stays retryable.
+test('Supadata URL backend marks plan-limit 429 non-retryable but keeps burst 429 retryable', async () => {
+  process.env['SUPADATA_API_KEY'] = 'supadata-test-key'
+
+  installMockFetch(() => new Response(JSON.stringify({
+    error: 'limit-exceeded',
+    message: 'Limit Exceeded'
+  }), { status: 429, statusText: 'Too Many Requests' }))
+
+  const planLimitError = await runSupadataUrl('https://article.test/limit', 'https://article.test/limit')
+    .then(() => undefined, (error: unknown) => error)
+  expect((planLimitError as { retryable?: unknown }).retryable).toBe(false)
+  expect((planLimitError as Error).message).toContain('Limit Exceeded')
+
+  installMockFetch(() => new Response(JSON.stringify({
+    error: 'rate-limited',
+    message: 'Too many requests, slow down'
+  }), { status: 429, statusText: 'Too Many Requests' }))
+
+  const burstError = await runSupadataUrl('https://article.test/burst', 'https://article.test/burst')
+    .then(() => undefined, (error: unknown) => error)
+  expect((burstError as { retryable?: unknown }).retryable).toBe(true)
+})
+
 test('Zyte URL backend posts article extract request and normalizes article metadata', async () => {
   delete process.env['ZYTE_API_KEY']
 

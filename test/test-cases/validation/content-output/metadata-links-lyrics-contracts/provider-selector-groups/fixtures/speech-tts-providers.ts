@@ -27,5 +27,6 @@ export const INWORLD_GENERAL_LINKS = sectionLinks('Inworld', 'General')
 export const INWORLD_TTS_LINKS = sectionLinks('Inworld', 'TTS')
 export const INWORLD_ALL_LINKS = providerLinks('Inworld')
 
+export const DEAPI_GENERAL_LINKS = sectionLinks('DeAPI', 'General')
 export const DEAPI_STT_LINKS = sectionLinks('DeAPI', 'STT')
 export const DEAPI_ALL_LINKS = providerLinks('DeAPI')

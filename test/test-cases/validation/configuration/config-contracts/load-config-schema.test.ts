@@ -68,9 +68,9 @@ describe('config load schema contracts', () => {
           video: {
             replicateVideo: ['bytedance/seedance-2.0-fast'],
             replicateVideoSeed: 123,
-            replicateVideoGenerateAudio: false,
-            replicateVideoReferenceVideos: ['input/examples/video/reference.mp4'],
-            replicateVideoReferenceAudios: ['input/examples/audio/reference.mp3'],
+            videoGenerateAudio: false,
+            videoReferenceVideos: ['input/examples/video/reference.mp4'],
+            videoReferenceAudios: ['input/examples/audio/reference.mp3'],
             replicateVideoNegativePrompt: 'blur',
             videoDuration: -1
           }

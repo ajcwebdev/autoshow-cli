@@ -1,4 +1,5 @@
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import { readEnv } from '~/utils/validate/env-utils'
 import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, isRecord, normalizeMarkdown } from '../../url-utils'
@@ -66,7 +67,7 @@ const runSupadataScrape = async (
   const payload = await fetchUrlProviderJson('Supadata', 'scrape', scrapeUrl, {
     method: 'GET',
     headers: { 'x-api-key': apiKey }
-  }, options, ['message', 'details', 'error'])
+  }, options, ['message', 'details', 'error'], isSupadataPlanLimitExhausted)
   return parseSupadataResponse(payload, source)
 }
 

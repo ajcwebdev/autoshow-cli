@@ -329,9 +329,8 @@ One-shot image inputs, masks, and edit controls are per-generation flags accepte
 | Field                                                                                                                                                                                                                        | Flag                                            |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | `geminiVideo`, `grokVideo`, `ltxVideo`, `replicateVideo`, `lumalabsVideo`, `falVideo`                                                                                                             | `--video provider[=model]`                      |
-| `videoDuration`, `videoAspectRatio`, `videoResolution`, `videoMode`, `videoInputImage`, `videoLastFrame`, `videoReferenceImages`, `videoInputVideo` | matching video option flags                     |
-| `replicateVideoSeed`, `replicateVideoGenerateAudio`, `replicateVideoReferenceVideos`, `replicateVideoReferenceAudios`, `replicateVideoNegativePrompt`                | `--replicate-video-*` option flags              |
-| `falVideoGenerateAudio`, `falVideoReferenceVideos`, `falVideoReferenceAudios`                                                                                                                                                | `--fal-video-*` option flags                    |
+| `videoDuration`, `videoAspectRatio`, `videoResolution`, `videoMode`, `videoInputImage`, `videoLastFrame`, `videoReferenceImages`, `videoInputVideo`, `videoGenerateAudio`, `videoReferenceVideos`, `videoReferenceAudios` | matching video option flags                     |
+| `replicateVideoSeed`, `replicateVideoNegativePrompt`                | `--replicate-video-*` option flags              |
 | `providerConcurrency`, `localConcurrency`                                                                                                                                                                                    | `--provider-concurrency`, `--local-concurrency` |
 
 ### defaults.post.music
