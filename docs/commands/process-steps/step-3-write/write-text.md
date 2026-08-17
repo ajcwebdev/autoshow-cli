@@ -76,8 +76,8 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 
 | Flag                                                                | Description                                                                                                                                                                       |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--stt`, `--ocr`, `--llm`, `--tts`, `--image`, `--video`, `--music` | Select a pipeline step provider as `provider[=model]`; repeat to run multiple providers/models                                                                                    |
-| `--all-providers <step>`                                            | Enable every hosted/API-backed provider for one write step: `stt`, `ocr`, `url`, `llm`, `tts`, `image`, `video`, or `music`                                                       |
+| `--stt`, `--ocr`, `--llm`                                           | Select a pipeline step provider as `provider[=model]`; repeat to run multiple providers/models                                                                                    |
+| `--all-providers <step>`                                            | Enable every hosted/API-backed provider for one write step: `stt`, `ocr`, `url`, or `llm`                                                                                         |
 | `--all-local <step>`                                                | Enable every local engine/backend for one write step: `stt`, `ocr`, or `url`                                                                                                      |
 | `--reasoning-effort <policy>`                                       | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max`                                                                       |
 | `--batch-limit <n\|all>`                                             | Limit batch size or process all items (`all`); default `5`                                                                                                                        |
@@ -347,11 +347,30 @@ Prompt names are assembled at runtime from JSON files discovered recursively und
 
 - `write` accepts the same step-2 STT flags documented in [`extract STT`](../step-2-extract/02-extract-stt.md#shared-stt-options) and provider sections, plus the same step-2 OCR flags documented in [`extract OCR`](../step-2-extract/03-extract-ocr.md#shared-ocr-options) and provider sections. Provider/model flags are repeatable, so routed step-2 media and document work can fan out across multiple selected providers.
 - Resume is exposed as the top-level `resume` command for extract, write, TTS, image, video, and music outputs, not as a `write` flag.
-- `write` also accepts post-generation flags for [`tts`](../step-4-tts/text-to-speech-and-voice.md), [`image`](../step-5-image/text-to-image.md), [`video`](../step-6-video/text-to-video-services.md), and [`music`](../step-7-music/text-to-music-services.md). Those options are documented on their own command pages instead of being repeated here.
-- Post-generation steps still require exactly one step-3 LLM output. Repeating `--llm` for multiple models produces multiple step-3 outputs and therefore skips TTS, image, video, and music generation for that run.
-- `--batch-concurrency` controls how many batch items run at once. `--provider-concurrency` and `--local-concurrency` control provider fan-out inside each write item. Hosted work from batch children and later generation stages shares the run-scoped provider/account ramp; local work remains immediate.
+- `--batch-concurrency` controls how many batch items run at once. `--provider-concurrency` and `--local-concurrency` control provider fan-out inside each write item. Hosted work from batch children shares the run-scoped provider/account ramp; local work remains immediate.
 - `write ./output/<name>/text` and files under that directory automatically enable project lyric draft mode. Shorthands such as `write demo` or `write ./output/demo` do not.
 - Project lyric draft mode requires `./output/<name>/prompt.md` unless `--prompt-file` is supplied. Explicit `--prompt-file`, `--track-list`, and `--rendered-out-dir` values override the project defaults.
+
+## Generate Media from Write Output
+
+`write` stops at step 3 (text generation). To generate speech, images, video, or music from written outputs, invoke the standalone generation commands against `write`'s rendered markdown or prompt outputs:
+
+```bash
+# 1. Run write to produce rendered text
+bun autoshow write video.mp4 --llm openai --prompt shortSummary --rendered-text
+
+# 2. Synthesize audio with TTS
+bun autoshow tts output/<run-dir>/text.md --provider elevenlabs
+
+# 3. Generate music using the written text as the prompt
+bun autoshow music output/<run-dir>/text.md --provider elevenlabs
+
+# 4. Generate images or video using the written text as a prompt
+bun autoshow image "$(cat output/<run-dir>/text.md)" --provider openai
+bun autoshow video "$(cat output/<run-dir>/text.md)" --provider grok
+```
+
+With a single `--llm` target the rendered file is `text.md`; multiple targets write one `text-<model>.md` per model. Lyric drafts from project lyric draft mode land under `./output/<name>/lyrics` and pair with `music --lyrics-file` for lyrics-driven generation.
 
 ## Provider Capabilities
 

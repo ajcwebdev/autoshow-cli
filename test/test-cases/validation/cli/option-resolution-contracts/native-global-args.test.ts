@@ -4,7 +4,7 @@ import { getSceneOutputDirectory } from '~/cli/commands/process-steps/step-8-com
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
+import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
 import { normalizeResumeSelectorFlagsForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
@@ -28,7 +28,7 @@ describe('native global argument contracts', () => {
   test('unsupported local provider groups are rejected instead of silently dropped', () => {
     expect(() => normalizeWriteStepSelectorFlags({
       'all-local': ['image']
-    }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': ['image'] }))).toThrow('--all-local does not support step "image"')
+    }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': ['image'] }))).toThrow('Invalid --all-local step "image"')
 
     expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true

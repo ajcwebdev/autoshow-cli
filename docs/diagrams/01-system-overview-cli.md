@@ -24,7 +24,7 @@ bun autoshow <command> [<subcommand>] <target> [flags]
 
 1. CLI layer: `src/cli/create-cli.ts` registers the root definition, global flags, command groups, and per-command definitions. `src/cli/native/*` parses argv, renders help/version output, rejects unknown flags where appropriate, and builds the command context.
 2. Target layer: `handleProcessTarget()` resolves the target, merges config defaults, normalizes selectors, composes only the domain option slices required by the selected command, calls `resolveProcessTargetPlan()`, and for single extract/write items calls `resolveInputRoutingForCommand()`.
-3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 TTS/image/video/music generation, and Step 8 comic utilities.
+3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 standalone TTS/image/video/music generation, and Step 8 comic utilities.
 4. Output layer: every run or batch root owns one unversioned `manifest.json` with the same canonical shape. Provider lifecycle state is stored in that manifest through the serialized atomic writer; provider directories contain generated artifacts and optional raw domain `result.json` payloads, never another control artifact.
 
 ## Native Dispatch
@@ -102,7 +102,7 @@ Processing and generation:
   metadata  Step 0/1 metadata only
   download  Step 1 download/detect only
   extract   Step 1 + Step 2 extraction
-  write     Step 1 + Step 2 + Step 3, optionally Steps 4-7
+  write     Step 1 + Step 2 + Step 3 text generation
   tts       standalone TTS for .md/.txt files or directories
   voice     standalone voice registration and lifecycle management
   image     standalone image generation
@@ -131,7 +131,14 @@ standalone generation
   --provider-concurrency N
   --local-concurrency N
 
-write/config pipeline defaults
+write pipeline
+  --stt provider[=model]
+  --ocr provider[=model]
+  --llm provider[=model]
+  --all-providers stt|ocr|url|llm
+  --all-local stt|ocr|url
+
+config pipeline defaults
   --stt provider[=model]
   --ocr provider[=model]
   --llm provider[=model]
@@ -139,11 +146,11 @@ write/config pipeline defaults
   --image provider[=model]
   --video provider[=model]
   --music provider[=model]
-   --all-providers stt|ocr|url|llm|tts|image|video|music
-   --all-local stt|ocr|url
+  --all-providers stt|ocr|url|llm|tts|image|video|music
+  --all-local stt|ocr|url
 ```
 
-Flag/config resolution is command-neutral, but processing is not built around an all-command option bag. STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing consumers accept their own option slices plus explicitly named shared controls. Only the full media/document write path composes the slices it actually runs.
+Flag/config resolution is command-neutral, but processing is not built around an all-command option bag. STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing consumers accept their own option slices plus explicitly named shared controls. Write composes the STT/OCR/URL/LLM slices it actually runs, while standalone generation commands consume their respective generation option slices.
 
 `extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections are normalized before execution.
 
@@ -169,7 +176,7 @@ Command-to-flag mapping:
 | `metadata`                    | `--save`, document password, URL backend, batch flags.                                                                                 |
 | `download`                    | download/media flags, URL backend, batch flags.                                                                                        |
 | `extract`                     | STT/OCR/URL selectors, advanced OCR flags, `--youtube-captions`, batch flags, `--price`, `--transcript-video`.                         |
-| `write`                       | Step selectors for STT/OCR/URL/LLM/TTS/image/video/music, prompt/text-input flags, rendered text flags, batch flags, generation flags. |
+| `write`                       | Step selectors for STT/OCR/URL/LLM, prompt/text-input flags, rendered text flags, batch flags, pricing flags.                          |
 | `resume`                      | target-aware provider selectors for missing or failed providers.                                                                       |
 | `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors.                                                                                    |
 | `voice`                       | standalone voice registration, audition, approval, consent, discovery, and deletion flags.                                             |

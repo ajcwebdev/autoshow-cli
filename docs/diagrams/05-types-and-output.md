@@ -238,7 +238,7 @@ Flag/config resolution context:
   command-neutral resolution state
 
 ProcessingOptions:
-  only the composed media/document write pipeline
+  only the composed media/document write pipeline (STT, OCR, URL, LLM, batch, pricing)
 
 Domain option slices:
   STT, OCR, URL, LLM, TTS, image, video, music, comic, batch, and pricing

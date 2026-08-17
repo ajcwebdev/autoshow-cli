@@ -214,23 +214,11 @@ describe('adaptive provider group parser', () => {
       '--url-provider',
       'supadata',
       '--llm',
-      'openai=gpt-5.5',
-      '--tts',
-      'minimax=speech-2.8-turbo',
-      '--image',
-      'openai=gpt-image-2',
-      '--video',
-      'ltx=ltx-2-3-fast',
-      '--music',
-      'gemini=lyria-3-pro-preview'
+      'openai=gpt-5.5'
     ])).toEqual([
       'extract/anthropic',
-      'image/openai',
-      'music/gemini',
       'transcribe/deepgram',
-      'tts/minimax',
       'url/supadata',
-      'video/ltx',
       'write/openai',
     ])
 

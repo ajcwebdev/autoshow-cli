@@ -41,7 +41,7 @@ function assertDownloadOptions (
 function assertWriteOptions (
   opts: SingleTargetCommandOptions
 ): asserts opts is WriteRuntimeOptions {
-  if (!('llmProviderConcurrency' in opts) || !('ttsProviderConcurrency' in opts)) {
+  if (!('llmProviderConcurrency' in opts) || !('skipLLM' in opts)) {
     throw ValidationError('Write command options are incomplete')
   }
 }

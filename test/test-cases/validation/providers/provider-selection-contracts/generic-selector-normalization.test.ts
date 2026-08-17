@@ -7,7 +7,7 @@ import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/v
 import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { normalizeExtractGenericSelectorFlags as normalizeExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeGenericProviderSelectorFlags as normalizeGenericProviderSelectorOccurrences } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { normalizeWriteStepSelectorFlags as normalizeWriteStepSelectorOccurrences } from '~/cli/flags/service-selector-normalization/write-step-selectors'
+import { normalizeWriteStepSelectorFlags as normalizeWriteStepSelectorOccurrences } from '~/cli/flags/service-selector-normalization/step-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { normalizeResumeSelectorFlagsForTarget as normalizeResumeSelectorOccurrencesForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { buildWriteResumeOutputFileName } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
@@ -174,11 +174,11 @@ describe('provider selection contracts', () => {
 
     expect(() => normalizeWriteStepSelectorFlags({
       'all-local': ['image']
-    }, new Set(['all-local']))).toThrow('--all-local does not support step "image"')
+    }, new Set(['all-local']))).toThrow('Invalid --all-local step "image"')
 
     expect(() => normalizeWriteStepSelectorFlags({
       'all-local': ['tts']
-    }, new Set(['all-local']))).toThrow('--all-local does not support step "tts"')
+    }, new Set(['all-local']))).toThrow('Invalid --all-local step "tts"')
 
     expect(() => normalizeWriteStepSelectorFlags({
       'all-local': true
@@ -211,7 +211,7 @@ describe('provider selection contracts', () => {
     expect(() => normalizeWriteStepSelectorFlags({
       'all-providers': ['stt', 'llm'],
       'all-local': ['tts']
-    }, new Set(['all-providers', 'all-local']))).toThrow('--all-local does not support step "tts"')
+    }, new Set(['all-providers', 'all-local']))).toThrow('Invalid --all-local step "tts"')
     expect(() => normalizeWriteStepSelectorFlags({
       'all-providers': ['stt', 'llm'],
       'all-local': ['llm']

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createGenerationResourceGate } from '~/cli/commands/process-steps/step-3-write/generation-resource-gate'
+import { createResourceGate } from '~/utils/resource-gate'
 import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provider-target-scheduler'
 import { createProviderLaneIdentity } from '~/cli/commands/process-steps/provider-lane-contract'
 import { runImageTargets } from '~/cli/commands/process-steps/step-5-image/run-image-gen'
@@ -105,7 +105,7 @@ describe('target scheduler contracts', () => {
       { service: 'local', model: 'local-a', pool: 'local', delayMs: 10 },
       { service: 'local', model: 'local-b', pool: 'local', delayMs: 10 }
     ]
-    const gate = createGenerationResourceGate({ capacity: 2 })
+    const gate = createResourceGate({ capacity: 2 })
     let activeTotal = 0
     let maxTotal = 0
 

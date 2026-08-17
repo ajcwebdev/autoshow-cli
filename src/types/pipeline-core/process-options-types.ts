@@ -1,9 +1,5 @@
-import type { ImageRuntimeOptions } from '../download-workflow/image-options-types'
-import type { MusicRuntimeOptions } from '../download-workflow/music-options-types'
 import type { ResolvedLLMModelOptions } from '../download-workflow/model-option-llm-defaults-types'
 import type { SttRuntimeOptions } from '../download-workflow/stt-options-types'
-import type { TtsRuntimeOptions } from '../download-workflow/tts-options-types'
-import type { VideoRuntimeOptions } from '../download-workflow/video-options-types'
 import type { Step2SelectionOriginOptions } from './step-2-shared-types'
 
 export type ProcessingSource =
@@ -21,12 +17,6 @@ type ProcessingSttOptions = Partial<Omit<
 type ProcessingLlmOptions = Partial<ResolvedLLMModelOptions & {
   llmProviderConcurrency: number
   llmLocalConcurrency: number
-}>
-
-type ProcessingTtsOptions = Partial<TtsRuntimeOptions & {
-  ttsProviderConcurrency: number
-  ttsLocalConcurrency: number
-  ttsChunkConcurrency: number
 }>
 
 type ProcessingWriteOptions = {
@@ -48,9 +38,5 @@ export type ProcessingOptions = ProcessingSource
   & Step2SelectionOriginOptions
   & ProcessingSttOptions
   & ProcessingLlmOptions
-  & ProcessingTtsOptions
-  & Partial<ImageRuntimeOptions>
-  & Partial<VideoRuntimeOptions>
-  & Partial<MusicRuntimeOptions>
   & Partial<ProcessingWriteOptions>
   & { outputDir: string }

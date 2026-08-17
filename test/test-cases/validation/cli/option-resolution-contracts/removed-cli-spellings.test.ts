@@ -124,7 +124,17 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['write', 'https://example.com/a.mp3', '--replicate-video-generate-audio'], flag: '--replicate-video-generate-audio' },
   { argv: ['write', 'https://example.com/a.mp3', '--fal-video-generate-audio'], flag: '--fal-video-generate-audio' },
   { argv: ['config', '--replicate-video-generate-audio'], flag: '--replicate-video-generate-audio' },
-  { argv: ['config', '--fal-video-generate-audio'], flag: '--fal-video-generate-audio' }
+  { argv: ['config', '--fal-video-generate-audio'], flag: '--fal-video-generate-audio' },
+  { argv: ['write', 'https://example.com/a.mp3', '--tts', 'elevenlabs'], flag: '--tts' },
+  { argv: ['write', 'https://example.com/a.mp3', '--image', 'openai'], flag: '--image' },
+  { argv: ['write', 'https://example.com/a.mp3', '--video', 'ltx'], flag: '--video' },
+  { argv: ['write', 'https://example.com/a.mp3', '--music', 'minimax'], flag: '--music' },
+  { argv: ['write', 'https://example.com/a.mp3', '--tts-voice', 'alloy'], flag: '--tts-voice' },
+  { argv: ['write', 'https://example.com/a.mp3', '--image-size', '1024x1024'], flag: '--image-size' },
+  { argv: ['write', 'https://example.com/a.mp3', '--video-mode', 'text'], flag: '--video-mode' },
+  { argv: ['write', 'https://example.com/a.mp3', '--music-duration', '20'], flag: '--music-duration' },
+  { argv: ['write', 'https://example.com/a.mp3', '--tts-speaker', 'Host=Jasper'], flag: '--tts-speaker' },
+  { argv: ['write', 'https://example.com/a.mp3', '--elevenlabs-tts-stability', '0.4'], flag: '--elevenlabs-tts-stability' }
 ]
 
 describe('removed CLI spellings', () => {

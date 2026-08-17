@@ -25,7 +25,7 @@ resolveProcessTargetDoubleDash()
 load config + merge config flags + compose command/domain option slices
         |
         +--> extract: normalize generic provider flags after preliminary route checks
-        +--> write: normalize step selectors and generic TTS options
+        +--> write: normalize step selectors (STT, OCR, LLM)
         +--> write text project defaults:
              <project>/text -> --text-input mode with prompt.md,
              tracks.md, and rendered lyrics defaults when present
@@ -104,13 +104,13 @@ The document family includes `.pdf`, `.epub`, `.docx`, `.pptx`, `.xlsx`, `.odt`,
 
 ## Command Matrix
 
-| Family         | `metadata`            | `download`                     | `extract`                 | `write`                                         |
-| -------------- | --------------------- | ------------------------------ | ------------------------- | ----------------------------------------------- |
-| Media          | metadata only         | download/stage media           | STT route                 | STT + LLM + optional generation                 |
-| Document/image | metadata only         | download/copy document         | OCR/native document route | OCR/native document + LLM + optional generation |
-| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | URL/article + LLM + optional generation         |
-| X Space        | X API metadata lookup | Space audio download           | X Space route             | X Space report + LLM                            |
-| Text input     | unsupported           | unsupported                    | unsupported               | only when `--text-input` is active              |
+| Family         | `metadata`            | `download`                     | `extract`                 | `write`                            |
+| -------------- | --------------------- | ------------------------------ | ------------------------- | ---------------------------------- |
+| Media          | metadata only         | download/stage media           | STT route                 | STT + LLM                          |
+| Document/image | metadata only         | download/copy document         | OCR/native document route | OCR/native document + LLM          |
+| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | URL/article + LLM                  |
+| X Space        | X API metadata lookup | Space audio download           | X Space route             | X Space report + LLM               |
+| Text input     | unsupported           | unsupported                    | unsupported               | only when `--text-input` is active |
 
 Unsupported batch items are kept in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`. They are not sent to child batch execution.
 

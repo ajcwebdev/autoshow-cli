@@ -1,6 +1,6 @@
 # Write Command Generation Removal
 
-Status: implementation plan ready; no code changes in this pass (paths, symbols, and line references verified against the working tree on 2026-08-17, including the uncommitted help-audit edits currently in flight)
+Status: Complete (all phases 1–5 implemented and verified).
 
 Date: 2026-08-17
 
@@ -19,7 +19,7 @@ Behavioral footguns this removal also eliminates:
 
 ## Target Surface After Removal
 
-`write` help retains these groups only: Pipeline Selection (with `--stt`, `--ocr`, `--llm`, `--all-providers stt|ocr|url|llm`, `--all-local stt|ocr|url`, concurrency and `--reasoning-effort`), Batch / Download, Transcription / STT, OCR / Document Extraction, Article Extraction, EPUB Inspect, Writing, and Pricing.
+`write` help retains these groups only: Pipeline Selection (with `--stt`, `--ocr`, `--llm`, `--all-providers stt|ocr|url|llm`, `--all-local stt|ocr|url`, concurrency and `--reasoning-effort`), Batch / Download, Transcription / STT, OCR / Document Extraction, Article Extraction, Writing, and Pricing.
 
 The follow-on workflow replaces the removed one-shot pipeline:
 
@@ -29,14 +29,14 @@ bun autoshow write video.mp4 --llm openai --prompt shortSummary --tts elevenlabs
 
 # after: write produces text, then the generation command consumes it
 bun autoshow write video.mp4 --llm openai --prompt shortSummary --rendered-text
-bun autoshow tts output/<run-dir>/rendered.md --provider elevenlabs
+bun autoshow tts output/<run-dir>/text.md --provider elevenlabs
 ```
 
 Follow-on parity by command:
 
 - `tts` takes a `.md`/`.txt` file or directory (`define-tts-command.ts:1177-1178`), so `--rendered-text` / `--rendered-out-dir` output feeds it directly. `--tts-allow-ambiguous-redispatch` and all slot-recovery behavior live on `tts` and `resume` and are unaffected.
 - `music` takes a prompt or a local `.md`/`.txt` lyrics file (`define-music-command.ts:166`), which pairs with write's lyric-project mode output.
-- `image` and `video` take a literal prompt string, not a file (`define-image-command.ts:127-128`, `define-video-command.ts:126-127`). Follow-on usage is `bun autoshow image "$(cat output/<run-dir>/rendered.md)"` or an intentionally authored prompt. See Decision Points for whether to add file-path prompt support later; this plan does not include it.
+- `image` and `video` take a literal prompt string, not a file (`define-image-command.ts:127-128`, `define-video-command.ts:126-127`). Follow-on usage is `bun autoshow image "$(cat output/<run-dir>/text.md)"` or an intentionally authored prompt. See Decision Points for whether to add file-path prompt support later; this plan does not include it.
 - `--price` on `write` shrinks to steps 0–3. Generation cost estimation moves to `tts --price`, `image --price`, `video --price`, `music --price`, which already exist.
 
 ## Scope Boundaries: What Stays Untouched
@@ -55,13 +55,13 @@ The shared machinery is used by the standalone commands, `resume`, `config`, and
 
 ## Phase Overview
 
-| Phase | Scope | Risk |
-| --- | --- | --- |
-| **Phase 1** | Sever generation execution and pricing from the write runtime (write executes and prices steps 0–3 only) | Medium |
-| **Phase 2** | Remove write's generation flag surface, step selectors, and TTS-specific normalization/validation | Medium |
-| **Phase 3** | Type-surface narrowing and dead-code sweep | Low |
-| **Phase 4** | Test catalog reconciliation and replacement coverage | Low |
-| **Phase 5** | Documentation, diagrams, and decision record | Low |
+| Phase | Scope | Status | Risk |
+| --- | --- | --- | --- |
+| **Phase 1** | Sever generation execution and pricing from the write runtime (write executes and prices steps 0–3 only) | Complete | Medium |
+| **Phase 2** | Remove write's generation flag surface, step selectors, and TTS-specific normalization/validation | Complete | Medium |
+| **Phase 3** | Type-surface narrowing and dead-code sweep | Complete | Low |
+| **Phase 4** | Test catalog reconciliation and replacement coverage | Complete | Low |
+| **Phase 5** | Documentation, diagrams, and decision record | Complete | Low |
 
 ### Sequencing Notes
 

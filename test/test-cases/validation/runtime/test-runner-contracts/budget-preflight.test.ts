@@ -432,10 +432,8 @@ describe('test-runner contracts', () => {
   test('music selected-file budget preflight includes keys for live ElevenLabs music skips', () => {
       const allFiles = [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/elevenlabs-music.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/elevenlabs-music-v2-pipeline.test.ts',
         'test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts',
         'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0-pipeline.test.ts',
         'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0-gemini-lyria-3-pro-preview.test.ts'
       ]
 
@@ -443,13 +441,11 @@ describe('test-runner contracts', () => {
         'test/test-cases/e2e/service/step-7-music-gen-e2e/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(elevenlabsKeys).toContain('music-elevenlabs-music_v2')
-      expect(elevenlabsKeys).toContain('music-pipeline-elevenlabs-music_v2')
 
       const minimaxKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(minimaxKeys).toContain('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview')
-      expect(minimaxKeys).toContain('music-pipeline-minimax-music-3.0')
       for (const model of MINIMAX_INSTRUMENTAL_MUSIC_MODELS) {
         expect(minimaxKeys).toContain(`music-minimax-${model}`)
       }

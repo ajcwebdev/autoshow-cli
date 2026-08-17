@@ -2,10 +2,6 @@ import type { ExpectedOutputOptions, LlmRuntimeOptions, OcrRuntimeOptions, Proce
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { collectSttTargets, collectSttTargetsForSource, sttSourceFromInput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
-import { collectTtsTargets, getTtsArtifactFileName } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
-import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
-import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { shouldExportEpubChapters } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults'
 import { resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { isDocumentLikeTarget } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
@@ -109,7 +105,6 @@ export const buildExpectedFilesList = async (
   }
   if (command === 'write' && opts.textInput) {
     const llmOutputCount = getEffectiveLlmOutputCount(opts)
-    const canRunPostGeneration = llmOutputCount === 1
     const files = [
       getExpectedLlmJsonArtifact(llmOutputCount),
       getExpectedShowNoteArtifact(llmOutputCount)
@@ -119,24 +114,6 @@ export const buildExpectedFilesList = async (
     }
     if (typeof opts.renderedOutDir === 'string' && opts.renderedOutDir.length > 0) {
       files.push(`${opts.renderedOutDir}/*.md`)
-    }
-    const ttsTargets = collectTtsTargets(opts)
-    const imageTargets = collectImageTargets(opts)
-    const videoTargets = collectVideoTargets(opts)
-    const musicTargets = collectMusicTargets(opts)
-    if (ttsTargets.length > 0 && canRunPostGeneration) {
-      for (const target of ttsTargets) {
-        files.push(getTtsArtifactFileName(target, ttsTargets.length === 1))
-      }
-    }
-    if (canRunPostGeneration && imageTargets.length > 0) {
-      files.push('generated-image.png')
-    }
-    if (canRunPostGeneration && videoTargets.length > 0) {
-      files.push('Video file')
-    }
-    if (canRunPostGeneration && musicTargets.length > 0) {
-      files.push('Music file')
     }
     files.push('prompt.md')
     files.push('manifest.json')
@@ -182,25 +159,6 @@ export const buildExpectedFilesList = async (
   if (collectExpectedSttTargets(opts, resolvedTarget).length > 1) {
     files.push('providers/<service>-<model>/transcription.txt')
     files.push('providers/<service>-<model>/result.json')
-  }
-  const ttsTargets = collectTtsTargets(opts)
-  const imageTargets = collectImageTargets(opts)
-  const videoTargets = collectVideoTargets(opts)
-  const musicTargets = collectMusicTargets(opts)
-  const canRunPostGeneration = !opts.skipLLM && llmOutputCount === 1
-  if (ttsTargets.length > 0 && canRunPostGeneration) {
-    for (const target of ttsTargets) {
-      files.push(getTtsArtifactFileName(target, ttsTargets.length === 1))
-    }
-  }
-  if (canRunPostGeneration && imageTargets.length > 0) {
-    files.push('generated-image.png')
-  }
-  if (canRunPostGeneration && videoTargets.length > 0) {
-    files.push('Video file')
-  }
-  if (canRunPostGeneration && musicTargets.length > 0) {
-    files.push('Music file')
   }
   if (opts.youtubeCaptions) {
     files.push('youtube-captions.vtt (when available)')

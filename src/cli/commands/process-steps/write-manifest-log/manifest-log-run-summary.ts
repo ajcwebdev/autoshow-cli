@@ -17,10 +17,6 @@ import {
   isExtractionMetadata,
   isStep2Metadata,
   isStep3Metadata,
-  isStep4Metadata,
-  isStep5Metadata,
-  isStep6Metadata,
-  isStep7Metadata,
   toArray
 } from './manifest-log-metadata'
 import { SUMMARY_COLUMNS } from './write-manifest-log-columns'
@@ -75,51 +71,11 @@ const buildStep3SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[
     providerModel: buildProviderModelLabel(entry.llmService, entry.llmModel)
   }))
 
-const buildStep4SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[] =>
-  toArray(metadata['step4'], isStep4Metadata).map((entry) => ({
-    stepKey: 'tts' as const,
-    step: 'TTS',
-    provider: entry.ttsService,
-    model: entry.ttsModel,
-    providerModel: buildProviderModelLabel(entry.ttsService, entry.ttsModel)
-  }))
-
-const buildStep5SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[] =>
-  toArray(metadata['step5'], isStep5Metadata).map((entry) => ({
-    stepKey: 'image' as const,
-    step: 'Image',
-    provider: entry.imageService,
-    model: entry.imageModel,
-    providerModel: buildProviderModelLabel(entry.imageService, entry.imageModel)
-  }))
-
-const buildStep6SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[] =>
-  toArray(metadata['step6'], isStep6Metadata).map((entry) => ({
-    stepKey: 'video' as const,
-    step: 'Video',
-    provider: entry.videoGenService,
-    model: entry.videoGenModel,
-    providerModel: buildProviderModelLabel(entry.videoGenService, entry.videoGenModel)
-  }))
-
-const buildStep7SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[] =>
-  toArray(metadata['step7'], isStep7Metadata).map((entry) => ({
-    stepKey: 'music' as const,
-    step: 'Music',
-    provider: entry.musicService,
-    model: entry.musicModel,
-    providerModel: buildProviderModelLabel(entry.musicService, entry.musicModel)
-  }))
-
 const buildSummaryBaseRows = (metadata: WriteManifestMetadata): ManifestLogIndexedRow<SummaryBaseRow>[] => {
   const occurrenceByKey = new Map<string, number>()
   const orderedRows = [
     ...buildStep2SummaryRows(metadata),
-    ...buildStep3SummaryRows(metadata),
-    ...buildStep4SummaryRows(metadata),
-    ...buildStep5SummaryRows(metadata),
-    ...buildStep6SummaryRows(metadata),
-    ...buildStep7SummaryRows(metadata)
+    ...buildStep3SummaryRows(metadata)
   ]
 
   return orderedRows.map((row) => {

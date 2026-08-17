@@ -73,7 +73,7 @@ bun autoshow video "character walking through lagoon" --provider grok=grok-imagi
 
 ## Shared Video Options
 
-The standalone `video` command drops the `video-` prefix these options carry elsewhere (e.g. `--duration` here is `--video-duration` on `write`, `config`, and `resume`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
+The standalone `video` command drops the `video-` prefix these options carry elsewhere (e.g. `--duration` here is `--video-duration` on `config` and `resume`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
 | Flag                                           | Description                                                                                                                                                                            |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,14 +1,14 @@
 import { boolFlag, omitFlags, strFlag, withHelpGroup } from './flag-utils'
 import {
   transcriptionFlags,
-  llmProviderFlags,
   ocrInputFlags,
   ocrProviderModeFlag,
   ocrTuningFlags,
   batchFlags,
   promptFlag,
   sharedConcurrencyFlags,
-  stepProviderSelectorFlags
+  configPipelineSelectorFlags,
+  configGenerationSelectorFlags
 } from './shared-flags'
 import { ttsCommandFlags } from './tts-flags'
 import { imageGenFlags } from './image-flags'
@@ -70,20 +70,20 @@ export const configCommandFlags = {
   ...withHelpGroup(authFlags, 'auth'),
   ...withHelpGroup(batchFlags, 'batch-download'),
   ...withHelpGroup(sharedConcurrencyFlags, 'concurrency'),
-  ...withHelpGroup({ stt: stepProviderSelectorFlags.stt }, 'transcription'),
+  ...withHelpGroup({ stt: configPipelineSelectorFlags.stt }, 'transcription'),
   ...withHelpGroup(transcriptionFlags, 'transcription'),
-  ...withHelpGroup({ ocr: stepProviderSelectorFlags.ocr }, 'ocr-document'),
+  ...withHelpGroup({ ocr: configPipelineSelectorFlags.ocr }, 'ocr-document'),
   ...withHelpGroup(configOcrInputFlags, 'ocr-document'),
   ...withHelpGroup(ocrTuningFlags, 'ocr-document'),
   ...withHelpGroup(ocrProviderModeFlag, 'ocr-document'),
-  ...withHelpGroup(llmProviderFlags, 'writing'),
+  ...withHelpGroup({ llm: configPipelineSelectorFlags.llm }, 'writing'),
   ...withHelpGroup(configPromptFlags, 'writing'),
-  ...withHelpGroup({ tts: stepProviderSelectorFlags.tts }, 'tts-options'),
+  ...withHelpGroup({ tts: configGenerationSelectorFlags.tts }, 'tts-options'),
   ...withHelpGroup(configTtsFlags, 'tts-options'),
-  ...withHelpGroup({ image: stepProviderSelectorFlags.image }, 'image-options'),
+  ...withHelpGroup({ image: configGenerationSelectorFlags.image }, 'image-options'),
   ...withHelpGroup(configImageGenFlags, 'image-options'),
-  ...withHelpGroup({ video: stepProviderSelectorFlags.video }, 'video-options'),
+  ...withHelpGroup({ video: configGenerationSelectorFlags.video }, 'video-options'),
   ...withHelpGroup(configVideoGenFlags, 'video-options'),
-  ...withHelpGroup({ music: stepProviderSelectorFlags.music }, 'hosted-music'),
+  ...withHelpGroup({ music: configGenerationSelectorFlags.music }, 'hosted-music'),
   ...withHelpGroup(configMusicGenFlags, 'hosted-music')
 } as const satisfies CliFlagsDefinition

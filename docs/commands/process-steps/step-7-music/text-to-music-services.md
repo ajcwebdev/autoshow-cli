@@ -65,7 +65,7 @@ Do not mix hosted generation flags with lyric-video flags.
 
 ## Shared Music Options
 
-The standalone `music` command drops the `music-` prefix these options carry on `write`, `config`, and `resume` (e.g. `--duration` vs `--music-duration`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
+The standalone `music` command drops the `music-` prefix these options carry on `config` and `resume` (e.g. `--duration` vs `--music-duration`). See [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
 Hosted generation flags:
 

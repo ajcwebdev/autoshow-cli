@@ -13,10 +13,6 @@ const STEP_SELECTOR_KINDS: Record<string, string> = {
   '--stt': 'transcribe',
   '--ocr': 'extract',
   '--llm': 'write',
-  '--tts': 'tts',
-  '--image': 'image',
-  '--video': 'video',
-  '--music': 'music',
 }
 
 // Mirrors the canonical backend list in src/utils/extraction-provider-model.ts. `glm-reader`

@@ -84,6 +84,8 @@ This plan stages the removal and consolidation of newly identified candidate fla
 
 Implemented 2026-08-17. Verified with `bun run check`, `bun t --price` (142/142), and the full targeted local validation test suite.
 
+- **ADR-021 Reconciliation Note**: Following ADR-021 (write generation removal), the `write` command no longer exposes TTS, image, video, or music generation flags/selectors. References throughout this report to `write` generation flags or `write --help` generation surfaces (e.g. `write --video`, `write --tts`, prefixed generation flags appearing on `write --help`) are now moot on `write`; the corresponding flags on `tts`, `image`, `video`, `music`, `config`, and `resume` stand as implemented.
+
 - **Phase 15 Details**:
   - **`--video-size` removal**: Removed `--video-size` across CLI flags, types, runtime options, pricing, and normalization. Simplified `normalizeLtxVideoSize` to accept `(model, resolution, aspectRatio)` and derive resolution/aspect ratio directly.
   - **`--batch-all` removal & `--batch-limit all` support**: Replaced the boolean `--batch-all` flag with `batchLimit: number | 'all'`. Updated option parsing, runtime types, metadata batch routers, download batch processor, command help examples, and markdown documentation.
@@ -106,7 +108,7 @@ Implemented 2026-08-17. Verified with `bun run check`, `bun t --price` (142/142)
   - **Docs and Contracts Locked**: Updated `text-to-speech-and-voice.md`, `text-to-video-services.md`, `resume.md`, `removed-cli-spellings.test.ts`, `cli-help-contracts.test.ts`, `video-options.test.ts`, `tts-request-controls.test.ts`, `image-tts-defaults.test.ts`, and `resume-provider-surface-contracts.test.ts`.
 
 - **Phase 18 Details**:
-  - **`--replicate-video-multi-prompt` Description Alignment**: Updated flag definition in `video-flags.ts` to reference `--video-duration` and wrapped `replicateOptionNames` in `renameFlags(..., videoCommandOptionNames)` so `--duration` appears on `video --help` while `--video-duration` appears on `write --help`.
+  - **`--replicate-video-multi-prompt` Description Alignment**: Updated flag definition in `video-flags.ts` to reference `--video-duration` and wrapped `replicateOptionNames` in `renameFlags(..., videoCommandOptionNames)` so `--duration` appears on `video --help` while `--video-duration` appears on the prefixed surfaces (originally `write --help`; since ADR-021, `config --help` and `resume --help`).
   - **`--image-count` Prose Default Formatting**: Standardized semicolon default `; default: 1` to standard prose default `(default: 1)` in `image-flags.ts`, matching `help-colors.ts` default colorization rules.
   - **Comic Flags Parser Metadata Defaults**: Migrated static prose defaults `(default: ...)` across `comic-flags.ts` (`concurrency`, `image-model`, `qa-model`, `max-repairs`, `llm-model`, `target`, `panels`, `sfx-concurrency`, `soundscape-timing-policy`, `profile`, `mode`, `delivery-policy`, `pacing-profile`, `untimed-panel-ms`, `fps`, `view`) to parser metadata defaults via `strFlag(desc, defaultVal)`, ensuring unified parser default rendering (`[default: ...]`) across comic help pages.
   - **`--music-duration` Description Cleaned**: Dropped the silent no-op clause `MiniMax currently ignores this flag` from `music-flags.ts`, relying on the existing runtime warning in `run-minimax-music-gen.ts`.
@@ -135,7 +137,7 @@ The Replicate and fal.ai video services expose pairwise-identical provider-prefi
 
 Low-risk wording fixes in the spirit of Phase 1:
 
-- **`--replicate-video-multi-prompt`** (`video-flags.ts:72`): its description references `--duration`, which exists only on the `video` command's renamed surface, so `write --help` and `config --help` advertise a flag those surfaces reject. Write the source description against `--video-duration` and let `renameFlags` translate it for `video` (the `--video-size` description already does this correctly).
+- **`--replicate-video-multi-prompt`** (`video-flags.ts:72`): its description references `--duration`, which exists only on the `video` command's renamed surface, so `write --help` and `config --help` advertised a flag those surfaces reject (the `write` surface is moot since ADR-021; the prefixed spelling now lives on `config` and `resume`). Write the source description against `--video-duration` and let `renameFlags` translate it for `video` (the `--video-size` description already does this correctly).
 - **`--image-count`** (`image-flags.ts:40`): ends with `; default: 1` — the only semicolon-form prose default in the flag tree, which the `help-colors.ts` default highlighter does not match. Move it to a parser metadata default (preferred) or the `(default: 1)` form.
 - **Comic prose defaults**: `comic-flags.ts` expresses static defaults in prose (`--concurrency (default: 8)`, `--profile (default: default)`, `--sfx-concurrency`, `--fps`, `--target`, `--panels`, `--mode`, and others) while their shared-flag equivalents use parser metadata defaults. Migrate static values to parser defaults for one consistent rendering across surfaces.
 - **`--music-duration` MiniMax clause** (`music-flags.ts:11`): "MiniMax currently ignores this flag" documents a silent no-op in help prose; prefer a runtime warning when the flag is set with a MiniMax music target, and drop the clause.

@@ -104,8 +104,6 @@ describe('price mode contracts', () => {
         'openai=gpt-5.5',
         '--llm',
         'groq=openai/gpt-oss-20b',
-        '--tts',
-        'openai=gpt-4o-mini-tts-2025-12-15',
         '--price',
         '--json'
       ])

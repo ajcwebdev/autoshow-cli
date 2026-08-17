@@ -1,6 +1,6 @@
 # Step 7 Tests: Music
 
-Local lyric-video rendering coverage plus provider-backed music-generation coverage for the `music` command and service-side write-pipeline cases.
+Local lyric-video rendering coverage plus provider-backed music-generation coverage for the `music` command.
 
 Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.
 
@@ -34,7 +34,7 @@ Live music generation tests run only when their provider key is configured: `ELE
 ## Service Coverage
 
 - Model-level service files under `test/test-cases/e2e/service/step-7-music-gen-e2e/` cover ElevenLabs, Gemini, and MiniMax using `defineMusicServiceTest` for model rejection, option validation, and live generation.
-- Pipeline integration coverage in `elevenlabs-music-v2-pipeline.test.ts` and `minimax-music-3.0-pipeline.test.ts` verifies root `write` pipeline integration.
+- Standalone music service tests `elevenlabs-music.test.ts` and `minimax-music-3.0.test.ts` verify direct music generation with `--provider elevenlabs=music_v2` and `--provider minimax=music-3.0`.
 - Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/music-provider-contracts.test.ts` (mocked ElevenLabs, Gemini, and MiniMax REST contracts) and `test/test-cases/validation/music/lyrics-video-render-contracts.test.ts` (lyric-video rendering contracts).
 - Focused `--price` validation lives in `test/test-cases/price-flag/music-price.test.ts`.
 

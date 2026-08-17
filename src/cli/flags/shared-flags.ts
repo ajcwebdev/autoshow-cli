@@ -35,15 +35,24 @@ export const booleanAllLocalFlag = {
 export const stepProviderSelectorFlags = {
   stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
   ocr: strListFlag(`Write pipeline OCR provider[=model]: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
-  llm: strListFlag(`Write pipeline LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`),
-  tts: strListFlag(`Write pipeline TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`),
-  image: strListFlag(`Write pipeline image provider[=model]: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`),
-  video: strListFlag(`Write pipeline video provider[=model]: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`),
-  music: strListFlag(`Write pipeline music provider[=model]: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`)
+  llm: strListFlag(`Write pipeline LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
+} as const satisfies CliFlagsDefinition
+
+export const configPipelineSelectorFlags = {
+  stt: strListFlag(`Default STT provider[=model] persisted for the write and extract commands: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
+  ocr: strListFlag(`Default OCR provider[=model] persisted for the write and extract commands: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
+  llm: strListFlag(`Default LLM provider[=model] persisted for the write command: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
+} as const satisfies CliFlagsDefinition
+
+export const configGenerationSelectorFlags = {
+  tts: strListFlag(`Default TTS provider[=model] persisted for the tts command: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`),
+  image: strListFlag(`Default image provider[=model] persisted for the image command: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`),
+  video: strListFlag(`Default video provider[=model] persisted for the video command: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`),
+  music: strListFlag(`Default music provider[=model] persisted for the music command: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`)
 } as const satisfies CliFlagsDefinition
 
 export const writeAllProvidersFlag = {
-  'all-providers': strListFlag('Write pipeline hosted/API-backed all-provider selector, repeatable for stt|ocr|url|llm|tts|image|video|music')
+  'all-providers': strListFlag('Write pipeline hosted/API-backed all-provider selector, repeatable for stt|ocr|url|llm')
 } as const satisfies CliFlagsDefinition
 
 export const writeAllLocalFlag = {
@@ -74,10 +83,6 @@ export const transcriptionFlags = {
     ...strFlag('STT: max duration probes running in parallel during preflight', DEFAULT_CONCURRENCY_FLAG_VALUE),
     help: { hidden: true }
   }
-} as const satisfies CliFlagsDefinition
-
-export const llmProviderFlags = {
-  llm: stepProviderSelectorFlags.llm
 } as const satisfies CliFlagsDefinition
 
 export const promptFlag = {

@@ -5,7 +5,6 @@ import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-r
 import { buildProcessingOptions } from '~/cli/commands/process-steps/step-1-download/download-targets/single/media-runner'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import type { ProcessingOptions, ProcessingSource } from '~/types'
-import { DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
@@ -61,35 +60,21 @@ const MATRIX: MatrixCase[] = [
     flags: {
       'provider-concurrency': '4',
       'local-concurrency': '2',
-      'tts-chunk-concurrency': '7',
       'youtube-captions': true,
-      'prompt': ['summary', 'chapters'],
-      'image-size': '1024x1024',
-      'video-duration': '8',
-      'music-duration': '45'
+      'prompt': ['summary', 'chapters']
     },
     explicitFlags: new Set([
       'provider-concurrency',
       'local-concurrency',
-      'tts-chunk-concurrency',
       'youtube-captions',
-      'prompt',
-      'image-size',
-      'video-duration',
-      'music-duration'
+      'prompt'
     ])
   },
   {
     label: 'config-injected flags',
     flags: {
-      'image-provider-concurrency': '6',
-      'video-local-concurrency': '3',
-      'music-provider-concurrency': '5',
       'prompt-file': 'custom-prompt.md',
       __autoshowConfigInjectedFlags: [
-        'image-provider-concurrency',
-        'video-local-concurrency',
-        'music-provider-concurrency',
         'prompt-file'
       ]
     }
@@ -98,19 +83,11 @@ const MATRIX: MatrixCase[] = [
     label: 'all-provider shortcuts',
     flags: {
       'all-stt': true,
-      'all-llm': true,
-      'all-tts': true,
-      'all-image': true,
-      'all-video': true,
-      'all-music': true
+      'all-llm': true
     },
     explicitFlags: new Set([
       'all-stt',
-      'all-llm',
-      'all-tts',
-      'all-image',
-      'all-video',
-      'all-music'
+      'all-llm'
     ])
   }
 ]
@@ -130,15 +107,6 @@ describe('processing-options boundary differential', () => {
 
     expect(options.llmProviderConcurrency).toBe(runtimeOptions.llmProviderConcurrency)
     expect(options.llmLocalConcurrency).toBe(runtimeOptions.llmLocalConcurrency)
-    expect(options.ttsProviderConcurrency).toBe(runtimeOptions.ttsProviderConcurrency)
-    expect(options.ttsLocalConcurrency).toBe(runtimeOptions.ttsLocalConcurrency)
-    expect(options.ttsChunkConcurrency).toBe(DEFAULT_TTS_CHUNK_CONCURRENCY)
-    expect(options.imageProviderConcurrency).toBe(runtimeOptions.imageProviderConcurrency)
-    expect(options.imageLocalConcurrency).toBe(runtimeOptions.imageLocalConcurrency)
-    expect(options.videoProviderConcurrency).toBe(runtimeOptions.videoProviderConcurrency)
-    expect(options.videoLocalConcurrency).toBe(runtimeOptions.videoLocalConcurrency)
-    expect(options.musicProviderConcurrency).toBe(runtimeOptions.musicProviderConcurrency)
-    expect(options.musicLocalConcurrency).toBe(runtimeOptions.musicLocalConcurrency)
   })
 
   test('the narrowed STT and write-pricing inputs preserve resolved-option behavior', async () => {

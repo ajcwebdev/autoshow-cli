@@ -11,7 +11,6 @@ import { logSpeakerCountHintSummary } from '~/cli/commands/process-steps/step-2-
 import { createMistralSttPassController } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { formatTranscriptText } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import { runGenerationStagesForSingleWrite } from '~/cli/commands/process-steps/step-3-write/generation-stage-runner'
 import { runLLM } from '~/cli/commands/process-steps/step-3-write/run-llm'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
 import { writeRenderedTextArtifacts } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
@@ -154,35 +153,12 @@ export const processVideo = async (
       }])
     }
 
-    const generationResult = await runGenerationStagesForSingleWrite({
-      step3Results,
-      step3RunResults,
-      outputDir,
-      generationOptions: processingOptions
-    })
-    const {
-      step4Metadata,
-      step5Metadata,
-      step6Metadata,
-      step7Metadata,
-      ttsCharacterCount,
-      ttsInputText,
-      attemptedTtsTargets,
-      attemptedImageTargets,
-      attemptedVideoTargets,
-      attemptedMusicTargets
-    } = generationResult
-
     const showNoteSourceText = formatTranscriptText(finalizedTranscriptionResult.result.segments, { precision: 'seconds' }) || finalizedTranscriptionResult.result.text
     const showNoteArtifacts = step3RunResults.length > 0
       ? await writeShowNoteArtifacts({
           outputDir,
           results: step3RunResults,
-          sourceText: showNoteSourceText,
-          step4Metadata,
-          step5Metadata,
-          step6Metadata,
-          step7Metadata
+          sourceText: showNoteSourceText
         })
       : { internalArtifacts: {} }
 
@@ -199,17 +175,7 @@ export const processVideo = async (
       transcriptionResult: finalizedTranscriptionResult,
       mediaDurationSeconds,
       step3Results,
-      step3Serialized,
-      ttsCharacterCount,
-      ttsInputText,
-      attemptedTtsTargets,
-      attemptedImageTargets,
-      attemptedVideoTargets,
-      attemptedMusicTargets,
-      step4Metadata,
-      step5Metadata,
-      step6Metadata,
-      step7Metadata
+      step3Serialized
     })
 
     const step2Entries = Array.isArray(finalizedTranscriptionResult.metadata)
@@ -230,10 +196,6 @@ export const processVideo = async (
       providerStates,
       missingProviders,
       ...(step3Serialized !== undefined ? { step3: step3Serialized } : {}),
-      ...(step4Metadata ? { step4: serializeOneOrMany(step4Metadata) } : {}),
-      ...(step5Metadata ? { step5: serializeOneOrMany(step5Metadata) } : {}),
-      ...(step6Metadata ? { step6: serializeOneOrMany(step6Metadata) } : {}),
-      ...(step7Metadata ? { step7: serializeOneOrMany(step7Metadata) } : {}),
       cost,
       ...(timing ? { timing } : {}),
       ...(sttFailures.length > 0 ? { errors: sttFailures } : {}),
@@ -255,10 +217,6 @@ export const processVideo = async (
       step1Time,
       step2Entries,
       step3Results,
-      step4Metadata,
-      step5Metadata,
-      step6Metadata,
-      step7Metadata,
       actualSteps: cost.actual.steps
     })
 
@@ -268,11 +226,7 @@ export const processVideo = async (
       showNoteInternalArtifacts: showNoteArtifacts.internalArtifacts,
       step2Entries,
       successfulSttProviders,
-      step3Results,
-      step4Metadata,
-      step5Metadata,
-      step6Metadata,
-      step7Metadata
+      step3Results
     })
 
     l.report.complete(outputDir, artifactFiles, { steps: stepSummaries, totalTimeMs: totalTime, totalCost: cost.actual.totalCost })

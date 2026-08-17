@@ -152,7 +152,7 @@ bun autoshow comic generate-slideshow 01-01
 
 High-value notes:
 
-- `write` is the central orchestration command. It can summarize transcripts or extracted documents, write JSON outputs, fan out across multiple LLM providers, and optionally continue into TTS, image, video, or music generation.
+- `write` is the central text pipeline command. It summarizes transcripts or extracted documents, writes JSON and rendered markdown outputs, and fans out across multiple LLM providers.
 - `setup --models` lets you pre-download local STT runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models whisperfile:small`.
 - If YouTube starts blocking `yt-dlp`, follow [docs/cookies.md](./docs/cookies.md) to persist `--cookies-from-browser` or `--cookies` with `bun autoshow config`.
 

@@ -64,13 +64,6 @@ test('tts rejects reference audio combined with dialogue flags', () => {
   )).toThrow('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 })
 
-test('write rejects explicit TTS voice reference input', () => {
-  expect(() => buildOptsFromFlags(false, {
-    'mistral-tts': 'voxtral-mini-tts-2603',
-    'mistral-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
-  }, {}, new Set(['mistral-tts-ref-audio'])))
-    .toThrow('--mistral-tts-ref-audio is an authorized edge input only for the standalone `tts` command.')
-})
 
 test('tts rejects --tts-dialogue-format without speaker mappings', () => {
   const opts = buildOptsFromFlags(false, {

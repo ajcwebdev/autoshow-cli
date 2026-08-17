@@ -12,7 +12,7 @@ Current processing flows for media, documents/articles, text-input writing, tran
 
 ## Media STT Pipeline
 
-`metadata` stops after metadata extraction, `download` stops after Step 1, `extract` runs Steps 1-2, and `write` continues into LLM and optional generation.
+`metadata` stops after metadata extraction, `download` stops after Step 1, `extract` runs Steps 1-2, and `write` runs Steps 1-3 text generation (with follow-on generation commands for speech, images, video, and music).
 
 ```
 media target
@@ -193,7 +193,7 @@ writeShowNoteArtifacts()
   +--> show-note.md or show-note-<model>.md
 ```
 
-Text-input write mode skips Steps 1-2. It treats `.md`/`.txt` files as the source corpus, writes a canonical manifest with `command: "write"`, `scope: "single"`, and `items[0].metadata.source.kind: "text-input"`, and then can run the same Step 3 plus optional TTS/image/video/music stages.
+Text-input write mode skips Steps 1-2. It treats `.md`/`.txt` files as the source corpus, writes a canonical manifest with `command: "write"`, `scope: "single"`, and `items[0].metadata.source.kind: "text-input"`, and then runs Step 3 text writing.
 
 `output/<project>/text` can be used as a project directory. The target layer infers `--text-input`, `prompt.md`, optional `tracks.md`, and rendered lyric output defaults from the project structure.
 

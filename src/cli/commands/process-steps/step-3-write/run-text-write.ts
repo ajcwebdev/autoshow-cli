@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -18,11 +18,6 @@ import {
   resolveTextInputSongTitle,
   writeRenderedTextArtifacts,
 } from './text-input-utils'
-import { buildEstimatedTtsTargets, buildTtsArtifactMap } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import { buildImageArtifactMap, getExpectedImageCount } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
-import { buildVideoArtifactMap } from '~/cli/commands/process-steps/step-6-video/video-targets'
-import { buildMusicArtifactMap } from '~/cli/commands/process-steps/step-7-music/music-targets'
-import { runGenerationStagesForSingleWrite } from './generation-stage-runner'
 import { buildProviderStepSummaries } from '~/cli/commands/process-steps/generation-command-utils'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
@@ -57,10 +52,6 @@ const buildTextTranscription = (text: string): TranscriptionResult => ({
 
 const buildStepSummaries = (
   step3Results: Step3Metadata[],
-  step4Metadata: Step4Metadata[] | null,
-  step5Metadata: Step5Metadata[] | null,
-  step6Metadata: Step6VideoMetadata[] | null,
-  step7Metadata: Step7MusicMetadata[] | null,
   actualCosts: ReturnType<typeof computeActualCosts>['steps']
 ): StepTimingCost[] => {
   const summaries: StepTimingCost[] = []
@@ -73,50 +64,6 @@ const buildStepSummaries = (
     (entry) => `${entry.llmService}/${entry.llmModel}`,
     (entry) => entry.processingTime
   ))
-
-  if (step4Metadata) {
-    summaries.push(...buildProviderStepSummaries(
-      'TTS',
-      'tts',
-      step4Metadata,
-      actualCosts,
-      (entry) => `${entry.ttsService}/${entry.ttsModel}`,
-      (entry) => entry.processingTime
-    ))
-  }
-
-  if (step5Metadata) {
-    summaries.push(...buildProviderStepSummaries(
-      'Image',
-      'image',
-      step5Metadata,
-      actualCosts,
-      (entry) => `${entry.imageService}/${entry.imageModel}`,
-      (entry) => entry.processingTime
-    ))
-  }
-
-  if (step6Metadata) {
-    summaries.push(...buildProviderStepSummaries(
-      'Video',
-      'video',
-      step6Metadata,
-      actualCosts,
-      (entry) => `${entry.videoGenService}/${entry.videoGenModel}`,
-      (entry) => entry.processingTime
-    ))
-  }
-
-  if (step7Metadata) {
-    summaries.push(...buildProviderStepSummaries(
-      'Music',
-      'music',
-      step7Metadata,
-      actualCosts,
-      (entry) => `${entry.musicService}/${entry.musicModel}`,
-      (entry) => entry.processingTime
-    ))
-  }
 
   return summaries
 }
@@ -189,25 +136,6 @@ export const runTextWrite = async (
     }])
   }
 
-  const generationResult = await runGenerationStagesForSingleWrite({
-    step3Results,
-    step3RunResults,
-    outputDir,
-    generationOptions: opts
-  })
-  const {
-    step4Metadata,
-    step5Metadata,
-    step6Metadata,
-    step7Metadata,
-    ttsCharacterCount,
-    ttsInputText,
-    attemptedTtsTargets,
-    attemptedImageTargets,
-    attemptedVideoTargets,
-    attemptedMusicTargets
-  } = generationResult
-
   const showNoteRunResults = await Promise.all(step3RunResults.map(async (result) => ({
     ...result,
     renderedText: await formatTextInputRenderedText({
@@ -221,11 +149,7 @@ export const runTextWrite = async (
   const showNoteArtifacts = await writeShowNoteArtifacts({
     outputDir,
     results: showNoteRunResults,
-    sourceText,
-    step4Metadata,
-    step5Metadata,
-    step6Metadata,
-    step7Metadata
+    sourceText
   })
 
   const step3Serialized = step3Results.length === 1
@@ -239,90 +163,27 @@ export const runTextWrite = async (
     outputTokens: item.outputTokenCount
   }))
 
-  const ttsEstimateTargets = buildEstimatedTtsTargets(attemptedTtsTargets)
-  const imageEstimateTargets = attemptedImageTargets.map((target) => ({
-    service: target.service,
-    model: target.model,
-    count: getExpectedImageCount(target, opts)
-  }))
-
   const priceEstimate = preflightEstimate ?? await buildAggregatedPriceEstimate('write', inputPath, opts)
   const estimated = preflightToEstimated(priceEstimate)
 
   const observedEstimate = computeEstimatedCosts({
     applyCostMultipliers: false,
     llmTargets,
-    skipLLM: false,
-    ttsTargets: ttsEstimateTargets,
-    ttsCharacterCount,
-    imageTargets: imageEstimateTargets,
-    imageSize: opts.imageSize,
-    imageQuality: opts.imageQuality,
-    videoTargets: attemptedVideoTargets.map((target) => ({
-      service: target.service,
-      model: target.model,
-      ...(opts.videoDuration !== undefined ? { durationSeconds: opts.videoDuration } : {})
-    })),
-    videoDuration: opts.videoDuration,
-    videoAspectRatio: opts.videoAspectRatio,
-    videoResolution: opts.videoResolution,
-    videoMode: opts.videoMode,
-    musicTargets: attemptedMusicTargets.map((entry) => ({
-      service: entry.service,
-      model: entry.model,
-      ...(opts.musicDuration !== undefined ? { durationSeconds: opts.musicDuration } : {})
-    })),
-    musicDuration: opts.musicDuration,
-    musicLyricsFile: opts.musicLyricsFile,
-    musicInstrumental: opts.musicInstrumental
+    skipLLM: false
   })
 
   const actual = computeActualCosts({
-    step3: step3Serialized,
-    ...(step4Metadata ? { step4: step4Metadata, ttsCharacterCount } : {}),
-    ...(step5Metadata ? { step5: step5Metadata } : {}),
-    ...(step6Metadata ? { step6: step6Metadata } : {}),
-    ...(step7Metadata ? { step7: step7Metadata } : {})
+    step3: step3Serialized
   })
 
   const cost = { estimated, observedEstimate, actual }
   const fallbackEstimatedTiming = computeEstimatedProcessingTimes({
     llmTargets,
-    skipLLM: false,
-    ttsTargets: ttsEstimateTargets,
-    ttsCharacterCount,
-    ...(ttsInputText !== undefined ? { ttsInputText } : {}),
-    ttsChunkConcurrency: opts.ttsChunkConcurrency,
-    ...(imageEstimateTargets.length > 0 ? { imageTargets: imageEstimateTargets } : {}),
-    ...(attemptedVideoTargets.length > 0
-      ? {
-          videoTargets: attemptedVideoTargets.map((entry) => ({
-            service: entry.service,
-            model: entry.model,
-            ...(opts.videoDuration !== undefined ? { durationSeconds: opts.videoDuration } : {})
-          })),
-          ...(opts.videoAspectRatio !== undefined ? { videoAspectRatio: opts.videoAspectRatio } : {}),
-          ...(opts.videoResolution !== undefined ? { videoResolution: opts.videoResolution } : {}),
-          ...(opts.videoMode !== undefined ? { videoMode: opts.videoMode } : {})
-        }
-      : {}),
-    ...(attemptedMusicTargets.length > 0
-      ? {
-          musicTargets: attemptedMusicTargets.map((entry) => ({
-            service: entry.service,
-            model: entry.model,
-            ...(opts.musicDuration !== undefined ? { durationSeconds: opts.musicDuration } : {})
-          }))
-        }
-      : {})
+    skipLLM: false
   })
   const estimatedTiming = priceEstimate.timing ?? fallbackEstimatedTiming
   const actualTiming = computeActualProcessingTimes({
-    step3: step3Serialized,
-    ...(step4Metadata ? { step4: step4Metadata, ttsCharacterCount } : {}),
-    ...(step5Metadata ? { step5: step5Metadata } : {}),
-    ...(step6Metadata ? { step6: step6Metadata } : {}),
-    ...(step7Metadata ? { step7: step7Metadata } : {})
+    step3: step3Serialized
   })
   const timing = estimatedTiming.steps.length > 0 || actualTiming.steps.length > 0
     ? { estimated: estimatedTiming, actual: actualTiming }
@@ -336,10 +197,6 @@ export const runTextWrite = async (
       slug: sanitizeTitleSlug(title, 180)
     },
     step3: serializeOneOrMany(step3Results),
-    ...(step4Metadata ? { step4: serializeOneOrMany(step4Metadata) } : {}),
-    ...(step5Metadata ? { step5: serializeOneOrMany(step5Metadata) } : {}),
-    ...(step6Metadata ? { step6: serializeOneOrMany(step6Metadata) } : {}),
-    ...(step7Metadata ? { step7: serializeOneOrMany(step7Metadata) } : {}),
     cost,
     ...(timing ? { timing } : {}),
   }
@@ -370,21 +227,9 @@ export const runTextWrite = async (
       artifactFiles[summaryKey] = step3.outputFileName
     }
   }
-  if (step4Metadata) {
-    Object.assign(artifactFiles, buildTtsArtifactMap(step4Metadata))
-  }
-  if (step5Metadata) {
-    Object.assign(artifactFiles, buildImageArtifactMap(step5Metadata))
-  }
-  if (step6Metadata) {
-    Object.assign(artifactFiles, buildVideoArtifactMap(step6Metadata))
-  }
-  if (step7Metadata) {
-    Object.assign(artifactFiles, buildMusicArtifactMap(step7Metadata))
-  }
 
   l.report.complete(outputDir, artifactFiles, {
-    steps: buildStepSummaries(step3Results, step4Metadata, step5Metadata, step6Metadata, step7Metadata, actual.steps),
+    steps: buildStepSummaries(step3Results, actual.steps),
     totalTimeMs,
     totalCost: actual.totalCost
   })

@@ -5,7 +5,7 @@ import { buildConfigPatchFromFlags, deepMergeConfig } from './config-merge'
 import { writeConfig } from './config-writer'
 import * as l from '~/utils/app-logger/app-logger'
 import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
-import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
+import { normalizeConfigStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
 
 export const configCommand = defineCliCommand({
   name: 'config',
@@ -37,7 +37,7 @@ export const configCommand = defineCliCommand({
     return
   }
 
-  const selectorNormalized = normalizeWriteStepSelectorFlags(
+  const selectorNormalized = normalizeConfigStepSelectorFlags(
     flags as Record<string, unknown>,
     ctx.rawParsed.explicitFlags,
     ctx.rawParsed.flagOccurrences

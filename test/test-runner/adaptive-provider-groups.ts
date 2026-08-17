@@ -321,18 +321,6 @@ const addWriteAllProviderGroups = (
     case 'llm':
       addAllGroups(groups, 'write', LLM_REMOTE_PROVIDERS)
       break
-    case 'tts':
-      addAllGroups(groups, 'tts', TTS_REMOTE_PROVIDERS)
-      break
-    case 'image':
-      addAllGroups(groups, 'image', IMAGE_REMOTE_PROVIDERS)
-      break
-    case 'video':
-      addAllGroups(groups, 'video', VIDEO_REMOTE_PROVIDERS)
-      break
-    case 'music':
-      addAllGroups(groups, 'music', MUSIC_REMOTE_PROVIDERS)
-      break
   }
 }
 
@@ -375,14 +363,6 @@ export const extractAdaptiveProviderGroups = (args: string[]): AdaptiveProviderG
         addGroup(groups, 'url', provider, URL_REMOTE_SET)
       } else if (flag === 'llm') {
         addGroup(groups, 'write', provider, LLM_REMOTE_SET)
-      } else if (flag === 'tts') {
-        addGroup(groups, 'tts', provider, TTS_REMOTE_SET)
-      } else if (flag === 'image') {
-        addGroup(groups, 'image', provider, IMAGE_REMOTE_SET)
-      } else if (flag === 'video') {
-        addGroup(groups, 'video', provider, VIDEO_REMOTE_SET)
-      } else if (flag === 'music') {
-        addGroup(groups, 'music', provider, MUSIC_REMOTE_SET)
       } else if (flag === 'all-providers') {
         addWriteAllProviderGroups(groups, value?.trim().toLowerCase() ?? null)
       }

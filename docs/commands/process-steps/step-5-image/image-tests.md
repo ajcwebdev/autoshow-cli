@@ -25,7 +25,7 @@ Live image generation tests run only when their provider key is configured: `BFL
 ## Current Coverage
 
 - Model-level service files under `test/test-cases/e2e/service/step-5-image-gen-e2e/` cover BFL (FLUX.2), fal.ai (HiDream, Qwen, Reve), Gemini, Grok, Luma Labs (Uni-1), OpenAI (`gpt-image-2`), and Replicate (Seedream, Qwen, Wan) using `defineImageServiceTest` for model rejection, option validation, and live generation.
-- Pipeline integration coverage in `openai-gpt-image-2-pipeline.test.ts` verifies root `write` pipeline integration with `--image openai=...`.
+- Standalone command coverage in `openai-gpt-image-2.test.ts` verifies direct image generation with `--provider openai=gpt-image-2`.
 - Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/image-provider-rest-contracts.test.ts` (mocked BFL, Luma Labs, and Replicate requests and downloads), `test/test-cases/validation/providers/provider-selection-contracts/` (provider-specific flag acceptance/rejection and model capabilities), and local validation files (`bfl-validation.test.ts`, `lumalabs-validation.test.ts`).
 - Focused `--price` validation lives in `test/test-cases/price-flag/image-price.test.ts`.
 

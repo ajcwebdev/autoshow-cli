@@ -30,7 +30,7 @@ export type LlmRuntimeOptions = ResolvedLLMModelOptions & HostedConcurrencyRunti
   reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }
 
-export type GenerationSchedulingOptions = HostedConcurrencyRuntimeOptions & {
+type GenerationSchedulingOptions = HostedConcurrencyRuntimeOptions & {
   ttsProviderConcurrency: number
   ttsLocalConcurrency: number
   ttsChunkConcurrency: number
@@ -95,10 +95,6 @@ export type CommandPricingOptions = ProcessPlanningOptions
 export type ExpectedOutputOptions = ProcessPlanningOptions
   & SttRuntimeOptions
   & OcrRuntimeOptions
-  & TtsRuntimeOptions
-  & ImageRuntimeOptions
-  & VideoRuntimeOptions
-  & MusicRuntimeOptions
   & LlmRuntimeOptions
   & UrlRuntimeOptions
   & PromptRuntimeOptions
@@ -107,15 +103,10 @@ export type ExpectedOutputOptions = ProcessPlanningOptions
   & Pick<SharedPipelineOptions, 'youtubeCaptions'>
 
 export type WriteRuntimeOptions = SttRuntimeOptions
-  & TtsRuntimeOptions
   & OcrRuntimeOptions
-  & ImageRuntimeOptions
-  & MusicRuntimeOptions
-  & VideoRuntimeOptions
   & BatchRuntimeOptions
   & SharedPipelineOptions
   & LlmRuntimeOptions
-  & GenerationSchedulingOptions
   & PricingRuntimeOptions
   & UrlRuntimeOptions
   & DownloadRuntimeOptions

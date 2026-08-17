@@ -390,7 +390,7 @@ Shared runtime behavior applies across multiple process steps:
 - Provider/model flags are repeatable across STT, OCR, URL extraction, LLM, TTS, image, video, and music.
 - `--all-providers` and `--all-local` fan-out modes cover supported routes.
 - Per-step provider/local concurrency controls provider fan-out.
-- Flag and config resolution project into STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing option slices. Standalone generation, pricing, and resume consumers receive only their domain slice plus named shared controls; the full media/document write path uses its own composed `ProcessingOptions` boundary.
+- Flag and config resolution project into STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing option slices. Standalone generation, pricing, and resume consumers receive only their domain slice plus named shared controls; the media/document write path uses its own narrowed `ProcessingOptions` boundary covering steps 0–3.
 
 Root help also exposes shared controls for config paths, verbosity, JSON output, and cookies.
 

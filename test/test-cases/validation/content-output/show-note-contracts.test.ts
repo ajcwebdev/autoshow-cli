@@ -4,10 +4,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type {
   Step3Metadata,
-  Step4Metadata,
-  Step5Metadata,
-  Step6VideoMetadata,
-  Step7MusicMetadata,
   StructuredRunResult
 } from '~/types'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
@@ -227,75 +223,6 @@ test('show notes mirror single and multi-output JSON naming', async () => {
     ])
     expect(await Bun.file(join(outputDir, 'show-note-gpt-5.5.md')).text()).toContain('first')
     expect(await Bun.file(join(outputDir, 'show-note-gemini-3.5-flash.md')).text()).toContain('second')
-  } finally {
-    await rm(tempDir, { recursive: true, force: true })
-  }
-})
-
-test('show notes render generated media assets with relative embeds and links', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-assets-'))
-  try {
-    const outputDir = join(tempDir, 'out')
-    await mkdir(outputDir, { recursive: true })
-    await writePrompt(outputDir)
-
-    const step4Metadata: Step4Metadata[] = [{
-      ttsService: 'openai',
-      ttsModel: 'gpt-4o-mini-tts',
-      processingTime: 1,
-      audioFileName: 'speech.wav',
-      audioFileSize: 100,
-      chunkCount: 1
-    }]
-    const step5Metadata: Step5Metadata[] = [{
-      imageService: 'openai',
-      imageModel: 'gpt-image-2',
-      processingTime: 1,
-      imageFileNames: ['generated-image.png'],
-      imageCount: 1,
-      imageFileSize: 100,
-      imageWidth: 1024,
-      imageHeight: 1024,
-      requestMode: 'generation'
-    }]
-    const step6Metadata: Step6VideoMetadata[] = [{
-      videoGenService: 'gemini',
-      videoGenModel: 'veo-3.1-generate-preview',
-      processingTime: 1,
-      videoFileName: 'generated-video.mp4',
-      videoFileSize: 100,
-      videoDuration: 8
-    }]
-    const step7Metadata: Step7MusicMetadata[] = [{
-      musicService: 'elevenlabs',
-      musicModel: 'music_v2',
-      processingTime: 1,
-      musicFileName: 'generated-music.mp3',
-      musicFileSize: 100,
-      musicDurationMs: 30_000,
-      lyricsSource: 'generated'
-    }]
-
-    await writeShowNoteArtifacts({
-      outputDir,
-      results: [buildResult()],
-      sourceText: 'source',
-      step4Metadata,
-      step5Metadata,
-      step6Metadata,
-      step7Metadata
-    })
-
-    const showNote = await Bun.file(join(outputDir, 'show-note.md')).text()
-    expect(showNote).toContain('## Assets')
-    expect(showNote).toContain('<audio controls src="speech.wav"></audio>')
-    expect(showNote).toContain('[Download speech.wav](speech.wav)')
-    expect(showNote).toContain('![generated-image.png](generated-image.png)')
-    expect(showNote).toContain('[Download generated-image.png](generated-image.png)')
-    expect(showNote).toContain('<video controls src="generated-video.mp4"></video>')
-    expect(showNote).toContain('[Download generated-video.mp4](generated-video.mp4)')
-    expect(showNote).toContain('<audio controls src="generated-music.mp3"></audio>')
-    expect(showNote).toContain('[Download generated-music.mp3](generated-music.mp3)')
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }

@@ -1,8 +1,7 @@
-import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, AggregateTimingOptions, CommandPricingOptions, ProcessingOptions, ProcessCommand, StepEstimate } from '~/types'
+import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, AggregateTimingOptions, CommandPricingOptions, ProcessingOptions, ProcessCommand, StepEstimate, WriteRuntimeOptions } from '~/types'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { resolveSttStep2Execution } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { SUPADATA_STT_AGGREGATE_NOTE } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import { SCRAPECREATORS_STT_AGGREGATE_NOTE } from '~/utils/pricing/scrapecreators-pricing'
 import { buildArticleEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-article-estimates'
@@ -11,7 +10,7 @@ import { buildImageEstimates, buildMusicEstimates, buildVideoEstimates } from '.
 import { buildLlmEstimates } from './aggregate-pricing/llm-estimates'
 import { buildSttEstimates } from './aggregate-pricing/stt-estimates'
 import { buildAggregateTiming } from './aggregate-pricing/timing'
-import { buildTtsEstimates, estimateTtsCharacterCountFromPrompts } from './aggregate-pricing/tts-estimates'
+import { buildTtsEstimates } from './aggregate-pricing/tts-estimates'
 
 const buildTimingOptions = (
   opts: AggregateTimingOptions,
@@ -55,16 +54,14 @@ export const aggregateExplicitPriceEstimate = (
 }
 
 const isProcessingOptions = (
-  opts: CommandPricingOptions | ProcessingOptions
+  opts: CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions
 ): opts is ProcessingOptions =>
   'outputDir' in opts && ('url' in opts || 'filePath' in opts)
 
 export function buildAggregatedPriceEstimate (
   command: 'write',
   resolvedTarget: string,
-  opts: CommandPricingOptions | ProcessingOptions,
-  characterCount?: number,
-  context?: { ttsInputText?: string | undefined }
+  opts: CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions
 ): Promise<AggregatedPriceEstimate>
 export function buildAggregatedPriceEstimate (
   command: ProcessCommand,
@@ -76,7 +73,7 @@ export function buildAggregatedPriceEstimate (
 export async function buildAggregatedPriceEstimate (
   command: ProcessCommand,
   resolvedTarget: string,
-  opts: CommandPricingOptions | ProcessingOptions,
+  opts: CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions,
   characterCount?: number,
   context: { ttsInputText?: string | undefined } = {}
 ): Promise<AggregatedPriceEstimate> {
@@ -117,7 +114,7 @@ export async function buildAggregatedPriceEstimate (
 
   if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'document') || documentWrite) && resolvedStep2.route === 'ocr' && !isProcessingOptions(opts)) {
     for (const extract of await buildExtractEstimates(resolvedTarget, resolvedStep2, {
-      hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath,
+      hostedOcrTokenProfilePath: 'hostedOcrTokenProfilePath' in opts ? opts.hostedOcrTokenProfilePath : undefined,
       reasoningEffort: opts.reasoningEffort,
       ocrProviderMode: opts.ocrProviderMode
     })) {
@@ -138,62 +135,37 @@ export async function buildAggregatedPriceEstimate (
     for (const llm of llmEstimates) {
       addStep(llm)
     }
+  }
 
-    const selectedTtsTargets = collectTtsTargets(opts)
-    if (selectedTtsTargets.length > 0) {
-      if (llmEstimates.length === 1) {
-        const estimatedTtsCharacterCount = await estimateTtsCharacterCountFromPrompts(opts)
-        ttsTimingCharacterCount = estimatedTtsCharacterCount
-        const ttsEstimates = await buildTtsEstimates(opts, estimatedTtsCharacterCount)
-        for (const tts of ttsEstimates) {
-          addStep(tts)
-        }
-      } else {
-        notes.push(
-          llmEstimates.length > 1
-            ? `TTS estimate omitted: step 4 only runs when write produces exactly one summary, but ${llmEstimates.length} LLM providers are selected.`
-            : 'TTS estimate omitted: step 4 only runs when write produces exactly one summary, and this run skips summary generation.'
-        )
+  if (command === 'tts' || command === 'image' || command === 'video' || command === 'music') {
+    // The generation-command overload guarantees CommandPricingOptions; only the 'write' overload admits the narrower option shapes.
+    const generationOpts = opts as CommandPricingOptions
+
+    if (command === 'tts') {
+      ttsTimingCharacterCount = typeof characterCount === 'number' ? characterCount : 0
+      ttsTimingInputText = context.ttsInputText
+      const ttsEstimates = await buildTtsEstimates(generationOpts, ttsTimingCharacterCount)
+      for (const tts of ttsEstimates) {
+        addStep(tts)
       }
     }
 
-    for (const image of buildImageEstimates(opts)) {
-      addStep(image)
+    if (command === 'image') {
+      for (const image of buildImageEstimates(generationOpts)) {
+        addStep(image)
+      }
     }
 
-    for (const video of await buildVideoEstimates(opts)) {
-      addStep(video)
+    if (command === 'video') {
+      for (const video of await buildVideoEstimates(generationOpts)) {
+        addStep(video)
+      }
     }
 
-    for (const music of await buildMusicEstimates(opts)) {
-      addStep(music)
-    }
-  }
-
-  if (command === 'tts') {
-    ttsTimingCharacterCount = typeof characterCount === 'number' ? characterCount : 0
-    ttsTimingInputText = context.ttsInputText
-    const ttsEstimates = await buildTtsEstimates(opts, ttsTimingCharacterCount)
-    for (const tts of ttsEstimates) {
-      addStep(tts)
-    }
-  }
-
-  if (command === 'image') {
-    for (const image of buildImageEstimates(opts)) {
-      addStep(image)
-    }
-  }
-
-  if (command === 'video') {
-    for (const video of await buildVideoEstimates(opts)) {
-      addStep(video)
-    }
-  }
-
-  if (command === 'music') {
-    for (const music of await buildMusicEstimates(opts)) {
-      addStep(music)
+    if (command === 'music') {
+      for (const music of await buildMusicEstimates(generationOpts)) {
+        addStep(music)
+      }
     }
   }
 

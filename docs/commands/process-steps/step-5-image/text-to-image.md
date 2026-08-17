@@ -52,7 +52,7 @@ Bare `--provider` flags without a model value resolve to the cheapest supported 
 
 ## Shared Image Options
 
-The standalone `image` command uses `--size` instead of `--image-size` (which carries the prefix on `write`, `config`, and `resume` to avoid collisions per [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
+The standalone `image` command uses `--size` instead of `--image-size` (which carries the prefix on `config` and `resume` to avoid collisions per [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
 
 | Flag                                   | Description                                                                                                                                                                       |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

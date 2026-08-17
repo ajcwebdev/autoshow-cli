@@ -5,9 +5,6 @@ export const imageRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/openai-gpt-image-2.test.ts', [
     command('image-openai-gpt-image-2', 'image-openai-gpt-image-2', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'openai=gpt-image-2', '--size', '1024x1536', '--quality', 'low', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/openai-gpt-image-2-pipeline.test.ts', [
-    command('image-openai-gpt-image-2', 'image-openai-gpt-image-2', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'openai=gpt-image-2', '--size', '1024x1536', '--quality', 'low', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/gemini-image-gen.test.ts', [
     command('image-gemini-gemini-3.1-flash-lite-image', 'image-gemini-gemini-3.1-flash-lite-image', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--size', '1K', '--aspect-ratio', '1:1', '--price']),
     command('image-gemini-gemini-3.1-flash-image', 'image-gemini-gemini-3.1-flash-image', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-3.1-flash-image', '--size', '1K', '--aspect-ratio', '1:1', '--price']),

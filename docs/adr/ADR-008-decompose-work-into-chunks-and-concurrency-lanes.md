@@ -406,7 +406,7 @@ Verification evidence recorded on 2026-08-14 using `bun run check`, `bun t --pri
 - Price ramp estimator: `src/utils/hosted-concurrency-estimator.ts`
 - Flag definitions and resolution: `src/cli/flags/shared-flags.ts`, `src/cli/flags/tts-flags.ts`, `src/cli/options/option-resolution/concurrency.ts`
 - Batch executor: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`, `batch-executor.ts`
-- Target scheduler and resource gate: `src/cli/commands/process-steps/provider-target-scheduler.ts`, `src/utils/resource-gate.ts`, `src/cli/commands/process-steps/step-3-write/generation-resource-gate.ts`
+- Target scheduler and resource gate: `src/cli/commands/process-steps/provider-target-scheduler.ts`, `src/utils/resource-gate.ts` (the write-only `generation-resource-gate.ts` wrapper was removed with write generation in [ADR-021](ADR-021-end-the-write-pipeline-at-step-3.md))
 - Provider lane contract: `src/cli/commands/process-steps/provider-lane-contract.ts`, `src/types/generation-core/provider-lane-contract-types.ts`
 - Hosted TTS coordinator: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`, `hosted-tts-retry.ts`
 - Multi-speaker dialogue selector: `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`, `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`

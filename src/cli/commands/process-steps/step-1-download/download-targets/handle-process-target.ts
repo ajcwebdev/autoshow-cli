@@ -10,8 +10,7 @@ import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/s
 import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { hasExtractGenericSelectorOccurrences, normalizeExtractGenericSelectorFlags, stripExtractGenericSelectorFlags, stripExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
-import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
-import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
+import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
 import type { AggregatedPriceEstimate, CliRawParsed, ExtractSelectorInputRoutes, ProcessCommand, ProcessPlanningOptions, ResolvedProcessTargetDoubleDash } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -190,10 +189,9 @@ export const handleProcessTarget = async (
 
   if (command === 'write') {
     const selectorNormalized = normalizeWriteStepSelectorFlags(optionFlags, explicitFlags, optionOccurrences)
-    const ttsNormalized = normalizeGenericTtsOptionFlags(selectorNormalized.flags, selectorNormalized.explicitFlags, selectorNormalized.flagOccurrences)
-    optionFlags = ttsNormalized.flags
-    explicitFlags = ttsNormalized.explicitFlags
-    optionOccurrences = ttsNormalized.flagOccurrences
+    optionFlags = selectorNormalized.flags
+    explicitFlags = selectorNormalized.explicitFlags
+    optionOccurrences = selectorNormalized.flagOccurrences
   }
 
   const opts = {
@@ -205,10 +203,6 @@ export const handleProcessTarget = async (
       optionOccurrences
     ),
     configPath: resolvedConfigPath
-  }
-
-  if (command === 'write') {
-    assertNoVoiceIdentityWithDialogue(opts, explicitFlags)
   }
 
   const maxCents = resolveMaxCents(config.pricing)

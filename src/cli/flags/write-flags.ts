@@ -1,4 +1,4 @@
-import { omitFlags, withHelpGroup } from './flag-utils'
+import { withHelpGroup } from './flag-utils'
 import {
   transcriptionFlags,
   ocrInputFlags,
@@ -16,10 +16,6 @@ import {
   priceFlag,
   reasoningEffortFlag
 } from './shared-flags'
-import { imageGenFlags } from './image-flags'
-import { musicGenFlags } from './music-flags'
-import { ttsCommandFlags } from './tts-flags'
-import { videoGenFlags } from './video-flags'
 import type { CliFlagsDefinition } from '~/types'
 
 const writeTextInputFlags = {
@@ -49,17 +45,6 @@ const writeTextInputFlags = {
   }
 } as const satisfies CliFlagsDefinition
 
-const writeTtsOptionFlags = omitFlags(ttsCommandFlags, [
-  'provider',
-  'all-providers',
-  'all-local',
-  'concurrency-mode',
-  'provider-concurrency',
-  'local-concurrency',
-  'price',
-  'tts-ref-audio'
-])
-
 const writePipelineFlags = {
   ...sharedConcurrencyFlags,
   ...stepProviderSelectorFlags,
@@ -78,12 +63,5 @@ export const writeFlags = {
   ...withHelpGroup({ ...ocrProviderModeFlag, ...primaryOcrFlag }, 'ocr-document'),
   ...withHelpGroup(allArticleFlags, 'article-extraction'),
   ...withHelpGroup(promptFlag, 'writing'),
-  ...withHelpGroup(writeTextInputFlags, 'writing'),
-  ...writeTtsOptionFlags,
-  // ttsCommandFlags re-declares --batch-concurrency under its own group; restore the
-  // batch grouping so all four batch flags render together.
-  ...withHelpGroup({ 'batch-concurrency': batchFlags['batch-concurrency'] }, 'batch-download'),
-  ...withHelpGroup(imageGenFlags, 'image-options'),
-  ...withHelpGroup(videoGenFlags, 'video-options'),
-  ...withHelpGroup(musicGenFlags, 'hosted-music')
+  ...withHelpGroup(writeTextInputFlags, 'writing')
 } as const satisfies CliFlagsDefinition

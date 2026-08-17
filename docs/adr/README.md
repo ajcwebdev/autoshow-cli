@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Compact index for the current ADR-001 through ADR-020 sequence: 18 records are Accepted · Passed, ADR-012 is Superseded · Passed following the removal of the CLI benchmark command, and ADR-017 is Proposed · Pending. The sequence is kept contiguous: when records are consolidated, the remaining ADRs are renumbered to close the gap and every reference is updated with them, so an ADR number identifies a record only as of the current index. The next new ADR is 021. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates. Open each ADR for full context, options considered, implementation notes, trade-offs, follow-up work, and verification details.
+Compact index for the current ADR-001 through ADR-021 sequence: 19 records are Accepted · Passed, ADR-012 is Superseded · Passed following the removal of the CLI benchmark command, and ADR-017 is Proposed · Pending. The sequence is kept contiguous: when records are consolidated, the remaining ADRs are renumbered to close the gap and every reference is updated with them, so an ADR number identifies a record only as of the current index. The next new ADR is 022. Use [ADR_TEMPLATE.md](ADR_TEMPLATE.md) for new records and material updates. Open each ADR for full context, options considered, implementation notes, trade-offs, follow-up work, and verification details.
 
 ## Authoring and Maintenance
 
@@ -163,9 +163,16 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 - **Decision:** Passing tests print only the result line; failing tests keep that line plus the captured console output from that test. JUnit remains a post-run sidecar.
 - **Related ADRs:** [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
 
+**ADR 21: [ADR-021](ADR-021-end-the-write-pipeline-at-step-3.md)**
+
+- **ADR:** [ADR-021](ADR-021-end-the-write-pipeline-at-step-3.md)
+- **Status:** Accepted · Passed
+- **Decision:** Binds the `write` command strictly to steps 0–3 (metadata, download, extract, LLM text writing), severing all TTS, image, video, and music generation execution, pricing, flags, selectors, and options from `write` in favor of standalone follow-on commands (`tts`, `image`, `video`, `music`).
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
+
 ## Consolidation Analysis
 
-The remaining analysis covers the current set of 20 records. Durable hosted-model policy belongs to ADR-010, benchmark proof belongs to ADR-012, dated provider/model changes belongs to ADR-013, voice-resource/runtime architecture remains independently findable in ADR-014, Docker distribution belongs to ADR-015 rather than the host setup authority, pooled OCR policy belongs to ADR-016 while persistence, scheduling mechanics, and artifact contracts remain in ADR-002, ADR-008, and ADR-009, whole-documentation command governance belongs to ADR-017 as a cross-command verification contract, provider-neutral soundscape intent and source mixes belong to ADR-018, derived panel synchronization and still-image presentation belongs to ADR-019, and test-console quiet-on-pass policy belongs to ADR-020.
+The remaining analysis covers the current set of 21 records. Durable hosted-model policy belongs to ADR-010, benchmark proof belongs to ADR-012, dated provider/model changes belongs to ADR-013, voice-resource/runtime architecture remains independently findable in ADR-014, Docker distribution belongs to ADR-015 rather than the host setup authority, pooled OCR policy belongs to ADR-016 while persistence, scheduling mechanics, and artifact contracts remain in ADR-002, ADR-008, and ADR-009, whole-documentation command governance belongs to ADR-017 as a cross-command verification contract, provider-neutral soundscape intent and source mixes belong to ADR-018, derived panel synchronization and still-image presentation belongs to ADR-019, test-console quiet-on-pass policy belongs to ADR-020, and write pipeline boundaries at step 3 belong to ADR-021.
 
 ### Remaining Boundaries
 

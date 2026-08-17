@@ -283,7 +283,7 @@ bun as links --help
 - Use `metadata` for quick metadata inspection without downloading, including X Space and post metadata.
 - Use `download` for downloading media/documents, X Space audio, and collecting metadata.
 - Use `extract` when you only need step-2 extraction or transcription without LLM writing, to create an X Space report, or to render transcript videos from an extract run or explicit audio/transcript files.
-- Use `write` for full summary pipeline with optional TTS/image/video generation, and for lyric draft generation from `./output/<name>/text`.
+- Use `write` for the full metadata, download, extract (STT/OCR/URL), and LLM text generation pipeline (steps 0–3), and for lyric draft generation from `./output/<name>/text`. For speech, image, video, or music generation from written outputs, invoke the follow-on `tts`, `image`, `video`, and `music` commands.
 - Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, and `fal`.
 - Use `voice` to list provider voice catalogs or manage durable voice registrations (import, design, audition, approve, or revoke voices) separately from speech synthesis.
 - Use `music --audio`, `music --captions`, or `music --batch` for local lyric-video rendering from repo audio under `input/`; hosted music generation uses a prompt or local text file plus `--provider`.

@@ -25,7 +25,7 @@ describe('logging contracts', () => {
           totalCost: 1.25
         }],
         notes: [
-          'TTS estimate omitted: step 4 only runs when write produces exactly one summary.',
+          'First aggregate estimate note.',
           'Second aggregate estimate note.'
         ]
       })

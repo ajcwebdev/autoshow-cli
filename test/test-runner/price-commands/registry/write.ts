@@ -44,7 +44,4 @@ export const writeRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/kimi-k2.6.test.ts', [
     command('write-kimi-kimi-k2.6', 'write-kimi-kimi-k2.6', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--llm', 'kimi=kimi-k2.6', '--prompt', 'shortSummary', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/openai-gpt-image-2-pipeline.test.ts', [
-    command('write-groq-openai/gpt-oss-20b', 'write-groq-openai/gpt-oss-20b', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--llm', 'groq=openai/gpt-oss-20b', '--prompt', 'shortSummary', '--price']),
-  ]),
 ]
