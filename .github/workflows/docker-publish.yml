@@ -2,14 +2,8 @@ name: Publish Docker Image to GHCR
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
-  workflow_dispatch:
-    inputs:
-      publish_tag:
-        description: 'Image tag to publish (default: latest)'
-        required: false
-        default: 'latest'
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -41,10 +35,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' || inputs.publish_tag == 'latest' }}
-            type=raw,value=${{ inputs.publish_tag }},enable=${{ inputs.publish_tag != '' && inputs.publish_tag != 'latest' }}
+            type=raw,value=latest
+            type=sha,format=long,prefix=
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
