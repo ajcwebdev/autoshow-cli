@@ -21,15 +21,54 @@ Why now: comic's model migration and its CLI migration are the same architectura
 
 ## Options Considered
 
-| Option                                                                                              | Pros                                                                                                                                       | Cons                                                                                               | Quantitative Notes                                                          |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Use the central model registry and shared LLM/image collectors**                                  | One source of truth for models, pricing, clients, and dispatch; centrally registered providers reach comic without comic-specific branches | Comic depends on shared generation infrastructure and must adapt its domain options                | Removed 1 private model directory, 3 private clients, and 3 dispatch chains |
-| Keep comic-local model dispatch but read central prices                                             | Smaller migration                                                                                                                          | Preserves parallel clients and provider branches; only solves price drift                          | Preserves 3 private clients                                                 |
-| **Represent comic subcommands as one native `CliCommandDefinition` tree and accept native grammar** | One parse and dispatch path; one help renderer; globals applied once; parser owns unknown flags and parameter cardinality                  | Public grammar deliberately changes for inline assignments, `--`, and repeated scalar flags        | Removes 1 second-stage shell and ~100 lines of comic revalidation           |
-| Preserve comic's old grammar inside native subcommands                                              | Minimizes surface change                                                                                                                   | Requires permanent comic-specific tokenizer checks and repeated-option guards                      | Preserves ~100 lines of custom validation                                   |
-| Flatten comic into three top-level commands                                                         | Avoids nested-dispatch support                                                                                                             | Breaks the established `comic <subcommand>` surface and pollutes root help                         | Adds 3 top-level commands                                                   |
-| Fully flatten links' provider-scoped grammar                                                        | Makes links expressible as ordinary independent flags and positionals                                                                      | Changes the meaning of ordered sections after provider selectors with no agreed replacement syntax | n/a                                                                         |
-| Keep the links bespoke parser                                                                       | No test churn                                                                                                                              | Leaves the final raw-argv tokenizer and permissive unknown-flag bypass in production               | Preserves 1 bespoke parser                                                  |
+**Option 1 (selected)**
+
+- **Option:** Use the central model registry and shared LLM/image collectors
+- **Pros:** One source of truth for models, pricing, clients, and dispatch; centrally registered providers reach comic without comic-specific branches
+- **Cons:** Comic depends on shared generation infrastructure and must adapt its domain options
+- **Quantitative Notes:** Removed 1 private model directory, 3 private clients, and 3 dispatch chains
+
+**Option 2**
+
+- **Option:** Keep comic-local model dispatch but read central prices
+- **Pros:** Smaller migration
+- **Cons:** Preserves parallel clients and provider branches; only solves price drift
+- **Quantitative Notes:** Preserves 3 private clients
+
+**Option 3 (selected)**
+
+- **Option:** Represent comic subcommands as one native `CliCommandDefinition` tree and accept native grammar
+- **Pros:** One parse and dispatch path; one help renderer; globals applied once; parser owns unknown flags and parameter cardinality
+- **Cons:** Public grammar deliberately changes for inline assignments, `--`, and repeated scalar flags
+- **Quantitative Notes:** Removes 1 second-stage shell and ~100 lines of comic revalidation
+
+**Option 4**
+
+- **Option:** Preserve comic's old grammar inside native subcommands
+- **Pros:** Minimizes surface change
+- **Cons:** Requires permanent comic-specific tokenizer checks and repeated-option guards
+- **Quantitative Notes:** Preserves ~100 lines of custom validation
+
+**Option 5**
+
+- **Option:** Flatten comic into three top-level commands
+- **Pros:** Avoids nested-dispatch support
+- **Cons:** Breaks the established `comic <subcommand>` surface and pollutes root help
+- **Quantitative Notes:** Adds 3 top-level commands
+
+**Option 6**
+
+- **Option:** Fully flatten links' provider-scoped grammar
+- **Pros:** Makes links expressible as ordinary independent flags and positionals
+- **Cons:** Changes the meaning of ordered sections after provider selectors with no agreed replacement syntax
+- **Quantitative Notes:** n/a
+
+**Option 7**
+
+- **Option:** Keep the links bespoke parser
+- **Pros:** No test churn
+- **Cons:** Leaves the final raw-argv tokenizer and permissive unknown-flag bypass in production
+- **Quantitative Notes:** Preserves 1 bespoke parser
 
 ## Decision
 
@@ -105,13 +144,30 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                                     | Sacrifices                                                                              |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| One shared model and provider path                        | Comic depends on central generation infrastructure                                      |
-| One command parser, dispatcher, and help renderer         | Comic's prior grammar is intentionally retired                                          |
-| One-level command tree matches the real product hierarchy | No arbitrary-depth subcommand framework                                                 |
-| Registered links selectors and native validation          | Hidden provider flag definitions add registry-derived entries to the command definition |
-| Ordered parsed metadata replaces raw-argv tokenization    | `CliRawParsed` gains occurrence-index metadata                                          |
+**Trade-off 1**
+
+- **Gain:** One shared model and provider path
+- **Sacrifice:** Comic depends on central generation infrastructure
+
+**Trade-off 2**
+
+- **Gain:** One command parser, dispatcher, and help renderer
+- **Sacrifice:** Comic's prior grammar is intentionally retired
+
+**Trade-off 3**
+
+- **Gain:** One-level command tree matches the real product hierarchy
+- **Sacrifice:** No arbitrary-depth subcommand framework
+
+**Trade-off 4**
+
+- **Gain:** Registered links selectors and native validation
+- **Sacrifice:** Hidden provider flag definitions add registry-derived entries to the command definition
+
+**Trade-off 5**
+
+- **Gain:** Ordered parsed metadata replaces raw-argv tokenization
+- **Sacrifice:** `CliRawParsed` gains occurrence-index metadata
 
 ## API / Type Impact
 

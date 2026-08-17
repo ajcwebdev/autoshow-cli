@@ -24,30 +24,93 @@ Why now: STT, OCR, and URL combined reports share an expanded ranking contract, 
 
 ### Evidence governance
 
-| Option                                                                                                  | Pros                                                                                                                                              | Cons                                                                                                        | Quantitative Notes                                                                    |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **One benchmark-evidence authority with command-specific paid approval and generated-report ownership** | Keeps source evidence, local proof, price preflight, paid execution, artifact validation, compaction, and regeneration in one auditable lifecycle | Requires modality refreshes to link here rather than embedding their own benchmark process                  | Covers write/OCR, STT, TTS, music, image, video, and the STT/OCR/URL combined reports |
-| Keep benchmark evidence inside each refresh ADR                                                         | Keeps chronology beside model changes                                                                                                             | Repeats approval and regeneration rules and makes cross-modality evidence hard to compare                   | Previously split across 4 refresh records plus this report record                     |
-| Treat a successful provider response as sufficient evidence                                             | Minimizes validation work                                                                                                                         | Can retain collisions, duplicated remote jobs, wrong identity, incomplete outputs, or stale derived reports | The 2026 STT and music runs each exposed exactly such post-response failures          |
-| Skip live evidence entirely                                                                             | Avoids cost and quota risk                                                                                                                        | Leaves some compatibility, timing, usage, and artifact claims unverified                                    | Appropriate when local contracts are sufficient, not a universal rule                 |
+**Option 1 (selected)**
+
+- **Option:** One benchmark-evidence authority with command-specific paid approval and generated-report ownership
+- **Pros:** Keeps source evidence, local proof, price preflight, paid execution, artifact validation, compaction, and regeneration in one auditable lifecycle
+- **Cons:** Requires modality refreshes to link here rather than embedding their own benchmark process
+- **Quantitative Notes:** Covers write/OCR, STT, TTS, music, image, video, and the STT/OCR/URL combined reports
+
+**Option 2**
+
+- **Option:** Keep benchmark evidence inside each refresh ADR
+- **Pros:** Keeps chronology beside model changes
+- **Cons:** Repeats approval and regeneration rules and makes cross-modality evidence hard to compare
+- **Quantitative Notes:** Previously split across 4 refresh records plus this report record
+
+**Option 3**
+
+- **Option:** Treat a successful provider response as sufficient evidence
+- **Pros:** Minimizes validation work
+- **Cons:** Can retain collisions, duplicated remote jobs, wrong identity, incomplete outputs, or stale derived reports
+- **Quantitative Notes:** The 2026 STT and music runs each exposed exactly such post-response failures
+
+**Option 4**
+
+- **Option:** Skip live evidence entirely
+- **Pros:** Avoids cost and quota risk
+- **Cons:** Leaves some compatibility, timing, usage, and artifact claims unverified
+- **Quantitative Notes:** Appropriate when local contracts are sufficient, not a universal rule
 
 ### Report presentation
 
-| Option                                                              | Pros                                                                                                                                        | Cons                                                                                                 | Quantitative Notes                                              |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Generator-emitted, self-contained HTML beside JSON and Markdown** | Regenerates with the source data; works offline; can consolidate ranks, values, and visual encodings; remains deterministic and versionable | Requires a custom HTML/CSS/JavaScript renderer and adds a committed artifact                         | 3 sibling artifacts per combined report; 0 runtime dependencies |
-| Markdown only                                                       | Needs no additional output format and remains easy to diff                                                                                  | Eleven ranking tables per group still repeat the same providers and make cross-referencing difficult | 1 presentation artifact; 11 ranking surfaces per group          |
-| Hand-authored dashboard                                             | Allows unconstrained design for the current data                                                                                            | Goes stale after regeneration                                                                        | 1 manually maintained dashboard                                 |
-| Served dashboard that reads JSON at runtime                         | Supports richer interaction and runtime data loading                                                                                        | Requires a server and breaks the offline, self-contained artifact contract                           | At least 1 runtime service and 1 data request                   |
+**Option 1 (selected)**
+
+- **Option:** Generator-emitted, self-contained HTML beside JSON and Markdown
+- **Pros:** Regenerates with the source data; works offline; can consolidate ranks, values, and visual encodings; remains deterministic and versionable
+- **Cons:** Requires a custom HTML/CSS/JavaScript renderer and adds a committed artifact
+- **Quantitative Notes:** 3 sibling artifacts per combined report; 0 runtime dependencies
+
+**Option 2**
+
+- **Option:** Markdown only
+- **Pros:** Needs no additional output format and remains easy to diff
+- **Cons:** Eleven ranking tables per group still repeat the same providers and make cross-referencing difficult
+- **Quantitative Notes:** 1 presentation artifact; 11 ranking surfaces per group
+
+**Option 3**
+
+- **Option:** Hand-authored dashboard
+- **Pros:** Allows unconstrained design for the current data
+- **Cons:** Goes stale after regeneration
+- **Quantitative Notes:** 1 manually maintained dashboard
+
+**Option 4**
+
+- **Option:** Served dashboard that reads JSON at runtime
+- **Pros:** Supports richer interaction and runtime data loading
+- **Cons:** Requires a server and breaks the offline, self-contained artifact contract
+- **Quantitative Notes:** At least 1 runtime service and 1 data request
 
 ### Model tiering
 
-| Option                                                           | Pros                                                                                                                          | Cons                                                                                                                                                               | Quantitative Notes                               |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| **Three contiguous terciles of the `qualityCost` ranking**       | Gives every provider one visible order; produces stable, near-equal tier sizes; is simple to reproduce in every output format | Measures position on one chosen composite rather than breadth across ranking surfaces                                                                              | 3 tiers; tier sizes differ by at most 1 provider |
-| Placement breadth across all eleven pure and weighted surfaces   | Rewards providers that place well under several priorities                                                                    | Tier sizes depend on placement thresholds; specialized surfaces can change membership; the result has no single rank to explain it                                 | 11 ranking surfaces per group                    |
-| Threshold-based quality-cost tiers                               | Can attach fixed semantic labels to composite ranges                                                                          | Per-run min-max subscores are cohort-relative, so fixed thresholds would imply more absolute meaning than the scores support and could leave tiers sparse or empty | Uses cohort-relative 0–100 subscores             |
-| Terciles from another composite, such as balanced or `costSpeed` | Retains deterministic, near-equal groups while emphasizing another objective                                                  | Does not express the intended joint emphasis on quality and cost; selecting another objective merely moves the policy choice                                       | 8 available weighted rankings                    |
+**Option 1 (selected)**
+
+- **Option:** Three contiguous terciles of the `qualityCost` ranking
+- **Pros:** Gives every provider one visible order; produces stable, near-equal tier sizes; is simple to reproduce in every output format
+- **Cons:** Measures position on one chosen composite rather than breadth across ranking surfaces
+- **Quantitative Notes:** 3 tiers; tier sizes differ by at most 1 provider
+
+**Option 2**
+
+- **Option:** Placement breadth across all eleven pure and weighted surfaces
+- **Pros:** Rewards providers that place well under several priorities
+- **Cons:** Tier sizes depend on placement thresholds; specialized surfaces can change membership; the result has no single rank to explain it
+- **Quantitative Notes:** 11 ranking surfaces per group
+
+**Option 3**
+
+- **Option:** Threshold-based quality-cost tiers
+- **Pros:** Can attach fixed semantic labels to composite ranges
+- **Cons:** Per-run min-max subscores are cohort-relative, so fixed thresholds would imply more absolute meaning than the scores support and could leave tiers sparse or empty
+- **Quantitative Notes:** Uses cohort-relative 0–100 subscores
+
+**Option 4**
+
+- **Option:** Terciles from another composite, such as balanced or `costSpeed`
+- **Pros:** Retains deterministic, near-equal groups while emphasizing another objective
+- **Cons:** Does not express the intended joint emphasis on quality and cost; selecting another objective merely moves the policy choice
+- **Quantitative Notes:** 8 available weighted rankings
 
 ## Decision
 
@@ -102,16 +165,61 @@ Weighted composites use per-run, per-group min-max quality, speed, and cost subs
 
 The exact weighted-ranking registry is:
 
-| Key               | Quality | Speed | Cost |
-| ----------------- | ------: | ----: | ---: |
-| `strongQuality`   |    0.80 |  0.10 | 0.10 |
-| `moderateQuality` |    0.60 |  0.20 | 0.20 |
-| `strongSpeed`     |    0.10 |  0.80 | 0.10 |
-| `moderateSpeed`   |    0.20 |  0.60 | 0.20 |
-| `strongCost`      |    0.10 |  0.10 | 0.80 |
-| `moderateCost`    |    0.20 |  0.20 | 0.60 |
-| `qualityCost`     |    0.45 |  0.10 | 0.45 |
-| `costSpeed`       |    0.10 |  0.45 | 0.45 |
+**Key 1: `strongQuality`**
+
+- **Key:** `strongQuality`
+- **Quality:** 0.80
+- **Speed:** 0.10
+- **Cost:** 0.10
+
+**Key 2: `moderateQuality`**
+
+- **Key:** `moderateQuality`
+- **Quality:** 0.60
+- **Speed:** 0.20
+- **Cost:** 0.20
+
+**Key 3: `strongSpeed`**
+
+- **Key:** `strongSpeed`
+- **Quality:** 0.10
+- **Speed:** 0.80
+- **Cost:** 0.10
+
+**Key 4: `moderateSpeed`**
+
+- **Key:** `moderateSpeed`
+- **Quality:** 0.20
+- **Speed:** 0.60
+- **Cost:** 0.20
+
+**Key 5: `strongCost`**
+
+- **Key:** `strongCost`
+- **Quality:** 0.10
+- **Speed:** 0.10
+- **Cost:** 0.80
+
+**Key 6: `moderateCost`**
+
+- **Key:** `moderateCost`
+- **Quality:** 0.20
+- **Speed:** 0.20
+- **Cost:** 0.60
+
+**Key 7: `qualityCost`**
+
+- **Key:** `qualityCost`
+- **Quality:** 0.45
+- **Speed:** 0.10
+- **Cost:** 0.45
+
+**Key 8: `costSpeed`**
+
+- **Key:** `costSpeed`
+- **Quality:** 0.10
+- **Speed:** 0.45
+- **Cost:** 0.45
 
 All rankings and tiers are computed separately within each provider group. Local, non-diarization, diarization, and other category groups are never combined into a cross-group overall leaderboard.
 
@@ -153,12 +261,25 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                                                      | Sacrifices                                                                     |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Generated, always-current HTML from the same builders as JSON and Markdown | Custom renderer maintenance and committed HTML diffs                           |
-| Offline single-file dashboard with no dependencies                         | No runtime data loading or external charting library                           |
-| Stable, near-equal, explainable quality-cost tiers                         | No tier-level measure of breadth across pure and alternative weighted rankings |
-| One per-group tier order shared by JSON, Markdown, and HTML                | No cross-group leaderboard and no absolute-score tier thresholds               |
+**Trade-off 1**
+
+- **Gain:** Generated, always-current HTML from the same builders as JSON and Markdown
+- **Sacrifice:** Custom renderer maintenance and committed HTML diffs
+
+**Trade-off 2**
+
+- **Gain:** Offline single-file dashboard with no dependencies
+- **Sacrifice:** No runtime data loading or external charting library
+
+**Trade-off 3**
+
+- **Gain:** Stable, near-equal, explainable quality-cost tiers
+- **Sacrifice:** No tier-level measure of breadth across pure and alternative weighted rankings
+
+**Trade-off 4**
+
+- **Gain:** One per-group tier order shared by JSON, Markdown, and HTML
+- **Sacrifice:** No cross-group leaderboard and no absolute-score tier thresholds
 
 ## Implementation Note
 
@@ -197,14 +318,13 @@ ADR-013 owns which selectors changed; this section records what was measured, ap
 
 ## Follow-up Actions
 
-| Action                                                                                                                            | Owner                           | Current State                                                                                                                  |
-| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Keep the eight-ranking registry, ordering rules, and tercile construction shared across STT, OCR, and URL builders                | Report maintainers              | Implemented in `combined_report_lib.ts`                                                                                        |
-| Generate JSON, Markdown, and self-contained HTML from the same category view models                                               | Report maintainers              | Implemented in the shared renderer and category builders                                                                       |
-| Validate schema versions, tie-breaks, tier sizes, and rank/composite parity across committed artifacts                            | Test maintainers                | Implemented in `combined-report-weighted-ranking-contracts.test.ts`                                                            |
-| Regenerate combined reports from committed local benchmark artifacts when source runs change                                      | Benchmark maintainers           | Ongoing                                                                                                                        |
-| Preserve exact paid approval, invalid-output exclusion, repair, compaction, and regeneration evidence for every benchmark refresh | Benchmark maintainers           | Ongoing                                                                                                                        |
-| Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts       | Model and benchmark maintainers | Implemented — protected by zero-cost plan helper (`audit:ocr-tokens --plan`) requiring explicit user approval before execution |
+- [x] Keep the eight-ranking registry, ordering rules, and tercile construction shared across STT, OCR, and URL builders — Implemented in `combined_report_lib.ts`
+- [x] Generate JSON, Markdown, and self-contained HTML from the same category view models — Implemented in the shared renderer and category builders
+- [x] Validate schema versions, tie-breaks, tier sizes, and rank/composite parity across committed artifacts — Implemented in `combined-report-weighted-ranking-contracts.test.ts`
+- [ ] Regenerate combined reports from committed local benchmark artifacts when source runs change — Ongoing
+- [ ] Preserve exact paid approval, invalid-output exclusion, repair, compaction, and regeneration evidence for every benchmark refresh — Ongoing
+- [x] Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts — Implemented
+  Protected by the zero-cost plan helper (`audit:ocr-tokens --plan`) requiring explicit user approval before execution.
 
 ## Test Plan
 

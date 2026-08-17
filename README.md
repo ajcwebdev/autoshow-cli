@@ -171,7 +171,7 @@ bun autoshow --version
 - Inputs can be URLs, local files, directories, `.md`/`.txt` URL lists, or prompt strings for `image`, `video`, and `music`.
 - If an input begins with `-`, end flag parsing first: `bun autoshow write -- -myfile`.
 - If the literal input collides with a command name, use the explicit command form: `bun autoshow metadata setup`.
-- `.acsm` document inputs are supported through setup-managed Calibre ACSM plugin scripts. Run `bun autoshow setup --step calibre`, then `bun autoshow setup --step acsm-authorize`, and AutoShow fulfills to EPUB/PDF locally before extraction.
+- `.acsm` files are unsupported. Obtain a lawful readable EPUB or PDF outside AutoShow before processing the book.
 
 ### Batch Inputs
 

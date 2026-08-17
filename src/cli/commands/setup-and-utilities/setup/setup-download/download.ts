@@ -23,7 +23,6 @@ const TOTAL_TIMEOUT_MS_BY_FLOW: Record<DownloadFlowId, number> = {
   'mupdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'mupdf-prebuilt': DEFAULT_TOTAL_TIMEOUT_MS,
   'calibre-dmg': LARGE_ASSET_TOTAL_TIMEOUT_MS,
-  'acsm-calibre-plugin': DEFAULT_TOTAL_TIMEOUT_MS,
   'leptonica-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'tesseract-source': DEFAULT_TOTAL_TIMEOUT_MS,
   tessdata: DEFAULT_TOTAL_TIMEOUT_MS,

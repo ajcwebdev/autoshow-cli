@@ -8,7 +8,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { SetupStepId } from '~/types'
 
-const VALID_SETUP_STEPS: SetupStepId[] = ['uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'acsm', 'acsm-authorize', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
+const VALID_SETUP_STEPS: SetupStepId[] = ['uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
 const FOCUSED_SETUP_CONFLICT_FLAGS = [
   'models',
   'doctor',
@@ -38,8 +38,6 @@ export const setupCommand = defineCliCommand({
       ['bun autoshow setup --step whisperfile', 'Download the default whisperfile model (tiny)'],
       ['bun autoshow setup --doctor', 'Check prerequisites without installing'],
       ['bun autoshow setup --step defuddle', 'Install the managed Defuddle CLI'],
-      ['bun autoshow setup --step acsm', 'Install ACSM fulfillment support'],
-      ['bun autoshow setup --step acsm-authorize', 'Authorize ACSM fulfillment interactively'],
       ['bun autoshow setup --step whisper-binary --force-redownload', 'Reinstall whisper binary']
     ]
   }

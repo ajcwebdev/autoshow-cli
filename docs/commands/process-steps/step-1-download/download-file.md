@@ -21,7 +21,7 @@ bun autoshow download <input>
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | YouTube / Twitch / TikTok URL                                 | `yt-dlp` download, normalize to compressed audio-only media, collect media metadata                                    |
 | Direct media URL (`.mp3`, `.mp4`, etc.)                       | HTTP fetch, normalize to compressed audio-only media, collect media metadata                                           |
-| Direct document URL (`.pdf`, `.epub`, `.acsm`, `.docx`, etc.) | HTTP fetch to a temp file, detect format, collect document metadata                                                    |
+| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | HTTP fetch to a temp file, detect format, collect document metadata                                                    |
 | Direct document URL without an extension                      | HEAD probe plus download + magic-byte detection                                                                        |
 | Remote article / HTML URL                                     | Article extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
 | X/Twitter Space URL or raw Space ID                           | `yt-dlp` download of Space audio, normalize to compressed audio-only media, collect media metadata                     |
@@ -36,13 +36,13 @@ bun autoshow download <input>
 
 Use `--best-quality` for streaming sources when you want the best available video stream plus the best available audio stream instead of the default audio-only artifact. For direct media URLs and local media files, `--best-quality` keeps the source file as-is because there is no alternate quality ladder to select.
 
-**Supported document formats:** PDF, EPUB, ACSM, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
+**Supported document formats:** PDF, EPUB, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
 
 **Supported image formats:** PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF
 
 Convertible ebook inputs (MOBI, AZW/AZW3, PRC, FB2, and LIT) are normalized to EPUB through Calibre during step 1. The source format and conversion chain are recorded under `items[].metadata.step1` in `manifest.json`.
 
-ACSM inputs are fulfilled locally before document metadata is collected (see [`setup.md`](../../setup-and-utilities/setup/setup.md) for toolchain setup). AutoShow does not automate DRM removal and does not use online ACSM converters.
+`.acsm` inputs follow ordinary unsupported-input behavior. Obtain a lawful readable EPUB or PDF outside AutoShow before using `download`.
 
 Step-1 item metadata in `manifest.json` also includes `slug`, which is derived from the original filename without its final extension when available.
 

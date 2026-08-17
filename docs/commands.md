@@ -76,11 +76,6 @@ bun autoshow extract input/examples/document/1-document.pdf
 # document OCR/extraction as JSON
 bun autoshow extract input/examples/document/1-document.pdf --format json
 
-# ACSM fulfillment, then document extraction
-bun autoshow setup --step calibre
-bun autoshow setup --step acsm-authorize
-bun autoshow extract path/to/book.acsm
-
 # document OCR with DeepInfra
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct
 

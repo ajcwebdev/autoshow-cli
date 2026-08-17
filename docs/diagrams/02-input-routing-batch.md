@@ -100,7 +100,7 @@ Extract route mapping:
 | `x_space`      | X Space metadata extraction       | `x-space`                                |
 | `unsupported`  | none                              | skipped in batch, usage error for single |
 
-The document family includes `.pdf`, `.epub`, `.acsm`, `.docx`, `.pptx`, `.xlsx`, `.odt`, `.ods`, `.odp`, `.mobi`, `.prc`, `.azw3`, `.azw`, `.fb2`, `.lit`, `.cbz`, `.rtf`, `.csv`, and image files `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`. Local `.html`/`.htm` files classify as `html_article`.
+The document family includes `.pdf`, `.epub`, `.docx`, `.pptx`, `.xlsx`, `.odt`, `.ods`, `.odp`, `.mobi`, `.prc`, `.azw3`, `.azw`, `.fb2`, `.lit`, `.cbz`, `.rtf`, `.csv`, and image files `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`. Local `.html`/`.htm` files classify as `html_article`. `.acsm` follows the ordinary unsupported route.
 
 ## Command Matrix
 

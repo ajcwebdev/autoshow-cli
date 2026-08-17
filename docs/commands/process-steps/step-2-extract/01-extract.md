@@ -34,7 +34,7 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 | Local media files                                                                                         | [STT](./02-extract-stt.md)                           |
 | RSS or podcast feed batches                                                                               | [STT](./02-extract-stt.md)                           |
 | YouTube channel batches                                                                                   | [STT](./02-extract-stt.md)                           |
-| PDF, EPUB, ACSM, convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT), DOCX, PPTX, XLSX, ODF, RTF, CSV, CBZ | [OCR](./03-extract-ocr.md)                           |
+| PDF, EPUB, convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT), DOCX, PPTX, XLSX, ODF, RTF, CSV, CBZ       | [OCR](./03-extract-ocr.md)                           |
 | PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF                                                                 | [OCR](./03-extract-ocr.md)                           |
 | Remote article URLs (`text/html`)                                                                         | [URL / HTML extraction](./04-extract-url.md)         |
 | Local `.html` / `.htm` files                                                                              | [URL / HTML extraction](./04-extract-url.md)         |
@@ -126,7 +126,6 @@ Tesseract is the only local OCR engine and is installed as part of `bun autoshow
 | -------------------------------------------------- | -------------------------------------------------------------------- |
 | PDF                                                | `mutool+tesseract`                                                   |
 | EPUB                                               | cleaned native extraction (`epub-text`); `--provider tesseract` also available |
-| ACSM                                               | fulfill locally to EPUB/PDF, then follow the fulfilled EPUB/PDF path |
 | Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | normalize to EPUB, then follow the EPUB path                         |
 | CBZ                                                | per-image OCR, Tesseract by default                                  |
 | PNG / JPG / JPEG / TIF / TIFF / GIF                | local OCR by default                                                 |

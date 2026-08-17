@@ -1,6 +1,6 @@
-import { chmod, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, relative } from 'node:path'
+import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
@@ -8,17 +8,6 @@ import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-se
 import { runCommand } from '../../../test-utils/test-helpers'
 import { CALIBRE_REQUIRED_TOOLS } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { readDependencyMetadata } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
-import {
-  ACSM_STANDALONE_IMPORT_MODULES,
-  buildAcsmAuthorizeWrapperScript,
-  buildAcsmDeviceFilePreflightCode,
-  buildAcsmFulfillWrapperScript,
-  buildAcsmPythonPath,
-  buildAcsmStandaloneImportCheckCode,
-  patchAcsmPluginPython3Compatibility,
-  runAcsmDeviceFilePreflight,
-  runAcsmStandaloneImportPreflight
-} from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/acsm'
 import {
   collectDoctorNextSteps,
   collectDoctorReport
@@ -43,36 +32,6 @@ import { configureBinDir, getConfiguredBinDir, qpdfBuildDir, qpdfManagedBinaryPa
 import type { DoctorCheck, DoctorProbes, RunResult } from '~/types'
 
 const okRun = (stdout = ''): RunResult => ({ stdout, stderr: '', exitCode: 0 })
-
-const runLocalCommand = async (
-  command: string,
-  args: string[],
-  env: Record<string, string | undefined> = {}
-): Promise<RunResult> => {
-  const proc = Bun.spawn([command, ...args], {
-    env: { ...(process.env as Record<string, string | undefined>), ...env },
-    stdout: 'pipe',
-    stderr: 'pipe'
-  })
-  const [stdout, stderr, exitCode] = await Promise.all([
-    proc.stdout ? new Response(proc.stdout).text() : Promise.resolve(''),
-    proc.stderr ? new Response(proc.stderr).text() : Promise.resolve(''),
-    proc.exited
-  ])
-  return { stdout, stderr, exitCode }
-}
-
-const resolvePythonForImportTest = async (): Promise<string | undefined> => {
-  for (const candidate of ['python3', 'python']) {
-    try {
-      const result = await runLocalCommand(candidate, ['-c', 'import sys; print(sys.executable)'])
-      if (result.exitCode === 0) return result.stdout.trim() || candidate
-    } catch {
-      // Optional local preflight coverage can only run when Python is available.
-    }
-  }
-  return undefined
-}
 
 const waitForTurn = async (): Promise<void> => {
   await new Promise<void>((resolve) => setTimeout(resolve, 0))
@@ -128,9 +87,9 @@ const findDoctorCheck = (
 }
 
 describe('setup command contracts', () => {
-  test('setup usage lists valid focused steps when --step is unknown', async () => {
+  test('setup rejects the retired ACSM step and omits retired steps from valid values', async () => {
     const parsed = parseCommandInvocation(
-      ['setup', '--step', 'not-real'],
+      ['setup', '--step', 'acsm'],
       setupCommand,
       GLOBAL_FLAG_DEFINITIONS
     )
@@ -148,11 +107,10 @@ describe('setup command contracts', () => {
     } catch (error) {
       message = error instanceof Error ? error.message : String(error)
     }
-    expect(message).toContain('Invalid --step value: not-real')
+    expect(message).toContain('Invalid --step value: acsm')
     expect(message).toContain('defuddle')
     expect(message).toContain('whisperfile')
-    expect(message).toContain('acsm')
-    expect(message).toContain('acsm-authorize')
+    expect(message.slice(message.indexOf('Valid values:'))).not.toContain('acsm')
     expect(message).not.toContain('llamafile')
   })
 
@@ -314,7 +272,7 @@ describe('setup command contracts', () => {
     })
   })
 
-  test('Calibre setup defers broad document completion until ACSM setup finishes', async () => {
+  test('Calibre setup remains serial and omits retired ACSM setup', async () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre.ts').text()
     const setupSource = source.slice(source.indexOf('export const setupCalibreDocumentTools'))
 
@@ -324,254 +282,8 @@ describe('setup command contracts', () => {
     expect(setupSource).toContain('await setupDocumentTools({ printCompletion: false })')
     expect(setupSource).not.toContain('runSettledSetupTasks')
     expect(setupSource.indexOf('await setupDocumentTools(')).toBeLessThan(setupSource.indexOf('await setupCalibreTools()'))
-    expect(setupSource.indexOf('await setupCalibreTools()')).toBeLessThan(setupSource.indexOf('await setupAcsmFulfillment('))
-    expect(setupSource.indexOf('await setupAcsmFulfillment(')).toBeLessThan(setupSource.indexOf("l.write('success', 'Document foundation tools and ACSM fulfillment setup complete')"))
-  })
-
-  test('ACSM fulfill setup wrapper produces exactly one EPUB or PDF output without leaking subprocess logs', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-acsm-wrapper-'))
-    try {
-      const pluginDir = join(root, 'plugin')
-      const accountDir = join(root, 'account')
-      const outputDir = join(root, 'out')
-      const inputPath = join(root, 'book.acsm')
-      const fakePython = join(root, 'python')
-      const wrapperPath = join(root, 'calibre-acsm-fulfill')
-
-      await mkdir(pluginDir, { recursive: true })
-      await mkdir(accountDir, { recursive: true })
-      await writeFile(join(pluginDir, 'fulfill.py'), '# placeholder\n')
-      await writeFile(join(accountDir, 'activation.xml'), '<activation />')
-      await writeFile(join(accountDir, 'device.xml'), '<device />')
-      await writeFile(join(accountDir, 'devicesalt'), 'salt')
-      await writeFile(inputPath, '<adept:fulfillmentToken />')
-      await writeFile(fakePython, '#!/bin/sh\nif [ ! -f "$2" ]; then echo "missing input $2" >&2; exit 12; fi\necho "secret activation path /tmp/private/account" >&2\nprintf "epub" > fulfilled.epub\n')
-      await chmod(fakePython, 0o755)
-      await writeFile(wrapperPath, buildAcsmFulfillWrapperScript({
-        pluginDir,
-        accountDir,
-        pythonPath: fakePython
-      }))
-      await chmod(wrapperPath, 0o755)
-
-      const result = await runLocalCommand(wrapperPath, [relative(process.cwd(), inputPath), outputDir])
-
-      expect(result.exitCode).toBe(0)
-      expect(`${result.stdout}\n${result.stderr}`).not.toContain('/tmp/private/account')
-      expect(await readdir(outputDir)).toEqual(['fulfilled.epub'])
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-  })
-
-  test('ACSM fulfill setup wrapper reports missing input before setup or authorization checks', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-acsm-wrapper-missing-input-'))
-    try {
-      const pluginDir = join(root, 'plugin')
-      const accountDir = join(root, 'account')
-      const outputDir = join(root, 'out')
-      const fakePython = join(root, 'python')
-      const wrapperPath = join(root, 'calibre-acsm-fulfill')
-
-      await mkdir(pluginDir, { recursive: true })
-      await mkdir(accountDir, { recursive: true })
-      await writeFile(fakePython, '#!/bin/sh\nexit 99\n')
-      await chmod(fakePython, 0o755)
-      await writeFile(wrapperPath, buildAcsmFulfillWrapperScript({
-        pluginDir,
-        accountDir,
-        pythonPath: fakePython
-      }))
-      await chmod(wrapperPath, 0o755)
-
-      const result = await runLocalCommand(wrapperPath, [join(root, 'missing.acsm'), outputDir])
-
-      expect(result.exitCode).toBe(1)
-      expect(result.stderr).toContain('ACSM input file was not found')
-      expect(result.stderr).not.toContain('ACSM fulfillment is not authorized')
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-  })
-
-  test('ACSM fulfill setup wrapper fails clearly before fulfillment when authorization files are missing', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-acsm-wrapper-missing-auth-'))
-    try {
-      const pluginDir = join(root, 'plugin')
-      const accountDir = join(root, 'account')
-      const outputDir = join(root, 'out')
-      const inputPath = join(root, 'book.acsm')
-      const fakePython = join(root, 'python')
-      const wrapperPath = join(root, 'calibre-acsm-fulfill')
-
-      await mkdir(pluginDir, { recursive: true })
-      await mkdir(accountDir, { recursive: true })
-      await writeFile(join(pluginDir, 'fulfill.py'), '# placeholder\n')
-      await writeFile(inputPath, '<adept:fulfillmentToken />')
-      await writeFile(fakePython, '#!/bin/sh\nprintf "epub" > fulfilled.epub\n')
-      await chmod(fakePython, 0o755)
-      await writeFile(wrapperPath, buildAcsmFulfillWrapperScript({
-        pluginDir,
-        accountDir,
-        pythonPath: fakePython
-      }))
-      await chmod(wrapperPath, 0o755)
-
-      const result = await runLocalCommand(wrapperPath, [inputPath, outputDir])
-
-      expect(result.exitCode).toBe(1)
-      expect(result.stderr).toContain('ACSM fulfillment is not authorized')
-      expect(result.stderr).toContain('calibre-acsm-authorize')
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-  })
-
-  test('ACSM generated wrappers use nested plugin ZIP package paths', () => {
-    const paths = {
-      pluginDir: '/runtime/tools/acsm-calibre-plugin/plugin',
-      accountDir: '/runtime/tools/acsm-calibre-plugin/account',
-      pythonPath: '/runtime/tools/acsm-calibre-plugin/venv/bin/python'
-    }
-    const expectedPythonPath = 'export PYTHONPATH="$plugin_dir/asn1crypto.zip/asn1crypto:$plugin_dir/oscrypto.zip/oscrypto:$plugin_dir${PYTHONPATH:+:$PYTHONPATH}"'
-    const fulfillScript = buildAcsmFulfillWrapperScript(paths)
-    const authorizeScript = buildAcsmAuthorizeWrapperScript(paths)
-
-    expect(fulfillScript).toContain(expectedPythonPath)
-    expect(authorizeScript).toContain(expectedPythonPath)
-    expect(fulfillScript).not.toContain('$plugin_dir/asn1crypto.zip:$plugin_dir/oscrypto.zip:$plugin_dir')
-    expect(authorizeScript).not.toContain('$plugin_dir/asn1crypto.zip:$plugin_dir/oscrypto.zip:$plugin_dir')
-  })
-
-  test('ACSM standalone import preflight uses the generated nested Python path without network access', async () => {
-    const pythonPath = await resolvePythonForImportTest()
-    if (!pythonPath) return
-
-    expect([...ACSM_STANDALONE_IMPORT_MODULES]).toEqual(['libadobe', 'libadobeAccount', 'libadobeFulfill', 'fulfill'])
-
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-acsm-import-preflight-'))
-    try {
-      const pluginDir = join(root, 'plugin')
-      const asn1OuterDir = join(pluginDir, 'asn1crypto.zip', 'asn1crypto')
-      const asn1PackageDir = join(asn1OuterDir, 'asn1crypto')
-      const oscryptoOuterDir = join(pluginDir, 'oscrypto.zip', 'oscrypto')
-      const oscryptoPackageDir = join(oscryptoOuterDir, 'oscrypto')
-
-      await mkdir(asn1PackageDir, { recursive: true })
-      await mkdir(oscryptoPackageDir, { recursive: true })
-      await writeFile(join(asn1OuterDir, '__init__.py'), '# outer package marker\n')
-      await writeFile(join(asn1PackageDir, '__init__.py'), '# nested asn1crypto package\n')
-      await writeFile(join(oscryptoOuterDir, '__init__.py'), '# outer package marker\n')
-      await writeFile(join(oscryptoPackageDir, '__init__.py'), '# nested oscrypto package\n')
-      await writeFile(join(oscryptoPackageDir, 'keys.py'), 'VALUE = "keys"\n')
-      await writeFile(join(pluginDir, 'libadobe.py'), 'import oscrypto.keys\n')
-      await writeFile(join(pluginDir, 'libadobeAccount.py'), 'import libadobe\n')
-      await writeFile(join(pluginDir, 'libadobeFulfill.py'), 'import libadobe\n')
-      await writeFile(join(pluginDir, 'fulfill.py'), 'import libadobeAccount\nimport libadobeFulfill\n')
-
-      const oldRootPythonPath = `${pluginDir}/asn1crypto.zip:${pluginDir}/oscrypto.zip:${pluginDir}`
-      const oldResult = await runLocalCommand(pythonPath, ['-c', buildAcsmStandaloneImportCheckCode()], {
-        PYTHONPATH: oldRootPythonPath
-      })
-
-      expect(oldResult.exitCode).not.toBe(0)
-      expect(`${oldResult.stdout}\n${oldResult.stderr}`).toContain('oscrypto.keys')
-      expect(buildAcsmPythonPath(pluginDir)).toBe(`${pluginDir}/asn1crypto.zip/asn1crypto:${pluginDir}/oscrypto.zip/oscrypto:${pluginDir}`)
-      await expect(runAcsmStandaloneImportPreflight({ pluginDir, pythonPath })).resolves.toBeUndefined()
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-  })
-
-  test('ACSM setup patches Python 3 serial and fingerprint text before device-file preflight', async () => {
-    const pythonPath = await resolvePythonForImportTest()
-    if (!pythonPath) return
-
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-acsm-python3-patch-'))
-    try {
-      const pluginDir = join(root, 'plugin')
-      await mkdir(pluginDir, { recursive: true })
-      await writeFile(join(pluginDir, 'libadobe.py'), [
-        'import base64, hashlib',
-        'class Random:',
-        '    @staticmethod',
-        '    def get_random_bytes(size):',
-        '        return b"\\x01" * size',
-        'devkey_bytes = None',
-        'FILE_DEVICEKEY = "devicesalt"',
-        'def createDeviceKeyFile():',
-        '    global devkey_bytes',
-        '    devkey_bytes = Random.get_random_bytes(16)',
-        '    with open(FILE_DEVICEKEY, "wb") as f:',
-        '        f.write(devkey_bytes)',
-        'def makeSerial(random):',
-        '    sha_out = None',
-        '    if not random:',
-        '        sha_out = "fixed"',
-        '    else:',
-        '        import binascii',
-        '        sha_out = binascii.hexlify(Random.get_random_bytes(20)).lower()',
-        '    return sha_out',
-        'def makeFingerprint(serial):',
-        '    global devkey_bytes',
-        '    if devkey_bytes is None:',
-        '        f = open(FILE_DEVICEKEY, "rb")',
-        '        devkey_bytes = f.read()',
-        '        f.close()',
-        "    str_to_hash = serial + devkey_bytes.decode('latin-1')",
-        "    hashed_str = hashlib.sha1(str_to_hash.encode('latin-1')).digest()",
-        '    b64str = base64.b64encode(hashed_str)',
-        '',
-        '    return b64str'
-      ].join('\n'))
-      await writeFile(join(pluginDir, 'libadobeAccount.py'), [
-        'from libadobe import makeFingerprint, makeSerial',
-        'def createDeviceFile(randomSerial, useVersionIndex = 0):',
-        '    serial = makeSerial(randomSerial)',
-        '    fingerprint = makeFingerprint(serial)',
-        '    assert isinstance(serial, str), type(serial).__name__',
-        '    assert isinstance(fingerprint, str), type(fingerprint).__name__',
-        '    with open("device.xml", "w") as f:',
-        '        f.write(serial + fingerprint)',
-        '    return True'
-      ].join('\n'))
-
-      await patchAcsmPluginPython3Compatibility(pluginDir)
-      await patchAcsmPluginPython3Compatibility(pluginDir)
-      const patched = await Bun.file(join(pluginDir, 'libadobe.py')).text()
-
-      expect(patched).toContain("decode('latin-1').lower()")
-      expect(patched).toContain("return b64str.decode('latin-1')")
-      expect(patched).not.toContain("decode('latin-1').decode('latin-1')")
-      expect(patched.match(/if isinstance\(serial, bytes\)/g)?.length).toBe(1)
-      expect(buildAcsmDeviceFilePreflightCode()).toContain('createDeviceFile(True, 1)')
-      await expect(runAcsmDeviceFilePreflight({ pluginDir, pythonPath })).resolves.toBeUndefined()
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-  })
-
-  test('ACSM authorize wrapper points at the standalone registration script', () => {
-    const script = buildAcsmAuthorizeWrapperScript({
-      pluginDir: '/runtime/tools/acsm-calibre-plugin/plugin',
-      accountDir: '/runtime/tools/acsm-calibre-plugin/account',
-      pythonPath: '/runtime/tools/acsm-calibre-plugin/venv/bin/python'
-    })
-
-    expect(script).toContain('calibre-acsm-authorize AutoShow wrapper')
-    expect(script).toContain('register_ADE_account.py')
-    expect(script).toContain('AUTOSHOW_ACSM_ACCOUNT_DIR')
-  })
-
-  test('ACSM authorization is integrated as an explicit setup step', async () => {
-    const [setupSource, runSource] = await Promise.all([
-      Bun.file('src/cli/commands/setup-and-utilities/setup/define-setup-command.ts').text(),
-      Bun.file('src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts').text()
-    ])
-
-    expect(setupSource).toContain("'acsm-authorize'")
-    expect(setupSource).toContain('Authorize ACSM fulfillment interactively')
-    expect(runSource).toContain("case 'acsm-authorize': await runAcsmAuthorization(); return")
+    expect(setupSource).not.toContain('setupAcsm')
+    expect(setupSource).not.toContain('ACSM')
   })
 
   test('compact setup subprocess failures include a bounded output tail', async () => {
@@ -742,13 +454,11 @@ describe('setup command contracts', () => {
       'runtime/bin/ffprobe',
       'runtime/bin/mutool',
       'runtime/bin/ebook-convert',
-      'runtime/bin/calibre-acsm-fulfill',
       'runtime/bin/tesseract',
       'runtime/tools/tessdata/eng.traineddata'
     ]
     const report = await collectDoctorReport(makeDoctorProbes({
-      pathExists: async (path) => !missingPathFragments.some(fragment => path.includes(fragment)),
-      which: (command) => command === 'calibre-acsm-fulfill' ? undefined : `/usr/bin/${command}`
+      pathExists: async (path) => !missingPathFragments.some(fragment => path.includes(fragment))
     }))
 
     expect(findDoctorCheck(report, 'yt-dlp').status).toBe('MISSING')
@@ -756,12 +466,12 @@ describe('setup command contracts', () => {
     expect(findDoctorCheck(report, 'ffprobe').status).toBe('MISSING')
     expect(findDoctorCheck(report, 'mutool').status).toBe('MISSING')
     expect(findDoctorCheck(report, 'ebook-convert').status).toBe('MISSING')
-    expect(findDoctorCheck(report, 'calibre-acsm-fulfill').status).toBe('MISSING')
     expect(findDoctorCheck(report, 'tesseract').status).toBe('MISSING')
     expect(findDoctorCheck(report, 'Tesseract eng data').status).toBe('MISSING')
+    expect(flattenDoctorChecks(report).map(check => check.label).join('\n').toLowerCase()).not.toContain('acsm')
     expect(report.nextSteps).toContain('bun autoshow setup --step yt-dlp')
     expect(report.nextSteps).toContain('bun autoshow setup --step calibre')
-    expect(report.nextSteps).toContain('bun autoshow setup --step acsm')
+    expect(report.nextSteps.join('\n').toLowerCase()).not.toContain('acsm')
     expect(report.nextSteps).toContain('bun autoshow setup')
   })
 
@@ -924,24 +634,26 @@ describe('setup command contracts', () => {
   // `setup --step image` / `--step video` report credentials for a derived env-key
   // set. These pin the derivation to the provider registries, so a provider added
   // to `provider-targets.ts` cannot silently go unreported the way fal.ai did.
-  test.each([
+  for (const [step, targets, prefix] of [
     ['image', STANDALONE_IMAGE_PROVIDER_TARGETS, 'defaults.post.image.'],
     ['video', STANDALONE_VIDEO_PROVIDER_TARGETS, 'defaults.post.video.']
-  ] as const)('%s setup env keys are derived from every registered provider', (_step, targets, prefix) => {
-    const configPathFor = (flagName: string): string =>
-      `${prefix}${flagName.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`
+  ] as const) {
+    test(`${step} setup env keys are derived from every registered provider`, () => {
+      const configPathFor = (flagName: string): string =>
+        `${prefix}${flagName.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`
 
-    const expected = new Set<string>()
-    const unmapped: string[] = []
-    for (const flagName of Object.values(targets)) {
-      const envVar = findHostedProviderEnvKeyForConfigPath(configPathFor(flagName))
-      if (envVar === undefined) unmapped.push(flagName)
-      else expected.add(envVar)
-    }
+      const expected = new Set<string>()
+      const unmapped: string[] = []
+      for (const flagName of Object.values(targets)) {
+        const envVar = findHostedProviderEnvKeyForConfigPath(configPathFor(flagName))
+        if (envVar === undefined) unmapped.push(flagName)
+        else expected.add(envVar)
+      }
 
-    expect(unmapped).toEqual([])
-    expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
-  })
+      expect(unmapped).toEqual([])
+      expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
+    })
+  }
 
   test('transcription setup env keys cover registered engines with explicit local exceptions', () => {
     const prefix = 'defaults.extract.stt.'
@@ -968,25 +680,27 @@ describe('setup command contracts', () => {
     expect(expected).not.toContain('ELEVENLABS_API_KEY')
   })
 
-  test.each([
+  for (const [step, targets, prefix, localTargets] of [
     ['write', WRITE_LLM_PROVIDER_TARGETS, 'defaults.llm.', new Set<string>()],
     ['tts', STANDALONE_TTS_PROVIDER_TARGETS, 'defaults.post.tts.', new Set<string>()],
     ['music', STANDALONE_MUSIC_PROVIDER_TARGETS, 'defaults.post.music.', new Set<string>()]
-  ] as const)('%s setup env keys cover registered providers with explicit local exclusions', (_step, targets, prefix, localTargets) => {
-    const expected = new Set<string>()
-    const unmapped: string[] = []
+  ] as const) {
+    test(`${step} setup env keys cover registered providers with explicit local exclusions`, () => {
+      const expected = new Set<string>()
+      const unmapped: string[] = []
 
-    for (const target of Object.values(targets)) {
-      if (localTargets.has(target)) continue
-      const suffix = target.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())
-      const envVar = findHostedProviderEnvKeyForConfigPath(`${prefix}${suffix}`)
-      if (envVar === undefined) unmapped.push(target)
-      else expected.add(envVar)
-    }
+      for (const target of Object.values(targets)) {
+        if (localTargets.has(target)) continue
+        const suffix = target.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())
+        const envVar = findHostedProviderEnvKeyForConfigPath(`${prefix}${suffix}`)
+        if (envVar === undefined) unmapped.push(target)
+        else expected.add(envVar)
+      }
 
-    expect(unmapped).toEqual([])
-    expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
-  })
+      expect(unmapped).toEqual([])
+      expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
+    })
+  }
 
   test('doctor hosted provider map covers supported env vars', () => {
     const envVars = HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar)

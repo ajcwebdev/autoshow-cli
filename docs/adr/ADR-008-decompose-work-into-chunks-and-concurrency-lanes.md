@@ -19,15 +19,54 @@ Why now: establishing a shared provider-lane concurrency architecture requires e
 
 ## Options Considered
 
-| Option                                                                                                       | Pros                                                                                                                                                                                | Cons                                                                                                                     | Quantitative Notes                                                                                           |
-| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| **Decouple provider pressure from fair domain work queues behind a run-scoped hosted admission coordinator** | Maintains provider-wide safety; prevents large-job queue starvation; admits batch work early; ties wall-time estimates to real queued work; provides actionable scheduler telemetry | Requires domain-specific work selectors and coordination state                                                           | Fixes the 3x estimate miss on 721-chunk / 16-file TTS batches; enables dynamic multi-provider OCR pooling    |
-| Keep provider-wide FIFO gates and per-item batch concurrency                                                 | Minimal code change; preserves existing gate architecture                                                                                                                           | Head-of-line blocking persists; wall-time estimates mismodel execution shape; small files remain starved                 | Provider errors can be mitigated by lower caps, but queue unfairness remains                                 |
-| Raise default `--tts-chunk-concurrency` globally                                                             | Improves best-case throughput on high-tier provider accounts                                                                                                                        | Increases risk of 429 rate-limit exhaustion; masks underlying scheduling starvation by spending more concurrency         | The failing run already used 30 in-flight provider chunks                                                    |
-| Lower `--batch-concurrency` for multi-chunk batches                                                          | Reduces early queue domination by large files                                                                                                                                       | Underutilizes available provider capacity; forces manual multi-flag tuning; slows large jobs                             | Setting `--batch-concurrency 1` eliminates cross-file head-of-line blocking but eliminates batch parallelism |
-| Process files shortest-first at the batch layer only                                                         | Simple heuristic; prioritizes short files                                                                                                                                           | Active large files can still monopolize chunk slots once started; risks starving long files under continuous short input | Requires precomputed chunk counts without solving provider-level rate-limit coordination                     |
-| Serialize chunk execution per file while keeping multiple files active                                       | Improves cross-file fairness; simple to reason about                                                                                                                                | Sacrifices intra-file chunk parallelism for long documents; degrades wall-time for large inputs                          | Sequential chunking is not used for hosted TTS                                                               |
-| One universal monolithic scheduler for TTS, OCR, and STT                                                     | Single scheduler implementation to maintain                                                                                                                                         | The domains require incompatible fairness, polling, chunking, and failure semantics                                      | Domain-specific selectors share a common lane vocabulary and admission coordinator instead                   |
+**Option 1 (selected)**
+
+- **Option:** Decouple provider pressure from fair domain work queues behind a run-scoped hosted admission coordinator
+- **Pros:** Maintains provider-wide safety; prevents large-job queue starvation; admits batch work early; ties wall-time estimates to real queued work; provides actionable scheduler telemetry
+- **Cons:** Requires domain-specific work selectors and coordination state
+- **Quantitative Notes:** Fixes the 3x estimate miss on 721-chunk / 16-file TTS batches; enables dynamic multi-provider OCR pooling
+
+**Option 2**
+
+- **Option:** Keep provider-wide FIFO gates and per-item batch concurrency
+- **Pros:** Minimal code change; preserves existing gate architecture
+- **Cons:** Head-of-line blocking persists; wall-time estimates mismodel execution shape; small files remain starved
+- **Quantitative Notes:** Provider errors can be mitigated by lower caps, but queue unfairness remains
+
+**Option 3**
+
+- **Option:** Raise default `--tts-chunk-concurrency` globally
+- **Pros:** Improves best-case throughput on high-tier provider accounts
+- **Cons:** Increases risk of 429 rate-limit exhaustion; masks underlying scheduling starvation by spending more concurrency
+- **Quantitative Notes:** The failing run already used 30 in-flight provider chunks
+
+**Option 4**
+
+- **Option:** Lower `--batch-concurrency` for multi-chunk batches
+- **Pros:** Reduces early queue domination by large files
+- **Cons:** Underutilizes available provider capacity; forces manual multi-flag tuning; slows large jobs
+- **Quantitative Notes:** Setting `--batch-concurrency 1` eliminates cross-file head-of-line blocking but eliminates batch parallelism
+
+**Option 5**
+
+- **Option:** Process files shortest-first at the batch layer only
+- **Pros:** Simple heuristic; prioritizes short files
+- **Cons:** Active large files can still monopolize chunk slots once started; risks starving long files under continuous short input
+- **Quantitative Notes:** Requires precomputed chunk counts without solving provider-level rate-limit coordination
+
+**Option 6**
+
+- **Option:** Serialize chunk execution per file while keeping multiple files active
+- **Pros:** Improves cross-file fairness; simple to reason about
+- **Cons:** Sacrifices intra-file chunk parallelism for long documents; degrades wall-time for large inputs
+- **Quantitative Notes:** Sequential chunking is not used for hosted TTS
+
+**Option 7**
+
+- **Option:** One universal monolithic scheduler for TTS, OCR, and STT
+- **Pros:** Single scheduler implementation to maintain
+- **Cons:** The domains require incompatible fairness, polling, chunking, and failure semantics
+- **Quantitative Notes:** Domain-specific selectors share a common lane vocabulary and admission coordinator instead
 
 ## Decision
 
@@ -48,33 +87,139 @@ It explicitly does not cover:
 
 ### Decomposition Inventory
 
-The table below catalogs every mechanism that decomposes work into smaller execution units:
+The records below catalog every mechanism that decomposes work into smaller execution units:
 
-| Mechanism                 | Unit Produced                               | Control                                                            | Default                                              | Implementation                                                                                                                                                                       |
-| ------------------------- | ------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Batch item fan-out        | Single input file/URL through full pipeline | `--batch-concurrency`                                              | `10`                                                 | `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`                                                                           |
-| Provider target fan-out   | One `(service, model)` target per item      | `--provider-concurrency`, `--local-concurrency`                    | `10` / `10`                                          | `src/cli/commands/process-steps/provider-target-scheduler.ts`                                                                                                                        |
-| STT audio splitting       | Contiguous time segment                     | `--split` + automatic policy triggers                              | 30 min (shrunk per provider limits)                  | `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter.ts`               |
-| STT segment execution     | Single audio segment request                | `--stt-segment-concurrency`                                        | `10` (local and Mistral clamp to `1`)                | `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts`                                                                                                |
-| Hosted TTS text chunking  | Text chunk                                  | `--tts-chunk-concurrency`                                          | `30` (`50` for Grok-only hosted TTS)                 | `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`                           |
-| OCR page processing       | Single document page                        | `--ocr-concurrency`                                                | Local `10`; hosted `auto`                            | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts` |
-| Pooled multi-provider OCR | Dynamically claimed document page           | `--ocr-provider-mode pool`, target & OCR caps                      | Mode `fanout`; target caps `10`/`10`; OCR cap `auto` | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`                      |
-| PDF page-chunk fallback   | Single-page PDF or rendered PNG             | Inherits OCR page cap                                              | Forced per-page above 20 pages                       | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback.ts`                                                                                           |
-| Chapter/export splitting  | Chapter text file                           | `--chapters`, `--length`, `--pdf-chapter-mode`                     | `--pdf-chapter-mode local`                           | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`      |
-| Comic panel grouping      | N panels per generated image                | `--panels-per-image`, comic `--concurrency`                        | `10`                                                 | `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils.ts`                                                                                     |
-| Multi-speaker TTS turns   | Single dialogue turn                        | `--tts-chunk-concurrency` (hosted) / `--local-concurrency` (local) | `30` / `10`                                          | `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`, `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`                                          |
+**Mechanism 1: Batch item fan-out**
+
+- **Mechanism:** Batch item fan-out
+- **Unit Produced:** Single input file/URL through full pipeline
+- **Control:** `--batch-concurrency`
+- **Default:** `10`
+- **Implementation:** `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`
+
+**Mechanism 2: Provider target fan-out**
+
+- **Mechanism:** Provider target fan-out
+- **Unit Produced:** One `(service, model)` target per item
+- **Control:** `--provider-concurrency`, `--local-concurrency`
+- **Default:** `10` / `10`
+- **Implementation:** `src/cli/commands/process-steps/provider-target-scheduler.ts`
+
+**Mechanism 3: STT audio splitting**
+
+- **Mechanism:** STT audio splitting
+- **Unit Produced:** Contiguous time segment
+- **Control:** `--split` + automatic policy triggers
+- **Default:** 30 min (shrunk per provider limits)
+- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter.ts`
+
+**Mechanism 4: STT segment execution**
+
+- **Mechanism:** STT segment execution
+- **Unit Produced:** Single audio segment request
+- **Control:** `--stt-segment-concurrency`
+- **Default:** `10` (local and Mistral clamp to `1`)
+- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts`
+
+**Mechanism 5: Hosted TTS text chunking**
+
+- **Mechanism:** Hosted TTS text chunking
+- **Unit Produced:** Text chunk
+- **Control:** `--tts-chunk-concurrency`
+- **Default:** `30` (`50` for Grok-only hosted TTS)
+- **Implementation:** `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`
+
+**Mechanism 6: OCR page processing**
+
+- **Mechanism:** OCR page processing
+- **Unit Produced:** Single document page
+- **Control:** `--ocr-concurrency`
+- **Default:** Local `10`; hosted `auto`
+- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`
+
+**Mechanism 7: Pooled multi-provider OCR**
+
+- **Mechanism:** Pooled multi-provider OCR
+- **Unit Produced:** Dynamically claimed document page
+- **Control:** `--ocr-provider-mode pool`, target & OCR caps
+- **Default:** Mode `fanout`; target caps `10`/`10`; OCR cap `auto`
+- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`
+
+**Mechanism 8: PDF page-chunk fallback**
+
+- **Mechanism:** PDF page-chunk fallback
+- **Unit Produced:** Single-page PDF or rendered PNG
+- **Control:** Inherits OCR page cap
+- **Default:** Forced per-page above 20 pages
+- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback.ts`
+
+**Mechanism 9: Chapter/export splitting**
+
+- **Mechanism:** Chapter/export splitting
+- **Unit Produced:** Chapter text file
+- **Control:** `--chapters`, `--length`, `--pdf-chapter-mode`
+- **Default:** `--pdf-chapter-mode local`
+- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
+
+**Mechanism 10: Comic panel grouping**
+
+- **Mechanism:** Comic panel grouping
+- **Unit Produced:** N panels per generated image
+- **Control:** `--panels-per-image`, comic `--concurrency`
+- **Default:** `10`
+- **Implementation:** `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils.ts`
+
+**Mechanism 11: Multi-speaker TTS turns**
+
+- **Mechanism:** Multi-speaker TTS turns
+- **Unit Produced:** Single dialogue turn
+- **Control:** `--tts-chunk-concurrency` (hosted) / `--local-concurrency` (local)
+- **Default:** `30` / `10`
+- **Implementation:** `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`, `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`
 
 Output ordering and failure semantics differ deliberately per mechanism:
 
-| Mechanism               | Output Ordering                                                                          | Failure Policy                                                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Batch items             | Re-associated by array index; manifest order is preserved regardless of completion order | Never fails fast; tallies outcomes into `ok`/`partial`/`incomplete`/`fail`; throws only when `ok === 0 && fail > 0`                           |
-| Provider targets        | Results written back by original index; output matches target input order                | Per-target `try`/`catch`; a failing target never aborts siblings                                                                              |
-| STT segments            | Merged by sorting on `segmentIndex`                                                      | First error aborts scheduling and rethrows                                                                                                    |
-| Hosted TTS chunks       | Concatenated in chunk order per file                                                     | A failed chunk cancels only its owning file job                                                                                               |
-| Multi-speaker TTS turns | Written back by source index before concatenation                                        | First failure aborts shared signal, drains active turns, cleans all `.work-*` directories, and rethrows                                       |
-| OCR pages               | Written into pre-sized results array by page index                                       | First error stops scheduling, in-flight work drains, remaining pages marked `canceled` in audit                                               |
-| Pooled OCR pages        | Assembled by original page number into composite result                                  | Page failure requeues to another target; target/lane blockers retire target/lane; pages become exhausted only when no eligible target remains |
+**Mechanism 1: Batch items**
+
+- **Mechanism:** Batch items
+- **Output Ordering:** Re-associated by array index; manifest order is preserved regardless of completion order
+- **Failure Policy:** Never fails fast; tallies outcomes into `ok`/`partial`/`incomplete`/`fail`; throws only when `ok === 0 && fail > 0`
+
+**Mechanism 2: Provider targets**
+
+- **Mechanism:** Provider targets
+- **Output Ordering:** Results written back by original index; output matches target input order
+- **Failure Policy:** Per-target `try`/`catch`; a failing target never aborts siblings
+
+**Mechanism 3: STT segments**
+
+- **Mechanism:** STT segments
+- **Output Ordering:** Merged by sorting on `segmentIndex`
+- **Failure Policy:** First error aborts scheduling and rethrows
+
+**Mechanism 4: Hosted TTS chunks**
+
+- **Mechanism:** Hosted TTS chunks
+- **Output Ordering:** Concatenated in chunk order per file
+- **Failure Policy:** A failed chunk cancels only its owning file job
+
+**Mechanism 5: Multi-speaker TTS turns**
+
+- **Mechanism:** Multi-speaker TTS turns
+- **Output Ordering:** Written back by source index before concatenation
+- **Failure Policy:** First failure aborts shared signal, drains active turns, cleans all `.work-*` directories, and rethrows
+
+**Mechanism 6: OCR pages**
+
+- **Mechanism:** OCR pages
+- **Output Ordering:** Written into pre-sized results array by page index
+- **Failure Policy:** First error stops scheduling, in-flight work drains, remaining pages marked `canceled` in audit
+
+**Mechanism 7: Pooled OCR pages**
+
+- **Mechanism:** Pooled OCR pages
+- **Output Ordering:** Assembled by original page number into composite result
+- **Failure Policy:** Page failure requeues to another target; target/lane blockers retire target/lane; pages become exhausted only when no eligible target remains
 
 *Deliberately absent:* There is no video scene/shot splitting (one clip per target), no music generation segmentation (one request per target), and no prompt chunking in `step-3-write` (whole prompts sent).
 
@@ -174,14 +319,35 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                                   | Sacrifices                                                        |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| Provider-safe concurrency with fair cross-file progress | Additional coordinator state and domain-specific work selectors   |
-| Fast completion times for small files                   | Slightly reduced raw burst priority for the initial large file    |
-| Wall-time estimates based on actual queue mechanics     | Requirement to model and sample provider throughput profiles      |
-| Actionable post-run diagnostics and telemetry           | Increased run metadata surface area                               |
-| Preserved user-facing flag ergonomics                   | Internal reinterpretation of `--batch-concurrency` for hosted TTS |
-| Dynamic multi-provider OCR throughput                   | Bookkeeping for page claims, attempts, and target retirement      |
+**Trade-off 1**
+
+- **Gain:** Provider-safe concurrency with fair cross-file progress
+- **Sacrifice:** Additional coordinator state and domain-specific work selectors
+
+**Trade-off 2**
+
+- **Gain:** Fast completion times for small files
+- **Sacrifice:** Slightly reduced raw burst priority for the initial large file
+
+**Trade-off 3**
+
+- **Gain:** Wall-time estimates based on actual queue mechanics
+- **Sacrifice:** Requirement to model and sample provider throughput profiles
+
+**Trade-off 4**
+
+- **Gain:** Actionable post-run diagnostics and telemetry
+- **Sacrifice:** Increased run metadata surface area
+
+**Trade-off 5**
+
+- **Gain:** Preserved user-facing flag ergonomics
+- **Sacrifice:** Internal reinterpretation of `--batch-concurrency` for hosted TTS
+
+**Trade-off 6**
+
+- **Gain:** Dynamic multi-provider OCR throughput
+- **Sacrifice:** Bookkeeping for page claims, attempts, and target retirement
 
 ## Implementation Note
 

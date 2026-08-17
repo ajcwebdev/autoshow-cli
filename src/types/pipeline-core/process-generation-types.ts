@@ -105,6 +105,18 @@ export type Step6VideoMetadata = {
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }
 
+export type ElevenLabsCompositionChunk = {
+  text: string
+  duration_ms: number
+  positive_styles: string[]
+  negative_styles: string[]
+  context_adherence: 'low' | 'medium' | 'high'
+}
+
+export type ElevenLabsCompositionPlan = {
+  chunks: ElevenLabsCompositionChunk[]
+}
+
 export type Step7MusicMetadata = {
   musicService: MusicProvider
   musicModel: string
@@ -128,6 +140,7 @@ export type Step7MusicMetadata = {
   generatedSongTitle?: string | undefined
   generatedStyleTags?: string | undefined
   generatedText?: string | undefined
+  compositionPlanChunkCount?: number | undefined
   hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }
 

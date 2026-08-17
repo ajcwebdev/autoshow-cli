@@ -9,7 +9,6 @@ Documents and images route through hosted OCR or native text extraction dependin
 - [OCR Routing](#ocr-routing)
 - [Shared OCR Options](#shared-ocr-options)
 - [Multi-Provider Execution Modes](#multi-provider-execution-modes)
-- [ACSM Fulfillment](#acsm-fulfillment)
 - [EPUB Options](#epub-options)
   - [Inspect Modes](#inspect-modes)
   - [Native EPUB Export](#native-epub-export)
@@ -39,17 +38,11 @@ The standalone `extract` command uses route-aware `--provider provider[=model]` 
 # full setup
 bun autoshow setup
 
-# document foundations: mutool + qpdf + Calibre ebook-convert + ACSM fulfillment
+# document foundations: mutool + qpdf + Calibre ebook-convert
 bun autoshow setup --step calibre
-
-# ACSM fulfillment only
-bun autoshow setup --step acsm
-
-# ACSM authorization
-bun autoshow setup --step acsm-authorize
 ```
 
-Hosted OCR engines are selected by provider. ACSM support is installed by `bun autoshow setup --step calibre` and can be repaired independently with `bun autoshow setup --step acsm`. Setup downloads the pinned Calibre ACSM Input plugin release, creates a managed Python environment for the standalone plugin scripts, and writes `calibre-acsm-fulfill` plus `calibre-acsm-authorize` into `runtime/bin`. Run `bun autoshow setup --step acsm-authorize` once to create the activation files used by fulfillment.
+Hosted OCR engines are selected by provider. Calibre `ebook-convert` remains available for supported convertible ebook inputs.
 
 ## OCR Environment
 
@@ -72,7 +65,6 @@ Hosted OCR engines are selected by provider. ACSM support is installed by `bun a
 | -------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------- |
 | PDF                                                | See the [`extract` overview](./01-extract.md#local-ocr)              | hosted OCR engines                                       |
 | EPUB                                               | cleaned native extraction (`epub-text`)                              | hosted OCR engines, `--epub-bun`                         |
-| ACSM                                               | fulfill to EPUB/PDF, then follow the fulfilled EPUB/PDF path         | same as the fulfilled output                             |
 | Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | normalize to EPUB, then follow the EPUB path                         | same                                                     |
 | DOCX / PPTX / XLSX / ODF                           | native ZIP/XML text extraction                                       | OCR flags are ignored with a warning                     |
 | RTF                                                | native RTF text extraction                                           | OCR flags are ignored with a warning                     |
@@ -122,8 +114,6 @@ For token-priced hosted OCR providers, `--price` uses model-specific input/outpu
 
 The price summary shows `step`, `provider`, `model`, `cost`, `input`, and `estimatedTime`. Run with `--json` for detailed structured fields including page counts, prompt/completion tokens, input/output rates, and `estimateType`.
 
-For `.acsm` inputs, `--price` does not run fulfillment because that step can contact Adobe or distributor servers. The estimate prints an ACSM note and omits page-priced OCR costs until a fulfilled EPUB or PDF exists.
-
 ## Multi-Provider Execution Modes
 
 `fanout` is the default: every selected OCR target receives the full document and writes a complete independent result below `providers/<service>-<model>/`. No top-level extraction is written unless `--primary-ocr` selects one of those complete results.
@@ -142,26 +132,6 @@ bun autoshow extract document.pdf \
 `--provider-concurrency` bounds active hosted targets. Independent provider/account lanes each reach the applicable OCR page cap, while targets sharing an account lane share that cap. An explicit `--ocr-concurrency 10` is a fixed ceiling per applicable lane; omitting the flag keeps hosted `auto` cap selection. That choice determines the ceiling, while `--concurrency-mode` determines how hosted page work approaches it.
 
 Pool mode is accepted for PDFs, CBZ archives, and supported images where selected targets can normalize into compatible page units. `--price` labels the per-target page allocation heuristic and charges the page set once; `resume --price` estimates only unfinished pages.
-
-## ACSM Fulfillment
-
-AutoShow treats `.acsm` files as local preprocessing inputs. The raw ACSM file is never sent to OCR providers. Step 1 invokes:
-
-```bash
-calibre-acsm-fulfill <input.acsm> <output-dir>
-```
-
-The wrapper writes exactly one `.epub` or `.pdf` into `<output-dir>` and exits `0`. AutoShow resolves `calibre-acsm-fulfill` from `--bin-dir` first, then the setup-managed `runtime/bin` wrapper, then `PATH`.
-
-After setup, run `bun autoshow setup --step acsm-authorize` once to create local activation files. You can press Enter at the Adobe ID prompt for anonymous authorization, or copy existing `activation.xml`, `device.xml`, and `devicesalt` files into `runtime/tools/acsm-calibre-plugin/account`.
-
-On success, AutoShow records metadata and continues through normal EPUB/PDF extraction. On failure, wrapper stdout/stderr is omitted from user-facing errors and manifests to protect sensitive activation data.
-
-Limitations:
-
-- Lawful access, authorization, and DRM/key handling remain user responsibilities.
-- Fulfillment may contact Adobe or distributor servers.
-- AutoShow does not upload ACSM files to third-party online converters.
 
 ## EPUB Options
 

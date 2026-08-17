@@ -25,12 +25,33 @@ Why now: a configuration audit exposed dead knobs, misleading documentation, and
 
 ## Options Considered
 
-| Option                                                                                                                                                                                 | Pros                                                                                                                                                        | Cons                                                                                                        | Quantitative Notes                                                                                   |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Systematic 4-pass reduction strategy (prune dead keys, migrate mechanisms to flags/params/OS APIs, consolidate binary overrides, eliminate base-URL overrides and dead trust gate)** | Prunes ~57 redundant/dead env reads; enforces typed parameters for test seams; guarantees provider endpoints hit trusted defaults; retains load-bearing IPC | Edits runtime code, provider clients, contract test suites, and documentation                               | Removed ~57 environment variable reads/keys; 6 binary vars consolidated into 1; 1 trust gate deleted |
-| Leave environment variable surface as-is                                                                                                                                               | Zero implementation effort                                                                                                                                  | `.env.example` documents non-functional vars; phantom help text and inconsistent base-URL overrides persist | Rejected                                                                                             |
-| Wholesale removal including test infra and injection seams                                                                                                                             | Maximally small runtime surface                                                                                                                             | Breaks contract test execution and cross-process runner IPC for marginal gain                               | Rejected                                                                                             |
-| Remove base-URL family but retain provider trust gate                                                                                                                                  | Preserves secondary defense-in-depth gate                                                                                                                   | Trust gate would exist solely for tests; override variable configures nothing in production                 | Rejected                                                                                             |
+**Option 1 (selected)**
+
+- **Option:** Systematic 4-pass reduction strategy (prune dead keys, migrate mechanisms to flags/params/OS APIs, consolidate binary overrides, eliminate base-URL overrides and dead trust gate)
+- **Pros:** Prunes ~57 redundant/dead env reads; enforces typed parameters for test seams; guarantees provider endpoints hit trusted defaults; retains load-bearing IPC
+- **Cons:** Edits runtime code, provider clients, contract test suites, and documentation
+- **Quantitative Notes:** Removed ~57 environment variable reads/keys; 6 binary vars consolidated into 1; 1 trust gate deleted
+
+**Option 2**
+
+- **Option:** Leave environment variable surface as-is
+- **Pros:** Zero implementation effort
+- **Cons:** `.env.example` documents non-functional vars; phantom help text and inconsistent base-URL overrides persist
+- **Quantitative Notes:** Rejected
+
+**Option 3**
+
+- **Option:** Wholesale removal including test infra and injection seams
+- **Pros:** Maximally small runtime surface
+- **Cons:** Breaks contract test execution and cross-process runner IPC for marginal gain
+- **Quantitative Notes:** Rejected
+
+**Option 4**
+
+- **Option:** Remove base-URL family but retain provider trust gate
+- **Pros:** Preserves secondary defense-in-depth gate
+- **Cons:** Trust gate would exist solely for tests; override variable configures nothing in production
+- **Quantitative Notes:** Rejected
 
 ## Decision
 
@@ -67,14 +88,35 @@ Convert 18 provider base-URL environment overrides (`OPENAI_BASE_URL`, `ANTHROPI
 
 ## Keep (with rationale)
 
-| Var(s)                                                                                                                                                                                                                                               | Reason kept                                                                                |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Provider API keys (~37)                                                                                                                                                                                                                              | Credentials must enter the process; env is the standard channel with no better alternative |
-| Runner-to-child IPC vars (`AUTOSHOW_TEST_OUTPUT_DIR`, `…_TEST_ARTIFACTS_DIR`, `…_TEST_COMMAND_LOG`, `…_TEST_METRICS_LOG`, `…_TEST_PRESERVE_ARTIFACTS`, `…_TEST_BUDGET_SKIP_KEYS`, `…_TEST_BUDGET_EVALUATED_KEYS`, `…_PROCESS_LOCK_DIR`, `LOCK_ROOT`) | Env is the correct mechanism for passing state into spawned child processes                |
-| `AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY`, `…_ADAPTIVE_E2E_SELECTION`                                                                                                                                                                                     | Genuine runner-to-child master switches, not tuning knobs                                  |
-| Defuddle fake-binary mocks (`AUTOSHOW_DEFUDDLE_ARGS_LOG`, `…_FAKE_DEFUDDLE_MODE`, `…_FAKE_DEFUDDLE_STDERR`)                                                                                                                                          | Cross-process IPC into the spawned fake binary                                             |
-| `AUTOSHOW_BIN_DIR`                                                                                                                                                                                                                                   | Consolidated binary override used in test helper runner IPC                                |
-| `FORCE_COLOR`, `NO_COLOR`, `PATH`                                                                                                                                                                                                                    | Standard terminal and system conventions                                                   |
+**Var(s) 1: Provider API keys (~37)**
+
+- **Var(s):** Provider API keys (~37)
+- **Reason kept:** Credentials must enter the process; env is the standard channel with no better alternative
+
+**Var(s) 2: Runner-to-child IPC vars (`AUTOSHOW_TEST_OUTPUT_DIR`, `…_TEST_ARTIFACTS_DIR`, `…_TEST_COMMAND_LOG`, `…_TEST_METRICS_LOG`, `…_TEST_PRESERVE_ARTIFACTS`, `…_TEST_BUDGET_SKIP_KEYS`, `…_TEST_BUDGET_EVALUATED_KEYS`, `…_PROCESS_LOCK_DIR`, `LOCK_ROOT`)**
+
+- **Var(s):** Runner-to-child IPC vars (`AUTOSHOW_TEST_OUTPUT_DIR`, `…_TEST_ARTIFACTS_DIR`, `…_TEST_COMMAND_LOG`, `…_TEST_METRICS_LOG`, `…_TEST_PRESERVE_ARTIFACTS`, `…_TEST_BUDGET_SKIP_KEYS`, `…_TEST_BUDGET_EVALUATED_KEYS`, `…_PROCESS_LOCK_DIR`, `LOCK_ROOT`)
+- **Reason kept:** Env is the correct mechanism for passing state into spawned child processes
+
+**Var(s) 3: `AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY`, `…_ADAPTIVE_E2E_SELECTION`**
+
+- **Var(s):** `AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY`, `…_ADAPTIVE_E2E_SELECTION`
+- **Reason kept:** Genuine runner-to-child master switches, not tuning knobs
+
+**Var(s) 4: Defuddle fake-binary mocks (`AUTOSHOW_DEFUDDLE_ARGS_LOG`, `…_FAKE_DEFUDDLE_MODE`, `…_FAKE_DEFUDDLE_STDERR`)**
+
+- **Var(s):** Defuddle fake-binary mocks (`AUTOSHOW_DEFUDDLE_ARGS_LOG`, `…_FAKE_DEFUDDLE_MODE`, `…_FAKE_DEFUDDLE_STDERR`)
+- **Reason kept:** Cross-process IPC into the spawned fake binary
+
+**Var(s) 5: `AUTOSHOW_BIN_DIR`**
+
+- **Var(s):** `AUTOSHOW_BIN_DIR`
+- **Reason kept:** Consolidated binary override used in test helper runner IPC
+
+**Var(s) 6: `FORCE_COLOR`, `NO_COLOR`, `PATH`**
+
+- **Var(s):** `FORCE_COLOR`, `NO_COLOR`, `PATH`
+- **Reason kept:** Standard terminal and system conventions
 
 ## Consequences
 
@@ -92,12 +134,25 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                                                              | Sacrifices                                                                      |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Smaller, honest config surface; single source of truth for log format and capacity | A few rarely-used override escape hatches; implicit behaviors become fixed      |
-| Many env reads converted to argv, OS APIs, or typed params                         | Ambient configuration points become explicit code paths                         |
-| One binary mechanism with macOS hatch and test seams preserved                     | Per-tool override moves from a var per tool to a file per tool in one directory |
-| Providers target trusted default endpoints; dead trust gate and override deleted   | Runtime proxy and self-host repointing require code changes or local proxying   |
+**Trade-off 1**
+
+- **Gain:** Smaller, honest config surface; single source of truth for log format and capacity
+- **Sacrifice:** A few rarely-used override escape hatches; implicit behaviors become fixed
+
+**Trade-off 2**
+
+- **Gain:** Many env reads converted to argv, OS APIs, or typed params
+- **Sacrifice:** Ambient configuration points become explicit code paths
+
+**Trade-off 3**
+
+- **Gain:** One binary mechanism with macOS hatch and test seams preserved
+- **Sacrifice:** Per-tool override moves from a var per tool to a file per tool in one directory
+
+**Trade-off 4**
+
+- **Gain:** Providers target trusted default endpoints; dead trust gate and override deleted
+- **Sacrifice:** Runtime proxy and self-host repointing require code changes or local proxying
 
 ## Test Plan
 

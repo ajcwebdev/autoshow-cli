@@ -6,7 +6,6 @@ export type DownloadFlowId =
   | 'mupdf-source'
   | 'mupdf-prebuilt'
   | 'calibre-dmg'
-  | 'acsm-calibre-plugin'
   | 'leptonica-source'
   | 'tesseract-source'
   | 'tessdata'

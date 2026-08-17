@@ -15,7 +15,6 @@ import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getDocumentInfo } from './mutool-utils'
 import { resolveRuntimeToolInfo } from '~/utils/runtime-paths'
-import { ACSM_CONVERSION_CHAIN, fulfillAcsmToDocument, isAcsmFormat } from './acsm-fulfillment'
 
 export const resolveEbookConvertCommand = (
   options: EbookConvertCommandOptions = {}
@@ -63,10 +62,9 @@ const normalizeEbookToEpub = async (
   return { epubPath }
 }
 
-const mapFormat = (detected: NonNullable<import('~/types').DetectResult>): DocFormat | 'acsm' => {
+const mapFormat = (detected: NonNullable<import('~/types').DetectResult>): DocFormat => {
   if (detected === 'pdf') return 'pdf'
   if (detected === 'epub') return 'epub'
-  if (detected === 'acsm') return 'acsm'
   if (detected === 'docx') return 'docx'
   if (detected === 'pptx') return 'pptx'
   if (detected === 'xlsx') return 'xlsx'
@@ -122,17 +120,10 @@ export const prepareDocumentMetadata = async (
   let effectiveFilePath: string | undefined
   let tempDir: string | undefined
   let tempCleanup: (() => Promise<void>) | undefined
-  let effectiveFormat: DocFormat = sourceFormat === 'acsm' ? 'epub' : sourceFormat
+  let effectiveFormat: DocFormat = sourceFormat
   let conversionChain: string[] | undefined
 
-  if (isAcsmFormat(detectedFormat)) {
-    l.write('info', `Fulfilling ACSM to EPUB/PDF via ${ACSM_CONVERSION_CHAIN[0]}`)
-    const fulfilled = await fulfillAcsmToDocument(filePath)
-    effectiveFilePath = fulfilled.filePath
-    effectiveFormat = fulfilled.format
-    tempCleanup = fulfilled.tempCleanup
-    conversionChain = [...ACSM_CONVERSION_CHAIN]
-  } else if (isConvertibleEbookFormat(detectedFormat)) {
+  if (isConvertibleEbookFormat(detectedFormat)) {
     l.write('info', `Normalizing ${detectedFormat.toUpperCase()} ebook to EPUB via Calibre`)
     tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ebook-norm-'))
     tempCleanup = async () => {

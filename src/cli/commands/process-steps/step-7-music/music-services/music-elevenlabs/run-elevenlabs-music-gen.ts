@@ -1,11 +1,19 @@
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { readElevenLabsError } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-utils'
-import type { ElevenLabsMusicResponseAudio, ElevenlabsMusicModel, Step7MusicMetadata } from '~/types'
+import type {
+  ElevenLabsCompositionPlan,
+  ElevenLabsMusicResponseAudio,
+  ElevenlabsMusicModel,
+  Step7MusicMetadata
+} from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import * as l from '~/utils/app-logger/app-logger'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { buildElevenLabsCompositionPlan } from './elevenlabs-composition-plan'
 
 export const ELEVENLABS_MIN_DURATION_SECONDS = 3
 export const ELEVENLABS_MAX_DURATION_SECONDS = 600
@@ -47,12 +55,98 @@ const readElevenLabsRequestId = (headers: Headers): string | undefined =>
   ?? headers.get('xi-request-id')
   ?? undefined
 
+const readProvidedLyrics = async (lyricsFile: string): Promise<string> => {
+  const file = Bun.file(lyricsFile)
+  if (!await file.exists()) {
+    throw InfraError(`Music lyrics file not found: ${lyricsFile}`, { stage: 'music:elevenlabs' })
+  }
+
+  const text = (await file.text()).trim()
+  if (text.length === 0) {
+    throw ValidationError(`Music lyrics file is empty: ${lyricsFile}`, { stage: 'music:elevenlabs' })
+  }
+
+  return text
+}
+
+/**
+ * Resolve the request body for ElevenLabs music generation. A lyrics file
+ * switches the request to a composition plan, which is mutually exclusive with
+ * the text prompt.
+ */
+const buildElevenLabsMusicRequest = async (
+  prompt: string,
+  options: {
+    model: ElevenlabsMusicModel
+    durationSeconds?: number | undefined
+    lyricsFile?: string | undefined
+    forceInstrumental?: boolean | undefined
+  }
+): Promise<{
+  body: Record<string, unknown>
+  lyricsSource: Step7MusicMetadata['lyricsSource']
+  musicDurationMs: number | undefined
+  compositionPlan: ElevenLabsCompositionPlan | undefined
+}> => {
+  const musicDurationMs = normalizeMusicDurationMs(options.durationSeconds)
+  const forceInstrumental = options.forceInstrumental === true
+
+  if (forceInstrumental) {
+    if (options.lyricsFile) {
+      l.warn('Ignoring --lyrics-file because --instrumental was provided for ElevenLabs music generation')
+    }
+
+    return {
+      body: {
+        model_id: options.model,
+        prompt,
+        ...(musicDurationMs !== undefined ? { music_length_ms: musicDurationMs } : {}),
+        force_instrumental: true
+      },
+      lyricsSource: 'none',
+      musicDurationMs,
+      compositionPlan: undefined
+    }
+  }
+
+  if (options.lyricsFile) {
+    const lyrics = await readProvidedLyrics(options.lyricsFile)
+    const compositionPlan = buildElevenLabsCompositionPlan(lyrics, {
+      stylePrompt: prompt,
+      durationSeconds: options.durationSeconds ?? DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS
+    })
+    const planDurationMs = compositionPlan.chunks.reduce((sum, chunk) => sum + chunk.duration_ms, 0)
+
+    return {
+      body: {
+        model_id: options.model,
+        composition_plan: compositionPlan
+      },
+      lyricsSource: 'provided',
+      musicDurationMs: planDurationMs,
+      compositionPlan
+    }
+  }
+
+  return {
+    body: {
+      model_id: options.model,
+      prompt,
+      ...(musicDurationMs !== undefined ? { music_length_ms: musicDurationMs } : {})
+    },
+    lyricsSource: 'generated',
+    musicDurationMs,
+    compositionPlan: undefined
+  }
+}
+
 export const runElevenLabsMusicGen = async (
   prompt: string,
   outputDir: string,
   options: {
     model: ElevenlabsMusicModel
     durationSeconds?: number | undefined
+    lyricsFile?: string | undefined
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
@@ -60,9 +154,9 @@ export const runElevenLabsMusicGen = async (
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
   const musicPath = `${outputDir}/generated-music.mp3`
-  const musicDurationMs = normalizeMusicDurationMs(options.durationSeconds)
-  const forceInstrumental = options.forceInstrumental === true
   const output = ELEVENLABS_MUSIC_OUTPUTS[options.model]
+  const request = await buildElevenLabsMusicRequest(prompt, options)
+  const musicDurationMs = request.musicDurationMs
 
   logGenStatus('music', 'elevenlabs', options.model, 'started')
 
@@ -81,12 +175,7 @@ export const runElevenLabsMusicGen = async (
           'Content-Type': 'application/json',
           Accept: 'audio/mpeg'
         },
-        body: JSON.stringify({
-          model_id: options.model,
-          prompt,
-          ...(musicDurationMs !== undefined ? { music_length_ms: musicDurationMs } : {}),
-          ...(forceInstrumental ? { force_instrumental: true } : {})
-        }),
+        body: JSON.stringify(request.body),
         signal: combined
       })
 
@@ -122,13 +211,14 @@ export const runElevenLabsMusicGen = async (
     musicFileName: 'generated-music.mp3',
     musicFileSize: musicFile.size,
     musicDurationMs,
-    lyricsSource: forceInstrumental ? 'none' : 'generated',
+    lyricsSource: request.lyricsSource,
     providerRequestId: audioResponse.requestId,
     audioMimeType: audioResponse.mimeType ?? 'audio/mpeg',
     audioSampleRate: output.sampleRate,
     audioBitrate: output.bitrate,
     providerAudioByteSize: audioBytes.byteLength,
-    outputFormat: output.format
+    outputFormat: output.format,
+    ...(request.compositionPlan ? { compositionPlanChunkCount: request.compositionPlan.chunks.length } : {})
   }
 
   return { musicPath, metadata }

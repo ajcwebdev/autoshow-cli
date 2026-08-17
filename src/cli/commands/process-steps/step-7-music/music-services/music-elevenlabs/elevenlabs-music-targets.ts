@@ -16,6 +16,7 @@ export const collectElevenlabsMusicTargets = (options: MusicGenOptions): MusicTa
         return await runElevenLabsMusicGen(prompt, outputDir, {
           model,
           durationSeconds: options.musicDuration,
+          lyricsFile: options.musicLyricsFile,
           forceInstrumental: options.musicInstrumental
         })
       }

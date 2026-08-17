@@ -658,4 +658,49 @@ describe('comic source coverage contracts', () => {
     expect(report.missingSegments.map(segment => segment.id)).toEqual(['beat-0002'])
     expect(() => assertSourceCoverageReportComplete(report)).toThrow(/beat-0002/)
   })
+
+  test('an italicised delivery parenthetical stays a delivery and does not consume the spoken line', () => {
+    const script = [
+      '# Episode Test',
+      '',
+      '## Scene 1 - "Emphasis"',
+      '',
+      '**INT. CARGO BAY - MORNING**',
+      '',
+      '**CAPTAIN**',
+      '',
+      '_(beat)_',
+      '',
+      'We can. But it is everyone.',
+      '',
+      '**ENGINEER**',
+      '',
+      '_(already standing, delighted)_',
+      '',
+      'Then everyone it is.',
+      '',
+      '**PILOT**',
+      '',
+      '*(quietly)*',
+      '',
+      'Stations.',
+      '',
+    ].join('\n')
+
+    const parsed = parseScriptMarkdownToStructuredData(script, 'input/emphasis-delivery.md')
+    const dialogue = parsed.beats.filter(beat => beat.type === 'dialogue')
+
+    expect(dialogue.map(beat => beat.text)).toEqual([
+      'We can. But it is everyone.',
+      'Then everyone it is.',
+      'Stations.',
+    ])
+    expect(dialogue.map(beat => beat.speakerLabel)).toEqual(['CAPTAIN', 'ENGINEER', 'PILOT'])
+    // Timing notation is pacing, so "(beat)" must not survive as an acting note.
+    expect(dialogue[0]!.delivery).toBeUndefined()
+    expect(dialogue[1]!.delivery).toBe('already standing, delighted')
+    expect(dialogue[2]!.delivery).toBe('quietly')
+    expect(parsed.beats.some(beat => beat.text.trim() === '')).toBe(false)
+    expect(() => validateStructuredScriptSourceSpans(parsed, script)).not.toThrow()
+  })
 })

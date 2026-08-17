@@ -17,13 +17,40 @@ Why now: a full `bun t --budget` run made the inverted console policy the domina
 
 ## Options Considered
 
-| Option                                                                            | Pros                                                                                             | Cons                                                                      | Quantitative Notes                                            |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Preload harness that buffers `console.*` per test and flushes only on failure** | Works for `bun test` and `bun t`; keeps Bun's `✓`/`✗` lines; captures in-process logger tables | Extra preload; wrapping `expect` adds a harness frame on assertion stacks | One preload, one fixture contract, no per-file import rewrite |
-| Filter lines in `forwardSpawnOutput` after `bun test` exits                       | No test-process changes                                                                          | Cannot attribute interleaved parallel output to pass or fail              | Rejected; 10-way file and test concurrency                    |
-| `--only-failures` or the `dots` reporter                                          | Zero new code                                                                                    | Still prints passing-test logs; hides the wanted `✓ name [time]` lines   | Rejected                                                      |
-| `reconfigureLogger({ quiet: true })` for the whole suite                          | Smallest logger change                                                                           | Failures lose the same logs                                               | Rejected                                                      |
-| Replace JUnit with a custom reporter                                              | Could theoretically own all result formatting                                                    | Bun 1.3.14 has no custom JS reporter                                      | Rejected; JUnit stays a post-run sidecar                      |
+**Option 1 (selected)**
+
+- **Option:** Preload harness that buffers `console.*` per test and flushes only on failure
+- **Pros:** Works for `bun test` and `bun t`; keeps Bun's `✓`/`✗` lines; captures in-process logger tables
+- **Cons:** Extra preload; wrapping `expect` adds a harness frame on assertion stacks
+- **Quantitative Notes:** One preload, one fixture contract, no per-file import rewrite
+
+**Option 2**
+
+- **Option:** Filter lines in `forwardSpawnOutput` after `bun test` exits
+- **Pros:** No test-process changes
+- **Cons:** Cannot attribute interleaved parallel output to pass or fail
+- **Quantitative Notes:** Rejected; 10-way file and test concurrency
+
+**Option 3**
+
+- **Option:** `--only-failures` or the `dots` reporter
+- **Pros:** Zero new code
+- **Cons:** Still prints passing-test logs; hides the wanted `✓ name [time]` lines
+- **Quantitative Notes:** Rejected
+
+**Option 4**
+
+- **Option:** `reconfigureLogger({ quiet: true })` for the whole suite
+- **Pros:** Smallest logger change
+- **Cons:** Failures lose the same logs
+- **Quantitative Notes:** Rejected
+
+**Option 5**
+
+- **Option:** Replace JUnit with a custom reporter
+- **Pros:** Could theoretically own all result formatting
+- **Cons:** Bun 1.3.14 has no custom JS reporter
+- **Quantitative Notes:** Rejected; JUnit stays a post-run sidecar
 
 ## Decision
 
@@ -65,11 +92,20 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                     | Sacrifices                                |
-| ----------------------------------------- | ----------------------------------------- |
-| Quiet passes and grouped failure logs     | A Bun preload and `expect` wrap           |
-| Concurrent tests keep isolated buffers    | `AsyncLocalStorage` around test callbacks |
-| JUnit and metrics matching stay unchanged | No per-test logs in `junit.xml`           |
+**Trade-off 1**
+
+- **Gain:** Quiet passes and grouped failure logs
+- **Sacrifice:** A Bun preload and `expect` wrap
+
+**Trade-off 2**
+
+- **Gain:** Concurrent tests keep isolated buffers
+- **Sacrifice:** `AsyncLocalStorage` around test callbacks
+
+**Trade-off 3**
+
+- **Gain:** JUnit and metrics matching stay unchanged
+- **Sacrifice:** No per-test logs in `junit.xml`
 
 ## Implementation Note
 

@@ -21,13 +21,40 @@ Why now: users need multiple independent OCR lanes to collaborate on a single do
 
 ## Options Considered
 
-| Option                                                                                    | Pros                                                                                                                                                                    | Cons                                                                                            | Quantitative Notes                                                                                                                              |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Add an explicit shared page pool while retaining full-document fan-out as the default** | Backward compatible; faster targets claim more work; single composite result; account lanes retain concurrency limits; explicit page-level resume and usage attribution | Requires canonical page ledger, claim lifecycle, per-attempt artifacts, and scheduler telemetry | With three independent hosted lanes and `--ocr-concurrency 10`, up to 30 remote page requests may run; same-account targets share one cap of 10 |
-| Replace fan-out with pooled execution whenever multiple targets are selected              | Simple public interface; avoids duplicate document processing by default                                                                                                | Breaks provider-comparison artifacts, pricing, resume, and top-level primary-result behavior    | Changes every existing multi-provider run                                                                                                       |
-| Divide pages into static target ranges                                                    | Deterministic planning and attribution                                                                                                                                  | Slow or failed targets stall completion; cannot rebalance work dynamically                      | Each target receives approximately `pages / targets` regardless of throughput                                                                   |
-| Race every page across every target and accept the first response                         | Lowest latency per page; automatic failover                                                                                                                             | Multiplies cost, remote load, and ambiguous executions; wastes valid responses                  | Up to `pages × targets` requests                                                                                                                |
-| Store a separate pool checkpoint beside `manifest.json`                                   | Isolates pool scheduling logic from canonical manifest                                                                                                                  | Introduces competing completion and resume authorities forbidden by ADR-002                     | Two persistence authorities per run                                                                                                             |
+**Option 1 (selected)**
+
+- **Option:** Add an explicit shared page pool while retaining full-document fan-out as the default
+- **Pros:** Backward compatible; faster targets claim more work; single composite result; account lanes retain concurrency limits; explicit page-level resume and usage attribution
+- **Cons:** Requires canonical page ledger, claim lifecycle, per-attempt artifacts, and scheduler telemetry
+- **Quantitative Notes:** With three independent hosted lanes and `--ocr-concurrency 10`, up to 30 remote page requests may run; same-account targets share one cap of 10
+
+**Option 2**
+
+- **Option:** Replace fan-out with pooled execution whenever multiple targets are selected
+- **Pros:** Simple public interface; avoids duplicate document processing by default
+- **Cons:** Breaks provider-comparison artifacts, pricing, resume, and top-level primary-result behavior
+- **Quantitative Notes:** Changes every existing multi-provider run
+
+**Option 3**
+
+- **Option:** Divide pages into static target ranges
+- **Pros:** Deterministic planning and attribution
+- **Cons:** Slow or failed targets stall completion; cannot rebalance work dynamically
+- **Quantitative Notes:** Each target receives approximately `pages / targets` regardless of throughput
+
+**Option 4**
+
+- **Option:** Race every page across every target and accept the first response
+- **Pros:** Lowest latency per page; automatic failover
+- **Cons:** Multiplies cost, remote load, and ambiguous executions; wastes valid responses
+- **Quantitative Notes:** Up to `pages × targets` requests
+
+**Option 5**
+
+- **Option:** Store a separate pool checkpoint beside `manifest.json`
+- **Pros:** Isolates pool scheduling logic from canonical manifest
+- **Cons:** Introduces competing completion and resume authorities forbidden by ADR-002
+- **Quantitative Notes:** Two persistence authorities per run
 
 ## Decision
 
@@ -101,13 +128,30 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                               | Sacrifices                                                              |
-| --------------------------------------------------- | ----------------------------------------------------------------------- |
-| Single composite extraction across multiple lanes   | No complete standalone per-provider outputs in pool mode                |
-| Dynamic throughput-sensitive page distribution      | Additional scheduler, ledger, and telemetry state in manifests          |
-| Exactly-once canonical page acceptance              | Remote provider execution remains at-least-once under network ambiguity |
-| Deterministic crash recovery via canonical manifest | More frequent atomic manifest updates during execution                  |
-| Backward-compatible explicit mode                   | Maintained test coverage across both fanout and pool execution paths    |
+**Trade-off 1**
+
+- **Gain:** Single composite extraction across multiple lanes
+- **Sacrifice:** No complete standalone per-provider outputs in pool mode
+
+**Trade-off 2**
+
+- **Gain:** Dynamic throughput-sensitive page distribution
+- **Sacrifice:** Additional scheduler, ledger, and telemetry state in manifests
+
+**Trade-off 3**
+
+- **Gain:** Exactly-once canonical page acceptance
+- **Sacrifice:** Remote provider execution remains at-least-once under network ambiguity
+
+**Trade-off 4**
+
+- **Gain:** Deterministic crash recovery via canonical manifest
+- **Sacrifice:** More frequent atomic manifest updates during execution
+
+**Trade-off 5**
+
+- **Gain:** Backward-compatible explicit mode
+- **Sacrifice:** Maintained test coverage across both fanout and pool execution paths
 
 ## Implementation Note
 

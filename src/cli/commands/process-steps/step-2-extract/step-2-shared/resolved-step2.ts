@@ -115,13 +115,6 @@ export const resolveOcrStep2ExecutionFromFormat = (
     }
   }
 
-  if (format === 'acsm') {
-    return {
-      route: 'native-document',
-      sourceKind: 'acsm'
-    }
-  }
-
   const providers = resolveOcrProviders(options)
   const ocrSourceKind = classifyOcrSourceKind(
     { format },

@@ -51,11 +51,6 @@ const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
     url: 'https://download.calibre-ebook.com/9.9.0/calibre-9.9.0.dmg',
     sha256: '66cddba176f7a3d6f2932fe2e710f54898f01dff1d7532957124ce5c2fc22b36'
   },
-  'acsm-calibre-plugin': {
-    version: '0.0.16',
-    url: 'https://github.com/Leseratte10/acsm-calibre-plugin/releases/download/v0.0.16/DeACSM_0.0.16.zip',
-    sha256: 'b5f61ba27b9f5bcea57c1fb23d36cbc1bd8910a1f33af09375bbee3651870b50'
-  },
   leptonica: {
     version: '1.87.0',
     url: 'https://github.com/DanBloomberg/leptonica/releases/download/1.87.0/leptonica-1.87.0.tar.gz',

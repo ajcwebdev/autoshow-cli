@@ -4,11 +4,10 @@ import { fileExists } from '~/utils/cli-utils'
 import { resolveConvertibleEbookFormatFromExtension } from '../formats/metadata-convertible-ebooks'
 import { detectDocumentFormat } from '../formats/metadata-detect-format'
 import { MEDIA_EXTENSIONS } from '../formats/metadata-media-extensions'
-import { isAcsmContentType } from '../../step-1-download/document/acsm-fulfillment'
 
 
 export const DOCUMENT_EXTENSIONS = [
-  '.pdf', '.epub', '.acsm', '.docx', '.pptx', '.xlsx', '.odt', '.ods', '.odp',
+  '.pdf', '.epub', '.docx', '.pptx', '.xlsx', '.odt', '.ods', '.odp',
   '.mobi', '.prc', '.azw3', '.azw', '.fb2', '.lit', '.cbz', '.rtf', '.csv',
   '.html', '.htm'
 ]
@@ -17,9 +16,6 @@ const HTML_DOCUMENT_EXTENSIONS = ['.html', '.htm'] as const
 const DOCUMENT_MIME_HINTS = [
   'application/pdf',
   'application/epub+zip',
-  'application/vnd.adobe.adept+xml',
-  'application/acsm',
-  'application/x-acsm',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -52,7 +48,6 @@ const isHtmlMimeType = (contentType: string): boolean =>
 
 const isDocumentMimeType = (contentType: string): boolean =>
   DOCUMENT_MIME_HINTS.some((hint) => contentType.includes(hint))
-  || isAcsmContentType(contentType)
 
 const isMediaMimeType = (contentType: string): boolean =>
   contentType.startsWith('audio/') || contentType.startsWith('video/')
@@ -312,7 +307,6 @@ const resolveDetectResultFromExtension = (
 
   if (extension === '.pdf') return 'pdf'
   if (extension === '.epub') return 'epub'
-  if (extension === '.acsm') return 'acsm'
   if (extension === '.docx') return 'docx'
   if (extension === '.pptx') return 'pptx'
   if (extension === '.xlsx') return 'xlsx'
@@ -340,7 +334,6 @@ const resolveDetectResultFromContentType = (
 
   if (normalized.includes('application/pdf')) return 'pdf'
   if (normalized.includes('application/epub+zip')) return 'epub'
-  if (isAcsmContentType(normalized)) return 'acsm'
   if (normalized.includes('wordprocessingml.document')) return 'docx'
   if (normalized.includes('presentationml.presentation')) return 'pptx'
   if (normalized.includes('spreadsheetml.sheet')) return 'xlsx'

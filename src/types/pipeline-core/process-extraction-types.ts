@@ -3,7 +3,7 @@ import type { DocFormat, HostedOcrScheduler, ProviderIdentityBase } from '~/type
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { COST_SOURCES } from '../costing/pricing-vocabularies'
 
-export type DetectResult = DocFormat | 'acsm' | null
+export type DetectResult = DocFormat | null
 
 export type HtmlArticleBackend = 'defuddle' | 'firecrawl' | 'glm-reader' | 'spider' | 'supadata' | 'zyte'
 

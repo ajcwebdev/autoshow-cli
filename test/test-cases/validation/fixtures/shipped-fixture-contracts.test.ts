@@ -48,7 +48,7 @@ describe('shipped fixture contracts', () => {
     // answers from the rules alone, which is what makes the assertion machine-independent.
     for (const path of [
       'input/examples/audio/personal-recording.mp3',
-      'input/examples/document/private-book.acsm',
+      'input/examples/document/private-book.pdf',
       'input/examples/tts/scratch-draft.md',
       'input/examples/video/local-clip.mp4',
       'input/personal-episode.mp4'

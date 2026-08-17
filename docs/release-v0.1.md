@@ -56,7 +56,7 @@ Process-step commands are ordered by pipeline step number. Each section below su
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm`, plus YouTube, Twitch, and TikTok URLs
-  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
+  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz`
   - local `.html` / `.htm`, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, directories, RSS/podcast feeds, and YouTube channels
 - Key outputs:
@@ -77,7 +77,7 @@ bun autoshow metadata input/examples/document/1-document.pdf
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm`, plus YouTube, Twitch, TikTok, RSS/podcast, and channel sources
-  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
+  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz`
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
@@ -99,7 +99,7 @@ bun autoshow download input/examples/document/1-document.pdf
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm` through local or hosted STT, captions, or X Space routes
-  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv` through OCR or native extraction
+  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv` through OCR or native extraction
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz` through OCR
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
@@ -121,7 +121,7 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 [`write`](./commands/process-steps/step-3-write/write-text.md) runs the full extraction plus prompt-rendering and JSON LLM-output pipeline.
 
 - Primary inputs/providers:
-  - routed media, document, image, article, and batch inputs accepted by `extract`, including `.mp3`, `.mp4`, `.wav`, `.webm`, `.pdf`, `.epub`, `.acsm`, `.docx`, `.png`, `.jpg`, `.html`, `.md`, and `.txt`
+  - routed media, document, image, article, and batch inputs accepted by `extract`, including `.mp3`, `.mp4`, `.wav`, `.webm`, `.pdf`, `.epub`, `.docx`, `.png`, `.jpg`, `.html`, `.md`, and `.txt`
   - raw local `.md` / `.txt` files and raw text directories when `--text-input` or the project text convention is used
   - project lyric draft inputs under `./output/<name>/text/` with `prompt.md` (or `--prompt-file`) and optional `tracks.md`
   - prompt families for summaries, chapters, marketing, social copy, creative writing, and song lyrics

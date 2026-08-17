@@ -4,9 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-17
 - **Verification Status:** Passed
-- **Supersession:** Consolidates setup reliability, reporting, and toolchain distribution records with ACSM plugin and managed Python mechanics formerly in ADR-001. Docker distribution is governed separately by [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md).
+- **Supersession:** Docker distribution is governed separately by [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for host setup reliability and toolchain lifecycle.
 
 ## Context
 
@@ -18,45 +18,92 @@ Several issues motivated unifying this lifecycle:
 2. **Download reliability and integrity.** Setup downloads relied on rigid total-transfer timeouts that aborted large assets (such as multi-gigabyte models) on normal bandwidth. Retries restarted from byte zero while buffering entire bodies in memory, downloads lacked checksum verification, and unthrottled concurrent downloads saturated available bandwidth.
 3. **Truthful reporting and diagnostics.** Setup reporting could exit with code 0 despite failed steps, while `setup --doctor` inspected superficial version flags rather than verifying actual binary execution readiness.
 4. **Hermetic toolchain delivery.** Upstream MuPDF and qpdf releases do not publish prebuilt macOS CLI binaries. Default source builds risked linking against host Homebrew or OpenSSL libraries instead of hermetic, portable system linkage.
-5. **ACSM runtime provisioning.** [ADR-001](ADR-001-source-ingestion-and-normalization.md) established local user-authorized Calibre ACSM Input plugin fulfillment behind `calibre-acsm-fulfill`. Setup must provision the plugin ZIP, managed Python environment, and execution wrappers without capturing sensitive user activation data.
-
-Why now: host provisioning, download integrity, offline diagnostic health, and ACSM runtime supply form a single lifecycle. Consolidating them gives setup one authoritative model while leaving ingestion policy in ADR-001 and Docker distribution in ADR-015.
+Why now: host provisioning, download integrity, and offline diagnostic health require one authoritative lifecycle.
 
 ## Options Considered
 
 ### Host Dependency Source
 
-| Option                                 | Pros                                                                                                                    | Cons                                                                          | Quantitative Notes                        |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
-| **Runtime-managed macOS dependencies** | Pinned versions, checksum verification, provenance metadata, cacheable installs; avoids global package-manager mutation | Requires direct download, build, and management logic per tool                | Replaces 6 Homebrew-managed install paths |
-| Keep Homebrew on macOS                 | Lower initial implementation cost; uses familiar package names                                                          | Mutates global machine state; introduces environment drift; less reproducible | Preserves 6 Homebrew-managed paths        |
-| Manual user-installed dependencies     | Minimal setup code                                                                                                      | Degrades onboarding experience; weakens `setup --doctor` validation           | Turns setup into manual documentation     |
+**Option 1 (selected)**
+
+- **Option:** Runtime-managed macOS dependencies
+- **Pros:** Pinned versions, checksum verification, provenance metadata, cacheable installs; avoids global package-manager mutation
+- **Cons:** Requires direct download, build, and management logic per tool
+- **Quantitative Notes:** Replaces 6 Homebrew-managed install paths
+
+**Option 2**
+
+- **Option:** Keep Homebrew on macOS
+- **Pros:** Lower initial implementation cost; uses familiar package names
+- **Cons:** Mutates global machine state; introduces environment drift; less reproducible
+- **Quantitative Notes:** Preserves 6 Homebrew-managed paths
+
+**Option 3**
+
+- **Option:** Manual user-installed dependencies
+- **Pros:** Minimal setup code
+- **Cons:** Degrades onboarding experience; weakens `setup --doctor` validation
+- **Quantitative Notes:** Turns setup into manual documentation
 
 ### macOS MuPDF and qpdf Delivery
 
-| Option                          | Pros                                                                                                           | Cons                                                                                           | Quantitative Notes                       |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| **Hermetic host source builds** | Reproducible, project-managed, statically linked binaries; no signing or release hosting infrastructure needed | Incurs compilation time on cold setup                                                          | Pinned source recipes for MuPDF and qpdf |
-| Upstream macOS prebuilts        | Upstream maintains binaries and signing                                                                        | Neither pinned upstream release provides macOS CLI binaries                                    | Unavailable                              |
-| Homebrew bottles                | Existing pre-packaged binaries                                                                                 | Reintroduces package manager dependency and breaks hermetic runtime boundary                   | Reintroduces Homebrew dependencies       |
-| Project-hosted signed prebuilts | Eliminates local compilation time                                                                              | Requires Apple Developer credentials, signing, notarization, and binary release infrastructure | High operational overhead                |
+**Option 1 (selected)**
+
+- **Option:** Hermetic host source builds
+- **Pros:** Reproducible, project-managed, statically linked binaries; no signing or release hosting infrastructure needed
+- **Cons:** Incurs compilation time on cold setup
+- **Quantitative Notes:** Pinned source recipes for MuPDF and qpdf
+
+**Option 2**
+
+- **Option:** Upstream macOS prebuilts
+- **Pros:** Upstream maintains binaries and signing
+- **Cons:** Neither pinned upstream release provides macOS CLI binaries
+- **Quantitative Notes:** Unavailable
+
+**Option 3**
+
+- **Option:** Homebrew bottles
+- **Pros:** Existing pre-packaged binaries
+- **Cons:** Reintroduces package manager dependency and breaks hermetic runtime boundary
+- **Quantitative Notes:** Reintroduces Homebrew dependencies
+
+**Option 4**
+
+- **Option:** Project-hosted signed prebuilts
+- **Pros:** Eliminates local compilation time
+- **Cons:** Requires Apple Developer credentials, signing, notarization, and binary release infrastructure
+- **Quantitative Notes:** High operational overhead
 
 ### Setup Transfer, Health, and Reporting
 
-| Option                                                                           | Pros                                                                                                                         | Cons                                                                           | Quantitative Notes                                    |
-| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| **Stall-based timeouts, resumable `.part` streaming, and checksum verification** | Transfer success independent of file size; retries resume remaining bytes; bounded memory; fails closed on corrupt downloads | Requires partial-file metadata management and post-download hash verification  | Covers all multi-gigabyte models and runtime archives |
-| Flat total-transfer timeouts                                                     | Minimal code change                                                                                                          | Imposes arbitrary bandwidth floors; restarts from byte zero; buffers in memory | Fails large models on slow links                      |
-| Shell out to `curl -C -`                                                         | Provides native resume capability                                                                                            | Adds external system tool dependency; fragments download logic                 | Inconsistent across platforms                         |
-| Optimistic exit and summary reporting                                            | No error-handling complexity                                                                                                 | Masks failed setup steps; leaves doctor checks incomplete                      | Inaccurate diagnostic status                          |
+**Option 1 (selected)**
 
-### ACSM Fulfillment Provisioning
+- **Option:** Stall-based timeouts, resumable `.part` streaming, and checksum verification
+- **Pros:** Transfer success independent of file size; retries resume remaining bytes; bounded memory; fails closed on corrupt downloads
+- **Cons:** Requires partial-file metadata management and post-download hash verification
+- **Quantitative Notes:** Covers all multi-gigabyte models and runtime archives
 
-| Option                                                              | Pros                                                                                                             | Cons                                                                    | Quantitative Notes                       |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
-| **Setup-managed pinned Calibre ACSM plugin and standalone runtime** | Seamless CLI fulfillment via `calibre-acsm-fulfill`; pins plugin provenance; isolates sensitive activation state | Requires managing isolated Python environment and wrapper scripts       | GPLv3 plugin downloaded, not vendored    |
-| Manual user plugin installation                                     | Reduces setup implementation code                                                                                | Complicates onboarding; weakens automated readiness checks              | Shifts configuration burden to user      |
-| Provision `libgourou` as separate stack                             | CLI-native ADEPT client                                                                                          | Adds a redundant ACSM stack beside Calibre; manages ADEPT keys directly | Rejected in favor of Calibre integration |
+**Option 2**
+
+- **Option:** Flat total-transfer timeouts
+- **Pros:** Minimal code change
+- **Cons:** Imposes arbitrary bandwidth floors; restarts from byte zero; buffers in memory
+- **Quantitative Notes:** Fails large models on slow links
+
+**Option 3**
+
+- **Option:** Shell out to `curl -C -`
+- **Pros:** Provides native resume capability
+- **Cons:** Adds external system tool dependency; fragments download logic
+- **Quantitative Notes:** Inconsistent across platforms
+
+**Option 4**
+
+- **Option:** Optimistic exit and summary reporting
+- **Pros:** No error-handling complexity
+- **Cons:** Masks failed setup steps; leaves doctor checks incomplete
+- **Quantitative Notes:** Inaccurate diagnostic status
 
 ## Decision
 
@@ -68,14 +115,12 @@ AutoShow provisions the local-lite toolchain through managed `runtime/` artifact
    3. `PATH` only for unmanaged external host prerequisites (Xcode tools, `cmake`, compilers).
 2. **Download integrity, transfer concurrency, and health:** All downloads use stall-based inactivity timeouts, stream to resumable `<destination>.part` files guarded by metadata, and verify checksums prior to atomic promotion. Concurrent network transfers are bounded by a shared capacity gate. Setup reports step timing, disk usage, and component health truthfully, exiting non-zero on partial failures. Offline doctor checks validate actual executable execution rather than surface markers.
 3. **Hermetic macOS MuPDF and qpdf builds:** Both tools are built from pinned upstream source on macOS. The qpdf build statically links a pinned libjpeg-turbo dependency, selects native crypto, and eliminates external dynamic library linkages. Builds install via isolated staging and atomic directory replacement.
-4. **ACSM runtime setup:** Setup provisions the pinned Calibre ACSM Input plugin ZIP into `runtime/tools/acsm-calibre-plugin`, creates the managed Python environment, and generates `calibre-acsm-fulfill` and `calibre-acsm-authorize` execution wrappers. User activation keys, Adobe IDs, and credentials remain private user state and are never logged or stored in project artifacts.
 
 This applies to:
 
 - AutoShow-installed, runtime-managed dependencies on macOS.
 - Setup download streaming, retry/resume mechanics, transfer admission, checksum validation, disk cleanup, and doctor diagnostics.
 - Pinned source compilation of MuPDF and qpdf on supported macOS hosts.
-- Managed ACSM plugin acquisition, Python environment, wrapper generation, and doctor health reporting.
 
 This does not apply to:
 
@@ -89,7 +134,6 @@ This does not apply to:
 - **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with existing patterns used for `uv`, `whisper-cli`, whisperfile, Defuddle, and model assets. It guarantees reproducible versions and avoids mutating host system state.
 - **Source builds:** Compiling MuPDF and qpdf from pinned source preserves exact versions and hermetic static linkage without requiring Apple Developer signing credentials, notarization pipelines, or binary distribution infrastructure.
 - **Acquisition and reporting:** Stall-based timeouts and chunked resumable streaming decouple download reliability from bandwidth constraints or file sizes. Bounding transfer concurrency prevents network contention, and truthful exit codes ensure automated workflows fail closed on incomplete installations.
-- **ACSM fulfillment:** Provisioning the Calibre ACSM plugin and standalone wrapper scripts ensures automated document extraction while strictly isolating sensitive Adobe activation data.
 
 ## Consequences
 
@@ -99,7 +143,6 @@ Positive outcomes:
 - Dependency versions, checksums, and manifests are pinned and verifiable offline.
 - `setup --doctor` inspects functional execution readiness rather than surface-level markers.
 - Large model and tool downloads reliably resume across network interruptions without memory exhaustion.
-- ACSM fulfillment tooling is provisioned via a single command while keeping user credentials secure.
 - Build artifacts are isolated and transient staging directories are automatically reclaimed.
 
 Negative outcomes:
@@ -111,23 +154,32 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                                                    | Sacrifices                                                                        |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| Reproducible macOS setup with pinned versions, checksums, and provenance | Project maintains installation recipes for tools previously delegated to Homebrew |
-| Hermetic runtime without mutating global package-manager state           | Cold setup incurs local compilation time for MuPDF and qpdf                       |
-| Transfer-size-independent, resumable, and integrity-verified downloads   | Setup manages `.part` metadata and post-download hash passes                      |
-| Truthful diagnostic reporting and fail-closed exit codes                 | Partial installs fail explicitly rather than succeeding with warnings             |
-| Isolated, single-command ACSM fulfillment runtime                        | Setup maintains pinned external plugin acquisition and wrapper generation         |
+**Trade-off 1**
+
+- **Gain:** Reproducible macOS setup with pinned versions, checksums, and provenance
+- **Sacrifice:** Project maintains installation recipes for tools previously delegated to Homebrew
+
+**Trade-off 2**
+
+- **Gain:** Hermetic runtime without mutating global package-manager state
+- **Sacrifice:** Cold setup incurs local compilation time for MuPDF and qpdf
+
+**Trade-off 3**
+
+- **Gain:** Transfer-size-independent, resumable, and integrity-verified downloads
+- **Sacrifice:** Setup manages `.part` metadata and post-download hash passes
+
+**Trade-off 4**
+
+- **Gain:** Truthful diagnostic reporting and fail-closed exit codes
+- **Sacrifice:** Partial installs fail explicitly rather than succeeding with warnings
 
 ## Implementation Note
 
-| Action                                                                                    | Owner                  | Current State                                                                                  |
-| ----------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
-| Runtime-managed macOS dependencies                                                        | Setup maintainers      | Implemented in `src/utils/runtime-paths.ts`                                                    |
-| Resumable downloads, stall timeouts, and concurrency gate                                 | Setup maintainers      | Implemented in `src/cli/commands/setup-and-utilities/setup/setup-download/`                    |
-| Honest setup summary reporting, progress heartbeats, and offline doctor checks            | CLI maintainers        | Implemented in `src/cli/commands/setup-and-utilities/setup/`                                   |
-| Managed ACSM plugin provisioning, Python env, and fulfillment wrappers                    | Extraction maintainers | Implemented in `src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/acsm.ts` |
-| Hermetic macOS MuPDF and qpdf source builds with static linking and manifest verification | Setup maintainers      | Implemented in `src/cli/commands/setup-and-utilities/setup/setup-download/`                    |
+- Runtime-managed macOS dependencies — Implemented in `src/utils/runtime-paths.ts`
+- Resumable downloads, stall timeouts, and concurrency gate — Implemented in `src/cli/commands/setup-and-utilities/setup/setup-download/`
+- Honest setup summary reporting, progress heartbeats, and offline doctor checks — Implemented in `src/cli/commands/setup-and-utilities/setup/`
+- Hermetic macOS MuPDF and qpdf source builds with static linking and manifest verification — Implemented in `src/cli/commands/setup-and-utilities/setup/setup-download/`
 
 ## Keep (with rationale)
 
@@ -147,19 +199,17 @@ bun test test/test-cases/validation/setup/
 - **Setup acquisition contracts:** Verify HTTP Range requests, invalid partial-file rejection, clean restarts on full responses (`200`), stall preservation, per-flow budgets, and checksum failure handling.
 - **Setup orchestration contracts:** Verify transfer concurrency limits, heartbeat progress reporting, serial execution chains, artifact cleanup thresholds, offline doctor checks, and exit code accuracy on partial failures.
 - **Managed source contracts:** Verify MuPDF and qpdf manifest validation, architecture/platform checks, static linking constraints (no non-system dynamic libraries), atomic directory promotion, and rollback on failure.
-- **ACSM setup contracts:** Verify plugin extraction, managed Python environment setup, execution wrapper generation, resolver precedence, and isolation of user activation credentials.
 
 ## References
 
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
 - Docker image distribution: [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md)
 - Error and retry vocabulary: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
-- Ingestion and ACSM fulfillment policy: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Ingestion and ebook normalization policy: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Local OCR engine selection: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Runtime tool resolution: `src/utils/runtime-paths.ts`
 - Setup download and admission: `src/cli/commands/setup-and-utilities/setup/setup-download/download.ts`, `src/cli/commands/setup-and-utilities/setup/setup-download/download-admission.ts`
 - Setup orchestration and doctor: `src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts`, `src/cli/commands/setup-and-utilities/setup/run-doctor.ts`
-- ACSM plugin provisioning: `src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/acsm.ts`
 - MuPDF and qpdf source recipes: `src/cli/commands/setup-and-utilities/setup/setup-download/mupdf-source-build.ts`, `src/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build.ts`
 - Managed artifact promotion: `src/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact.ts`
 - Dependency metadata: `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`

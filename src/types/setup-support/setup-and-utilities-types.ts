@@ -144,7 +144,7 @@ export type SetupToolStatus = {
 // executeStepOnce, and the exhaustiveness check there fails if one is missing.
 export const SETUP_STEP_IDS = [
   'uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
-  'calibre', 'acsm', 'acsm-authorize', 'all',
+  'calibre', 'all',
   'transcription', 'write', 'tts', 'image', 'video', 'music'
 ] as const
 

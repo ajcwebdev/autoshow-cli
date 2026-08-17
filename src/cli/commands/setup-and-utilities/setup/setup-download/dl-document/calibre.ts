@@ -3,7 +3,6 @@ import * as l from '~/utils/app-logger/app-logger'
 import { hasRuntimeTool, resolveRuntimeToolInfo } from '~/utils/runtime-paths'
 import { setupDocumentTools } from './document'
 import { installManagedCalibreMacos } from '../macos-managed-tools'
-import { setupAcsmFulfillment } from './acsm'
 import { isRuntimeToolHealthy } from '../tool-health'
 import { isCompactSetupMode } from '~/utils/setup-output-mode'
 import { InfraError, InternalError } from '~/utils/error-handler'
@@ -72,23 +71,18 @@ const setupCalibreTools = async (): Promise<void> => {
   }
 }
 
-export const setupCalibreDocumentTools = async (
-  options: { printAuthorizeHint?: boolean } = {}
-): Promise<void> => {
+export const setupCalibreDocumentTools = async (): Promise<void> => {
   // Deliberately serial. Splitting this chain into an I/O-bound half and a
   // CPU-bound half was measured and lost: calibre alone went 74s to 170s for
   // identical work, and the cold install went 307.4s to 326.4s, because the
-  // split moved the ~200 MB DMG and the ACSM venv into t=0 where every other
+  // split moved the ~200 MB DMG into t=0 where every other
   // setup task is already downloading. Concurrent setup tasks are not
   // independent — they share one network link — so the contention is bounded
   // at the transfer instead, in setup-download/download-admission.ts.
   await setupDocumentTools({ printCompletion: false })
   await setupCalibreTools()
-  await setupAcsmFulfillment({
-    ...(options.printAuthorizeHint !== undefined ? { printAuthorizeHint: options.printAuthorizeHint } : {})
-  })
 
   if (shouldPrintCompletion()) {
-    l.write('success', 'Document foundation tools and ACSM fulfillment setup complete')
+    l.write('success', 'Document tools setup complete')
   }
 }

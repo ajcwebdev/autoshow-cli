@@ -19,15 +19,54 @@ Why now: declaration-level cleanup (phases 1–2) is the prerequisite for the st
 
 ## Options Considered
 
-| Option                                                                                                                                                                                   | Pros                                                                                                                                      | Cons                                                                                        | Quantitative Notes                                                                       |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| **Three-phase cleanup: remove/inline single-use declarations, fold private single-parent aliases, and reorganize `src/types` by subsystem ownership while keeping `src/types/index.ts`** | Shrinks exported `~/types`, aligns file ownership with durable architecture, retires `migrated/`, and preserves the central public barrel | Requires phased review, import churn, and careful barrel update                             | 149 type files (106 in `migrated/`), 262 exported candidates, 68 non-exported candidates |
-| Inline every single-use declaration without inference removal                                                                                                                            | Preserves explicit local annotations                                                                                                      | Leaves unnecessary type aliases where TypeScript inference suffices                         | 222 inline-capable                                                                       |
-| Include multi-use and cross-referenced declarations in the initial cleanup                                                                                                               | Broadest single pass                                                                                                                      | Blurs clean single-use boundaries with complex type hierarchies; increases risk             | 412 deferred candidates                                                                  |
-| Strict 1:1 directory mirroring between `src/` and `src/types/`                                                                                                                           | Highly predictable structure                                                                                                              | Overfits ephemeral modules; produces directory fragmentation and thin folders               | Too granular                                                                             |
-| Co-locate type files beside implementation files in `src/`                                                                                                                               | Strong file locality                                                                                                                      | Conflicts with central `~/types` barrel and breaks project-wide import pattern              | Repository-wide import churn                                                             |
-| Collapse types into fewer monolithic domain files                                                                                                                                        | Fewer files to manage                                                                                                                     | Recreates large mixed-purpose files and obscures subsystem ownership                        | Reduces modularity                                                                       |
-| Leave `src/types` surface and `migrated/` namespace unchanged                                                                                                                            | Zero edit risk                                                                                                                            | Preserves indirection, unnecessary aliases, and migration staging as permanent architecture | 0 cleanup                                                                                |
+**Option 1 (selected)**
+
+- **Option:** Three-phase cleanup: remove/inline single-use declarations, fold private single-parent aliases, and reorganize `src/types` by subsystem ownership while keeping `src/types/index.ts`
+- **Pros:** Shrinks exported `~/types`, aligns file ownership with durable architecture, retires `migrated/`, and preserves the central public barrel
+- **Cons:** Requires phased review, import churn, and careful barrel update
+- **Quantitative Notes:** 149 type files (106 in `migrated/`), 262 exported candidates, 68 non-exported candidates
+
+**Option 2**
+
+- **Option:** Inline every single-use declaration without inference removal
+- **Pros:** Preserves explicit local annotations
+- **Cons:** Leaves unnecessary type aliases where TypeScript inference suffices
+- **Quantitative Notes:** 222 inline-capable
+
+**Option 3**
+
+- **Option:** Include multi-use and cross-referenced declarations in the initial cleanup
+- **Pros:** Broadest single pass
+- **Cons:** Blurs clean single-use boundaries with complex type hierarchies; increases risk
+- **Quantitative Notes:** 412 deferred candidates
+
+**Option 4**
+
+- **Option:** Strict 1:1 directory mirroring between `src/` and `src/types/`
+- **Pros:** Highly predictable structure
+- **Cons:** Overfits ephemeral modules; produces directory fragmentation and thin folders
+- **Quantitative Notes:** Too granular
+
+**Option 5**
+
+- **Option:** Co-locate type files beside implementation files in `src/`
+- **Pros:** Strong file locality
+- **Cons:** Conflicts with central `~/types` barrel and breaks project-wide import pattern
+- **Quantitative Notes:** Repository-wide import churn
+
+**Option 6**
+
+- **Option:** Collapse types into fewer monolithic domain files
+- **Pros:** Fewer files to manage
+- **Cons:** Recreates large mixed-purpose files and obscures subsystem ownership
+- **Quantitative Notes:** Reduces modularity
+
+**Option 7**
+
+- **Option:** Leave `src/types` surface and `migrated/` namespace unchanged
+- **Pros:** Zero edit risk
+- **Cons:** Preserves indirection, unnecessary aliases, and migration staging as permanent architecture
+- **Quantitative Notes:** 0 cleanup
 
 ## Decision
 
@@ -82,18 +121,25 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                                                                             | Sacrifices                                                                            |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Smaller exported `~/types`; declarations at use sites; inference-first removal                    | Possible out-of-tree breakage; some shapes become anonymous; careful batching         |
-| Fewer private aliases; mechanical low-risk internal edits                                         | Parent declarations grow longer; inventory re-validated after phase 1                 |
-| Type ownership follows subsystem boundaries; `migrated/` retired; subsystem-scoped future cleanup | Substantial phase-3 import/export churn; barrel-conflict handling; root-file judgment |
+**Trade-off 1**
+
+- **Gain:** Smaller exported `~/types`; declarations at use sites; inference-first removal
+- **Sacrifice:** Possible out-of-tree breakage; some shapes become anonymous; careful batching
+
+**Trade-off 2**
+
+- **Gain:** Fewer private aliases; mechanical low-risk internal edits
+- **Sacrifice:** Parent declarations grow longer; inventory re-validated after phase 1
+
+**Trade-off 3**
+
+- **Gain:** Type ownership follows subsystem boundaries; `migrated/` retired; subsystem-scoped future cleanup
+- **Sacrifice:** Substantial phase-3 import/export churn; barrel-conflict handling; root-file judgment
 
 ## Follow-up Actions
 
-| Action                                                                                                         | Owner          | Current State |
-| -------------------------------------------------------------------------------------------------------------- | -------------- | ------------- |
-| Review the excluded exported buckets (257 one-file multiple-use, 155 internal-reference) as a separate cleanup | CLI maintainer | Deferred      |
-| Review the 39 multi-reference non-exported declarations as a separate cleanup                                  | CLI maintainer | Deferred      |
+- [ ] Review the excluded exported buckets (257 one-file multiple-use, 155 internal-reference) as a separate cleanup — Deferred
+- [ ] Review the 39 multi-reference non-exported declarations as a separate cleanup — Deferred
 
 ## Test Plan
 

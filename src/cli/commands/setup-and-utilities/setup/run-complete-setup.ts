@@ -8,7 +8,6 @@ import { DEFAULT_WHISPERFILE_MODEL } from '~/cli/commands/setup-and-utilities/mo
 import { defuddleRuntimeDir, setupDefuddleCli } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { setupCalibreDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
-import { isAcsmAuthorized, runAcsmAuthorization, setupAcsmFulfillment } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/acsm'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
@@ -23,8 +22,6 @@ import {
   RUNTIME_BUILD_DIR,
   RUNTIME_DIR,
   RUNTIME_TOOLS_DIR,
-  acsmCalibrePluginToolDir,
-  acsmFulfillManagedBinaryPath,
   calibreToolDir,
   ebookConvertManagedBinaryPath,
   ffmpegBuildDir,
@@ -503,7 +500,6 @@ const logSetupSummary = async (
     ['yt-dlp', hasRuntimeTool('yt-dlp')] as const,
     ['mutool', hasRuntimeTool('mutool')] as const,
     ['ebook-convert', hasRuntimeTool('ebook-convert')] as const,
-    ['calibre-acsm-fulfill', hasRuntimeTool('calibre-acsm-fulfill')] as const,
     ['tesseract', hasRuntimeTool('tesseract')] as const,
     ['qpdf', hasRuntimeTool('qpdf')] as const
   ]
@@ -513,7 +509,6 @@ const logSetupSummary = async (
   ]
   const missingTools = localToolChecks.filter(([, ok]) => !ok).map(([name]) => name)
   const missingModels = localModelChecks.filter(([, ok]) => !ok).map(([name]) => name)
-  const acsmAuthorized = await isAcsmAuthorized()
   const runtimeBytes = await directorySize(RUNTIME_DIR)
   const healthy = missingTools.length === 0 && missingModels.length === 0
 
@@ -546,11 +541,6 @@ const logSetupSummary = async (
         item: 'hosted providers',
         status: `${providerSummary.configured}/${providerSummary.total} present`,
         detail: providerSummary.missing === 0 ? 'all env vars set' : `${providerSummary.missing} missing`
-      },
-      {
-        item: 'ACSM authorization',
-        status: acsmAuthorized ? 'ready' : 'action needed',
-        detail: acsmAuthorized ? 'account activated' : 'bun autoshow setup --step acsm-authorize (required before ACSM fulfillment)'
       },
       {
         item: 'validation',
@@ -594,13 +584,7 @@ const runFullSetup = async (): Promise<boolean> => {
             await downloadWhisperModel(defaultMusicWhisperModel)
           }
         },
-        {
-          label: 'document tools',
-          // The Setup Summary carries an "ACSM authorization" row, so a full setup
-          // does not also warn: someone who never fulfills an .acsm would otherwise
-          // see the same warning forever, which is how a real to-do becomes noise.
-          run: async () => { await setupCalibreDocumentTools({ printAuthorizeHint: false }) }
-        },
+        { label: 'document tools', run: setupCalibreDocumentTools },
         { label: 'OCR', run: setupTesseractOcr }
       ])
     })
@@ -710,8 +694,6 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
       lameBuildDir,
       mutoolManagedBinaryPath,
       ebookConvertManagedBinaryPath,
-      acsmFulfillManagedBinaryPath,
-      acsmCalibrePluginToolDir,
       tesseractManagedBinaryPath,
       tesseractBuildDir,
       tessdataDir,
@@ -721,9 +703,7 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
       RUNTIME_TOOLS_DIR
     ]
     case 'yt-dlp': return [ytDlpManagedBinaryPath, ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegBuildDir, ffmpegToolDir, lameBuildDir, lameToolDir]
-    case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir, acsmFulfillManagedBinaryPath, acsmCalibrePluginToolDir]
-    case 'acsm': return [acsmFulfillManagedBinaryPath, acsmCalibrePluginToolDir]
-    case 'acsm-authorize': return []
+    case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir]
     case 'tts': return []
     case 'uv': case 'transcription': case 'write': case 'image': case 'video': return []
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
@@ -753,8 +733,6 @@ const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
     case 'whisperfile': await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL); return true
     case 'defuddle': await setupDefuddleCli(); return true
     case 'calibre': await setupCalibreDocumentTools(); return true
-    case 'acsm': await setupAcsmFulfillment(); return true
-    case 'acsm-authorize': await runAcsmAuthorization(); return true
     case 'transcription': await runSetupTranscription(); return true
     case 'write': await runSetupWrite(); return true
     case 'tts': await runSetupTts(); return true

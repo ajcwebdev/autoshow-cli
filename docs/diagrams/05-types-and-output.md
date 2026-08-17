@@ -261,7 +261,7 @@ Provider unions:
 `DetectResult` values:
 
 ```
-"pdf" | "epub" | "acsm" | "docx" | "pptx" | "xlsx" | "odf" |
+"pdf" | "epub" | "docx" | "pptx" | "xlsx" | "odf" |
 "mobi" | "azw3" | "fb2" | "lit" | "cbz" | "rtf" | "csv" |
 "png" | "jpg" | "tif" | "webp" | "bmp" | "gif" | "html" | null
 ```

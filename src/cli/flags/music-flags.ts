@@ -9,7 +9,7 @@ import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/proces
 
 export const musicGenFlags = {
   'music-duration': strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); MiniMax currently ignores this flag and controls duration; Gemini Lyria Pro uses the requested duration (default ${GEMINI_PRO_DEFAULT_DURATION_SECONDS})`),
-  'music-lyrics-file': strFlag('Lyrics file path (.md or .txt) for MiniMax and Gemini music generation'),
+  'music-lyrics-file': strFlag('Lyrics file path (.md or .txt) with section headers like Verse 1 or Chorus; MiniMax and Gemini receive the lyrics directly, ElevenLabs music_v2 converts them into a composition plan and uses the prompt as style descriptors'),
   'music-instrumental': boolFlag('Force instrumental generation for providers that support prompt/instrumental mode'),
 } as const satisfies CliFlagsDefinition
 

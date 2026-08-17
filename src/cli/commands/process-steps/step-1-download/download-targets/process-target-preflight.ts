@@ -2,7 +2,6 @@ import * as l from '~/utils/app-logger/app-logger'
 import { logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
 import { logSuitePriceSummary } from './suite-price-logging'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
-import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import type { CommandPricingOptions, PricingRuntimeOptions, ProcessCommand } from '~/types'
@@ -25,9 +24,6 @@ export const reportSuitePriceEstimate = async (
     try {
       const estimate = await buildAggregatedPriceEstimate(command, item, opts, undefined)
       l.report.estimate(estimate)
-      if (estimate.notes?.includes(ACSM_PRICE_NOTE)) {
-        l.warn(ACSM_PRICE_NOTE)
-      }
       suiteTotalEstimatedCost += estimate.totalEstimatedCost
     } catch (error) {
       skipped++

@@ -84,8 +84,13 @@ export const extractSingleBoldLine = (block: string): string | null => {
   return match?.[1]?.trim() ?? null
 }
 
+// A delivery parenthetical is frequently italicised as "_(beat)_" or "*(quietly)*".
+// The emphasis is markdown, not screenplay content, so it must be removed before the
+// parenthetical test. Without this, the block falls through to the dialogue path and
+// the parenthetical is consumed as the spoken line, which then pushes the real
+// dialogue into the following block and misclassifies it as a stage direction.
 export const isParentheticalBlock = (block: string): boolean => {
-  return /^\((?:[\s\S]+)\)$/.test(block.trim())
+  return /^\((?:[\s\S]+)\)$/.test(stripEmphasisWrapper(block))
 }
 
 export const isPanelNoteBlock = (block: string): boolean => {
@@ -97,7 +102,7 @@ export const trimPanelNote = (block: string): string => {
 }
 
 export const trimParenthetical = (block: string): string => {
-  return block.trim().replace(/^\(/, '').replace(/\)$/, '').trim()
+  return stripEmphasisWrapper(block).replace(/^\(/, '').replace(/\)$/, '').trim()
 }
 
 export const isTransitionText = (text: string): boolean => {

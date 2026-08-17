@@ -12,8 +12,6 @@ import { getHostedProviderConfiguredPaths, HOSTED_PROVIDER_ENV_CHECKS } from './
 import { defaultWhisperModel, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
 import { resolveUvCommand } from './setup-download/managed-uv'
 import {
-  acsmCalibrePluginAccountDir,
-  acsmFulfillManagedBinaryPath,
   ebookConvertManagedBinaryPath,
   englishTrainedDataPath,
   ffmpegManagedBinaryPath,
@@ -27,7 +25,6 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 import type { RuntimeToolId } from '~/types'
-import { ACSM_ACCOUNT_REQUIRED_FILES, ACSM_FULFILL_COMMAND } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { validateManagedArtifact } from './setup-download/managed-artifact'
 
 const hasPath = async (path: string): Promise<boolean> => {
@@ -112,7 +109,6 @@ const DOCTOR_RUNTIME_TOOLS: Partial<Record<RuntimeToolId, { managedPath: string 
   'yt-dlp': { managedPath: ytDlpManagedBinaryPath },
   mutool: { managedPath: mutoolManagedBinaryPath },
   'ebook-convert': { managedPath: ebookConvertManagedBinaryPath },
-  'calibre-acsm-fulfill': { managedPath: acsmFulfillManagedBinaryPath },
   tesseract: { managedPath: tesseractManagedBinaryPath },
   qpdf: { managedPath: qpdfManagedBinaryPath }
 }
@@ -128,7 +124,7 @@ const resolveDoctorRuntimeTool = async (
     if (await probes.pathExists(overridePath)) return { path: overridePath, source: 'override' }
   }
   if (metadata && await probes.pathExists(metadata.managedPath)) return { path: metadata.managedPath, source: 'managed' }
-  if (process.platform !== 'darwin' || id === 'calibre-acsm-fulfill') {
+  if (process.platform !== 'darwin') {
     const pathBinary = probes.which(id)
     if (pathBinary) return { path: pathBinary, source: 'path' }
   }
@@ -240,32 +236,6 @@ const checkTesseractEnglishData = async (probes: DoctorProbes): Promise<DoctorCh
     })
 }
 
-// `calibre-acsm-fulfill --version` short-circuits inside the wrapper before the
-// activation guard, so a version probe reports OK for an install that cannot
-// fulfill anything. Check the account files the wrapper actually requires.
-const checkAcsmAuthorization = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  if (!await probes.pathExists(acsmFulfillManagedBinaryPath)) {
-    return check('MISSING', 'ACSM authorization', 'calibre-acsm-fulfill not installed', {
-      severity: 'warn',
-      nextStep: 'bun autoshow setup --step acsm'
-    })
-  }
-
-  const missing: string[] = []
-  for (const name of ACSM_ACCOUNT_REQUIRED_FILES) {
-    if (!await probes.pathExists(join(acsmCalibrePluginAccountDir, name))) {
-      missing.push(name)
-    }
-  }
-
-  return missing.length === 0
-    ? check('OK', 'ACSM authorization', `account activated in ${acsmCalibrePluginAccountDir}`)
-    : check('MISSING', 'ACSM authorization', `missing ${missing.join(', ')} in ${acsmCalibrePluginAccountDir}`, {
-      severity: 'warn',
-      nextStep: 'bun autoshow setup --step acsm-authorize'
-    })
-}
-
 const hasFilter = (filtersOutput: string, filterName: string): boolean =>
   filtersOutput.split('\n').some((line) => line.trim().split(/\s+/).includes(filterName))
 
@@ -369,9 +339,6 @@ const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<Doctor
     await checkRuntimeToolVersion(probes, 'ebook-convert', 'ebook-convert', ['--version'], {
       nextStep: 'bun autoshow setup --step calibre'
     }),
-    await checkRuntimeToolVersion(probes, ACSM_FULFILL_COMMAND, ACSM_FULFILL_COMMAND, ['--version'], {
-      nextStep: 'bun autoshow setup --step acsm'
-    }),
     await checkRuntimeToolVersion(probes, 'tesseract', 'tesseract', ['--version'], {
       nextStep: 'bun autoshow setup'
     }),
@@ -380,7 +347,6 @@ const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<Doctor
       nextStep: 'bun autoshow setup --step calibre',
       managedArtifactTool: 'qpdf'
     }),
-    await checkAcsmAuthorization(probes),
     fromLegacyCheck(await probes.readDefuddleCliReadiness(), { nextStep: 'bun autoshow setup --step defuddle' }),
     await checkManagedBinary(probes, 'runtime/bin/whisper-cli', whisperBinaryPath, ['--help'], {
       nextStep: 'bun autoshow setup --step whisper-binary'

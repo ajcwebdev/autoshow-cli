@@ -17,11 +17,26 @@ Why now: canonical panel, dialogue, and soundscape artifacts are sufficiently pr
 
 ## Options Considered
 
-| Option                                                                                                    | Pros                                                                                                            | Cons                                                                                          | Quantitative Notes                                   |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Generate motion video from each panel                                                                     | Visually dynamic output                                                                                         | Adds provider cost, creative drift, timing uncertainty, and another provider lifecycle        | At least one paid request per panel or shot          |
-| Put the unmodified scene master under a fixed-rate image sequence                                         | Small implementation                                                                                            | Cross-panel overlaps can play under the wrong image; raw masters cannot prove panel ownership | One output with no reliable synchronization contract |
-| **Build a manifest-backed local still-panel plan, recompose its audio, and render hard cuts with FFmpeg** | Exact ownership evidence, no provider calls, deterministic timing, immutable resume, preserved source artifacts | Adds derived plans, timelines, local transforms, and strict failures for incomplete evidence  | `$0`; one WAV and one MP4 per presentation identity  |
+**Option 1**
+
+- **Option:** Generate motion video from each panel
+- **Pros:** Visually dynamic output
+- **Cons:** Adds provider cost, creative drift, timing uncertainty, and another provider lifecycle
+- **Quantitative Notes:** At least one paid request per panel or shot
+
+**Option 2**
+
+- **Option:** Put the unmodified scene master under a fixed-rate image sequence
+- **Pros:** Small implementation
+- **Cons:** Cross-panel overlaps can play under the wrong image; raw masters cannot prove panel ownership
+- **Quantitative Notes:** One output with no reliable synchronization contract
+
+**Option 3 (selected)**
+
+- **Option:** Build a manifest-backed local still-panel plan, recompose its audio, and render hard cuts with FFmpeg
+- **Pros:** Exact ownership evidence, no provider calls, deterministic timing, immutable resume, preserved source artifacts
+- **Cons:** Adds derived plans, timelines, local transforms, and strict failures for incomplete evidence
+- **Quantitative Notes:** `$0`; one WAV and one MP4 per presentation identity
 
 ## Decision
 
@@ -45,12 +60,29 @@ This does not:
 
 ### Ownership Boundaries
 
-| Owner                         | Responsibilities                                                                                                                                                                                                          | Must not own                                                             |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| ADR-014 dialogue workflow     | Voice identity, casting, provider execution, dialogue assembly, canonical dialogue `AudioRun`, and original `FinalTimeline`                                                                                               | Panel timing, presentation serialization, presentation outputs           |
-| ADR-018 soundscape workflow   | Authored cues, SFX generation, retained sources, buses, cue placement, source stems, original soundscape timeline, and master                                                                                             | Rewriting source runs for a slideshow or choosing panel windows          |
-| ADR-019 presentation workflow | Exact panel reconciliation, event ownership evidence, sequential panel clock, derived audio transformations, continuous ambience or digital silence, still-image encoding, resume, publication, and presentation identity | Provider dispatch, fuzzy matching, source-run mutation, generated motion |
-| Canonical manifest            | Optional local stage status and checksum-bound selected presentation references                                                                                                                                           | A second presentation manifest or mutable run artifacts                  |
+**Owner 1: ADR-014 dialogue workflow**
+
+- **Owner:** ADR-014 dialogue workflow
+- **Responsibilities:** Voice identity, casting, provider execution, dialogue assembly, canonical dialogue `AudioRun`, and original `FinalTimeline`
+- **Must not own:** Panel timing, presentation serialization, presentation outputs
+
+**Owner 2: ADR-018 soundscape workflow**
+
+- **Owner:** ADR-018 soundscape workflow
+- **Responsibilities:** Authored cues, SFX generation, retained sources, buses, cue placement, source stems, original soundscape timeline, and master
+- **Must not own:** Rewriting source runs for a slideshow or choosing panel windows
+
+**Owner 3: ADR-019 presentation workflow**
+
+- **Owner:** ADR-019 presentation workflow
+- **Responsibilities:** Exact panel reconciliation, event ownership evidence, sequential panel clock, derived audio transformations, continuous ambience or digital silence, still-image encoding, resume, publication, and presentation identity
+- **Must not own:** Provider dispatch, fuzzy matching, source-run mutation, generated motion
+
+**Owner 4: Canonical manifest**
+
+- **Owner:** Canonical manifest
+- **Responsibilities:** Optional local stage status and checksum-bound selected presentation references
+- **Must not own:** A second presentation manifest or mutable run artifacts
 
 ### Input and Reconciliation Contract
 
@@ -108,13 +140,30 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                          | Sacrifices                                                     |
-| ---------------------------------------------- | -------------------------------------------------------------- |
-| Exact, auditable panel/audio synchronization   | Strict failures for missing or ambiguous provenance            |
-| Zero provider cost and no generated motion     | Still images and hard cuts only                                |
-| Original audio runs remain unchanged           | Additional derived WAV, MP4, plan, timeline, and run artifacts |
-| Same-size output with no visual transformation | Every panel must share even dimensions                         |
-| Deterministic resume and no-op reruns          | Content changes create a new immutable presentation identity   |
+**Trade-off 1**
+
+- **Gain:** Exact, auditable panel/audio synchronization
+- **Sacrifice:** Strict failures for missing or ambiguous provenance
+
+**Trade-off 2**
+
+- **Gain:** Zero provider cost and no generated motion
+- **Sacrifice:** Still images and hard cuts only
+
+**Trade-off 3**
+
+- **Gain:** Original audio runs remain unchanged
+- **Sacrifice:** Additional derived WAV, MP4, plan, timeline, and run artifacts
+
+**Trade-off 4**
+
+- **Gain:** Same-size output with no visual transformation
+- **Sacrifice:** Every panel must share even dimensions
+
+**Trade-off 5**
+
+- **Gain:** Deterministic resume and no-op reruns
+- **Sacrifice:** Content changes create a new immutable presentation identity
 
 ## Test Plan
 

@@ -79,7 +79,7 @@ The same precedence rules apply everywhere in the CLI:
 The `setup` command currently supports:
 
 ```text
-uv | yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | acsm | acsm-authorize | all | transcription | write | tts | image | video | music
+uv | yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | all | transcription | write | tts | image | video | music
 ```
 
 Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`.
@@ -91,14 +91,8 @@ bun autoshow setup --step uv
 # Step 1 download: yt-dlp for media inputs
 bun autoshow setup --step yt-dlp
 
-# Step 1/2 document inputs: mutool, Calibre ebook-convert, and ACSM fulfillment wrapper
+# Step 1/2 document inputs: mutool and Calibre ebook-convert
 bun autoshow setup --step calibre
-
-# ACSM fulfillment only: Calibre ACSM plugin scripts + wrapper + Python env
-bun autoshow setup --step acsm
-
-# ACSM authorization: creates local activation files for fulfillment
-bun autoshow setup --step acsm-authorize
 
 # Step 2 extract: local URL article extraction
 bun autoshow setup --step defuddle

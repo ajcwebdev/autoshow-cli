@@ -38,12 +38,6 @@ export const calibreToolDir = join(RUNTIME_TOOLS_DIR, 'calibre')
 export const calibreAppPath = join(calibreToolDir, 'calibre.app')
 export const ebookConvertManagedBinaryPath = join(RUNTIME_BIN_DIR, 'ebook-convert')
 export const ebookConvertInstalledBinaryPath = join(calibreAppPath, 'Contents/MacOS/ebook-convert')
-export const acsmCalibrePluginToolDir = join(RUNTIME_TOOLS_DIR, 'acsm-calibre-plugin')
-export const acsmCalibrePluginSourceDir = join(acsmCalibrePluginToolDir, 'plugin')
-export const acsmCalibrePluginAccountDir = join(acsmCalibrePluginToolDir, 'account')
-export const acsmCalibrePluginPythonEnvDir = join(acsmCalibrePluginToolDir, 'venv')
-export const acsmFulfillManagedBinaryPath = join(RUNTIME_BIN_DIR, 'calibre-acsm-fulfill')
-export const acsmAuthorizeManagedBinaryPath = join(RUNTIME_BIN_DIR, 'calibre-acsm-authorize')
 
 export const leptonicaToolDir = join(RUNTIME_TOOLS_DIR, 'leptonica')
 export const leptonicaBuildDir = join(RUNTIME_BUILD_DIR, 'leptonica')
@@ -67,7 +61,6 @@ const TOOL_MANAGED_PATHS: Record<RuntimeToolId, string> = {
   'yt-dlp': ytDlpManagedBinaryPath,
   mutool: mutoolManagedBinaryPath,
   'ebook-convert': ebookConvertManagedBinaryPath,
-  'calibre-acsm-fulfill': acsmFulfillManagedBinaryPath,
   tesseract: tesseractManagedBinaryPath,
   qpdf: qpdfManagedBinaryPath
 }

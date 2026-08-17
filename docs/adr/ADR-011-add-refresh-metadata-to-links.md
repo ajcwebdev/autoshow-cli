@@ -17,12 +17,33 @@ Why now: `links` is used as a repeatable documentation snapshot mechanism, requi
 
 ## Options Considered
 
-| Option                                                                                    | Pros                                                                                                                                                                  | Cons                                                                                                               | Quantitative Notes                                                                                            |
-| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| **Add opt-in refresh flags with a sidecar metadata file and align the selector registry** | Makes refresh behavior explicit; preserves default markdown behavior; gives `models` a first-class global section; prevents duplicate URLs across manifest categories | Adds command flags, a metadata schema, a tokenizer dependency, a sidecar artifact, and broader selector tests      | 2 boolean flags, 1 JSON sidecar per refresh run, 1 tokenizer utility, model sections across curated providers |
-| Always write refresh metadata on every `links` run                                        | Users get metadata automatically and the CLI surface stays smaller                                                                                                    | Changes default behavior and writes extra files when users only want combined markdown                             | Adds sidecar output to 100% of `links` runs                                                                   |
-| Store metadata inside the generated markdown                                              | Keeps all output in one file and avoids sidecar discovery                                                                                                             | Pollutes the source bundle, complicates downstream markdown use, and makes metadata updates harder to diff cleanly | Adds metadata blocks to every refreshed markdown artifact                                                     |
-| Add token counts only, without hashes or previous-refresh comparison                      | Smaller implementation; gives rough context-size estimates                                                                                                            | Does not answer whether content changed or when a link last succeeded                                              | Omits change status, previous hash, and previous token count                                                  |
+**Option 1 (selected)**
+
+- **Option:** Add opt-in refresh flags with a sidecar metadata file and align the selector registry
+- **Pros:** Makes refresh behavior explicit; preserves default markdown behavior; gives `models` a first-class global section; prevents duplicate URLs across manifest categories
+- **Cons:** Adds command flags, a metadata schema, a tokenizer dependency, a sidecar artifact, and broader selector tests
+- **Quantitative Notes:** 2 boolean flags, 1 JSON sidecar per refresh run, 1 tokenizer utility, model sections across curated providers
+
+**Option 2**
+
+- **Option:** Always write refresh metadata on every `links` run
+- **Pros:** Users get metadata automatically and the CLI surface stays smaller
+- **Cons:** Changes default behavior and writes extra files when users only want combined markdown
+- **Quantitative Notes:** Adds sidecar output to 100% of `links` runs
+
+**Option 3**
+
+- **Option:** Store metadata inside the generated markdown
+- **Pros:** Keeps all output in one file and avoids sidecar discovery
+- **Cons:** Pollutes the source bundle, complicates downstream markdown use, and makes metadata updates harder to diff cleanly
+- **Quantitative Notes:** Adds metadata blocks to every refreshed markdown artifact
+
+**Option 4**
+
+- **Option:** Add token counts only, without hashes or previous-refresh comparison
+- **Pros:** Smaller implementation; gives rough context-size estimates
+- **Cons:** Does not answer whether content changed or when a link last succeeded
+- **Quantitative Notes:** Omits change status, previous hash, and previous token count
 
 ## Decision
 
@@ -99,12 +120,25 @@ Negative outcomes:
 
 ## Trade-offs
 
-| Gains                                           | Sacrifices                                                                           |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Explicit source freshness and change status     | Additional JSON sidecar artifact per refreshed Markdown file                         |
-| Stable default `links` bundle output            | Users must opt in with `--refresh` or `--refresh-only`                               |
-| Per-link reference token audit data             | Reference tokenizer estimates are not exact billable counts for every provider/model |
-| Reuse of existing fetch and conversion behavior | Refresh duration remains tied to remote fetch latency across selected links          |
+**Trade-off 1**
+
+- **Gain:** Explicit source freshness and change status
+- **Sacrifice:** Additional JSON sidecar artifact per refreshed Markdown file
+
+**Trade-off 2**
+
+- **Gain:** Stable default `links` bundle output
+- **Sacrifice:** Users must opt in with `--refresh` or `--refresh-only`
+
+**Trade-off 3**
+
+- **Gain:** Per-link reference token audit data
+- **Sacrifice:** Reference tokenizer estimates are not exact billable counts for every provider/model
+
+**Trade-off 4**
+
+- **Gain:** Reuse of existing fetch and conversion behavior
+- **Sacrifice:** Refresh duration remains tied to remote fetch latency across selected links
 
 ## Test Plan
 

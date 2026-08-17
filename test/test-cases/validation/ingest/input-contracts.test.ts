@@ -168,6 +168,20 @@ describe('input classification contracts', () => {
     expect(`${result.stdout}\n${result.stderr}`).toContain(`Could not classify extract input "${inputPath}"`)
   })
 
+  test('local ACSM files are classified and routed as unsupported', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-acsm-'))
+    tempDirs.push(dir)
+    const inputPath = join(dir, 'retired.acsm')
+    await writeFile(inputPath, '<adept:fulfillmentToken />')
+
+    await expect(classifyInputFamily(inputPath)).resolves.toBe('unsupported')
+    await expect(resolveInputRoutingForCommand('extract', inputPath)).resolves.toMatchObject({
+      family: 'unsupported',
+      step2Route: 'unsupported',
+      supported: false
+    })
+  })
+
   test('write rejects multiple step-2 providers for one routed media input', async () => {
     const result = await runCommand([
       'src/cli/create-cli.ts',
