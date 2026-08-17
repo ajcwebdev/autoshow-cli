@@ -2,13 +2,11 @@ import type { Step2ProviderSelectionFilter, SttDiarizationFlagOptions, SttSelect
 import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { collectStep2ProviderSelections } from '../step-2-shared/provider-registry'
 import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
-import { resolveReverbModelLabel } from './stt-model-labels'
 import { isScrapeCreatorsSupportedSourceUrl } from './stt-services/scrapecreators/scrapecreators'
 import { isSupadataSupportedSourceUrl } from './stt-services/stt-supadata/supadata'
 
 
 const LOCAL_STT_SERVICES = new Set<SttTarget['service']>([
-  'reverb',
   'whisper',
   'whisperfile'
 ])
@@ -29,7 +27,7 @@ export const getSttTargetKey = (target: Pick<SttTarget, 'service' | 'model'>): s
   `${target.service}:${target.model}`
 
 const formatSttTargetModel = (target: Pick<SttTarget, 'service' | 'model'>): string =>
-  target.service === 'reverb' ? resolveReverbModelLabel(target.model) : target.model
+  target.model
 
 export const formatSttTargetLabel = (target: Pick<SttTarget, 'service' | 'model'>): string =>
   `${target.service === 'whisper' ? 'whisper.cpp' : target.service}/${formatSttTargetModel(target)}`

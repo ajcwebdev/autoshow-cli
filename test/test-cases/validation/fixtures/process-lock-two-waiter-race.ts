@@ -98,7 +98,7 @@ continueStaleMutation.resolve()
 
 const overlapped = await Promise.race([
   delayedEntered.promise.then(() => true),
-  Bun.sleep(100).then(() => false)
+  Bun.sleep(50).then(() => false)
 ])
 
 releaseHolder.resolve()

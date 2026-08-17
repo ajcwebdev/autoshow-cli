@@ -1,4 +1,4 @@
-import type { AutoshowConfig, CheckResult, LlamaSetupModelMetadata, ManagedArtifactToolId, ManagedArtifactValidation, ResolvedYtDlpBinary, RunResult } from '~/types'
+import type { AutoshowConfig, CheckResult, ManagedArtifactToolId, ManagedArtifactValidation, ResolvedYtDlpBinary, RunResult } from '~/types'
 export type DoctorStatus = 'OK' | 'MISSING' | 'WARN' | 'INFO'
 
 export type DoctorSeverity = 'warn' | 'info'
@@ -29,10 +29,6 @@ export type DoctorProbes = {
   resolveConfigPath: () => Promise<string>
   loadConfig: (path: string) => Promise<AutoshowConfig>
   inspectYtDlpAuthState: () => Promise<Awaited<ReturnType<typeof import('~/cli/commands/process-steps/shared/shared-yt-dlp-options').inspectYtDlpAuthState>>>
-  hasSetupManagedLlamaModel: (model: string) => Promise<boolean>
-  readLlamaSetupModelMetadata: () => Promise<LlamaSetupModelMetadata>
-  listLlamaCacheEntries: (model: string) => Promise<string[]>
-  hasCachedKittenTtsModel: (model: string) => Promise<boolean>
   validateManagedArtifact: (tool: ManagedArtifactToolId) => Promise<ManagedArtifactValidation>
 }
 

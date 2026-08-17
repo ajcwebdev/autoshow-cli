@@ -25,6 +25,12 @@ const resolveExtractTargets = (input: ComputeEstimatedCostsInput): NonNullable<C
     ...(input.mistralOcrModel
       ? [{ provider: 'mistral' as const, model: input.mistralOcrModel, pageCount, estimateType: 'exact' as const }]
       : []),
+    ...(input.replicateOcrModel
+      ? [{ provider: 'replicate' as const, model: input.replicateOcrModel, pageCount, estimateType: 'exact' as const }]
+      : []),
+    ...(input.falOcrModel
+      ? [{ provider: 'fal' as const, model: input.falOcrModel, pageCount, estimateType: 'exact' as const }]
+      : []),
     ...heuristicProviders.flatMap(({ provider, model }) =>
       model ? [{ provider, model, pageCount, estimateType: 'heuristic' as const }] : [])
   ]

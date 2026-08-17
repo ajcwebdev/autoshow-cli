@@ -403,7 +403,7 @@ const validateAudioProjectionStructure = (
     ) return false
   } else if (active['kind'] === 'render') {
     if (
-      !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence'])
+      !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence', 'journalPath', 'completedSlotHashes'])
       || !resolveRenderEvent(projection, active['renderIdentity'], active['eventSequence'])
       || !isRecord(latestPointer)
       || !['activate-render', 'rollback-active', 'select-success'].includes(latestPointer['action'] as string)
@@ -447,8 +447,7 @@ const parseAudioProjectionStatus = (
 ): { status: PipelineProviderState['status'], attempts: number } | undefined => {
   if (
     !isRecord(value)
-    || !hasOnlyKeys(value, ['activeWork', 'selectedSuccess', 'branchHistory', 'readinessAttempts', 'renderHistory', 'pointerEvents'])
-    || !isRecord(value['activeWork'])
+    || !hasOnlyKeys(value, ['activeWork', 'selectedSuccess', 'archive', 'branchHistory', 'readinessAttempts', 'renderHistory', 'pointerEvents'])
     || !Array.isArray(value['branchHistory'])
     || !Array.isArray(value['readinessAttempts'])
     || !Array.isArray(value['renderHistory'])
@@ -456,7 +455,24 @@ const parseAudioProjectionStatus = (
   ) {
     return undefined
   }
-  if (!validateAudioProjectionStructure(value, targetKey)) {
+  if (isRecord(value['archive']) && isRecord(value['selectedSuccess']) && value['activeWork'] === undefined) {
+    const archive = value['archive']
+    const selected = value['selectedSuccess']
+    if (
+      archive['schemaVersion'] !== 1
+      || !isRecord(archive['renderRef'])
+      || !isRecord(archive['timelineRef'])
+      || !isRecord(archive['finalRef'])
+      || !Number.isInteger(archive['slotCount'])
+      || typeof selected['renderIdentity'] !== 'string'
+      || typeof selected['resultIdentity'] !== 'string'
+      || typeof selected['audioRunId'] !== 'string'
+    ) {
+      return undefined
+    }
+    return { status: 'succeeded', attempts: 0 }
+  }
+  if (!isRecord(value['activeWork']) || !validateAudioProjectionStructure(value, targetKey)) {
     return undefined
   }
 
@@ -516,7 +532,7 @@ const parseAudioProjectionStatus = (
 
   if (
     active['kind'] !== 'render'
-    || !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence'])
+    || !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence', 'journalPath', 'completedSlotHashes'])
     || typeof active['renderIdentity'] !== 'string'
     || !Number.isInteger(active['eventSequence'])
   ) {
@@ -685,7 +701,7 @@ type ProjectionArtifactReference = {
   path: string
   sha256: string
   scope?: 'provider-artifact' | 'run-root' | undefined
-  kind: 'audio' | 'strategy-text' | 'source-identity' | 'dialogue-plan' | 'capability-fixture' | 'branch-plan' | 'readiness-result' | 'render-plan' | 'admission-journal' | 'admission-evidence' | 'provider-render-result' | 'audio-run' | 'audio-mix-plan' | 'audio-transform-ledger' | 'final-timeline' | 'batch-invocation-plan' | 'provider-batch-result' | 'provider-timing-evidence' | 'cache-materialization-plan' | 'render-takes' | 'take-selection' | 'continuation-checkpoint' | 'consumed-selection-rebuild' | 'generic-json'
+  kind: 'audio' | 'strategy-text' | 'source-identity' | 'dialogue-plan' | 'capability-fixture' | 'branch-plan' | 'readiness-result' | 'render-plan' | 'admission-journal' | 'admission-evidence' | 'provider-render-result' | 'audio-run' | 'audio-mix-plan' | 'audio-transform-ledger' | 'final-timeline' | 'batch-invocation-plan' | 'provider-batch-result' | 'provider-timing-evidence' | 'cache-materialization-plan' | 'render-takes' | 'take-selection' | 'continuation-checkpoint' | 'consumed-selection-rebuild' | 'generic-json' | 'compact-render'
   expectedJsonFields?: Record<string, string | number> | undefined
   context?: {
     renderDir?: string | undefined
@@ -740,6 +756,19 @@ const collectProjectionArtifactReferences = (
     if (!path || !isSha256(sha256)) return false
     files.push({ path, sha256, scope, kind, ...(expectedJsonFields ? { expectedJsonFields } : {}), ...(context ? { context } : {}) })
     return true
+  }
+
+  const archive = projection['archive']
+  if (isRecord(archive) && isRecord(projection['selectedSuccess']) && projection['activeWork'] === undefined) {
+    if (
+      !isRecord(archive['renderRef'])
+      || !addFile(archive['renderRef'], 'path', 'sha256', 'compact-render', { targetKey }, undefined, undefined, 'run-root')
+      || !isRecord(archive['timelineRef'])
+      || !addFile(archive['timelineRef'], 'path', 'sha256', 'final-timeline', undefined, undefined, undefined, 'run-root')
+      || !isRecord(archive['finalRef'])
+      || !addFile(archive['finalRef'], 'path', 'sha256', 'audio', undefined, undefined, undefined, 'run-root')
+    ) return undefined
+    return { files, directories }
   }
 
   for (const branch of projection['branchHistory'] as unknown[]) {
@@ -909,14 +938,13 @@ const collectProjectionArtifactReferences = (
                 rawRender['renderDir'] as string,
                 { renderDir: rawRender['renderDir'] as string }
               ))) return undefined
-            } else if (slot['source'] === 'cache-materialization') {
-              const plan = slot['materializationPlan']
+            } else if (slot['source'] === 'slot-reuse') {
               const result = slot['batchResult']
               if (
-                !isRecord(plan)
-                || !addFile(plan, 'path', 'sha256', 'cache-materialization-plan', undefined, rawRender['renderDir'] as string, { renderDir: rawRender['renderDir'] as string })
+                typeof slot['slotHash'] !== 'string'
+                || !slot['slotHash']
                 || !isRecord(result)
-                || !addFile(result, 'path', 'sha256', 'provider-batch-result', undefined, rawRender['renderDir'] as string, { renderDir: rawRender['renderDir'] as string })
+                || !addFile(result, 'path', 'sha256', 'provider-batch-result', undefined, undefined, { renderDir: rawRender['renderDir'] as string }, 'run-root')
               ) return undefined
             } else {
               return undefined
@@ -986,6 +1014,13 @@ const validateProjectionArtifactJson = (
   }
   if (kind === 'render-plan') {
     validateProviderRenderPlanIdentity(value as unknown as ProviderRenderPlan)
+    return
+  }
+  if (kind === 'compact-render') {
+    if (value['schemaVersion'] !== 1) throw CLIUsageError('Compact TTS render requires schemaVersion 1.')
+    if (typeof value['renderId'] !== 'string' || typeof value['targetKey'] !== 'string' || typeof value['renderIdentity'] !== 'string' || !Array.isArray(value['slots'])) {
+      throw CLIUsageError('Compact TTS render is missing identity or slot index.')
+    }
     return
   }
   if (kind === 'source-identity') {
@@ -1201,6 +1236,18 @@ const collectNestedProjectionArtifactReferences = (
   }
 
   const renderDir = reference.context?.renderDir
+  if (reference.kind === 'compact-render') {
+    const slots = value['slots']
+    if (!Array.isArray(slots)) return undefined
+    for (const rawSlot of slots) {
+      if (!isRecord(rawSlot) || typeof rawSlot['slotHash'] !== 'string' || !isSha256(rawSlot['sha256'])) return undefined
+      const slotDir = posix.dirname(reference.path)
+      const mediaRoot = slotDir.includes('/') ? posix.dirname(slotDir) : ''
+      const slotPath = mediaRoot ? `${mediaRoot}/slots/${rawSlot['slotHash']}.wav` : `slots/${rawSlot['slotHash']}.wav`
+      nested.push({ path: slotPath, sha256: rawSlot['sha256'] as string, kind: 'audio', scope: 'run-root' })
+    }
+    return nested
+  }
   if (reference.kind === 'readiness-result') {
     const fixture = value['capabilityFixture']
     if (
@@ -1385,7 +1432,14 @@ const collectNestedProjectionArtifactReferences = (
       ) return undefined
     }
     for (const rawOutput of value['outputs']) {
-      if (!isRecord(rawOutput) || !add(rawOutput, 'artifactRef', 'sha256', 'audio', batchResultDir, undefined, context)) return undefined
+      if (!isRecord(rawOutput)) return undefined
+      if (value['provenance'] === 'slot-reuse') {
+        const path = resolveArtifactRelativePath(undefined, rawOutput['artifactRef'])
+        if (!path || !isSha256(rawOutput['sha256'])) return undefined
+        nested.push({ path, sha256: rawOutput['sha256'] as string, kind: 'audio', scope: 'run-root' })
+        continue
+      }
+      if (!add(rawOutput, 'artifactRef', 'sha256', 'audio', batchResultDir, undefined, context)) return undefined
     }
     const generated = value['generatedBatch']
     if (generated !== undefined) {
@@ -1400,22 +1454,8 @@ const collectNestedProjectionArtifactReferences = (
         if (isRecord(continuation) && continuation['kind'] === 'protected-token' && !isOpaqueProtectedAssetRef(continuation['asset'])) return undefined
       }
     }
-    const cache = value['cacheMaterialization']
-    if (cache !== undefined) {
-      if (!isRecord(cache) || !isRecord(cache['materializationPlan']) || !add(cache['materializationPlan'], 'artifactRef', 'sha256', 'cache-materialization-plan', renderDir, {
-        cacheMaterializationPlanId: cache['materializationPlan']['cacheMaterializationPlanId'] as string
-      }, context)) return undefined
-      for (const key of ['cacheEntry', 'sourceBatchResult', 'sourceProvenanceAttestation'] as const) {
-        const copy = cache[key]
-        if (!isRecord(copy) || !add(copy, 'artifactRef', 'sha256', 'generic-json', batchResultDir, undefined, context)) return undefined
-      }
-      if (!Array.isArray(cache['materializedObjects'])) return undefined
-      for (const rawObject of cache['materializedObjects']) {
-        if (!isRecord(rawObject) || !isRecord(rawObject['source'])) return undefined
-        const kind = rawObject['source']['role'] === 'audio' ? 'audio' : rawObject['source']['role'] === 'timing-evidence' ? 'provider-timing-evidence' : 'generic-json'
-        if (!add(rawObject, 'artifactRef', 'sha256', kind, batchResultDir, undefined, context)) return undefined
-      }
-    }
+    if (value['cacheMaterialization'] !== undefined || value['provenance'] === 'cache-materialization') return undefined
+    if (value['provenance'] === 'slot-reuse' && typeof value['slotHash'] !== 'string') return undefined
     return nested
   }
 
@@ -1471,7 +1511,8 @@ const collectNestedProjectionArtifactReferences = (
   if (reference.kind === 'final-timeline') {
     const ledger = value['transformLedgerRef']
     const audioRunDir = reference.context?.audioRunDir
-    if (!audioRunDir || !isRecord(ledger) || !add(ledger, 'path', 'sha256', 'audio-transform-ledger', audioRunDir, {
+    if (!audioRunDir) return nested
+    if (!isRecord(ledger) || !add(ledger, 'path', 'sha256', 'audio-transform-ledger', audioRunDir, {
       renderIdentity: value['renderIdentity'] as string
     }, reference.context)) return undefined
     return nested
@@ -2259,7 +2300,18 @@ const verifyProviderProjectionArtifacts = async (
         const bytes = await readFile(canonical)
         const actualSha = createHash('sha256').update(bytes).digest('hex')
         if (actualSha !== reference.sha256) return false
-        if ((reference.kind !== 'audio' && reference.kind !== 'strategy-text') || reference.expectedJsonFields) {
+        if (reference.kind === 'admission-journal' && reference.path.endsWith('.jsonl')) {
+          const lastLine = bytes.toString('utf8').split('\n').filter((line) => line.length > 0).at(-1)
+          if (!lastLine) return false
+          try {
+            const parsed = JSON.parse(lastLine) as unknown
+            const snapshot = isRecord(parsed) && isRecord(parsed['snapshot']) ? parsed['snapshot'] : parsed
+            if (!isRecord(snapshot)) return false
+            json = snapshot
+          } catch {
+            return false
+          }
+        } else if ((reference.kind !== 'audio' && reference.kind !== 'strategy-text') || reference.expectedJsonFields) {
           try {
             const parsed = JSON.parse(bytes.toString('utf8')) as unknown
             if (!isRecord(parsed)) return false
@@ -2313,11 +2365,26 @@ const verifyManifestProjectionArtifacts = async (
       for (const ref of stage['artifactRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
     }
     const audio = comic['audio']
-    for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef'] as const) {
+    for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
       const ref = audio[key]
       if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
     }
     if (Array.isArray(audio['finalOutputRefs'])) for (const ref of audio['finalOutputRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+    if (Array.isArray(audio['selectedAudioRuns'])) for (const run of audio['selectedAudioRuns']) {
+      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
+    }
+    if (Array.isArray(audio['selectedSoundscapeRuns'])) for (const run of audio['selectedSoundscapeRuns']) {
+      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
+      if (isRecord(run) && isRecord(run['masterRef']) && typeof run['masterRef']['path'] === 'string' && typeof run['masterRef']['sha256'] === 'string') references.push({ path: run['masterRef']['path'], sha256: run['masterRef']['sha256'] })
+    }
+    const presentation = comic['presentation']
+    if (isRecord(presentation)) {
+      for (const key of ['planRef', 'resolvedTimelineRef', 'runRef'] as const) {
+        const ref = presentation[key]
+        if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+      }
+      if (Array.isArray(presentation['finalOutputRefs'])) for (const ref of presentation['finalOutputRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+    }
     for (const ref of references) {
       if (!isSafeRelativePath(rootDir, ref.path)) return false
       try {
@@ -2479,15 +2546,31 @@ const assertAppendOnlyManifestAudioState = (
       throw CLIUsageError('A canonical audio manifest cannot reorder or replace an existing item.')
     }
     for (const oldProvider of oldItem.providers) {
+      if (oldProvider.legacyRenderIdentity?.startsWith('legacy:')) {
+        const retainedLegacy = nextItem.providers.filter((provider) =>
+          provider.legacyRenderIdentity === oldProvider.legacyRenderIdentity
+        )
+        if (retainedLegacy.length !== 1) {
+          throw CLIUsageError(`Legacy audio target ${oldProvider.targetKey ?? oldProvider.service} cannot be removed, duplicated, or rewritten.`)
+        }
+        continue
+      }
       if (
         (oldProvider.operation !== 'tts-synthesis' && oldProvider.operation !== 'comic-audio')
-        || oldProvider.legacyRenderIdentity?.startsWith('legacy:')
       ) continue
       const nextMatches = nextItem.providers.filter((provider) => provider.targetKey === oldProvider.targetKey)
       if (nextMatches.length !== 1) {
         throw CLIUsageError(`Canonical audio target ${oldProvider.targetKey ?? oldProvider.service} cannot be removed or duplicated.`)
       }
       assertAppendOnlyAudioProjection(oldProvider, nextMatches[0] as PipelineProviderState)
+    }
+    for (const nextProvider of nextItem.providers) {
+      if (
+        nextProvider.legacyRenderIdentity?.startsWith('legacy:')
+        && !oldItem.providers.some((provider) => provider.legacyRenderIdentity === nextProvider.legacyRenderIdentity)
+      ) {
+        throw CLIUsageError(`A canonical audio manifest cannot introduce legacy provider state for ${nextProvider.service}/${nextProvider.model ?? ''}.`)
+      }
     }
   }
 }
@@ -2633,7 +2716,7 @@ const expectedTtsItemStatus = (providers: readonly PipelineProviderState[]): Pip
 const parseComicStageRecord = (
   value: unknown,
   providers: readonly PipelineProviderState[],
-  operation: 'comic-structure' | 'comic-image' | 'comic-audio'
+  operations: readonly string[]
 ): { requirement: 'not-requested' | 'required' | 'optional', status: PipelineManifestItem['status'] } | undefined => {
   if (!isRecord(value) || !hasOnlyKeys(value, ['requirement', 'status', 'execution', 'targetKeys', 'artifactRefs']) || !ITEM_STATUS_SET.has(value['status'] as string) || !Array.isArray(value['targetKeys']) || !Array.isArray(value['artifactRefs'])) return undefined
   if (value['artifactRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
@@ -2651,7 +2734,7 @@ const parseComicStageRecord = (
     if (value['status'] !== expected || (state === 'skipped' && (typeof execution['policyReason'] !== 'string' || !execution['policyReason'].trim()))) return undefined
   } else if (execution['kind'] === 'provider-targets') {
     if (!hasOnlyKeys(execution, ['kind']) || value['targetKeys'].length === 0 || value['targetKeys'].some(key => typeof key !== 'string') || new Set(value['targetKeys'] as string[]).size !== value['targetKeys'].length) return undefined
-    const owned = (value['targetKeys'] as string[]).map(key => providers.filter(provider => provider.targetKey === key && provider.operation === operation))
+    const owned = (value['targetKeys'] as string[]).map(key => providers.filter(provider => provider.targetKey === key && provider.operation !== undefined && operations.includes(provider.operation)))
     if (owned.some(matches => matches.length !== 1)) return undefined
     const statuses = owned.map(matches => (matches[0] as PipelineProviderState).status)
     const successCount = statuses.filter(status => status === 'succeeded').length
@@ -2671,26 +2754,50 @@ const expectedComicItemStatus = (
   item: PipelineManifestItem
 ): PipelineManifestItem['status'] | undefined => {
   const metadata = item.metadata['comic']
-  if (!isRecord(metadata) || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio']) || metadata['schemaVersion'] !== 1 || !isRecord(metadata['stages']) || !isRecord(metadata['audio']) || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio'])) return undefined
+  if (!isRecord(metadata) || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio', 'presentation']) || metadata['schemaVersion'] !== 1 || !isRecord(metadata['stages']) || !isRecord(metadata['audio']) || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio', 'presentation'])) return undefined
+  const historicalPresentationStage = { requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] }
   const stages = [
-    parseComicStageRecord(metadata['stages']['structure'], item.providers, 'comic-structure'),
-    parseComicStageRecord(metadata['stages']['image'], item.providers, 'comic-image'),
-    parseComicStageRecord(metadata['stages']['audio'], item.providers, 'comic-audio'),
+    parseComicStageRecord(metadata['stages']['structure'], item.providers, ['comic-structure']),
+    parseComicStageRecord(metadata['stages']['image'], item.providers, ['comic-image']),
+    parseComicStageRecord(metadata['stages']['audio'], item.providers, ['comic-audio', 'sound-effect-generation']),
+    parseComicStageRecord(metadata['stages']['presentation'] ?? historicalPresentationStage, item.providers, []),
   ]
   if (stages.some(stage => stage === undefined)) return undefined
   const audio = metadata['audio']
-  if (!hasOnlyKeys(audio, ['sceneRunIdentity', 'structuredScript', 'dialoguePlanId', 'dialoguePlanRef', 'snapshotId', 'snapshotRef', 'selectedAudioRuns', 'publishedAudioRunId', 'mixPlanRef', 'finalTimelineRef', 'finalOutputRefs'])) return undefined
+  if (!hasOnlyKeys(audio, ['sceneRunIdentity', 'structuredScript', 'dialoguePlanId', 'dialoguePlanRef', 'snapshotId', 'snapshotRef', 'selectedAudioRuns', 'publishedAudioRunId', 'mixPlanRef', 'finalTimelineRef', 'finalOutputRefs', 'soundscapePlanId', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef', 'selectedSoundscapeRuns'])) return undefined
   if (audio['sceneRunIdentity'] !== undefined && !isSha256(audio['sceneRunIdentity'])) return undefined
   if (audio['dialoguePlanId'] !== undefined && !isSha256(audio['dialoguePlanId'])) return undefined
   if (audio['snapshotId'] !== undefined && !isSha256(audio['snapshotId'])) return undefined
+  if (audio['soundscapePlanId'] !== undefined && !isSha256(audio['soundscapePlanId'])) return undefined
   const structured = audio['structuredScript']
-  if (structured !== undefined && (!isRecord(structured) || !hasOnlyKeys(structured, ['path', 'artifactSchemaVersion', 'sha256']) || structured['path'] !== 'metadata/structured-script.json' || structured['artifactSchemaVersion'] !== 4 || !isSha256(structured['sha256']))) return undefined
-  for (const key of ['dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef'] as const) {
+  if (structured !== undefined && (!isRecord(structured) || !hasOnlyKeys(structured, ['path', 'artifactSchemaVersion', 'sha256']) || structured['path'] !== 'metadata/structured-script.json' || structured['artifactSchemaVersion'] !== 5 || !isSha256(structured['sha256']))) return undefined
+  for (const key of ['dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
     const ref = audio[key]
     if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
   }
   if (audio['finalOutputRefs'] !== undefined && (!Array.isArray(audio['finalOutputRefs']) || audio['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
   if (audio['selectedAudioRuns'] !== undefined && (!Array.isArray(audio['selectedAudioRuns']) || audio['selectedAudioRuns'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'renderIdentity', 'audioRunId', 'audioRunRef', 'audioRunSha256']) || !Object.values(ref).every(value => typeof value === 'string') || !isSha256(ref['audioRunSha256'])))) return undefined
+  if (audio['selectedSoundscapeRuns'] !== undefined && (!Array.isArray(audio['selectedSoundscapeRuns']) || audio['selectedSoundscapeRuns'].some(ref => {
+    if (!isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'dialogueAudioRunId', 'soundscapeAudioRunId', 'audioRunRef', 'audioRunSha256', 'masterRef'])) return true
+    if (typeof ref['targetKey'] !== 'string' || !isSha256(ref['dialogueAudioRunId']) || !isSha256(ref['soundscapeAudioRunId']) || !isStrictArtifactRelativePath(ref['audioRunRef']) || !isSha256(ref['audioRunSha256'])) return true
+    const masterRef = ref['masterRef']
+    return !isRecord(masterRef) || !hasOnlyKeys(masterRef, ['path', 'sha256']) || !isStrictArtifactRelativePath(masterRef['path']) || !isSha256(masterRef['sha256'])
+  }))) return undefined
+  const presentation = metadata['presentation'] ?? {}
+  if (!isRecord(presentation) || !hasOnlyKeys(presentation, ['selectedPresentationId', 'planRef', 'resolvedTimelineRef', 'runRef', 'finalOutputRefs'])) return undefined
+  if (presentation['selectedPresentationId'] !== undefined && !isSha256(presentation['selectedPresentationId'])) return undefined
+  for (const key of ['planRef', 'resolvedTimelineRef', 'runRef'] as const) {
+    const ref = presentation[key]
+    if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
+  }
+  if (presentation['finalOutputRefs'] !== undefined && (!Array.isArray(presentation['finalOutputRefs']) || presentation['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
+  const presentationStageValue = metadata['stages']['presentation'] ?? historicalPresentationStage
+  if (metadata['presentation'] !== undefined && Object.keys(presentation).length > 0) {
+    if (!isRecord(presentationStageValue) || presentationStageValue['status'] !== 'full' || !Array.isArray(presentationStageValue['artifactRefs'])) return undefined
+    const stageRefs = presentationStageValue['artifactRefs'] as unknown[]
+    const envelopeRefs = [presentation['planRef'], presentation['resolvedTimelineRef'], presentation['runRef'], ...(Array.isArray(presentation['finalOutputRefs']) ? presentation['finalOutputRefs'] : [])]
+    if (envelopeRefs.some(ref => !isRecord(ref) || !stageRefs.some(stageRef => isRecord(stageRef) && stageRef['path'] === ref['path'] && stageRef['sha256'] === ref['sha256']))) return undefined
+  }
   const required = stages.filter(stage => stage?.requirement === 'required') as Array<{ requirement: 'required', status: PipelineManifestItem['status'] }>
   if (required.length === 0) return undefined
   if (required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')) return 'full'
@@ -2770,6 +2877,8 @@ const parseManifest = (
     if (!expectedStatus || item.status !== expectedStatus) return undefined
     const targetOwners = new Map<string, number>()
     const comic = item.metadata['comic'] as unknown as CanonicalComicItemMetadata
+    comic.stages.presentation ??= { requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] }
+    comic.presentation ??= {}
     for (const stage of Object.values(comic.stages)) for (const targetKey of stage.targetKeys) targetOwners.set(targetKey, (targetOwners.get(targetKey) ?? 0) + 1)
     if ([...targetOwners.values()].some(count => count !== 1)) return undefined
     if (item.providers.some(provider => provider.operation?.startsWith('comic-') && !targetOwners.has(provider.targetKey ?? ''))) return undefined
@@ -2844,7 +2953,11 @@ const writeManifestUnlocked = async (
     ...manifest,
     updatedAt: new Date().toISOString()
   }
-  const parsed = parseManifest(rootDir, next, false)
+  const retainsLegacyTts = previous?.command === 'tts'
+    && previous.items.some((item) => item.providers.some((provider) =>
+      provider.legacyRenderIdentity?.startsWith('legacy:')
+    ))
+  const parsed = parseManifest(rootDir, next, retainsLegacyTts === true)
   if (!parsed || !await verifyManifestProjectionArtifacts(rootDir, parsed)) {
     throw invalidManifestError(manifestPath)
   }
@@ -3098,7 +3211,7 @@ export const createPipelineItemFromRecord = (
     delete metadata[key]
   }
   const providers = createProviderStatesFromRecord(rootDir, record)
-  if (providers.length > 0) {
+  if (providers.length > 0 && record['ocrProviderMode'] !== 'pool') {
     delete metadata['step2']
   }
 

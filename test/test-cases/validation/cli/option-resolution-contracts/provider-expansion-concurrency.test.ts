@@ -18,7 +18,6 @@ import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrenc
 import {
   validateCerebrasModel,
   validateAnthropicOcrModel,
-  validateGeminiModel,
   validateGeminiOcrModel,
   validateGrokModel,
   validateGrokOcrModel,
@@ -30,18 +29,19 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
 describe('option resolution contracts', () => {
-  test('MiniMax write model validator accepts M3 and rejects removed predecessor names', () => {
-      const removedStandard = ['MiniMax-M2', '5'].join('.')
-      const removedHighspeed = `${removedStandard}-highspeed`
-      const removedM27 = ['MiniMax-M2', '7'].join('.')
-      const removedM27Highspeed = `${removedM27}-highspeed`
-      const expectedAllowed = 'Allowed values: MiniMax-M3'
+  test('hosted concurrency mode defaults to ramp and validates explicit values', () => {
+    const defaults = buildOptsFromFlags(false, {})
+    const immediate = buildOptsFromFlags(false, { 'concurrency-mode': 'immediate' })
 
+    expect(defaults.concurrencyMode).toBe('ramp')
+    expect(defaults.hostedConcurrencyCoordinator?.mode).toBe('ramp')
+    expect(immediate.concurrencyMode).toBe('immediate')
+    expect(immediate.hostedConcurrencyCoordinator?.mode).toBe('immediate')
+    expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'fast' })).toThrow('Expected "ramp" or "immediate"')
+  })
+
+  test('MiniMax write model validator accepts M3', () => {
       expect(validateMinimaxModel('MiniMax-M3')).toBe('MiniMax-M3')
-      expect(() => validateMinimaxModel(removedStandard)).toThrow(`Invalid model "${removedStandard}" for --llm minimax[=model]. ${expectedAllowed}`)
-      expect(() => validateMinimaxModel(removedHighspeed)).toThrow(`Invalid model "${removedHighspeed}" for --llm minimax[=model]. ${expectedAllowed}`)
-      expect(() => validateMinimaxModel(removedM27)).toThrow(`Invalid model "${removedM27}" for --llm minimax[=model]. ${expectedAllowed}`)
-      expect(() => validateMinimaxModel(removedM27Highspeed)).toThrow(`Invalid model "${removedM27Highspeed}" for --llm minimax[=model]. ${expectedAllowed}`)
     })
 
   test('Cerebras write model validator accepts public selectors and rejects raw dedicated IDs', () => {
@@ -82,24 +82,18 @@ describe('option resolution contracts', () => {
       expect(validateGeminiOcrModel('gemini-3.5-flash')).toBe('gemini-3.5-flash')
       expect(validateGeminiOcrModel('gemini-3.6-flash')).toBe('gemini-3.6-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash-lite')).toBe('gemini-3.5-flash-lite')
-      expect(() => validateGeminiOcrModel('gemini-3.1-flash-lite')).toThrow('Model "gemini-3.1-flash-lite" is retired for --provider/--ocr gemini[=model]. Use "gemini-3.5-flash-lite" instead.')
-      expect(() => validateGeminiModel('gemini-3.1-flash-lite')).toThrow('Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.5-flash-lite" instead.')
       expect(validateGrokOcrModel('grok-4.20-0309-non-reasoning')).toBe('grok-4.20-0309-non-reasoning')
       expect(validateGrokOcrModel('grok-4.5')).toBe('grok-4.5')
       expect(validateOpenAIOcrModel('gpt-5.6-sol')).toBe('gpt-5.6-sol')
       expect(validateOpenAIOcrModel('gpt-5.4-mini')).toBe('gpt-5.4-mini')
       expect(validateKimiOcrModel('kimi-k2.6')).toBe('kimi-k2.6')
       expect(validateKimiOcrModel('kimi-k3')).toBe('kimi-k3')
-      const removedKimiCodeOcrModel = ['kimi-k2', '7-code'].join('.')
-      const removedKimiCodeHighspeedOcrModel = `${removedKimiCodeOcrModel}-highspeed`
 
       expect(() => validateMistralOcrModel('mistral-ocr-2405')).toThrow('Invalid model "mistral-ocr-2405" for --provider/--ocr mistral[=model]')
       expect(() => validateMistralOcrModel('mistral-ocr-latest')).toThrow('Invalid model "mistral-ocr-latest" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-2512, mistral-ocr-4-0')
       expect(() => validateAnthropicOcrModel('claude-mythos-5')).toThrow('Invalid model "claude-mythos-5" for --provider/--ocr anthropic[=model]')
       expect(() => validateOpenAIOcrModel('gpt-5.6')).toThrow('Invalid model "gpt-5.6" for --provider/--ocr openai[=model]')
       expect(() => validateGrokOcrModel('grok-4.20-0309-reasoning')).toThrow('Invalid model "grok-4.20-0309-reasoning" for --provider/--ocr grok[=model]')
-      expect(() => validateKimiOcrModel(removedKimiCodeOcrModel)).toThrow(`Invalid model "${removedKimiCodeOcrModel}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`)
-      expect(() => validateKimiOcrModel(removedKimiCodeHighspeedOcrModel)).toThrow(`Invalid model "${removedKimiCodeHighspeedOcrModel}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`)
     })
 
   test('OCR provider concurrency defaults, falls back, and clamps like STT concurrency flags', () => {
@@ -119,6 +113,26 @@ describe('option resolution contracts', () => {
       expect(fallback.ocrLocalConcurrency).toBe(DEFAULT_OCR_CONCURRENCY)
       expect(clamped.ocrProviderConcurrency).toBe(1)
       expect(clamped.ocrLocalConcurrency).toBe(1)
+    })
+
+  test('OCR provider mode defaults to fanout and resolves explicit or configured pool mode', () => {
+      const defaults = buildOptsFromFlags(false, {})
+      const explicitPool = buildOptsFromFlags(false, {
+        'ocr-provider-mode': 'pool'
+      }, {}, new Set(['ocr-provider-mode']))
+      const configuredPool = buildOptsFromFlags(false, {
+        'ocr-provider-mode': 'pool',
+        __autoshowConfigInjectedFlags: ['ocr-provider-mode']
+      })
+
+      expect(defaults.ocrProviderMode).toBe('fanout')
+      expect(defaults.ocrProviderModeExplicit).toBe(false)
+      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', defaults).ocrProviderMode).toBe('fanout')
+      expect(explicitPool.ocrProviderMode).toBe('pool')
+      expect(explicitPool.ocrProviderModeExplicit).toBe(true)
+      expect(configuredPool.ocrProviderMode).toBe('pool')
+      expect(configuredPool.ocrProviderModeExplicit).toBe(true)
+      expect(() => buildOptsFromFlags(false, { 'ocr-provider-mode': 'round-robin' })).toThrow('Expected fanout or pool')
     })
 
   test('OCR provider concurrency ignores parser-injected shared defaults', () => {
@@ -178,18 +192,6 @@ describe('option resolution contracts', () => {
       expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', explicit).ocrConcurrency).toBe(4)
       expect(configured.ocrConcurrency).toBe(6)
       expect(configured.ocrConcurrencyMode).toBe('fixed')
-    })
-
-  test('OCR page input retention flag flows to extraction options', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const keepInputs = buildOptsFromFlags(false, {
-        'keep-ocr-page-inputs': true
-      })
-
-      expect(defaults.keepOcrPageInputs).toBe(false)
-      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', defaults).keepOcrPageInputs).toBe(false)
-      expect(keepInputs.keepOcrPageInputs).toBe(true)
-      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', keepInputs).keepOcrPageInputs).toBe(true)
     })
 
   test('LLM provider concurrency defaults, falls back, and clamps like STT/OCR concurrency flags', () => {
@@ -278,13 +280,12 @@ describe('option resolution contracts', () => {
         provider: 'grok',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
       }, new Set(['provider']), flagOccurrencesFromValues({ provider: 'grok' }), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
-        allProvidersTarget: 'all-tts',
-        allLocalTarget: 'all-local-tts'
+        allProvidersTarget: 'all-tts'
       })
       const genericProviderGrok = buildOptsFromFlags(
         false,
         normalizedGrokProvider.flags,
-        { defaultTtsEngine: 'kitten' },
+        {},
         normalizedGrokProvider.explicitFlags
       )
       const explicitThirty = buildOptsFromFlags(false, {
@@ -435,9 +436,7 @@ describe('option resolution contracts', () => {
 
   test('--all-llm expands OpenAI, Anthropic, Grok, GLM, Kimi, Together, and Cerebras to their supported models', () => {
       const opts = buildOptsFromFlags(false, { 'all-llm': true })
-      const localOpts = buildOptsFromFlags(false, { 'all-local-llm': true })
 
-      expect(opts.llamaModels).toBeUndefined()
       expect(opts.openaiModels).toEqual(['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini', 'gpt-5.4-nano'])
       expect(opts.openaiModels).not.toContain('gpt-5.6')
       expect(opts.anthropicModels).toEqual(['claude-fable-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-haiku-4-5', 'claude-opus-5'])
@@ -450,8 +449,6 @@ describe('option resolution contracts', () => {
       expect(opts.kimiModels).toEqual(['kimi-k2.6', 'kimi-k3'])
       expect(opts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
       expect(opts.cerebrasModels).toEqual(['gpt-oss-120b', 'zai-glm-4.7'])
-      expect(localOpts.llamaModels).toBeDefined()
-      expect(localOpts.openaiModels).toBeUndefined()
     })
 
   test('--all shortcuts use aggressive hosted concurrency only when concurrency is not explicit', () => {
@@ -500,6 +497,7 @@ describe('option resolution contracts', () => {
       expect(expansions['grok-ocr']?.shortcut).toBe('all-ocr')
       expect(expansions['kimi-ocr']?.shortcut).toBe('all-ocr')
       expect(expansions['deepinfra-ocr']?.shortcut).toBe('all-ocr')
+      expect(expansions['replicate-ocr']?.shortcut).toBe('all-ocr')
       expect(ocrOpts.mistralOcrModels).toEqual(['mistral-ocr-2512', 'mistral-ocr-4-0'])
       expect(ocrOpts.openaiOcrModels).toEqual(['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini', 'gpt-5.4-nano'])
       expect(ocrOpts.openaiOcrModels).not.toContain('gpt-5.6')
@@ -509,7 +507,8 @@ describe('option resolution contracts', () => {
       expect(ocrOpts.anthropicOcrModels).not.toContain('claude-mythos-5')
       expect(ocrOpts.geminiOcrModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'])
       expect(ocrOpts.geminiOcrModels).not.toContain('gemini-3.1-flash-lite')
-      expect(ocrOpts.deepinfraOcrModels).toEqual(['Qwen/Qwen3-VL-235B-A22B-Instruct', 'Qwen/Qwen3-VL-30B-A3B-Instruct'])
+      expect(ocrOpts.deepinfraOcrModels).toEqual(['google/gemma-3-27b-it', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'mistralai/Mistral-Small-3.2-24B-Instruct-2506', 'Qwen/Qwen3-VL-235B-A22B-Instruct', 'Qwen/Qwen3-VL-30B-A3B-Instruct'])
+      expect(ocrOpts.replicateOcrModels).toEqual(['datalab-to/ocr', 'datalab-to/marker', 'lucataco/deepseek-ocr'])
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('deepgram')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('grok')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('mistral')
@@ -540,7 +539,7 @@ describe('option resolution contracts', () => {
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('anthropic:claude-sonnet-4-6')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('anthropic:claude-mythos-5')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('deepinfra:PaddlePaddle/PaddleOCR-VL-0.9B')
-      expect(collectSttTargets(localSttOpts).map((target) => target.service)).toContain('reverb')
+      expect(collectSttTargets(localSttOpts).map((target) => target.service)).not.toContain('reverb')
       expect(collectSttTargets(localSttOpts).map((target) => target.service)).toContain('whisper')
       expect(collectExplicitOcrTargets(localOcrOpts).map((target) => target.service)).toEqual([
         'tesseract'

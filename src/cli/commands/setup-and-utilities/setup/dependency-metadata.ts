@@ -23,9 +23,7 @@ const depsJsonPath = join(PROJECT_ROOT, 'config/deps.json')
 
 const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
   'whisper.cpp': { tag: 'v1.7.4' },
-  'llama.cpp': { tag: 'b8087' },
   uv: { version: '0.11.14' },
-  reverb: { ref: '8cd4099828d68e464a9536ccb6a380ddad07c982' },
   'yt-dlp': {
     version: '2026.06.09',
     url: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp_macos',
@@ -52,11 +50,6 @@ const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
     version: '9.9.0',
     url: 'https://download.calibre-ebook.com/9.9.0/calibre-9.9.0.dmg',
     sha256: '66cddba176f7a3d6f2932fe2e710f54898f01dff1d7532957124ce5c2fc22b36'
-  },
-  'acsm-calibre-plugin': {
-    version: '0.0.16',
-    url: 'https://github.com/Leseratte10/acsm-calibre-plugin/releases/download/v0.0.16/DeACSM_0.0.16.zip',
-    sha256: 'b5f61ba27b9f5bcea57c1fb23d36cbc1bd8910a1f33af09375bbee3651870b50'
   },
   leptonica: {
     version: '1.87.0',
@@ -105,11 +98,6 @@ export const readDependencyTag = async (name: string): Promise<string | undefine
 export const readDependencyVersion = async (name: string): Promise<string | undefined> => {
   const metadata = await readDependencyMetadata()
   return metadata[name]?.version
-}
-
-export const readDependencyRef = async (name: string): Promise<string | undefined> => {
-  const metadata = await readDependencyMetadata()
-  return metadata[name]?.ref
 }
 
 export const readDependencyUrlAndSha256 = async (

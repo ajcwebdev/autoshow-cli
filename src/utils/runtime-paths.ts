@@ -2,7 +2,10 @@ import { existsSync } from 'node:fs'
 import { basename, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
 
-export const PROJECT_ROOT = resolve(import.meta.dir, '../..')
+const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
+export const PROJECT_ROOT = projectRootOverride
+  ? resolve(projectRootOverride)
+  : resolve(import.meta.dir, '../..')
 export const toPosixPath = (value: string): string => value.replace(/\\/g, '/')
 export const toProjectDisplayPath = (absolutePath: string): string => {
   const rel = relative(PROJECT_ROOT, absolutePath)
@@ -35,12 +38,6 @@ export const calibreToolDir = join(RUNTIME_TOOLS_DIR, 'calibre')
 export const calibreAppPath = join(calibreToolDir, 'calibre.app')
 export const ebookConvertManagedBinaryPath = join(RUNTIME_BIN_DIR, 'ebook-convert')
 export const ebookConvertInstalledBinaryPath = join(calibreAppPath, 'Contents/MacOS/ebook-convert')
-export const acsmCalibrePluginToolDir = join(RUNTIME_TOOLS_DIR, 'acsm-calibre-plugin')
-export const acsmCalibrePluginSourceDir = join(acsmCalibrePluginToolDir, 'plugin')
-export const acsmCalibrePluginAccountDir = join(acsmCalibrePluginToolDir, 'account')
-export const acsmCalibrePluginPythonEnvDir = join(acsmCalibrePluginToolDir, 'venv')
-export const acsmFulfillManagedBinaryPath = join(RUNTIME_BIN_DIR, 'calibre-acsm-fulfill')
-export const acsmAuthorizeManagedBinaryPath = join(RUNTIME_BIN_DIR, 'calibre-acsm-authorize')
 
 export const leptonicaToolDir = join(RUNTIME_TOOLS_DIR, 'leptonica')
 export const leptonicaBuildDir = join(RUNTIME_BUILD_DIR, 'leptonica')
@@ -64,7 +61,6 @@ const TOOL_MANAGED_PATHS: Record<RuntimeToolId, string> = {
   'yt-dlp': ytDlpManagedBinaryPath,
   mutool: mutoolManagedBinaryPath,
   'ebook-convert': ebookConvertManagedBinaryPath,
-  'calibre-acsm-fulfill': acsmFulfillManagedBinaryPath,
   tesseract: tesseractManagedBinaryPath,
   qpdf: qpdfManagedBinaryPath
 }

@@ -80,7 +80,7 @@ describe('TTS provider service contracts', () => {
       ])
     })
 
-  test('hosted TTS batch coordinator admits small jobs before large jobs registered in the same batch', async () => {
+  test('hosted TTS batch coordinator dispatches the earliest job before later smaller jobs', async () => {
       const scheduler = createHostedTtsBatchCoordinator(2)
       const started: string[] = []
       const releases = new Map<string, () => void>()
@@ -109,8 +109,8 @@ describe('TTS provider service contracts', () => {
       try {
         expect(await scheduler.waitForRegisteredJobs(2, 100)).toBe(true)
         scheduler.start()
-        await waitForCondition(() => started.length === 2, 'batch coordinator did not start initial fair chunks')
-        expect(started).toEqual(['S1', 'L1'])
+        await waitForCondition(() => started.length === 2, 'batch coordinator did not fill capacity from the earliest job')
+        expect(started).toEqual(['L1', 'L2'])
       } catch (error) {
         waitError = error
       } finally {
@@ -125,7 +125,7 @@ describe('TTS provider service contracts', () => {
       if (waitError) throw waitError
     })
 
-  test('hosted TTS batch coordinator enforces a per-job base window before overflow', async () => {
+  test('hosted TTS batch coordinator fills provider capacity from the earliest job', async () => {
       const scheduler = createHostedTtsBatchCoordinator(3)
       const started: string[] = []
       const releases = new Map<string, () => void>()
@@ -155,7 +155,7 @@ describe('TTS provider service contracts', () => {
         expect(await scheduler.waitForRegisteredJobs(2, 100)).toBe(true)
         scheduler.start()
         await waitForCondition(() => started.length === 3, 'batch coordinator did not fill provider capacity')
-        expect(started).toEqual(['A1', 'B1', 'A2'])
+        expect(started).toEqual(['A1', 'A2', 'A3'])
         expect(scheduler.getProviderSnapshot('grok').active).toBe(3)
       } catch (error) {
         waitError = error
@@ -168,7 +168,7 @@ describe('TTS provider service contracts', () => {
       if (waitError) throw waitError
     })
 
-  test('hosted TTS batch coordinator enforces the dynamic fair-share window across runnable jobs', async () => {
+  test('hosted TTS batch coordinator moves forward only after all earlier-job chunks are dispatched', async () => {
       const scheduler = createHostedTtsBatchCoordinator(6)
       const started: string[] = []
       const releases: Array<() => void> = []
@@ -189,8 +189,8 @@ describe('TTS provider service contracts', () => {
       try {
         expect(await scheduler.waitForRegisteredJobs(3, 100)).toBe(true)
         scheduler.start()
-        await waitForCondition(() => started.length === 6, 'dynamic fair-share scheduler did not fill the provider lane')
-        expect(Object.fromEntries(['A', 'B', 'C'].map(prefix => [prefix, started.filter(chunk => chunk.startsWith(prefix)).length]))).toEqual({ A: 2, B: 2, C: 2 })
+        await waitForCondition(() => started.length === 6, 'chapter-first scheduler did not fill the provider lane')
+        expect(started).toEqual(['A1', 'A2', 'A3', 'A4', 'A5', 'B1'])
       } finally {
         releaseImmediately = true
         for (const release of releases.splice(0)) release()
@@ -199,15 +199,14 @@ describe('TTS provider service contracts', () => {
       await Promise.all(runs)
     })
 
-  test('hosted TTS dispatch aging serves a long job under replenished one-chunk arrivals', async () => {
+  test('hosted TTS dispatch ordering is stable when later jobs arrive during execution', async () => {
       const scheduler = createHostedTtsBatchCoordinator(1)
       const started: string[] = []
-      let releaseLong: (() => void) | undefined
+      const releases: Array<() => void> = []
       let secondShort: Promise<string[]> | undefined
-      let releaseImmediately = false
       const long = runTtsChunks(['L1', 'L2', 'L3'], 1, async (chunk) => {
         started.push(chunk)
-        if (!releaseImmediately) await new Promise<void>((resolve) => { releaseLong = resolve })
+        await new Promise<void>((resolve) => releases.push(resolve))
         return chunk
       }, { provider: 'grok', scheduler, job: { originalOrder: 0, jobId: 'long' } })
       const firstShort = runTtsChunks(['S1'], 1, async (chunk) => {
@@ -221,10 +220,15 @@ describe('TTS provider service contracts', () => {
 
       expect(await scheduler.waitForRegisteredJobs(2, 100)).toBe(true)
       scheduler.start()
-      await waitForCondition(() => started.length >= 2, 'dispatch aging did not start the waiting long job')
-      expect(started.slice(0, 2)).toEqual(['S1', 'L1'])
-      releaseImmediately = true
-      releaseLong?.()
+      await waitForCondition(() => started.length === 1, 'ordered scheduler did not start the earliest job')
+      expect(started).toEqual(['L1'])
+      releases.shift()?.()
+      await waitForCondition(() => started.length === 2, 'ordered scheduler did not continue the earliest job')
+      expect(started).toEqual(['L1', 'L2'])
+      releases.shift()?.()
+      await waitForCondition(() => started.length === 3, 'ordered scheduler did not dispatch the final earliest-job chunk')
+      expect(started).toEqual(['L1', 'L2', 'L3'])
+      releases.shift()?.()
       await Promise.all([long, firstShort, secondShort as Promise<string[]>])
     })
 
@@ -369,6 +373,7 @@ describe('TTS provider service contracts', () => {
         for (const release of releases.splice(0)) release()
         await Bun.sleep(5)
         expect(starts).toHaveLength(2)
+        await new Promise<void>((resolve) => setTimeout(resolve, 35))
         await waitForCondition(() => starts.length === 5, 'rate-limit pause did not eventually reopen starts')
       } catch (error) {
         waitError = error

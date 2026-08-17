@@ -1,66 +1,10 @@
 TTS CONSENSUS EVALUATION
 Run: 2026-06-15_18-51-16-094_0-tts-short
-Category: text-to-speech (TTS)
-Input text: "Short test line." (16 characters, 3 words) — a short smoke-test phrase.
 
-PROVENANCE / METHOD
-This evaluation is reconciled from measurable run evidence only:
-  - manifest.json metadata (cost, processing time) and the consensus build-packet
-    snapshot (audio duration, speaking rate).
-  - voice-quality-report.json, generated in full mode (paidCallsAllowed=true):
-    roundtrip intelligibility from AssemblyAI universal-3-pro STT (median
-    roundtrip WER) and an auto-derived humanSpeechScore. The OpenAI gpt-audio
-    naturalness judge ran (paidAudioJudgeRubric=scored).
-No clip was listened to directly; all quality statements are attributed to the
-voice-quality report and packet metadata. File size, bitrate, and duration are
-not treated as quality.
+This evaluation uses canonical manifest metadata, the temporary consensus packet, local ffprobe measurements, the committed voice-quality report, and the committed comparison reports. No audio was subjectively listened to or judged.
 
-SCOPE NOTE
-All 15 providers in this run are third-party service models; there are no local
-(zero-cost) TTS providers, so the local ranking surfaces are empty by design.
-The 3-word input gives roundtrip WER very little to discriminate on — treat WER
-here as a coarse intelligibility smoke check, not a graded accuracy ranking.
+The report ranks 34 successful third-party service outputs and no local outputs. All 13 corrected current-model targets succeeded for this run. Failed Inworld realtime-tts-1.5-max and realtime-tts-1.5-mini attempts are retired historical selectors and are excluded in favor of the successful current TTS-2 and TTS-2 Flash outputs.
 
-QUALITY COVERAGE CAVEAT
-Offline naturalness MOS scorers (UTMOSv2, NISQA-TTS) were unavailable, so the
-top-level naturalness aggregate is null and humanSpeechScore is driven by the
-paid audio-judge rubric, prosody heuristics, signal hygiene, and roundtrip
-intelligibility. Scores are directional for a smoke-test phrase, not a verdict.
+Price and speed rankings cover all 34 successful outputs using manifest cost and processing-time evidence. voice-quality-report.json supplies median roundtrip WER and humanSpeechScore evidence for 15 historical providers, so automated-quality and human-quality rankings cover those 15 providers only. The 19 successful outputs without retained quality evidence are not assigned inferred scores. Duration, bitrate, file size, speaking rate, cost, and speed are not treated as quality proxies.
 
-ROUNDTRIP INTELLIGIBILITY (median WER, lower is better)
-  - 13 of 15 providers transcribed back to "Short test line." exactly (WER 0.0).
-  - cartesia/sonic-3 and mistral/voxtral-mini-tts-2603 each had WER 0.333
-    (one word off on the 3-word phrase).
-
-HUMAN SPEECH SCORE (voice-quality-report.json humanSpeechScore, higher better)
-  Top: openai/tts-1-hd 91.75, speechify/simba-english 91.72,
-       hume/octave-2 91.35.
-  Lowest: mistral/voxtral-mini-tts-2603 75.84, openai/gpt-4o-mini-tts 77.78,
-       cartesia/sonic-3 80.15.
-  Spread is narrow (~76–92) and should be read loosely given the coverage caveat.
-
-SPEED (processing time, lower better)
-  Fastest: cartesia/sonic-3.5 381 ms, cartesia/sonic-3 499 ms,
-       groq/canopylabs-orpheus-v1-english 525 ms, grok/grok-tts 751 ms.
-  Slowest by a wide margin: minimax/speech-2.8-turbo 48.5 s,
-       minimax/speech-2.8-hd 24.0 s.
-
-PRICE (cost per run in cents, lower better)
-  Cheapest: speechify/simba-english 0.017c,
-       openai/gpt-4o-mini-tts 0.0214c, mistral/voxtral-mini-tts-2603 0.0272c.
-  Most expensive: hume/octave-2 0.255c, then elevenlabs/eleven_v3 and
-       minimax/speech-2.8-hd 0.17c.
-
-SIGNAL WARNINGS (from voice-quality-report.json)
-  - openai/gpt-4o-mini-tts: high silence ratio (55.5%).
-  - openai/tts-1, gemini/gemini-3.1-flash-tts-preview, hume/octave-2:
-    abrupt waveform discontinuities detected.
-
-CONSENSUS READ
-For this short phrase, intelligibility is effectively saturated (13/15 perfect),
-so price and speed are the meaningful differentiators. cartesia (sonic-3.5 /
-sonic-3) leads on latency; speechify and openai/gpt-4o-mini-tts lead on cost;
-openai/tts-1-hd and speechify pair strong humanSpeechScore with mid-pack cost.
-The two minimax models are clear latency outliers. mistral and cartesia/sonic-3
-are the only intelligibility misses and also sit at the bottom of humanSpeechScore.
-See provider-comparison-report.{md,json} for the full per-group rankings.
+See provider-comparison-report.md and provider-comparison-report.json for the complete local/service ranking surfaces, compatibility aliases, and unavailable reasons.

@@ -1,7 +1,6 @@
 import type { PromptUsageSection, WriteManifestMetadata, WriteManifestSourceRefs, WritePromptUsageRow } from '~/types'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
-import { resolveReverbModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-model-labels'
 import {
   buildProviderModelLabel,
   formatCount,
@@ -116,9 +115,7 @@ export const buildPromptUsage = (
   for (const entry of toArray(metadata['step2'], isStep2Metadata)) {
     const model = entry.transcriptionService === 'whisper'
       ? resolveWhisperModel(entry.transcriptionModel)
-      : entry.transcriptionService === 'reverb'
-        ? resolveReverbModelLabel(entry.transcriptionModel)
-        : entry.transcriptionModel
+      : entry.transcriptionModel
     rows.push({
       step: 'Transcribe',
       providerModel: buildProviderModelLabel(entry.transcriptionService, model),

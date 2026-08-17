@@ -352,6 +352,74 @@
                 "promptTokens": 1157,
                 "completionTokens": 1626,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.0714,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 7981,
+                "completionTokens": 472,
+                "tokenEstimateSource": "registry",
+                "tokenEstimateConfidence": "none",
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.09397,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 7981,
+                "completionTokens": 472,
+                "tokenEstimateSource": "registry",
+                "tokenEstimateConfidence": "none",
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0692975,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 7981,
+                "completionTokens": 472,
+                "tokenEstimateSource": "registry",
+                "tokenEstimateConfidence": "none",
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -573,6 +641,84 @@
                 "inputValue": 1333,
                 "promptTokens": 1157,
                 "completionTokens": 176
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.2,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.004384,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 437,
+                "promptTokens": 326,
+                "completionTokens": 111
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.01402,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1190,
+                "promptTokens": 1084,
+                "completionTokens": 106
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 0.33,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 0.4,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0094275,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1022,
+                "promptTokens": 881,
+                "completionTokens": 141
               }
             ]
           },
@@ -1345,7 +1491,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.004384,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 111,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.01402,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1084,
+                "completionTokens": 106,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0094275,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 881,
+                "completionTokens": 141,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1595,6 +1813,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 17012,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 50,
+                  "profileThroughputPagesPerMinute": 3.527,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 17012,
+                "throughputValue": 3.527,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 17012,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 50,
+                  "profileThroughputPagesPerMinute": 3.527,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 17012,
+                "throughputValue": 3.527,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 17012,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 50,
+                  "profileThroughputPagesPerMinute": 3.527,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 17012,
+                "throughputValue": 3.527,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1860,6 +2179,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 7935,
                 "throughputValue": 7.561,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 5144,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5144,
+                "throughputValue": 11.664,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 6561,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 6561,
+                "throughputValue": 9.145,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 3138,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 3138,
+                "throughputValue": 19.12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 70743,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 70743,
+                "throughputValue": 0.848,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5353,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5353,
+                "throughputValue": 11.209,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 90934,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 90934,
+                "throughputValue": 0.66,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 9841,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 9841,
+                "throughputValue": 6.097,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 3047,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 3047,
+                "throughputValue": 19.691,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2478,6 +2901,322 @@
                 "completionTokens": 176
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5144,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 57,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nThe\nener\nENTER\nGet Swint Away\nFOR THE\nin historic downtown Malbourne\nreve\nThe Heavenly Musical His\nJanuary 6-29\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm\nTickets:\n723-8698\n$20 & $22\nHenegar Center for the Arts\nwww.henegar.org\nHistoric Downtown Melbourne\n3\nPresented by Special Arrangement with Music Theatre International, NY\nE113709",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "The\nener\nENTER\nGet Swint Away\nFOR THE\nin historic downtown Malbourne\nreve\nThe Heavenly Musical His\nJanuary 6-29\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm\nTickets:\n723-8698\n$20 & $22\nHenegar Center for the Arts\nwww.henegar.org\nHistoric Downtown Melbourne\n3\nPresented by Special Arrangement with Music Theatre International, NY\nE113709"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 6561,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 61,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 326,
+            "completionTokens": 111,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 111
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nThe Henegar\nCENTER FOR THE Arts\n\nin historic downtown Melbourne\n\n* * *\n\nForever\n\nD A N D\nThe Heavenly Musical Hit\n\nJanuary 6-29\n\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm\n\nTickets:\n$20 & $22\nwww.henegar.org\n\n723-8698\n\nHenegar Center for the Arts\nHistoric Downtown Melbourne\n\nPresented by Special Arrangement with Music Theatre International, NY\n\nE113709",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "The Henegar\nCENTER FOR THE Arts\n\nin historic downtown Melbourne\n\n* * *\n\nForever\n\nD A N D\nThe Heavenly Musical Hit\n\nJanuary 6-29\n\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm\n\nTickets:\n$20 & $22\nwww.henegar.org\n\n723-8698\n\nHenegar Center for the Arts\nHistoric Downtown Melbourne\n\nPresented by Special Arrangement with Music Theatre International, NY\n\nE113709"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 3138,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 59,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 1084,
+            "completionTokens": 106,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 1084,
+                "completionTokens": 106
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nThe Henegar \nCENTER \nFOR THE \nin historic downtown Melbourne\n\nRED \nCarpet \nProductions \nGet Swept Away!\n\nForever \nPLAID \nThe Heavenly Musical Hit\n\nJanuary 6-29\n\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm\n\nTickets:\n$20 & $22\nwww.henegar.org                    723-8698\nHenegar Center for the Arts\nHistoric Downtown Melbourne\n\nPresented by Special Arrangement with Music Theatre International, NY",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "The Henegar \nCENTER \nFOR THE \nin historic downtown Melbourne\n\nRED \nCarpet \nProductions \nGet Swept Away!\n\nForever \nPLAID \nThe Heavenly Musical Hit\n\nJanuary 6-29\n\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm\n\nTickets:\n$20 & $22\nwww.henegar.org                    723-8698\nHenegar Center for the Arts\nHistoric Downtown Melbourne\n\nPresented by Special Arrangement with Music Theatre International, NY"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 70743,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 71,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<|ref|>image<|/ref|><|det|>[[110, 70, 870, 610]]<|/det|>\n \n\n<|ref|>text<|/ref|><|det|>[[210, 650, 740, 690]]<|/det|>\nThe Heaven\nDance\nThe Heavenly Musical Hit \n\n<|ref|>text<|/ref|><|det|>[[210, 700, 740, 740]]<|/det|>\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm \n\n<|ref|>text<|/ref|><|det|>[[103, 799, 845, 874]]<|/det|>\nTickets:\n$20 & $22\n723-8698 \n\n<|ref|>text<|/ref|><|det|>[[103, 875, 468, 911]]<|/det|>\nwww.henegar.org \n\n<|ref|>text<|/ref|><|det|>[[496, 875, 846, 911]]<|/det|>\nHenegar Center for the Arts\nHistoric Downtown Melbourne \n\n<|ref|>text<|/ref|><|det|>[[68, 928, 864, 960]]<|/det|>\nPresented by Special Arrangement with Music Theatre International, NY",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<|ref|>image<|/ref|><|det|>[[110, 70, 870, 610]]<|/det|>\n \n\n<|ref|>text<|/ref|><|det|>[[210, 650, 740, 690]]<|/det|>\nThe Heaven\nDance\nThe Heavenly Musical Hit \n\n<|ref|>text<|/ref|><|det|>[[210, 700, 740, 740]]<|/det|>\nFridays & Saturdays at 8 pm\nSunday Matinees at 2 pm \n\n<|ref|>text<|/ref|><|det|>[[103, 799, 845, 874]]<|/det|>\nTickets:\n$20 & $22\n723-8698 \n\n<|ref|>text<|/ref|><|det|>[[103, 875, 468, 911]]<|/det|>\nwww.henegar.org \n\n<|ref|>text<|/ref|><|det|>[[496, 875, 846, 911]]<|/det|>\nHenegar Center for the Arts\nHistoric Downtown Melbourne \n\n<|ref|>text<|/ref|><|det|>[[68, 928, 864, 960]]<|/det|>\nPresented by Special Arrangement with Music Theatre International, NY"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5353,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 62,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nThe\nHenegar\narts\nRED\nCENTER\nCarpet\nProductions\nFOR THE\nGet Sleep Away!\nin historie devalown Melbourne\nForever\nPLAID\nThe Heavenly Musical Hit\nThe\nJanuary 6-29\nFriday's & Saturdays at 8 pm\nSunday Matinees at 2 pm\nTickets:\n723-8698\n$20 & $22\nwww.henegar.org\nHenegar Center for the Arts\nHistoric Downtown Melbourne\nPresented by Special Arrangement with Music Theatre International, NY\nE1131709",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "The\nHenegar\narts\nRED\nCENTER\nCarpet\nProductions\nFOR THE\nGet Sleep Away!\nin historie devalown Melbourne\nForever\nPLAID\nThe Heavenly Musical Hit\nThe\nJanuary 6-29\nFriday's & Saturdays at 8 pm\nSunday Matinees at 2 pm\nTickets:\n723-8698\n$20 & $22\nwww.henegar.org\nHenegar Center for the Arts\nHistoric Downtown Melbourne\nPresented by Special Arrangement with Music Theatre International, NY\nE1131709"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 90934,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 854,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n\\title{\nThe\n}\n\nThe\nHere\nHetergator\nCarte\nCENTER\nFOR THE\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\\title{\nThe\n}\n\nThe\nHere\nHetergator\nCarte\nCENTER\nFOR THE\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star\n\\(\\star\\)\n\\star"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 9841,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 62,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nThe Henegar  \nCENTER  \nFOR THE Arts  \nin historic downtown Melbourne\n\nRED Carpet  \nProductions  \nGet Swept Away!\n\n# Forever PLAID The Heavenly Musical Hit\n\n**January 6-29**\n\n**Fridays & Saturdays at 8 pm  \nSunday Matinees at 2 pm**\n\n**Tickets:  \n\\$20 & \\$22**\n\n**[www.henegar.org](http://www.henegar.org)**\n\n**723-8698**\n\n**Henegar Center for the Arts  \nHistoric Downtown Melbourne**\n\n**Presented by Special Arrangement with Music Theatre International, NY**\n\nE113709",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\nThe Henegar  \nCENTER  \nFOR THE Arts  \nin historic downtown Melbourne\n\nRED Carpet  \nProductions  \nGet Swept Away!\n\n# Forever PLAID The Heavenly Musical Hit\n\n**January 6-29**\n\n**Fridays & Saturdays at 8 pm  \nSunday Matinees at 2 pm**\n\n**Tickets:  \n\\$20 & \\$22**\n\n**[www.henegar.org](http://www.henegar.org)**\n\n**723-8698**\n\n**Henegar Center for the Arts  \nHistoric Downtown Melbourne**\n\n**Presented by Special Arrangement with Music Theatre International, NY**\n\nE113709"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 3047,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 68,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 881,
+            "completionTokens": 141,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 881,
+                "completionTokens": 141
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n# The Henegar Arts\n\n**Center for the**\n\n**Arts**\n\nin historic downtown Melbourne\n\n# RED\n\n# Carpet\n\n# Productions\n\n**Get Swept Away!**\n\n# Forever\n\n# Plaid\n\n**The Heavenly Musical Hit**\n\n**January 6-29**\n\nFridays & Saturdays at 8 pm\n\nSunday Matinees at 2 pm\n\n**Tickets:**\n\n$20 & $22\n\n723-8698\n\nwww.henegar.org\n\nHenegar Center for the Arts\n\nHistoric Downtown Melbourne\n\nPresented by Special Arrangement with Music Theatre International, NY\n\nE113709",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "# The Henegar Arts\n\n**Center for the**\n\n**Arts**\n\nin historic downtown Melbourne\n\n# RED\n\n# Carpet\n\n# Productions\n\n**Get Swept Away!**\n\n# Forever\n\n# Plaid\n\n**The Heavenly Musical Hit**\n\n**January 6-29**\n\nFridays & Saturdays at 8 pm\n\nSunday Matinees at 2 pm\n\n**Tickets:**\n\n$20 & $22\n\n723-8698\n\nwww.henegar.org\n\nHenegar Center for the Arts\n\nHistoric Downtown Melbourne\n\nPresented by Special Arrangement with Music Theatre International, NY\n\nE113709"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
           }
         }
       ]

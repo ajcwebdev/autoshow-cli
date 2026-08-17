@@ -5,6 +5,7 @@ import { describe, expect, test } from 'bun:test'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
 import { getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { SUPPORTED_DEEPGRAM_TTS_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
@@ -72,6 +73,18 @@ describe('price mode contracts', () => {
       expect(cost?.totalCost).toBe(2.2)
     })
 
+  test('Replicate Kokoro estimates variable runtime pricing per prediction', () => {
+    const opts = {
+      replicateTtsModels: ['jaaari/kokoro-82m']
+    } as Parameters<typeof estimateTtsCosts>[0]
+    const oneRequest = estimateTtsCosts(opts, 1)[0]
+    const twoRequests = estimateTtsCosts(opts, 2001)[0]
+
+    expect(getTtsPricing('replicate', 'jaaari/kokoro-82m').costPerRequestCents).toBe(0.022)
+    expect(oneRequest).toMatchObject({ costPerRequestCents: 0.022, requestCount: 1, totalCost: 0.022 })
+    expect(twoRequests).toMatchObject({ costPerRequestCents: 0.022, requestCount: 2, totalCost: 0.044 })
+  })
+
   test('chunked TTS estimates use chunk concurrency for wall-clock time', () => {
       const model = 'grok-tts'
       const characterCount = 4_666
@@ -104,15 +117,25 @@ describe('price mode contracts', () => {
   test('Groq Orpheus TTS keeps the 200-character chunk timing exemption', () => {
       const model = 'canopylabs/orpheus-v1-english'
       const characterCount = 450
+      const rate = getTtsEstimation('groq', model).msPer1KChars
       const timing = computeEstimatedProcessingTimes({
         ttsTargets: [{ service: 'groq', model }],
         ttsCharacterCount: characterCount,
         ttsInputText: 'a'.repeat(characterCount),
         ttsChunkConcurrency: 5
       })
+      const immediateTiming = computeEstimatedProcessingTimes({
+        ttsTargets: [{ service: 'groq', model }],
+        ttsCharacterCount: characterCount,
+        ttsInputText: 'a'.repeat(characterCount),
+        ttsChunkConcurrency: 5,
+        concurrencyMode: 'immediate'
+      })
 
       expect(timing.steps[0]?.processingTimeMs)
-        .toBe(Math.round((200 / 1000) * getTtsEstimation('groq', model).msPer1KChars))
+        .toBe(Math.round((400 / 1000) * rate))
+      expect(immediateTiming.steps[0]?.processingTimeMs)
+        .toBe(Math.round((200 / 1000) * rate))
     })
 
   test('ElevenLabs TTS estimates use model-aware chunk limits for wall-clock time', () => {
@@ -127,28 +150,6 @@ describe('price mode contracts', () => {
 
       expect(timing.steps[0]?.processingTimeMs)
         .toBe(Math.round((characterCount / 1000) * getTtsEstimation('elevenlabs', model).msPer1KChars))
-    })
-
-  test('Kitten TTS chunking remains sequential in timing estimates', () => {
-      const model = 'kitten-tts-nano-0.8-int8'
-      const characterCount = 4_666
-      const text = 'a'.repeat(characterCount)
-      const rate = getTtsEstimation('kitten', model).msPer1KChars
-      const parallelTiming = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'kitten', model }],
-        ttsCharacterCount: characterCount,
-        ttsInputText: text,
-        ttsChunkConcurrency: 5
-      })
-      const serialTiming = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'kitten', model }],
-        ttsCharacterCount: characterCount,
-        ttsInputText: text,
-        ttsChunkConcurrency: 1
-      })
-
-      expect(parallelTiming.steps[0]?.processingTimeMs).toBe(Math.round((characterCount / 1000) * rate))
-      expect(serialTiming.steps[0]?.processingTimeMs).toBe(parallelTiming.steps[0]?.processingTimeMs)
     })
 
   test('chunked TTS setup time is added once before parallel synthesis', () => {
@@ -317,7 +318,6 @@ describe('price mode contracts', () => {
     const rate = getTtsEstimation('elevenlabs', 'eleven_v3').msPer1KChars
 
     expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_v3')] }).estimatedWallTimeMs).toBe(Math.round(5 * rate))
-    expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_flash_v2_5')] }).estimatedWallTimeMs).toBe(Math.round(6 * rate))
   })
 
   test('TTS preflight estimates preserve setup-fee and estimate-type metadata', () => {
@@ -361,14 +361,9 @@ describe('price mode contracts', () => {
     })
 
   test('Speechify TTS estimates use registry pricing and timing defaults', () => {
-      const costs = [
-        ...estimateTtsCosts({
-          speechifyTtsModels: ['simba-3.2']
-        } as Parameters<typeof estimateTtsCosts>[0], 1000),
-        ...estimateTtsCosts({
-          speechifyTtsModels: ['simba-3.0']
-        } as Parameters<typeof estimateTtsCosts>[0], 1000)
-      ]
+      const costs = estimateTtsCosts({
+        speechifyTtsModels: ['simba-3.2']
+      } as Parameters<typeof estimateTtsCosts>[0], 1000)
 
       expect(costs.map((cost) => ({
         provider: cost.provider,
@@ -378,8 +373,7 @@ describe('price mode contracts', () => {
         setupTimeMs: cost.setupTimeMs,
         totalCost: cost.totalCost
       }))).toEqual([
-        { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 },
-        { provider: 'speechify', model: 'simba-3.0', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 }
+        { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 }
       ])
 
       const timing = computeEstimatedProcessingTimes({
@@ -432,14 +426,29 @@ describe('price mode contracts', () => {
 
     })
 
+  test('every Deepgram Aura-2 model resolves a flat per-character estimate', () => {
+    for (const model of SUPPORTED_DEEPGRAM_TTS_MODELS) {
+      expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
+
+      const cost = estimateTtsCosts({
+        deepgramTtsModels: [model]
+      } as Parameters<typeof estimateTtsCosts>[0], 1000)[0]
+
+      expect(cost).toMatchObject({
+        provider: 'deepgram',
+        model,
+        costPer1kCharactersCents: 3,
+        totalCost: 3
+      })
+    }
+  })
+
   test('revised TTS models expose approved pricing and provisional timing', () => {
     for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en']) {
       expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
       expect(getTtsEstimation('deepgram', model).msPer1KChars).toBe(39_639)
     }
-    expect(getTtsPricing('elevenlabs', 'eleven_multilingual_v2').costPer1kCharsCents).toBe(10)
-    expect(getTtsPricing('elevenlabs', 'eleven_flash_v2_5').costPer1kCharsCents).toBe(5)
-    expect(getTtsEstimation('elevenlabs', 'eleven_multilingual_v2').msPer1KChars).toBe(35_885)
-    expect(getTtsEstimation('elevenlabs', 'eleven_flash_v2_5').msPer1KChars).toBe(35_885)
+    expect(getTtsPricing('elevenlabs', 'eleven_v3').costPer1kCharsCents).toBe(10)
+    expect(getTtsEstimation('elevenlabs', 'eleven_v3').msPer1KChars).toBe(35_885)
   })
 })

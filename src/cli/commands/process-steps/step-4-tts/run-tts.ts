@@ -11,14 +11,56 @@ import {
 import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested } from './dialogue-normalizer'
 import { runMultiSpeakerTts } from './run-multi-speaker-tts'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
+import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
-import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
+import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
   `${outputDir}/${metadata.audioFileName}`
+
+const describeFailedTtsRecovery = async (options: {
+  rootDir: string
+  state: PipelineProviderState
+  target: TtsTarget
+  sourceText: string
+  ttsOptions: TtsOptions
+  sourceContext?: TtsRunSourceContext | undefined
+}): Promise<string | undefined> => {
+  try {
+    const recovery = await planCurrentTtsResumePrice({
+      rootDir: options.rootDir,
+      state: options.state,
+      target: options.target,
+      sourceText: options.sourceText,
+      ttsOptions: options.ttsOptions,
+      sourceIdentity: options.sourceContext?.sourceIdentity,
+      dialoguePlan: options.sourceContext?.dialoguePlan,
+      comicContext: options.sourceContext?.comicContext
+    })
+    const totalSlotCount = recovery.recoveredSlotCount + recovery.unresolvedSlotCount
+    const blockedSlotCount = new Set(recovery.reconciliationBlockers.map((blocker) => blocker.generationSlotId)).size
+    if (recovery.recoveredSlotCount === 0 && blockedSlotCount === 0) return undefined
+
+    const checkpoint = `Recovery checkpoint: ${recovery.recoveredSlotCount}/${totalSlotCount} generation slots retained; ${recovery.unresolvedSlotCount} unresolved.`
+    if (blockedSlotCount === 0) {
+      return `${checkpoint} Rerun the same command to reuse retained audio and resume synthesis without deleting the output directory.`
+    }
+
+    const redispatchFlag = options.sourceContext?.comicContext
+      ? '--allow-ambiguous-redispatch'
+      : '--tts-allow-ambiguous-redispatch'
+    const manifest = await readManifest(options.rootDir)
+    const resumeHint = manifest?.scope === 'batch'
+      ? `Run bun autoshow resume ${options.rootDir} ${redispatchFlag}`
+      : `Rerun the same command with ${redispatchFlag}`
+    return `${checkpoint} ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot has' : 'slots have'} ambiguous provider admission. ${resumeHint} to reconcile those slots, reuse retained audio, and resume without deleting the output directory; authorized slots may be purchased again.`
+  } catch {
+    return undefined
+  }
+}
 
 type WorkingTtsMetadata = Step4Metadata & {
   _ttsObservedTurns?: CurrentTtsObservedTurn[] | undefined
@@ -110,7 +152,11 @@ const resolveTtsExecutionReadiness = (
 
 const withRunScopedHostedTtsChunkScheduler = (options: TtsOptions): TtsOptions => {
   if (!options.hostedTtsChunkScheduler) {
-    options.hostedTtsChunkScheduler = createHostedTtsChunkScheduler(options.ttsChunkConcurrency)
+    options.hostedTtsChunkScheduler = createHostedTtsChunkScheduler({
+      maxConcurrency: options.ttsChunkConcurrency,
+      concurrencyMode: options.concurrencyMode,
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+    })
   }
   return options
 }
@@ -195,10 +241,15 @@ export const runTtsTargets = async (
     }
     const retainedState = target.targetKey ? retainedByTargetKey.get(target.targetKey) : undefined
     const retainedNamespace = retainedState?.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
-    const retainedProjection = retainedState?.result?.[retainedNamespace] as { activeWork?: { kind?: unknown }, renderHistory?: Array<{ renderIdentity?: unknown }> } | undefined
+    const retainedProjection = retainedState?.result?.[retainedNamespace] as {
+      activeWork?: { kind?: unknown } | undefined
+      renderHistory?: Array<{ renderIdentity?: unknown }> | undefined
+      archive?: unknown
+      selectedSuccess?: { renderIdentity?: unknown } | undefined
+    } | undefined
     let recoveredSlots: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['recoveredSlots'] | undefined
     let retainedCumulativePlannedCost: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['retainedCumulativePlannedCost'] | undefined
-    const plannedRenderIdentity = retainedState && retainedProjection?.activeWork?.kind === 'render'
+    const plannedRenderIdentity = retainedState
       ? planCurrentTtsRenderIdentity({
           target,
           sourceText: text,
@@ -208,8 +259,10 @@ export const runTtsTargets = async (
           comicContext: sourceContext?.comicContext,
         }).renderIdentity
       : undefined
-    const retainedHasPlannedRender = plannedRenderIdentity !== undefined && retainedProjection?.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
-    if (retainedState && retainedProjection?.activeWork?.kind === 'render' && retainedHasPlannedRender) {
+    const retainedHasPlannedRender = plannedRenderIdentity !== undefined && retainedProjection?.activeWork?.kind === 'render'
+      && retainedProjection.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
+    const sameRenderArchive = Boolean(retainedProjection?.archive && retainedProjection.selectedSuccess?.renderIdentity === plannedRenderIdentity)
+    if (retainedState && (retainedHasPlannedRender || sameRenderArchive)) {
       const recovery = await prepareCurrentTtsCompletedRecovery({
         rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
         state: retainedState,
@@ -228,6 +281,24 @@ export const runTtsTargets = async (
         }
         if (recovery.kind === 'partial-slots') recoveredSlots = recovery.recoveredSlots
         retainedCumulativePlannedCost = recovery.retainedCumulativePlannedCost
+      }
+    }
+    if (retainedState && !retainedHasPlannedRender && !sameRenderArchive) {
+      const compatibleRecovery = await prepareCurrentTtsCompatibleSlotRecovery({
+        rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
+        outputDir: sourceContext?.artifactOutputDir ?? outputDir,
+        artifactRoot: sourceContext?.artifactRoot,
+        state: retainedState,
+        target,
+        sourceText: text,
+        ttsOptions: options,
+        sourceIdentity: sourceContext?.sourceIdentity,
+        dialoguePlan: sourceContext?.dialoguePlan,
+        comicContext: sourceContext?.comicContext
+      })
+      if (compatibleRecovery) {
+        if (compatibleRecovery.kind === 'partial-slots') recoveredSlots = compatibleRecovery.recoveredSlots
+        retainedCumulativePlannedCost = compatibleRecovery.retainedCumulativePlannedCost
       }
     }
     const priorAttemptCount = retainedState
@@ -278,17 +349,15 @@ export const runTtsTargets = async (
       provider: options.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
       local: options.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
     },
-    getTargetPool: (target) => target.service === 'kitten' ? 'local' : 'hosted',
+    getTargetPool: () => 'hosted',
     getWorkspaceDir: (dir, target) =>
       `${dir}/.tts-tmp-${target.service}-${sanitizeModelName(target.model)}`,
     useWorkspaceForSingleTarget: true,
+    preserveWorkspaceOnFailure: true,
     resourceGate: options.generationResourceGate,
-    getResourceGate: (target) => isMultiSpeakerRequested(options) && target.service === 'kitten'
-      ? undefined
-      : options.generationResourceGate,
     runTarget: async (target, workspaceDir) => {
       const targetIndex = targets.indexOf(target)
-      const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator.kind === 'batch-item'
+      const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator?.kind === 'batch-item'
         ? sourceContext.sourceIdentity.sourceLocator.itemIndex
         : 0
       const schedulerJob = {
@@ -329,7 +398,34 @@ export const runTtsTargets = async (
       }
       const attempt = attempts.get(target)
       if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
+      let providerRunCompleted = false
       try {
+        if (!attempt.providerDispatchRequired) {
+          providerRunCompleted = true
+          const startedAt = Date.now()
+          const renderArtifacts = await attempt.finalizeSuccess('', reportedOutput.path)
+          return {
+            ttsService: target.service,
+            ttsModel: target.model,
+            speaker: target.voice ?? 'retained-voice-binding',
+            processingTime: Date.now() - startedAt,
+            audioFileName: reportedOutput.fileName,
+            audioFileSize: Bun.file(reportedOutput.path).size,
+            chunkCount: attempt.plannedChunkCount,
+            operation: renderArtifacts.operation,
+            targetKey: renderArtifacts.targetKey,
+            transport: renderArtifacts.transport,
+            artifactDir: renderArtifacts.artifactDir,
+            renderIdentity: renderArtifacts.renderIdentity,
+            resultIdentity: renderArtifacts.resultIdentity,
+            audioRunId: renderArtifacts.audioRunId,
+            renderStrategy: renderArtifacts.strategy,
+            ...(renderArtifacts.operation === 'comic-audio'
+              ? { comicAudio: renderArtifacts.projection }
+              : { ttsAudio: renderArtifacts.projection }),
+            _renderArtifacts: renderArtifacts
+          } as WorkingTtsResult
+        }
         const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
         const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler
           ? {
@@ -345,6 +441,7 @@ export const runTtsTargets = async (
             }
           : boundedOptions
         const { audioPath, metadata: rawMetadata } = await target.run(text, workspaceDir, executionOptions, undefined, attempt.requestEvidence)
+        providerRunCompleted = true
         const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
         if (attempt.executionSelection) {
           const checkpoint = await attempt.finalizeCheckpoint()
@@ -386,14 +483,33 @@ export const runTtsTargets = async (
           _renderArtifacts: renderArtifacts
         } as WorkingTtsResult
       } catch (error) {
-        const failure = await attempt.finalizeFailure(error)
+        const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
         const sanitized = failure.error as SanitizedProviderError | undefined
-        const safeError = new Error(sanitized?.message ?? 'TTS target failed without exposing provider response details.')
-        if (sanitized?.code.startsWith('http_')) {
-          const status = Number.parseInt(sanitized.code.slice('http_'.length), 10)
-          if (Number.isInteger(status)) Object.defineProperty(safeError, 'status', { value: status, configurable: true })
-        }
-        throw safeError
+        const providerDiagnostic = sanitized
+          ? [
+              sanitized.message,
+              sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined,
+              sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined
+            ].filter((value): value is string => value !== undefined).join(' ')
+          : 'TTS target failed without exposing provider response details.'
+        const recoveryDiagnostic = await describeFailedTtsRecovery({
+          rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
+          state: failure,
+          target,
+          sourceText: text,
+          ttsOptions: options,
+          sourceContext
+        })
+        const diagnosticMessage = recoveryDiagnostic
+          ? `${providerDiagnostic} ${recoveryDiagnostic}`
+          : providerDiagnostic
+        throw InfraError(diagnosticMessage, {
+          stage: sanitized?.stage ?? `tts:${target.service}`,
+          ...(sanitized?.status !== undefined ? { status: sanitized.status } : {}),
+          ...(sanitized?.retryable !== undefined ? { retryable: sanitized.retryable } : {}),
+          cause: error instanceof Error ? error : new Error(String(error)),
+          metadata: sanitized ? { sanitizedProviderError: sanitized } : {}
+        })
       }
     },
     finalizeTarget: async (_target, result) => {
@@ -438,14 +554,20 @@ export const runTtsForTargets = async (
       run: async (t: string, dir: string, _opts: TtsOptions, _invocation, requestEvidence) =>
         runMultiSpeakerTts(t, dir, target, _opts, requestEvidence)
     }))
-    const metadata = await runTtsTargets(wrappedTargets, text, outputDir, options, sourceContext)
+    const metadata = (await runTtsTargets(wrappedTargets, text, outputDir, options, sourceContext)).map((entry) => ({
+      ...entry,
+      ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    }))
     return {
       audioPaths: metadata.filter((entry) => !entry.generationCheckpoint).map((entry) => getMetadataAudioPath(outputDir, entry)),
       metadata
     }
   }
 
-  const metadata = await runTtsTargets(targets, text, outputDir, options, sourceContext)
+  const metadata = (await runTtsTargets(targets, text, outputDir, options, sourceContext)).map((entry) => ({
+    ...entry,
+    ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+  }))
   return {
     audioPaths: metadata.filter((entry) => !entry.generationCheckpoint).map((entry) => getMetadataAudioPath(outputDir, entry)),
     metadata

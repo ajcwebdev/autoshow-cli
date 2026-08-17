@@ -1,13 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, readFile, readdir, symlink, unlink } from 'node:fs/promises'
-import { dirname, join, relative } from 'node:path'
+import { mkdir, readFile, symlink, unlink } from 'node:fs/promises'
+import { join, relative } from 'node:path'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
-import { hashCanonicalRecordWithout, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
-import { validateProviderRenderPlanIdentity, validateProviderRenderResult, validateRenderAdmissionJournalSnapshot } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
+import { sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { ProviderRenderPlan, ProviderRenderResult, RenderAdmissionJournalSnapshot, TtsTarget } from '~/types'
+import type { TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
@@ -107,63 +106,31 @@ describe('TTS Phase 0 audio-run artifacts', () => {
       const sourceText = 'A canonical fixture line.'
       const sourceIdentity = createInlineTtsSourceIdentity(sourceText)
       const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, sourceText)
+      await Bun.write(join(dir, 'speech.wav'), 'unreferenced stale reported output')
       const run = await runTtsForTargets(sourceText, dir, {}, [target], { sourceIdentity, dialoguePlan })
       const metadata = run.metadata[0]
       expect(metadata?.targetKey).toBe(targetKey)
       expect(metadata?.renderStrategy).toBe('segmented')
-      expect(metadata?.ttsAudio?.activeWork?.kind).toBe('render')
+      expect(metadata?.ttsAudio?.activeWork).toBeUndefined()
       expect(metadata?.ttsAudio?.selectedSuccess?.resultIdentity).toBe(metadata?.resultIdentity)
+      expect(metadata?.ttsAudio?.archive?.slotCount).toBe(1)
       expect(await Bun.file(join(dir, 'speech.wav')).exists()).toBe(true)
+      expect(await Bun.file(join(dir, 'speech.wav')).text()).not.toBe('unreferenced stale reported output')
+      expect(await Bun.file(join(dir, 'work')).exists()).toBe(false)
 
-      const artifactDir = join(dir, metadata?.artifactDir as string)
-      const render = metadata?.ttsAudio?.renderHistory[0]
-      const event = render?.events.at(-1)
-      const renderPlanPath = join(artifactDir, render?.renderPlanRef as string)
-      const resultPath = join(artifactDir, event?.providerRenderResultRef as string)
-      const audioRunPath = join(artifactDir, event?.audioRunRef as string)
-      const retainedAudioPath = join(artifactDir, event?.outputRefs?.[0]?.path as string)
-      for (const path of [renderPlanPath, resultPath, audioRunPath, retainedAudioPath]) {
+      const archive = metadata?.ttsAudio?.archive
+      if (!archive) throw new Error('Missing compact TTS archive')
+      const renderPath = join(dir, archive.renderRef.path)
+      const timelinePath = join(dir, archive.timelineRef.path)
+      const finalPath = join(dir, archive.finalRef.path)
+      for (const path of [renderPath, timelinePath, finalPath]) {
         expect(await Bun.file(path).exists()).toBe(true)
       }
-
-      expect(event?.providerRenderResultSha256).toBe(sha256Bytes(await Bun.file(resultPath).text()))
-      expect(event?.audioRunSha256).toBe(sha256Bytes(await Bun.file(audioRunPath).text()))
-      const renderPlan = await Bun.file(renderPlanPath).json() as ProviderRenderPlan
-      const renderResult = await Bun.file(resultPath).json() as ProviderRenderResult
-      const terminalJournalPath = join(artifactDir, event?.admissionJournalRef as string)
-      const terminalJournal = await Bun.file(terminalJournalPath).json() as RenderAdmissionJournalSnapshot
-      const journalDir = dirname(terminalJournalPath)
-      const journalFiles = (await readdir(journalDir)).filter((name) => /^admission-journal-\d+\.json$/.test(name)).sort()
-      const journalChain = await Promise.all(journalFiles.map(async (name) => await Bun.file(join(journalDir, name)).json() as RenderAdmissionJournalSnapshot))
-      for (const [index, journal] of journalChain.entries()) {
-        expect(validateRenderAdmissionJournalSnapshot(journal, index > 0 ? journalChain[index - 1] : undefined)).toEqual(journal)
-      }
-      const priorJournal = journalChain.at(-2) as RenderAdmissionJournalSnapshot
-      expect(validateProviderRenderPlanIdentity(renderPlan)).toEqual(renderPlan)
-      expect(validateProviderRenderResult(renderResult)).toEqual(renderResult)
-      expect(journalChain.at(-1)).toEqual(terminalJournal)
-      expect(() => validateProviderRenderPlanIdentity({ ...renderPlan, model: 'tampered-model' })).toThrow('targetKey')
-
-      const duplicateAcceptance = structuredClone(terminalJournal)
-      const acceptedTransition = duplicateAcceptance.requests[0]?.transitions.find((transition) => transition.state === 'provider-accepted')
-      if (!acceptedTransition) throw new Error('Missing acceptance fixture')
-      duplicateAcceptance.requests[0]!.transitions.splice(3, 0, { ...acceptedTransition, sequence: 4 })
-      duplicateAcceptance.requests[0]!.transitions[4] = { ...duplicateAcceptance.requests[0]!.transitions[4]!, sequence: 5 }
-      duplicateAcceptance.snapshotId = hashCanonicalRecordWithout(
-        duplicateAcceptance as unknown as Record<string, unknown>,
-        ['snapshotId']
-      )
-      expect(() => validateRenderAdmissionJournalSnapshot(duplicateAcceptance, priorJournal)).toThrow('acceptance may advance only to completion')
-
-      const mismatchedProof = structuredClone(terminalJournal)
-      const completion = mismatchedProof.requests[0]?.transitions.find((transition) => transition.state === 'completed')
-      if (!completion || completion.state !== 'completed') throw new Error('Missing completion fixture')
-      completion.evidence.invocationId = 'wrong-invocation'
-      mismatchedProof.snapshotId = hashCanonicalRecordWithout(
-        mismatchedProof as unknown as Record<string, unknown>,
-        ['snapshotId']
-      )
-      expect(() => validateRenderAdmissionJournalSnapshot(mismatchedProof, priorJournal)).toThrow('does not bind the exact journal request')
+      expect(archive.renderRef.sha256).toBe(sha256Bytes(await Bun.file(renderPath).text()))
+      expect(archive.timelineRef.sha256).toBe(sha256Bytes(await Bun.file(timelinePath).text()))
+      const compactRender = await Bun.file(renderPath).json() as { slots: Array<{ slotHash: string, sha256: string }> }
+      const slotPath = join(dir, 'slots', `${compactRender.slots[0]?.slotHash}.wav`)
+      expect(await Bun.file(slotPath).exists()).toBe(true)
 
       const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(dir, dialoguePlan)
       const providerState = bindTtsDialoguePlanArtifact(
@@ -181,32 +148,12 @@ describe('TTS Phase 0 audio-run artifacts', () => {
       expect(manifest?.items[0]?.providers).toHaveLength(1)
       expect(manifest?.items[0]?.providers[0]?.result).toEqual({ ttsAudio: metadata?.ttsAudio })
 
-      const readinessResultPath = join(artifactDir, metadata?.ttsAudio?.readinessAttempts[0]?.readinessResultRef as string)
-      const readinessResult = await Bun.file(readinessResultPath).json() as { capabilityFixture: { path: string } }
-      const audioRun = await Bun.file(audioRunPath).json() as {
-        mixPlan: { path: string }
-        transformLedger: { path: string }
-        finalTimeline: { path: string }
-      }
-      const generationSlot = event?.batchProgress?.[0]?.generationSlots[0]
-      if (!renderPlan.strategyArtifacts || !generationSlot || generationSlot.source !== 'provider-dispatch') {
-        throw new Error('Missing retained Phase 0 strategy or generation-slot fixture')
-      }
       const dependencyPaths = [
         join(dir, dialoguePlanArtifact.path),
-        join(artifactDir, readinessResult.capabilityFixture.path),
-        join(artifactDir, render?.renderDir as string, renderPlan.strategyArtifacts.sourceIdentity.path),
-        join(artifactDir, render?.renderDir as string, renderPlan.strategyArtifacts.dialoguePlan.path),
-        join(artifactDir, render?.renderDir as string, renderPlan.strategyArtifacts.normalizedDialogue.path),
-        ...renderPlan.strategyArtifacts.turns.map((entry) => join(artifactDir, render?.renderDir as string, entry.path)),
-        ...renderPlan.strategyArtifacts.generationSlots.map((entry) => join(artifactDir, render?.renderDir as string, entry.path)),
-        join(journalDir, journalFiles[0] as string),
-        join(artifactDir, render?.renderDir as string, generationSlot.batchInvocationPlan.path),
-        join(artifactDir, render?.renderDir as string, generationSlot.batchResult?.path as string),
-        join(dirname(audioRunPath), audioRun.mixPlan.path),
-        join(dirname(audioRunPath), audioRun.transformLedger.path),
-        join(dirname(audioRunPath), audioRun.finalTimeline.path),
-        join(dir, event?.reportedOutputRefs?.[0]?.path as string)
+        renderPath,
+        timelinePath,
+        slotPath,
+        finalPath,
       ]
       for (const dependencyPath of dependencyPaths) {
         const originalBytes = new Uint8Array(await Bun.file(dependencyPath).arrayBuffer())
@@ -219,36 +166,36 @@ describe('TTS Phase 0 audio-run artifacts', () => {
         expect((await readManifest(dir))?.items[0]?.status).toBe('full')
       }
 
-      const retainedAudioBytes = new Uint8Array(await Bun.file(retainedAudioPath).arrayBuffer())
-      await Bun.write(retainedAudioPath, 'tampered audio')
+      const retainedAudioBytes = new Uint8Array(await Bun.file(finalPath).arrayBuffer())
+      await Bun.write(finalPath, 'tampered audio')
       await expect(readManifest(dir)).rejects.toThrow('Invalid canonical manifest')
-      await Bun.write(retainedAudioPath, retainedAudioBytes)
+      await Bun.write(finalPath, retainedAudioBytes)
       expect((await readManifest(dir))?.items[0]?.status).toBe('full')
 
       const outsideAudioPath = join(dir, 'outside-audio.wav')
       await Bun.write(outsideAudioPath, retainedAudioBytes)
-      await unlink(retainedAudioPath)
-      await symlink(outsideAudioPath, retainedAudioPath)
+      await unlink(finalPath)
+      await symlink(outsideAudioPath, finalPath)
       await expect(readManifest(dir)).rejects.toThrow('Invalid canonical manifest')
-      await unlink(retainedAudioPath)
-      await Bun.write(retainedAudioPath, retainedAudioBytes)
+      await unlink(finalPath)
+      await Bun.write(finalPath, retainedAudioBytes)
       expect((await readManifest(dir))?.items[0]?.status).toBe('full')
 
-      const tamperedPlanBytes = `${JSON.stringify({ ...renderPlan, model: 'tampered-model' })}\n`
-      await Bun.write(renderPlanPath, tamperedPlanBytes)
+      const tamperedRenderBytes = `${JSON.stringify({ ...compactRender, targetKey: 'tampered-target' })}\n`
+      await Bun.write(renderPath, tamperedRenderBytes)
       const rawManifest = await Bun.file(join(dir, 'manifest.json')).json() as {
         items: Array<{
           providers: Array<{
-            metadata: { ttsAudio: { renderHistory: Array<{ renderPlanSha256: string }> } }
-            result: { ttsAudio: { renderHistory: Array<{ renderPlanSha256: string }> } }
+            metadata: { ttsAudio: { archive: { renderRef: { sha256: string } } } }
+            result: { ttsAudio: { archive: { renderRef: { sha256: string } } } }
           }>
         }>
       }
-      const tamperedSha256 = sha256Bytes(tamperedPlanBytes)
+      const tamperedSha256 = sha256Bytes(tamperedRenderBytes)
       const rawProvider = rawManifest.items[0]?.providers[0]
       if (!rawProvider) throw new Error('Missing fixture provider state')
-      rawProvider.metadata.ttsAudio.renderHistory[0]!.renderPlanSha256 = tamperedSha256
-      rawProvider.result.ttsAudio.renderHistory[0]!.renderPlanSha256 = tamperedSha256
+      rawProvider.metadata.ttsAudio.archive.renderRef.sha256 = tamperedSha256
+      rawProvider.result.ttsAudio.archive.renderRef.sha256 = tamperedSha256
       await Bun.write(join(dir, 'manifest.json'), `${JSON.stringify(rawManifest, null, 2)}\n`)
       await expect(readManifest(dir)).rejects.toThrow('Invalid canonical manifest')
     })

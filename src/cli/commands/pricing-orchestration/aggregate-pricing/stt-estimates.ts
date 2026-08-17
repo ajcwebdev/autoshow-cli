@@ -102,7 +102,6 @@ export const buildSttEstimatesForTargets = async (
 
   const needsDuration = targets.some((target) =>
     target.service !== 'whisper'
-    && target.service !== 'reverb'
     && target.service !== 'youtube-captions'
     && target.service !== 'scrapecreators'
   )
@@ -110,11 +109,6 @@ export const buildSttEstimatesForTargets = async (
   const estimates: SttStepEstimate[] = []
 
   for (const target of targets) {
-    if (target.service === 'reverb') {
-      estimates.push({ step: 'stt', provider: 'reverb', model: 'reverb', durationSeconds: 0, totalCost: 0, costMultiplier: 1 })
-      continue
-    }
-
     if (target.service === 'youtube-captions') {
       estimates.push({ step: 'stt', provider: 'youtube-captions', model: target.model, durationSeconds: 0, totalCost: 0, costMultiplier: 1 })
       continue

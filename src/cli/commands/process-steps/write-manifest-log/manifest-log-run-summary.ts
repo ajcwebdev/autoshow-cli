@@ -24,7 +24,6 @@ import {
   toArray
 } from './manifest-log-metadata'
 import { SUMMARY_COLUMNS } from './write-manifest-log-columns'
-import { resolveReverbModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-model-labels'
 
 const buildStep2SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[] => {
   const extractionRows = toArray(metadata['step2'], isExtractionMetadata).map((entry) => {
@@ -55,9 +54,7 @@ const buildStep2SummaryRows = (metadata: WriteManifestMetadata): SummaryBaseRow[
     const provider = entry.transcriptionService
     const model = provider === 'whisper'
       ? resolveWhisperModel(entry.transcriptionModel)
-      : provider === 'reverb'
-        ? resolveReverbModelLabel(entry.transcriptionModel)
-        : entry.transcriptionModel
+      : entry.transcriptionModel
     return {
       stepKey: 'stt' as const,
       step: 'Transcribe',

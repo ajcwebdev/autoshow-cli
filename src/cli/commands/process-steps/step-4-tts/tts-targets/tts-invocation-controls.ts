@@ -17,7 +17,6 @@ import { CLIUsageError } from '~/utils/error-handler'
 type OptionalControl<T> = T | null | undefined
 
 export type TtsInvocationControlsByProvider = {
-  kitten: Readonly<{ maxChunkChars?: OptionalControl<number> }>
   openai: Readonly<{
     instructions?: OptionalControl<string>
     speed?: OptionalControl<number>
@@ -33,7 +32,6 @@ export type TtsInvocationControlsByProvider = {
     seed?: OptionalControl<number>
     textNormalization?: OptionalControl<string>
     pronunciationDictionaryLocators?: OptionalControl<readonly string[]>
-    optimizeStreamingLatency?: OptionalControl<number>
   }>
   minimax: Readonly<{
     languageBoost?: OptionalControl<string>
@@ -68,6 +66,11 @@ export type TtsInvocationControlsByProvider = {
     description?: OptionalControl<string>
   }>
   cartesia: Readonly<{ language?: OptionalControl<string> }>
+  fish: Readonly<{ latency?: OptionalControl<string> }>
+  inworld: Readonly<{ steeringPrompt?: OptionalControl<string> }>
+  deepinfra: Readonly<{ promptInstructions?: OptionalControl<string> }>
+  replicate: Readonly<{ speed?: OptionalControl<number> }>
+  fal: Readonly<{ voiceInstruction?: OptionalControl<string> }>
 }
 
 export type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]
@@ -107,9 +110,6 @@ const GEMINI_TTS_LANGUAGE_CODES = [
 const trim = (value: string): string => value.trim()
 
 const CONTROL_SPECS = {
-  kitten: {
-    maxChunkChars: { kind: 'number', min: 1, max: 1_000_000, integer: true },
-  },
   openai: {
     instructions: { kind: 'string', preserveWhitespace: true },
     speed: { kind: 'number', min: 0.25, max: 4 },
@@ -125,7 +125,6 @@ const CONTROL_SPECS = {
     seed: { kind: 'number', min: 0, max: 4_294_967_295, integer: true },
     textNormalization: { kind: 'string', normalize: validateElevenLabsTtsTextNormalization },
     pronunciationDictionaryLocators: { kind: 'string-array' },
-    optimizeStreamingLatency: { kind: 'number', min: 0, max: 4, integer: true },
   },
   minimax: {
     languageBoost: { kind: 'string', normalize: validateMinimaxTtsLanguageBoost },
@@ -167,6 +166,21 @@ const CONTROL_SPECS = {
   },
   cartesia: {
     language: { kind: 'string', normalize: trim },
+  },
+  fish: {
+    latency: { kind: 'string', normalize: trim },
+  },
+  inworld: {
+    steeringPrompt: { kind: 'string', normalize: trim },
+  },
+  deepinfra: {
+    promptInstructions: { kind: 'string', normalize: trim },
+  },
+  replicate: {
+    speed: { kind: 'number', min: 0.1, max: 5 },
+  },
+  fal: {
+    voiceInstruction: { kind: 'string', preserveWhitespace: true },
   },
 } as const satisfies Record<TtsProvider, ProviderControlSpecs>
 

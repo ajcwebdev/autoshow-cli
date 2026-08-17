@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import {
   resolveCheapestModelForFlag,
+  selectCheapestDefaultTextVideoSelection,
   selectCheapestVideoSelection
 } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateMusicCosts } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { estimateVideoCosts } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { formatEstimatedCost } from '~/utils/app-logger/formatters'
 import { resolveExtractionProviderModel } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
@@ -182,17 +185,66 @@ describe('price mode contracts', () => {
       }
     })
 
+  test('video --price estimates use published duration, resolution, and input rates', () => {
+      const cost = (opts: Parameters<typeof estimateVideoCosts>[0]): string =>
+        formatEstimatedCost(estimateVideoCosts(opts)[0]!.totalCost)
+
+      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5 })).toBe('25.00¢')
+      expect(cost({ grokVideoModel: 'grok-imagine-video-1.5', videoDuration: 5 })).toBe('40.00¢')
+      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 5 })).toBe('36.00¢')
+      expect(cost({ lumalabsVideoModel: 'ray-3.2', videoDuration: 5 })).toBe('30.00¢')
+
+      expect(cost({ replicateVideoModel: 'alibaba/happyhorse-1.1', videoDuration: 5, videoResolution: '720p' })).toBe('70.00¢')
+      expect(cost({ replicateVideoModel: 'alibaba/happyhorse-1.1', videoDuration: 5, videoResolution: '1080p' })).toBe('90.00¢')
+      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-video', videoDuration: 5, videoResolution: '720p' })).toBe('84.00¢')
+      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-video', videoDuration: 5, videoResolution: '1080p', replicateVideoGenerateAudio: true })).toBe('$1.68')
+      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-omni-video', videoDuration: 5, videoResolution: '1080p', replicateVideoGenerateAudio: true })).toBe('$1.40')
+      expect(cost({ replicateVideoModel: 'pixverse/pixverse-v6', videoDuration: 5, videoResolution: '360p' })).toBe('25.00¢')
+      expect(cost({ replicateVideoModel: 'pixverse/pixverse-v6', videoDuration: 5, videoResolution: '1080p', replicateVideoGenerateAudio: true })).toBe('$1.15')
+      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0', videoDuration: 5, videoResolution: '480p' })).toBe('40.00¢')
+      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0', videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('$1.10')
+      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0-fast', videoDuration: -1, videoResolution: '720p' })).toBe('75.00¢')
+      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0-fast', videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('85.00¢')
+
+      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8 })).toBe('48.00¢')
+      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8, videoSize: '2560x1440' })).toBe('96.00¢')
+      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8, videoResolution: '4k' })).toBe('$1.92')
+      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 12, videoResolution: '4k', videoAspectRatio: '9:16' })).toBe('$2.40')
+      expect(cost({ ltxVideoModel: 'ltx-2-3-pro', videoMode: 'extend', videoDuration: 5 })).toBe('50.00¢')
+
+      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5, videoResolution: '480p' })).toBe('25.00¢')
+      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5, videoResolution: '720p' })).toBe('35.00¢')
+      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5, videoResolution: '480p', grokInputImageCount: 1 })).toBe('25.20¢')
+      expect(cost({ grokVideoModel: 'grok-imagine-video-1.5', videoDuration: 5, videoResolution: '1080p', grokInputImageCount: 1 })).toBe('$1.26')
+
+      expect(cost({ geminiVideoModel: 'veo-3.1-lite-generate-preview', videoDuration: 4, videoResolution: '720p' })).toBe('20.00¢')
+      expect(cost({ geminiVideoModel: 'veo-3.1-lite-generate-preview', videoDuration: 4, videoResolution: '1080p' })).toBe('64.00¢')
+      expect(cost({ geminiVideoModel: 'veo-3.1-fast-generate-preview', videoDuration: 4, videoResolution: '720p' })).toBe('40.00¢')
+      expect(cost({ geminiVideoModel: 'veo-3.1-fast-generate-preview', videoDuration: 4, videoResolution: '1080p' })).toBe('96.00¢')
+      expect(cost({ geminiVideoModel: 'veo-3.1-fast-generate-preview', videoDuration: 4, videoResolution: '4k' })).toBe('$2.40')
+      expect(cost({ geminiVideoModel: 'veo-3.1-generate-preview', videoDuration: 4, videoResolution: '720p' })).toBe('$1.60')
+      expect(cost({ geminiVideoModel: 'veo-3.1-generate-preview', videoDuration: 4, videoResolution: '1080p' })).toBe('$3.20')
+      expect(cost({ geminiVideoModel: 'veo-3.1-generate-preview', videoDuration: 4, videoResolution: '4k' })).toBe('$4.80')
+    })
+
+  test('cheapest default text-to-video selection is fal pixverse', () => {
+      expect(selectCheapestDefaultTextVideoSelection()).toMatchObject({
+        provider: 'fal',
+        model: 'fal-ai/pixverse/c1'
+      })
+    })
+
   test('cheapest-model helpers return stable model selections', () => {
-      expect(resolveCheapestModelForFlag('openai')).toBe('gpt-5.4-nano')
+      expect(resolveCheapestModelForFlag('openai')).toBe('gpt-5.6-luna')
       expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.3')
       expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.1')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
       expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2')
       expect(resolveCheapestModelForFlag('gemini-image')).toBe('gemini-3.1-flash-lite-image')
       expect(resolveCheapestModelForFlag('bfl-image')).toBe('flux-2-klein-4b')
-      expect(resolveCheapestModelForFlag('recraft-image')).toBe('recraftv4_1')
-      expect(resolveCheapestModelForFlag('gemini-music')).toBe('lyria-3-clip-preview')
-      expect(resolveCheapestModelForFlag('elevenlabs-music')).toBe('music_v1')
+      expect(resolveCheapestModelForFlag('recraft-image')).toBeUndefined()
+      expect(resolveCheapestModelForFlag('gemini-music')).toBe('lyria-3-pro-preview')
+      expect(resolveCheapestModelForFlag('elevenlabs-music')).toBe('music_v2')
       expect(resolveCheapestModelForFlag('minimax-music')).toBe('music-3.0')
       expect(resolveCheapestModelForFlag('deepgram-stt')).toBe('nova-3')
       expect(resolveCheapestModelForFlag('grok-stt')).toBe('speech-to-text')
@@ -203,27 +255,19 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('gladia-stt')).toBe('solaria-1')
       expect(resolveCheapestModelForFlag('supadata-stt')).toBe('auto')
       expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
-      expect(resolveCheapestModelForFlag('openai-ocr')).toBe('gpt-5.4-nano')
+      expect(resolveCheapestModelForFlag('openai-ocr')).toBe('gpt-5.6-luna')
       expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.3')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-4-5')
       expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
       expect(resolveCheapestModelForFlag('gemini-video')).toBe('veo-3.1-lite-generate-preview')
-      expect(resolveCheapestModelForFlag('minimax-video')).toBe('T2V-01')
-      expect(resolveCheapestModelForFlag('glm-video')).toBe('cogvideox-3')
+      expect(resolveCheapestModelForFlag('minimax-video')).toBeUndefined()
+      expect(resolveCheapestModelForFlag('glm-video')).toBeUndefined()
       expect(resolveCheapestModelForFlag('ltx-video')).toBe('ltx-2-3-fast')
       expect(resolveCheapestModelForFlag('replicate-video')).toBe('pixverse/pixverse-v6')
       expect(selectCheapestVideoSelection('gemini')).toMatchObject({
         provider: 'gemini',
         model: 'veo-3.1-lite-generate-preview'
-      })
-      expect(selectCheapestVideoSelection('minimax')).toMatchObject({
-        provider: 'minimax',
-        model: 'T2V-01'
-      })
-      expect(selectCheapestVideoSelection('glm')).toMatchObject({
-        provider: 'glm',
-        model: 'cogvideox-3'
       })
       expect(selectCheapestVideoSelection('ltx')).toMatchObject({
         provider: 'ltx',
@@ -256,19 +300,6 @@ describe('price mode contracts', () => {
         imageSize: '2048x2048',
         imageQuality: 'high'
       })[0]?.note).toContain('OpenAI')
-    })
-
-  test('Recraft image estimates use published per-image generation rates', () => {
-      expect(estimateImageCosts({
-        recraftImageModel: 'recraftv4_1',
-        imageCount: 3
-      })[0]).toMatchObject({
-        provider: 'recraft',
-        model: 'recraftv4_1',
-        imageCount: 3,
-        costPerImageCents: 4,
-        totalCost: 12
-      })
     })
 
   test('OpenAI actual fallback cost preserves image options', () => {
@@ -323,7 +354,7 @@ describe('price mode contracts', () => {
 
   test('Gemini music estimates use per-song Lyria 3 pricing', () => {
       const estimates = estimateMusicCosts({
-        geminiMusicModels: ['lyria-3-clip-preview', 'lyria-3-pro-preview'],
+        geminiMusicModels: ['lyria-3-pro-preview'],
         musicDuration: 90
       })
 
@@ -332,7 +363,6 @@ describe('price mode contracts', () => {
         model: estimate.model,
         totalCost: estimate.totalCost
       }))).toEqual([
-        { provider: 'gemini', model: 'lyria-3-clip-preview', totalCost: 4 },
         { provider: 'gemini', model: 'lyria-3-pro-preview', totalCost: 8 }
       ])
     })

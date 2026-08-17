@@ -10,32 +10,12 @@ export type LLMOptions = Pick<ProcessingOptions,
   | 'llmLocalConcurrency'
   | 'reasoningEffort'
 > & {
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
+  hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
   promptBuilder?: ((instruction: string) => string) | undefined
   structuredContext?: {
     songLyricsTitle?: string | undefined
   } | undefined
-}
-
-
-export type LlamaServerTarget =
-  | {
-    mode: 'repo'
-    requestedModel: string
-    expectedRepo: string
-    startupArgs: string[]
-  }
-  | {
-    mode: 'path'
-    requestedModel: string
-    expectedPath: string
-    startupArgs: string[]
-  }
-
-export type LlamaServerIdentity = {
-  source: 'props' | 'models'
-  modelId: string | null
-  aliases: string[]
-  modelPath: string | null
 }
 
 

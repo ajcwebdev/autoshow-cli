@@ -44,6 +44,8 @@ export type LlmStepEstimate = ProviderModelBase & ReasoningEstimateFields & {
 
 export type TtsStepEstimate = ProviderModelBase & {
   step: 'tts'
+  costPerRequestCents?: number
+  requestCount?: number
   costPer1kCharactersCents?: number
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number
@@ -76,7 +78,7 @@ export type MusicStepEstimate = ProviderModelBase<MusicProvider> & {
   note?: string
 }
 
-export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend> & TokenProfileEstimateFields & ReasoningEstimateFields & {
+export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend> & TokenProfileEstimateFields & ReasoningEstimateFields & {
   step: 'extract'
   costPer1kPagesCents?: number
   inputCostPer1MCents?: number
@@ -90,6 +92,9 @@ export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'g
   promptTokens?: number
   completionTokens?: number
   ocrMode?: string
+  ocrProviderMode?: 'fanout' | 'pool'
+  allocationHeuristic?: boolean
+  pageShare?: number
   totalCost: number
   costMultiplier?: number
   estimateType?: 'heuristic' | 'exact'
@@ -143,7 +148,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   sttTargets?: SttPricingTarget[] | undefined
   whisperModel?: string | undefined
   extractTargets?: Array<TokenProfileEstimateFields & {
-    provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend
+    provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend
     model: string
     pageCount?: number
     rasterizedPages?: number
@@ -152,13 +157,13 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
     completionTokens?: number
     effectiveReasoningEffort?: NormalizedReasoningEffort
     ocrMode?: string
+    ocrProviderMode?: 'fanout' | 'pool'
     quotedCostCents?: number
     estimateType?: 'heuristic' | 'exact'
     note?: string
   }> | undefined
   hostedOcrTokenProfilePath?: string | undefined
   extractPageCount?: number | undefined
-  useReverb?: boolean | undefined
   audioDurationSeconds?: number | undefined
   llmTargets?: LlmPricingTarget[] | undefined
   llmService?: string | undefined
@@ -179,7 +184,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   openaiImageModel?: string | undefined
   grokImageModel?: string | undefined
   bflImageModel?: string | undefined
-  recraftImageModel?: string | undefined
   replicateImageModel?: string | undefined
   lumalabsImageModel?: string | undefined
   falImageModel?: string | undefined
@@ -188,9 +192,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   imageCount?: number | undefined
   geminiVideoModel?: string | undefined
   minimaxVideoModel?: string | undefined
-  glmVideoModel?: string | undefined
   grokVideoModel?: string | undefined
-  runwayVideoModel?: string | undefined
   ltxVideoModel?: string | undefined
   replicateVideoModel?: string | undefined
   lumalabsVideoModel?: string | undefined
@@ -214,11 +216,12 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
 }
 
 export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   sttTargets?: SttPricingTarget[] | undefined
   transcriptionService?: Step2Metadata['transcriptionService'] | undefined
   transcriptionModel?: string | undefined
   audioDurationSeconds?: number | undefined
-  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number }> | undefined
+  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number, ocrProviderMode?: 'fanout' | 'pool' }> | undefined
   extractPageCount?: number | undefined
   ocrConcurrency?: number | undefined
   ocrConcurrencyMode?: 'auto' | 'fixed' | undefined
@@ -236,6 +239,7 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
     setupCostCents?: number
     setupNote?: string
     chunkConcurrency?: number
+    characterCount?: number
   }> | undefined
   ttsService?: Step4Metadata['ttsService'] | undefined
   ttsModel?: string | undefined
@@ -308,6 +312,8 @@ export type EstimatedStepEntry = TokenProfileEstimateFields & ReasoningEstimateF
   pricingBand?: string
   pricingNote?: string
   estimateType?: 'heuristic' | 'exact'
+  costPerRequestCents?: number
+  requestCount?: number
   costPer1kCharactersCents?: number
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number

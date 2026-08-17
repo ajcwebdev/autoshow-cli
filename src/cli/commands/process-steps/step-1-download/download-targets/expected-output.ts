@@ -22,8 +22,7 @@ const getEffectiveLlmOutputCount = (opts: LlmRuntimeOptions): number => {
     ...(llmConfig.glmModels ?? (llmConfig.glmModel ? [llmConfig.glmModel] : [])),
     ...(llmConfig.kimiModels ?? (llmConfig.kimiModel ? [llmConfig.kimiModel] : [])),
     ...(llmConfig.togetherModels ?? (llmConfig.togetherModel ? [llmConfig.togetherModel] : [])),
-    ...(llmConfig.cerebrasModels ?? (llmConfig.cerebrasModel ? [llmConfig.cerebrasModel] : [])),
-    ...(llmConfig.llamaModels ?? (llmConfig.llamaModel ? [llmConfig.llamaModel] : []))
+    ...(llmConfig.cerebrasModels ?? (llmConfig.cerebrasModel ? [llmConfig.cerebrasModel] : []))
   ].filter((value): value is string => typeof value === 'string' && value.length > 0).length
 }
 
@@ -45,6 +44,11 @@ const getExpectedOcrArtifact = (opts: Pick<OcrRuntimeOptions, 'out'>): string =>
   }
   return 'extraction.txt'
 }
+
+const POOLED_OCR_ATTEMPT_ARTIFACTS = [
+  'providers/<service>-<model>/attempts/page-<number>/attempt-<number>/result.json',
+  'providers/<service>-<model>/attempts/page-<number>/attempt-<number>/usage.json'
+] as const
 
 const getExpectedOcrExportArtifacts = (
   opts: Pick<OcrRuntimeOptions, 'chapterFiles' | 'chapterChunkLimitChars'>,
@@ -98,6 +102,9 @@ export const buildExpectedFilesList = async (
     }
     if (htmlArticleInput && opts.urlBackends) {
       return ['providers/<backend>/result.json', 'providers/<backend>/extraction.txt', 'manifest.json']
+    }
+    if (!htmlArticleInput && opts.ocrProviderMode === 'pool') {
+      return [ocrArtifact, ...ocrExportArtifacts, ...POOLED_OCR_ATTEMPT_ARTIFACTS, 'manifest.json']
     }
     if (!htmlArticleInput && collectExplicitOcrTargets(opts).length > 1) {
       return [ocrArtifact, ...ocrExportArtifacts, 'providers/<service>-<model>/result.json', 'manifest.json']
@@ -171,7 +178,9 @@ export const buildExpectedFilesList = async (
         : [getExpectedOcrArtifact(opts), summaryFile]
     files.push(showNoteFile)
     files.push(...getExpectedOcrExportArtifacts(opts))
-    if (!htmlArticleInput && collectExplicitOcrTargets(opts).length > 1) {
+    if (!htmlArticleInput && opts.ocrProviderMode === 'pool') {
+      files.push(...POOLED_OCR_ATTEMPT_ARTIFACTS)
+    } else if (!htmlArticleInput && collectExplicitOcrTargets(opts).length > 1) {
       files.push('providers/<service>-<model>/result.json')
     }
     files.push('prompt.md')

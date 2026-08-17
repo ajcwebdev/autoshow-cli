@@ -1,15 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import {
   defaultImageVideoPrompt,
-  GLM_DEFAULT_BASE_URL,
   inlineVideo,
   installMockFetch,
   jsonResponse,
-  MINIMAX_DEFAULT_BASE_URL,
   runGeminiVideoGen,
-  runGlmVideoGen,
   runGrokVideoGen,
-  runMinimaxVideoGen,
   videoResponse,
   withTempDir,
   writeMediaFixtures,
@@ -19,8 +15,6 @@ import {
 describe('video provider REST contracts', () => {
   test('provider-required image prompts are synthesized while promptless providers omit prompt', async () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
-    process.env['GLM_API_KEY'] = 'glm-key'
-    process.env['MINIMAX_API_KEY'] = 'minimax-key'
     process.env['XAI_API_KEY'] = 'xai-key'
 
     const calls = installMockFetch((call) => {
@@ -41,31 +35,6 @@ describe('video provider REST contracts', () => {
               }]
             }
           }
-        })
-      }
-      if (call.url === `${MINIMAX_DEFAULT_BASE_URL}/v1/video_generation` && call.method === 'POST') {
-        return jsonResponse({ task_id: 'minimax-promptless', base_resp: { status_code: 0, status_msg: 'success' } })
-      }
-      if (call.url === `${MINIMAX_DEFAULT_BASE_URL}/v1/query/video_generation?task_id=minimax-promptless`) {
-        return jsonResponse({
-          data: { status: 'success', file_id: 'file-promptless' },
-          base_resp: { status_code: 0, status_msg: 'success' }
-        })
-      }
-      if (call.url === `${MINIMAX_DEFAULT_BASE_URL}/v1/files/retrieve?file_id=file-promptless`) {
-        return jsonResponse({
-          file: { download_url: 'https://cdn.example.com/minimax-promptless.mp4' },
-          base_resp: { status_code: 0, status_msg: 'success' }
-        })
-      }
-      if (call.url === `${GLM_DEFAULT_BASE_URL}/videos/generations` && call.method === 'POST') {
-        return jsonResponse({ id: 'glm-promptless', task_status: 'PROCESSING' })
-      }
-      if (call.url === `${GLM_DEFAULT_BASE_URL}/async-result/glm-promptless`) {
-        return jsonResponse({
-          id: 'glm-promptless',
-          task_status: 'SUCCESS',
-          video_result: [{ url: 'https://cdn.example.com/glm-promptless.mp4' }]
         })
       }
       if (call.url === `${XAI_DEFAULT_BASE_URL}/videos/generations` && call.method === 'POST') {
@@ -92,16 +61,6 @@ describe('video provider REST contracts', () => {
         mode: 'image-to-video',
         inputImage: imagePath
       })
-      await runMinimaxVideoGen(undefined, dir, {
-        model: 'I2V-01',
-        mode: 'image-to-video',
-        inputImage: imagePath
-      })
-      await runGlmVideoGen(undefined, dir, {
-        model: 'vidu2-image',
-        mode: 'image-to-video',
-        inputImage: imagePath
-      })
       await runGrokVideoGen(undefined, dir, {
         model: 'grok-imagine-video',
         mode: 'image-to-video',
@@ -112,8 +71,6 @@ describe('video provider REST contracts', () => {
     const expectedImage = `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`
     const expectedImageBase64 = Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')
     const geminiBody = calls.find((call) => call.url.includes(':predictLongRunning'))?.bodyJson
-    const minimaxBody = calls.find((call) => call.url === `${MINIMAX_DEFAULT_BASE_URL}/v1/video_generation`)?.bodyJson
-    const glmBody = calls.find((call) => call.url === `${GLM_DEFAULT_BASE_URL}/videos/generations`)?.bodyJson
     const grokBody = calls.find((call) => call.url === `${XAI_DEFAULT_BASE_URL}/videos/generations`)?.bodyJson
     const geminiInstance = (geminiBody as { instances?: Array<Record<string, unknown>> } | undefined)?.instances?.[0]
 
@@ -124,10 +81,6 @@ describe('video provider REST contracts', () => {
         bytesBase64Encoded: expectedImageBase64
       }
     })
-    expect(minimaxBody).not.toHaveProperty('prompt')
-    expect(minimaxBody).toMatchObject({ model: 'I2V-01', first_frame_image: expectedImage })
-    expect(glmBody).toHaveProperty('prompt', defaultImageVideoPrompt)
-    expect(glmBody).toMatchObject({ model: 'vidu2-image', images: [expectedImage] })
     expect(grokBody).not.toHaveProperty('prompt')
     expect(grokBody).toMatchObject({ model: 'grok-imagine-video', image: { url: expectedImage } })
   })

@@ -1,12 +1,7 @@
 import type { ResolvedLLMConfig, ResolvedLLMModelOptions } from '~/types'
-
-const DEFAULT_LLAMA_MODEL = 'ggml-org/gemma-3-270m-it-GGUF'
+import { selectCheapestDefaultLlmSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 
 export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMModelOptions => ({
-  llamaModels: config.llamaModels,
-  llamaModel: config.llamaModel,
-  llamafileModels: config.llamafileModels,
-  llamafileModel: config.llamafileModel,
   openaiModels: config.openaiModels,
   openaiModel: config.openaiModel,
   groqModels: config.groqModels,
@@ -29,9 +24,9 @@ export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMMode
   cerebrasModel: config.cerebrasModel,
 })
 
+const first = (models: string[] | undefined): string | undefined => models?.[0]
+
 export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): ResolvedLLMConfig => {
-  const llamaModels = opts.llamaModels
-  const llamafileModels = opts.llamafileModels
   const openaiModels = opts.openaiModels
   const groqModels = opts.groqModels
   const geminiModels = opts.geminiModels
@@ -52,69 +47,71 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
     glmModels?.length,
     kimiModels?.length,
     togetherModels?.length,
-    cerebrasModels?.length,
-    llamaModels?.length,
-    llamafileModels?.length
+    cerebrasModels?.length
   ].some((value) => typeof value === 'number' && value > 0)
 
-  const resolvedLlamaModels = llamaModels
-    ? llamaModels
-    : anySelected
-      ? undefined
-      : [DEFAULT_LLAMA_MODEL]
+  const cheapest = anySelected ? undefined : selectCheapestDefaultLlmSelection()
+  const withDefault = <T extends string[]>(
+    models: T | undefined,
+    provider: NonNullable<typeof cheapest>['provider']
+  ): T | undefined =>
+    models
+    ?? (cheapest?.provider === provider ? [cheapest.model] as T : undefined)
 
-  const first = (models: string[] | undefined): string | undefined => models?.[0]
+  const resolvedOpenai = withDefault(openaiModels, 'openai')
+  const resolvedGroq = withDefault(groqModels, 'groq')
+  const resolvedGemini = withDefault(geminiModels, 'gemini')
+  const resolvedAnthropic = withDefault(anthropicModels, 'anthropic')
+  const resolvedMinimax = withDefault(minimaxModels, 'minimax')
+  const resolvedGrok = withDefault(grokModels, 'grok')
+  const resolvedGlm = withDefault(glmModels, 'glm')
+  const resolvedKimi = withDefault(kimiModels, 'kimi')
+  const resolvedTogether = withDefault(togetherModels, 'together')
+  const resolvedCerebras = withDefault(cerebrasModels, 'cerebras')
 
   return {
-    llamaModels: resolvedLlamaModels,
-    llamaModel: first(resolvedLlamaModels),
-    openaiModels,
-    openaiModel: first(openaiModels),
-    groqModels,
-    groqModel: first(groqModels),
-    geminiModels,
-    geminiModel: first(geminiModels),
-    anthropicModels,
-    anthropicModel: first(anthropicModels),
-    minimaxModels,
-    minimaxModel: first(minimaxModels),
-    grokModels,
-    grokModel: first(grokModels),
-    glmModels,
-    glmModel: first(glmModels),
-    kimiModels,
-    kimiModel: first(kimiModels),
-    togetherModels,
-    togetherModel: first(togetherModels),
-    cerebrasModels,
-    cerebrasModel: first(cerebrasModels),
-    llamafileModels,
-    llamafileModel: first(llamafileModels),
-    llmService: openaiModels?.length ? 'openai'
-      : groqModels?.length ? 'groq'
-        : geminiModels?.length ? 'gemini'
-          : anthropicModels?.length ? 'anthropic'
-            : minimaxModels?.length ? 'minimax'
-              : grokModels?.length ? 'grok'
-                : glmModels?.length ? 'glm'
-                  : kimiModels?.length ? 'kimi'
-                    : togetherModels?.length ? 'together'
-                      : cerebrasModels?.length ? 'cerebras'
-                        : llamafileModels?.length ? 'llamafile'
-                          : resolvedLlamaModels?.length ? 'llama.cpp'
-                            : undefined,
-    llmModel: first(openaiModels)
-      ?? first(groqModels)
-      ?? first(geminiModels)
-      ?? first(anthropicModels)
-      ?? first(minimaxModels)
-      ?? first(grokModels)
-      ?? first(glmModels)
-      ?? first(kimiModels)
-      ?? first(togetherModels)
-      ?? first(cerebrasModels)
-      ?? first(llamafileModels)
-      ?? first(resolvedLlamaModels)
-      ?? DEFAULT_LLAMA_MODEL,
+    openaiModels: resolvedOpenai,
+    openaiModel: first(resolvedOpenai),
+    groqModels: resolvedGroq,
+    groqModel: first(resolvedGroq),
+    geminiModels: resolvedGemini,
+    geminiModel: first(resolvedGemini),
+    anthropicModels: resolvedAnthropic,
+    anthropicModel: first(resolvedAnthropic),
+    minimaxModels: resolvedMinimax,
+    minimaxModel: first(resolvedMinimax),
+    grokModels: resolvedGrok,
+    grokModel: first(resolvedGrok),
+    glmModels: resolvedGlm,
+    glmModel: first(resolvedGlm),
+    kimiModels: resolvedKimi,
+    kimiModel: first(resolvedKimi),
+    togetherModels: resolvedTogether,
+    togetherModel: first(resolvedTogether),
+    cerebrasModels: resolvedCerebras,
+    cerebrasModel: first(resolvedCerebras),
+    llmService: resolvedOpenai?.length ? 'openai'
+      : resolvedGroq?.length ? 'groq'
+        : resolvedGemini?.length ? 'gemini'
+          : resolvedAnthropic?.length ? 'anthropic'
+            : resolvedMinimax?.length ? 'minimax'
+              : resolvedGrok?.length ? 'grok'
+                : resolvedGlm?.length ? 'glm'
+                  : resolvedKimi?.length ? 'kimi'
+                    : resolvedTogether?.length ? 'together'
+                      : resolvedCerebras?.length ? 'cerebras'
+                        : cheapest?.provider,
+    llmModel: first(resolvedOpenai)
+      ?? first(resolvedGroq)
+      ?? first(resolvedGemini)
+      ?? first(resolvedAnthropic)
+      ?? first(resolvedMinimax)
+      ?? first(resolvedGrok)
+      ?? first(resolvedGlm)
+      ?? first(resolvedKimi)
+      ?? first(resolvedTogether)
+      ?? first(resolvedCerebras)
+      ?? cheapest?.model
+      ?? '',
   }
 }

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-04-05-389_document",
-  "generatedAt": "2026-07-01T20:04:32.844Z",
-  "pageAligned": false,
+  "generatedAt": "2026-08-14T17:46:47.480Z",
+  "pageAligned": true,
   "variants": [
     {
       "variantId": "status-quo-consensus",
@@ -14,26 +14,25 @@
     {
       "variantId": "page-level-hybrid",
       "source": "deterministic selected provider pages",
-      "charCount": 14765,
-      "wordCount": 2757,
-      "pageCount": 2,
+      "charCount": 13,
+      "wordCount": 2,
+      "pageCount": 1,
       "selectedPageSourceCounts": {
-        "anthropic/claude-haiku-4-5": 1,
-        "mistral/mistral-ocr-4-0": 1
+        "fal/fal-ai/got-ocr/v2": 1
       },
-      "lowConfidencePageCount": 2,
-      "outlierPageCount": 2
+      "lowConfidencePageCount": 1,
+      "outlierPageCount": 1
     }
   ],
   "pairwiseDistances": [
     {
       "referenceVariantId": "status-quo-consensus",
       "candidateVariantId": "page-level-hybrid",
-      "wer": 0.404409,
-      "cer": 0.290085,
-      "wordDistance": 954,
+      "wer": 0.999576,
+      "cer": 0.999264,
+      "wordDistance": 2358,
       "wordReferenceCount": 2359,
-      "charDistance": 3546,
+      "charDistance": 12215,
       "charReferenceCount": 12224
     }
   ]

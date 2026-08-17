@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CONVERTIBLE_EBOOK_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks'
 import { InfraError } from '~/utils/error-handler'
-import { isAcsmContentType } from './acsm-fulfillment'
 
 const extensionFromUrl = (
   url: string,
@@ -14,7 +13,6 @@ const extensionFromUrl = (
   const lowerContentDisposition = contentDisposition?.toLowerCase() ?? ''
 
   if (lowerContentDisposition.includes('.epub') || lowerContentType.includes('application/epub+zip')) return '.epub'
-  if (lowerContentDisposition.includes('.acsm') || isAcsmContentType(lowerContentType)) return '.acsm'
   if (lowerContentDisposition.includes('.docx') || lowerContentType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) return '.docx'
   if (lowerContentDisposition.includes('.pptx') || lowerContentType.includes('application/vnd.openxmlformats-officedocument.presentationml.presentation')) return '.pptx'
   if (lowerContentDisposition.includes('.xlsx') || lowerContentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) return '.xlsx'
@@ -33,7 +31,6 @@ const extensionFromUrl = (
     const pathname = new URL(url).pathname.toLowerCase()
     if (pathname.endsWith('.pdf')) return '.pdf'
     if (pathname.endsWith('.epub')) return '.epub'
-    if (pathname.endsWith('.acsm')) return '.acsm'
     if (pathname.endsWith('.docx')) return '.docx'
     if (pathname.endsWith('.pptx')) return '.pptx'
     if (pathname.endsWith('.xlsx')) return '.xlsx'

@@ -10,34 +10,31 @@
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `anthropic/claude-opus-4-8` | 3 |
-| `openai/gpt-5.4-mini` | 3 |
-| `anthropic/claude-haiku-4-5` | 1 |
-| `anthropic/claude-sonnet-5` | 1 |
-| `gemini/gemini-3.5-flash` | 1 |
-| `grok/grok-4.20-0309-non-reasoning` | 1 |
+| Selected Provider                                         | Pages |
+| --------------------------------------------------------- | ----: |
+| `deepinfra/google/gemma-3-27b-it`                         |     4 |
+| `deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct`     |     4 |
+| `deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506` |     2 |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 1 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 8 |
-| highDisagreementPages | 1 |
-| werCerDivergencePages | 9 |
-| lowConfidencePages | 8 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      |          9 |
+| repeatedTextPages     |          0 |
+| majorLengthDriftPages |         10 |
+| highDisagreementPages |          2 |
+| werCerDivergencePages |          4 |
+| lowConfidencePages    |          3 |
 
 ## Selective Adjudication
 
 - Candidate pages: 10
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 1.506595
+- High-disagreement threshold: 0.952704
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 37.12% | 61.23% | 487 |
+| Reference              | Candidate           |    WER |    CER | Word Edits |
+| ---------------------- | ------------------- | -----: | -----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 39.63% | 85.05% |        520 |

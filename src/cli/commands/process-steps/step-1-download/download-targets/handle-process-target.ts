@@ -5,7 +5,6 @@ import { classifyTopLevelTarget } from '~/cli/commands/process-steps/step-0-meta
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { planProcessTargetBatchExecution, resolveProcessTargetPlan } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-process-target-plan'
 import { hasConfiguredOcrProviderSelection, HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/inactive-flag-warnings'
-import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { readPromptFileText, resolveWriteTextProjectDefaults } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/setup-and-utilities/config/config-loader'
 import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
@@ -186,6 +185,7 @@ export const handleProcessTarget = async (
     optionFlags = normalized.flags
     explicitFlags = normalized.explicitFlags
     optionOccurrences = normalized.flagOccurrences
+    selectorPlan = undefined
   }
 
   if (command === 'write') {
@@ -265,9 +265,6 @@ export const handleProcessTarget = async (
     if (preflightTargets.length === 1) {
       const estimate = await buildAggregatedPriceEstimate(command, preflightTargets[0] as string, effectiveOpts, undefined)
       l.report.estimate(estimate)
-      if (estimate.notes?.includes(ACSM_PRICE_NOTE)) {
-        l.warn(ACSM_PRICE_NOTE)
-      }
       if (typeof preflightTargets[0] === 'string' && await isHtmlArticleTarget(preflightTargets[0] as string, effectiveOpts) && hasConfiguredOcrProviderSelection(effectiveOpts)) {
         l.warn(`${HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING.slice(0, -1)} during extraction pricing and execution.`)
       }

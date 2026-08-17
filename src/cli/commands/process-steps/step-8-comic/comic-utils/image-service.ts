@@ -10,7 +10,6 @@ export const SERVICE_TO_IMAGE_MODELS_FIELD: Record<string, string> = {
   openai: 'openaiImageModels',
   grok: 'grokImageModels',
   bfl: 'bflImageModels',
-  recraft: 'recraftImageModels',
   replicate: 'replicateImageModels',
   lumalabs: 'lumalabsImageModels',
 }

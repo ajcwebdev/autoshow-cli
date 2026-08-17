@@ -5,29 +5,31 @@ import {
   getGroqDefaultTtsVoiceForModel,
   DEEPGRAM_DEFAULT_VOICE,
   GROK_DEFAULT_TTS_VOICE,
-  SUPPORTED_GROQ_ARABIC_TTS_VOICES,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_GEMINI_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_GROQ_TTS_MODELS,
   SUPPORTED_HUME_TTS_MODELS,
-  SUPPORTED_KITTEN_TTS_MODELS,
   SUPPORTED_MINIMAX_TTS_MODELS,
   SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
   SUPPORTED_CARTESIA_TTS_MODELS,
+  SUPPORTED_DEEPINFRA_TTS_MODELS,
+  SUPPORTED_FISH_TTS_MODELS,
+  SUPPORTED_INWORLD_TTS_MODELS,
+  SUPPORTED_REPLICATE_TTS_MODELS,
   SUPPORTED_SPEECHIFY_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { assertNoVoiceIdentityWithDialogue } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
+import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 
 const INVALID_GROQ_TTS_MODEL = 'canopylabs/orpheus-legacy'
 
 const INVALID_GROQ_TTS_VOICE = 'not-a-groq-voice'
 
 describe('option resolution contracts', () => {
-  test('hosted TTS exposes exactly 109 active selectors and rejects all retired IDs', () => {
+  test('hosted TTS exposes exactly 111 active selectors and rejects all retired IDs', () => {
     const hostedSelectors = [
       ...SUPPORTED_ELEVENLABS_TTS_MODELS,
       ...SUPPORTED_MINIMAX_TTS_MODELS,
@@ -39,23 +41,26 @@ describe('option resolution contracts', () => {
       ...SUPPORTED_DEEPGRAM_TTS_MODELS,
       ...SUPPORTED_SPEECHIFY_TTS_MODELS,
       ...SUPPORTED_HUME_TTS_MODELS,
-      ...SUPPORTED_CARTESIA_TTS_MODELS
+      ...SUPPORTED_CARTESIA_TTS_MODELS,
+      ...SUPPORTED_FISH_TTS_MODELS,
+      ...SUPPORTED_INWORLD_TTS_MODELS,
+      ...SUPPORTED_DEEPINFRA_TTS_MODELS,
+      ...SUPPORTED_REPLICATE_TTS_MODELS
     ]
-    expect(hostedSelectors).toHaveLength(109)
+    expect(hostedSelectors).toHaveLength(111)
     expect(hostedSelectors).toEqual(expect.arrayContaining([
       'sonic-3.5-2026-05-04',
       'gpt-4o-mini-tts-2025-12-15',
       'simba-3.2',
-      'simba-3.0',
       'octave-1',
       'octave-2',
       'aura-2-helena-en',
       'aura-2-arcas-en',
       'aura-2-aries-en',
       'aura-2-ama-ja',
-      'canopylabs/orpheus-arabic-saudi',
-      'eleven_multilingual_v2',
-      'eleven_flash_v2_5'
+      's2.1-pro',
+      'Qwen/Qwen3-TTS-VoiceDesign',
+      'jaaari/kokoro-82m'
     ]))
     for (const [flag, model] of [
       ['cartesia-tts', 'sonic-3'],
@@ -65,6 +70,20 @@ describe('option resolution contracts', () => {
     ] as const) {
       expect(() => buildOptsFromFlags(false, { [flag]: model }))
         .toThrow(`Invalid model "${model}" for ${formatModelSelector(flag)}`)
+    }
+    for (const [flag, model, replacement] of [
+      ['elevenlabs-tts', 'eleven_multilingual_v2', 'eleven_v3'],
+      ['elevenlabs-tts', 'eleven_flash_v2_5', 'eleven_v3'],
+      ['inworld-tts', 'realtime-tts-2-flash', 'realtime-tts-2'],
+      ['speechify-tts', 'simba-3.0', 'simba-3.2'],
+      ['deepinfra-tts', 'ResembleAI/chatterbox-multilingual', 'ResembleAI/chatterbox-turbo'],
+      ['fish-tts', 'fish-speech-1.5', 's2.1-pro'],
+      ['fish-tts', 's1', 's2.1-pro'],
+      ['fish-tts', 's2-pro', 's2.1-pro'],
+      ['fish-tts', 'voice-design-1', 's2.1-pro']
+    ] as const) {
+      expect(() => buildOptsFromFlags(false, { [flag]: model }))
+        .toThrow(`Model "${model}" is retired for ${formatModelSelector(flag)}. Use "${replacement}" instead.`)
     }
   })
 
@@ -89,7 +108,6 @@ describe('option resolution contracts', () => {
     const dialogue = { ttsSpeakers: ['HOST=Jasper'] }
 
     for (const target of [
-      'kitten-voice',
       'groq-voice',
       'grok-tts-voice',
       'mistral-tts-voice',
@@ -119,7 +137,7 @@ describe('option resolution contracts', () => {
     }
 
     expect(() => assertNoVoiceIdentityWithDialogue(dialogue, new Set(['tts-speaker']))).not.toThrow()
-    expect(() => assertNoVoiceIdentityWithDialogue({ ttsSpeakers: undefined }, new Set(['kitten-voice']))).not.toThrow()
+    expect(() => assertNoVoiceIdentityWithDialogue({ ttsSpeakers: undefined }, new Set(['openai-voice']))).not.toThrow()
   })
 
   test('buildOptsFromFlags maps and validates provider-specific TTS request controls', () => {
@@ -145,9 +163,9 @@ describe('option resolution contracts', () => {
         'deepgram-tts-bit-rate': '128000',
         'deepgram-tts-sample-rate': '24000',
         'deepgram-tts-speed': '1.1',
-        'speechify-tts': 'simba-3.0',
+        'speechify-tts': 'simba-3.2',
         'speechify-tts-audio-format': 'PCM',
-        'speechify-tts-language': 'es-ES',
+        'speechify-tts-language': 'en-US',
         'elevenlabs-tts': 'eleven_v3',
         'elevenlabs-tts-output-format': 'mp3_22050_32',
         'elevenlabs-tts-language-code': 'en',
@@ -158,8 +176,7 @@ describe('option resolution contracts', () => {
         'elevenlabs-tts-speed': '1.1',
         'elevenlabs-tts-seed': '12345',
         'elevenlabs-tts-text-normalization': 'AUTO',
-        'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2'],
-        'elevenlabs-tts-optimize-streaming-latency': '2'
+        'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2']
       })
 
       expect(opts.grokTtsVoice).toBe('ab12cd34')
@@ -181,7 +198,7 @@ describe('option resolution contracts', () => {
       expect(opts.deepgramTtsSampleRate).toBe(24000)
       expect(opts.deepgramTtsSpeed).toBe(1.1)
       expect(opts.speechifyTtsAudioFormat).toBe('pcm')
-      expect(opts.speechifyTtsLanguage).toBe('es-ES')
+      expect(opts.speechifyTtsLanguage).toBe('en-US')
       expect(opts.elevenlabsTtsOutputFormat).toBe('mp3_22050_32')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)
@@ -192,7 +209,6 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsSeed).toBe(12345)
       expect(opts.elevenlabsTtsTextNormalization).toBe('auto')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2'])
-      expect(opts.elevenlabsTtsOptimizeStreamingLatency).toBe(2)
 
       expect(() => buildOptsFromFlags(false, { 'grok-tts-language': 'xx' })).toThrow('Invalid --grok-tts-language "xx"')
       expect(() => buildOptsFromFlags(false, { 'openai-tts-speed': '0.1' })).toThrow('Invalid --openai-tts-speed value "0.1"')
@@ -207,7 +223,6 @@ describe('option resolution contracts', () => {
       expect(() => buildOptsFromFlags(false, { 'cartesia-tts': 'sonic-2' })).toThrow('Invalid model "sonic-2" for --provider/--tts cartesia[=model]')
       expect(() => buildOptsFromFlags(false, { 'deepgram-tts-sample-rate': '1.5' })).toThrow('Invalid --deepgram-tts-sample-rate value "1.5"')
       expect(() => buildOptsFromFlags(false, { 'elevenlabs-tts-text-normalization': 'always' })).toThrow('Invalid --elevenlabs-tts-text-normalization "always"')
-      expect(() => buildOptsFromFlags(false, { 'elevenlabs-tts-optimize-streaming-latency': '5' })).toThrow('Invalid --elevenlabs-tts-optimize-streaming-latency value "5"')
     })
 
   test('TTS request control flags require their matching provider selection', () => {
@@ -243,13 +258,29 @@ describe('option resolution contracts', () => {
         'cartesia-tts-language': 'en'
       }))).toThrow('Cartesia TTS request control flags require selecting cartesia TTS')
 
+      expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+        'inworld-tts-instructions': 'Sound reassuring'
+      }))).toThrow('Inworld TTS request control flags require selecting inworld TTS')
+
     })
 
-  test('OpenAI classic models reject instructions before pricing or dispatch', () => {
+  test('Inworld maps --tts-instructions onto request-level steering', () => {
+    const opts = buildOptsFromFlags(false, {
+      'inworld-tts': 'realtime-tts-2',
+      'inworld-tts-instructions': 'Sound reassuring'
+    })
+    expect(opts.inworldTtsInstructions).toBe('Sound reassuring')
+    expect(collectTtsTargets(opts).map(target => target.service)).toEqual(['inworld'])
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-      'openai-tts': 'tts-1',
-      'openai-tts-instructions': 'Warm narration'
-    }))).toThrow('instructions are supported only by gpt-4o-mini-tts-2025-12-15')
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+      'inworld-tts-instructions': 'Sound reassuring'
+    }))).toThrow('Inworld TTS request control flags require selecting inworld TTS')
+    const generic = normalizeGenericTtsOptionFlags(
+      { 'inworld-tts': 'realtime-tts-2', 'tts-instructions': 'Sound reassuring' },
+      new Set(['inworld-tts', 'tts-instructions']),
+      [{ name: 'tts-instructions', raw: '--tts-instructions', value: 'Sound reassuring', known: true }]
+    )
+    expect(generic.flags['inworld-tts-instructions']).toBe('Sound reassuring')
   })
 
   test('Speechify validates model-specific languages, curated voices, and cloning', () => {
@@ -274,7 +305,7 @@ describe('option resolution contracts', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'speechify-tts': 'simba-3.0',
       'speechify-tts-language': 'ja-JP'
-    }))).toThrow('does not support language')
+    }))).toThrow('Model "simba-3.0" is retired for --provider/--tts speechify[=model]. Use "simba-3.2" instead.')
   })
 
   test('Hume and Cartesia TTS target collection preserves model and voice controls', () => {
@@ -320,9 +351,6 @@ describe('option resolution contracts', () => {
       const cartesiaTargets = collectTtsTargets(opts).filter((target) => target.service === 'cartesia')
 
       expect(services).not.toContain('runway')
-      expect(services).not.toContain('kitten')
-      expect(opts.kittenTtsModels).toBeUndefined()
-      expect(targetModelsFor('kitten')).toEqual([])
       expect(opts.elevenlabsTtsModels).toEqual([...SUPPORTED_ELEVENLABS_TTS_MODELS])
       expect(targetModelsFor('elevenlabs')).toEqual([...SUPPORTED_ELEVENLABS_TTS_MODELS])
       expect(opts.minimaxTtsModels).toEqual([...SUPPORTED_MINIMAX_TTS_MODELS])
@@ -348,19 +376,6 @@ describe('option resolution contracts', () => {
       expect(cartesiaTargets.map((target) => target.model)).toEqual([...SUPPORTED_CARTESIA_TTS_MODELS])
     })
 
-  test('--all-local-tts expands local Kitten TTS models only', () => {
-      const opts = buildOptsFromFlags(false, { 'all-local-tts': true })
-      const targets = collectTtsTargets(opts)
-
-      expect(opts.kittenTtsModels).toEqual([...SUPPORTED_KITTEN_TTS_MODELS])
-      expect(targets.map((target) => target.service)).toEqual(
-        SUPPORTED_KITTEN_TTS_MODELS.map(() => 'kitten')
-      )
-      expect(targets.map((target) => target.model)).toEqual([...SUPPORTED_KITTEN_TTS_MODELS])
-      expect(opts.elevenlabsTtsModels).toBeUndefined()
-      expect(opts.openaiTtsModels).toBeUndefined()
-    })
-
   test('--all-tts rejects special-input modes that need an explicit model', () => {
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'all-tts': true,
@@ -375,7 +390,7 @@ describe('option resolution contracts', () => {
       }))).toThrow('--tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options')
     })
 
-  test('Groq TTS exposes disjoint English and Saudi-Arabic model voices', () => {
+  test('Groq TTS exposes English Orpheus voices and retires the Arabic selector', () => {
       const englishTargets = collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': 'canopylabs/orpheus-v1-english'
       })).filter((target) => target.service === 'groq')
@@ -383,30 +398,17 @@ describe('option resolution contracts', () => {
         'groq-tts': 'canopylabs/orpheus-v1-english',
         'groq-voice': 'HANNAH'
       })).filter((target) => target.service === 'groq')
-      const arabicTargets = collectTtsTargets(buildOptsFromFlags(false, {
-        'groq-tts': 'canopylabs/orpheus-arabic-saudi',
-        'groq-voice': 'NOURA'
-      })).filter((target) => target.service === 'groq')
 
       expect(getGroqDefaultTtsVoiceForModel('canopylabs/orpheus-v1-english')).toBe('troy')
-      expect(getGroqDefaultTtsVoiceForModel('canopylabs/orpheus-arabic-saudi')).toBe('abdullah')
       expect(englishTargets.map((target) => target.voice)).toEqual(['troy'])
       expect(explicitEnglishTargets.map((target) => target.voice)).toEqual(['hannah'])
-      expect(arabicTargets.map((target) => target.voice)).toEqual(['noura'])
-      expect(SUPPORTED_GROQ_ARABIC_TTS_VOICES).toEqual([
-        'abdullah', 'fahad', 'sultan', 'lulwa', 'noura', 'aisha'
-      ])
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': INVALID_GROQ_TTS_MODEL
       }))).toThrow(`Invalid model "${INVALID_GROQ_TTS_MODEL}" for --provider/--tts groq[=model]`)
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': 'canopylabs/orpheus-v1-english',
         'groq-voice': 'noura'
-      }))).toThrow('Invalid --tts-voice groq="noura" for canopylabs/orpheus-v1-english')
-      expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-        'groq-tts': 'canopylabs/orpheus-arabic-saudi',
-        'groq-voice': 'hannah'
-      }))).toThrow('Invalid --tts-voice groq="hannah" for canopylabs/orpheus-arabic-saudi')
+      }))).toThrow('Invalid --tts-voice groq="noura"')
     })
 
   test('grok tts voice validation normalizes case', () => {
@@ -443,5 +445,10 @@ describe('option resolution contracts', () => {
         model: 'aura-2-thalia-en',
         voice: 'aura-2-andromeda-en'
       }])
+
+      expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+        'deepgram-tts': 'aura-2-thalia-en',
+        'deepgram-voice': 'invalid-model'
+      }))).toThrow('Invalid --deepgram-voice "invalid-model"')
     })
 })

@@ -8,6 +8,8 @@ import { computeTokenCost } from '~/utils/pricing/token-pricing'
 const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
   'defuddle',
   'mistral',
+  'replicate',
+  'fal',
   'firecrawl',
   'glm-reader',
   'spider',
@@ -16,14 +18,10 @@ const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
 ])
 
 const LOCAL_ZERO_PROVIDERS = new Set([
-  'reverb',
   'whisper',
   'whisperfile',
   'youtube-captions',
-  'tesseract',
-  'llama.cpp',
-  'llama',
-  'kitten'
+  'tesseract'
 ])
 
 export { isTokenPricedOcrProvider } from '~/types'

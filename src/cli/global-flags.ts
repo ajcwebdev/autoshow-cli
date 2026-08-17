@@ -44,8 +44,5 @@ export const GLOBAL_FLAG_DEFINITIONS = {
     description: colorizeHelpDescription('Force ANSI colors on, or use --no-color to disable (overrides FORCE_COLOR/NO_COLOR; default: auto-detect TTY)'),
     type: Boolean,
     negatable: true
-  },
-  cookies: strFlag(colorizeHelpDescription('Path to cookies.txt file for authenticated downloads')),
-  'cookies-from-browser': strFlag(colorizeHelpDescription('Import cookies from browser for authenticated downloads: chrome|firefox|opera|edge|chromium|brave|vivaldi|safari (passed to yt-dlp --cookies-from-browser)')),
-  'model-path': strFlag(colorizeHelpDescription('Path to a local GGUF model file for llama.cpp inference (overrides the default downloaded model)'))
+  }
 } as const satisfies CliFlagsDefinition

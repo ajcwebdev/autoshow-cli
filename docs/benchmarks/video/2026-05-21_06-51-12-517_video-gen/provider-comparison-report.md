@@ -41,29 +41,29 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>minimax/T2V-01</code> | $0.1900 |
-| 2 | <code>minimax/T2V-01-Director</code> | $0.1900 |
-| 3 | <code>gemini/veo-3.1-lite-generate-preview</code> | $0.2000 |
-| 4 | <code>glm/cogvideox-3</code> | $0.2000 |
-| 5 | <code>grok/grok-imagine-video</code> | $0.2000 |
-| 6 | <code>minimax/MiniMax-Hailuo-2.3</code> | $0.2800 |
-| 7 | <code>gemini/veo-3.1-fast-generate-preview</code> | $0.4000 |
-| 8 | <code>glm/viduq1-text</code> | $0.4000 |
+| Rank | Provider                                          | Evidence |
+| ---: | ------------------------------------------------- | -------- |
+|    1 | <code>minimax/T2V-01</code>                       | $0.1900  |
+|    2 | <code>minimax/T2V-01-Director</code>              | $0.1900  |
+|    3 | <code>gemini/veo-3.1-lite-generate-preview</code> | $0.2000  |
+|    4 | <code>glm/cogvideox-3</code>                      | $0.2000  |
+|    5 | <code>grok/grok-imagine-video</code>              | $0.2000  |
+|    6 | <code>minimax/MiniMax-Hailuo-2.3</code>           | $0.2800  |
+|    7 | <code>gemini/veo-3.1-fast-generate-preview</code> | $0.4000  |
+|    8 | <code>glm/viduq1-text</code>                      | $0.4000  |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>grok/grok-imagine-video</code> | 21.02s |
-| 2 | <code>gemini/veo-3.1-fast-generate-preview</code> | 41.38s |
-| 3 | <code>gemini/veo-3.1-lite-generate-preview</code> | 41.41s |
-| 4 | <code>minimax/MiniMax-Hailuo-2.3</code> | 72.33s |
-| 5 | <code>glm/cogvideox-3</code> | 149.94s |
-| 6 | <code>minimax/T2V-01-Director</code> | 154.63s |
-| 7 | <code>glm/viduq1-text</code> | 190.84s |
-| 8 | <code>minimax/T2V-01</code> | 401.03s |
+| Rank | Provider                                          | Evidence |
+| ---: | ------------------------------------------------- | -------- |
+|    1 | <code>grok/grok-imagine-video</code>              | 21.02s   |
+|    2 | <code>gemini/veo-3.1-fast-generate-preview</code> | 41.38s   |
+|    3 | <code>gemini/veo-3.1-lite-generate-preview</code> | 41.41s   |
+|    4 | <code>minimax/MiniMax-Hailuo-2.3</code>           | 72.33s   |
+|    5 | <code>glm/cogvideox-3</code>                      | 149.94s  |
+|    6 | <code>minimax/T2V-01-Director</code>              | 154.63s  |
+|    7 | <code>glm/viduq1-text</code>                      | 190.84s  |
+|    8 | <code>minimax/T2V-01</code>                       | 401.03s  |
 
 ### Automated Quality
 
@@ -75,16 +75,16 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider | Quality Evidence | Processing Time | Monetary Cost |
-| --- | --- | ---: | ---: |
-| <code>gemini/veo-3.1-fast-generate-preview</code> | n/a | 41.38s | $0.4000 |
-| <code>gemini/veo-3.1-lite-generate-preview</code> | n/a | 41.41s | $0.2000 |
-| <code>glm/cogvideox-3</code> | n/a | 149.94s | $0.2000 |
-| <code>glm/viduq1-text</code> | n/a | 190.84s | $0.4000 |
-| <code>grok/grok-imagine-video</code> | n/a | 21.02s | $0.2000 |
-| <code>minimax/MiniMax-Hailuo-2.3</code> | n/a | 72.33s | $0.2800 |
-| <code>minimax/T2V-01</code> | n/a | 401.03s | $0.1900 |
-| <code>minimax/T2V-01-Director</code> | n/a | 154.63s | $0.1900 |
+| Provider                                          | Quality Evidence | Processing Time | Monetary Cost |
+| ------------------------------------------------- | ---------------- | --------------: | ------------: |
+| <code>gemini/veo-3.1-fast-generate-preview</code> | n/a              |          41.38s |       $0.4000 |
+| <code>gemini/veo-3.1-lite-generate-preview</code> | n/a              |          41.41s |       $0.2000 |
+| <code>glm/cogvideox-3</code>                      | n/a              |         149.94s |       $0.2000 |
+| <code>glm/viduq1-text</code>                      | n/a              |         190.84s |       $0.4000 |
+| <code>grok/grok-imagine-video</code>              | n/a              |          21.02s |       $0.2000 |
+| <code>minimax/MiniMax-Hailuo-2.3</code>           | n/a              |          72.33s |       $0.2800 |
+| <code>minimax/T2V-01</code>                       | n/a              |         401.03s |       $0.1900 |
+| <code>minimax/T2V-01-Director</code>              | n/a              |         154.63s |       $0.1900 |
 
 ## Notes
 

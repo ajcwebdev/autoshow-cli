@@ -4,6 +4,7 @@ import {
   booleanAllLocalFlag,
   booleanAllProvidersFlag,
   ocrInputFlags,
+  ocrProviderModeFlag,
   ocrTuningFlags,
   priceFlag,
   promptFlag,
@@ -32,7 +33,7 @@ const resumeProviderSelectionFlags = {
     `STT: ${formatProviderList(extractProvidersFor('stt'))} (default: whisper=tiny)`,
     `OCR: ${formatProviderList(extractProvidersFor('ocr'))} (default: tesseract)`,
     `URL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)`,
-    `LLM: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: llama)`,
+    `LLM: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`,
     `TTS: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`,
     `image: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`,
     `video: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`,
@@ -59,22 +60,22 @@ export const resumeFlags = {
   ...withHelpGroup(priceFlag, 'pricing'),
   ...withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(pickFlags(transcriptionFlags, resumeTranscriptionOptionNames), 'transcription'),
-  ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...reasoningEffortFlag }, 'ocr-document'),
+  ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...ocrProviderModeFlag, ...reasoningEffortFlag }, 'ocr-document'),
   ...withHelpGroup(allArticleFlags, 'article-extraction'),
   ...withHelpGroup(epubInspectFlags, 'epub-inspect'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup({
     ...genericTtsOptionFlags,
     ...pickFlags(ttsFlags, dialogueTtsCommandOptionNames)
-  }, 'step-4-tts'),
+  }, 'tts-options'),
   ...withHelpGroup(pickFlags(imageGenFlags, [
     ...imageGenerationOptionNames,
     ...imageInputOptionNames,
     ...imageProviderSpecificOptionNames
-  ]), 'step-5-image'),
+  ]), 'image-options'),
   ...withHelpGroup(pickFlags(videoGenFlags, [
     ...videoGenerationOptionNames,
     ...videoInputOptionNames
-  ]), 'step-6-video'),
-  ...withHelpGroup(musicGenFlags, 'step-7-music')
+  ]), 'video-options'),
+  ...withHelpGroup(musicGenFlags, 'hosted-music')
 } as const satisfies CliFlagsDefinition

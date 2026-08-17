@@ -1,1 +1,1 @@
-export { defineVideoServicePriceTests, defineVideoServiceTest } from './define-generation-service-test'
+export { defineVideoServiceTest } from './define-generation-service-test'

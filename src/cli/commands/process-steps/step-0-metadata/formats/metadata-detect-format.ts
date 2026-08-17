@@ -1,6 +1,5 @@
 import { extname } from 'node:path'
 import type { DetectResult } from '~/types'
-import { isAcsmPath } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { resolveConvertibleEbookFormatFromExtension } from './metadata-convertible-ebooks'
 
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]
@@ -112,7 +111,6 @@ export const detectDocumentFormat = async (filePath: string): Promise<DetectResu
   // Fast-path extension detection for unambiguous formats
   const ebookFormat = resolveConvertibleEbookFormatFromExtension(filePath)
   if (ebookFormat) return ebookFormat
-  if (isAcsmPath(filePath)) return 'acsm'
   if (ext === '.rtf') return 'rtf'
 
   // CSV: extension + content probe for binary rejection

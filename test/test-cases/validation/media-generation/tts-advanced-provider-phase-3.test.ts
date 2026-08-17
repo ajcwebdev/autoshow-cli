@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import type { CharacterVoiceBrief, ProviderVoiceRef, TtsRequestEvidenceScope, TtsSerializedRequestObservation, TtsTarget, TtsVoiceProvider } from '~/types'
 import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
-import { listHumeVoiceIdsForReadiness } from '~/cli/commands/process-steps/step-4-tts/tts-targets/execution-preflight'
+import { listHumeVoiceIdsForReadiness, listInworldVoiceIdsForReadiness } from '~/cli/commands/process-steps/step-4-tts/tts-targets/execution-preflight'
 import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import {
@@ -150,6 +150,15 @@ describe('Phase 3 capability and catalog contracts', () => {
       '?provider=CUSTOM_VOICE&page_number=0&page_size=100',
       '?provider=CUSTOM_VOICE&page_number=1&page_size=100'
     ])
+  })
+
+  test('Inworld readiness resolves exact current voice IDs with Basic authentication', async () => {
+    const fetchImpl = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      expect(String(input)).toBe('https://api.inworld.ai/voices/v1/voices?languages=EN_US')
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Basic inworld-key')
+      return Response.json({ voices: [{ voiceId: 'Alex' }, { voiceId: 'Dennis' }] })
+    }) as typeof fetch
+    expect([...await listInworldVoiceIdsForReadiness('inworld-key', fetchImpl)]).toEqual(['Alex', 'Dennis'])
   })
 })
 

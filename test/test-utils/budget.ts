@@ -2,7 +2,7 @@ import { test } from 'bun:test'
 import { E2E_TEST_TIMEOUT_MS } from './timeouts'
 import type { BudgetKeyInput } from '~/types'
 
-export { E2E_TEST_TIMEOUT_MS } from './timeouts'
+export { E2E_TEST_TIMEOUT_MS, LONG_E2E_TEST_TIMEOUT_MS } from './timeouts'
 
 const parseBudgetKeySet = (environmentKey: string): Set<string> | null => {
   const raw = process.env[environmentKey]
@@ -34,7 +34,10 @@ export const shouldSkipBudgetKeys = (budgetKey: BudgetKeyInput): boolean => {
   return normalizeBudgetKeys(budgetKey).some((key) => skipKeys.has(key))
 }
 
-const findUnevaluatedBudgetKeys = (budgetKey: BudgetKeyInput): string[] => {
+export const isConcurrentBudgetedTestsEnabled = (): boolean =>
+  process.env['AUTOSHOW_TEST_CONCURRENT'] === '1'
+
+export const findUnevaluatedBudgetKeys = (budgetKey: BudgetKeyInput): string[] => {
   const evaluatedKeys = parseBudgetKeySet('AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS')
   if (evaluatedKeys === null) {
     return []
@@ -61,7 +64,8 @@ const registerBudgetedTest = (
     test.skip(name, fn)
     return
   }
-  test(name, fn, timeoutMs)
+  const register = isConcurrentBudgetedTestsEnabled() ? test.concurrent : test
+  register(name, fn, timeoutMs)
 }
 
 export const budgetedTest = (

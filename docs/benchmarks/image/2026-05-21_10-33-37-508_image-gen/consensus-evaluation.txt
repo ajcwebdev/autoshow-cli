@@ -9,17 +9,17 @@ All 9 provider entries had their expected image artifact present. The evaluation
 
 Provider metadata:
 
-| Provider | Artifact present | Packet dimensions | Format | File size | Processing time | Cost |
-| --- | --- | ---: | --- | ---: | ---: | ---: |
-| gemini/gemini-3.1-flash-image-preview | yes | 0x0 | jpeg | 175291 bytes | 16107 ms | 6.7 cents |
-| openai/gpt-image-2 | yes | 1024x1536 | png | 1247608 bytes | 59035 ms | 5.3 cents |
-| grok/grok-imagine-image-quality | yes | 896x1280 | jpeg | 266858 bytes | 4709 ms | 5 cents |
-| grok/grok-imagine-image | yes | 1408x768 | jpeg | 108365 bytes | 5487 ms | 2 cents |
-| bfl/flux-2-pro | yes | 0x0 | jpeg | 188224 bytes | 16794 ms | 3 cents |
-| bfl/flux-2-max | yes | 0x0 | jpeg | 210925 bytes | 47130 ms | 7.000000000000001 cents |
-| bfl/flux-2-flex | yes | 0x0 | jpeg | 187458 bytes | 16646 ms | 5 cents |
-| reve/latest | yes | 1248x832 | png | 491368 bytes | 6873 ms | 2.4 cents |
-| reve/reve-create@20250915 | yes | 1248x832 | png | 668055 bytes | 6339 ms | 2.4 cents |
+| Provider                              | Artifact present | Packet dimensions | Format |     File size | Processing time |                    Cost |
+| ------------------------------------- | ---------------- | ----------------: | ------ | ------------: | --------------: | ----------------------: |
+| gemini/gemini-3.1-flash-image-preview | yes              |               0x0 | jpeg   |  175291 bytes |        16107 ms |               6.7 cents |
+| openai/gpt-image-2                    | yes              |         1024x1536 | png    | 1247608 bytes |        59035 ms |               5.3 cents |
+| grok/grok-imagine-image-quality       | yes              |          896x1280 | jpeg   |  266858 bytes |         4709 ms |                 5 cents |
+| grok/grok-imagine-image               | yes              |          1408x768 | jpeg   |  108365 bytes |         5487 ms |                 2 cents |
+| bfl/flux-2-pro                        | yes              |               0x0 | jpeg   |  188224 bytes |        16794 ms |                 3 cents |
+| bfl/flux-2-max                        | yes              |               0x0 | jpeg   |  210925 bytes |        47130 ms | 7.000000000000001 cents |
+| bfl/flux-2-flex                       | yes              |               0x0 | jpeg   |  187458 bytes |        16646 ms |                 5 cents |
+| reve/latest                           | yes              |          1248x832 | png    |  491368 bytes |         6873 ms |               2.4 cents |
+| reve/reve-create@20250915             | yes              |          1248x832 | png    |  668055 bytes |         6339 ms |               2.4 cents |
 
 Metadata observations:
 

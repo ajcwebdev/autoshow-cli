@@ -20,6 +20,7 @@ const PRICE_FIELD_NAMES = [
   'inputCostPer1MCents',
   'cachedInputCostPer1MCents',
   'outputCostPer1MCents',
+  'costPerRequestCents',
   'costPer1kCharsCents',
   'inputCostPer1MCharsCents',
   'outputCostPer1MCharsCents',

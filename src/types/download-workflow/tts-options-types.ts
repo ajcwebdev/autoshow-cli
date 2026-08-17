@@ -1,7 +1,5 @@
 export type TtsRuntimeOptions = {
-  ttsSpeaker: string
-  kittenTtsModels: string[] | undefined
-  kittenTtsModel: string | undefined
+  ttsAllowAmbiguousRedispatch: boolean
   groqTtsModels: string[] | undefined
   groqTtsModel: string | undefined
   groqVoiceId: string | undefined
@@ -36,7 +34,6 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsSeed: number | undefined
   elevenlabsTtsTextNormalization: string | undefined
   elevenlabsTtsPronunciationDictionaryLocators: string[] | undefined
-  elevenlabsTtsOptimizeStreamingLatency: number | undefined
   deepgramTtsModels: string[] | undefined
   deepgramTtsModel: string | undefined
   deepgramVoiceId: string | undefined
@@ -68,6 +65,23 @@ export type TtsRuntimeOptions = {
   cartesiaTtsModel: string | undefined
   cartesiaTtsVoice: string | undefined
   cartesiaTtsLanguage: string | undefined
+  fishTtsModels: string[] | undefined
+  fishTtsModel: string | undefined
+  fishTtsVoice: string | undefined
+  inworldTtsModels: string[] | undefined
+  inworldTtsModel: string | undefined
+  inworldTtsVoice: string | undefined
+  inworldTtsInstructions: string | undefined
+  deepinfraTtsModels: string[] | undefined
+  deepinfraTtsModel: string | undefined
+  deepinfraTtsVoice: string | undefined
+  replicateTtsModels: string[] | undefined
+  replicateTtsModel: string | undefined
+  replicateTtsVoice: string | undefined
+  falTtsModels: string[] | undefined
+  falTtsModel: string | undefined
+  falTtsVoice: string | undefined
+  falTtsInstructions: string | undefined
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions

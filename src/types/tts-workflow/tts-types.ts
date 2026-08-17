@@ -1,6 +1,6 @@
-import type { ComicDialoguePlan, ComicSourceIdentity, ProtectedAssetRef, ProviderLaneAdmissionToken, ProviderLaneIdentity, ProviderLanePressureFeedback, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions, VoiceReferenceManifest } from '~/types'
+import type { ComicDialoguePlan, ComicSourceIdentity, HostedConcurrencyRuntimeOptions, ProtectedAssetRef, ProviderLaneAdmissionToken, ProviderLaneIdentity, ProviderLanePressureFeedback, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions, VoiceReferenceManifest } from '~/types'
 
-export type TtsOptions = Partial<TtsRuntimeOptions & {
+export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOptions & {
   ttsProviderConcurrency: number
   ttsLocalConcurrency: number
   ttsChunkConcurrency: number
@@ -133,6 +133,9 @@ export type TtsProviderRequestLifecycle = Readonly<{
   accepted: (acceptance?: TtsProviderRequestAcceptance | undefined) => Promise<void>
 }>
 
+export type TtsTimingIdentity = Readonly<{ turnId: string, subjectKey: string }>
+export type TtsTimingFactory = (identity: TtsTimingIdentity) => import('./script-to-audio-types').NormalizedTiming<'take-audio-ms'>
+
 export type TtsRequestEvidenceScope = Readonly<{
   forInvocation?: ((invocation: TtsTargetInvocation) => TtsRequestEvidenceScope) | undefined
   /** Returns verified retained outputs only when every planned slot in this invocation is complete. */
@@ -150,13 +153,14 @@ export type TtsRequestEvidenceScope = Readonly<{
     path: string
     outputIndex?: number | undefined
     timing?: import('./script-to-audio-types').NormalizedTiming<'take-audio-ms'> | undefined
+    timingFactory?: TtsTimingFactory | undefined
     providerGenerationId?: string | undefined
     warnings?: readonly string[] | undefined
   }) => Promise<void>
   complete: (request: { chunkIndex: number }) => Promise<void>
 }>
 
-export type HostedTtsChunkRateLimitFeedback = Pick<ProviderLanePressureFeedback, 'retryAfterMs' | 'delayMs'>
+export type HostedTtsChunkRateLimitFeedback = Partial<ProviderLanePressureFeedback>
 
 export type HostedTtsChunkJobContext = {
   jobId?: string | undefined
@@ -199,7 +203,7 @@ export type HostedTtsSchedulerLimitChange = {
   laneKey: string
   previousLimit: number
   nextLimit: number
-  reason: 'rate-limit' | 'success-ramp'
+  reason: 'rate-limit' | 'success-ramp' | 'startup-ramp' | 'recovery-ramp' | 'registered-cap'
 }
 
 export type HostedTtsSchedulerProviderSummary = {
@@ -238,6 +242,7 @@ export type HostedTtsSchedulerJobSummary = HostedTtsChunkJobContext & {
 export type HostedTtsSchedulerTelemetry = {
   providers: HostedTtsSchedulerProviderSummary[]
   jobs: HostedTtsSchedulerJobSummary[]
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }
 
 export type HostedTtsRunChunksOptions = {
@@ -253,8 +258,13 @@ export type HostedTtsChunkScheduler = {
     runChunk: (chunk: string, index: number, admission: HostedTtsChunkAdmissionToken) => Promise<T>,
     options?: HostedTtsRunChunksOptions | undefined
   ) => Promise<T[]>
-  notifyRateLimit: (admission: HostedTtsChunkAdmissionToken, feedback?: HostedTtsChunkRateLimitFeedback | undefined) => void
+  notifyRateLimit: (
+    admission: HostedTtsChunkAdmissionToken,
+    feedback?: HostedTtsChunkRateLimitFeedback | undefined,
+    error?: unknown
+  ) => Promise<boolean>
   notifyRetry: (admission: HostedTtsChunkAdmissionToken) => void
+  usesSharedHostedRateLimitRecovery: () => boolean
   getProviderSnapshot: (provider: TtsProvider, scopeLabel?: string | undefined) => HostedTtsChunkSchedulerSnapshot
   getTelemetry: () => HostedTtsSchedulerTelemetry
 }
@@ -274,6 +284,8 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   protectedSpeakerVoiceAssets?: Readonly<Record<string, ProtectedAssetRef>> | undefined
   /** Stable IDs inspected read-only at the all-target execution-readiness barrier. */
   readinessVoiceIds?: readonly string[] | undefined
+  /** Allows resume to append a replacement plan after a definitive failed attempt when an implicit adapter default changed. */
+  allowFailedImplicitDefaultReplan?: boolean | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
   setupCostCents?: number | undefined

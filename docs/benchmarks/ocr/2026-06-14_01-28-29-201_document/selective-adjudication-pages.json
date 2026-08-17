@@ -1,23 +1,16 @@
 {
   "schemaVersion": 1,
-  "pageCount": 2,
+  "pageCount": 1,
   "pages": [
-    {
-      "pageNumber": 0,
-      "reason": [
-        "low-confidence-selected-provider",
-        "page-outlier"
-      ],
-      "replacedProviderKey": "mistral/mistral-ocr-2512",
-      "replacedConfidence": 0.45
-    },
     {
       "pageNumber": 1,
       "reason": [
-        "page-outlier"
+        "low-confidence-selected-provider",
+        "page-outlier",
+        "high-disagreement"
       ],
-      "replacedProviderKey": "anthropic/claude-opus-4-8",
-      "replacedConfidence": 0.797157
+      "replacedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "replacedConfidence": 0.522941
     }
   ]
 }

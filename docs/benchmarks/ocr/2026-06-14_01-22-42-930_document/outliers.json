@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-22-42-930_document",
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-22-42-930_document",
   "thresholds": {
     "majorLengthDrift": 0.3,
     "highDisagreementFloor": 0.18,
@@ -12,161 +12,97 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 1.002028,
-    "pageDisagreementQ1": 0.210865,
-    "pageDisagreementQ3": 0.52733
+    "highDisagreement": 1.077487,
+    "pageDisagreementQ1": 1.077487,
+    "pageDisagreementQ3": 1.077487
   },
-  "blankOutputPages": [
-    {
-      "pageNumber": 0,
-      "providers": [
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-4-6",
-        "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-        "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-        "gemini/gemini-3.1-flash-lite-preview",
-        "gemini/gemini-3.1-flash-lite",
-        "gemini/gemini-3.1-pro-preview",
-        "glm/glm-ocr",
-        "grok/grok-4.3",
-        "kimi/kimi-k2.6",
-        "ocrmypdf/ocrmypdf",
-        "openai/gpt-5.4-nano",
-        "openai/gpt-5.5",
-        "paddle-ocr/paddle-ocr",
-        "tesseract/tesseract"
-      ]
-    },
+  "blankOutputPages": [],
+  "repeatedTextPages": [
     {
       "pageNumber": 1,
       "providers": [
-        "mistral/mistral-ocr-2512"
+        "fal/fal-ai/got-ocr/v2"
       ]
     }
   ],
-  "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 367
-        }
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "glm/glm-ocr",
-          "lengthDrift": 1.177326,
-          "tokenCount": 749
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.832474,
+          "tokenCount": 711
         },
         {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 0
-        },
-        {
-          "providerKey": "ocrmypdf/ocrmypdf",
-          "lengthDrift": 0.703488,
-          "tokenCount": 102
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "lengthDrift": 1.904639,
+          "tokenCount": 1127
         }
       ]
     }
   ],
-  "highDisagreementPages": [],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 1.077487,
+      "selectedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "selectedConfidence": 0
+    }
+  ],
   "werCerDivergencePages": [
     {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "anthropic/claude-opus-4-8",
-          "wer": 0.527005,
-          "cer": 0.35413
+          "providerKey": "replicate/datalab-to/ocr",
+          "wer": 0.880546,
+          "cer": 0.711453
         },
         {
-          "providerKey": "anthropic/claude-sonnet-4-6",
-          "wer": 0.552923,
-          "cer": 0.368765
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 0.744486,
+          "cer": 0.560596
         },
         {
-          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-          "wer": 0.529204,
-          "cer": 0.3584
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "wer": 0.703688,
+          "cer": 0.536982
         },
         {
-          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-          "wer": 0.54525,
-          "cer": 0.364182
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 1.414212,
+          "cer": 1.097399
         },
         {
-          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
-          "wer": 0.657799,
-          "cer": 0.45918
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "wer": 0.790805,
+          "cer": 0.582451
         },
         {
-          "providerKey": "gemini/gemini-3.1-flash-lite",
-          "wer": 0.824434,
-          "cer": 0.574271
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "wer": 2.848557,
+          "cer": 3.122158
         },
         {
-          "providerKey": "gemini/gemini-3.1-pro-preview",
-          "wer": 0.582178,
-          "cer": 0.38441
+          "providerKey": "replicate/datalab-to/marker",
+          "wer": 0.883219,
+          "cer": 0.656035
         },
         {
-          "providerKey": "glm/glm-ocr",
-          "wer": 1.971532,
-          "cer": 1.507539
-        },
-        {
-          "providerKey": "grok/grok-4.3",
-          "wer": 0.851226,
-          "cer": 0.570058
-        },
-        {
-          "providerKey": "kimi/kimi-k2.6",
-          "wer": 0.558263,
-          "cer": 0.382757
-        },
-        {
-          "providerKey": "openai/gpt-5.4-nano",
-          "wer": 0.637066,
-          "cer": 0.419289
-        },
-        {
-          "providerKey": "openai/gpt-5.5",
-          "wer": 0.532974,
-          "cer": 0.35621
-        },
-        {
-          "providerKey": "paddle-ocr/paddle-ocr",
-          "wer": 0.937451,
-          "cer": 0.656422
-        },
-        {
-          "providerKey": "tesseract/tesseract",
-          "wer": 0.709947,
-          "cer": 0.491725
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 0.772321,
+          "cer": 0.57665
         }
       ]
     }
   ],
   "lowConfidencePages": [
     {
-      "pageNumber": 0,
-      "selectedProviderKey": "mistral/mistral-ocr-2512",
-      "selectedConfidence": 0.45,
-      "pageDisagreement": 0.052632
-    },
-    {
       "pageNumber": 1,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.270226,
-      "pageDisagreement": 0.685563
+      "selectedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "selectedConfidence": 0,
+      "pageDisagreement": 1.077487
     }
   ]
 }

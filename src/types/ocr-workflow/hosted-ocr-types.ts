@@ -14,4 +14,10 @@ export type HostedDirectImageInputStrategy = 'direct' | 'bun-png' | 'imagemagick
 export type HostedOcrIdentity = Pick<
   HostedOcrRun,
   'extractionMethod' | 'ocrService' | 'ocrModel' | 'requestedReasoningEffort' | 'effectiveReasoningEffort'
->
+> & {
+  ocrProviderMode?: import('~/types').OcrProviderMode | undefined
+  inputSha256?: string | undefined
+  inputFormat?: string | undefined
+  inputPageNumber?: number | undefined
+  dpi?: number | undefined
+}

@@ -8,6 +8,7 @@ import { rm } from 'node:fs/promises'
 import { EMPTY_PRICE_CONFIG_PATH, withEmptyPriceConfig } from '../../../../test-runner/price-command-config'
 import { resolvePriceSelection } from '../../../../test-runner/price-commands/resolve'
 import { BUDGET_PRICE_SELECTION_REGISTRY } from '../../../../test-runner/price-commands/registry/index'
+import { loadE2eTestSources } from './e2e-test-sources'
 
 const tempDirs: string[] = []
 
@@ -109,7 +110,6 @@ describe('test-runner contracts', () => {
 
       expect(selected.suiteName).toBe('All mapped tests')
       expect(keys).toContain('extract-firecrawl-url')
-      expect(keys).toContain('music-elevenlabs-music_v1')
       expect(keys).toContain('music-elevenlabs-music_v2')
       expect(keys).toContain('tts-openai-gpt-4o-mini-tts-2025-12-15')
     })
@@ -166,24 +166,16 @@ describe('test-runner contracts', () => {
       const lyricsVideoKeys = resolvePriceSelection(allFiles, ['test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/'])
         .commands.map((command) => command.key)
 
-      expect(musicKeys).toContain('music-elevenlabs-music_v1')
       expect(musicKeys).toContain('music-elevenlabs-music_v2')
       expect(musicKeys).not.toContain('transcribe-whisper-large-v3-turbo')
       expect(lyricsVideoKeys).toContain('transcribe-whisper-large-v3-turbo')
-      expect(lyricsVideoKeys).not.toContain('music-elevenlabs-music_v1')
+      expect(lyricsVideoKeys).not.toContain('music-elevenlabs-music_v2')
     })
 
   test('e2e test files do not contain direct --price command coverage', async () => {
-      const glob = new Bun.Glob('test/test-cases/e2e/**/*.test.ts')
-      const allFiles = (await Array.fromAsync(glob.scan({ dot: false }))).sort()
-      const filesWithPriceFlag: string[] = []
-
-      for (const file of allFiles) {
-        const source = await Bun.file(file).text()
-        if (source.includes('--price')) {
-          filesWithPriceFlag.push(file)
-        }
-      }
+      const filesWithPriceFlag = (await loadE2eTestSources())
+        .filter(({ source }) => source.includes('--price'))
+        .map(({ file }) => file)
 
       expect(filesWithPriceFlag).toEqual([])
     })

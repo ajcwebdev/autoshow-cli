@@ -107,8 +107,8 @@ export const mergeConfigIntoRawFlags = (
   // Everything else is a one-flag-one-destination default, so the table is the
   // whole mapping. Section gating is implicit: a missing config section makes
   // readNestedValue return undefined and inject skip the flag. Paths outside
-  // `defaults` (`max-cents`) are not CLI defaults and stay excluded, as does
-  // `prompt`, which has no table entry and is handled below.
+  // `defaults` (`max-cents`, cookie auth) are not CLI defaults and stay excluded,
+  // as does `prompt`, which has no table entry and is handled below.
   for (const [flagName, path] of Object.entries(FLAG_TO_CONFIG_PATH)) {
     if (GROUP_INJECTED_FLAGS.has(flagName) || path[0] !== 'defaults') continue
     inject(flagName, path)
@@ -127,6 +127,7 @@ export const mergeConfigIntoRawFlags = (
 }
 
 export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
+  'concurrency-mode': ['defaults', 'concurrency', 'mode'],
   ...STEP2_PROVIDER_CONFIG_PATHS,
   'youtube-captions':  ['defaults', 'extract', 'stt', 'youtubeCaptions'],
   'stt-happyscribe-organization-id': ['defaults', 'extract', 'stt', 'happyscribeOrganizationId'],
@@ -134,13 +135,10 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'stt-scrapecreators-lang': ['defaults', 'extract', 'stt', 'scrapecreatorsLang'],
   'speaker-count':     ['defaults', 'extract', 'stt', 'speakerCount'],
   'split':             ['defaults', 'extract', 'stt', 'split'],
-  'stt-reverb-verbatimicity': ['defaults', 'extract', 'stt', 'reverbVerbatimicity'],
   'stt-provider-concurrency': ['defaults', 'extract', 'stt', 'providerConcurrency'],
   'stt-local-concurrency': ['defaults', 'extract', 'stt', 'localConcurrency'],
   'stt-segment-concurrency': ['defaults', 'extract', 'stt', 'segmentConcurrency'],
   'stt-preflight-concurrency': ['defaults', 'extract', 'stt', 'preflightConcurrency'],
-  'llama':             ['defaults', 'llm', 'llama'],
-  'llamafile':         ['defaults', 'llm', 'llamafile'],
   'openai':            ['defaults', 'llm', 'openai'],
   'groq':              ['defaults', 'llm', 'groq'],
   'gemini':            ['defaults', 'llm', 'gemini'],
@@ -153,7 +151,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'cerebras':          ['defaults', 'llm', 'cerebras'],
   'llm-provider-concurrency': ['defaults', 'llm', 'providerConcurrency'],
   'llm-local-concurrency': ['defaults', 'llm', 'localConcurrency'],
-  'kitten-tts':        ['defaults', 'post', 'tts', 'kittenTts'],
   'elevenlabs-tts':    ['defaults', 'post', 'tts', 'elevenlabsTts'],
   'minimax-tts':       ['defaults', 'post', 'tts', 'minimaxTts'],
   'groq-tts':          ['defaults', 'post', 'tts', 'groqTts'],
@@ -165,7 +162,11 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'speechify-tts':     ['defaults', 'post', 'tts', 'speechifyTts'],
   'hume-tts':          ['defaults', 'post', 'tts', 'humeTts'],
   'cartesia-tts':      ['defaults', 'post', 'tts', 'cartesiaTts'],
-  'kitten-voice':      ['defaults', 'post', 'tts', 'ttsSpeaker'],
+  'fish-tts':          ['defaults', 'post', 'tts', 'fishTts'],
+  'inworld-tts':       ['defaults', 'post', 'tts', 'inworldTts'],
+  'deepinfra-tts':     ['defaults', 'post', 'tts', 'deepinfraTts'],
+  'replicate-tts':     ['defaults', 'post', 'tts', 'replicateTts'],
+  'fal-tts':           ['defaults', 'post', 'tts', 'falTts'],
   'groq-voice':        ['defaults', 'post', 'tts', 'groqVoice'],
   'grok-tts-voice':    ['defaults', 'post', 'tts', 'grokTtsVoice'],
   'grok-tts-language': ['defaults', 'post', 'tts', 'grokTtsLanguage'],
@@ -193,7 +194,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'elevenlabs-tts-seed': ['defaults', 'post', 'tts', 'elevenlabsTtsSeed'],
   'elevenlabs-tts-text-normalization': ['defaults', 'post', 'tts', 'elevenlabsTtsTextNormalization'],
   'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'post', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
-  'elevenlabs-tts-optimize-streaming-latency': ['defaults', 'post', 'tts', 'elevenlabsTtsOptimizeStreamingLatency'],
   'minimax-tts-voice': ['defaults', 'post', 'tts', 'minimaxTtsVoice'],
   'minimax-tts-language-boost': ['defaults', 'post', 'tts', 'minimaxTtsLanguageBoost'],
   'minimax-tts-speed': ['defaults', 'post', 'tts', 'minimaxTtsSpeed'],
@@ -217,7 +217,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'openai-image':      ['defaults', 'post', 'image', 'openaiImage'],
   'grok-image':        ['defaults', 'post', 'image', 'grokImage'],
   'bfl-image':         ['defaults', 'post', 'image', 'bflImage'],
-  'recraft-image':     ['defaults', 'post', 'image', 'recraftImage'],
   'replicate-image':   ['defaults', 'post', 'image', 'replicateImage'],
   'lumalabs-image':    ['defaults', 'post', 'image', 'lumalabsImage'],
   'fal-image':         ['defaults', 'post', 'image', 'falImage'],
@@ -280,6 +279,8 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'batch-order':       ['defaults', 'batch', 'order'],
   'batch-concurrency': ['defaults', 'batch', 'concurrency'],
   'max-cents':         ['pricing', 'maxCents'],
+  cookies:             ['auth', 'cookies'],
+  'cookies-from-browser': ['auth', 'cookiesFromBrowser'],
 }
 
 // Per-run inputs that are never persisted. `buildConfigPatchFromFlags` skips these
@@ -346,7 +347,7 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
     'openai-tts-speed', 'minimax-tts-speed', 'minimax-tts-volume', 'minimax-tts-pitch',
     'deepgram-tts-bit-rate', 'deepgram-tts-sample-rate', 'deepgram-tts-speed',
     'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost', 'elevenlabs-tts-style',
-    'elevenlabs-tts-speed', 'elevenlabs-tts-seed', 'elevenlabs-tts-optimize-streaming-latency',
+    'elevenlabs-tts-speed', 'elevenlabs-tts-seed',
     'replicate-video-seed'
   ])
   if (numericFlags.has(flagName)) {

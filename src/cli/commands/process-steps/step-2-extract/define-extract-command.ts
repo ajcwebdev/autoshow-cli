@@ -1,7 +1,7 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { extractStep2CommandFlags } from '~/cli/flags/extract-flags'
 import { handleProcessTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/handle-process-target'
-import { validateEpubInspectCommandFlags } from './step-2-ocr/command-validation'
+import { validateEpubInspectCommandFlags, validateOcrProviderModeCommandFlags } from './step-2-ocr/command-validation'
 import { runExtractTranscriptVideo } from './transcript-video/run-transcript-video'
 import { CLIUsageError } from '~/utils/error-handler'
 import { withHelpGroup } from '~/cli/flags/flag-utils'
@@ -29,7 +29,7 @@ const transcriptVideoFlags = {
     type: String
   },
   font: {
-    description: 'Transcript video: font family used for rendered transcript text (default: DejaVu Sans)',
+    description: 'Transcript video: font family used for rendered transcript text',
     type: String,
     default: 'DejaVu Sans'
   },
@@ -86,5 +86,6 @@ export const extractCommand = defineCliCommand({
   }
 
   validateEpubInspectCommandFlags(ctx)
+  validateOcrProviderModeCommandFlags(ctx)
   await handleProcessTarget('extract', ctx.parameters.input, ctx.flags, ctx.rawParsed)
 })

@@ -3,7 +3,6 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runBflImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/bfl/run-bfl-image-gen'
 import { runLumalabsImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/run-lumalabs-image-gen'
-import { runRecraftImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/recraft/run-recraft-image-gen'
 import { runReplicateImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
 import {
   bytesResponse,
@@ -15,10 +14,16 @@ import {
 const envKeys = [
   'BFL_API_KEY',
   'LUMA_AGENTS_API_KEY',
-  'RECRAFT_API_TOKEN',
   'REPLICATE_API_TOKEN'
 ]
-const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-image-provider-rest-' })
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys,
+  tempPrefix: 'autoshow-image-provider-rest-',
+  restoreBunSleep: true,
+  beforeEachExtra: () => {
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+  }
+})
 
 const imageResponse = (
   bytes: Uint8Array,
@@ -161,59 +166,6 @@ describe('image provider REST contracts', () => {
     const downloadCalls = calls.filter((call) => call.url === 'https://mock.bfl.local/result.jpeg')
     expect(downloadCalls).toHaveLength(2)
     expect(downloadCalls[0]?.headers.get('accept')).toBe('image/jpeg,image/*;q=0.9,*/*;q=0.8')
-  })
-
-  test('Recraft generation sends JSON body and downloads multiple URL artifacts', async () => {
-    process.env['RECRAFT_API_TOKEN'] = 'recraft-token'
-    const calls = installMockFetch((call) => {
-      if (call.method === 'POST') {
-        return jsonResponse({
-          model: 'recraftv4_1',
-          data: [
-            { url: 'https://mock.recraft.local/images/one.png' },
-            { url: 'https://mock.recraft.local/images/two.png' }
-          ]
-        })
-      }
-      return imageResponse(new Uint8Array([1, 2, 3]), 'image/png')
-    })
-
-    await withTempDir(async (dir) => {
-      const result = await runRecraftImageGen('A precise product photo', dir, {
-        model: 'recraftv4_1',
-        count: 2,
-        aspectRatio: '16:9'
-      })
-
-      expect(result.imagePaths.map((path) => path.endsWith('.png'))).toEqual([true, true])
-      expect(result.metadata).toMatchObject({
-        imageService: 'recraft',
-        imageModel: 'recraftv4_1',
-        imageCount: 2,
-        imageFileNames: ['generated-image.png', 'generated-image-2.png'],
-        imageSize: '16:9',
-        imageFormat: 'png',
-        requestMode: 'generation'
-      })
-    })
-
-    expect(calls[0]).toMatchObject({
-      url: 'https://external.api.recraft.ai/v1/images/generations',
-      method: 'POST'
-    })
-    expect(calls[0]?.headers.get('authorization')).toBe('Bearer recraft-token')
-    expect(calls[0]?.headers.get('content-type')).toBe('application/json')
-    expect(calls[0]?.bodyJson).toEqual({
-      prompt: 'A precise product photo',
-      model: 'recraftv4_1',
-      response_format: 'url',
-      n: 2,
-      size: '16:9'
-    })
-    expect(calls.slice(1).map((call) => call.url)).toEqual([
-      'https://mock.recraft.local/images/one.png',
-      'https://mock.recraft.local/images/two.png'
-    ])
   })
 
   test('Replicate Seedream creates a synchronous prediction and downloads the returned image', async () => {
@@ -439,58 +391,6 @@ describe('image provider REST contracts', () => {
         size: '2K',
         aspect_ratio: '1:1',
         output_format: 'png'
-      }
-    })
-  })
-
-  test('Replicate Ideogram V4 maps custom resolution to its text-only endpoint', async () => {
-    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
-    const calls = installMockFetch((call) => call.method === 'POST'
-      ? jsonResponse({ id: 'pred-ideogram', status: 'succeeded', output: 'https://mock.replicate.local/out/ideogram.png' })
-      : imageResponse(new Uint8Array([2, 4, 6]), 'image/png'))
-
-    await withTempDir(async (dir) => {
-      const result = await runReplicateImageGen('A typographic launch poster', dir, {
-        model: 'ideogram-ai/ideogram-v4-balanced',
-        imageSize: '2048x2048'
-      })
-      expect(result.metadata).toMatchObject({ imageModel: 'ideogram-ai/ideogram-v4-balanced', imageSize: '2048x2048', imageFormat: 'png', requestMode: 'generation', providerCostCents: 6 })
-    })
-
-    expect(calls[0]?.bodyJson).toEqual({ input: { prompt: 'A typographic launch poster', resolution: '2048x2048' } })
-  })
-
-  test('Replicate ERNIE uses the generic version-pinned endpoint and normalizes output options', async () => {
-    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
-    const calls = installMockFetch((call) => call.method === 'POST'
-      ? jsonResponse({
-          id: 'pred-ernie',
-          version: 'fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f',
-          status: 'succeeded',
-          output: ['https://mock.replicate.local/out/ernie-one.jpg', 'https://mock.replicate.local/out/ernie-two.jpg']
-        })
-      : imageResponse(new Uint8Array([7, 7, 7]), 'image/jpeg'))
-
-    await withTempDir(async (dir) => {
-      const result = await runReplicateImageGen('A detailed city illustration', dir, {
-        model: 'prunaai/ernie-image-turbo',
-        imageSize: '1264x848',
-        count: 2,
-        outputFormat: 'jpeg'
-      })
-      expect(result.metadata).toMatchObject({ imageModel: 'prunaai/ernie-image-turbo', imageCount: 2, imageSize: '1264x848', imageFormat: 'jpg', providerCostCents: 2.3 })
-      expect(result.metadata.providerReturnedModel).toBeUndefined()
-    })
-
-    expect(calls[0]?.url).toBe('https://api.replicate.com/v1/predictions')
-    expect(calls[0]?.bodyJson).toEqual({
-      version: 'prunaai/ernie-image-turbo:fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f',
-      input: {
-        prompt: 'A detailed city illustration',
-        width: 1264,
-        height: 848,
-        num_outputs: 2,
-        output_format: 'jpg'
       }
     })
   })

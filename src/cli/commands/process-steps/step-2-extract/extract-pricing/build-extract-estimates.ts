@@ -1,5 +1,5 @@
-import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, OcrCostEstimate, ResolvedStep2Execution } from '~/types'
-import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
+import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, OcrCostEstimate, OcrProviderMode, ResolvedStep2Execution } from '~/types'
+import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateFalOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, estimateReplicateOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy, type MappedReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
@@ -12,6 +12,14 @@ type LocalOcrService = keyof typeof LOCAL_OCR_NOTES
 const HOSTED_OCR_HANDLERS = {
   mistral: {
     estimate: estimateMistralOcrCost,
+    estimateType: 'exact'
+  },
+  replicate: {
+    estimate: estimateReplicateOcrCost,
+    estimateType: 'exact'
+  },
+  fal: {
+    estimate: estimateFalOcrCost,
     estimateType: 'exact'
   },
   glm: {
@@ -49,6 +57,55 @@ const isLocalOcrService = (service: string): service is LocalOcrService =>
 
 const isHostedOcrService = (service: string): service is HostedOcrPricingService =>
   service in HOSTED_OCR_HANDLERS
+
+const allocatePooledPages = (
+  pageCount: number,
+  providers: Array<{ service: string, model: string }>
+): number[] => {
+  if (providers.length === 0) return []
+  const laneCounts = new Map<string, number>()
+  for (const provider of providers) {
+    laneCounts.set(provider.service, (laneCounts.get(provider.service) ?? 0) + 1)
+  }
+  const weights = providers.map((provider) => 1 / (laneCounts.get(provider.service) ?? 1))
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0)
+  const exact = weights.map((weight) => pageCount * weight / totalWeight)
+  const allocated = exact.map(Math.floor)
+  const remaining = pageCount - allocated.reduce((sum, value) => sum + value, 0)
+  const remainderOrder = exact
+    .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+    .sort((left, right) => right.remainder - left.remainder || left.index - right.index)
+  for (let index = 0; index < remaining; index++) {
+    const target = remainderOrder[index % remainderOrder.length]
+    if (target) allocated[target.index] = (allocated[target.index] ?? 0) + 1
+  }
+  return allocated
+}
+
+export const allocatePooledOcrPages = allocatePooledPages
+
+const scaleEstimateForPooledAllocation = (
+  estimate: ExtractStepEstimate,
+  allocatedPages: number,
+  totalPages: number
+): ExtractStepEstimate => {
+  const originalPages = estimate.pageCount ?? totalPages
+  const ratio = originalPages > 0 ? allocatedPages / originalPages : 0
+  const allocationNote = `Pooled OCR target allocation is heuristic: approximately ${allocatedPages} of ${totalPages} unfinished page${totalPages === 1 ? '' : 's'} assigned to this target; actual queue share depends on observed worker throughput and failures.`
+  return {
+    ...estimate,
+    pageCount: allocatedPages,
+    ...(typeof estimate.promptTokens === 'number' ? { promptTokens: Math.round(estimate.promptTokens * ratio) } : {}),
+    ...(typeof estimate.completionTokens === 'number' ? { completionTokens: Math.round(estimate.completionTokens * ratio) } : {}),
+    totalCost: estimate.totalCost * ratio,
+    estimateType: 'heuristic',
+    ocrProviderMode: 'pool',
+    allocationHeuristic: true,
+    pageShare: totalPages > 0 ? allocatedPages / totalPages : 0,
+    ocrMode: estimate.ocrMode?.startsWith('pool') ? estimate.ocrMode : estimate.ocrMode ? `pool:${estimate.ocrMode}` : 'pool',
+    note: estimate.note ? `${allocationNote} ${estimate.note}` : allocationNote
+  }
+}
 
 const buildLocalExtractEstimate = async (
   provider: LocalOcrService,
@@ -121,6 +178,8 @@ export const buildExtractEstimates = async (
   opts: {
     hostedOcrTokenProfilePath?: string | undefined
     reasoningEffort?: NormalizedReasoningEffort | undefined
+    ocrProviderMode?: OcrProviderMode | undefined
+    poolPageCount?: number | undefined
   }
 ): Promise<ExtractStepEstimate[]> => {
   const estimates: ExtractStepEstimate[] = []
@@ -146,12 +205,22 @@ export const buildExtractEstimates = async (
       const handler = HOSTED_OCR_HANDLERS[provider.service]
       const estimate = await handler.estimate(provider.model, resolvedTarget, {
         hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath,
-        effectiveReasoningEffort: reasoningPolicy.effective
+        effectiveReasoningEffort: reasoningPolicy.effective,
+        ...(opts.ocrProviderMode === 'pool'
+          ? { ocrMode: /\.pdf(?:$|[?#])/i.test(resolvedTarget) ? 'pool:pdf' : 'pool:image' }
+          : {})
       })
       estimates.push(buildHostedExtractEstimate(estimate, handler, reasoningPolicy))
       continue
     }
   }
 
-  return estimates
+  if (opts.ocrProviderMode !== 'pool') return estimates
+  const totalPages = typeof opts.poolPageCount === 'number'
+    ? Math.max(0, Math.floor(opts.poolPageCount))
+    : await resolveExtractInputPageCountForPricing(resolvedTarget)
+  const allocations = allocatePooledPages(totalPages, plannedProviders.map(({ provider }) => provider))
+  return estimates.map((estimate, index) =>
+    scaleEstimateForPooledAllocation(estimate, allocations[index] ?? 0, totalPages)
+  )
 }

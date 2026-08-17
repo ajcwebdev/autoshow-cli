@@ -2,11 +2,15 @@ import type { TtsOptions, TtsTarget, TtsTargetSelection } from '~/types'
 import { collectDeepgramTtsTargets } from '../tts-services/tts-deepgram/deepgram-tts-targets'
 import { collectElevenLabsTtsTargets } from '../tts-services/tts-elevenlabs/elevenlabs-tts-targets'
 import { collectCartesiaTtsTargets } from '../tts-services/cartesia/cartesia-tts-targets'
+import { collectFishTtsTargets } from '../tts-services/fish/fish-tts-targets'
+import { collectInworldTtsTargets } from '../tts-services/inworld/inworld-tts-targets'
+import { collectDeepinfraTtsTargets } from '../tts-services/tts-deepinfra/deepinfra-tts-targets'
+import { collectReplicateTtsTargets } from '../tts-services/tts-replicate/replicate-tts-targets'
+import { collectFalTtsTargets } from '../tts-services/tts-fal/fal-tts-targets'
 import { collectGeminiTtsTargets } from '../tts-services/tts-gemini/gemini-tts-targets'
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
 import { collectGroqTtsTargets } from '../tts-services/tts-groq/groq-tts-targets'
 import { collectHumeTtsTargets } from '../tts-services/hume/hume-tts-targets'
-import { collectKittenTtsTargets } from '../tts-local/kitten/kitten-tts-targets'
 import { collectMinimaxTtsTargets } from '../tts-services/tts-minimax/minimax-tts-targets'
 import { collectMistralTtsTargets } from '../tts-services/tts-mistral/mistral-tts-targets'
 import { collectOpenAITtsTargets } from '../tts-services/tts-openai/openai-tts-targets'
@@ -20,8 +24,7 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getMistralProtectedReference, getMistralProtectedSpeakerReferences } from '../voice-assets/mistral-protected-reference-binding'
 
-const getTtsTransport = (service: TtsTarget['service']): string =>
-  service === 'kitten' ? 'local-process' : 'hosted-api'
+const getTtsTransport = (): string => 'hosted-api'
 
 export const preflightTtsTargetSelection = (
   options: TtsOptions
@@ -45,7 +48,6 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
   const mistralProtectedSpeakerReferences = getMistralProtectedSpeakerReferences(options)
 
   const collected: TtsTarget[] = [
-    ...collectKittenTtsTargets(options, selection),
     ...collectElevenLabsTtsTargets(selection),
     ...collectMinimaxTtsTargets(selection),
     ...collectGroqTtsTargets(selection),
@@ -56,12 +58,17 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
     ...collectDeepgramTtsTargets(selection),
     ...collectSpeechifyTtsTargets(selection),
     ...collectHumeTtsTargets(selection),
-    ...collectCartesiaTtsTargets(selection)
+    ...collectCartesiaTtsTargets(selection),
+    ...collectFishTtsTargets(selection),
+    ...collectInworldTtsTargets(selection),
+    ...collectDeepinfraTtsTargets(selection),
+    ...collectReplicateTtsTargets(selection),
+    ...collectFalTtsTargets(selection)
   ]
 
   const targets = collected.map((target): TtsTarget => {
     const operation = 'tts-synthesis' as const
-    const transport = getTtsTransport(target.service)
+    const transport = getTtsTransport()
     return {
       ...target,
       operation,

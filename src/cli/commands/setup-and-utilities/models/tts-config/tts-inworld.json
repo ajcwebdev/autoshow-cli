@@ -1,0 +1,21 @@
+{
+  "inworld": {
+    "description": "Inworld AI first-party steerable text-to-speech and voice design",
+    "type": "api",
+    "models": {
+      "realtime-tts-2": {
+        "description": "Inworld Realtime TTS 2.0 steerable expressive speech model",
+        "pricingSourceUrl": "https://inworld.ai/pricing",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Inworld AI On-Demand TTS pricing",
+        "pricingNotes": "Inworld Realtime TTS 2.0 uses $25.00 / 1M characters on-demand rate.",
+        "costPer1kCharsCents": 2.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      }
+    }
+  }
+}

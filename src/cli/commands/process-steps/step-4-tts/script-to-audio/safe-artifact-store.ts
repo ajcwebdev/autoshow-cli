@@ -1,7 +1,7 @@
 import { constants } from 'node:fs'
-import { link, lstat, mkdir, open, readdir, realpath, rmdir, unlink } from 'node:fs/promises'
+import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir, unlink } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { CLIUsageError } from '~/utils/error-handler'
 
 const DIRECTORY_MODE = 0o700
@@ -257,6 +257,122 @@ export const writeImmutableArtifactFile = async (
     sha256: createHash('sha256').update(bytes).digest('hex'),
     created
   }
+}
+
+export const writeReplaceableArtifactFile = async (
+  rootDir: string,
+  relativeFile: string,
+  value: string | Uint8Array
+): Promise<ImmutableArtifactFile> => {
+  const normalized = normalizeSafeRelativePath(relativeFile, 'Replaceable artifact file', false)
+  const bytes = typeof value === 'string' ? Buffer.from(value) : Buffer.from(value)
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  try {
+    const existing = await readContainedArtifactFile(rootDir, normalized)
+    if (existing.bytes.equals(bytes)) {
+      return { path: existing.path, relativePath: normalized, sha256: existing.sha256, created: false }
+    }
+  } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT')) throw error
+  }
+  const temporaryRelative = `${dirname(normalized)}/.archive-${randomUUID()}.tmp`
+  const temporary = await writeImmutableArtifactFile(rootDir, temporaryRelative, bytes)
+  const destination = join((await inspectSafeRoot(rootDir)).absolute, normalized)
+  try {
+    await rename(temporary.path, destination)
+  } finally {
+    await unlink(temporary.path).catch(() => undefined)
+  }
+  return { path: destination, relativePath: normalized, sha256, created: true }
+}
+
+export const appendJsonlArtifactLine = async (
+  rootDir: string,
+  relativeFile: string,
+  value: unknown
+): Promise<ContainedArtifactFile> => {
+  const normalized = normalizeSafeRelativePath(relativeFile, 'Journal artifact file', false)
+  if (!normalized.endsWith('.jsonl')) {
+    throw CLIUsageError(`Journal artifact must use a .jsonl suffix: ${normalized}`)
+  }
+  const segments = normalized.split('/')
+  const fileName = segments.pop() as string
+  const parent = await ensureSafeArtifactDirectory(rootDir, segments.join('/'))
+  const path = join(parent.path, fileName)
+  const line = Buffer.from(`${JSON.stringify(value)}\n`)
+  let existing: Buffer = Buffer.alloc(0)
+  try {
+    existing = Buffer.from(await readExistingImmutableBytes(path))
+  } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT')) throw error
+  }
+  const bytes = Buffer.concat([existing, line])
+  const handle = await open(
+    path,
+    constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND | constants.O_NOFOLLOW,
+    FILE_MODE
+  )
+  try {
+    const opened = await handle.stat()
+    if (!opened.isFile()) {
+      throw CLIUsageError(`Journal artifact destination is not a regular file: ${path}`)
+    }
+    await handle.writeFile(line)
+    await handle.sync()
+    await handle.chmod(FILE_MODE)
+  } finally {
+    await handle.close()
+  }
+  return {
+    path,
+    relativePath: normalized,
+    bytes,
+    sha256: createHash('sha256').update(bytes).digest('hex')
+  }
+}
+
+export const hardlinkContainedArtifact = async (
+  rootDir: string,
+  sourceRelative: string,
+  destinationRelative: string
+): Promise<ContainedArtifactFile> => {
+  const source = await readContainedArtifactFile(rootDir, sourceRelative)
+  const destination = normalizeSafeRelativePath(destinationRelative, 'Hardlinked artifact file', false)
+  const segments = destination.split('/')
+  const fileName = segments.pop() as string
+  const parent = await ensureSafeArtifactDirectory(rootDir, segments.join('/'))
+  const path = join(parent.path, fileName)
+  try {
+    await link(source.path, path)
+  } catch (error) {
+    if (!hasErrorCode(error, 'EEXIST')) throw error
+    const existing = await readExistingImmutableBytes(path)
+    if (!existing.equals(source.bytes)) {
+      throw CLIUsageError(`Hardlinked artifact already exists with different bytes: ${path}`)
+    }
+  }
+  return {
+    path,
+    relativePath: destination,
+    bytes: source.bytes,
+    sha256: source.sha256
+  }
+}
+
+export const removeContainedDirectory = async (
+  rootDir: string,
+  relativeDirectory: string
+): Promise<void> => {
+  const normalized = normalizeSafeRelativePath(relativeDirectory, 'Removable artifact directory', false)
+  const parent = await inspectSafeRoot(rootDir)
+  const path = join(parent.absolute, normalized)
+  try {
+    await inspectSafeDirectory(parent.canonical, path, 'Removable artifact directory')
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return
+    throw error
+  }
+  await rm(path, { recursive: true, force: true })
 }
 
 export const releasePreparedInvocationAttemptClaim = async (

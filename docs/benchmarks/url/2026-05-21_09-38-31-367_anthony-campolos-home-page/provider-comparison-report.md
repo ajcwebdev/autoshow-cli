@@ -19,21 +19,21 @@
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>defuddle</code> | $0.00 local monetary cost |
+| Rank | Provider              | Evidence                  |
+| ---: | --------------------- | ------------------------- |
+|    1 | <code>defuddle</code> | $0.00 local monetary cost |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>defuddle</code> | 0.58s |
+| Rank | Provider              | Evidence |
+| ---: | --------------------- | -------- |
+|    1 | <code>defuddle</code> | 0.58s    |
 
 ### Automated Quality
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>defuddle</code> | 97.17 accuracy (2.83% WER, 2.50% CER, 96.83% coverage) |
+| Rank | Provider              | Evidence                                               |
+| ---: | --------------------- | ------------------------------------------------------ |
+|    1 | <code>defuddle</code> | 97.17 accuracy (2.83% WER, 2.50% CER, 96.83% coverage) |
 
 ### Human Quality
 
@@ -41,41 +41,41 @@ Unavailable: No explicit humanQualityScore was available for local providers. Ge
 
 ### Provider Detail
 
-| Provider | Quality Evidence | Processing Time | Monetary Cost |
-| --- | --- | ---: | ---: |
-| <code>defuddle</code> | 2.83% WER, 2.50% CER, 96.83% coverage | 0.58s | $0.00 |
+| Provider              | Quality Evidence                      | Processing Time | Monetary Cost |
+| --------------------- | ------------------------------------- | --------------: | ------------: |
+| <code>defuddle</code> | 2.83% WER, 2.50% CER, 96.83% coverage |           0.58s |         $0.00 |
 
 ## Service Providers
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>firecrawl</code> | $0.0008 |
-| 2 | <code>spider</code> | $0.0012 |
-| 3 | <code>zyte</code> | $0.0016 |
-| 4 | <code>glm-reader</code> | $0.0100 |
-| 5 | <code>supadata</code> | $0.0100 |
+| Rank | Provider                | Evidence |
+| ---: | ----------------------- | -------- |
+|    1 | <code>firecrawl</code>  | $0.0008  |
+|    2 | <code>spider</code>     | $0.0012  |
+|    3 | <code>zyte</code>       | $0.0016  |
+|    4 | <code>glm-reader</code> | $0.0100  |
+|    5 | <code>supadata</code>   | $0.0100  |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>firecrawl</code> | 0.95s |
-| 2 | <code>spider</code> | 2.04s |
-| 3 | <code>supadata</code> | 2.43s |
-| 4 | <code>glm-reader</code> | 3.88s |
-| 5 | <code>zyte</code> | 13.34s |
+| Rank | Provider                | Evidence |
+| ---: | ----------------------- | -------- |
+|    1 | <code>firecrawl</code>  | 0.95s    |
+|    2 | <code>spider</code>     | 2.04s    |
+|    3 | <code>supadata</code>   | 2.43s    |
+|    4 | <code>glm-reader</code> | 3.88s    |
+|    5 | <code>zyte</code>       | 13.34s   |
 
 ### Automated Quality
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>firecrawl</code> | 97.35 accuracy (3.58% WER, 2.01% CER, 98.59% coverage) |
-| 2 | <code>supadata</code> | 94.75 accuracy (7.74% WER, 2.01% CER, 96.48% coverage) |
-| 3 | <code>spider</code> | 94.70 accuracy (7.36% WER, 4.37% CER, 97.89% coverage) |
-| 4 | <code>zyte</code> | 53.66 accuracy (48.30% WER, 47.90% CER, 59.15% coverage) |
-| 5 | <code>glm-reader</code> | 41.09 accuracy (66.60% WER, 64.07% CER, 61.62% coverage) |
+| Rank | Provider                | Evidence                                                 |
+| ---: | ----------------------- | -------------------------------------------------------- |
+|    1 | <code>firecrawl</code>  | 97.35 accuracy (3.58% WER, 2.01% CER, 98.59% coverage)   |
+|    2 | <code>supadata</code>   | 94.75 accuracy (7.74% WER, 2.01% CER, 96.48% coverage)   |
+|    3 | <code>spider</code>     | 94.70 accuracy (7.36% WER, 4.37% CER, 97.89% coverage)   |
+|    4 | <code>zyte</code>       | 53.66 accuracy (48.30% WER, 47.90% CER, 59.15% coverage) |
+|    5 | <code>glm-reader</code> | 41.09 accuracy (66.60% WER, 64.07% CER, 61.62% coverage) |
 
 ### Human Quality
 
@@ -83,13 +83,13 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider | Quality Evidence | Processing Time | Monetary Cost |
-| --- | --- | ---: | ---: |
-| <code>firecrawl</code> | 3.58% WER, 2.01% CER, 98.59% coverage | 0.95s | $0.0008 |
-| <code>glm-reader</code> | 66.60% WER, 64.07% CER, 61.62% coverage | 3.88s | $0.0100 |
-| <code>spider</code> | 7.36% WER, 4.37% CER, 97.89% coverage | 2.04s | $0.0012 |
-| <code>supadata</code> | 7.74% WER, 2.01% CER, 96.48% coverage | 2.43s | $0.0100 |
-| <code>zyte</code> | 48.30% WER, 47.90% CER, 59.15% coverage | 13.34s | $0.0016 |
+| Provider                | Quality Evidence                        | Processing Time | Monetary Cost |
+| ----------------------- | --------------------------------------- | --------------: | ------------: |
+| <code>firecrawl</code>  | 3.58% WER, 2.01% CER, 98.59% coverage   |           0.95s |       $0.0008 |
+| <code>glm-reader</code> | 66.60% WER, 64.07% CER, 61.62% coverage |           3.88s |       $0.0100 |
+| <code>spider</code>     | 7.36% WER, 4.37% CER, 97.89% coverage   |           2.04s |       $0.0012 |
+| <code>supadata</code>   | 7.74% WER, 2.01% CER, 96.48% coverage   |           2.43s |       $0.0100 |
+| <code>zyte</code>       | 48.30% WER, 47.90% CER, 59.15% coverage |          13.34s |       $0.0016 |
 
 ## Notes
 

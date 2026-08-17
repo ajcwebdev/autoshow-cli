@@ -542,7 +542,7 @@ describe('standalone Mistral protected request references', () => {
       const options = mistralOptions(sourcePath, false)
       await planStandaloneMistralReference(options, mistralReferenceInput(sourcePath), store)
       await expect(materializeStandaloneMistralReference(options, outputPath)).rejects.toThrow(
-        'output and the protected Mistral reference store must be disjoint'
+        'Output and the protected voice asset store must be disjoint directories.'
       )
       expect(await Bun.file(outputPath).exists()).toBe(false)
     }

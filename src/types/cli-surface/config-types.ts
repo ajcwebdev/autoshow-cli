@@ -6,9 +6,17 @@ const PricingConfigSchema = v.strictObject({
   maxCents: v.optional(v.pipe(v.number(), v.minValue(0)), undefined)
 })
 
+const AuthConfigSchema = v.strictObject({
+  cookies: v.optional(v.string(), undefined),
+  cookiesFromBrowser: v.optional(v.string(), undefined)
+})
+
+const ConcurrencyDefaultsSchema = v.strictObject({
+  mode: v.optional(v.picklist(['ramp', 'immediate']), undefined)
+})
+
 const ExtractSttDefaultsSchema = v.strictObject({
   whisper: ModelArraySchema,
-  reverb: v.optional(v.boolean(), undefined),
   youtubeCaptions: v.optional(v.boolean(), undefined),
   deepinfraStt: ModelArraySchema,
   groqStt: ModelArraySchema,
@@ -31,7 +39,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
   speechmaticsStt: ModelArraySchema,
   speakerCount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   split: v.optional(v.boolean(), undefined),
-  reverbVerbatimicity: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   segmentConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
@@ -39,8 +46,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
 })
 
 const LlmDefaultsSchema = v.strictObject({
-  llama: ModelArraySchema,
-  llamafile: ModelArraySchema,
   openai: ModelArraySchema,
   groq: ModelArraySchema,
   gemini: ModelArraySchema,
@@ -56,7 +61,6 @@ const LlmDefaultsSchema = v.strictObject({
 })
 
 const TtsDefaultsSchema = v.strictObject({
-  kittenTts: ModelArraySchema,
   elevenlabsTts: ModelArraySchema,
   minimaxTts: ModelArraySchema,
   groqTts: ModelArraySchema,
@@ -72,10 +76,14 @@ const TtsDefaultsSchema = v.strictObject({
   cartesiaTts: ModelArraySchema,
   cartesiaTtsVoice: v.optional(v.string(), undefined),
   cartesiaTtsLanguage: v.optional(v.string(), undefined),
+  fishTts: ModelArraySchema,
+  inworldTts: ModelArraySchema,
+  deepinfraTts: ModelArraySchema,
+  replicateTts: ModelArraySchema,
+  falTts: ModelArraySchema,
   speechifyVoice: v.optional(v.string(), undefined),
   speechifyTtsAudioFormat: v.optional(v.picklist(['mp3', 'ogg', 'aac', 'wav', 'pcm']), undefined),
   speechifyTtsLanguage: v.optional(v.string(), undefined),
-  ttsSpeaker: v.optional(v.string(), undefined),
   groqVoice: v.optional(v.string(), undefined),
   grokTtsVoice: v.optional(v.string(), undefined),
   grokTtsLanguage: v.optional(v.string(), undefined),
@@ -104,7 +112,6 @@ const TtsDefaultsSchema = v.strictObject({
   elevenlabsTtsSeed: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), undefined),
   elevenlabsTtsTextNormalization: v.optional(v.picklist(['auto', 'on', 'off']), undefined),
   elevenlabsTtsPronunciationDictionaryLocators: v.optional(v.array(v.string()), undefined),
-  elevenlabsTtsOptimizeStreamingLatency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(4)), undefined),
   minimaxTtsVoice: v.optional(v.string(), undefined),
   minimaxTtsLanguageBoost: v.optional(v.string(), undefined),
   minimaxTtsSpeed: v.optional(v.pipe(v.number(), v.minValue(0.5), v.maxValue(2)), undefined),
@@ -123,7 +130,6 @@ const ImageDefaultsSchema = v.strictObject({
   openaiImage: ModelArraySchema,
   grokImage: ModelArraySchema,
   bflImage: ModelArraySchema,
-  recraftImage: ModelArraySchema,
   replicateImage: ModelArraySchema,
   lumalabsImage: ModelArraySchema,
   falImage: ModelArraySchema,
@@ -140,9 +146,7 @@ const ImageDefaultsSchema = v.strictObject({
 const VideoDefaultsSchema = v.strictObject({
   geminiVideo: ModelArraySchema,
   minimaxVideo: ModelArraySchema,
-  glmVideo: ModelArraySchema,
   grokVideo: ModelArraySchema,
-  runwayVideo: ModelArraySchema,
   ltxVideo: v.optional(ModelArraySchema, undefined),
   replicateVideo: v.optional(ModelArraySchema, undefined),
   lumalabsVideo: v.optional(ModelArraySchema, undefined),
@@ -161,8 +165,6 @@ const VideoDefaultsSchema = v.strictObject({
   replicateVideoReferenceVideos: v.optional(v.array(v.string()), undefined),
   replicateVideoReferenceAudios: v.optional(v.array(v.string()), undefined),
   replicateVideoNegativePrompt: v.optional(v.string(), undefined),
-  replicateVideoAudio: v.optional(v.string(), undefined),
-  replicateVideoPromptExpansion: v.optional(v.boolean(), undefined),
   falVideoGenerateAudio: v.optional(v.boolean(), undefined),
   falVideoReferenceVideos: v.optional(v.array(v.string()), undefined),
   falVideoReferenceAudios: v.optional(v.array(v.string()), undefined),
@@ -197,6 +199,8 @@ const ExtractOcrDefaultsSchema = v.strictObject({
   anthropicOcr: ModelArraySchema,
   geminiOcr: ModelArraySchema,
   deepinfraOcr: ModelArraySchema,
+  replicateOcr: ModelArraySchema,
+  falOcr: ModelArraySchema,
   chapters: v.optional(v.boolean(), undefined),
   length: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), undefined)
@@ -226,6 +230,7 @@ const PostDefaultsSchema = v.strictObject({
 })
 
 const ConfigDefaultsSchema = v.strictObject({
+  concurrency: v.optional(ConcurrencyDefaultsSchema, undefined),
   llm: v.optional(LlmDefaultsSchema, undefined),
   post: v.optional(PostDefaultsSchema, undefined),
   extract: v.optional(ExtractDefaultsSchema, undefined),
@@ -235,5 +240,6 @@ const ConfigDefaultsSchema = v.strictObject({
 
 export const AutoshowConfigSchema = v.strictObject({
   defaults: v.optional(ConfigDefaultsSchema, undefined),
-  pricing: v.optional(PricingConfigSchema, undefined)
+  pricing: v.optional(PricingConfigSchema, undefined),
+  auth: v.optional(AuthConfigSchema, undefined)
 })

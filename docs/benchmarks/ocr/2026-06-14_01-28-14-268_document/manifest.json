@@ -339,6 +339,83 @@
                 "promptTokens": 1157,
                 "completionTokens": 1626,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.014096000000000001,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 718,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 21,
+                "tokenProfilePromptTokensPerPage": 326,
+                "tokenProfileCompletionTokensPerPage": 717.62,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03456,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1761,
+                "completionTokens": 565,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 6,
+                "tokenProfilePromptTokensPerPage": 1760.667,
+                "tokenProfileCompletionTokensPerPage": 564.833,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0252325,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1303,
+                "completionTokens": 773,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 13,
+                "tokenProfilePromptTokensPerPage": 1303.308,
+                "tokenProfileCompletionTokensPerPage": 772.922,
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -549,6 +626,84 @@
                 "inputValue": 1576,
                 "promptTokens": 1169,
                 "completionTokens": 407
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.2,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.007856,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 654,
+                "promptTokens": 326,
+                "completionTokens": 328
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.028870000000000003,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 2265,
+                "promptTokens": 1954,
+                "completionTokens": 311
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 0.33,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 0.4,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0159275,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1587,
+                "promptTokens": 1265,
+                "completionTokens": 322
               }
             ]
           },
@@ -1279,7 +1434,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.007856,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 328,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.028870000000000003,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1954,
+                "completionTokens": 311,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0159275,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1265,
+                "completionTokens": 322,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1516,6 +1743,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 22796,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 22,
+                  "profileThroughputPagesPerMinute": 2.632,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 22796,
+                "throughputValue": 2.632,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 7399,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 6,
+                  "profileThroughputPagesPerMinute": 8.109,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 7399,
+                "throughputValue": 8.109,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 8597,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 13,
+                  "profileThroughputPagesPerMinute": 6.979,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 8597,
+                "throughputValue": 6.979,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1768,6 +2096,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 11343,
                 "throughputValue": 5.29,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 11141,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 11141,
+                "throughputValue": 5.386,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 21946,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 21946,
+                "throughputValue": 2.734,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 6734,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 6734,
+                "throughputValue": 8.91,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 8559,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 8559,
+                "throughputValue": 7.01,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 10463,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 10463,
+                "throughputValue": 5.734,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 15566,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 15566,
+                "throughputValue": 3.855,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 8305,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 8305,
+                "throughputValue": 7.225,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 5141,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5141,
+                "throughputValue": 11.671,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2378,6 +2810,322 @@
                 "completionTokens": 407
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 11141,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 213,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<b>—</b> 15 ·\nSchachteln und Packete, die nian mit fich führt,\nbesto bequemer und leichter geht die Reise. Man\nbekommt ja überall ums Gelb, was man braucht.\nAuch toftet ein Roffer, als Frachtgut geschickt, nicht\npiel.\nAber vier Gegenstände dürfen beim Reisegepack\nniemals fehlen: Das Gelb, ein Bag, einige\ngute Bücher und ein Teftfleib.\nI.\nChedem gab es überall Rlöfter und chriftliche\nHerbergen. Da konnte der Wanderer auch ohne\nGeld übernachten und bekam zu effen und zu\ntrinten, fo viel er wollte. Und bann ftedte man\nihm erft noch eine Zehrung auf den Weg in die\nReisetasche. So war es im Mittelalter. Selbst\nMartin Luther stellt ihm das ehrende Zeugnis\naus: „Im Papfttum war jedermann barm=\nherzig und mild, da gab man mit beiben\nBanden fröhlich und mit großer Andacht.\"\nSpäter wurden bann die meiften Rlöfter aufge-\nhoben und den Urmen die Zufluchtsftätten ge-\nnommen. Rur wenige bestehen noch. Diese helfen,\nso viel fie konnen. Ich kenne ein Rapuziner-\nklofter — es ist in Luzern —, da wurden in einem\neinzigen Jahre 50 000 Portionen Suppe ausgeteilt.\nUnd so machen es auch die übrigen Männer= und\nFrauentlöfter. Nur ift ihre Zahl leider zu gering.\nUn vielen Orten giebt es gar teine mehr. Darum\nift ber arme Wanberer oft recht übel baran.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<b>—</b> 15 ·\nSchachteln und Packete, die nian mit fich führt,\nbesto bequemer und leichter geht die Reise. Man\nbekommt ja überall ums Gelb, was man braucht.\nAuch toftet ein Roffer, als Frachtgut geschickt, nicht\npiel.\nAber vier Gegenstände dürfen beim Reisegepack\nniemals fehlen: Das Gelb, ein Bag, einige\ngute Bücher und ein Teftfleib.\nI.\nChedem gab es überall Rlöfter und chriftliche\nHerbergen. Da konnte der Wanderer auch ohne\nGeld übernachten und bekam zu effen und zu\ntrinten, fo viel er wollte. Und bann ftedte man\nihm erft noch eine Zehrung auf den Weg in die\nReisetasche. So war es im Mittelalter. Selbst\nMartin Luther stellt ihm das ehrende Zeugnis\naus: „Im Papfttum war jedermann barm=\nherzig und mild, da gab man mit beiben\nBanden fröhlich und mit großer Andacht.\"\nSpäter wurden bann die meiften Rlöfter aufge-\nhoben und den Urmen die Zufluchtsftätten ge-\nnommen. Rur wenige bestehen noch. Diese helfen,\nso viel fie konnen. Ich kenne ein Rapuziner-\nklofter — es ist in Luzern —, da wurden in einem\neinzigen Jahre 50 000 Portionen Suppe ausgeteilt.\nUnd so machen es auch die übrigen Männer= und\nFrauentlöfter. Nur ift ihre Zahl leider zu gering.\nUn vielen Orten giebt es gar teine mehr. Darum\nift ber arme Wanberer oft recht übel baran."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 21946,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 209,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 326,
+            "completionTokens": 328,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 328
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n– 15 –\n\nSchachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man bekommt ja überall ums Geld, was man braucht. Auch kostet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nAber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festkleid.\n\nI.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wanderer auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrende Zeugnis aus: „Im Papsttum war jedermann barm-herzig und mild, da gab man mit beiden Händen fröhlich und mit großer Undacht.“ Später wurden dann die meisten Klöster aufge-hoben und den Armen die Zufluchtstätten ge-nommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuziner-Kloster – es ist in Luzern –, das wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. Und so machen es auch die übrigen Männer- und Frauenklöster. Nur ist ihre Zahl leider zu gering. An vielen Orten giebt es gar keine mehr. Darum ist der arme Wanderer oft recht übel daran.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "– 15 –\n\nSchachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man bekommt ja überall ums Geld, was man braucht. Auch kostet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nAber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festkleid.\n\nI.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wanderer auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrende Zeugnis aus: „Im Papsttum war jedermann barm-herzig und mild, da gab man mit beiden Händen fröhlich und mit großer Undacht.“ Später wurden dann die meisten Klöster aufge-hoben und den Armen die Zufluchtstätten ge-nommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuziner-Kloster – es ist in Luzern –, das wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. Und so machen es auch die übrigen Männer- und Frauenklöster. Nur ist ihre Zahl leider zu gering. An vielen Orten giebt es gar keine mehr. Darum ist der arme Wanderer oft recht übel daran."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 6734,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 206,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 1954,
+            "completionTokens": 311,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 1954,
+                "completionTokens": 311
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nSchachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man bekommt ja überall ums Geld, was man braucht. Auch kostet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nÜber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festkleid.\n\nI.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wandercr auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrenbe Wort aus: „Im Papsttum war jedermann barmherzig und mild, da gab man mit beiden Händen fröhlich und mit großer Unacht.\" \nSpäter wurden dann die meisten Klöster aufgehoben und den Armen die Zufluchtsstätten genommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuzinerkloster - es ist in Luzern - da wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. \nUnd so machen es auch die übrigen Männer- und Frauenklöster. Nur ist ihre Zahl leider zu gering. An vielen Orten giebt es gar keine mehr. Darum ist der arme Wandercr oft recht übel daran.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "Schachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man bekommt ja überall ums Geld, was man braucht. Auch kostet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nÜber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festkleid.\n\nI.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wandercr auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrenbe Wort aus: „Im Papsttum war jedermann barmherzig und mild, da gab man mit beiden Händen fröhlich und mit großer Unacht.\" \nSpäter wurden dann die meisten Klöster aufgehoben und den Armen die Zufluchtsstätten genommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuzinerkloster - es ist in Luzern - da wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. \nUnd so machen es auch die übrigen Männer- und Frauenklöster. Nur ist ihre Zahl leider zu gering. An vielen Orten giebt es gar keine mehr. Darum ist der arme Wandercr oft recht übel daran."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 8559,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 227,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<|ref|>text<|/ref|><|det|>[[115, 184, 815, 305]]<|/det|>\nSchachteln und Badete, die man mit sich führt,  desto bequemer und leichter geht die Reise.  Man  betonmt ja überall uns Geld, was man braucht.  Auch kostet ein Rosser, als Frachtgut geschickt, nicht  viel. \n\n<|ref|>text<|/ref|><|det|>[[115, 308, 815, 380]]<|/det|>\nAber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festfleid. \n\n<|ref|>sub_title<|/ref|><|det|>[[448, 395, 476, 416]]<|/det|>\n## I. \n\n<|ref|>text<|/ref|><|det|>[[115, 431, 815, 909]]<|/det|>\nEhedem gab es überall Klöfter und christliche  Herbergen. Da konnte der Wanderer auch ohne  Geld übernachten und bekam zu essen und zu  trinken, so viel er wollte. Und dann steckte man  ihm erst noch eine Zehrung auf den Weg in die  Reisetasche. So war es im Mittelalter. Selbst  Martin Suther stellt ihm das ehrende Zeugnis  aus: „Im Kapittum war jedermann barm-  herzig und mild, da gab man mit beiden  Händen fröhlich und mit großer Andacht.“  Später wurden dann die meisten Klöfter aufge-  hoben und den Armen die Zufluchtsstätten ge-  nommen. Nur wenige bestehen noch. Diese helfen,  so viel sie können. Ich kenne ein Kapuziner-  Kloster — es ist in Suçern —, da wurden in einem  einzigen Jahre 50 000 Portionen Suppe ausgeteilt.  Und so machen es auch die übrigen Männer- und  Frauenklöster. Nur ist ihre Zahl leider zu gering.  An vielen Orten giebt es gar keine mehr. Darum  ist der arme Wanderer oft recht übel daran.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<|ref|>text<|/ref|><|det|>[[115, 184, 815, 305]]<|/det|>\nSchachteln und Badete, die man mit sich führt,  desto bequemer und leichter geht die Reise.  Man  betonmt ja überall uns Geld, was man braucht.  Auch kostet ein Rosser, als Frachtgut geschickt, nicht  viel. \n\n<|ref|>text<|/ref|><|det|>[[115, 308, 815, 380]]<|/det|>\nAber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festfleid. \n\n<|ref|>sub_title<|/ref|><|det|>[[448, 395, 476, 416]]<|/det|>\n## I. \n\n<|ref|>text<|/ref|><|det|>[[115, 431, 815, 909]]<|/det|>\nEhedem gab es überall Klöfter und christliche  Herbergen. Da konnte der Wanderer auch ohne  Geld übernachten und bekam zu essen und zu  trinken, so viel er wollte. Und dann steckte man  ihm erst noch eine Zehrung auf den Weg in die  Reisetasche. So war es im Mittelalter. Selbst  Martin Suther stellt ihm das ehrende Zeugnis  aus: „Im Kapittum war jedermann barm-  herzig und mild, da gab man mit beiden  Händen fröhlich und mit großer Andacht.“  Später wurden dann die meisten Klöfter aufge-  hoben und den Armen die Zufluchtsstätten ge-  nommen. Nur wenige bestehen noch. Diese helfen,  so viel sie können. Ich kenne ein Kapuziner-  Kloster — es ist in Suçern —, da wurden in einem  einzigen Jahre 50 000 Portionen Suppe ausgeteilt.  Und so machen es auch die übrigen Männer- und  Frauenklöster. Nur ist ihre Zahl leider zu gering.  An vielen Orten giebt es gar keine mehr. Darum  ist der arme Wanderer oft recht übel daran."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 10463,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 215,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n- 15 -\nEchadteln und Badete, bie nian mit fich führt,\nbefto bequemer und leichter geht die Reife. Man\nbefonnt ja ierall uns Geb, was man braucht.\nLuch toffet ein Roffer, als Frauchtgt gehicht, nicht\ndiel.\nWer bier Gegenfänbe birfen beim Reifegepäd\nniemals fehlen: Das Geb. ein PaB, einige\ngute Bücher und ein Gefteib.\nI.\nGebem gab es iberall Röffter und griffilide\nGerbergen. Da fonnte ber Banbeerer und ohne\nGelb unbernaden un befam au effen anb ab 3u\ntrinten, fo biel er wollte. Unb bann fiefte man\nibm erft nod eine Behrung auf ben Beg in bie\nReifetafde. So mar es im Mittelalter. Gelbft\nMartin Suther fellt imh bas erbrene Beugnis\naus: \"Sm Baptium war jebermann barn-\nheraig und milb, ba gab man mit beiben\nGäber fraublich unb mit großer Unbächt.\"\nSpäter worten bann bie meifen Röfter aufge-\nhoben unb ben Rünen bie Buflütsfättten ge-\nnommen. Fur wenige befeften mod. Diefe beflen.\nfo biel fie fönnen. 3d fenne ein Rapuniner-\nHoffer - es if it in Sügeren -, ba wurden in einem\neingigen Sähre 50 000 Bortionien Guppte ausgeteif.\nUnb jo maden if auch bie ibrigen Männer- und\nFrauentföfter. Nur if ihre Sähl leiber au gering.\nIn bielen Orten gebt es gar feine mehr. Darum\nif ber arme Manbeerer off recht ibel baran.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "- 15 -\nEchadteln und Badete, bie nian mit fich führt,\nbefto bequemer und leichter geht die Reife. Man\nbefonnt ja ierall uns Geb, was man braucht.\nLuch toffet ein Roffer, als Frauchtgt gehicht, nicht\ndiel.\nWer bier Gegenfänbe birfen beim Reifegepäd\nniemals fehlen: Das Geb. ein PaB, einige\ngute Bücher und ein Gefteib.\nI.\nGebem gab es iberall Röffter und griffilide\nGerbergen. Da fonnte ber Banbeerer und ohne\nGelb unbernaden un befam au effen anb ab 3u\ntrinten, fo biel er wollte. Unb bann fiefte man\nibm erft nod eine Behrung auf ben Beg in bie\nReifetafde. So mar es im Mittelalter. Gelbft\nMartin Suther fellt imh bas erbrene Beugnis\naus: \"Sm Baptium war jebermann barn-\nheraig und milb, ba gab man mit beiben\nGäber fraublich unb mit großer Unbächt.\"\nSpäter worten bann bie meifen Röfter aufge-\nhoben unb ben Rünen bie Buflütsfättten ge-\nnommen. Fur wenige befeften mod. Diefe beflen.\nfo biel fie fönnen. 3d fenne ein Rapuniner-\nHoffer - es if it in Sügeren -, ba wurden in einem\neingigen Sähre 50 000 Bortionien Guppte ausgeteif.\nUnb jo maden if auch bie ibrigen Männer- und\nFrauentföfter. Nur if ihre Sähl leiber au gering.\nIn bielen Orten gebt es gar feine mehr. Darum\nif ber arme Manbeerer off recht ibel baran."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 15566,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 212,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n\\title{\n15 -\n}\nEchadteIn und Badete, bie nian mit fid führt,\nbefio bequemer und feidter geht bie Rteite. Mitan\nbetonmt ja überall uns Selb, was man braucht.\nLudt foftet ein Roffer, als Fradhtgut gefididt, nidit\nbiel.\nLiber bier Segenftanbe birfen beim Riefegpädt\nniemals fehlen: Das Selb, ein BaB, einige\ngute Bühder und ein Feiftleib.\nI.\nGhebem gab es überall Röfter umb driftlide\nBerbergen. Sa fonnte der BÄnberer aud ohne\nSelb übernadten unb feham au elfen unb au\ntrinfen, fo biel er mollte. Und bann ftedte man\nihm erift nodh eine 3ehrung auf ben 2Beg in bie\nRiefetafde. Co mar es im Mittelalter. Selbft\nRartin Suther ffeilt ihm bas ehrenbe Sequnis\naus: \"Sm Bapittum war jebermann barn-\nherzig unb milb, ba gab man mit beiden\nSänben fröblid und mit großer undadt.\"\nCpater mubren bann bie meiften Röfter aufge=\nhoben und ben 3rmen bie Sulfudtstätten ge=\nnommen. Nur menige beftehen nod. Diefe helfen,\nfo biel fie fönnen. 3d9 fenne ein Rapujäner-\nflöfter - es ift in Sujern -, ba mubren in einem\neinlägen Sahre 50000 Bortionen Suppe ausgeteitf.\nUnd jo machen es aud bie übrigen Dänner-und\nGrauentflöfter. Nur ift ihre 3ahl feiber au gering.\nAn bielen Orten giebt es gar feine mehr. Darum\nift ber arme Bamberer oft redt übel baran.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\\title{\n15 -\n}\nEchadteIn und Badete, bie nian mit fid führt,\nbefio bequemer und feidter geht bie Rteite. Mitan\nbetonmt ja überall uns Selb, was man braucht.\nLudt foftet ein Roffer, als Fradhtgut gefididt, nidit\nbiel.\nLiber bier Segenftanbe birfen beim Riefegpädt\nniemals fehlen: Das Selb, ein BaB, einige\ngute Bühder und ein Feiftleib.\nI.\nGhebem gab es überall Röfter umb driftlide\nBerbergen. Sa fonnte der BÄnberer aud ohne\nSelb übernadten unb feham au elfen unb au\ntrinfen, fo biel er mollte. Und bann ftedte man\nihm erift nodh eine 3ehrung auf ben 2Beg in bie\nRiefetafde. Co mar es im Mittelalter. Selbft\nRartin Suther ffeilt ihm bas ehrenbe Sequnis\naus: \"Sm Bapittum war jebermann barn-\nherzig unb milb, ba gab man mit beiden\nSänben fröblid und mit großer undadt.\"\nCpater mubren bann bie meiften Röfter aufge=\nhoben und ben 3rmen bie Sulfudtstätten ge=\nnommen. Nur menige beftehen nod. Diefe helfen,\nfo biel fie fönnen. 3d9 fenne ein Rapujäner-\nflöfter - es ift in Sujern -, ba mubren in einem\neinlägen Sahre 50000 Bortionen Suppe ausgeteitf.\nUnd jo machen es aud bie übrigen Dänner-und\nGrauentflöfter. Nur ift ihre 3ahl feiber au gering.\nAn bielen Orten giebt es gar feine mehr. Darum\nift ber arme Bamberer oft redt übel baran."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 8305,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 207,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nSchachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man bekommt ja überall ums Geld, was man braucht. Auch kostet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nAber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festkleid.\n\n# I.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wanderer auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrende Zeugnis aus: „Im Papsttum war jedermann barmherzig und mild, da gab man mit beiden Händen fröhlich und mit großer Andacht.“ Später wurden dann die meisten Klöster aufgehoben und den Armen die Zufluchtsstätten genommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuzinerkloster — es ist in Luzern —, da wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. Und so machen es auch die übrigen Männer- und Frauenklöster. Nur ist ihre Zahl leider zu gering. An vielen Orten giebt es gar keine mehr. Darum ist der arme Wanderer oft recht übel daran.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\nSchachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man bekommt ja überall ums Geld, was man braucht. Auch kostet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nAber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Festkleid.\n\n# I.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wanderer auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrende Zeugnis aus: „Im Papsttum war jedermann barmherzig und mild, da gab man mit beiden Händen fröhlich und mit großer Andacht.“ Später wurden dann die meisten Klöster aufgehoben und den Armen die Zufluchtsstätten genommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuzinerkloster — es ist in Luzern —, da wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. Und so machen es auch die übrigen Männer- und Frauenklöster. Nur ist ihre Zahl leider zu gering. An vielen Orten giebt es gar keine mehr. Darum ist der arme Wanderer oft recht übel daran."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5141,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 211,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 1265,
+            "completionTokens": 322,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 1265,
+                "completionTokens": 322
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n```\n- 15 -\n\nSchachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man befindet ja überall ums Geld, was man braucht. Auch foistet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nÜber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Feitfleisch.\n\nI.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wanderer auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrende Zeugnis aus: \"Im Papsttum war jedermann barmherzig und mild, da gab man mit beiden Händen fröhlich und mit großer Andacht.\" Später wurden dann die meisten Klöster aufgehoben und den Armen die Zufluchtsstätten genommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuzinerkloster - es ist in Luzern -, da wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. Und so machen es auch die übrigen Männer- und Frauentlöster. Nur ist ihre Zahl leider zu gering. An vielen Orten gibt es gar keine mehr. Darum ist der arme Wanderer oft recht übel dran.\n```",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "```\n- 15 -\n\nSchachteln und Packete, die man mit sich führt, desto bequemer und leichter geht die Reise. Man befindet ja überall ums Geld, was man braucht. Auch foistet ein Koffer, als Frachtgut geschickt, nicht viel.\n\nÜber vier Gegenstände dürfen beim Reisegepäck niemals fehlen: Das Geld, ein Paß, einige gute Bücher und ein Feitfleisch.\n\nI.\n\nEhedem gab es überall Klöster und christliche Herbergen. Da konnte der Wanderer auch ohne Geld übernachten und bekam zu essen und zu trinken, so viel er wollte. Und dann steckte man ihm erst noch eine Zehrung auf den Weg in die Reisetasche. So war es im Mittelalter. Selbst Martin Luther stellt ihm das ehrende Zeugnis aus: \"Im Papsttum war jedermann barmherzig und mild, da gab man mit beiden Händen fröhlich und mit großer Andacht.\" Später wurden dann die meisten Klöster aufgehoben und den Armen die Zufluchtsstätten genommen. Nur wenige bestehen noch. Diese helfen, so viel sie können. Ich kenne ein Kapuzinerkloster - es ist in Luzern -, da wurden in einem einzigen Jahre 50 000 Portionen Suppe ausgeteilt. Und so machen es auch die übrigen Männer- und Frauentlöster. Nur ist ihre Zahl leider zu gering. An vielen Orten gibt es gar keine mehr. Darum ist der arme Wanderer oft recht übel dran.\n```"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
           }
         }
       ]

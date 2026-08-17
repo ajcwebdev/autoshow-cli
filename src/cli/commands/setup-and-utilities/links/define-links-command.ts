@@ -1,6 +1,7 @@
 import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { createHash } from 'node:crypto'
-import { basename, extname } from 'node:path'
+import { basename, extname, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
 import { runFirecrawlUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/firecrawl/run-firecrawl-url'
 import { defineCliCommand } from '~/cli/native/native-types'
@@ -8,6 +9,7 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import type { CliCommandContext, CliFlagsDefinition, CliParseResult, FetchFn, FetchUrlResult, LinksChangeStatus, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode, ModelLinksData, RunLinksOptions } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import * as l from '~/utils/app-logger/app-logger'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { countReferenceTokens, REFERENCE_TOKENIZER_METADATA } from '~/utils/reference-tokenizer'
@@ -17,7 +19,7 @@ import { LINKS_FETCH_TIMEOUT_MS } from '~/utils/timeouts'
 import modelLinks from './model-links'
 
 const data = modelLinks as ModelLinksData
-const LINKS_OUTPUT_DIR = new URL('../../../../../project/links/', import.meta.url)
+const LINKS_OUTPUT_DIR = pathToFileURL(`${resolve(PROJECT_ROOT, 'project/links')}/`)
 const HTML_MIME_HINTS = ['text/html', 'application/xhtml+xml'] as const
 const normalizeTokens = (tokens: string[]): string[] => [...new Set(tokens.map(token => token.toLowerCase()))].sort()
 const isHtmlContentType = (contentType: string): boolean =>

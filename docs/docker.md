@@ -37,43 +37,46 @@ docker build \
 
 ## Run
 
-The Docker entrypoint is the CLI itself, so pass AutoShow arguments directly:
+Use one of the two supported command surfaces directly:
 
 ```bash
+# Native checkout
+bun autoshow --version
+bun autoshow extract content/book/book.epub
+
+# Docker image
 docker run --rm autoshow-cli:local --version
 docker run --rm autoshow-cli:local help extract
 ```
 
-### Recommended: an `autoshow` wrapper that mirrors the native CLI
+The image entrypoint is the CLI, so arguments after the image name are AutoShow arguments. There is no additional project command layer.
 
-The cleanest way to use the image is to run commands **exactly** the way you run native `bun autoshow`: from whatever directory your files live in, with relative or host-absolute paths beneath that directory, and output in `./output`.
+### Mount the current working directory
 
-The wrapper bind-mounts the current host directory at the identical absolute path inside the container and uses it as the container working directory. Relative paths, host-absolute paths beneath the current directory, paths containing spaces, absolute output paths beneath the current directory, and the default `./output` root therefore resolve just like they do locally, without argument rewriting or per-file mounts. The repo ships `scripts/autoshow-docker.sh`; add a shell function so it is available as `autoshow` from anywhere:
-
-```sh
-# ~/.zshrc (or ~/.bashrc)
-autoshow() {
-  local repo="${AUTOSHOW_REPO:-$HOME/c/autoshow-cli}"
-  AUTOSHOW_ENV="${AUTOSHOW_ENV:-$repo/.env}" \
-    "$repo/scripts/autoshow-docker.sh" "$@"
-}
-```
-
-Now, from any project directory (for example one whose books live under `content/`):
+For file-based commands, mount the current directory at `/workspace` and make it the container working directory. Pass paths relative to that directory, and the default `./output` directory will be written back to the host:
 
 ```bash
-autoshow extract content/book/book.epub
-autoshow extract "$PWD/content/book/book.epub"
-autoshow tts content/book/text/chapter-00.txt --provider grok
+docker run --rm -i \
+  --mount "type=bind,src=$PWD,dst=/workspace" \
+  --workdir /workspace \
+  autoshow-cli:local extract content/book/book.epub
 ```
 
-The file is read from your current directory exactly as written, and output is written to `./output` next to where you ran the command—identical to the native CLI. Only the current directory is mounted; for a source outside it, change to a common ancestor before invoking `autoshow`. `AUTOSHOW_ENV` points at the `.env` with your provider credentials (defaults to the autoshow-cli checkout); `AUTOSHOW_IMAGE` overrides the image tag.
+Only the mounted directory is visible. If a source is outside it, run from a common ancestor or add another explicit mount. Paths are interpreted inside the container, so do not pass an unmounted host-absolute path.
 
-On Linux, add `--user "$(id -u):$(id -g)"` to the wrapper so files written to `./output` are owned by you rather than the container's `bun` user.
+On Linux, add `--user "$(id -u):$(id -g)"` to the direct `docker run` command when output should be owned by your host user:
 
-### Advanced: explicit `/app/...` mounts
+```bash
+docker run --rm -i \
+  --user "$(id -u):$(id -g)" \
+  --mount "type=bind,src=$PWD,dst=/workspace" \
+  --workdir /workspace \
+  autoshow-cli:local extract content/book/book.epub
+```
 
-You can also mount input and output paths explicitly. The CLI resolves relative paths against the container workdir (`/app`), so an argument like `content/book/chapter.txt` is read from `/app/content/...`. If you mount `$PWD/content` to `/app/input`, address the file by its **in-container** path (`input/book/chapter.txt`)—passing `content/book/chapter.txt` looks under `/app/content`, where nothing is mounted, and fails (often as a misleading `Could not classify`/`Input does not exist` error). The `autoshow` wrapper above avoids this path-translation mismatch for files beneath the directory where it is invoked.
+### Separate input and output mounts
+
+You can instead mount input and output paths explicitly. The CLI resolves relative paths against the container workdir (`/app`), so an argument like `input/book/book.epub` reads `/app/input/book/book.epub`. If `$PWD/content` is mounted at `/app/input`, pass the in-container path under `input/`; an unmounted host path will not resolve.
 
 ```bash
 docker run --rm \

@@ -108,6 +108,7 @@ export const buildDocumentMetadataPayload = (
   }
 
   const estimatedTiming = computeEstimatedProcessingTimes({
+    concurrencyMode: options.concurrencyMode,
     extractTargets: extractTargets.map((target) => ({
       provider: target.provider,
       model: target.model,

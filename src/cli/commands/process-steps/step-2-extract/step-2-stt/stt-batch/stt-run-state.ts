@@ -18,7 +18,6 @@ import {
 
 const STT_SERVICES = new Set<SttTarget['service']>([
   'whisper',
-  'reverb',
   'deepgram',
   'deepinfra',
   'soniox',

@@ -1,5 +1,4 @@
 import { buildProviderStepSummaries } from '~/cli/commands/process-steps/generation-command-utils'
-import { buildTimingProviderModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-prompt'
 import type { BuildWriteStepSummariesContext, StepTimingCost } from '~/types'
 
 export const buildWriteStepSummaries = (ctx: BuildWriteStepSummariesContext): StepTimingCost[] => {
@@ -19,9 +18,6 @@ export const buildWriteStepSummaries = (ctx: BuildWriteStepSummariesContext): St
     step2Entries,
     actualSteps,
     (entry) => {
-      if (entry.transcriptionService === 'reverb') {
-        return buildTimingProviderModelLabel(entry)
-      }
       const displayService = entry.transcriptionService === 'whisper' ? 'whisper.cpp' : entry.transcriptionService
       const displayModel = entry.transcriptionService === 'whisper'
         ? (processingOptions.whisperModel ?? entry.transcriptionModel)

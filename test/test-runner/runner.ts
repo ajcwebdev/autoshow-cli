@@ -1,4 +1,5 @@
-import { appendFile } from 'node:fs/promises'
+import { appendFile, mkdir } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import type {
   BudgetPreflightResult,
   BudgetPreflightSummary,
@@ -10,7 +11,7 @@ import type {
   RunnerStreamLabel,
   TestRunArtifacts
 } from '~/types'
-import { isE2EOnlyTestSelection, parseRunnerArgs, withDefaultTestConcurrency } from './args'
+import { buildBunTestFlags, isE2EOnlyTestSelection, parseRunnerArgs } from './args'
 import {
   appendRunnerLog,
   appendCommandLog,
@@ -23,7 +24,6 @@ import {
 } from './artifacts'
 import { readMetrics, parseJunit } from './parsers'
 import {
-  evaluatePriceObservationGroup,
   evaluatePriceObservations,
   groupCommandsByKey,
   toObservation,
@@ -31,11 +31,17 @@ import {
 import { resolvePriceSelection } from './price-commands/resolve'
 import { buildPriceReportData } from './reports/price-report'
 import { buildTestReportData } from './reports/test-report'
-import { formatTimedOutputPrefix, normalizeRepoPath, parseCommandEstimatedTotal } from './utils'
+import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath, parseCommandEstimatedTotal } from './utils'
 import { buildModelCalibrationReport } from './model-calibration'
-import { resolveSelectedFiles } from './path-selection'
+import { orderTestFiles, resolveSelectedFiles } from './path-selection'
 import { withEmptyPriceConfig } from './price-command-config'
-import { E2E_TEST_TIMEOUT_MS } from '../test-utils/timeouts'
+import {
+  argvKeyFor,
+  hashBudgetPreflightInputs,
+  readBudgetPreflightCache,
+  writeBudgetPreflightCache
+} from './budget-preflight-cache'
+import { recordFileTimings, readFileTimings } from './file-timings'
 import { l } from '~/utils/app-logger/app-logger'
 import { formatCost } from '~/utils/app-logger/formatters'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
@@ -44,6 +50,29 @@ const budgetHundredthCentsToCents = (budgetHundredthCents: number): number => bu
 const formatBudgetHundredthCents = (budgetHundredthCents: number): string => formatCost(budgetHundredthCentsToCents(budgetHundredthCents))
 
 const PRICE_CONCURRENCY = 25
+const TEST_CLI_BUNDLE_PATH = resolve(process.cwd(), 'project/test-output/.test-cache/cli.js')
+
+const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promise<void> => {
+  await mkdir(resolve(process.cwd(), 'project/test-output/.test-cache'), { recursive: true })
+  const commandText = `bun build src/cli/create-cli.ts --target=bun --outfile ${TEST_CLI_BUNDLE_PATH}`
+  await appendRunnerLog(artifacts, `\n=== PREBUILD CLI ${commandText} ===\n`)
+  const proc = Bun.spawn(['bun', 'build', 'src/cli/create-cli.ts', '--target=bun', '--outfile', TEST_CLI_BUNDLE_PATH], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited
+  ])
+  await appendRunnerLog(artifacts, `exit: ${exitCode}\nstdout:\n${stdout}\nstderr:\n${stderr}\n`)
+  if (exitCode !== 0) {
+    throw new Error(`Failed to prebuild test CLI bundle (exit ${exitCode}): ${stderr || stdout}`)
+  }
+  process.env['AUTOSHOW_TEST_CLI_BUNDLE'] = TEST_CLI_BUNDLE_PATH
+  process.env['AUTOSHOW_PROJECT_ROOT'] = process.cwd()
+  l.write('info', `Prebuilt test CLI bundle: ${normalizeRepoPath(TEST_CLI_BUNDLE_PATH)}`)
+}
 
 const runWithConcurrency = async <T, R>(
   items: T[],
@@ -93,7 +122,7 @@ const installTimestampedConsole = (_startedAtMs?: number): void => {
         return
       }
       if (typeof args[0] === 'string') {
-        if (/^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/.test(args[0])) {
+        if (lineHasTimedOutputPrefix(args[0])) {
           original(...args)
           return
         }
@@ -119,7 +148,11 @@ const executePriceCommand = async (
 ): Promise<ExecutedPriceCommand> => {
   const start = Date.now()
   const priceOutputRoot = `${artifacts.runDir}/outputs/price`
-  const cliArgs = [...entry.args, '--output-root', priceOutputRoot]
+  const spawnArgs = [...entry.args, '--output-root', priceOutputRoot]
+  const bundle = process.env['AUTOSHOW_TEST_CLI_BUNDLE']?.trim()
+  const cliArgs = bundle && spawnArgs[0] === 'src/cli/create-cli.ts'
+    ? [bundle, ...spawnArgs.slice(1)]
+    : spawnArgs
   const commandText = `bun --env-file=.env ${cliArgs.join(' ')}`
   const proc = Bun.spawn(['bun', '--env-file=.env', ...cliArgs], {
     env: {
@@ -205,17 +238,18 @@ const forwardSpawnOutput = async (
   const writer = label === 'STDOUT' ? process.stdout : process.stderr
   let buffered = ''
 
-  const flushLine = async (line: string): Promise<void> => {
+  const flushLine = (line: string): void => {
     if (line.length === 0) {
       return
     }
 
     const prefix = formatTimedOutputPrefix(Date.now())
-    writer.write(`${prefix} ${line}`)
-    await appendRunnerLog(artifacts, `${prefix} [${label}] ${line}`)
+    const output = lineHasTimedOutputPrefix(line) ? line : `${prefix} ${line}`
+    writer.write(output)
+    appendRunnerLog(artifacts, lineHasTimedOutputPrefix(line) ? `[${label}] ${line}` : `${prefix} [${label}] ${line}`)
   }
 
-  const flushBuffered = async (force: boolean): Promise<void> => {
+  const flushBuffered = (force: boolean): void => {
     while (true) {
       const newlineIndex = buffered.indexOf('\n')
       if (newlineIndex === -1) {
@@ -224,11 +258,11 @@ const forwardSpawnOutput = async (
 
       const line = buffered.slice(0, newlineIndex + 1)
       buffered = buffered.slice(newlineIndex + 1)
-      await flushLine(line)
+      flushLine(line)
     }
 
     if (force && buffered.length > 0) {
-      await flushLine(buffered)
+      flushLine(buffered)
       buffered = ''
     }
   }
@@ -238,7 +272,7 @@ const forwardSpawnOutput = async (
       const { done, value } = await reader.read()
       if (done) break
       buffered += decoder.decode(value, { stream: true })
-      await flushBuffered(false)
+      flushBuffered(false)
     }
 
     const tail = decoder.decode()
@@ -246,7 +280,7 @@ const forwardSpawnOutput = async (
       buffered += tail
     }
 
-    await flushBuffered(true)
+    flushBuffered(true)
   } finally {
     reader.releaseLock()
   }
@@ -262,9 +296,7 @@ const runBunTest = async (
 ): Promise<number> => {
   const args = [
     'test',
-    '--timeout',
-    String(E2E_TEST_TIMEOUT_MS),
-    ...withDefaultTestConcurrency(passthroughArgs),
+    ...buildBunTestFlags(files, passthroughArgs),
     '--reporter',
     'junit',
     '--reporter-outfile',
@@ -287,6 +319,9 @@ const runBunTest = async (
   childEnv['AUTOSHOW_TEST_METRICS_LOG'] = artifacts.metricsLogPath
   childEnv['AUTOSHOW_TEST_PRESERVE_ARTIFACTS'] = preserveTestOutput ? '1' : '0'
   childEnv['AUTOSHOW_TEST_ADAPTIVE_E2E_SELECTION'] = isE2EOnlyTestSelection(files) ? '1' : '0'
+  if (isE2EOnlyTestSelection(files)) {
+    childEnv['AUTOSHOW_TEST_CONCURRENT'] ??= '1'
+  }
   childEnv['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY'] = envOverrides['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY']
     ?? childEnv['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY']
     ?? '1'
@@ -409,16 +444,48 @@ const runBudgetPreflight = async (
   l.write('info', `Running ${suiteName} budget preflight across ${groupedCommands.length} test key(s) (${executionCommands.length} command variant(s))`)
   l.write('info', `Budget: ${formatBudgetHundredthCents(budgetHundredthCents)}`)
 
-  // Execute all commands concurrently, preserving group/variant structure
   const allVariants = groupedCommands.flatMap((group, groupIndex) =>
     group.variants.map((entry, variantIndex) => ({ entry, groupIndex, variantIndex }))
   )
+  const fingerprint = await hashBudgetPreflightInputs(executionCommands)
+  const cache = await readBudgetPreflightCache(fingerprint)
+  const hits: Array<typeof allVariants[number] & { executed: ExecutedPriceCommand, observation: PriceCommandObservation }> = []
+  const misses = allVariants.filter((item) => {
+    const cachedCost = cache.get(argvKeyFor(item.entry.args))
+    if (cachedCost === undefined) {
+      return true
+    }
+    const executed = {
+      commandText: item.entry.args.join(' '),
+      stdout: '',
+      stderr: '',
+      exitCode: 0,
+      durationMs: 0,
+      parsedCost: cachedCost
+    }
+    hits.push({
+      ...item,
+      executed,
+      observation: toObservation(item.entry, executed)
+    })
+    return false
+  })
 
-  const executedVariants = await runWithConcurrency(allVariants, PRICE_CONCURRENCY, async (item) => {
+  l.write('info', `Budget preflight cache: ${hits.length} hit(s), ${misses.length} miss(es)`)
+
+  const executedMisses = await runWithConcurrency(misses, PRICE_CONCURRENCY, async (item) => {
     const executed = await executePriceCommand(item.entry, artifacts, 'BUDGET PREFLIGHT COMMAND')
     const observation = toObservation(item.entry, executed)
     return { ...item, executed, observation }
   })
+  const executedVariants = [...hits, ...executedMisses]
+  const nextCache = new Map(cache)
+  for (const result of executedMisses) {
+    if (result.executed.exitCode === 0 && result.executed.parsedCost !== null) {
+      nextCache.set(argvKeyFor(result.entry.args), result.executed.parsedCost)
+    }
+  }
+  await writeBudgetPreflightCache(fingerprint, nextCache)
 
   // Rebuild per-group results and log in original order
   const groupResults = new Map<number, { executed: ExecutedPriceCommand, observation: PriceCommandObservation, variantIndex: number }[]>()
@@ -437,10 +504,8 @@ const runBudgetPreflight = async (
     const variants = groupResults.get(index) ?? []
     variants.sort((a, b) => a.variantIndex - b.variantIndex)
 
-    const groupObservations: PriceCommandObservation[] = []
     for (const { executed, observation, variantIndex } of variants) {
       observations.push(observation)
-      groupObservations.push(observation)
 
       if (observation.failureMessage !== null) {
         logPriceCommandFailure(
@@ -450,24 +515,6 @@ const runBudgetPreflight = async (
       }
     }
 
-    const groupEvaluation = evaluatePriceObservationGroup(group.key, groupObservations, budgetHundredthCents)
-    if (groupEvaluation.variantCostsCents.length === 0 || groupEvaluation.selectedCostCents === null) {
-      continue
-    }
-
-    const decisionText = groupEvaluation.overBudget ? 'SKIP (over budget)' : 'RUN'
-    if (group.variants.length === 1) {
-      l.write('info', `[${index + 1}/${groupedCommands.length}] ${group.key} — decision: ${decisionText} (cost: ${formatCost(groupEvaluation.selectedCostCents)})`)
-    } else {
-      l.write('info', `[${index + 1}/${groupedCommands.length}] ${group.key} (${group.variants.length} variants)`)
-      for (const { observation, variantIndex } of variants) {
-        if (observation.failureMessage === null) {
-          l.write('info', `  variant ${variantIndex + 1}/${group.variants.length}: ${formatCost(observation.costCents as number)}`)
-        }
-      }
-      l.write('info', `  selected cost (max variant): ${formatCost(groupEvaluation.selectedCostCents)}`)
-      l.write('info', `  decision: ${decisionText}`)
-    }
   }
 
   const evaluation = evaluatePriceObservations(suiteName, observations, budgetHundredthCents)
@@ -505,13 +552,54 @@ const runBudgetPreflight = async (
   }
 }
 
+type HeadBudgetResult = {
+  summary: BudgetPreflightSummary | undefined
+  skipKeys: string[]
+  evaluatedKeys: string[]
+}
+
+const EMPTY_BUDGET_HEAD: HeadBudgetResult = {
+  summary: undefined,
+  skipKeys: [],
+  evaluatedKeys: [],
+}
+
+const prepareBudgetPreflight = async (
+  args: RunnerArgs,
+  allFiles: string[],
+  artifacts: TestRunArtifacts
+): Promise<HeadBudgetResult> => {
+  if (args.priceMode || args.budgetHundredthCents === undefined) {
+    return EMPTY_BUDGET_HEAD
+  }
+
+  const resolved = resolvePriceSelection(allFiles, args.pathFilters, { budgetSkippableOnly: true })
+  if (resolved.commands.length === 0) {
+    l.write('info', 'No budget-skippable pricing commands resolved for --budget preflight; any selected budgeted tests will fail closed as unevaluated')
+    return {
+      summary: buildEmptyBudgetSummary(resolved.suiteName, args.budgetHundredthCents),
+      skipKeys: [],
+      evaluatedKeys: [],
+    }
+  }
+
+  const preflight = await runBudgetPreflight(resolved.suiteName, resolved.commands, args.budgetHundredthCents, artifacts)
+  return {
+    summary: preflight.summary,
+    skipKeys: preflight.skipKeys,
+    evaluatedKeys: preflight.evaluatedKeys,
+  }
+}
+
 const runStandardTestMode = async (
   args: RunnerArgs,
   allFiles: string[],
   artifacts: TestRunArtifacts,
-  argv: string[]
+  argv: string[],
+  budgetHead: HeadBudgetResult
 ): Promise<number> => {
-  const filesToRun = resolveSelectedFiles(allFiles, args.pathFilters)
+  const fileTimings = await readFileTimings()
+  const filesToRun = orderTestFiles(resolveSelectedFiles(allFiles, args.pathFilters), fileTimings.fileP50)
 
   if (args.pathFilters.length === 0) {
     l.write('info', `Running all discovered tests (${filesToRun.length} files)`)
@@ -519,21 +607,9 @@ const runStandardTestMode = async (
     l.write('info', `Running selected tests (${filesToRun.length} files from ${args.pathFilters.length} path filter${args.pathFilters.length === 1 ? '' : 's'})`)
   }
 
-  let budgetSummary: BudgetPreflightSummary | undefined
-  let budgetSkipKeys: string[] = []
-  let budgetEvaluatedKeys: string[] = []
-  if (args.budgetHundredthCents !== undefined) {
-    const resolved = resolvePriceSelection(allFiles, args.pathFilters, { budgetSkippableOnly: true })
-    if (resolved.commands.length === 0) {
-      l.write('info', 'No budget-skippable pricing commands resolved for --budget preflight; any selected budgeted tests will fail closed as unevaluated')
-      budgetSummary = buildEmptyBudgetSummary(resolved.suiteName, args.budgetHundredthCents)
-    } else {
-      const preflight = await runBudgetPreflight(resolved.suiteName, resolved.commands, args.budgetHundredthCents, artifacts)
-      budgetSummary = preflight.summary
-      budgetSkipKeys = preflight.skipKeys
-      budgetEvaluatedKeys = preflight.evaluatedKeys
-    }
-  }
+  const budgetSummary = budgetHead.summary
+  const budgetSkipKeys = budgetHead.skipKeys
+  const budgetEvaluatedKeys = budgetHead.evaluatedKeys
 
   const budgetEnvOverrides: Record<string, string> = {}
   if (args.budgetHundredthCents !== undefined) {
@@ -559,6 +635,7 @@ const runStandardTestMode = async (
   const endedAtIso = new Date().toISOString()
   const endedAtMs = Date.now()
   const reportData = await buildTestReportData(junitCases, metrics, artifacts, endedAtIso, endedAtMs, argv.slice(2), budgetSummary)
+  await recordFileTimings(junitCases)
   await writeReportJson(artifacts, reportData)
   if (typeof reportData['e2e'] === 'object' && reportData['e2e'] !== null) {
     await writeJsonFile(artifacts.e2eReportJsonPath, reportData['e2e'] as Record<string, unknown>)
@@ -614,16 +691,21 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   const allFiles = (await Array.fromAsync(glob.scan({ dot: false }))).sort()
 
   const artifacts = await createRunArtifacts()
-  if (!args.preserveTestOutput) {
-    await cleanupTestOutputRoot(artifacts.rootDir, {
-      keepRunDir: artifacts.runDir,
-      preserveActiveRuns: true,
-    })
-  }
   installTimestampedConsole(artifacts.startedAtMs)
   l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`)
 
-  await appendRunnerLog(
+  const [, , budgetHead] = await Promise.all([
+    args.preserveTestOutput
+      ? Promise.resolve()
+      : cleanupTestOutputRoot(artifacts.rootDir, {
+          keepRunDir: artifacts.runDir,
+          preserveActiveRuns: true,
+        }),
+    prebuildTestCliBundle(artifacts),
+    prepareBudgetPreflight(args, allFiles, artifacts),
+  ])
+
+  appendRunnerLog(
     artifacts,
     `Run ID: ${artifacts.runId}\nStarted: ${artifacts.startedAtIso}\nArgs: ${argv.slice(2).join(' ')}\n`
   )
@@ -632,7 +714,7 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   try {
     exitCode = args.priceMode
       ? await runPriceMode(args, allFiles, artifacts, argv)
-      : await runStandardTestMode(args, allFiles, artifacts, argv)
+      : await runStandardTestMode(args, allFiles, artifacts, argv, budgetHead)
   } catch (error) {
     exitCode = 1
     const endedAtIso = new Date().toISOString()

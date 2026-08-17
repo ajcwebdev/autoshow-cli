@@ -12,14 +12,80 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 0.18,
-    "pageDisagreementQ1": 0.080066,
-    "pageDisagreementQ3": 0.080066
+    "highDisagreement": 14.302569,
+    "pageDisagreementQ1": 14.302569,
+    "pageDisagreementQ3": 14.302569
   },
   "blankOutputPages": [],
   "repeatedTextPages": [],
-  "majorLengthDriftPages": [],
-  "highDisagreementPages": [],
-  "werCerDivergencePages": [],
-  "lowConfidencePages": []
+  "majorLengthDriftPages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 2.796081,
+          "tokenCount": 5231
+        },
+        {
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "lengthDrift": 0.41074,
+          "tokenCount": 812
+        },
+        {
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "lengthDrift": 0.987663,
+          "tokenCount": 17
+        }
+      ]
+    }
+  ],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 14.302569,
+      "selectedProviderKey": "fal/fal-ai/got-ocr/v2",
+      "selectedConfidence": 0
+    }
+  ],
+  "werCerDivergencePages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 12.158592,
+          "cer": 12.44674
+        },
+        {
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "wer": 10.281913,
+          "cer": 10.513392
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 47.4126,
+          "cer": 42.19081
+        },
+        {
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "wer": 7.554689,
+          "cer": 7.133581
+        },
+        {
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 12.931566,
+          "cer": 13.253731
+        }
+      ]
+    }
+  ],
+  "lowConfidencePages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "fal/fal-ai/got-ocr/v2",
+      "selectedConfidence": 0,
+      "pageDisagreement": 14.302569
+    }
+  ]
 }

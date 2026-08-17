@@ -50,7 +50,7 @@ describe('multi-location comic contracts', () => {
       '',
       'A long corridor.',
     ].join('\n'), 'input/move.md', { locationCatalog: catalog, characterCatalog: emptyCharacterCatalog })
-    expect(structured.schemaVersion).toBe(4)
+    expect(structured.schemaVersion).toBe(5)
     expect(structured.scene.location.key).toBe('quarters')
     expect(structured.beats.map(beat => beat.location.key)).toEqual(['quarters', 'hallway', 'hallway'])
     expect(structured.sourceSegments.map(segment => segment.location.key)).toEqual(['quarters', 'hallway', 'hallway'])
@@ -65,6 +65,16 @@ describe('multi-location comic contracts', () => {
       locations: [...catalog.locations, { key: 'other-hallway', name: 'Other', aliases: ['ship upper deck hallway'], specification: 'Other.', sourceScripts: [] }],
     }
     expect(() => resolveLocationCatalogEntry('SHIP UPPER DECK HALLWAY', ambiguous)).toThrow(/ambiguous.*hallway.*other-hallway/)
+
+    const typed = {
+      ...catalog,
+      locations: [
+        { key: 'base-exterior', name: 'Base Exterior', aliases: ['EXT. AIM BASE — CONTINUOUS'], specification: 'Test.', sourceScripts: [] },
+        { key: 'base-interior', name: 'Base Interior', aliases: ['INT. AIM BASE — CONTINUOUS'], specification: 'Test.', sourceScripts: [] },
+      ],
+    }
+    expect(resolveLocationCatalogEntry('EXT. AIM BASE — CONTINUOUS', typed).key).toBe('base-exterior')
+    expect(resolveLocationCatalogEntry('INT. AIM BASE — CONTINUOUS', typed).key).toBe('base-interior')
   })
 
   test('requires panel locationKey to match one source location and rejects transition-spanning panels', () => {

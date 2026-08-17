@@ -96,7 +96,7 @@ export const SUPPORTED_TOGETHER_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const validateWhisperModel = createModelValidator(SUPPORTED_WHISPER_MODELS, 'whisper', 'This selector uses local whisper.cpp models.')
-export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFILE_MODELS, 'whisperfile', 'This selector uses local whisperfile (llamafile) models.')
+export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFILE_MODELS, 'whisperfile', 'This selector uses local whisperfile models.')
 export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_STT_MODELS, 'deepgram-stt')
 export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector only accepts DeepInfra OpenAI-compatible Whisper models.')
 export const validateSonioxSttModel = createModelValidator(SUPPORTED_SONIOX_STT_MODELS, 'soniox-stt')

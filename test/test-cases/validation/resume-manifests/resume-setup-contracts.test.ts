@@ -2,6 +2,11 @@ import { afterEach, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
+import { parseNativeCli } from '~/cli/native/native-parser'
+import { createNativeRootDefinition } from '~/cli/native/root-definition'
+import { renderCommandHelp } from '~/cli/native/help-renderer'
 import { runCommand } from '../../../test-utils/test-helpers'
 import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
@@ -43,7 +48,7 @@ const policySkippedTtsState = (target: TtsTarget, artifactRoot = 'providers'): P
   return {
     service: target.service,
     model: target.model,
-    local: target.service === 'kitten',
+    local: false,
     operation: 'tts-synthesis',
     targetKey,
     transport: target.transport as string,
@@ -61,11 +66,11 @@ const writeCompleteTtsRun = async (dir: string): Promise<void> => {
   const sourcePath = join(dir, 'source.txt')
   await Bun.write(sourcePath, 'Hello.')
   const target: TtsTarget = {
-    service: 'kitten',
-    model: 'kitten-tts-nano',
+    service: 'openai',
+    model: 'gpt-4o-mini-tts-2025-12-15',
     operation: 'tts-synthesis',
-    transport: 'local-process',
-    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', 'kitten-tts-nano', 'local-process'),
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'openai', 'gpt-4o-mini-tts-2025-12-15', 'hosted-api'),
     run: async () => { throw new Error('not called in completed resume fixture') }
   }
   await writeSingleManifestFixture(dir, 'tts', {
@@ -111,12 +116,12 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
     failedState,
     await materializeTtsDialoguePlanArtifact(dir, dialoguePlan)
   )
-  const kittenTarget: TtsTarget = {
-    service: 'kitten',
-    model: 'kitten-tts-nano',
+  const groqTarget: TtsTarget = {
+    service: 'groq',
+    model: 'canopylabs/orpheus-v1-english',
     operation: 'tts-synthesis',
-    transport: 'local-process',
-    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', 'kitten-tts-nano', 'local-process'),
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'groq', 'canopylabs/orpheus-v1-english', 'hosted-api'),
     run: async () => { throw new Error('not called in resume price fixture') }
   }
   await writeSingleManifestFixture(dir, 'tts', {
@@ -124,11 +129,11 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
     completionStatus: 'failed',
     requestedProviders: [
       {
-        service: kittenTarget.service,
-        model: kittenTarget.model,
-        operation: kittenTarget.operation,
-        targetKey: kittenTarget.targetKey,
-        transport: kittenTarget.transport
+        service: groqTarget.service,
+        model: groqTarget.model,
+        operation: groqTarget.operation,
+        targetKey: groqTarget.targetKey,
+        transport: groqTarget.transport
       },
       {
         service: openaiTarget.service,
@@ -138,7 +143,7 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
         transport: openaiTarget.transport
       }
     ],
-    providerStates: [policySkippedTtsState(kittenTarget), failedState],
+    providerStates: [policySkippedTtsState(groqTarget), failedState],
     tts: []
   })
 }
@@ -165,27 +170,22 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-test('resume surface is reachable through help', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'resume', '--help'], {
-    env: { NO_COLOR: '1' }
-  })
+test('resume surface is reachable through help', () => {
+  const resume = COMMAND_DEFINITIONS.find((command) => command.name === 'resume')
+  if (!resume) throw new Error('missing resume command')
+  const stdout = renderCommandHelp(createNativeRootDefinition(), resume)
 
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('bun autoshow resume')
-  expect(result.stdout).toContain('<outputDirs...>')
-  expect(result.stdout).toContain('--provider')
-  expect(result.stdout).toContain('--tts-voice')
-  expect(result.stdout).not.toContain('--refresh-cache')
-  expect(result.stdout).not.toContain('--no-cache')
+  expect(stdout).toContain('bun autoshow resume')
+  expect(stdout).toContain('<outputDirs...>')
+  expect(stdout).toContain('--provider')
+  expect(stdout).toContain('--tts-voice')
+  expect(stdout).not.toContain('--refresh-cache')
+  expect(stdout).not.toContain('--no-cache')
 })
 
-test('resume requires an explicit output directory', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'resume'], {
-    env: { NO_COLOR: '1' }
-  })
-
-  expect(result.exitCode).toBe(2)
-  expect(`${result.stdout}\n${result.stderr}`).toContain('Missing required parameter: outputDirs')
+test('resume requires an explicit output directory', () => {
+  expect(() => parseNativeCli(['resume'], COMMAND_DEFINITIONS, GLOBAL_FLAG_DEFINITIONS))
+    .toThrow('Missing required parameter: outputDirs')
 })
 
 test('resume rejects a missing output directory before reaching provider validation', async () => {
@@ -520,13 +520,6 @@ test('resume rejects positional outputs after the separator', async () => {
 
   expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('Unexpected positional outputs after "--" for "resume"')
-})
-
-test('removed cache command is unknown', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'cache', 'rotate'])
-
-  expect(result.exitCode).toBe(2)
-  expect(`${result.stdout}\n${result.stderr}`).toContain('Unknown command "cache"')
 })
 
 test('setup focused model downloads cannot be combined with targeted steps', async () => {

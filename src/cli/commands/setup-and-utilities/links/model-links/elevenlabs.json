@@ -1,32 +1,48 @@
 {
   "Elevenlabs": {
+    "General": [
+      "https://elevenlabs.io/docs/overview/intro.md",
+      "https://elevenlabs.io/docs/api-reference/introduction.md",
+      "https://elevenlabs.io/docs/api-reference/authentication.md",
+      "https://elevenlabs.io/docs/eleven-api/quickstart.md",
+      "https://elevenlabs.io/docs/eleven-api/resources/errors.md",
+      "https://elevenlabs.io/docs/overview/administration/workspaces/api-keys.md"
+    ],
     "Models": [
-      "https://elevenlabs.io/docs/overview/models.md"
+      "https://elevenlabs.io/docs/overview/models.md",
+      "https://elevenlabs.io/docs/eleven-api/choosing-the-right-model.md"
     ],
     "TTS": [
-      "https://elevenlabs.io/docs/eleven-api/guides/how-to/voices/instant-voice-cloning.md",
-      "https://elevenlabs.io/docs/api-reference/voices/ivc/create.md",
-      "https://elevenlabs.io/docs/eleven-api/concepts/voice-cloning.md",
-      "https://elevenlabs.io/docs/eleven-api/guides/how-to/voices/voice-design.md",
-      "https://elevenlabs.io/docs/api-reference/introduction.md",
       "https://elevenlabs.io/docs/overview/capabilities/text-to-speech.md",
       "https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices.md",
-      "https://elevenlabs.io/docs/overview/capabilities/voices.md",
       "https://elevenlabs.io/docs/api-reference/text-to-speech/convert.md",
-      "https://elevenlabs.io/docs/api-reference/text-to-speech/convert-with-timestamps.md",
+      "https://elevenlabs.io/docs/eleven-api/guides/how-to/text-to-speech/pronunciation-dictionaries.md",
+      "https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue.md",
+      "https://elevenlabs.io/docs/eleven-api/guides/cookbooks/text-to-dialogue.md",
+      "https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert-with-timestamps.md",
+      "https://elevenlabs.io/docs/overview/capabilities/voices.md",
+      "https://elevenlabs.io/docs/overview/capabilities/voice-remixing.md",
+      "https://elevenlabs.io/docs/eleven-api/concepts/voice-cloning.md",
+      "https://elevenlabs.io/docs/eleven-api/guides/how-to/voices/instant-voice-cloning.md",
+      "https://elevenlabs.io/docs/api-reference/voices/ivc/create.md",
+      "https://elevenlabs.io/docs/eleven-api/guides/how-to/voices/voice-design.md",
       "https://elevenlabs.io/docs/api-reference/text-to-voice/design.md",
       "https://elevenlabs.io/docs/api-reference/text-to-voice/create.md",
-      "https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue.md",
-      "https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert.md",
-      "https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert-with-timestamps.md"
+      "https://elevenlabs.io/docs/eleven-api/guides/how-to/voices/remix-a-voice.md",
+      "https://elevenlabs.io/docs/api-reference/text-to-voice/remix.md",
+      "https://elevenlabs.io/docs/api-reference/voices/search.md",
+      "https://elevenlabs.io/docs/api-reference/voices/voice-library/get-shared.md",
+      "https://elevenlabs.io/docs/api-reference/voices/get.md",
+      "https://elevenlabs.io/docs/api-reference/voices/delete.md",
+      "https://elevenlabs.io/docs/overview/capabilities/sound-effects.md",
+      "https://elevenlabs.io/docs/eleven-api/guides/cookbooks/sound-effects.md",
+      "https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert.md"
     ],
     "Music": [
       "https://elevenlabs.io/docs/overview/capabilities/music.md",
       "https://elevenlabs.io/docs/overview/capabilities/music/best-practices.md",
-      "https://elevenlabs.io/docs/api-reference/music/compose.md",
-      "https://elevenlabs.io/docs/api-reference/music/compose-detailed.md",
-      "https://elevenlabs.io/docs/api-reference/music/create-composition-plan.md",
-      "https://elevenlabs.io/docs/api-reference/music/separate-stems.md"
+      "https://elevenlabs.io/docs/eleven-api/guides/cookbooks/music.md",
+      "https://elevenlabs.io/docs/api-reference/music/compose.md"
     ]
   }
 }

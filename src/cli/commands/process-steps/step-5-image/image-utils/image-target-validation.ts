@@ -51,7 +51,7 @@ export const collectUnsupportedCommonFlags = (
 // Pipeline spellings, which `write`, `config`, and `resume` register verbatim. The standalone
 // `image` command drops the `image-` prefix, so it retargets these through
 // `imageCommandOptionNames` on the way out; write messages here in the `--image-*` form.
-export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
+export const IMAGE_OPTION_LABELS = {
   geminiImageModels: '--gemini-image',
   geminiImageModel: '--gemini-image',
   openaiImageModels: '--openai-image',
@@ -60,8 +60,6 @@ export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
   grokImageModel: '--grok-image',
   bflImageModels: '--bfl-image',
   bflImageModel: '--bfl-image',
-  recraftImageModels: '--recraft-image',
-  recraftImageModel: '--recraft-image',
   replicateImageModels: '--replicate-image',
   replicateImageModel: '--replicate-image',
   lumalabsImageModels: '--lumalabs-image',
@@ -81,5 +79,7 @@ export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
   imageCompression: '--image-compression',
   imageProviderConcurrency: '--image-provider-concurrency',
   imageLocalConcurrency: '--image-local-concurrency',
+  concurrencyMode: '--concurrency-mode',
+  hostedConcurrencyCoordinator: 'hosted concurrency coordinator',
   generationResourceGate: 'generation resource gate'
 }

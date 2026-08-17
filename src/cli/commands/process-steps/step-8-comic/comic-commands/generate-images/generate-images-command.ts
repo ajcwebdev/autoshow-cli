@@ -123,6 +123,8 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         force,
         runId,
         concurrency,
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+        concurrencyMode: options.concurrencyMode,
         ...(options.panels !== undefined ? { panels: options.panels } : {}),
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
       })
@@ -134,7 +136,7 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         panels: options.panels ?? 'all',
         grid: options.grid,
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
-      })
+      } as any)
       mergeImageStats(panelStats, gridStats)
       return panelStats
     }
@@ -147,6 +149,8 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         force,
         runId,
         concurrency,
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+        concurrencyMode: options.concurrencyMode,
         panels: options.panels ?? 'all',
         panelsPerImage,
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
@@ -163,6 +167,8 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         force,
         runId,
         concurrency,
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+        concurrencyMode: options.concurrencyMode,
         ...(options.panels !== undefined ? { panels: options.panels } : {}),
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
         qa: options.qa ?? true,
@@ -197,7 +203,7 @@ export const generateImagesCommand = async (
     : {})
   const sceneRunDir = getSceneOutputDirectory(sceneSlug)
   let canonicalManifest = await readManifest(sceneRunDir)
-  if (!canonicalManifest && Object.keys(dependencies).length === 0) throw InfraError('Comic image generation requires a canonical comic manifest from structured-script v4. Re-run comic draft-scenes for a clean scene run.', { stage: 'comic:generate-images' })
+  if (!canonicalManifest && Object.keys(dependencies).length === 0) throw InfraError('Comic image generation requires a canonical comic manifest from structured-script v5. Re-run comic draft-scenes for a clean scene run.', { stage: 'comic:generate-images' })
   if (Object.keys(dependencies).length === 0) canonicalManifest = (await resolveCompatibleComicSceneRun({ scriptPath: options.scriptPath, outputDir: sceneRunDir })).manifest
 
   const target = getGenerateImagesTarget(options.target)
@@ -286,7 +292,12 @@ export const generateImagesCommand = async (
       status,
       attempts: status === 'running' || status === 'succeeded' || status === 'failed' ? 1 : 0,
       options: { target, size, quality, panelsPerImage: finalPanelsPerImage },
-      metadata: { imagesGenerated: totals.imagesGenerated, imagesSkipped: totals.imagesSkipped, runId },
+      metadata: {
+        imagesGenerated: totals.imagesGenerated,
+        imagesSkipped: totals.imagesSkipped,
+        runId,
+        ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {}),
+      },
       ...(status === 'succeeded' ? { result: {} } : {}),
       ...(status === 'failed' ? { error: { message: error instanceof Error ? error.message : String(error ?? 'Comic image generation failed.') } } : {}),
     }
@@ -313,6 +324,8 @@ export const generateImagesCommand = async (
         quality,
         runId,
         concurrency,
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+        concurrencyMode: options.concurrencyMode,
         ...(options.force !== undefined ? { force: options.force } : {}),
         ...(sketchPanels !== undefined ? { sketchPanels } : {}),
         panelsPerImage: sketchPanelsPerImage,

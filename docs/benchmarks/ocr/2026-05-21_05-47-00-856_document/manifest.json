@@ -367,6 +367,83 @@
                 "promptTokens": 4628,
                 "completionTokens": 6504,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.035376000000000005,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 4,
+                "ocrMode": "pdf",
+                "promptTokens": 1304,
+                "completionTokens": 1559,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 7,
+                "tokenProfilePromptTokensPerPage": 326,
+                "tokenProfileCompletionTokensPerPage": 389.8,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.13118,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 4,
+                "ocrMode": "pdf",
+                "promptTokens": 10136,
+                "completionTokens": 994,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 1,
+                "tokenProfilePromptTokensPerPage": 2534,
+                "tokenProfileCompletionTokensPerPage": 248.6,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 3.02,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 4,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 20,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 4,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.1026425,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 4,
+                "ocrMode": "pdf",
+                "promptTokens": 9427,
+                "completionTokens": 1597,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 3,
+                "tokenProfilePromptTokensPerPage": 2356.667,
+                "tokenProfileCompletionTokensPerPage": 399.133,
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -599,6 +676,84 @@
                 "inputValue": 4251,
                 "promptTokens": 2281,
                 "completionTokens": 1970
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.8,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 4
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.03744,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 2992,
+                "promptTokens": 1304,
+                "completionTokens": 1688
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.14500000000000002,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 11204,
+                "promptTokens": 9556,
+                "completionTokens": 1648
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 1.32,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 4
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 3.02,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 4
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 20,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 4
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 1.6,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 4
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.09644,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10072,
+                "promptTokens": 8400,
+                "completionTokens": 1672
               }
             ]
           },
@@ -1398,7 +1553,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.03744,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 4,
+                "ocrMode": "pdf",
+                "promptTokens": 1304,
+                "completionTokens": 1688,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.14500000000000002,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 4,
+                "ocrMode": "pdf",
+                "promptTokens": 9556,
+                "completionTokens": 1648,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 3.02,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 4,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 20,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 4,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.09644,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 4,
+                "ocrMode": "pdf",
+                "promptTokens": 8400,
+                "completionTokens": 1672,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1661,6 +1888,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 21427,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 3,
+                  "profileThroughputPagesPerMinute": 11.201,
+                  "profileRaisedMaxCap": 14,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 5356.75,
+                "throughputValue": 11.201,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 5411,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 1,
+                  "profileThroughputPagesPerMinute": 44.352,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 1352.75,
+                "throughputValue": 44.354,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 20000,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 20000,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 5670,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 2,
+                  "profileThroughputPagesPerMinute": 42.329,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 1417.5,
+                "throughputValue": 42.328,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1939,6 +2267,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 5406.75,
                 "throughputValue": 11.097,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 16292,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 4073,
+                "throughputValue": 14.731,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 47779,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 11944.75,
+                "throughputValue": 5.023,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 15442,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 3860.5,
+                "throughputValue": 15.542,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 38456,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 9614,
+                "throughputValue": 6.241,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 17429,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 4357.25,
+                "throughputValue": 13.77,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 56534,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 14133.5,
+                "throughputValue": 4.245,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 15383,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 3845.75,
+                "throughputValue": 15.602,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 23,
+                "inputMetric": "pages",
+                "inputValue": 4,
+                "rateBasis": "page",
+                "msPerUnit": 5.75,
+                "throughputValue": 10434.783,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2578,6 +3010,508 @@
                 "completionTokens": 1970
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "replicate-ocr",
+            "totalPages": 4,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 16292,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1341,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "pdf",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n808.8 W\nGONEALL -\nTHE AUTHOR'S PREFACE\nTO THE READER: God bless me, and with what eag-\nerness shouldst thou be now awaiting, reader illustrious,\nor it may be plebeian, this prologue, expecting to find in\nit retaliations, wranglings, and railings against the author of the\nsecond \"Don Quixote\"! I mean him who they say was begot-\nten at Tordesillas, and born at Tarragona. In truth, then, I\nam not about to give thee this satisfaction, for though injuries\nawake anger in the meekest bosoms, in mine the rule should suf-\nfer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\"\nand \"bully\"; but I have no thought of doing so. Let his sin be\nhis punishment, — with his bread let him eat it, and there let\nThat which I cannot help feeling is that he charges\nit be.\nme with being old and maimed, as though it had been in my\npower to stop time from passing over me, or as though my\ndeformity had been produced in some tavern, and not on the\ngrandest occasion which ages past or present have seen, or\nthose to come can hope to see. If my wounds do not shine\nin the eyes of him who looks on them, they are at least hon-\nored in the estimation of those who know where they were\nacquired; for the soldier looks better dead in battle than safe\nin flight. And so much am I of this opinion, that if now I\ncould devise and bring about the impossible, I would rather\nbe again present in that wonderful action than now be whole\nof my wounds, without having taken part therein. Those the\nsoldier shows in his face and in his breast are stars which\nguide others to the heaven of honor and to the coveting of\ndeserved praise; and it should be considered that it is not\nwith gray hairs one writes but with the understanding, which\nis wont to grow better with years. I have felt, also, his call-\ning me envious, and explaining to me, as to one who is igno-\nrant, what kind of thing envy is; and in very truth, of two\niii\nAA\nACCESSES 14023\niv\nDON QUIXOTE\nkinds of it there are, I know only the righteous, the noble.\nand the well-meaning. And this being as it is, I am not\nlikely to persecute any ecclesiastic, above all, if he is a famil-\niar of the holy office to boot; and if he said what he did on\naccount of him for whom he seemed to say it, he is wholly\nmistaken, for I adore the man's genius, admire his works\nand his application, continuous and virtuous. But indeed\nI am grateful to this writer for saying that my \"Novels\"\nare more satirical than exemplary, though they are good,\n- which they could not be if they were not so in every-\nthing.\nMethinks thou art telling me that I am exercising much\nself-restraint, and am keeping myself much within the bounds\nof modesty, from knowing that one should not heap affliction\non the afflicted; and that from which this gentleman suffers\nshould doubtless be great since he dares not appear in the\nopen field and under the clear sky - hiding his name and\ndisguising his country as though he had committed some\ncrime of high treason. If perchance thou shouldst come to\nknow him, tell him from me that I am not aggrieved, for I\nknow well what the temptations of the devil are, and that\none of the greatest is the putting it into a man's head that he\nis able to write a book by which he will get as much fame as\nmoney, and as much money as fame; and in confirmation of\nthis, I would have thee, in thy pleasant and graceful way,\ntell him this story.\nThere was in Cordova a madman, who had a habit of car-\nrying, on top of his head, a piece of marble slab or stone,\nof no light weight; and when he met with any unwary dog,\nwould go up close to him and let the weight fall plump\non top of him. The dog, in a rage, would yelp and howl up\nthree streets without stopping. It so happened that among\nthe dogs on whom he discharged his load was one, the dog\nof a hatter, whom his master much loved.\nThe stone\ndescended; caught him on the head; the battered beast set\nup a howl; the master saw it and was enraged. He caught\nup a yard measure and rushed out after the madman, and\nleft him with not a bone whole, crying out at every blow he\ngave him: \"Rascally hound! My pointer! Didst not see,\ncruel wretch, that my dog was a pointer?\" and repeating the\nAUTHOR'S PREFACE\nword \"pointer\" many times, he sent the madman away beaten\nto a jelly. The madman took his correction to heart, and\nwent off, and for more than a month did not venture out in\npublic; at the end of which period he returned with his inven-\ntion and a heavier load. He would go up to where the dog\nlay, and regarding it very intently, not caring or daring to let\nthe stone fall, he would say: \"This is a pointer! Beware!\"\nIn short, all the dogs he met, whether mastiffs or turnspits,\nhe averred were pointers, and so let fall his stone no more.\nSo it may be, perhaps, with this story-teller, who will not\nventure to discharge any more the load of his wit in books,\nwhich, as they are bad, are harder than rocks. Let him\nknow also that for his threat to deprive me of my profit by\nmeans of his book I care not a doit, for, adapting to myself\nthe famous farce of \"La Perendenga,\" I answer, \"Long live\nthe alderman my master and Christ for all!\" Long live the\ngreat Conde de Lemos, whose Christian charity and well-\nknown liberality maintain me against all the strokes of my\nscant fortune; and long live for me the supreme benevolence\nof his Eminence of Toledo, Don Bernardo Sandoval y Rojas,\neven though there be no more printing-presses in the world,\nand even though there be printed against me more books\nthan there are letters in the couplets of \"Mingo Revulgo.\"\nThese two princes, without my soliciting them with any\nadulation of mine or any kind of flattery of them, of their\nown goodness alone have taken it on themselves to do me\nkindness and favor, in which I esteem myself luckier and\nricher than if Fortune had placed me on her highest pinnacle\nby the ordinary way. The poor man may attain to honor,\nbut not the vicious. Poverty may cloud nobility, but not\nobscure it wholly. Let but virtue show some glimmer of\nlight, though it be through the chinks and straits of penury,\nand it comes to be regarded and consequently favored of\nlofty and noble spirits. And say thou no more to him, nor\nwill I say more to thee than to bid thee to take note that this\nSecond Part of \"Don Quixote,\" which I offer thee, is cut by\nthe same hand and out of the same cloth as the First; and\nthat in it I present thee with Don Quixote at fuller length,\nand in the end dead and buried, so that no one may presume\nto raise new testimonies to him, for the past are sufficient;\nvi\nDON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh; for the abundance of things, be they ever so good,\nmakes them to be of little worth; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell thee that thou mayest look out for the\n\"Persiles,\" which I am now finishing, and the Second Part\nof \"Galatea.\"",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "808.8 W\nGONEALL -\nTHE AUTHOR'S PREFACE\nTO THE READER: God bless me, and with what eag-\nerness shouldst thou be now awaiting, reader illustrious,\nor it may be plebeian, this prologue, expecting to find in\nit retaliations, wranglings, and railings against the author of the\nsecond \"Don Quixote\"! I mean him who they say was begot-\nten at Tordesillas, and born at Tarragona. In truth, then, I\nam not about to give thee this satisfaction, for though injuries\nawake anger in the meekest bosoms, in mine the rule should suf-\nfer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\"\nand \"bully\"; but I have no thought of doing so. Let his sin be\nhis punishment, — with his bread let him eat it, and there let\nThat which I cannot help feeling is that he charges\nit be.\nme with being old and maimed, as though it had been in my\npower to stop time from passing over me, or as though my\ndeformity had been produced in some tavern, and not on the\ngrandest occasion which ages past or present have seen, or\nthose to come can hope to see. If my wounds do not shine\nin the eyes of him who looks on them, they are at least hon-\nored in the estimation of those who know where they were\nacquired; for the soldier looks better dead in battle than safe\nin flight. And so much am I of this opinion, that if now I\ncould devise and bring about the impossible, I would rather\nbe again present in that wonderful action than now be whole\nof my wounds, without having taken part therein. Those the\nsoldier shows in his face and in his breast are stars which\nguide others to the heaven of honor and to the coveting of\ndeserved praise; and it should be considered that it is not\nwith gray hairs one writes but with the understanding, which\nis wont to grow better with years. I have felt, also, his call-\ning me envious, and explaining to me, as to one who is igno-\nrant, what kind of thing envy is; and in very truth, of two\niii\nAA\nACCESSES 14023\niv\nDON QUIXOTE\nkinds of it there are, I know only the righteous, the noble.\nand the well-meaning. And this being as it is, I am not\nlikely to persecute any ecclesiastic, above all, if he is a famil-\niar of the holy office to boot; and if he said what he did on\naccount of him for whom he seemed to say it, he is wholly\nmistaken, for I adore the man's genius, admire his works\nand his application, continuous and virtuous. But indeed\nI am grateful to this writer for saying that my \"Novels\"\nare more satirical than exemplary, though they are good,\n- which they could not be if they were not so in every-\nthing.\nMethinks thou art telling me that I am exercising much\nself-restraint, and am keeping myself much within the bounds\nof modesty, from knowing that one should not heap affliction\non the afflicted; and that from which this gentleman suffers\nshould doubtless be great since he dares not appear in the\nopen field and under the clear sky - hiding his name and\ndisguising his country as though he had committed some\ncrime of high treason. If perchance thou shouldst come to\nknow him, tell him from me that I am not aggrieved, for I\nknow well what the temptations of the devil are, and that\none of the greatest is the putting it into a man's head that he\nis able to write a book by which he will get as much fame as\nmoney, and as much money as fame; and in confirmation of\nthis, I would have thee, in thy pleasant and graceful way,\ntell him this story.\nThere was in Cordova a madman, who had a habit of car-\nrying, on top of his head, a piece of marble slab or stone,\nof no light weight; and when he met with any unwary dog,\nwould go up close to him and let the weight fall plump\non top of him. The dog, in a rage, would yelp and howl up\nthree streets without stopping. It so happened that among\nthe dogs on whom he discharged his load was one, the dog\nof a hatter, whom his master much loved.\nThe stone\ndescended; caught him on the head; the battered beast set\nup a howl; the master saw it and was enraged. He caught\nup a yard measure and rushed out after the madman, and\nleft him with not a bone whole, crying out at every blow he\ngave him: \"Rascally hound! My pointer! Didst not see,\ncruel wretch, that my dog was a pointer?\" and repeating the\nAUTHOR'S PREFACE\nword \"pointer\" many times, he sent the madman away beaten\nto a jelly. The madman took his correction to heart, and\nwent off, and for more than a month did not venture out in\npublic; at the end of which period he returned with his inven-\ntion and a heavier load. He would go up to where the dog\nlay, and regarding it very intently, not caring or daring to let\nthe stone fall, he would say: \"This is a pointer! Beware!\"\nIn short, all the dogs he met, whether mastiffs or turnspits,\nhe averred were pointers, and so let fall his stone no more.\nSo it may be, perhaps, with this story-teller, who will not\nventure to discharge any more the load of his wit in books,\nwhich, as they are bad, are harder than rocks. Let him\nknow also that for his threat to deprive me of my profit by\nmeans of his book I care not a doit, for, adapting to myself\nthe famous farce of \"La Perendenga,\" I answer, \"Long live\nthe alderman my master and Christ for all!\" Long live the\ngreat Conde de Lemos, whose Christian charity and well-\nknown liberality maintain me against all the strokes of my\nscant fortune; and long live for me the supreme benevolence\nof his Eminence of Toledo, Don Bernardo Sandoval y Rojas,\neven though there be no more printing-presses in the world,\nand even though there be printed against me more books\nthan there are letters in the couplets of \"Mingo Revulgo.\"\nThese two princes, without my soliciting them with any\nadulation of mine or any kind of flattery of them, of their\nown goodness alone have taken it on themselves to do me\nkindness and favor, in which I esteem myself luckier and\nricher than if Fortune had placed me on her highest pinnacle\nby the ordinary way. The poor man may attain to honor,\nbut not the vicious. Poverty may cloud nobility, but not\nobscure it wholly. Let but virtue show some glimmer of\nlight, though it be through the chinks and straits of penury,\nand it comes to be regarded and consequently favored of\nlofty and noble spirits. And say thou no more to him, nor\nwill I say more to thee than to bid thee to take note that this\nSecond Part of \"Don Quixote,\" which I offer thee, is cut by\nthe same hand and out of the same cloth as the First; and\nthat in it I present thee with Don Quixote at fuller length,\nand in the end dead and buried, so that no one may presume\nto raise new testimonies to him, for the past are sufficient;\nvi\nDON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh; for the abundance of things, be they ever so good,\nmakes them to be of little worth; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell thee that thou mayest look out for the\n\"Persiles,\" which I am now finishing, and the Second Part\nof \"Galatea.\""
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "deepinfra-ocr",
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0,
+            "processingTime": 47779,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1319,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 1304,
+            "completionTokens": 1688,
+            "inputFamily": "pdf",
+            "ocrProviderUsage": [
+              {
+                "unit": "chunk",
+                "pageStart": 1,
+                "pageEnd": 1,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 484
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 2,
+                "pageEnd": 2,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 521
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 3,
+                "pageEnd": 3,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 573
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 4,
+                "pageEnd": 4,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 110
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n808.8\nC33W\n\nTHE AUTHOR’S PREFACE\n\nTO THE READER: God bless me, and with what eag-\nerness shouldst thou be now awaiting, reader illustrious,\nit retaliations, wranglings, and railings against the author of the\nsecond “Don Quixote”? I mean him who they say was begot-\nten at Tordesillas, and born at Tarragona. In truth, then, I\nam not about to give thee this satisfaction, for though injuries\nawake anger in the meekest bosoms, mine the rule should suf-\nfer exception. Thou wouldst have me in hurt at him “ass,” “fool,”\nand “bully”; but I have no thought of doing so. Let his sin be\nhis punishment, — with his bread let him eat it, and there let\nit be. That which I cannot help feeling is that he charges\nme with being old and maimed, as though it had been in my\npower to stop time from passing over me, or as though my\ndeformity had been produced in some tavern, and not on the\ngrandest occasion which ages past or present have seen, or\nthose to come can hope to see. If my wounds do not shine\nin the eyes of him who looks on them, they are at least hon-\nored in the estimation of those who know where they were\nacquired; for the soldier looks better dead in battle than safe\nin flight. And so much am I of this opinion, that if I now\ncould devise and bring about the impossible, I would rather\nbe again present in that wonderful action than now be whole\nof my wounds, without having taken part therein. Those the\nsoldier shows in his face and in his breast are stars which\nguide others to the heaven of honor and to the coveting of\ndeserved praise; and it should be considered that it is not\nwith gray hairs one writes but with the understanding, which\nis wont to grow better with years. I have felt, also, his call-\ning me envious, and explaining to me, as to one who is igno-\nrant, what kind of thing envy is; and in very truth, of two\n\nAA ⅱ\n\nACCESSION No. 14023\n\nPage 2\niv\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man’s genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my “Novels” – which retire satirical than exemplary, though they are good,– thing thou could not be if they were not so in every-\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky— hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man’s head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a batter, whom his master much loved. The stone descended; caught him on the head; the battered beast let out a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: “Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?” and repeating the\n\nPage 3\nword “pointer” many times, he sent the madman away beaten\nto a jelly. The madman took his correction to heart, and\nwent off, and for more than a month did not venture out in\npublic; at the head of which period he returned with his inven-\ntion and a heavier load. He would go up to where the dog\nlay, and regarding it very intently, not caring or daring to let\nthe stone fall, he would say: “This is a pointer!” Beware!”\nIn short, all the dogs he met, whether mastiffs or turnspits,\nhe averred were pointers, and so let fall his stone or more.\nSo it may be, perhaps, with this story-teller, who will not\nventure to discharge any more the load of his wit in books,\nwhich, as they are bad, are harder than rocks. Let him\nknow also that for his threat to deprive me of my profit by\nmeans of his book I care not to deprive me of my profit by\nthe famous farce of “La Perendenga,” I answer, “Long live\nthe great Conde de Lemos, whose Christian charity and well-\nknown liberality maintain me against all the strokes of my\nscant fortune; and long live for me the supreme benevolence\nof his Eminence of Toledo, Don Bernardo Sandoval y Rojas,\neven though there be no more printing-presses in the world,\nand even though there be printed against me more books\nthan there are letters in the couplets of “Mingo Revulgo.”\nThese two princes, without my soliciting them with any\nadulation of mine or any kind of flattery of them, of their\nown goodness alone have taken it on themselves to do me\nkindness and favor, in which I esteem myself luckier and\nricher than if Fortune had placed me on her highest pinnacle\nby the ordinary way. The poor man may attain to honor,\nbut not the vicious. Poverty may cloud nobility, but not\nobscure it wholly. Let but virtue show some glimmer of\nlight, though it be through the chinks and straits of penury,\nand it comes to be regarded and consequently favored of\nlofty and noble spirits. And say thou no more to him, nor\nwill I say more to thee than to bid thee take note that this\nSecond Part of “Don Quixote,” which I offer thee, is cut by\nthe same hand and out of the same cloth as the First; and\nthat in it I present thee with Don Quixote at fuller length,\nand in the end dead and buried, so that no one may presume\nto raise new testimonies to him, for the past are sufficient;\n\nPage 4\nvi\n\nDON QUIXOTE\n\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh ; for the abundance of things, be they ever so good,\nmakes them to be of little worth ; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell thee that thou mayest look out for the\n“Persiles,” which I am now finishing, and the Second Part\nof “Galatea.”",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "808.8\nC33W\n\nTHE AUTHOR’S PREFACE\n\nTO THE READER: God bless me, and with what eag-\nerness shouldst thou be now awaiting, reader illustrious,\nit retaliations, wranglings, and railings against the author of the\nsecond “Don Quixote”? I mean him who they say was begot-\nten at Tordesillas, and born at Tarragona. In truth, then, I\nam not about to give thee this satisfaction, for though injuries\nawake anger in the meekest bosoms, mine the rule should suf-\nfer exception. Thou wouldst have me in hurt at him “ass,” “fool,”\nand “bully”; but I have no thought of doing so. Let his sin be\nhis punishment, — with his bread let him eat it, and there let\nit be. That which I cannot help feeling is that he charges\nme with being old and maimed, as though it had been in my\npower to stop time from passing over me, or as though my\ndeformity had been produced in some tavern, and not on the\ngrandest occasion which ages past or present have seen, or\nthose to come can hope to see. If my wounds do not shine\nin the eyes of him who looks on them, they are at least hon-\nored in the estimation of those who know where they were\nacquired; for the soldier looks better dead in battle than safe\nin flight. And so much am I of this opinion, that if I now\ncould devise and bring about the impossible, I would rather\nbe again present in that wonderful action than now be whole\nof my wounds, without having taken part therein. Those the\nsoldier shows in his face and in his breast are stars which\nguide others to the heaven of honor and to the coveting of\ndeserved praise; and it should be considered that it is not\nwith gray hairs one writes but with the understanding, which\nis wont to grow better with years. I have felt, also, his call-\ning me envious, and explaining to me, as to one who is igno-\nrant, what kind of thing envy is; and in very truth, of two\n\nAA ⅱ\n\nACCESSION No. 14023"
+              },
+              {
+                "pageNumber": 2,
+                "method": "ocr",
+                "text": "iv\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man’s genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my “Novels” – which retire satirical than exemplary, though they are good,– thing thou could not be if they were not so in every-\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky— hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man’s head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a batter, whom his master much loved. The stone descended; caught him on the head; the battered beast let out a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: “Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?” and repeating the"
+              },
+              {
+                "pageNumber": 3,
+                "method": "ocr",
+                "text": "word “pointer” many times, he sent the madman away beaten\nto a jelly. The madman took his correction to heart, and\nwent off, and for more than a month did not venture out in\npublic; at the head of which period he returned with his inven-\ntion and a heavier load. He would go up to where the dog\nlay, and regarding it very intently, not caring or daring to let\nthe stone fall, he would say: “This is a pointer!” Beware!”\nIn short, all the dogs he met, whether mastiffs or turnspits,\nhe averred were pointers, and so let fall his stone or more.\nSo it may be, perhaps, with this story-teller, who will not\nventure to discharge any more the load of his wit in books,\nwhich, as they are bad, are harder than rocks. Let him\nknow also that for his threat to deprive me of my profit by\nmeans of his book I care not to deprive me of my profit by\nthe famous farce of “La Perendenga,” I answer, “Long live\nthe great Conde de Lemos, whose Christian charity and well-\nknown liberality maintain me against all the strokes of my\nscant fortune; and long live for me the supreme benevolence\nof his Eminence of Toledo, Don Bernardo Sandoval y Rojas,\neven though there be no more printing-presses in the world,\nand even though there be printed against me more books\nthan there are letters in the couplets of “Mingo Revulgo.”\nThese two princes, without my soliciting them with any\nadulation of mine or any kind of flattery of them, of their\nown goodness alone have taken it on themselves to do me\nkindness and favor, in which I esteem myself luckier and\nricher than if Fortune had placed me on her highest pinnacle\nby the ordinary way. The poor man may attain to honor,\nbut not the vicious. Poverty may cloud nobility, but not\nobscure it wholly. Let but virtue show some glimmer of\nlight, though it be through the chinks and straits of penury,\nand it comes to be regarded and consequently favored of\nlofty and noble spirits. And say thou no more to him, nor\nwill I say more to thee than to bid thee take note that this\nSecond Part of “Don Quixote,” which I offer thee, is cut by\nthe same hand and out of the same cloth as the First; and\nthat in it I present thee with Don Quixote at fuller length,\nand in the end dead and buried, so that no one may presume\nto raise new testimonies to him, for the past are sufficient;"
+              },
+              {
+                "pageNumber": 4,
+                "method": "ocr",
+                "text": "vi\n\nDON QUIXOTE\n\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh ; for the abundance of things, be they ever so good,\nmakes them to be of little worth ; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell thee that thou mayest look out for the\n“Persiles,” which I am now finishing, and the Second Part\nof “Galatea.”"
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "deepinfra-ocr",
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0,
+            "processingTime": 15442,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1328,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 9556,
+            "completionTokens": 1648,
+            "inputFamily": "pdf",
+            "ocrProviderUsage": [
+              {
+                "unit": "chunk",
+                "pageStart": 1,
+                "pageEnd": 1,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 2389,
+                "completionTokens": 443
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 2,
+                "pageEnd": 2,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 2389,
+                "completionTokens": 539
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 3,
+                "pageEnd": 3,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 2389,
+                "completionTokens": 556
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 4,
+                "pageEnd": 4,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 2389,
+                "completionTokens": 110
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nTHE AUTHOR'S PREFACE\n\nTo the reader: God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, — with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two\n\nPage 2\niv\n\nDON QUIXOTE\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky — hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the\n\nPage 3\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doit, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well-known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;\n\nPage 4\nvi\nDON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh ; for the abundance of things, be they ever so good,\nmakes them to be of little worth ; and scarcity, even of things\nthat are bad, confers a certain value.\n\nI forgot to tell thee that thou mayest look out for the\n\"Persiles,\" which I am now finishing, and the Second Part\nof \"Galatea.\"",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "THE AUTHOR'S PREFACE\n\nTo the reader: God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, — with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two"
+              },
+              {
+                "pageNumber": 2,
+                "method": "ocr",
+                "text": "iv\n\nDON QUIXOTE\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky — hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the"
+              },
+              {
+                "pageNumber": 3,
+                "method": "ocr",
+                "text": "word \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doit, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well-known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;"
+              },
+              {
+                "pageNumber": 4,
+                "method": "ocr",
+                "text": "vi\nDON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh ; for the abundance of things, be they ever so good,\nmakes them to be of little worth ; and scarcity, even of things\nthat are bad, confers a certain value.\n\nI forgot to tell thee that thou mayest look out for the\n\"Persiles,\" which I am now finishing, and the Second Part\nof \"Galatea.\""
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "replicate-ocr",
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0,
+            "processingTime": 38456,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1356,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "pdf",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n<|ref|>sub_title<|/ref|><|det|>[[243, 206, 672, 227]]<|/det|>\n## THE AUTHOR'S PREFACE  \n\n<|ref|>text<|/ref|><|det|>[[120, 275, 790, 835]]<|/det|>\nTO THE READER: God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two\n\nPage 2\n<|ref|>text<|/ref|><|det|>[[211, 127, 870, 321]]<|/det|>\nkinds of it there are, I know only the righteous, the noble, and the well- meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.  \n\n<|ref|>text<|/ref|><|det|>[[212, 320, 872, 583]]<|/det|>\nMethinks thou art telling me that I am exercising much self- restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky—hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.  \n\n<|ref|>text<|/ref|><|det|>[[213, 582, 872, 828]]<|/det|>\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the\n\nPage 3\n<|ref|>text<|/ref|><|det|>[[116, 125, 787, 842]]<|/det|>\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story- teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a do it, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well- known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing- presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;\n\nPage 4\n<|ref|>text<|/ref|><|det|>[[203, 124, 864, 214]]<|/det|>\nand sufficient also it is that an honest man should have told the story of these witty follies without caring to go into them afresh; for the abundance of things, be they ever so good, makes them to be of little worth; and scarcity, even of things that are bad, confers a certain value.  \n\n<|ref|>text<|/ref|><|det|>[[203, 213, 864, 268]]<|/det|>\nI forgot to tell thee that thou mayest look out for the \"Persiles,\" which I am now finishing, and the Second Part of \"Galatea.\"",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "<|ref|>sub_title<|/ref|><|det|>[[243, 206, 672, 227]]<|/det|>\n## THE AUTHOR'S PREFACE  \n\n<|ref|>text<|/ref|><|det|>[[120, 275, 790, 835]]<|/det|>\nTO THE READER: God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two"
+              },
+              {
+                "pageNumber": 2,
+                "method": "ocr",
+                "text": "<|ref|>text<|/ref|><|det|>[[211, 127, 870, 321]]<|/det|>\nkinds of it there are, I know only the righteous, the noble, and the well- meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.  \n\n<|ref|>text<|/ref|><|det|>[[212, 320, 872, 583]]<|/det|>\nMethinks thou art telling me that I am exercising much self- restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky—hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.  \n\n<|ref|>text<|/ref|><|det|>[[213, 582, 872, 828]]<|/det|>\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the"
+              },
+              {
+                "pageNumber": 3,
+                "method": "ocr",
+                "text": "<|ref|>text<|/ref|><|det|>[[116, 125, 787, 842]]<|/det|>\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story- teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a do it, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well- known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing- presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;"
+              },
+              {
+                "pageNumber": 4,
+                "method": "ocr",
+                "text": "<|ref|>text<|/ref|><|det|>[[203, 124, 864, 214]]<|/det|>\nand sufficient also it is that an honest man should have told the story of these witty follies without caring to go into them afresh; for the abundance of things, be they ever so good, makes them to be of little worth; and scarcity, even of things that are bad, confers a certain value.  \n\n<|ref|>text<|/ref|><|det|>[[203, 213, 864, 268]]<|/det|>\nI forgot to tell thee that thou mayest look out for the \"Persiles,\" which I am now finishing, and the Second Part of \"Galatea.\""
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "fal-ocr",
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0,
+            "processingTime": 17429,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1253,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "pdf",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n808.8\nC33W\nTHE AUTHOR'S PREFACE\nTO THE READER: God bless me, and with what eag-\nerness should be thou be now awaiting, reader illustrious,\nor it may be peblean, this prologue, expecting to find in the\nit retallations, wrangles, and railings against the author of the\nsecond \"Don Quixote,\" I mean him who they say was begot-\nten of Tordesillas, and born in Tarragona. In truth, then, I\nam not about to give this satisfaction, for though injuries\nawake anger in the meekest bosoms, in mine the rule should suf-\nferexception. Thou would have me hurt him at him (ass,\" fool),\nhis and bully) but I have brought him to doing so. Let him be\nit be. That which I cannot help feeling that it is sin-\nand that I cannot feel feeling that he charges\nme with being old and maimed, I thought it had been in my\npower to stop time from passing over me, or through my\ndeformity has been produced in some tavern, and not on the\ngrandest occasion which ages past or present seen, or\nin the eyes of him who looks on them they are not at least shine\nin to the extent of those who know where they were\nordered in the estimation of those I know where there were\nacquired; For the soldier looks on my death in battle than safe\nin flight. And so much am I of this opinion, that if I\ncould devise and bring about the impossible, I would rather\nbe again present in that wonderful action than now I however\nto be again present to the heaven of honor and the covering of\nsoldier shows in his face and in his breast are the stars which\ndeserved praise; and it should be considered that it it is not\nwith gray hair one writes but with the understanding, which\nis wont to grow better with years. I have felt, also, his call-\ning me envisions, and explaining to me, as to one who is igno-\nrant, what kind of thing envy is; and in very truth, of two\nAA\nACCESSION No. 1403\n\nPage 2\nIV\nDON QUIXOTE\nkinds of it there are, I know only the righteous, the noble,\nand the well-meaning. And this being as if it is, I am not\nlikely to persecute any ecclesiastical, above all, if he is a famil-\niar of the holy office to boot; and if he said what he did on\naccount of him for whom he seemed to say, he is wholly\nmistaken, for I adore the man's genius, admire his works\nI and his application this conformance, and that his indeed\nare more satirical than ever thought they are. Novels,\n-which they could not be if they were so in every-\nMethinks art thou telling me that I am exercising much\nself-esteem, and am keeping myself much within the bounds\nof necessity; from knowing that one should not heap afflictions\non the afflicted; and that from which which his gentleman suffers\nshould doubtless is great since he does not appear in the\nopen field and under the clear sky- hiding his name and\ndiscussing his country as though he had committed some\ncrime of high treason. If perchance thou should come to\nknow well what the temperance of the devil and that\none of the greatest is the putting it into a man's head that he\nis able to write a book by which he will get as much fame as\nmoney, and as much money in fame; and in confirmation of\ntell, I would have thee, thy pleasant and graceful way.\nThis is the story. Cordova a madman, who had a habit of car-\nrying on top of his head, a piece of marble slab or stone,\nof no light weight; and when he met with any unwary dog,\nwould go up close to him and let the weight fall plump\non top of him. The dog in a rage, would yelp and howl up\nthree streets without stopping. It so happened that among\nof the fallen, whom his master much loved. The stone\ndescented; caught him on his head; the battered beast set\nup a howl; the master saw it and was engaged. He caught\nleft him with a bone whole, crying out at every blow he\ngave him: \"Rascally hound! My pointer!\" Didst not see,\ncruel wretch, that my dog was a pointer?\" and repeating the\n\nPage 3\nAUTHOR'S PREFACE\nword \"pointer\" many times, he sent the madman away beaten\nto a jelly. The madman took his correction to heart, and\nwent off, and for more than a month did not venture out in\npublic; at the end of which period he returned with his inven-\ntion and a heavier load. He would go up to where the dog\nlay, and regarding it very intensely, not caring or daring or let\nin the stone fall, he would say. \"This is a pointer!\" Beware!\"\nIn short, all the dogs he met, \"whether all mastiffs or turnspits,\nIn the same fall, perhaps, with this story-teller, who will not\nventure to be discharged any more than the load of his wit in books,\nSo it may be perhaps, are harder than rocks. Let him\nwhich, as they are bad, are harder than rocks, let him\nknow also that for that I care not to deprive me of my profit by\nmeans of his book I can not do, for adapting to myself\nthe fabulous force of La Chaîne for an answer to my life\nLong live\nthe famous force of \"La Chichene\" for all living lives\ngreat Conde de Lemons, whose Christian charity and well-\nknown liberality maintain me against all the strokes of my\nscant fortune, and long live for me the supreme benevolence\nof his Eminence of Toledo, Don Bernardo Sandoval and Rojas,\neven though there are no more printing-presses in the world,\nthan even though there there are the primitives of Mingo Books\nThese two princes, without my soliciting them with any\nadulation of mine or kind of flattery of them, of their\nown goodness alone have taken it on themselves to do me\nkindness and favor, in which I esteem myself luckier and\nricher than the Fortune have placed me on her highest pinnacle\nbut not the one way. Poverty may cloud nobility, but not\nobscure it wholly. Let but virtue show some glimmer of\nlight, thought it be through the chinks and straits of peury,\nand it comes to be regarded and consequently favored of\nlofty and noble spirits. And say thou no more to him, nor\nwill I say more to thee than to bid thee to take those that this\nthe same hand and hand of thee, cloth as the First: and\nthat in it I present thee with Don Quixote at fuller length,\nin and in the dead and buried, so that no one may presume\nto raise new testimonies to him. for the past are sufficient:\n\nPage 4\nVI\nDON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh ; for the abundance of things, be they ever so good,\nmakes them to be of little worth; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell that they thou mayest look out for the\nPersiles, which I am now finishing, and the Second Part\nof \"Galatea.\"",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "808.8\nC33W\nTHE AUTHOR'S PREFACE\nTO THE READER: God bless me, and with what eag-\nerness should be thou be now awaiting, reader illustrious,\nor it may be peblean, this prologue, expecting to find in the\nit retallations, wrangles, and railings against the author of the\nsecond \"Don Quixote,\" I mean him who they say was begot-\nten of Tordesillas, and born in Tarragona. In truth, then, I\nam not about to give this satisfaction, for though injuries\nawake anger in the meekest bosoms, in mine the rule should suf-\nferexception. Thou would have me hurt him at him (ass,\" fool),\nhis and bully) but I have brought him to doing so. Let him be\nit be. That which I cannot help feeling that it is sin-\nand that I cannot feel feeling that he charges\nme with being old and maimed, I thought it had been in my\npower to stop time from passing over me, or through my\ndeformity has been produced in some tavern, and not on the\ngrandest occasion which ages past or present seen, or\nin the eyes of him who looks on them they are not at least shine\nin to the extent of those who know where they were\nordered in the estimation of those I know where there were\nacquired; For the soldier looks on my death in battle than safe\nin flight. And so much am I of this opinion, that if I\ncould devise and bring about the impossible, I would rather\nbe again present in that wonderful action than now I however\nto be again present to the heaven of honor and the covering of\nsoldier shows in his face and in his breast are the stars which\ndeserved praise; and it should be considered that it it is not\nwith gray hair one writes but with the understanding, which\nis wont to grow better with years. I have felt, also, his call-\ning me envisions, and explaining to me, as to one who is igno-\nrant, what kind of thing envy is; and in very truth, of two\nAA\nACCESSION No. 1403"
+              },
+              {
+                "pageNumber": 2,
+                "method": "ocr",
+                "text": "IV\nDON QUIXOTE\nkinds of it there are, I know only the righteous, the noble,\nand the well-meaning. And this being as if it is, I am not\nlikely to persecute any ecclesiastical, above all, if he is a famil-\niar of the holy office to boot; and if he said what he did on\naccount of him for whom he seemed to say, he is wholly\nmistaken, for I adore the man's genius, admire his works\nI and his application this conformance, and that his indeed\nare more satirical than ever thought they are. Novels,\n-which they could not be if they were so in every-\nMethinks art thou telling me that I am exercising much\nself-esteem, and am keeping myself much within the bounds\nof necessity; from knowing that one should not heap afflictions\non the afflicted; and that from which which his gentleman suffers\nshould doubtless is great since he does not appear in the\nopen field and under the clear sky- hiding his name and\ndiscussing his country as though he had committed some\ncrime of high treason. If perchance thou should come to\nknow well what the temperance of the devil and that\none of the greatest is the putting it into a man's head that he\nis able to write a book by which he will get as much fame as\nmoney, and as much money in fame; and in confirmation of\ntell, I would have thee, thy pleasant and graceful way.\nThis is the story. Cordova a madman, who had a habit of car-\nrying on top of his head, a piece of marble slab or stone,\nof no light weight; and when he met with any unwary dog,\nwould go up close to him and let the weight fall plump\non top of him. The dog in a rage, would yelp and howl up\nthree streets without stopping. It so happened that among\nof the fallen, whom his master much loved. The stone\ndescented; caught him on his head; the battered beast set\nup a howl; the master saw it and was engaged. He caught\nleft him with a bone whole, crying out at every blow he\ngave him: \"Rascally hound! My pointer!\" Didst not see,\ncruel wretch, that my dog was a pointer?\" and repeating the"
+              },
+              {
+                "pageNumber": 3,
+                "method": "ocr",
+                "text": "AUTHOR'S PREFACE\nword \"pointer\" many times, he sent the madman away beaten\nto a jelly. The madman took his correction to heart, and\nwent off, and for more than a month did not venture out in\npublic; at the end of which period he returned with his inven-\ntion and a heavier load. He would go up to where the dog\nlay, and regarding it very intensely, not caring or daring or let\nin the stone fall, he would say. \"This is a pointer!\" Beware!\"\nIn short, all the dogs he met, \"whether all mastiffs or turnspits,\nIn the same fall, perhaps, with this story-teller, who will not\nventure to be discharged any more than the load of his wit in books,\nSo it may be perhaps, are harder than rocks. Let him\nwhich, as they are bad, are harder than rocks, let him\nknow also that for that I care not to deprive me of my profit by\nmeans of his book I can not do, for adapting to myself\nthe fabulous force of La Chaîne for an answer to my life\nLong live\nthe famous force of \"La Chichene\" for all living lives\ngreat Conde de Lemons, whose Christian charity and well-\nknown liberality maintain me against all the strokes of my\nscant fortune, and long live for me the supreme benevolence\nof his Eminence of Toledo, Don Bernardo Sandoval and Rojas,\neven though there are no more printing-presses in the world,\nthan even though there there are the primitives of Mingo Books\nThese two princes, without my soliciting them with any\nadulation of mine or kind of flattery of them, of their\nown goodness alone have taken it on themselves to do me\nkindness and favor, in which I esteem myself luckier and\nricher than the Fortune have placed me on her highest pinnacle\nbut not the one way. Poverty may cloud nobility, but not\nobscure it wholly. Let but virtue show some glimmer of\nlight, thought it be through the chinks and straits of peury,\nand it comes to be regarded and consequently favored of\nlofty and noble spirits. And say thou no more to him, nor\nwill I say more to thee than to bid thee to take those that this\nthe same hand and hand of thee, cloth as the First: and\nthat in it I present thee with Don Quixote at fuller length,\nin and in the dead and buried, so that no one may presume\nto raise new testimonies to him. for the past are sufficient:"
+              },
+              {
+                "pageNumber": 4,
+                "method": "ocr",
+                "text": "VI\nDON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh ; for the abundance of things, be they ever so good,\nmakes them to be of little worth; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell that they thou mayest look out for the\nPersiles, which I am now finishing, and the Second Part\nof \"Galatea.\""
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "fal-ocr",
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0,
+            "processingTime": 56534,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1335,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "pdf",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n\\title{\nTHE AUTHOR'S PREFACE\n}\n\\(\\mathrm{T}\\)\nO THE READER : God bless me, and with what eag-\nerness shouldst thou be now awaiting, reader illustrious,\nor it may be plebeian, this prologue, expecting to find in\nit retaliations, wranglings, and railings against the author of the\nsecond \"Don Quixote\"! I mean him who they say was begot-\nten at Tordesillas, and born at Tarragona. In truth, then, I\nam not about to give thee this satisfaction, for though injuries\nawake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, - with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two\n\nPage 2\n\\(\\mathrm{iv} \\quad\\) DON QUIXOTE\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, - which they could not be if they were not so in everything.\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky - hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the\n\nPage 3\nAUTHOR'S PREFACE\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doit, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and wellknown liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;\n\nPage 4\nvi DON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh; for the abundance of things, be they ever so good,\nmakes them to be of little worth; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell thee that thou mayest look out for the\n\"Persiles,\" which I am now finishing, and the Second Part\nof \"Galatea.\"",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "\\title{\nTHE AUTHOR'S PREFACE\n}\n\\(\\mathrm{T}\\)\nO THE READER : God bless me, and with what eag-\nerness shouldst thou be now awaiting, reader illustrious,\nor it may be plebeian, this prologue, expecting to find in\nit retaliations, wranglings, and railings against the author of the\nsecond \"Don Quixote\"! I mean him who they say was begot-\nten at Tordesillas, and born at Tarragona. In truth, then, I\nam not about to give thee this satisfaction, for though injuries\nawake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, - with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two"
+              },
+              {
+                "pageNumber": 2,
+                "method": "ocr",
+                "text": "\\(\\mathrm{iv} \\quad\\) DON QUIXOTE\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, - which they could not be if they were not so in everything.\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky - hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the"
+              },
+              {
+                "pageNumber": 3,
+                "method": "ocr",
+                "text": "AUTHOR'S PREFACE\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doit, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and wellknown liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;"
+              },
+              {
+                "pageNumber": 4,
+                "method": "ocr",
+                "text": "vi DON QUIXOTE\nand sufficient also it is that an honest man should have told\nthe story of these witty follies without caring to go into them\nafresh; for the abundance of things, be they ever so good,\nmakes them to be of little worth; and scarcity, even of things\nthat are bad, confers a certain value.\nI forgot to tell thee that thou mayest look out for the\n\"Persiles,\" which I am now finishing, and the Second Part\nof \"Galatea.\""
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "replicate-ocr",
+            "totalPages": 4,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 15383,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1327,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "pdf",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n808.8  \nC33W\n\nGONZALEZ\n\n# THE AUTHOR'S PREFACE\n\n![decorative separator line](64662465bba247703fdec49c8f3309f9_img.jpg)\n\ndecorative separator line\n\n**T**O THE READER : God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, — with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky — hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the\n\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doít, for, adapting to myself the famous farce of \"*La Perendenga*,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well-known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"*Mingo Revulgo*.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"*Don Quixote*,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;\n\nand sufficient also it is that an honest man should have told the story of these witty follies without caring to go into them afresh ; for the abundance of things, be they ever so good, makes them to be of little worth ; and scarcity, even of things that are bad, confers a certain value.\n\nI forgot to tell thee that thou mayest look out for the \"Persiles,\" which I am now finishing, and the Second Part of \"Galatea.\"",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\n808.8  \nC33W\n\nGONZALEZ\n\n# THE AUTHOR'S PREFACE\n\n![decorative separator line](64662465bba247703fdec49c8f3309f9_img.jpg)\n\ndecorative separator line\n\n**T**O THE READER : God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, — with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky — hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the\n\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doít, for, adapting to myself the famous farce of \"*La Perendenga*,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well-known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"*Mingo Revulgo*.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"*Don Quixote*,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;\n\nand sufficient also it is that an honest man should have told the story of these witty follies without caring to go into them afresh ; for the abundance of things, be they ever so good, makes them to be of little worth ; and scarcity, even of things that are bad, confers a certain value.\n\nI forgot to tell thee that thou mayest look out for the \"Persiles,\" which I am now finishing, and the Second Part of \"Galatea.\""
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "deepinfra-ocr",
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0,
+            "processingTime": 23,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 1330,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 8400,
+            "completionTokens": 1672,
+            "inputFamily": "pdf",
+            "ocrProviderUsage": [
+              {
+                "unit": "chunk",
+                "pageStart": 1,
+                "pageEnd": 1,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 2100,
+                "completionTokens": 448
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 2,
+                "pageEnd": 2,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 2100,
+                "completionTokens": 549
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 3,
+                "pageEnd": 3,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 2100,
+                "completionTokens": 567
+              },
+              {
+                "unit": "chunk",
+                "pageStart": 4,
+                "pageEnd": 4,
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 2100,
+                "completionTokens": 108
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n# THE AUTHOR'S PREFACE\n\n---\n\nTO THE READER: God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, — with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two\n\nPage 2\niv\n\nDON QUIXOTE\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky — hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the\n\nPage 3\nAUTHOR'S PREFACE\n\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doit, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well-known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;\n\nPage 4\nvi\n\nDON QUIXOTE\n\nand sufficient also it is that an honest man should have told the story of these witty follies without caring to go into them afresh; for the abundance of things, be they ever so good, makes them to be of little worth; and scarcity, even of things that are bad, confers a certain value.\n\nI forgot to tell thee that thou mayest look out for the \"Persiles,\" which I am now finishing, and the Second Part of \"Galatea.\"",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "# THE AUTHOR'S PREFACE\n\n---\n\nTO THE READER: God bless me, and with what eagerness shouldst thou be now awaiting, reader illustrious, or it may be plebeian, this prologue, expecting to find in it retaliations, wranglings, and railings against the author of the second \"Don Quixote\"! I mean him who they say was begotten at Tordesillas, and born at Tarragona. In truth, then, I am not about to give thee this satisfaction, for though injuries awake anger in the meekest bosoms, in mine the rule should suffer exception. Thou wouldst have me hurl at him \"ass,\" \"fool,\" and \"bully\"; but I have no thought of doing so. Let his sin be his punishment, — with his bread let him eat it, and there let it be. That which I cannot help feeling is that he charges me with being old and maimed, as though it had been in my power to stop time from passing over me, or as though my deformity had been produced in some tavern, and not on the grandest occasion which ages past or present have seen, or those to come can hope to see. If my wounds do not shine in the eyes of him who looks on them, they are at least honored in the estimation of those who know where they were acquired; for the soldier looks better dead in battle than safe in flight. And so much am I of this opinion, that if now I could devise and bring about the impossible, I would rather be again present in that wonderful action than now be whole of my wounds, without having taken part therein. Those the soldier shows in his face and in his breast are stars which guide others to the heaven of honor and to the coveting of deserved praise; and it should be considered that it is not with gray hairs one writes but with the understanding, which is wont to grow better with years. I have felt, also, his calling me envious, and explaining to me, as to one who is ignorant, what kind of thing envy is; and in very truth, of two"
+              },
+              {
+                "pageNumber": 2,
+                "method": "ocr",
+                "text": "iv\n\nDON QUIXOTE\n\nkinds of it there are, I know only the righteous, the noble, and the well-meaning. And this being as it is, I am not likely to persecute any ecclesiastic, above all, if he is a familiar of the holy office to boot; and if he said what he did on account of him for whom he seemed to say it, he is wholly mistaken, for I adore the man's genius, admire his works and his application, continuous and virtuous. But indeed I am grateful to this writer for saying that my \"Novels\" are more satirical than exemplary, though they are good, — which they could not be if they were not so in everything.\n\nMethinks thou art telling me that I am exercising much self-restraint, and am keeping myself much within the bounds of modesty, from knowing that one should not heap affliction on the afflicted; and that from which this gentleman suffers should doubtless be great since he dares not appear in the open field and under the clear sky — hiding his name and disguising his country as though he had committed some crime of high treason. If perchance thou shouldst come to know him, tell him from me that I am not aggrieved, for I know well what the temptations of the devil are, and that one of the greatest is the putting it into a man's head that he is able to write a book by which he will get as much fame as money, and as much money as fame; and in confirmation of this, I would have thee, in thy pleasant and graceful way, tell him this story.\n\nThere was in Cordova a madman, who had a habit of carrying, on top of his head, a piece of marble slab or stone, of no light weight; and when he met with any unwary dog, would go up close to him and let the weight fall plump on top of him. The dog, in a rage, would yelp and howl up three streets without stopping. It so happened that among the dogs on whom he discharged his load was one, the dog of a hatter, whom his master much loved. The stone descended; caught him on the head; the battered beast set up a howl; the master saw it and was enraged. He caught up a yard measure and rushed out after the madman, and left him with not a bone whole, crying out at every blow he gave him: \"Rascally hound! My pointer! Didst not see, cruel wretch, that my dog was a pointer?\" and repeating the"
+              },
+              {
+                "pageNumber": 3,
+                "method": "ocr",
+                "text": "AUTHOR'S PREFACE\n\nword \"pointer\" many times, he sent the madman away beaten to a jelly. The madman took his correction to heart, and went off, and for more than a month did not venture out in public; at the end of which period he returned with his invention and a heavier load. He would go up to where the dog lay, and regarding it very intently, not caring or daring to let the stone fall, he would say: \"This is a pointer! Beware!\" In short, all the dogs he met, whether mastiffs or turnspits, he averred were pointers, and so let fall his stone no more. So it may be, perhaps, with this story-teller, who will not venture to discharge any more the load of his wit in books, which, as they are bad, are harder than rocks. Let him know also that for his threat to deprive me of my profit by means of his book I care not a doit, for, adapting to myself the famous farce of \"La Perendenga,\" I answer, \"Long live the alderman my master and Christ for all!\" Long live the great Conde de Lemos, whose Christian charity and well-known liberality maintain me against all the strokes of my scant fortune; and long live for me the supreme benevolence of his Eminence of Toledo, Don Bernardo Sandoval y Rojas, even though there be no more printing-presses in the world, and even though there be printed against me more books than there are letters in the couplets of \"Mingo Revulgo.\" These two princes, without my soliciting them with any adulation of mine or any kind of flattery of them, of their own goodness alone have taken it on themselves to do me kindness and favor, in which I esteem myself luckier and richer than if Fortune had placed me on her highest pinnacle by the ordinary way. The poor man may attain to honor, but not the vicious. Poverty may cloud nobility, but not obscure it wholly. Let but virtue show some glimmer of light, though it be through the chinks and straits of penury, and it comes to be regarded and consequently favored of lofty and noble spirits. And say thou no more to him, nor will I say more to thee than to bid thee to take note that this Second Part of \"Don Quixote,\" which I offer thee, is cut by the same hand and out of the same cloth as the First; and that in it I present thee with Don Quixote at fuller length, and in the end dead and buried, so that no one may presume to raise new testimonies to him, for the past are sufficient;"
+              },
+              {
+                "pageNumber": 4,
+                "method": "ocr",
+                "text": "vi\n\nDON QUIXOTE\n\nand sufficient also it is that an honest man should have told the story of these witty follies without caring to go into them afresh; for the abundance of things, be they ever so good, makes them to be of little worth; and scarcity, even of things that are bad, confers a certain value.\n\nI forgot to tell thee that thou mayest look out for the \"Persiles,\" which I am now finishing, and the Second Part of \"Galatea.\""
+              }
+            ],
+            "totalPages": 4,
+            "ocrPages": 4,
+            "textPages": 0
           }
         }
       ]

@@ -1,4 +1,4 @@
-import { getTtsCost, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { estimateTtsRequestCount, getTtsCost, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { TtsCostEstimate, TtsOptions, TtsRateEstimate, TtsTarget } from '~/types'
 import { collectTtsTargets } from '../tts-targets'
 
@@ -9,8 +9,15 @@ export const estimateTtsTargetCosts = (
   const normalizedCharCount = Math.max(0, Math.floor(characterCount))
   return targets.map((target) => {
     const pricing = getTtsPricing(target.service, target.model)
+    const requestCount = pricing.costPerRequestCents === undefined ? undefined : estimateTtsRequestCount(target.service, target.model, normalizedCharCount)
     const hasDualRates = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
-    const rate: TtsRateEstimate = hasDualRates
+    const rate: TtsRateEstimate = pricing.costPerRequestCents !== undefined
+      ? {
+          provider: target.service,
+          model: target.model,
+          costPerRequestCents: pricing.costPerRequestCents
+        }
+      : hasDualRates
       ? {
           provider: target.service,
           model: target.model,
@@ -28,16 +35,21 @@ export const estimateTtsTargetCosts = (
     )
       ? (normalizedCharCount / 1e6) * (rate.inputCostPer1MCharactersCents + rate.outputCostPer1MCharactersCents)
       : undefined
+    const perRequestTotal = rate.costPerRequestCents !== undefined && requestCount !== undefined
+      ? requestCount * rate.costPerRequestCents
+      : undefined
     const per1kTotal = rate.costPer1kCharactersCents !== undefined
       ? (normalizedCharCount / 1000) * rate.costPer1kCharactersCents
       : undefined
-    const synthesisCost = dualRateTotal ?? per1kTotal ?? 0
+    const synthesisCost = perRequestTotal ?? dualRateTotal ?? per1kTotal ?? 0
     const setupCost = target.setupCostCents ?? 0
 
     return {
       provider: rate.provider,
       model: rate.model,
       characterCount: normalizedCharCount,
+      ...(rate.costPerRequestCents !== undefined ? { costPerRequestCents: rate.costPerRequestCents } : {}),
+      ...(requestCount !== undefined ? { requestCount } : {}),
       ...(rate.costPer1kCharactersCents !== undefined ? { costPer1kCharactersCents: rate.costPer1kCharactersCents } : {}),
       ...(rate.inputCostPer1MCharactersCents !== undefined ? { inputCostPer1MCharactersCents: rate.inputCostPer1MCharactersCents } : {}),
       ...(rate.outputCostPer1MCharactersCents !== undefined ? { outputCostPer1MCharactersCents: rate.outputCostPer1MCharactersCents } : {}),

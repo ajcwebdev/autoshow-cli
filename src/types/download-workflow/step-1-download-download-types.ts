@@ -101,9 +101,7 @@ export type BatchItemProcessResult = {
 }
 
 
-export type BuildOptsDefaults = {
-  defaultTtsEngine?: 'kitten'
-}
+export type BuildOptsDefaults = Record<string, never>
 
 export type RepeatableModelFlag =
   import('~/cli/flags/service-selector-normalization/repeatable-model-flags').RepeatableModelFlag
@@ -118,9 +116,7 @@ export type AllShortcutFlag =
   | 'all-url'
   | 'all-local-url'
   | 'all-llm'
-  | 'all-local-llm'
   | 'all-tts'
-  | 'all-local-tts'
   | 'all-image'
   | 'all-local-image'
   | 'all-video'

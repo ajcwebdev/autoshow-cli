@@ -1,6 +1,6 @@
-import type { CostEstimateBase, ImageProvider, ImageRuntimeOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
+import type { CostEstimateBase, HostedConcurrencyRuntimeOptions, ImageProvider, ImageRuntimeOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
 
-export type ImageGenOptions = Partial<ImageRuntimeOptions> & {
+export type ImageGenOptions = Partial<ImageRuntimeOptions> & HostedConcurrencyRuntimeOptions & {
   generationResourceGate?: ResourceGate | undefined
 }
 
@@ -21,7 +21,7 @@ export type ImageCostEstimate = CostEstimateBase<ImageProvider> & {
 export type EstimateImageCostOptions = Partial<Pick<ImageRuntimeOptions,
   | 'geminiImageModels' | 'geminiImageModel' | 'openaiImageModels' | 'openaiImageModel'
   | 'grokImageModels' | 'grokImageModel' | 'bflImageModels' | 'bflImageModel'
-  | 'recraftImageModels' | 'recraftImageModel' | 'replicateImageModels' | 'replicateImageModel'
+  | 'replicateImageModels' | 'replicateImageModel'
   | 'lumalabsImageModels' | 'lumalabsImageModel' | 'falImageModels' | 'falImageModel'
   | 'imageSize' | 'imageQuality' | 'imageCount'
 >>

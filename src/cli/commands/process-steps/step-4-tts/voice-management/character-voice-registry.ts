@@ -35,7 +35,7 @@ const VOICE_ORIGINS = new Set([
   'provider-stock', 'community-library', 'designed', 'remixed', 'instant-clone', 'professional-clone',
   'imported-custom', 'saved-reference', 'request-reference-audio', 'local-model-voice'
 ])
-const TTS_PROVIDERS = new Set(['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia'])
+const TTS_PROVIDERS = new Set(['elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'])
 
 export type CharacterVoiceRegistryPaths = {
   charactersRoot: string
@@ -93,14 +93,14 @@ export const resolveCharacterVoiceRegistryPaths = (charactersRoot: string): Char
   }
 }
 
-const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
+export const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
   await mkdir(dirname(path), { recursive: true })
   const temporary = `${path}.tmp-${randomUUID()}`
   await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
   await rename(temporary, path)
 }
 
-const writeCreateOnlyJson = async (path: string, value: unknown): Promise<void> => {
+export const writeCreateOnlyJson = async (path: string, value: unknown): Promise<void> => {
   await mkdir(dirname(path), { recursive: true })
   const bytes = `${JSON.stringify(value, null, 2)}\n`
   if (existsSync(path)) {

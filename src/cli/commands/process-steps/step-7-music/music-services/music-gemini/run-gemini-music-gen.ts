@@ -4,7 +4,6 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-export const GEMINI_CLIP_DURATION_SECONDS = 30
 export const GEMINI_PRO_DEFAULT_DURATION_SECONDS = 120
 
 const collectGeminiMusicTextParts = (
@@ -85,19 +84,9 @@ const readProvidedLyrics = async (lyricsFile: string): Promise<string> => {
   return text
 }
 
-const resolveIntendedDurationSeconds = (
-  model: GeminiMusicModel,
-  durationSeconds: number | undefined
-): number => {
+const resolveIntendedDurationSeconds = (durationSeconds: number | undefined): number => {
   if (durationSeconds !== undefined && (!Number.isFinite(durationSeconds) || durationSeconds <= 0)) {
     throw ValidationError(`Invalid music duration: ${durationSeconds}`, { stage: 'music:gemini' })
-  }
-
-  if (model === 'lyria-3-clip-preview') {
-    if (durationSeconds !== undefined && durationSeconds !== GEMINI_CLIP_DURATION_SECONDS) {
-      l.warn(`Gemini Lyria 3 Clip always generates ${GEMINI_CLIP_DURATION_SECONDS}s clips; ignoring --duration ${durationSeconds}`)
-    }
-    return GEMINI_CLIP_DURATION_SECONDS
   }
 
   return durationSeconds ?? GEMINI_PRO_DEFAULT_DURATION_SECONDS
@@ -106,16 +95,15 @@ const resolveIntendedDurationSeconds = (
 const buildGeminiMusicPrompt = async (
   prompt: string,
   options: {
-    model: GeminiMusicModel
     durationSeconds?: number | undefined
     lyricsFile?: string | undefined
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ prompt: string, lyricsSource: Step7MusicMetadata['lyricsSource'], intendedDurationSeconds: number }> => {
   const parts = [prompt.trim()]
-  const intendedDurationSeconds = resolveIntendedDurationSeconds(options.model, options.durationSeconds)
+  const intendedDurationSeconds = resolveIntendedDurationSeconds(options.durationSeconds)
 
-  if (options.model === 'lyria-3-pro-preview' && options.durationSeconds !== undefined) {
+  if (options.durationSeconds !== undefined) {
     parts.push(`Create a song that is about ${options.durationSeconds} seconds long.`)
   }
 

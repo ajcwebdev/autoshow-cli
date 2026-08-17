@@ -8,13 +8,12 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { SetupStepId } from '~/types'
 
-const VALID_SETUP_STEPS: SetupStepId[] = ['uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'llama-binary', 'llamafile', 'reverb', 'calibre', 'acsm', 'acsm-authorize', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
+const VALID_SETUP_STEPS: SetupStepId[] = ['uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
 const FOCUSED_SETUP_CONFLICT_FLAGS = [
   'models',
   'doctor',
   'step',
-  'force-redownload',
-  'repeat'
+  'force-redownload'
 ] as const
 
 const normalizeStringArrayFlag = (value: unknown): string[] => {
@@ -35,14 +34,10 @@ export const setupCommand = defineCliCommand({
   help: {
     examples: [
       ['bun autoshow setup', 'Install all dependencies'],
-      ['bun autoshow setup --models base --models ggml-org/gemma-3-270m-it-GGUF', 'Download Whisper and llama.cpp models without running inference'],
-      ['bun autoshow setup --models whisperfile:small --models llamafile:Qwen3.5-2B-Q8_0', 'Download specific whisperfile/llamafile bundles'],
+      ['bun autoshow setup --models base --models whisperfile:small', 'Download Whisper and whisperfile models without running inference'],
       ['bun autoshow setup --step whisperfile', 'Download the default whisperfile model (tiny)'],
-      ['bun autoshow setup --step llamafile', 'Download the default llamafile bundle (Qwen3.5-0.8B-Q8_0)'],
       ['bun autoshow setup --doctor', 'Check prerequisites without installing'],
       ['bun autoshow setup --step defuddle', 'Install the managed Defuddle CLI'],
-      ['bun autoshow setup --step acsm', 'Install ACSM fulfillment support'],
-      ['bun autoshow setup --step acsm-authorize', 'Authorize ACSM fulfillment interactively'],
       ['bun autoshow setup --step whisper-binary --force-redownload', 'Reinstall whisper binary']
     ]
   }
@@ -80,18 +75,12 @@ export const setupCommand = defineCliCommand({
     throw CLIUsageError(`Invalid --step value: ${step}. Valid values: ${VALID_SETUP_STEPS.join(', ')}`)
   }
 
-  const repeatRaw = parseInt(ctx.flags.repeat as string, 10)
-  if (!Number.isFinite(repeatRaw) || repeatRaw < 1) {
-    throw CLIUsageError(`Invalid --repeat value: ${ctx.flags.repeat}. Must be an integer >= 1`)
-  }
-
   const healthy = await runWithLogContext({ step: 'setup' }, async () => {
-    if (step === 'all' && !ctx.flags['force-redownload'] && repeatRaw === 1) {
+    if (step === 'all' && !ctx.flags['force-redownload']) {
       return await runCompleteSetup()
     }
     return await runSetupStep(step as SetupStepId, {
-      ...(ctx.flags['force-redownload'] ? { forceRedownload: true } : {}),
-      ...(repeatRaw > 1 ? { repeat: repeatRaw } : {})
+      ...(ctx.flags['force-redownload'] ? { forceRedownload: true } : {})
     })
   })
 

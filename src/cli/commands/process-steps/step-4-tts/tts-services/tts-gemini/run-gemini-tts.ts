@@ -101,6 +101,7 @@ export const runGeminiTts = async (
   const startTime = Date.now()
   const chunkPaths: string[] = []
   const rawPaths: string[] = []
+  let completed = false
 
   try {
     const chunkPathGroups = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
@@ -213,7 +214,7 @@ export const runGeminiTts = async (
     }
 
     const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, 'Gemini', options.abortSignal)
-    return finalizeTtsRun({
+    const finalized = finalizeTtsRun({
       service: 'gemini',
       model: options.model,
       speaker: speakerSummary,
@@ -221,12 +222,16 @@ export const runGeminiTts = async (
       chunkCount: orderedChunkPaths.length,
       startTime
     })
+    completed = true
+    return finalized
   } finally {
-    for (const rawPath of rawPaths) {
-      await Bun.$`rm -f ${rawPath}`.quiet().nothrow()
-    }
-    for (const chunkPath of chunkPaths) {
-      await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+    if (completed) {
+      for (const rawPath of rawPaths) {
+        await Bun.$`rm -f ${rawPath}`.quiet().nothrow()
+      }
+      for (const chunkPath of chunkPaths) {
+        await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+      }
     }
   }
 }

@@ -30,15 +30,5 @@ export const estimateLlmRates = (llmConfig: ResolvedLLMConfig): LlmRateEstimate[
     }
   }
 
-  for (const model of llmConfig.llamaModels ?? []) {
-    const cost = getLlmCost('llama', model)
-    estimates.push({
-      provider: 'llama',
-      model,
-      inputCostPer1MCents: cost?.inputCostPer1MCents ?? 0,
-      outputCostPer1MCents: cost?.outputCostPer1MCents ?? 0
-    })
-  }
-
   return estimates
 }

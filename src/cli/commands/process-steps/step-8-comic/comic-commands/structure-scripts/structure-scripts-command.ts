@@ -13,6 +13,8 @@ export const structureScriptsCommand = async (
       options.sceneSlug,
       {
         ...(options.llmModel ? { llmModel: options.llmModel } : {}),
+        ...(options.concurrencyMode ? { concurrencyMode: options.concurrencyMode } : {}),
+        ...(options.hostedConcurrencyCoordinator ? { hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator } : {}),
       }
     )
   } catch (error) {

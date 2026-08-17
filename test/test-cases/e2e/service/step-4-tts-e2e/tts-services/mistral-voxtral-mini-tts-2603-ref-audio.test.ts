@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { expect } from 'bun:test'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
 import {
@@ -37,6 +39,7 @@ budgetedTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference a
     }
     expect(metadata.tts?.[0]?.ttsService).toBe('mistral')
     expect(metadata.tts?.[0]?.ttsModel).toBe(mistralTtsModel)
-    expect(metadata.tts?.[0]?.speaker).toBe('ref_audio:anthony-voice.mp3')
+    const refAudioSha256 = createHash('sha256').update(await readFile(mistralRefAudioPath)).digest('hex')
+    expect(metadata.tts?.[0]?.speaker).toBe(`ref_audio:sha256_${refAudioSha256}`)
   }
 }, E2E_TEST_TIMEOUT_MS)

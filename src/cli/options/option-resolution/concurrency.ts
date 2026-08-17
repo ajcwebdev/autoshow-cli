@@ -43,7 +43,8 @@ const isGrokOnlyHostedTtsSelection = (modelOptions: ResolvedModelOptions): boole
     hasSelectedTarget(modelOptions.deepgramTtsModels, modelOptions.deepgramTtsModel),
     hasSelectedTarget(modelOptions.speechifyTtsModels, modelOptions.speechifyTtsModel),
     hasSelectedTarget(modelOptions.humeTtsModels, modelOptions.humeTtsModel),
-    hasSelectedTarget(modelOptions.cartesiaTtsModels, modelOptions.cartesiaTtsModel)
+    hasSelectedTarget(modelOptions.cartesiaTtsModels, modelOptions.cartesiaTtsModel),
+    hasSelectedTarget(modelOptions.fishTtsModels, modelOptions.fishTtsModel)
   ].some(Boolean)
 }
 

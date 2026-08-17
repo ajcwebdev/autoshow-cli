@@ -352,6 +352,83 @@
                 "promptTokens": 1157,
                 "completionTokens": 1626,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.01488,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 767,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 17,
+                "tokenProfilePromptTokensPerPage": 326,
+                "tokenProfileCompletionTokensPerPage": 767.06,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03773,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 2099,
+                "completionTokens": 558,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 4,
+                "tokenProfilePromptTokensPerPage": 2099,
+                "tokenProfileCompletionTokensPerPage": 557.75,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.02602,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1408,
+                "completionTokens": 773,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 11,
+                "tokenProfilePromptTokensPerPage": 1408.091,
+                "tokenProfileCompletionTokensPerPage": 772.818,
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -573,6 +650,84 @@
                 "inputValue": 2102,
                 "promptTokens": 1165,
                 "completionTokens": 937
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.2,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.015968,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1161,
+                "promptTokens": 326,
+                "completionTokens": 835
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.029029999999999997,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1497,
+                "promptTokens": 794,
+                "completionTokens": 703
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 0.33,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 0.4,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0235875,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1535,
+                "promptTokens": 569,
+                "completionTokens": 966
               }
             ]
           },
@@ -1345,7 +1500,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.015968,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 835,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.029029999999999997,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 794,
+                "completionTokens": 703,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0235875,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 569,
+                "completionTokens": 966,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1595,6 +1822,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 21731,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 18,
+                  "profileThroughputPagesPerMinute": 2.761,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 21731,
+                "throughputValue": 2.761,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 6361,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 4,
+                  "profileThroughputPagesPerMinute": 9.433,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 6361,
+                "throughputValue": 9.432,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 8353,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 11,
+                  "profileThroughputPagesPerMinute": 7.183,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 8353,
+                "throughputValue": 7.183,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1860,6 +2188,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 23378,
                 "throughputValue": 2.567,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 5716,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5716,
+                "throughputValue": 10.497,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 51627,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 51627,
+                "throughputValue": 1.162,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 12088,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 12088,
+                "throughputValue": 4.964,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 18088,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 18088,
+                "throughputValue": 3.317,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 10290,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 10290,
+                "throughputValue": 5.831,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 95784,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 95784,
+                "throughputValue": 0.626,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 8101,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 8101,
+                "throughputValue": 7.406,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 18456,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 18456,
+                "throughputValue": 3.251,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2478,6 +2910,322 @@
                 "completionTokens": 937
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5716,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 231,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nNasdaq & AMEX\nStocks in bold rose or fell 5% or more\nTrack your investments with our continuously\nISA\nupdated stocks. Visit us on the web at\nTODAY\n.com\nmoney.usatoday.com\n52-week\n52-week\nHigh\nLow\nStock\nLast Change\nHigh\nLow\nStock\nLast Change\n45.71\n32.50\nBlomet\n36.71\n<math>-0.42</math>\n2.76\n1.20\nBiomira\n1.46\n<math>+0.03</math>\n9.07\n5.13\nBloScrip\n8.05\n<math>+0.34</math>\n9.19\n68.88\n50,65\n6.89\nBiosite\nABX Air n\n<math>7.52 -0.10</math>\n50.05\n<math>-4.57</math>\n33.25\n212.25 131.03\n12.40\n<b>ACMoore</b>\nBiotechT\n13.58\n204.66\n<math>-1.57</math>\n<math>-0.84</math>\n31.38\n8.50\n13.51\n1.40\nBirchMt gn\nADA-ES\n6.52\n20.96\n<math>+3.16</math>\n<math>-0.45</math>\n27.14\n18.21\n10.73\n12.88\nADC Tel rs\nBickbaud\n23.21\n17.90\n<math>+0.13</math>\n<math>+0.70</math>\n52.73\n30,40\n13.86\n16.70\nADECP\nBluCoat\n41.29\n27.32\n<math>+0.73</math>\n<math>+1.30</math>\n44.35\n16.45\n24.15\n10.47\nAFC Ent s\nBlueNile\n40,30\n15.40\n<math>-0.14</math>\n<math>-1.10</math>\n8.37\n26.45\n19.91\n4.50\nBobEvn\nASE Tst\n22.99\n7.76\n<math>+0.40</math>\n15.94\n19.25\n12.75\n6.12\nASM Intl\nBodisen n\n<math>15.45 + 0.45</math>\n17.65\n<math>-0.03</math>\n6.21\n20.92\n13.94\n1.56\nBookham\nASML HId\n5.94 +0.06\n21.24\n<math>+0.46</math>\n27.38\n11.80\n4.99\n16.39\nBorland\nASV Inc s\n6.68\n26.76\n<math>+0.14</math>\n<math>+0.14</math>\n31.90\n19.82\n10.47\n21.10\nBostPrv\nATI Tech\n31.18\n17.89\n<math>+0.68</math>\n<math>-0.07</math>\n18.62\n33.62\n10.01\n20.53\nBHmInT\nATMI Inc\n<math>11.53 + 0.20</math>\n29.95\n<math>+1.29</math>\n39.20\n14.68\n7.10\n16.76\nBrigExp\nATP O&G\n12.10\n38,40\n<math>-0.23</math>\n<math>-0.59</math>\n46.72\n26.65\n4.24\n1.99\nBrightHrz s\nAVI Bio\n38.90\n<math>-0.80</math>\n<math>3.62 - 0.02</math>\n20 55\n4 25\n1 77\n2 15.4\nThe section to design",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "Nasdaq & AMEX\nStocks in bold rose or fell 5% or more\nTrack your investments with our continuously\nISA\nupdated stocks. Visit us on the web at\nTODAY\n.com\nmoney.usatoday.com\n52-week\n52-week\nHigh\nLow\nStock\nLast Change\nHigh\nLow\nStock\nLast Change\n45.71\n32.50\nBlomet\n36.71\n<math>-0.42</math>\n2.76\n1.20\nBiomira\n1.46\n<math>+0.03</math>\n9.07\n5.13\nBloScrip\n8.05\n<math>+0.34</math>\n9.19\n68.88\n50,65\n6.89\nBiosite\nABX Air n\n<math>7.52 -0.10</math>\n50.05\n<math>-4.57</math>\n33.25\n212.25 131.03\n12.40\n<b>ACMoore</b>\nBiotechT\n13.58\n204.66\n<math>-1.57</math>\n<math>-0.84</math>\n31.38\n8.50\n13.51\n1.40\nBirchMt gn\nADA-ES\n6.52\n20.96\n<math>+3.16</math>\n<math>-0.45</math>\n27.14\n18.21\n10.73\n12.88\nADC Tel rs\nBickbaud\n23.21\n17.90\n<math>+0.13</math>\n<math>+0.70</math>\n52.73\n30,40\n13.86\n16.70\nADECP\nBluCoat\n41.29\n27.32\n<math>+0.73</math>\n<math>+1.30</math>\n44.35\n16.45\n24.15\n10.47\nAFC Ent s\nBlueNile\n40,30\n15.40\n<math>-0.14</math>\n<math>-1.10</math>\n8.37\n26.45\n19.91\n4.50\nBobEvn\nASE Tst\n22.99\n7.76\n<math>+0.40</math>\n15.94\n19.25\n12.75\n6.12\nASM Intl\nBodisen n\n<math>15.45 + 0.45</math>\n17.65\n<math>-0.03</math>\n6.21\n20.92\n13.94\n1.56\nBookham\nASML HId\n5.94 +0.06\n21.24\n<math>+0.46</math>\n27.38\n11.80\n4.99\n16.39\nBorland\nASV Inc s\n6.68\n26.76\n<math>+0.14</math>\n<math>+0.14</math>\n31.90\n19.82\n10.47\n21.10\nBostPrv\nATI Tech\n31.18\n17.89\n<math>+0.68</math>\n<math>-0.07</math>\n18.62\n33.62\n10.01\n20.53\nBHmInT\nATMI Inc\n<math>11.53 + 0.20</math>\n29.95\n<math>+1.29</math>\n39.20\n14.68\n7.10\n16.76\nBrigExp\nATP O&G\n12.10\n38,40\n<math>-0.23</math>\n<math>-0.59</math>\n46.72\n26.65\n4.24\n1.99\nBrightHrz s\nAVI Bio\n38.90\n<math>-0.80</math>\n<math>3.62 - 0.02</math>\n20 55\n4 25\n1 77\n2 15.4\nThe section to design"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 51627,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 194,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 326,
+            "completionTokens": 835,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 835
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nNasdaq & AMEX\n\nStocks in bold rose or fell 5% or more.\n\nUSA\nTODAY\n.com\n\nTrack your investments with our continuously\nupdated stocks. Visit us on the web at\nmoney.usatoday.com\n\n52-week      52-week\nHigh  Low  Stock           Last Change   High  Low  Stock           Last Change\n9.19  6.89  ABX Air n       7.52  -0.10   45.71  32.50  Biomet          36.71  -0.42\n30.25  12.40  ACMoore         13.58  -1.57   2.76  1.20  Biomira          1.46  +0.03\n31.38  13.51  ADA-ES          20.96  +3.16   9.07  5.13  BioScrip         8.05  +0.34\n27.14  12.88  ADC Tel rs      23.21  +0.13   68.88  50.65  Biosite          50.05  -4.57\n10.40  10.47  ADEcp           27.32  +0.73   212.25 131.03 BiotechT        204.66  -0.84\n14.37  4.50  ASE Tst          15.40  +0.44   8.50  1.40  BirchMtn gn      6.52  -0.45\n19.25  12.75  ASM Intl        17.65  -0.03   15.94  6.52  Bodisen          15.45  +0.45\n20.92  13.94  ASML Hld       21.24  +0.46   6.21  1.16  Bookham          5.94  +0.06\n27.38  16.79  ASV Inc         26.79  +0.18   44.80  24.99  BlueCoat         41.29  +1.30\n19.82  10.47  ATI Techs       17.96  +0.26   31.13  24.15  BlueNile         40.30  -1.10\n33.67  16.32  AMCC          28.47  -0.07   26.45  19.91  BobEvn           22.99  +0.10\n39.20  38.40  AMGN            38.40  -0.02   14.68  7.10  BrigEx              12.10  -0.20\n41.74  36.02  AMTD            36.02  -0.05   14.76  6.88  BrigHtz          8.89  -0.83\n41.58  31.18  ANAC            31.18  +0.14   33.20  20.05  Brooktr         31.18  +0.07",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "Nasdaq & AMEX\n\nStocks in bold rose or fell 5% or more.\n\nUSA\nTODAY\n.com\n\nTrack your investments with our continuously\nupdated stocks. Visit us on the web at\nmoney.usatoday.com\n\n52-week      52-week\nHigh  Low  Stock           Last Change   High  Low  Stock           Last Change\n9.19  6.89  ABX Air n       7.52  -0.10   45.71  32.50  Biomet          36.71  -0.42\n30.25  12.40  ACMoore         13.58  -1.57   2.76  1.20  Biomira          1.46  +0.03\n31.38  13.51  ADA-ES          20.96  +3.16   9.07  5.13  BioScrip         8.05  +0.34\n27.14  12.88  ADC Tel rs      23.21  +0.13   68.88  50.65  Biosite          50.05  -4.57\n10.40  10.47  ADEcp           27.32  +0.73   212.25 131.03 BiotechT        204.66  -0.84\n14.37  4.50  ASE Tst          15.40  +0.44   8.50  1.40  BirchMtn gn      6.52  -0.45\n19.25  12.75  ASM Intl        17.65  -0.03   15.94  6.52  Bodisen          15.45  +0.45\n20.92  13.94  ASML Hld       21.24  +0.46   6.21  1.16  Bookham          5.94  +0.06\n27.38  16.79  ASV Inc         26.79  +0.18   44.80  24.99  BlueCoat         41.29  +1.30\n19.82  10.47  ATI Techs       17.96  +0.26   31.13  24.15  BlueNile         40.30  -1.10\n33.67  16.32  AMCC          28.47  -0.07   26.45  19.91  BobEvn           22.99  +0.10\n39.20  38.40  AMGN            38.40  -0.02   14.68  7.10  BrigEx              12.10  -0.20\n41.74  36.02  AMTD            36.02  -0.05   14.76  6.88  BrigHtz          8.89  -0.83\n41.58  31.18  ANAC            31.18  +0.14   33.20  20.05  Brooktr         31.18  +0.07"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 12088,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 200,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 794,
+            "completionTokens": 703,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 794,
+                "completionTokens": 703
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nNasdaq & AMEX \nStocks in bold rose or fell 5% or more \nUSA TODAY Track your investments with our continuously updated stocks. Visit us on the web at money.usatoday.com \n\n52-week                 52-week\nHigh  Low  Stock       Last Change    High  Low  Stock       Last Change\n9.19  6.89  ABX Air n    7.52  -0.10     45.71  32.50  Biomet    36.71  -0.42 \n33.25 12.40  ACMoore     13.58  -1.57     2.76  1.20  Biomira   1.46  +0.03 \n31.38 13.51  ADA-ES     20.96  +3.16     68.88 50.45  Biosite   50.05  +4.57 \n27.14 12.88  ADTC Tel rs  23.21  +0.13     212.25 131.03  BiotechT  204.66  -0.84 \n30.40 16.70  ADecp rs    27.32  +0.73      8.50  1.40  BirchMt gn  6.52  -0.45 \n16.45 10.47  AF Ent rs    15.40  -0.14     52.73 13.86  Bickbaud  17.90  +0.70 \n8.37  4.50  ASE Tst     7.76  +0.40      41.29 13.88  BluCoat   39.27  +1.30 \n19.25 12.75  ASM Intl     17.65  -0.03     40.30 24.15  BlueNile  40.26  -1.10 \n20.92 13.94  ASML Hld    21.24  +0.46      6.21  1.56  Bookham   5.94  +0.06 \n27.38 16.39  ASV Inc s   26.76  +0.14     31.90  6.21  Borland   6.68  +0.14 \n19.82 10.47  ATI Tech     17.89  -0.68     31.90  21.10  BostPrv   31.18  -0.07 \n33.62 20.53  ATMI Inc    29.95  +1.29     18.62 10.01  BtlmInt   11.53  +0.20 \n39.20 16.76  ATP O&G    38.40  -0.59     14.68  7.10  BrigExp   12.10  -0.23 \n4.24  1.99  AVI Bio     3.62  -0.02     46.72  26.65  BrightHzs  38.90  -0.80",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "Nasdaq & AMEX \nStocks in bold rose or fell 5% or more \nUSA TODAY Track your investments with our continuously updated stocks. Visit us on the web at money.usatoday.com \n\n52-week                 52-week\nHigh  Low  Stock       Last Change    High  Low  Stock       Last Change\n9.19  6.89  ABX Air n    7.52  -0.10     45.71  32.50  Biomet    36.71  -0.42 \n33.25 12.40  ACMoore     13.58  -1.57     2.76  1.20  Biomira   1.46  +0.03 \n31.38 13.51  ADA-ES     20.96  +3.16     68.88 50.45  Biosite   50.05  +4.57 \n27.14 12.88  ADTC Tel rs  23.21  +0.13     212.25 131.03  BiotechT  204.66  -0.84 \n30.40 16.70  ADecp rs    27.32  +0.73      8.50  1.40  BirchMt gn  6.52  -0.45 \n16.45 10.47  AF Ent rs    15.40  -0.14     52.73 13.86  Bickbaud  17.90  +0.70 \n8.37  4.50  ASE Tst     7.76  +0.40      41.29 13.88  BluCoat   39.27  +1.30 \n19.25 12.75  ASM Intl     17.65  -0.03     40.30 24.15  BlueNile  40.26  -1.10 \n20.92 13.94  ASML Hld    21.24  +0.46      6.21  1.56  Bookham   5.94  +0.06 \n27.38 16.39  ASV Inc s   26.76  +0.14     31.90  6.21  Borland   6.68  +0.14 \n19.82 10.47  ATI Tech     17.89  -0.68     31.90  21.10  BostPrv   31.18  -0.07 \n33.62 20.53  ATMI Inc    29.95  +1.29     18.62 10.01  BtlmInt   11.53  +0.20 \n39.20 16.76  ATP O&G    38.40  -0.59     14.68  7.10  BrigExp   12.10  -0.23 \n4.24  1.99  AVI Bio     3.62  -0.02     46.72  26.65  BrightHzs  38.90  -0.80"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 18088,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 89,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<|ref|>title<|/ref|><|det|>[[64, 140, 740, 255]]<|/det|>\n# Nasdaq & AMEX\n\n<|ref|>text<|/ref|><|det|>[[64, 275, 584, 320]]<|/det|>\nStocks in bold rose or fell 5% or more\n\n<|ref|>image<|/ref|><|det|>[[66, 339, 210, 450]]<|/det|>\n\n<|ref|>text<|/ref|><|det|>[[210, 333, 886, 444]]<|/det|>\n**Track your investments with our continuously** **updated** **stocks. Visit us on the web at** **money.usatoday.com**\n\n<|ref|>table<|/ref|><|det|>[[55, 460, 975, 995]]<|/det|>\n\n<table><tr><td>52-week High</td><td>Low</td><td>Stock</td><td>Last Change</td><td>52-week High</td><td>Low</td><td>Stock</td><td>Last Change</td></tr><tr><td></td><td></td><td></td><td></td><td>45.71</td><td>32.50</td><td>Biomet</td><td>36.71 -0.42</td></tr><tr><td></td><td></td><td></td><td></td><td>2.76</td><td>1.20</td><td>Biomira</td><td>1.46 +0.03</td></tr><tr><td></td><td></td><td></td><td></td><td>9.07</td><td>5.13</td><td>BioScrip</td><td>8.05 +0.34</td></tr><tr><td>9.19</td><td>6.89</td><td>ABX Air n</td><td>7.52-0.10</td><td>68.88</td><td>50.65</td><td>Biosite</td><td>50.05 -4.57</td></tr><tr><td>33.25</td><td>12.40</td><td>ACMoore</td><td>13.58-1.57</td><td>212.25</td><td>131.03</td><td>BiotechT</td><td>204.66 -0.84</td></tr><tr><td>31.38</td><td>13.51</td><td>ADA-ES</td><td>20.96+3.16</td><td>8.50</td><td>1.40</td><td>BirchMtf gn</td><td>6.52 -0.45</td></tr><tr><td>27.14</td><td>12.88</td><td>ADC Tel rs</td><td>23.21+0.13</td><td>18.21</td><td>10.73</td><td>Bickboud</td><td>17.90 +0.70</td></tr><tr><td>30.40</td><td>16.70</td><td>ADECP</td><td>27.32+0.73</td><td>52.73</td><td>13.86</td><td>BluCoat</td><td>41.29 +1.30</td></tr><tr><td>16.45</td><td>10.47</td><td>AFC Ent s</td><td>15.40-0.14</td><td>44.35</td><td>24.15</td><td>BlueNile</td><td>40.30 -1.10</td></tr><tr><td>8.37</td><td>4.50</td><td>ASE Tst</td><td>7.76+0.40</td><td>26.45</td><td>19.91</td><td>BobEvn</td><td>22.99</td></tr><tr><td>19.25</td><td>12.75</td><td>ASM Intl</td><td>17.65-0.03</td><td>15.94</td><td>6.12</td><td>Bodisen n</td><td>15.45 +0.45</td></tr><tr><td>20.92</td><td>13.94</td><td>ASML Hid</td><td>21.24+0.46</td><td>6.21</td><td>1.56</td><td>Bookham</td><td>5.94 +0.06</td></tr><tr><td>27.38</td><td>16.39</td><td>ASV Inc s</td><td>26.76+0.14</td><td>11.80</td><td>4.99</td><td>Borland</td><td>6.68 +0.14</td></tr><tr><td>19.82</td><td>10.47</td><td>ATI Tech</td><td>17.89+0.68</td><td>31.90</td><td>21.10</td><td>BostPrv</td><td>31.18 -0.07</td></tr><tr><td>33.62</td><td>20.53</td><td>ATMI Inc</td><td>29.95+1.29</td><td>18.62</td><td>10.01</td><td>BftmlnT</td><td>11.53 +0.20</td></tr><tr><td>39.20</td><td>16.76</td><td>ATP O&G</td><td>38.40-0.59</td><td>14.68</td><td>7.10</td><td>BrigExp</td><td>12.10 -0.23</td></tr><tr><td>4.24</td><td>1.99</td><td>AVI Bio</td><td>3.62-0.02</td><td>46.72</td><td>26.65</td><td>BrightHrz s</td><td>38.90 -0.80</td></tr></table>",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<|ref|>title<|/ref|><|det|>[[64, 140, 740, 255]]<|/det|>\n# Nasdaq & AMEX\n\n<|ref|>text<|/ref|><|det|>[[64, 275, 584, 320]]<|/det|>\nStocks in bold rose or fell 5% or more\n\n<|ref|>image<|/ref|><|det|>[[66, 339, 210, 450]]<|/det|>\n\n<|ref|>text<|/ref|><|det|>[[210, 333, 886, 444]]<|/det|>\n**Track your investments with our continuously** **updated** **stocks. Visit us on the web at** **money.usatoday.com**\n\n<|ref|>table<|/ref|><|det|>[[55, 460, 975, 995]]<|/det|>\n\n<table><tr><td>52-week High</td><td>Low</td><td>Stock</td><td>Last Change</td><td>52-week High</td><td>Low</td><td>Stock</td><td>Last Change</td></tr><tr><td></td><td></td><td></td><td></td><td>45.71</td><td>32.50</td><td>Biomet</td><td>36.71 -0.42</td></tr><tr><td></td><td></td><td></td><td></td><td>2.76</td><td>1.20</td><td>Biomira</td><td>1.46 +0.03</td></tr><tr><td></td><td></td><td></td><td></td><td>9.07</td><td>5.13</td><td>BioScrip</td><td>8.05 +0.34</td></tr><tr><td>9.19</td><td>6.89</td><td>ABX Air n</td><td>7.52-0.10</td><td>68.88</td><td>50.65</td><td>Biosite</td><td>50.05 -4.57</td></tr><tr><td>33.25</td><td>12.40</td><td>ACMoore</td><td>13.58-1.57</td><td>212.25</td><td>131.03</td><td>BiotechT</td><td>204.66 -0.84</td></tr><tr><td>31.38</td><td>13.51</td><td>ADA-ES</td><td>20.96+3.16</td><td>8.50</td><td>1.40</td><td>BirchMtf gn</td><td>6.52 -0.45</td></tr><tr><td>27.14</td><td>12.88</td><td>ADC Tel rs</td><td>23.21+0.13</td><td>18.21</td><td>10.73</td><td>Bickboud</td><td>17.90 +0.70</td></tr><tr><td>30.40</td><td>16.70</td><td>ADECP</td><td>27.32+0.73</td><td>52.73</td><td>13.86</td><td>BluCoat</td><td>41.29 +1.30</td></tr><tr><td>16.45</td><td>10.47</td><td>AFC Ent s</td><td>15.40-0.14</td><td>44.35</td><td>24.15</td><td>BlueNile</td><td>40.30 -1.10</td></tr><tr><td>8.37</td><td>4.50</td><td>ASE Tst</td><td>7.76+0.40</td><td>26.45</td><td>19.91</td><td>BobEvn</td><td>22.99</td></tr><tr><td>19.25</td><td>12.75</td><td>ASM Intl</td><td>17.65-0.03</td><td>15.94</td><td>6.12</td><td>Bodisen n</td><td>15.45 +0.45</td></tr><tr><td>20.92</td><td>13.94</td><td>ASML Hid</td><td>21.24+0.46</td><td>6.21</td><td>1.56</td><td>Bookham</td><td>5.94 +0.06</td></tr><tr><td>27.38</td><td>16.39</td><td>ASV Inc s</td><td>26.76+0.14</td><td>11.80</td><td>4.99</td><td>Borland</td><td>6.68 +0.14</td></tr><tr><td>19.82</td><td>10.47</td><td>ATI Tech</td><td>17.89+0.68</td><td>31.90</td><td>21.10</td><td>BostPrv</td><td>31.18 -0.07</td></tr><tr><td>33.62</td><td>20.53</td><td>ATMI Inc</td><td>29.95+1.29</td><td>18.62</td><td>10.01</td><td>BftmlnT</td><td>11.53 +0.20</td></tr><tr><td>39.20</td><td>16.76</td><td>ATP O&G</td><td>38.40-0.59</td><td>14.68</td><td>7.10</td><td>BrigExp</td><td>12.10 -0.23</td></tr><tr><td>4.24</td><td>1.99</td><td>AVI Bio</td><td>3.62-0.02</td><td>46.72</td><td>26.65</td><td>BrightHrz s</td><td>38.90 -0.80</td></tr></table>"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 10290,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 226,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nNasdaq & AMEX\nStocks in bold rose or fell 5% or more.\nUSA\nTrack your investments with our continuously\nTODAY\nupdated stocks. Visit us on the web at\n.com\nmoney.usatoday.com.\n52-week\nHigh\nLow Stock\nLast Change\n52.week\nLow\nStock\nLost Change\n-A-\n45.71 32.50 Biomet\n46.71\n-0.42\n2.76\n1.20 Biomira\n9.70\n1,46\n+0.03\n0.05\n9,19\n6.89\nABX Air n\n7.52 -0.10\n68.90\n5.50\nBioScrip\nBioscript\n50.05 -4.57\n8.05-4.37\n33.25\n12.40 12.40 ACMoore\n13.58 -1.51\n212.25 13.51 BiotechT\n204.66\n20.44\n31.38 13.31 ADA-ES\n20,96 +3.16\n8,50\nBirchMite\nBirckMite gn\n6,52\n- 0.45\n27.14 12.88 ADC Tel rs\n23.91\n18.21\n10.73\n17.90 -0,70\n21.23\nBlickboud\n17,90 -1,70-0,40\n40.30\n30.40 16.70 ADC DecD\n22.32 -0-73\n52,23 13.86\nBlueCoat\n41.29 -1:30\n16.40 10.47 AFC Ent's\n15.40\n44.25 BLUEcoot\n40,30 -1-10\n8:37\n4.50 ASE Tst\n7,76-0-0\n26.54\n19.95\n19,25 12.75 ASM Intd\n17:65 -0:40\n16,45\n16:45\n20-25 12,75 ASML Intd.\n17-6.40 -0\n15,45 12.62\nBodisen n\n22,99\n20:92 13.94 ASM Indi\n21,65 - 0.40.46\n6:21\n1:56\nBooksham\n5,45 - 0-45\n28.29 13.99\nASM Inc\n27,66\n26,76 +0.14\n11.00\nBorland\n31,68\n19:28 16.39\nATI Tech\n17 89\n19-20 10.07 ATI Tecs\n11,90 21.00 BostPrv\n31:68 -0_07\n32.62 20.53 ATMI Inc\n29.95 +0:29\n18,62 10.10 Bbitmtn\n11:53 -0 .20.20\n39.20 16.53 ATI O&G\n38.95-0_0.59\n14.68\n14,68 10.01 BrightHrz s\n12,10\n12:10\n4,29\nAVI Blo\n36.62 -0 -- 0.69\n47.72 26.65\n48.72",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "Nasdaq & AMEX\nStocks in bold rose or fell 5% or more.\nUSA\nTrack your investments with our continuously\nTODAY\nupdated stocks. Visit us on the web at\n.com\nmoney.usatoday.com.\n52-week\nHigh\nLow Stock\nLast Change\n52.week\nLow\nStock\nLost Change\n-A-\n45.71 32.50 Biomet\n46.71\n-0.42\n2.76\n1.20 Biomira\n9.70\n1,46\n+0.03\n0.05\n9,19\n6.89\nABX Air n\n7.52 -0.10\n68.90\n5.50\nBioScrip\nBioscript\n50.05 -4.57\n8.05-4.37\n33.25\n12.40 12.40 ACMoore\n13.58 -1.51\n212.25 13.51 BiotechT\n204.66\n20.44\n31.38 13.31 ADA-ES\n20,96 +3.16\n8,50\nBirchMite\nBirckMite gn\n6,52\n- 0.45\n27.14 12.88 ADC Tel rs\n23.91\n18.21\n10.73\n17.90 -0,70\n21.23\nBlickboud\n17,90 -1,70-0,40\n40.30\n30.40 16.70 ADC DecD\n22.32 -0-73\n52,23 13.86\nBlueCoat\n41.29 -1:30\n16.40 10.47 AFC Ent's\n15.40\n44.25 BLUEcoot\n40,30 -1-10\n8:37\n4.50 ASE Tst\n7,76-0-0\n26.54\n19.95\n19,25 12.75 ASM Intd\n17:65 -0:40\n16,45\n16:45\n20-25 12,75 ASML Intd.\n17-6.40 -0\n15,45 12.62\nBodisen n\n22,99\n20:92 13.94 ASM Indi\n21,65 - 0.40.46\n6:21\n1:56\nBooksham\n5,45 - 0-45\n28.29 13.99\nASM Inc\n27,66\n26,76 +0.14\n11.00\nBorland\n31,68\n19:28 16.39\nATI Tech\n17 89\n19-20 10.07 ATI Tecs\n11,90 21.00 BostPrv\n31:68 -0_07\n32.62 20.53 ATMI Inc\n29.95 +0:29\n18,62 10.10 Bbitmtn\n11:53 -0 .20.20\n39.20 16.53 ATI O&G\n38.95-0_0.59\n14.68\n14,68 10.01 BrightHrz s\n12,10\n12:10\n4,29\nAVI Blo\n36.62 -0 -- 0.69\n47.72 26.65\n48.72"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 95784,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 783,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n\\(\\operatorname{Nasdaq}\\) \\& AMEX\n Stocks in bold rose or fell \\(5 \\%\\) or more\n.com\n}\\(\\underset{\\text { money.usatoday.com }}{\\text { USA }}\\)\nHigh\n\\(\\underset{\\text { Low }}{\\text { Stock }}\\)\n\\(\\underset{\\text { Stock }}{\\text { Stock }}\\)\n\\(\\underset{\\text { Low }}{\\text { Stock }}\\)\n\\(\\underset{\\text { High }}{\\text { Stock }}\\)\n\\(\\underset{\\text { 20.96}}{\\underset{\\text { 52-week }}{52-\\text { week }}}\\)\n\\(\\underset{\\text { 68.88}}{\\text { High }}\\)\n\\(\\underset{\\text { 212.25}}{\\text { Biomet }}\\)\n\\(\\underset{\\text { Biomira }}{36.71}\\)\n\\(\\underset{\\text { Biocris }}{9.07}\\)\n\\(\\underset{\\text { 68.88}}{9.05}\\)\n\\(\\underset{\\text { 212.25}}{52.50}\\)\n\\(\\underset{\\text { 1.40 }}{32.50}\\)\n\\(\\underset{\\text { Biomira }}{36.71}\\)\n\\(\\underset{\\text { Biocris }}{9.07}\\)\n\\(\\underset{\\text { BiobiteCt }}{9.05}\\)\n\\(\\underset{\\text { 1.46 }}{36.71}\\)\n\\(\\underset{\\text { BiobitMtgn }}{9.07}\\)\n\\(\\underset{\\text { 10.73 }}{36.71}\\)\n\\(\\underset{\\text { BluCoat}{12.25}}{9.05}\\)\n\\(\\underset{\\text { BiobineH }}{36.71}\\)\n\\(\\underset{\\text { 10.73 }}{36.71}\\)\n\\(\\underset{\\text { 14.25}}{36.71}\\)\n\\(\\underset{\\text { Bioben }}{36.71}\\)\n\\(\\underset{\\text { 15.94 }}{36.71}\\)\n\\(\\underset{\\text { 1.821 }}{36.71}\\)\n\\(\\underset{\\text { 16.40 }}{36.71}\\)\n\\(\\underset{\\text { 17.89 }}{36.71}\\)\n\\(\\underset{\\text { 29.95 }}{36.71}\\)\n\\(\\underset{\\text { 38.40 }}{36.71}\\)\n\\(\\underset{\\text { 46.72 }}{36.71}\\)\n\\(\\underset{\\text { 4.99 }}{36.71}\\)\n\\(\\underset{\\text { 31.90 }}{31.91}\\)\n\\(\\underset{\\text { 18.62 }}{31.91}\\)\n\\(\\underset{\\text { 14.68 }}{31.91}\\)\n\\(\\underset{\\text { 10.01 }}{31.91}\\)\n\\(\\underset{\\text { 11.00 }}{31.91}\\)\n\\(\\underset{\\text { 15.45 }}{31.91}\\)\n\\(\\underset{\\text { 5.94 }}{31.91}\\)\n\\(\\underset{\\text { 31.18 }}{31.18}\\)\n\\(\\underset{\\text { 11.53 }}{31.18}\\)\n\\(\\underset{\\text { 12.10 }}{31.18}\\)\n\\(\\underset{\\text { 38.90 }}{31.18}\\)\n\\(\\underset{\\text { 31.07 }}{31.18}\\)\n\\(\\underset{\\text { 11.53 }}{31.07}\\)\n\\(\\underset{\\text { 12.10 }}{31.07}\\)\n\\(\\underset{\\text { 38.90 }}{31.07}\\)\n\\(\\underset{\\text { 31.00 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text {",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\\(\\operatorname{Nasdaq}\\) \\& AMEX\n Stocks in bold rose or fell \\(5 \\%\\) or more\n.com\n}\\(\\underset{\\text { money.usatoday.com }}{\\text { USA }}\\)\nHigh\n\\(\\underset{\\text { Low }}{\\text { Stock }}\\)\n\\(\\underset{\\text { Stock }}{\\text { Stock }}\\)\n\\(\\underset{\\text { Low }}{\\text { Stock }}\\)\n\\(\\underset{\\text { High }}{\\text { Stock }}\\)\n\\(\\underset{\\text { 20.96}}{\\underset{\\text { 52-week }}{52-\\text { week }}}\\)\n\\(\\underset{\\text { 68.88}}{\\text { High }}\\)\n\\(\\underset{\\text { 212.25}}{\\text { Biomet }}\\)\n\\(\\underset{\\text { Biomira }}{36.71}\\)\n\\(\\underset{\\text { Biocris }}{9.07}\\)\n\\(\\underset{\\text { 68.88}}{9.05}\\)\n\\(\\underset{\\text { 212.25}}{52.50}\\)\n\\(\\underset{\\text { 1.40 }}{32.50}\\)\n\\(\\underset{\\text { Biomira }}{36.71}\\)\n\\(\\underset{\\text { Biocris }}{9.07}\\)\n\\(\\underset{\\text { BiobiteCt }}{9.05}\\)\n\\(\\underset{\\text { 1.46 }}{36.71}\\)\n\\(\\underset{\\text { BiobitMtgn }}{9.07}\\)\n\\(\\underset{\\text { 10.73 }}{36.71}\\)\n\\(\\underset{\\text { BluCoat}{12.25}}{9.05}\\)\n\\(\\underset{\\text { BiobineH }}{36.71}\\)\n\\(\\underset{\\text { 10.73 }}{36.71}\\)\n\\(\\underset{\\text { 14.25}}{36.71}\\)\n\\(\\underset{\\text { Bioben }}{36.71}\\)\n\\(\\underset{\\text { 15.94 }}{36.71}\\)\n\\(\\underset{\\text { 1.821 }}{36.71}\\)\n\\(\\underset{\\text { 16.40 }}{36.71}\\)\n\\(\\underset{\\text { 17.89 }}{36.71}\\)\n\\(\\underset{\\text { 29.95 }}{36.71}\\)\n\\(\\underset{\\text { 38.40 }}{36.71}\\)\n\\(\\underset{\\text { 46.72 }}{36.71}\\)\n\\(\\underset{\\text { 4.99 }}{36.71}\\)\n\\(\\underset{\\text { 31.90 }}{31.91}\\)\n\\(\\underset{\\text { 18.62 }}{31.91}\\)\n\\(\\underset{\\text { 14.68 }}{31.91}\\)\n\\(\\underset{\\text { 10.01 }}{31.91}\\)\n\\(\\underset{\\text { 11.00 }}{31.91}\\)\n\\(\\underset{\\text { 15.45 }}{31.91}\\)\n\\(\\underset{\\text { 5.94 }}{31.91}\\)\n\\(\\underset{\\text { 31.18 }}{31.18}\\)\n\\(\\underset{\\text { 11.53 }}{31.18}\\)\n\\(\\underset{\\text { 12.10 }}{31.18}\\)\n\\(\\underset{\\text { 38.90 }}{31.18}\\)\n\\(\\underset{\\text { 31.07 }}{31.18}\\)\n\\(\\underset{\\text { 11.53 }}{31.07}\\)\n\\(\\underset{\\text { 12.10 }}{31.07}\\)\n\\(\\underset{\\text { 38.90 }}{31.07}\\)\n\\(\\underset{\\text { 31.00 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text { 38.90 }}{38.90}\\)\n\\(\\underset{\\text {"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 8101,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 457,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n# Nasdaq & AMEX\n\nStocks in bold rose or fell 5% or more.\n\n![USA TODAY.com logo](30a26f2d17ca95672702bf50fb4f0242_img.jpg)\n\nUSA TODAY.com logo\n\nTrack your investments with our continuously updated stocks. Visit us on the web at [money.usatoday.com](http://money.usatoday.com)\n\n52-week  \nHigh Low Stock Last Change\n\n## — A —\n\n| High         | Low          | Stock          | Last         | Change       |\n|--------------|--------------|----------------|--------------|--------------|\n| 9.19         | 6.89         | ABX Air n      | 7.52         | -0.10        |\n| <b>33.25</b> | <b>12.40</b> | <b>ACMoore</b> | <b>13.58</b> | <b>-1.57</b> |\n| <b>31.38</b> | <b>13.51</b> | <b>ADA-ES</b>  | <b>20.96</b> | <b>+3.16</b> |\n| 27.14        | 12.88        | ADC Tel rs     | 23.21        | +0.13        |\n| 30.40        | 16.70        | ADECp          | 27.32        | +0.73        |\n| 16.45        | 10.47        | AFC Ent s      | 15.40        | -0.14        |\n| <b>8.37</b>  | <b>4.50</b>  | <b>ASE Tst</b> | <b>7.76</b>  | <b>+0.40</b> |\n| 19.25        | 12.75        | ASM Intl       | 17.65        | -0.03        |\n| 20.92        | 13.94        | ASML Hld       | 21.24        | +0.46        |\n| 27.38        | 16.39        | ASV Inc s      | 26.76        | +0.14        |\n| 19.82        | 10.47        | ATI Tech       | 17.89        | +0.68        |\n| 33.62        | 20.53        | ATMI Inc       | 29.95        | +1.29        |\n| 39.20        | 16.76        | ATP O&G        | 38.40        | -0.59        |\n| 4.24         | 1.99         | AVI Bio        | 3.62         | -0.02        |\n| 4.34         | 1.34         | Avista         | 3.62         | -0.02        |\n\n52-week  \nHigh Low Stock Last Change\n\n| High         | Low          | Stock             | Last         | Change       |\n|--------------|--------------|-------------------|--------------|--------------|\n| 45.71        | 32.50        | Biomet            | 36.71        | -0.42        |\n| 2.76         | 1.20         | Biomira           | 1.46         | +0.03        |\n| 9.07         | 5.13         | BioScrip          | 8.05         | +0.34        |\n| <b>68.88</b> | <b>50.65</b> | <b>Biosite</b>    | <b>50.05</b> | <b>-4.57</b> |\n| 212.25       | 131.03       | BiotechT          | 204.66       | -0.84        |\n| <b>8.50</b>  | <b>1.40</b>  | <b>BirchMt gn</b> | <b>6.52</b>  | <b>-0.45</b> |\n| 18.21        | 10.73        | Bickbaud          | 17.90        | +0.70        |\n| 52.73        | 13.86        | BluCoat           | 41.29        | +1.30        |\n| 44.35        | 24.15        | BlueNile          | 40.30        | -1.10        |\n| 26.45        | 19.91        | BobEvn            | 22.99        | ...          |\n| 15.94        | 6.12         | Bodisen n         | 15.45        | +0.45        |\n| 6.21         | 1.56         | Bookham           | 5.94         | +0.06        |\n| 11.80        | 4.99         | Borland           | 6.68         | +0.14        |\n| 31.90        | 21.10        | BostPrv           | 31.18        | -0.07        |\n| 18.62        | 10.01        | BttmInt           | 11.53        | +0.20        |\n| 14.68        | 7.10         | BrigExp           | 12.10        | -0.23        |\n| 46.72        | 26.65        | BrightHrz s       | 38.90        | -0.80        |\n| 20.55        | 4.73         | Brightstar        | 10.01        | -0.01        |",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\n# Nasdaq & AMEX\n\nStocks in bold rose or fell 5% or more.\n\n![USA TODAY.com logo](30a26f2d17ca95672702bf50fb4f0242_img.jpg)\n\nUSA TODAY.com logo\n\nTrack your investments with our continuously updated stocks. Visit us on the web at [money.usatoday.com](http://money.usatoday.com)\n\n52-week  \nHigh Low Stock Last Change\n\n## — A —\n\n| High         | Low          | Stock          | Last         | Change       |\n|--------------|--------------|----------------|--------------|--------------|\n| 9.19         | 6.89         | ABX Air n      | 7.52         | -0.10        |\n| <b>33.25</b> | <b>12.40</b> | <b>ACMoore</b> | <b>13.58</b> | <b>-1.57</b> |\n| <b>31.38</b> | <b>13.51</b> | <b>ADA-ES</b>  | <b>20.96</b> | <b>+3.16</b> |\n| 27.14        | 12.88        | ADC Tel rs     | 23.21        | +0.13        |\n| 30.40        | 16.70        | ADECp          | 27.32        | +0.73        |\n| 16.45        | 10.47        | AFC Ent s      | 15.40        | -0.14        |\n| <b>8.37</b>  | <b>4.50</b>  | <b>ASE Tst</b> | <b>7.76</b>  | <b>+0.40</b> |\n| 19.25        | 12.75        | ASM Intl       | 17.65        | -0.03        |\n| 20.92        | 13.94        | ASML Hld       | 21.24        | +0.46        |\n| 27.38        | 16.39        | ASV Inc s      | 26.76        | +0.14        |\n| 19.82        | 10.47        | ATI Tech       | 17.89        | +0.68        |\n| 33.62        | 20.53        | ATMI Inc       | 29.95        | +1.29        |\n| 39.20        | 16.76        | ATP O&G        | 38.40        | -0.59        |\n| 4.24         | 1.99         | AVI Bio        | 3.62         | -0.02        |\n| 4.34         | 1.34         | Avista         | 3.62         | -0.02        |\n\n52-week  \nHigh Low Stock Last Change\n\n| High         | Low          | Stock             | Last         | Change       |\n|--------------|--------------|-------------------|--------------|--------------|\n| 45.71        | 32.50        | Biomet            | 36.71        | -0.42        |\n| 2.76         | 1.20         | Biomira           | 1.46         | +0.03        |\n| 9.07         | 5.13         | BioScrip          | 8.05         | +0.34        |\n| <b>68.88</b> | <b>50.65</b> | <b>Biosite</b>    | <b>50.05</b> | <b>-4.57</b> |\n| 212.25       | 131.03       | BiotechT          | 204.66       | -0.84        |\n| <b>8.50</b>  | <b>1.40</b>  | <b>BirchMt gn</b> | <b>6.52</b>  | <b>-0.45</b> |\n| 18.21        | 10.73        | Bickbaud          | 17.90        | +0.70        |\n| 52.73        | 13.86        | BluCoat           | 41.29        | +1.30        |\n| 44.35        | 24.15        | BlueNile          | 40.30        | -1.10        |\n| 26.45        | 19.91        | BobEvn            | 22.99        | ...          |\n| 15.94        | 6.12         | Bodisen n         | 15.45        | +0.45        |\n| 6.21         | 1.56         | Bookham           | 5.94         | +0.06        |\n| 11.80        | 4.99         | Borland           | 6.68         | +0.14        |\n| 31.90        | 21.10        | BostPrv           | 31.18        | -0.07        |\n| 18.62        | 10.01        | BttmInt           | 11.53        | +0.20        |\n| 14.68        | 7.10         | BrigExp           | 12.10        | -0.23        |\n| 46.72        | 26.65        | BrightHrz s       | 38.90        | -0.80        |\n| 20.55        | 4.73         | Brightstar        | 10.01        | -0.01        |"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 18456,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 328,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 569,
+            "completionTokens": 966,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 569,
+                "completionTokens": 966
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nNasdaq & AMEX\n\nStocks in bold rose or fell 5% or more\n\nTrack your investments with our continuously updated stocks. Visit us on the web at money.usatoday.com\n\n52-week High | Low | Stock | Last Change\n--- | --- | --- | ---\n9.19 | 6.89 | ABX Air n | 7.52 -0.10\n33.25 | 12.40 | ACMoore | 13.58 -1.57\n31.38 | 13.51 | ADA-ES | 20.96 +3.16\n27.14 | 12.88 | ADC Tel rs | 23.21 +0.13\n30.40 | 16.70 | ADEC p | 27.32 +0.73\n16.45 | 10.47 | AFC Ent s | 15.40 -0.14\n8.37 | 4.50 | ASE Tst | 7.76 +0.40\n19.25 | 12.75 | ASM Intl | 17.65 -0.03\n20.92 | 13.94 | ASML Hld | 21.24 +0.46\n27.38 | 16.39 | ASV Inc s | 26.76 +0.14\n19.82 | 10.47 | ATI Tech | 17.89 +0.68\n33.62 | 20.53 | ATML Inc | 29.95 +1.29\n39.20 | 16.76 | ATP O&G | 38.40 -0.59\n4.24 | 1.99 | AVL Bio | 3.62 -0.02\n\n52-week High | Low | Stock | Last Change\n--- | --- | --- | ---\n45.71 | 32.50 | Biomet | 36.71 -0.42\n2.76 | 1.20 | Biomira | 1.46 +0.03\n9.07 | 5.13 | BioScrip | 8.05 +0.34\n68.88 | 50.65 | Biosite | 50.05 -0.57\n212.25 | 131.03 | BiotechT | 204.66 -0.84\n8.50 | 1.40 | BirchMtn gn | 6.52 -0.45\n18.21 | 10.73 | Bickbould | 17.90 +0.70\n52.73 | 13.86 | Bicoat | 41.29 +1.30\n44.35 | 24.15 | BlueNile | 40.30 -1.10\n26.45 | 19.91 | BobEvn | 22.99 +0.05\n15.94 | 6.12 | Bodisen n | 15.45 +0.45\n6.21 | 1.56 | Bookham | 5.94 +0.06\n11.80 | 4.99 | Borsland | 6.68 +0.14\n31.90 | 21.10 | BostPrv | 31.18 -0.07\n18.62 | 10.01 | BtMlnT | 11.53 +0.20\n14.68 | 7.16 | BrigExp | 12.10 -0.23\n46.72 | 26.15 | BrightHrz s | 38.90 -0.80",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "Nasdaq & AMEX\n\nStocks in bold rose or fell 5% or more\n\nTrack your investments with our continuously updated stocks. Visit us on the web at money.usatoday.com\n\n52-week High | Low | Stock | Last Change\n--- | --- | --- | ---\n9.19 | 6.89 | ABX Air n | 7.52 -0.10\n33.25 | 12.40 | ACMoore | 13.58 -1.57\n31.38 | 13.51 | ADA-ES | 20.96 +3.16\n27.14 | 12.88 | ADC Tel rs | 23.21 +0.13\n30.40 | 16.70 | ADEC p | 27.32 +0.73\n16.45 | 10.47 | AFC Ent s | 15.40 -0.14\n8.37 | 4.50 | ASE Tst | 7.76 +0.40\n19.25 | 12.75 | ASM Intl | 17.65 -0.03\n20.92 | 13.94 | ASML Hld | 21.24 +0.46\n27.38 | 16.39 | ASV Inc s | 26.76 +0.14\n19.82 | 10.47 | ATI Tech | 17.89 +0.68\n33.62 | 20.53 | ATML Inc | 29.95 +1.29\n39.20 | 16.76 | ATP O&G | 38.40 -0.59\n4.24 | 1.99 | AVL Bio | 3.62 -0.02\n\n52-week High | Low | Stock | Last Change\n--- | --- | --- | ---\n45.71 | 32.50 | Biomet | 36.71 -0.42\n2.76 | 1.20 | Biomira | 1.46 +0.03\n9.07 | 5.13 | BioScrip | 8.05 +0.34\n68.88 | 50.65 | Biosite | 50.05 -0.57\n212.25 | 131.03 | BiotechT | 204.66 -0.84\n8.50 | 1.40 | BirchMtn gn | 6.52 -0.45\n18.21 | 10.73 | Bickbould | 17.90 +0.70\n52.73 | 13.86 | Bicoat | 41.29 +1.30\n44.35 | 24.15 | BlueNile | 40.30 -1.10\n26.45 | 19.91 | BobEvn | 22.99 +0.05\n15.94 | 6.12 | Bodisen n | 15.45 +0.45\n6.21 | 1.56 | Bookham | 5.94 +0.06\n11.80 | 4.99 | Borsland | 6.68 +0.14\n31.90 | 21.10 | BostPrv | 31.18 -0.07\n18.62 | 10.01 | BtMlnT | 11.53 +0.20\n14.68 | 7.16 | BrigExp | 12.10 -0.23\n46.72 | 26.15 | BrightHrz s | 38.90 -0.80"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
           }
         }
       ]

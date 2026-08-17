@@ -6,112 +6,11 @@
   "runName": "2026-06-10_16-33-20-777_1-audio",
   "generatedAt": "2026-06-10T21:44:13.117Z",
   "metric": "metadata-only price-speed",
-  "providerCount": 17,
+  "providerCount": 15,
   "providerGroups": {
     "local": {
-      "count": 2,
-      "providers": [
-        {
-          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/gemma-3-270m-it-GGUF",
-          "group": "local",
-          "llmService": "llama.cpp",
-          "llmModel": "ggml-org/gemma-3-270m-it-GGUF",
-          "processingTimeMs": 239,
-          "actualProcessingTimeMs": 239,
-          "estimatedProcessingTimeMs": null,
-          "msPerUnit": 606.599,
-          "throughputValue": 1648.536,
-          "throughputUnit": "tokensPerSecond",
-          "rateBasis": "1KTokens",
-          "timingScope": "wall",
-          "timingSource": "actual",
-          "inputMetric": "tokens",
-          "inputValue": 394,
-          "costCents": 0,
-          "actualCostCents": 0,
-          "estimatedCostCents": null,
-          "costSource": "actual",
-          "inputTokenCount": 360,
-          "outputTokenCount": 34,
-          "totalTokenCount": 394,
-          "tokenCountSource": "local_count",
-          "providerReturnedModel": null,
-          "providerUsage": null,
-          "rawProviderUsage": null,
-          "structuredMode": "schema-guided",
-          "structuredPresetNames": [
-            "shortSummary"
-          ],
-          "outputFormat": "json",
-          "outputFileName": "text-ggml-org-gemma-3-270m-it-GGUF.json",
-          "outputExists": true,
-          "outputByteSize": 110,
-          "automatedQualityScore": null,
-          "humanQualityScore": null,
-          "qualityMetric": null,
-          "qualityValue": null,
-          "qualityLabel": null,
-          "metrics": {
-            "inputTokenCount": 360,
-            "outputTokenCount": 34,
-            "totalTokenCount": 394,
-            "msPerUnit": 606.599,
-            "throughputValue": 1648.536
-          }
-        },
-        {
-          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/Qwen3-0.6B-GGUF",
-          "group": "local",
-          "llmService": "llama.cpp",
-          "llmModel": "ggml-org/Qwen3-0.6B-GGUF",
-          "processingTimeMs": 325,
-          "actualProcessingTimeMs": 325,
-          "estimatedProcessingTimeMs": null,
-          "msPerUnit": 837.629,
-          "throughputValue": 1193.846,
-          "throughputUnit": "tokensPerSecond",
-          "rateBasis": "1KTokens",
-          "timingScope": "wall",
-          "timingSource": "actual",
-          "inputMetric": "tokens",
-          "inputValue": 388,
-          "costCents": 0,
-          "actualCostCents": 0,
-          "estimatedCostCents": null,
-          "costSource": "actual",
-          "inputTokenCount": 360,
-          "outputTokenCount": 28,
-          "totalTokenCount": 388,
-          "tokenCountSource": "local_count",
-          "providerReturnedModel": null,
-          "providerUsage": null,
-          "rawProviderUsage": null,
-          "structuredMode": "schema-guided",
-          "structuredPresetNames": [
-            "shortSummary"
-          ],
-          "outputFormat": "json",
-          "outputFileName": "text-ggml-org-Qwen3-0.6B-GGUF.json",
-          "outputExists": true,
-          "outputByteSize": 121,
-          "automatedQualityScore": null,
-          "humanQualityScore": null,
-          "qualityMetric": null,
-          "qualityValue": null,
-          "qualityLabel": null,
-          "metrics": {
-            "inputTokenCount": 360,
-            "outputTokenCount": 28,
-            "totalTokenCount": 388,
-            "msPerUnit": 837.629,
-            "throughputValue": 1193.846
-          }
-        }
-      ]
+      "count": 0,
+      "providers": []
     },
     "service": {
       "count": 15,
@@ -1093,106 +992,6 @@
   },
   "providers": [
     {
-      "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
-      "provider": "llama.cpp",
-      "model": "ggml-org/gemma-3-270m-it-GGUF",
-      "group": "local",
-      "llmService": "llama.cpp",
-      "llmModel": "ggml-org/gemma-3-270m-it-GGUF",
-      "processingTimeMs": 239,
-      "actualProcessingTimeMs": 239,
-      "estimatedProcessingTimeMs": null,
-      "msPerUnit": 606.599,
-      "throughputValue": 1648.536,
-      "throughputUnit": "tokensPerSecond",
-      "rateBasis": "1KTokens",
-      "timingScope": "wall",
-      "timingSource": "actual",
-      "inputMetric": "tokens",
-      "inputValue": 394,
-      "costCents": 0,
-      "actualCostCents": 0,
-      "estimatedCostCents": null,
-      "costSource": "actual",
-      "inputTokenCount": 360,
-      "outputTokenCount": 34,
-      "totalTokenCount": 394,
-      "tokenCountSource": "local_count",
-      "providerReturnedModel": null,
-      "providerUsage": null,
-      "rawProviderUsage": null,
-      "structuredMode": "schema-guided",
-      "structuredPresetNames": [
-        "shortSummary"
-      ],
-      "outputFormat": "json",
-      "outputFileName": "text-ggml-org-gemma-3-270m-it-GGUF.json",
-      "outputExists": true,
-      "outputByteSize": 110,
-      "automatedQualityScore": null,
-      "humanQualityScore": null,
-      "qualityMetric": null,
-      "qualityValue": null,
-      "qualityLabel": null,
-      "metrics": {
-        "inputTokenCount": 360,
-        "outputTokenCount": 34,
-        "totalTokenCount": 394,
-        "msPerUnit": 606.599,
-        "throughputValue": 1648.536
-      }
-    },
-    {
-      "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
-      "provider": "llama.cpp",
-      "model": "ggml-org/Qwen3-0.6B-GGUF",
-      "group": "local",
-      "llmService": "llama.cpp",
-      "llmModel": "ggml-org/Qwen3-0.6B-GGUF",
-      "processingTimeMs": 325,
-      "actualProcessingTimeMs": 325,
-      "estimatedProcessingTimeMs": null,
-      "msPerUnit": 837.629,
-      "throughputValue": 1193.846,
-      "throughputUnit": "tokensPerSecond",
-      "rateBasis": "1KTokens",
-      "timingScope": "wall",
-      "timingSource": "actual",
-      "inputMetric": "tokens",
-      "inputValue": 388,
-      "costCents": 0,
-      "actualCostCents": 0,
-      "estimatedCostCents": null,
-      "costSource": "actual",
-      "inputTokenCount": 360,
-      "outputTokenCount": 28,
-      "totalTokenCount": 388,
-      "tokenCountSource": "local_count",
-      "providerReturnedModel": null,
-      "providerUsage": null,
-      "rawProviderUsage": null,
-      "structuredMode": "schema-guided",
-      "structuredPresetNames": [
-        "shortSummary"
-      ],
-      "outputFormat": "json",
-      "outputFileName": "text-ggml-org-Qwen3-0.6B-GGUF.json",
-      "outputExists": true,
-      "outputByteSize": 121,
-      "automatedQualityScore": null,
-      "humanQualityScore": null,
-      "qualityMetric": null,
-      "qualityValue": null,
-      "qualityLabel": null,
-      "metrics": {
-        "inputTokenCount": 360,
-        "outputTokenCount": 28,
-        "totalTokenCount": 388,
-        "msPerUnit": 837.629,
-        "throughputValue": 1193.846
-      }
-    },
-    {
       "providerKey": "anthropic/claude-haiku-4-5",
       "provider": "anthropic",
       "model": "claude-haiku-4-5",
@@ -2167,104 +1966,20 @@
   ],
   "rankingSurfaces": {
     "local": {
-      "fastest": [
-        {
-          "rank": 1,
-          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/gemma-3-270m-it-GGUF",
-          "group": "local",
-          "metric": "msPerUnit",
-          "value": 606.599,
-          "label": "606.599 ms/1K tokens"
-        },
-        {
-          "rank": 2,
-          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/Qwen3-0.6B-GGUF",
-          "group": "local",
-          "metric": "msPerUnit",
-          "value": 837.629,
-          "label": "837.629 ms/1K tokens"
-        }
-      ],
-      "cheapest": [
-        {
-          "rank": 1,
-          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/gemma-3-270m-it-GGUF",
-          "group": "local",
-          "metric": "local monetary cost",
-          "value": 0,
-          "label": "$0.00 local monetary cost"
-        },
-        {
-          "rank": 2,
-          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/Qwen3-0.6B-GGUF",
-          "group": "local",
-          "metric": "local monetary cost",
-          "value": 0,
-          "label": "$0.00 local monetary cost"
-        }
-      ],
+      "fastest": [],
+      "cheapest": [],
       "highestQuality": [],
-      "fastestUnavailableReason": null,
-      "cheapestUnavailableReason": null,
-      "highestQualityUnavailableReason": "No explicit text quality scores were available. Text benchmark quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.",
-      "price": [
-        {
-          "rank": 1,
-          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/gemma-3-270m-it-GGUF",
-          "group": "local",
-          "metric": "local monetary cost",
-          "value": 0,
-          "label": "$0.00 local monetary cost"
-        },
-        {
-          "rank": 2,
-          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/Qwen3-0.6B-GGUF",
-          "group": "local",
-          "metric": "local monetary cost",
-          "value": 0,
-          "label": "$0.00 local monetary cost"
-        }
-      ],
-      "speed": [
-        {
-          "rank": 1,
-          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/gemma-3-270m-it-GGUF",
-          "group": "local",
-          "metric": "msPerUnit",
-          "value": 606.599,
-          "label": "606.599 ms/1K tokens"
-        },
-        {
-          "rank": 2,
-          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
-          "provider": "llama.cpp",
-          "model": "ggml-org/Qwen3-0.6B-GGUF",
-          "group": "local",
-          "metric": "msPerUnit",
-          "value": 837.629,
-          "label": "837.629 ms/1K tokens"
-        }
-      ],
+      "fastestUnavailableReason": "No local providers were found.",
+      "cheapestUnavailableReason": "No local providers were found.",
+      "highestQualityUnavailableReason": "No local providers were found.",
+      "price": [],
+      "speed": [],
       "automatedQuality": [],
       "humanQuality": [],
-      "priceUnavailableReason": null,
-      "speedUnavailableReason": null,
-      "automatedQualityUnavailableReason": "No explicit text quality scores were available. Text benchmark quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.",
-      "humanQualityUnavailableReason": "No explicit humanQualityScore was available. Text benchmark human quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment."
+      "priceUnavailableReason": "No local providers were found.",
+      "speedUnavailableReason": "No local providers were found.",
+      "automatedQualityUnavailableReason": "No local providers were found.",
+      "humanQualityUnavailableReason": "No local providers were found."
     },
     "service": {
       "fastest": [
@@ -2891,7 +2606,7 @@
   "qualityPolicy": "Text benchmark quality is unavailable unless explicit future quality fields are present. Length, speed, cost, output existence, schema validity, and subjective judgment are not quality proxies.",
   "notes": [
     "Text mode scores existing write outputs only and does not call LLM providers.",
-    "Price rankings use local zero monetary cost and reported actual or estimated service costs from manifest.json.",
+    "Price rankings use reported actual or estimated service costs from manifest.json.",
     "Speed rankings prefer normalized msPerUnit timing when present, falling back to wall-clock processing time.",
     "Automated and human quality rankings require explicit quality fields and are otherwise unavailable."
   ]

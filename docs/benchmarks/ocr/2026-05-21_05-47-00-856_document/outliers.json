@@ -12,66 +12,47 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 1.606098,
-    "pageDisagreementQ1": 0.359621,
-    "pageDisagreementQ3": 0.858212
+    "highDisagreement": 0.629265,
+    "pageDisagreementQ1": 0.26127,
+    "pageDisagreementQ3": 0.408468
   },
   "blankOutputPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        "anthropic/claude-haiku-4-5",
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-5",
-        "gemini/gemini-3.5-flash",
-        "grok/grok-4.20-0309-non-reasoning",
-        "openai/gpt-5.4-mini"
-      ]
-    },
-    {
-      "pageNumber": 1,
-      "providers": [
-        "openai/gpt-5.4-mini"
-      ]
-    },
-    {
       "pageNumber": 2,
       "providers": [
-        "openai/gpt-5.4-mini"
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
       ]
     },
     {
       "pageNumber": 3,
       "providers": [
-        "openai/gpt-5.4-mini"
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
       ]
     },
     {
       "pageNumber": 4,
       "providers": [
-        "mistral/mistral-ocr-4-0"
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
       ]
     }
   ],
   "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "lengthDrift": 1,
-          "tokenCount": 364
-        }
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "openai/gpt-5.4-mini",
-          "lengthDrift": 1,
-          "tokenCount": 0
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 2.748954,
+          "tokenCount": 1344
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 2.715481,
+          "tokenCount": 1332
         }
       ]
     },
@@ -79,7 +60,12 @@
       "pageNumber": 2,
       "providers": [
         {
-          "providerKey": "openai/gpt-5.4-mini",
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
           "lengthDrift": 1,
           "tokenCount": 0
         }
@@ -89,12 +75,12 @@
       "pageNumber": 3,
       "providers": [
         {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "lengthDrift": 0.821192,
-          "tokenCount": 81
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
         },
         {
-          "providerKey": "openai/gpt-5.4-mini",
+          "providerKey": "replicate/datalab-to/marker",
           "lengthDrift": 1,
           "tokenCount": 0
         }
@@ -104,63 +90,33 @@
       "pageNumber": 4,
       "providers": [
         {
-          "providerKey": "mistral/mistral-ocr-4-0",
+          "providerKey": "replicate/datalab-to/ocr",
           "lengthDrift": 1,
           "tokenCount": 0
         },
         {
-          "providerKey": "openai/gpt-5.4-mini",
-          "lengthDrift": 8.864198,
-          "tokenCount": 799
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     }
   ],
-  "highDisagreementPages": [],
-  "werCerDivergencePages": [
+  "highDisagreementPages": [
     {
       "pageNumber": 1,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.935313,
-          "cer": 0.691494
-        }
-      ]
-    },
-    {
-      "pageNumber": 2,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.829932,
-          "cer": 0.639152
-        }
-      ]
-    },
-    {
-      "pageNumber": 4,
-      "providers": [
-        {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 7.901235,
-          "cer": 7.226908
-        }
-      ]
+      "pageDisagreement": 0.830769,
+      "selectedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "selectedConfidence": 0.62842
     }
   ],
+  "werCerDivergencePages": [],
   "lowConfidencePages": [
     {
-      "pageNumber": 0,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.45,
-      "pageDisagreement": 0.142857
-    },
-    {
-      "pageNumber": 3,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0,
-      "pageDisagreement": 0.858212
+      "pageNumber": 1,
+      "selectedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "selectedConfidence": 0.62842,
+      "pageDisagreement": 0.830769
     }
   ]
 }

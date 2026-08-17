@@ -8,6 +8,7 @@ import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~
 import { buildAggregateTiming } from '~/cli/commands/pricing-orchestration/aggregate-pricing/timing'
 import type { ExtractionMetadata, StepEstimate } from '~/types'
 import { buildSttMetadata } from './shared'
+import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 const missingHostedOcrProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
@@ -23,7 +24,7 @@ describe('price mode contracts', () => {
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
         videoTargets: [{ service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4 }],
-        musicTargets: [{ service: 'gemini', model: 'lyria-3-clip-preview' }]
+        musicTargets: [{ service: 'gemini', model: 'lyria-3-pro-preview' }]
       })
 
       const rows = new Map(timing.steps.map((step) => [step.step, step]))
@@ -219,7 +220,7 @@ describe('price mode contracts', () => {
         provider: 'kimi',
         model,
         inputValue: pageCount,
-        processingTimeMs: Math.round(Math.ceil(pageCount / DEFAULT_OCR_CONCURRENCY) * msPerPage)
+        processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => msPerPage), DEFAULT_OCR_CONCURRENCY)
       })
       expect(serialTiming.steps[0]).toMatchObject({
         provider: 'kimi',
@@ -276,7 +277,7 @@ describe('price mode contracts', () => {
         provider: 'kimi',
         model,
         inputValue: pageCount,
-        processingTimeMs: Math.round(3 * msPerPage),
+        processingTimeMs: estimateHostedConcurrencyWallTimeMs([msPerPage, msPerPage, msPerPage * 2, msPerPage * 2], 2),
         timingAdjustment: {
           kind: 'rasterized-single-page-pdf-fallback',
           rasterizedPages,
@@ -335,7 +336,7 @@ describe('price mode contracts', () => {
         provider: 'gemini',
         model,
         inputValue: pageCount,
-        processingTimeMs: 33400,
+        processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => fallbackMsPerPage ?? 0), 2),
         timingAdjustment: {
           kind: 'single-page-pdf-fallback',
           singlePagePdfFallbackPages: pageCount,
@@ -386,7 +387,7 @@ describe('price mode contracts', () => {
         },
         { step: 'image', provider: 'openai', model: 'gpt-image-2', imageCount: 2, totalCost: 1 },
         { step: 'video', provider: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4, totalCost: 1 },
-        { step: 'music', provider: 'gemini', model: 'lyria-3-clip-preview', durationSeconds: 30, lyricsSource: 'generated', totalCost: 1 }
+        { step: 'music', provider: 'gemini', model: 'lyria-3-pro-preview', durationSeconds: 120, lyricsSource: 'generated', totalCost: 1 }
       ]
 
       const timing = buildAggregateTiming(steps, undefined)
@@ -426,7 +427,6 @@ describe('price mode contracts', () => {
   test('Gemini music timing estimates use Lyria defaults', () => {
       const timing = computeEstimatedProcessingTimes({
         musicTargets: [
-          { service: 'gemini', model: 'lyria-3-clip-preview' },
           { service: 'gemini', model: 'lyria-3-pro-preview' }
         ]
       })
@@ -438,14 +438,9 @@ describe('price mode contracts', () => {
       }))
       expect(rows).toEqual([
         {
-          model: 'lyria-3-clip-preview',
-          processingTimeMs: Math.round((rows[0]?.inputValue ?? 0) * getMusicEstimation('gemini', 'lyria-3-clip-preview').msPerSecond),
-          inputValue: rows[0]?.inputValue
-        },
-        {
           model: 'lyria-3-pro-preview',
-          processingTimeMs: Math.round((rows[1]?.inputValue ?? 0) * getMusicEstimation('gemini', 'lyria-3-pro-preview').msPerSecond),
-          inputValue: rows[1]?.inputValue
+          processingTimeMs: Math.round((rows[0]?.inputValue ?? 0) * getMusicEstimation('gemini', 'lyria-3-pro-preview').msPerSecond),
+          inputValue: rows[0]?.inputValue
         }
       ])
     })
@@ -478,5 +473,21 @@ describe('price mode contracts', () => {
           inputValue: rows[1]?.inputValue
         }
       ])
+    })
+
+  test('TTS timing uses each target remaining character count instead of one shared input', () => {
+      const timing = computeEstimatedProcessingTimes({
+        ttsTargets: [
+          { service: 'speechify', model: 'simba-3.2', characterCount: 6_000 },
+          { service: 'speechify', model: 'simba-3.2', characterCount: 24_000 }
+        ],
+        ttsCharacterCount: 939_201,
+        ttsInputText: 'a'.repeat(939_201)
+      })
+      expect(timing.steps.map((step) => step.inputValue)).toEqual([6_000, 24_000])
+      const firstMs = timing.steps[0]?.processingTimeMs ?? 0
+      const secondMs = timing.steps[1]?.processingTimeMs ?? 0
+      expect(firstMs).toBeGreaterThan(0)
+      expect(secondMs).toBeGreaterThan(firstMs)
     })
 })

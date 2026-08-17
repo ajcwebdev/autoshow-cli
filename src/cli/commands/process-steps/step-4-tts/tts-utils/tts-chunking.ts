@@ -1,9 +1,9 @@
-import type { TtsProvider } from '~/types'
+import type { HostedConcurrencyMode, TtsProvider } from '~/types'
 import { normalizeTtsChunkConcurrency, splitTextIntoChunks } from './audio-utils'
 import { getTtsMaxInputCharacters } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 export const TTS_CHUNK_CHARACTER_LIMITS = {
-  kitten: 2000,
   elevenlabs: 2000,
   groq: 200,
   deepgram: 2000,
@@ -15,6 +15,11 @@ export const TTS_CHUNK_CHARACTER_LIMITS = {
   hume: 2000,
   grok: 2000,
   minimax: 2000,
+  fish: 2000,
+  inworld: 2000,
+  deepinfra: 2000,
+  replicate: 2000,
+  fal: 2000,
 } as const satisfies Record<TtsProvider, number | undefined>
 
 export const resolveTtsChunkCharacterLimit = (
@@ -22,8 +27,6 @@ export const resolveTtsChunkCharacterLimit = (
   model: string | undefined
 ): number | undefined =>
   model ? getTtsMaxInputCharacters(provider, model) ?? TTS_CHUNK_CHARACTER_LIMITS[provider] : TTS_CHUNK_CHARACTER_LIMITS[provider]
-
-const SEQUENTIAL_TTS_CHUNK_PROVIDERS = new Set<TtsProvider>(['kitten'])
 
 const resolveSyntheticChunkLengths = (
   characterCount: number,
@@ -96,6 +99,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     msPer1KChars: number
     setupTimeMs?: number | undefined
     chunkConcurrency?: number | undefined
+    concurrencyMode?: HostedConcurrencyMode | undefined
   }
 ): number => {
   const setupTimeMs = typeof input.setupTimeMs === 'number' && Number.isFinite(input.setupTimeMs)
@@ -104,7 +108,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
   const normalizedCharacterCount = Math.max(0, Math.floor(input.characterCount))
   const chunkLimit = resolveTtsChunkCharacterLimit(input.provider, input.model)
 
-  if (chunkLimit === undefined || SEQUENTIAL_TTS_CHUNK_PROVIDERS.has(input.provider)) {
+  if (chunkLimit === undefined) {
     return setupTimeMs + (normalizedCharacterCount / 1000) * input.msPer1KChars
   }
 
@@ -117,8 +121,8 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     (length / 1000) * input.msPer1KChars
   )
 
-  return setupTimeMs + estimateWorkerPoolWallTimeMs(
-    chunkDurationsMs,
-    input.chunkConcurrency
-  )
+  const concurrency = normalizeTtsChunkConcurrency(input.chunkConcurrency)
+  return setupTimeMs + (input.concurrencyMode
+    ? estimateHostedConcurrencyWallTimeMs(chunkDurationsMs, concurrency, input.concurrencyMode)
+    : estimateWorkerPoolWallTimeMs(chunkDurationsMs, concurrency))
 }

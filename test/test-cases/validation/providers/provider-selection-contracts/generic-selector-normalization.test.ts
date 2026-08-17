@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
-import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
 import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
@@ -72,20 +71,19 @@ describe('provider selection contracts', () => {
       provider: ['openai=gpt-4o-mini-tts-2025-12-15', 'elevenlabs=eleven_v3']
     }, new Set(['provider']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' })
     const imageNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['openai=gpt-image-2', 'grok=grok-imagine-image', 'recraft=recraftv4_1', 'replicate=wan-video/wan-2.7-image']
+      provider: ['openai=gpt-image-2', 'grok=grok-imagine-image-quality', 'replicate=wan-video/wan-2.7-image']
     }, new Set(['provider']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, { allProvidersTarget: 'all-image' })
     const videoNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['gemini=veo-3.1-lite-generate-preview', 'runway=gen4.5', 'ltx=ltx-2-3-fast', 'replicate=wan-video/wan-2.7-t2v']
+      provider: ['gemini=veo-3.1-lite-generate-preview', 'ltx=ltx-2-3-fast', 'replicate=bytedance/seedance-2.0-fast']
     }, new Set(['provider']), 'provider', STANDALONE_VIDEO_PROVIDER_TARGETS, { allProvidersTarget: 'all-video' })
     const musicNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['minimax=music-3.0', 'gemini=lyria-3-clip-preview']
+      provider: ['minimax=music-3.0', 'gemini=lyria-3-pro-preview']
     }, new Set(['provider']), 'provider', STANDALONE_MUSIC_PROVIDER_TARGETS, { allProvidersTarget: 'all-music' })
-    const ttsAllLocalNormalized = normalizeGenericProviderSelectorFlags({
+    expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true
     }, new Set(['all-local']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
-      allProvidersTarget: 'all-tts',
-      allLocalTarget: 'all-local-tts'
-    })
+      allProvidersTarget: 'all-tts'
+    })).toThrow('--all-local is not supported')
     expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true
     }, new Set(['all-local']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, {
@@ -96,26 +94,22 @@ describe('provider selection contracts', () => {
     const imageOpts = buildOptsFromFlags(false, imageNormalized.flags, {}, imageNormalized.explicitFlags)
     const videoOpts = buildOptsFromFlags(false, videoNormalized.flags, {}, videoNormalized.explicitFlags)
     const musicOpts = buildOptsFromFlags(false, musicNormalized.flags, {}, musicNormalized.explicitFlags)
-    const ttsAllLocalOpts = buildOptsFromFlags(false, ttsAllLocalNormalized.flags, {}, ttsAllLocalNormalized.explicitFlags)
 
     expect(ttsOpts.openaiTtsModels).toEqual(['gpt-4o-mini-tts-2025-12-15'])
     expect(ttsOpts.elevenlabsTtsModels).toEqual(['eleven_v3'])
-    expect([...new Set(collectTtsTargets(ttsAllLocalOpts).map((target) => target.service))]).toEqual(['kitten'])
     expect(collectImageTargets(imageOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'openai:gpt-image-2',
-      'grok:grok-imagine-image',
-      'recraft:recraftv4_1',
+      'grok:grok-imagine-image-quality',
       'replicate:wan-video/wan-2.7-image'
     ])
     expect(collectVideoTargets(videoOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'gemini:veo-3.1-lite-generate-preview',
-      'runway:gen4.5',
       'ltx:ltx-2-3-fast',
-      'replicate:wan-video/wan-2.7-t2v'
+      'replicate:bytedance/seedance-2.0-fast'
     ])
     expect(collectMusicTargets(musicOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'minimax:music-3.0',
-      'gemini:lyria-3-clip-preview'
+      'gemini:lyria-3-pro-preview'
     ])
 
     const writeNormalized = normalizeWriteStepSelectorFlags({
@@ -131,7 +125,7 @@ describe('provider selection contracts', () => {
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
       {
-        provider: ['openai=gpt-image-2', 'gemini=gemini-3.1-flash-lite-image', 'recraft', 'replicate=wan-video/wan-2.7-image']
+        provider: ['openai=gpt-image-2', 'gemini=gemini-3.1-flash-lite-image', 'replicate=wan-video/wan-2.7-image']
       },
       new Set(['provider']),
       'provider',
@@ -141,34 +135,33 @@ describe('provider selection contracts', () => {
     expect(imageArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
       { name: 'openai-image', value: 'gpt-image-2' },
       { name: 'gemini-image', value: 'gemini-3.1-flash-lite-image' },
-      { name: 'recraft-image', value: true },
       { name: 'replicate-image', value: 'wan-video/wan-2.7-image' }
     ])
 
     const videoArgNormalized = normalizeGenericProviderSelectorFlags(
-      { provider: ['replicate=wan-video/wan-2.7-t2v'] },
+      { provider: ['replicate=bytedance/seedance-2.0-fast'] },
       new Set(['provider']),
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS,
       { allProvidersTarget: 'all-video' }
     )
     expect(videoArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
-      { name: 'replicate-video', value: 'wan-video/wan-2.7-t2v' }
+      { name: 'replicate-video', value: 'bytedance/seedance-2.0-fast' }
     ])
   })
 
   test('write step-scoped --all-local normalizes local provider groups and rejects bare usage', () => {
     const normalized = normalizeWriteStepSelectorFlags({
-      'all-local': ['stt', 'ocr', 'url', 'llm', 'tts']
+      'all-local': ['stt', 'ocr', 'url']
     }, new Set(['all-local']))
 
     expect(normalized.flags).toMatchObject({
       'all-local-stt': true,
       'all-local-ocr': true,
-      'all-local-url': true,
-      'all-local-llm': true,
-      'all-local-tts': true
+      'all-local-url': true
     })
+    expect(normalized.flags['all-local-llm']).toBeUndefined()
+    expect(normalized.flags['all-local-tts']).toBeUndefined()
     expect(normalized.flags['all-local-image']).toBeUndefined()
     expect(normalized.flags['all-local-video']).toBeUndefined()
     expect(normalized.flags['all-local-music']).toBeUndefined()
@@ -176,8 +169,16 @@ describe('provider selection contracts', () => {
     expect(normalized.explicitFlags.has('all-local')).toBe(false)
 
     expect(() => normalizeWriteStepSelectorFlags({
+      'all-local': ['llm']
+    }, new Set(['all-local']))).toThrow('--all-local does not support step "llm"')
+
+    expect(() => normalizeWriteStepSelectorFlags({
       'all-local': ['image']
     }, new Set(['all-local']))).toThrow('--all-local does not support step "image"')
+
+    expect(() => normalizeWriteStepSelectorFlags({
+      'all-local': ['tts']
+    }, new Set(['all-local']))).toThrow('--all-local does not support step "tts"')
 
     expect(() => normalizeWriteStepSelectorFlags({
       'all-local': true
@@ -207,14 +208,22 @@ describe('provider selection contracts', () => {
       'Article extract supports one --provider URL backend at a time'
     )
 
-    const writeAll = normalizeWriteStepSelectorFlags({
+    expect(() => normalizeWriteStepSelectorFlags({
       'all-providers': ['stt', 'llm'],
       'all-local': ['tts']
+    }, new Set(['all-providers', 'all-local']))).toThrow('--all-local does not support step "tts"')
+    expect(() => normalizeWriteStepSelectorFlags({
+      'all-providers': ['stt', 'llm'],
+      'all-local': ['llm']
+    }, new Set(['all-providers', 'all-local']))).toThrow('--all-local does not support step "llm"')
+    const writeAll = normalizeWriteStepSelectorFlags({
+      'all-providers': ['stt', 'llm'],
+      'all-local': ['stt']
     }, new Set(['all-providers', 'all-local']))
     expect(writeAll.flagOccurrences.map((occurrence) => occurrence.name)).toEqual([
       'all-stt',
       'all-llm',
-      'all-local-tts'
+      'all-local-stt'
     ])
   })
 

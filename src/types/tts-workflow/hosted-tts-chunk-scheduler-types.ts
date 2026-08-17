@@ -1,4 +1,4 @@
-import type { HostedTtsChunkAdmissionToken, HostedTtsChunkJobContext, HostedTtsSchedulerLimitChange, ProviderLaneIdentity, TtsProvider } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, HostedTtsChunkAdmissionToken, HostedTtsChunkJobContext, HostedTtsSchedulerLimitChange, ProviderLaneIdentity, TtsProvider } from '~/types'
 
 export type HostedTtsProviderChunkState = {
   lane: ProviderLaneIdentity<TtsProvider>
@@ -61,4 +61,7 @@ export type HostedTtsChunkSchedulerOptions = {
   defaultRateLimitPauseMs?: number | undefined
   autoStart?: boolean | undefined
   maxActiveChunksPerJob?: number | undefined
+  concurrencyMode?: HostedConcurrencyMode | undefined
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+  legacySuccessRamp?: boolean | undefined
 }

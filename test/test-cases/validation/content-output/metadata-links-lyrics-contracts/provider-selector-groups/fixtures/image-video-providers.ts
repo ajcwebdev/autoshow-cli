@@ -9,7 +9,5 @@ export const BFL_ALL_LINKS = providerLinks('BFL')
 export const LTX_VIDEO_LINKS = sectionLinks('LTX', 'Video')
 export const LTX_ALL_LINKS = providerLinks('LTX')
 
-export const RECRAFT_IMAGE_LINKS = sectionLinks('Recraft', 'Image')
-
 export const REPLICATE_GENERAL_LINKS = sectionLinks('Replicate', 'General')
 export const REPLICATE_ALL_LINKS = providerLinks('Replicate')

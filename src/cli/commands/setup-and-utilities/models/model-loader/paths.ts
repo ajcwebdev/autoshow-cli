@@ -1,9 +1,10 @@
 import { resolve } from 'node:path'
+import { PROJECT_ROOT } from '~/utils/runtime-paths'
 
-const MODELS_DIR = resolve(import.meta.dir, '..')
+const MODELS_DIR = resolve(PROJECT_ROOT, 'src/cli/commands/setup-and-utilities/models')
 
 export const STT_PATH = resolve(MODELS_DIR, 'stt-config')
-export const OCR_PATH = resolve(import.meta.dir, '..', 'ocr-config')
+export const OCR_PATH = resolve(MODELS_DIR, 'ocr-config')
 export const LLM_PATH = resolve(MODELS_DIR, 'llm-config.json')
 export const TTS_PATH = resolve(MODELS_DIR, 'tts-config')
 export const IMAGE_PATH = resolve(MODELS_DIR, 'image-config.json')

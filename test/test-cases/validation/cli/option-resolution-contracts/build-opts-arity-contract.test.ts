@@ -8,6 +8,7 @@ test('buildOptsFromFlags has no obsolete double-dash argument calls', async () =
     for await (const relativePath of new Bun.Glob('**/*.ts').scan(root)) {
       const path = `${root}/${relativePath}`
       const source = await Bun.file(path).text()
+      if (!source.includes('buildOptsFromFlags')) continue
       const sourceFile = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true)
 
       const visit = (node: ts.Node): void => {

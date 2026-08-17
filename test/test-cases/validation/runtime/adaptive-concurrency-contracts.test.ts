@@ -104,11 +104,11 @@ afterEach(async () => {
 describe('adaptive provider group parser', () => {
   test('remote provider mirrors exactly cover target registries minus named local engines', () => {
     const expectedLocalProviders = {
-      stt: ['reverb', 'whisper', 'whisperfile'],
+      stt: ['whisper', 'whisperfile'],
       ocr: ['tesseract'],
       url: ['defuddle'],
-      llm: ['llama', 'llamafile'],
-      tts: ['kitten'],
+      llm: [],
+      tts: [],
       image: [],
       video: [],
       music: [],
@@ -148,11 +148,8 @@ describe('adaptive provider group parser', () => {
       'video',
       'music',
       'all-providers',
-      'llama',
       'whisper',
-      'reverb',
       'deepinfra',
-      'kitten-tts',
     ]
     const targetRegistries = {
       stt: WRITE_STT_PROVIDER_TARGETS,
@@ -223,9 +220,9 @@ describe('adaptive provider group parser', () => {
       '--image',
       'openai=gpt-image-2',
       '--video',
-      'runway=gen4.5',
+      'ltx=ltx-2-3-fast',
       '--music',
-      'gemini=lyria-3-clip-preview'
+      'gemini=lyria-3-pro-preview'
     ])).toEqual([
       'extract/anthropic',
       'image/openai',
@@ -233,7 +230,7 @@ describe('adaptive provider group parser', () => {
       'transcribe/deepgram',
       'tts/minimax',
       'url/supadata',
-      'video/runway',
+      'video/ltx',
       'write/openai',
     ])
 
@@ -242,9 +239,7 @@ describe('adaptive provider group parser', () => {
       'tts',
       'input/examples/tts/1-tts.md',
       '--provider',
-      'openai=gpt-4o-mini-tts-2025-12-15',
-      '--provider',
-      'kitten=kitten-tts-mini'
+      'openai=gpt-4o-mini-tts-2025-12-15'
     ])).toEqual(['tts/openai'])
 
     expect(extractAdaptiveProviderGroups([
@@ -260,15 +255,15 @@ describe('adaptive provider group parser', () => {
       'video',
       'a prompt',
       '--provider',
-      'minimax=MiniMax-Hailuo-2.3'
-    ])).toEqual(['video/minimax'])
+      'grok=grok-imagine-video'
+    ])).toEqual(['video/grok'])
 
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
       'music',
       'a prompt',
       '--provider',
-      'elevenlabs=music_v1'
+      'elevenlabs=music_v2'
     ])).toEqual(['music/elevenlabs'])
 
     expect(extractAdaptiveProviderGroups([
@@ -289,12 +284,10 @@ describe('adaptive provider group parser', () => {
   test('local-only providers do not create adaptive groups', () => {
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
-      'write',
-      'input/examples/text/source.txt',
-      '--llm',
-      'llama=ggml-org/gemma-3-270m-it-GGUF',
-      '--tts',
-      'kitten=kitten-tts-mini'
+      'extract',
+      'input/examples/audio/1-audio.mp3',
+      '--stt',
+      'whisper=tiny'
     ])).toEqual([])
   })
 })
@@ -391,7 +384,7 @@ describe('adaptive scheduler contracts', () => {
 
   test('cross-process leases serialize when the group limit is one', async () => {
     const stateDir = await makeTempDir()
-    const first = spawnLeaseChild('first', 100, stateDir)
+    const first = spawnLeaseChild('first', 50, stateDir)
     const config = resolveAdaptiveConcurrencyConfig(stateDir, {
       initialProviderLimit: 1,
       lockWaitMs: 5,
@@ -403,7 +396,7 @@ describe('adaptive scheduler contracts', () => {
       if ((snapshot.groups['tts/minimax']?.active ?? 0) > 0) {
         break
       }
-      await Bun.sleep(5)
+      await Bun.sleep(2)
     }
 
     const second = spawnLeaseChild('second', 0, stateDir)
@@ -438,13 +431,14 @@ describe('adaptive scheduler contracts', () => {
     expect(classifyAdaptivePressure('Cartesia TTS failed (402): quota_exceeded; 535 characters', 1, false)).toBeNull()
     expect(classifyAdaptivePressure('Together transcription failed (503)', 1, false)).toBe('transient')
 
+    const beforeMs = Date.now()
     await recordAdaptivePressure(['image/openai'], 'rate-limit', config)
     await recordAdaptivePressure(['video/gemini'], 'transient', config)
     await recordAdaptivePressure(['tts/minimax'], 'timeout', config)
 
     let snapshot = await readAdaptiveConcurrencySnapshot(config)
     expect(snapshot.groups['image/openai']?.limit).toBe(1)
-    expect(snapshot.groups['image/openai']?.cooldownUntilMs ?? 0).toBeGreaterThan(Date.now())
+    expect(snapshot.groups['image/openai']?.cooldownUntilMs ?? 0).toBeGreaterThan(beforeMs)
     expect(snapshot.groups['video/gemini']?.limit).toBe(2)
     expect(snapshot.groups['tts/minimax']?.limit).toBe(1)
 

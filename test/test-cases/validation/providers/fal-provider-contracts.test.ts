@@ -39,8 +39,6 @@ describe('fal.ai provider REST contracts', () => {
     const calls = installFalQueueMock()
     const cases: Array<{ model: FalImageModel, endpoint: string }> = [
       { model: 'fal-ai/hidream-o1-image', endpoint: 'fal-ai/hidream-o1-image' },
-      { model: 'microsoft/mai-image-2.5', endpoint: 'microsoft/mai-image-2.5' },
-      { model: 'microsoft/mai-image-2.5-pro', endpoint: 'microsoft/mai-image-2.5-pro' },
       { model: 'alibaba/qwen-image-3', endpoint: 'alibaba/qwen-image-3/text-to-image' },
       { model: 'reve/2.1', endpoint: 'reve/2.1/text-to-image' }
     ]

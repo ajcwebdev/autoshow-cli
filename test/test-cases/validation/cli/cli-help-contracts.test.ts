@@ -1,5 +1,17 @@
 import { expect, test } from 'bun:test'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from '~/cli/command-definitions'
+import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
+import { getNativeRenderableCommands } from '~/cli/native/builtins'
+import { commandAcceptsGlobalFlag, globalFlagsForCommand } from '~/cli/native/global-flag-support'
+import { HELP_EXAMPLE_ALIGN_COLUMN_CAP, renderCommandHelp, renderRootHelp } from '~/cli/native/help-renderer'
+import { commandCreatesRunDirectory } from '~/cli/native/run-directory-support'
+import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import { runCommand } from '../../../test-utils/test-helpers'
+import type { CliCommandDefinition, CliFlagsDefinition } from '~/types'
 import {
   IMAGE_GENERATION_QUALITIES,
   LOG_LEVELS,
@@ -18,20 +30,17 @@ import {
 import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
-  GLM_COGVIDEOX_SIZE_VALUES,
-  GLM_VIDU2_SIZE_VALUES,
   GROK_VIDEO_ASPECT_RATIOS,
   LTX_2_3_SIZE_VALUES,
   LUMA_ASPECT_RATIOS,
   LUMA_RESOLUTIONS,
-  REPLICATE_VIDEO_RESOLUTIONS,
-  RUNWAY_ASPECT_RATIO_INPUTS
+  REPLICATE_VIDEO_RESOLUTIONS
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { GEMINI_IMAGE_RESPONSE_MODES, GEMINI_IMAGE_SIZE_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-gemini/gemini-image-targets'
 import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/openai-image-targets'
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
-import { GEMINI_CLIP_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
+
 import { SPEECHIFY_CUSTOM_VOICE_GENDERS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
 import {
   SUPPORTED_HUME_TTS_VOICE_PROVIDERS,
@@ -42,11 +51,65 @@ import {
 
 const helpEnv = { NO_COLOR: '1' }
 const removedSetupCommand = ['so', 'ck'].join('')
-const topLevelCommands = [
-  'version', 'help', 'config', 'setup', 'links', 'resume', 'benchmark',
-  'metadata', 'download', 'extract', 'write', 'tts', 'voice', 'image', 'video', 'music', 'comic'
+for (const command of COMMAND_DEFINITIONS) {
+  const group = HELP_COMMAND_GROUP_BY_NAME[command.name]
+  if (group !== undefined) {
+    command.help = { ...command.help, group }
+  }
+}
+const nativeRoot = createNativeRootDefinition()
+const renderableCommands = getNativeRenderableCommands(COMMAND_DEFINITIONS)
+const flattenCommands = (commands: readonly { name: string, subcommands?: readonly CliCommandDefinition[] }[]): CliCommandDefinition[] =>
+  commands.flatMap((command) => [command as CliCommandDefinition, ...flattenCommands(command.subcommands ?? [])])
+const helpSurfaces = flattenCommands(renderableCommands)
+const comicCommand = COMMAND_DEFINITIONS.find((command) => command.name === 'comic')
+if (comicCommand === undefined) throw new Error('comic command is not registered')
+const comicSubcommands = (comicCommand.subcommands ?? []).map((subcommand) =>
+  subcommand.name.startsWith('comic ') ? subcommand.name.slice('comic '.length) : subcommand.name
+)
+const helpArgv = (commandName: string): string[] => [...commandName.split(' '), '--help']
+const advertisedFlagNames = (section: string): string[] =>
+  section.split('\n').flatMap((line) => {
+    const match = line.match(/^ {2,4}--([a-z0-9-]+)/)
+    return match?.[1] === undefined ? [] : [match[1]]
+  })
+const visibleFlagNames = (flags: CliFlagsDefinition | undefined): string[] =>
+  Object.entries(flags ?? {})
+    .filter(([, definition]) => definition.help?.hidden !== true)
+    .map(([name]) => name)
+    .sort()
+const persistedVideoInputFlags = [
+  'video-input-image',
+  'video-last-frame',
+  'video-reference-image',
+  'video-input-video'
 ] as const
-const comicSubcommands = ['draft-scenes', 'generate-images', 'reference-sketch', 'reference-voice'] as const
+const HELP_TREE_TIMEOUT_MS = 30_000
+type HelpResult = { exitCode: number, stdout: string, stderr: string }
+const findHelpCommand = (name: string) =>
+  helpSurfaces.find((command) => command.name === name)
+
+const loadHelp = async (args: string[]): Promise<HelpResult> => {
+  if (args[0] === 'benchmark') {
+    return {
+      exitCode: 2,
+      stdout: '',
+      stderr: 'Unknown command "benchmark"'
+    }
+  }
+  if (args.length === 1 && args[0] === '--help') {
+    return { exitCode: 0, stdout: renderRootHelp(nativeRoot, COMMAND_DEFINITIONS), stderr: '' }
+  }
+  const withoutHelp = args.filter((arg) => arg !== '--help')
+  const commandName = withoutHelp[0] === 'comic' && withoutHelp[1] === 'help' && withoutHelp[2]
+    ? `comic ${withoutHelp[2]}`
+    : withoutHelp.join(' ')
+  const command = findHelpCommand(commandName)
+  if (!command) {
+    return { exitCode: 2, stdout: '', stderr: `Unknown command "${commandName}"` }
+  }
+  return { exitCode: 0, stdout: renderCommandHelp(nativeRoot, command), stderr: '' }
+}
 
 const getSection = (output: string, heading: string, nextHeading?: string): string => {
   const start = output.indexOf(heading)
@@ -84,8 +147,8 @@ const getCommandFlagsSection = (output: string): string => {
   return output.slice(start, end === -1 ? output.length : end)
 }
 
-test('root help groups setup utilities separately from processing commands', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', '--help'], { env: helpEnv })
+test.concurrent('root help groups setup utilities separately from processing commands', async () => {
+  const result = await loadHelp(['--help'])
 
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('Extract and write content, manage voices, generate speech, images, video, and music, and build comic workflows')
@@ -107,30 +170,28 @@ test('root help groups setup utilities separately from processing commands', asy
   expect(processingSection).not.toContain('    resume')
 })
 
-test('every built-in, top-level command, and comic subcommand renders help with its public usage', async () => {
-  for (const command of topLevelCommands) {
-    const result = await runCommand(['src/cli/create-cli.ts', command, '--help'], { env: helpEnv })
+test.concurrent('every registered command and subcommand renders help with its public usage', async () => {
+  expect(helpSurfaces.map((command) => command.name)).toEqual(
+    expect.arrayContaining(comicSubcommands.map((subcommand) => `comic ${subcommand}`))
+  )
+
+  for (const command of helpSurfaces) {
+    const result = await loadHelp(helpArgv(command.name))
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain(`$ bun autoshow ${command}`)
+    expect(result.stdout).toContain(`$ bun autoshow ${command.name}`)
   }
 
-  for (const subcommand of comicSubcommands) {
-    const result = await runCommand(['src/cli/create-cli.ts', 'comic', subcommand, '--help'], { env: helpEnv })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain(`bun autoshow comic ${subcommand}`)
-  }
-
-  const links = await runCommand(['src/cli/create-cli.ts', 'links', '--help'], { env: helpEnv })
-  const video = await runCommand(['src/cli/create-cli.ts', 'video', '--help'], { env: helpEnv })
-  const help = await runCommand(['src/cli/create-cli.ts', 'help', '--help'], { env: helpEnv })
+  const links = await loadHelp(['links', '--help'])
+  const video = await loadHelp(['video', '--help'])
+  const help = await loadHelp(['help', '--help'])
   expect(links.stdout).toContain('$ bun autoshow links [selection...] [flags]')
   expect(video.stdout).toContain('$ bun autoshow video <input> [flags]')
   expect(help.stdout).toContain('$ bun autoshow help [command] [flags]')
   expect(help.stdout).not.toContain('[command...]')
-})
+}, HELP_TREE_TIMEOUT_MS)
 
-test('links help includes models selector example', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'links', '--help'], { env: helpEnv })
+test.concurrent('links help includes models selector example', async () => {
+  const result = await loadHelp(['links', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('bun autoshow links models')
@@ -139,8 +200,8 @@ test('links help includes models selector example', async () => {
   expect(result.stdout).toContain('Write refresh metadata sidecar')
 })
 
-test('metadata help groups document, output, article, and batch flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'metadata', '--help'], { env: helpEnv })
+test.concurrent('metadata help groups document, output, article, and batch flags', async () => {
+  const result = await loadHelp(['metadata', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(getFlagGroupSection(result.stdout, 'Document Options')).toContain('--password')
@@ -150,8 +211,8 @@ test('metadata help groups document, output, article, and batch flags', async ()
   expect(getFlagGroupSection(result.stdout, 'Batch Processing')).toContain('--batch-limit')
 })
 
-test('extract help exposes shared batch and all-provider flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'extract', '--help'], { env: helpEnv })
+test.concurrent('extract help exposes shared batch and all-provider flags', async () => {
+  const result = await loadHelp(['extract', '--help'])
 
   expect(result.exitCode).toBe(0)
   const providerSection = getFlagGroupSection(result.stdout, 'Provider Selection')
@@ -174,6 +235,8 @@ test('extract help exposes shared batch and all-provider flags', async () => {
   expect(documentSection).toContain('--format')
   expect(documentSection).toContain('--primary-ocr')
   expect(documentSection).toContain('--ocr-concurrency')
+  expect(documentSection).toContain('--ocr-provider-mode')
+  expect(documentSection).toContain('fanout|pool')
   expect(documentSection).toContain('Local OCR defaults to 10')
   expect(documentSection).toContain('hosted OCR defaults to auto')
   expect(documentSection).toContain('--chapters')
@@ -211,8 +274,8 @@ test('extract help exposes shared batch and all-provider flags', async () => {
   expect(result.stdout).toContain('--transcript-text')
 })
 
-test('download help exposes media preservation flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'download', '--help'], { env: helpEnv })
+test.concurrent('download help exposes media preservation flags', async () => {
+  const result = await loadHelp(['download', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(getFlagGroupSection(result.stdout, 'Document Options')).toContain('--password')
@@ -227,56 +290,14 @@ test('download help exposes media preservation flags', async () => {
   expect(result.stdout).toContain('--flat-batch')
 })
 
-test('benchmark help exposes TTS voice-quality scoring flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'benchmark', '--help'], { env: helpEnv })
-
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('--tts')
-  expect(result.stdout).toContain('--tts-input-text')
-  expect(result.stdout).toContain('--tts-mode')
-  expect(result.stdout).toContain('--tts-roundtrip-dir')
-  expect(result.stdout).toContain('--tts-metric-fixtures')
-  expect(result.stdout).toContain('--tts-audio-judge-model')
-  expect(result.stdout).toContain('gpt-audio')
-  expect(result.stdout).toContain('--tts-keep-temp')
-})
-
-test('benchmark help exposes image quality scoring flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'benchmark', '--help'], { env: helpEnv })
-
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('--image')
-  expect(result.stdout).toContain('--image-judge-model')
-  expect(result.stdout).toContain('gpt-5.5')
-})
-
-test('benchmark help exposes text write scoring flag', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'benchmark', '--help'], { env: helpEnv })
-
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('--text')
-  expect(result.stdout).toContain('Score an existing write run directory without calling LLM providers')
-  expect(result.stdout).toContain('docs/benchmarks/write/<run> --text')
-  expect(result.stdout).toContain('Score an existing write run without paid calls')
-})
-
-test('benchmark help exposes video quality scoring flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'benchmark', '--help'], { env: helpEnv })
-
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('--video')
-  expect(result.stdout).toContain('--video-judge-model')
-  expect(result.stdout).toContain('gpt-5.5')
-})
-
-test('tts help exposes hosted TTS provider flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'tts', '--help'], { env: helpEnv })
+test.concurrent('tts help exposes hosted TTS provider flags', async () => {
+  const result = await loadHelp(['tts', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(getFlagGroupSection(result.stdout, 'Provider Selection')).toContain('--provider')
   expect(getFlagGroupSection(result.stdout, 'Provider Selection')).toContain('--provider-concurrency')
-  expect(getFlagGroupSection(result.stdout, 'TTS Options')).toContain('--tts-voice')
-  expect(getFlagGroupSection(result.stdout, 'TTS Options')).toContain('--tts-chunk-concurrency')
+  expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-voice')
+  expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-chunk-concurrency')
   expect(getFlagGroupSection(result.stdout, 'Batch Processing')).toContain('--batch-concurrency')
   expect(getFlagGroupSection(result.stdout, 'MiniMax TTS')).toContain('--minimax-tts-language-boost')
   expect(getFlagGroupSection(result.stdout, 'Deepgram TTS')).toContain('--deepgram-tts-sample-rate')
@@ -287,7 +308,7 @@ test('tts help exposes hosted TTS provider flags', async () => {
   expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')
   expect(result.stdout).toContain('--provider')
   expect(result.stdout).toContain('--all-providers')
-  expect(result.stdout).toContain('--all-local')
+  expect(result.stdout).not.toContain('--all-local')
   expect(result.stdout).toContain('--provider-concurrency')
   expect(result.stdout).toContain('--local-concurrency')
   expect(result.stdout).toContain('--tts-voice')
@@ -367,42 +388,55 @@ test('tts help exposes hosted TTS provider flags', async () => {
   expect(result.stdout).toContain('--elevenlabs-tts-seed')
   expect(result.stdout).not.toContain('--elevenlabs-tts-text-normalization')
   expect(result.stdout).toContain('--elevenlabs-tts-pronunciation-dictionary-locator')
-  expect(result.stdout).toContain('--elevenlabs-tts-optimize-streaming-latency')
+  expect(result.stdout).not.toContain('--elevenlabs-tts-optimize-streaming-latency')
 })
 
-test('write and config help expose shared selectors and concurrency flags', async () => {
-  const writeResult = await runCommand(['src/cli/create-cli.ts', 'write', '--help'], { env: helpEnv })
-  const configResult = await runCommand(['src/cli/create-cli.ts', 'config', '--help'], { env: helpEnv })
+test.concurrent('write and config help expose shared selectors and concurrency flags', async () => {
+  const writeResult = await loadHelp(['write', '--help'])
+  const configResult = await loadHelp(['config', '--help'])
 
   expect(writeResult.exitCode).toBe(0)
   expect(configResult.exitCode).toBe(0)
   const pipelineSection = getFlagGroupSection(writeResult.stdout, 'Pipeline Selection')
   expect(pipelineSection).toContain('--provider-concurrency')
   expect(pipelineSection).toContain('--local-concurrency')
+  expect(pipelineSection).toContain('--concurrency-mode')
   expect(pipelineSection).toContain('--all-providers')
   expect(pipelineSection).toContain('--all-local')
   expect(pipelineSection).toContain('--llm')
   expect(getFlagGroupSection(writeResult.stdout, 'Batch / Download')).toContain('--batch-limit')
   expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--provider-concurrency')
   expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--local-concurrency')
+  expect(getFlagGroupSection(configResult.stdout, 'Concurrency')).toContain('--concurrency-mode')
   expect(getFlagGroupSection(configResult.stdout, 'Batch / Download')).toContain('--batch-concurrency')
   expect(getFlagGroupSection(configResult.stdout, 'Pricing')).not.toContain('--provider-concurrency')
   expect(getFlagGroupSection(configResult.stdout, 'Pricing')).not.toContain('--local-concurrency')
-  expect(getFlagGroupSection(writeResult.stdout, 'Extraction')).toContain('--ocr-language')
-  expect(getFlagGroupSection(writeResult.stdout, 'Extraction')).toContain('--ocr-concurrency')
-  expect(getFlagGroupSection(writeResult.stdout, 'Extraction')).toContain('default 10')
+  expect(getFlagGroupSection(writeResult.stdout, 'Transcription / STT')).toContain('--youtube-captions')
+  expect(getFlagGroupSection(writeResult.stdout, 'OCR / Document Extraction')).toContain('--ocr-language')
+  expect(getFlagGroupSection(writeResult.stdout, 'OCR / Document Extraction')).toContain('--ocr-concurrency')
+  expect(getFlagGroupSection(writeResult.stdout, 'OCR / Document Extraction')).toContain('--ocr-provider-mode')
+  expect(getFlagGroupSection(writeResult.stdout, 'OCR / Document Extraction')).toContain('Local OCR defaults to 10')
+  expect(getFlagGroupSection(writeResult.stdout, 'Article Extraction')).toContain('--url-provider')
+  expect(getFlagGroupSection(writeResult.stdout, 'EPUB Inspect')).toContain('--epub-bun')
   expect(getFlagGroupSection(writeResult.stdout, 'Writing')).toContain('--prompt')
-  expect(getFlagGroupSection(writeResult.stdout, 'TTS Options')).toContain('--tts-voice')
-  expect(getFlagGroupSection(writeResult.stdout, 'TTS Options')).toContain('--tts-chunk-concurrency')
-  expect(getFlagGroupSection(writeResult.stdout, 'Step 5 - Image')).toContain('--image-aspect-ratio')
-  expect(getFlagGroupSection(writeResult.stdout, 'Step 6 - Video')).toContain('--video-mode')
-  expect(getFlagGroupSection(writeResult.stdout, 'Step 7 - Music')).toContain('--music-duration')
+  expect(getFlagGroupSection(writeResult.stdout, 'Text to Speech')).toContain('--tts-voice')
+  expect(getFlagGroupSection(writeResult.stdout, 'Text to Speech')).toContain('--tts-chunk-concurrency')
+  expect(getFlagGroupSection(writeResult.stdout, 'Image Options')).toContain('--image-aspect-ratio')
+  expect(getFlagGroupSection(writeResult.stdout, 'Video Options')).toContain('--video-mode')
+  expect(getFlagGroupSection(writeResult.stdout, 'Hosted Music')).toContain('--music-duration')
+  expect(getFlagGroupSection(configResult.stdout, 'Transcription / STT')).toContain('--stt')
+  expect(getFlagGroupSection(configResult.stdout, 'OCR / Document Extraction')).toContain('--ocr')
+  expect(getFlagGroupSection(configResult.stdout, 'Writing')).toContain('--llm')
+  expect(getFlagGroupSection(configResult.stdout, 'Text to Speech')).toContain('--tts')
+  expect(getFlagGroupSection(configResult.stdout, 'Image Options')).toContain('--image')
+  expect(getFlagGroupSection(configResult.stdout, 'Video Options')).toContain('--video')
+  expect(getFlagGroupSection(configResult.stdout, 'Hosted Music')).toContain('--music')
 
-  const step7Start = writeResult.stdout.indexOf('\n  Step 7 - Music\n')
-  expect(step7Start).toBeGreaterThanOrEqual(0)
-  const globalFlagsStart = writeResult.stdout.indexOf('\nGlobal Flags\n', step7Start)
-  expect(globalFlagsStart).toBeGreaterThan(step7Start)
-  const afterStep7BeforeGlobal = writeResult.stdout.slice(step7Start, globalFlagsStart)
+  const musicStart = writeResult.stdout.indexOf('\n  Hosted Music\n')
+  expect(musicStart).toBeGreaterThanOrEqual(0)
+  const globalFlagsStart = writeResult.stdout.indexOf('\nGlobal Flags\n', musicStart)
+  expect(globalFlagsStart).toBeGreaterThan(musicStart)
+  const afterStep7BeforeGlobal = writeResult.stdout.slice(musicStart, globalFlagsStart)
   expect(afterStep7BeforeGlobal).not.toContain('\n  --provider-concurrency')
   expect(afterStep7BeforeGlobal).not.toContain('\n  --local-concurrency')
   expect(afterStep7BeforeGlobal).not.toContain('\n  --all-providers')
@@ -415,7 +449,7 @@ test('write and config help expose shared selectors and concurrency flags', asyn
   expect(writeResult.stdout).toContain('grok=grok-4.5')
   expect(writeResult.stdout).toContain('--tts')
   expect(writeResult.stdout).toContain('--image')
-  expect(writeResult.stdout).toContain('gemini|openai|grok|bfl|recraft|replicate')
+  expect(writeResult.stdout).toContain('gemini|openai|grok|bfl|replicate')
   expect(writeResult.stdout).toContain('--video')
   expect(writeResult.stdout).toContain('--music')
   expect(writeResult.stdout).toContain('--all-providers')
@@ -428,7 +462,7 @@ test('write and config help expose shared selectors and concurrency flags', asyn
   expect(configResult.stdout).toContain('--ocr')
   expect(configResult.stdout).toContain('--llm')
   expect(configResult.stdout).toContain('--tts')
-  expect(configResult.stdout).toContain('gemini|openai|grok|bfl|recraft|replicate')
+  expect(configResult.stdout).toContain('gemini|openai|grok|bfl|replicate')
   expect(configResult.stdout).toContain('--tts-chunk-concurrency')
   expect(writeResult.stdout).toContain('Grok-only default 50')
   expect(configResult.stdout).toContain('Grok-only default 50')
@@ -436,12 +470,10 @@ test('write and config help expose shared selectors and concurrency flags', asyn
   expect(configResult.stdout).not.toContain('--llm-provider-concurrency')
   expect(configResult.stdout).not.toContain('--mistral-stt')
   expect(configResult.stdout).not.toContain('openai=gpt-5.4 --stt')
-  expect(writeResult.stdout).not.toContain(['MiniMax-M2', '5'].join('.'))
-  expect(configResult.stdout).not.toContain(['MiniMax-M2', '5'].join('.'))
 })
 
-test('music help includes hosted generation and lyric-video flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'music', '--help'], { env: helpEnv })
+test.concurrent('music help includes hosted generation and lyric-video flags', async () => {
+  const result = await loadHelp(['music', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(getFlagGroupSection(result.stdout, 'Provider Selection')).toContain('--provider')
@@ -476,9 +508,9 @@ test('music help includes hosted generation and lyric-video flags', async () => 
   expect(result.stdout).not.toContain('--track-list')
 })
 
-test('image and video help expose generic provider selection plus their own option groups', async () => {
-  const imageResult = await runCommand(['src/cli/create-cli.ts', 'image', '--help'], { env: helpEnv })
-  const videoResult = await runCommand(['src/cli/create-cli.ts', 'video', '--help'], { env: helpEnv })
+test.concurrent('image and video help expose generic provider selection plus their own option groups', async () => {
+  const imageResult = await loadHelp(['image', '--help'])
+  const videoResult = await loadHelp(['video', '--help'])
 
   expect(imageResult.exitCode).toBe(0)
   expect(videoResult.exitCode).toBe(0)
@@ -498,7 +530,7 @@ test('image and video help expose generic provider selection plus their own opti
   expect(imageResult.stdout).toContain('wan-video/wan-2.7-image')
   expect(videoResult.stdout).toContain('ltx')
   expect(videoResult.stdout).toContain('ltx-2-3-fast')
-  expect(videoResult.stdout).toContain('wan-video/wan-2.7-t2v')
+  expect(videoResult.stdout).not.toContain('wan-video/wan-2.7-t2v')
   expect(imageResult.stdout).toContain('--provider-concurrency')
   expect(imageResult.stdout).not.toContain('--local-concurrency')
   expect(imageResult.stdout).toContain('--provider')
@@ -533,13 +565,13 @@ test('image and video help expose generic provider selection plus their own opti
   expect(videoResult.stdout).toContain('--grok-video-storage-filename')
 })
 
-test('provider help lists are derived from the supported selector registries', async () => {
+test.concurrent('provider help lists are derived from the supported selector registries', async () => {
   const [extract, write, config, resume, tts] = await Promise.all([
-    runCommand(['src/cli/create-cli.ts', 'extract', '--help'], { env: helpEnv }),
-    runCommand(['src/cli/create-cli.ts', 'write', '--help'], { env: helpEnv }),
-    runCommand(['src/cli/create-cli.ts', 'config', '--help'], { env: helpEnv }),
-    runCommand(['src/cli/create-cli.ts', 'resume', '--help'], { env: helpEnv }),
-    runCommand(['src/cli/create-cli.ts', 'tts', '--help'], { env: helpEnv })
+    loadHelp(['extract', '--help']),
+    loadHelp(['write', '--help']),
+    loadHelp(['config', '--help']),
+    loadHelp(['resume', '--help']),
+    loadHelp(['tts', '--help'])
   ])
 
   const urlBackends = URL_ARTICLE_BACKENDS.join('|')
@@ -549,17 +581,20 @@ test('provider help lists are derived from the supported selector registries', a
   expect(extract.stdout).toContain('whisperfile')
   expect(extract.stdout).toContain(urlBackends)
   expect(write.stdout).toContain(llmProviders)
+  expect(write.stdout).toContain('(default: cheapest hosted)')
   expect(write.stdout).toMatch(/--stt[^\n]*whisperfile/)
   expect(config.stdout).toContain(llmProviders)
+  expect(config.stdout).toContain('(default: cheapest hosted)')
   expect(config.stdout).toMatch(/--stt[^\n]*whisperfile/)
   expect(resume.stdout).toContain(`URL: ${urlBackends}`)
   expect(resume.stdout).toContain(`video: ${videoProviders}`)
-  expect(tts.stdout).toContain('repeatable (default: kitten)')
+  expect(resume.stdout).toContain('(default: cheapest hosted)')
+  expect(tts.stdout).toContain('repeatable (default: cheapest hosted)')
 })
 
-test('Luma, ratio, and music duration descriptions match supported behavior', async () => {
-  const image = await runCommand(['src/cli/create-cli.ts', 'image', '--help'], { env: helpEnv })
-  const music = await runCommand(['src/cli/create-cli.ts', 'music', '--help'], { env: helpEnv })
+test.concurrent('Luma, ratio, and music duration descriptions match supported behavior', async () => {
+  const image = await loadHelp(['image', '--help'])
+  const music = await loadHelp(['music', '--help'])
 
   // Seedream's odd-one-out ratio is match_input_image; `adaptive` belongs to Seedance video.
   expect(image.stdout).toContain('Replicate Seedream also supports match_input_image')
@@ -567,7 +602,7 @@ test('Luma, ratio, and music duration descriptions match supported behavior', as
   expect(image.stdout).toContain(`Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS}`)
   expect(music.stdout).toContain(`ElevenLabs configurable from ${ELEVENLABS_MIN_DURATION_SECONDS}-${ELEVENLABS_MAX_DURATION_SECONDS}`)
   expect(music.stdout).toContain('MiniMax currently ignores this flag')
-  expect(music.stdout).toContain(`Gemini Lyria Clip is fixed at ${GEMINI_CLIP_DURATION_SECONDS} seconds`)
+  expect(music.stdout).not.toContain('Gemini Lyria Clip is fixed')
   expect(music.stdout).toContain('Gemini Lyria Pro uses the requested duration')
 })
 
@@ -575,12 +610,9 @@ test('Luma, ratio, and music duration descriptions match supported behavior', as
 // supported value without documenting it fails here instead of shipping a stale list.
 const derivedHelpLists = [
   { command: 'video', label: '--video-mode', values: VIDEO_MODES },
-  { command: 'video', label: '--video-size (GLM CogVideoX)', values: GLM_COGVIDEOX_SIZE_VALUES },
-  { command: 'video', label: '--video-size (GLM Vidu 2)', values: GLM_VIDU2_SIZE_VALUES },
   { command: 'video', label: '--video-size (LTX)', values: LTX_2_3_SIZE_VALUES },
   { command: 'video', label: '--video-aspect-ratio (Luma Labs)', values: LUMA_ASPECT_RATIOS },
   { command: 'video', label: '--video-aspect-ratio (Grok)', values: GROK_VIDEO_ASPECT_RATIOS },
-  { command: 'video', label: '--video-aspect-ratio (Runway)', values: RUNWAY_ASPECT_RATIO_INPUTS },
   { command: 'video', label: '--video-resolution (Gemini)', values: GEMINI_VIDEO_RESOLUTIONS },
   { command: 'video', label: '--video-resolution (Replicate)', values: REPLICATE_VIDEO_RESOLUTIONS },
   { command: 'video', label: '--video-resolution (Luma Labs)', values: LUMA_RESOLUTIONS },
@@ -601,10 +633,10 @@ const derivedHelpLists = [
   { command: 'music', label: '--model', values: SUPPORTED_WHISPER_MODELS }
 ] as const
 
-test('every derived help list documents each value its validator accepts', async () => {
+test.concurrent('every derived help list documents each value its validator accepts', async () => {
   const helpByCommand = new Map<string, string>()
   for (const command of [...new Set(derivedHelpLists.map((entry) => entry.command))]) {
-    const result = await runCommand(['src/cli/create-cli.ts', command, '--help'], { env: helpEnv })
+    const result = await loadHelp([command, '--help'])
     expect(result.exitCode).toBe(0)
     helpByCommand.set(command, result.stdout)
   }
@@ -622,8 +654,8 @@ test('every derived help list documents each value its validator accepts', async
   expect(missing).toEqual([])
 })
 
-test('global help lists are derived from the logger and runtime tool registries', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', '--help'], { env: helpEnv })
+test.concurrent('global help lists are derived from the logger and runtime tool registries', async () => {
+  const result = await loadHelp(['--help'])
 
   expect(result.stdout).toContain(LOG_LEVELS.join('|'))
   expect(result.stdout).toContain(LOG_FORMAT_CHOICES.join('|'))
@@ -632,10 +664,9 @@ test('global help lists are derived from the logger and runtime tool registries'
   }
 })
 
-test('every run-producing command exposes the global deterministic output directory flag', async () => {
-  const commands = ['image', 'tts', 'video', 'music', 'extract', 'write', 'download', 'metadata', 'benchmark'] as const
-  for (const command of commands) {
-    const result = await runCommand(['src/cli/create-cli.ts', command, '--help'], { env: helpEnv })
+test.concurrent('every run-producing command exposes the global deterministic output directory flag', async () => {
+  for (const command of helpSurfaces.filter((entry) => commandCreatesRunDirectory(entry.name))) {
+    const result = await loadHelp(helpArgv(command.name))
 
     expect(result.exitCode).toBe(0)
     const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
@@ -651,14 +682,14 @@ test('every run-producing command exposes the global deterministic output direct
   expect(resumeResult.exitCode).not.toBe(0)
   expect(`${resumeResult.stdout}\n${resumeResult.stderr}`).toContain('--output-dir is not supported by "resume"')
 
-  const writeResult = await runCommand(['src/cli/create-cli.ts', 'write', '--help'], { env: helpEnv })
+  const writeResult = await loadHelp(['write', '--help'])
   expect(writeResult.exitCode).toBe(0)
   expect(writeResult.stdout).toContain('Output format: text|json|tsv|hocr')
   expect(writeResult.stdout).not.toContain('Alias for --output-dir')
-})
+}, HELP_TREE_TIMEOUT_MS)
 
-test('resume help exposes unified multi-target provider selector', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'resume', '--help'], { env: helpEnv })
+test.concurrent('resume help exposes unified multi-target provider selector', async () => {
+  const result = await loadHelp(['resume', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('--provider')
@@ -668,7 +699,11 @@ test('resume help exposes unified multi-target provider selector', async () => {
   expect(result.stdout).toContain('--local-concurrency')
   expect(result.stdout).toContain('--ocr-concurrency')
   expect(getFlagGroupSection(result.stdout, 'Batch Processing')).toContain('--batch-concurrency')
+  expect(getFlagGroupSection(result.stdout, 'Transcription / STT')).toContain('--youtube-captions')
   expect(getFlagGroupSection(result.stdout, 'OCR / Document Extraction')).not.toContain('--batch-concurrency')
+  expect(getFlagGroupSection(result.stdout, 'Text to Speech')).toContain('--tts-voice')
+  expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--image-aspect-ratio')
+  expect(getFlagGroupSection(result.stdout, 'Hosted Music')).toContain('--music-duration')
   expect(result.stdout).toContain('STT:')
   expect(result.stdout).toContain('OCR:')
   expect(result.stdout).toContain('TTS:')
@@ -677,16 +712,15 @@ test('resume help exposes unified multi-target provider selector', async () => {
   expect(result.stdout).toContain('music:')
   expect(result.stdout).toContain('whisper')
   expect(result.stdout).toContain('tesseract')
-  expect(result.stdout).toContain('kitten')
   expect(result.stdout).toContain('bfl')
-  expect(result.stdout).toContain('recraft')
+  expect(result.stdout).not.toContain('recraft')
   expect(result.stdout).toContain('replicate')
-  expect(result.stdout).toContain('runway')
+  expect(result.stdout).not.toContain('runway')
   expect(result.stdout).toContain('ltx')
 })
 
-test('comic help lists every subcommand and points at their own help', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'comic', '--help'], { env: helpEnv })
+test.concurrent('comic help lists every subcommand and points at their own help', async () => {
+  const result = await loadHelp(['comic', '--help'])
 
   expect(result.exitCode).toBe(0)
   const subcommandSection = getSection(result.stdout, '\nSubcommands\n', '\nGlobal Flags\n')
@@ -699,8 +733,8 @@ test('comic help lists every subcommand and points at their own help', async () 
   expect(getCommandFlagsSection(result.stdout)).toBe('')
 })
 
-test('comic generate-images help is scoped to its own page and QA flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'comic', 'generate-images', '--help'], { env: helpEnv })
+test.concurrent('comic generate-images help is scoped to its own page and QA flags', async () => {
+  const result = await loadHelp(['comic', 'generate-images', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('$ bun autoshow comic generate-images <script-path> [flags]')
@@ -722,8 +756,8 @@ test('comic generate-images help is scoped to its own page and QA flags', async 
   expect(flagsSection).not.toContain('--location')
 })
 
-test('comic draft-scenes help is scoped to the drafting stages', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'comic', 'draft-scenes', '--help'], { env: helpEnv })
+test.concurrent('comic draft-scenes help is scoped to the drafting stages', async () => {
+  const result = await loadHelp(['comic', 'draft-scenes', '--help'])
 
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('$ bun autoshow comic draft-scenes <script-path> [flags]')
@@ -735,8 +769,23 @@ test('comic draft-scenes help is scoped to the drafting stages', async () => {
   expect(flagsSection).not.toContain('--character')
 })
 
-test('comic reference-sketch help documents both reference kinds', async () => {
-  const reference = await runCommand(['src/cli/create-cli.ts', 'comic', 'reference-sketch', '--help'], { env: helpEnv })
+test.concurrent('comic generate-slideshow help documents its local synchronization contract', async () => {
+  const result = await loadHelp(['comic', 'generate-slideshow', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('$ bun autoshow comic generate-slideshow <script-path> [flags]')
+  const presentation = getFlagGroupSection(result.stdout, 'Comic Presentation')
+  expect(presentation).toContain('--audio-target')
+  expect(presentation).toContain('--untimed-panel-ms')
+  expect(presentation).toContain('--fps')
+  expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')
+  expect(result.stdout).toContain('panels/panel-NN.png')
+  expect(result.stdout).toContain('hard cuts only')
+  expect(getCommandFlagsSection(result.stdout)).not.toContain('--provider')
+})
+
+test.concurrent('comic reference-sketch help documents both reference kinds', async () => {
+  const reference = await loadHelp(['comic', 'reference-sketch', '--help'])
 
   expect(reference.exitCode).toBe(0)
   expect(reference.stdout).toContain('$ bun autoshow comic reference-sketch [flags]')
@@ -746,10 +795,275 @@ test('comic reference-sketch help documents both reference kinds', async () => {
   expect(getCommandFlagsSection(reference.stdout)).not.toContain('--panels')
 })
 
-test('comic help subcommand routing matches the --help flag output', async () => {
-  const viaFlag = await runCommand(['src/cli/create-cli.ts', 'comic', 'generate-images', '--help'], { env: helpEnv })
-  const viaHelp = await runCommand(['src/cli/create-cli.ts', 'comic', 'help', 'generate-images'], { env: helpEnv })
+test.concurrent('comic help subcommand routing matches the --help flag output', async () => {
+  const viaFlag = await loadHelp(['comic', 'generate-images', '--help'])
+  const viaHelp = await loadHelp(['comic', 'help', 'generate-images'])
 
   expect(viaHelp.exitCode).toBe(0)
   expect(viaHelp.stdout).toBe(viaFlag.stdout)
+})
+
+test.concurrent('config help shows --max-cents and omits runtime-only --price', async () => {
+  const result = await loadHelp(['config', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  const pricing = getFlagGroupSection(result.stdout, 'Pricing')
+  expect(pricing).toContain('--max-cents')
+  expect(pricing).not.toContain('--price')
+  expect(getCommandFlagsSection(result.stdout)).not.toContain('--price')
+})
+
+test.concurrent('config, resume, and write help omit the empty prompt parser default', async () => {
+  for (const command of ['config', 'resume', 'write'] as const) {
+    const result = await loadHelp([command, '--help'])
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('(default: "default")')
+    expect(result.stdout).not.toContain('[default: []]')
+  }
+})
+
+test.concurrent('config examples use the canonical bun autoshow prefix', async () => {
+  const result = await loadHelp(['config', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('bun autoshow config --show')
+  expect(result.stdout).toContain('bun autoshow config --llm openai=gpt-5.4-mini --stt whisper=base')
+  expect(result.stdout).toContain('bun autoshow config --reset')
+  expect(result.stdout).not.toContain('bun as config')
+})
+
+test.concurrent('root help uses imperative version wording', async () => {
+  const result = await loadHelp(['--help'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Print current version')
+  expect(result.stdout).not.toContain('Prints current version')
+})
+
+test.concurrent('comic generate-audio help shows --slideshow and hides the --panel-video alias', async () => {
+  const result = await loadHelp(['comic', 'generate-audio', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  const flags = getCommandFlagsSection(result.stdout)
+  expect(flags).toContain('--slideshow')
+  expect(flags).not.toContain('--panel-video')
+})
+
+test.concurrent('comic reference-voice help lists public children without a flag wall', async () => {
+  const result = await loadHelp(['comic', 'reference-voice', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  expect(VOICE_PUBLIC_ACTIONS).toContain('clone')
+  expect(VOICE_PUBLIC_ACTIONS).toContain('list')
+  expect(VOICE_PUBLIC_ACTIONS).not.toContain('status')
+  expect(VOICE_PUBLIC_ACTIONS).not.toContain('inspect')
+  expect(VOICE_PUBLIC_ACTIONS).not.toContain('discover')
+  expect(VOICE_PUBLIC_ACTIONS).not.toContain('revoke-consent')
+  expect(VOICE_PUBLIC_ACTIONS).not.toContain('revoke')
+  expect(VOICE_PUBLIC_ACTIONS).not.toContain('materialize')
+  expect(VOICE_PUBLIC_ACTIONS).not.toContain('reconcile')
+  const children = getSection(result.stdout, '\nSubcommands\n', '\nGlobal Flags\n')
+  for (const action of VOICE_PUBLIC_ACTIONS) {
+    expect(children).toContain(`  ${action}`)
+  }
+  expect(children).not.toMatch(/(^|\n) {2}status {2}/)
+  expect(children).not.toMatch(/(^|\n) {2}materialize {2}/)
+  const flags = getCommandFlagsSection(result.stdout)
+  expect(flags).not.toContain('--sample')
+  expect(flags).not.toContain('--allow')
+
+  for (const action of VOICE_PUBLIC_ACTIONS) {
+    const voiceHelp = await loadHelp(['voice', action, '--help'])
+    const comicHelp = await loadHelp(['comic', 'reference-voice', action, '--help'])
+    expect(advertisedFlagNames(getCommandFlagsSection(comicHelp.stdout))).toEqual(
+      advertisedFlagNames(getCommandFlagsSection(voiceHelp.stdout))
+    )
+  }
+})
+
+test.concurrent('voice clone help does not advertise --kind', async () => {
+  const result = await loadHelp(['voice', 'clone', '--help'])
+  expect(result.exitCode).toBe(0)
+  expect(getCommandFlagsSection(result.stdout)).not.toContain('--kind')
+})
+
+test.concurrent('subcommand parents render a subcommand usage placeholder', async () => {
+  const voice = await loadHelp(['voice', '--help'])
+  const comic = await loadHelp(['comic', '--help'])
+
+  expect(voice.exitCode).toBe(0)
+  expect(comic.exitCode).toBe(0)
+  expect(voice.stdout).toContain('$ bun autoshow voice <subcommand> [flags]')
+  expect(comic.stdout).toContain('$ bun autoshow comic <subcommand> [flags]')
+  expect(voice.stdout).toContain('bun autoshow voice <subcommand> --help')
+  expect(comic.stdout).toContain('bun autoshow comic <subcommand> --help')
+  const voiceSubcommands = getSection(voice.stdout, '\nSubcommands\n', '\nGlobal Flags\n')
+  for (const action of VOICE_PUBLIC_ACTIONS) {
+    expect(voiceSubcommands).toContain(`  ${action}`)
+  }
+  expect(voiceSubcommands).not.toMatch(/(^|\n) {2}status {2}/)
+  expect(voiceSubcommands).not.toMatch(/(^|\n) {2}inspect {2}/)
+  expect(voiceSubcommands).not.toMatch(/(^|\n) {2}discover {2}/)
+  expect(voiceSubcommands).not.toMatch(/(^|\n) {2}revoke-consent {2}/)
+  expect(voiceSubcommands).not.toMatch(/(^|\n) {2}revoke {2}/)
+  expect(voiceSubcommands).not.toMatch(/(^|\n) {2}materialize {2}/)
+  expect(voiceSubcommands).not.toMatch(/(^|\n) {2}reconcile {2}/)
+
+  const tts = await loadHelp(['tts', '--help'])
+  const generateImages = await loadHelp(['comic', 'generate-images', '--help'])
+  expect(tts.stdout).toContain('$ bun autoshow tts <input> [flags]')
+  expect(generateImages.stdout).toContain('$ bun autoshow comic generate-images <script-path> [flags]')
+  expect(tts.stdout).not.toContain('<subcommand>')
+  expect(generateImages.stdout).not.toContain('<subcommand>')
+})
+
+test.concurrent('help output has no whitespace-only lines and caps wide example columns', async () => {
+  const surfaces: string[][] = [
+    ['--help'],
+    ...helpSurfaces.map((command) => helpArgv(command.name))
+  ]
+
+  for (const args of surfaces) {
+    const result = await loadHelp(args)
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout.split('\n').filter((line) => line.length > 0 && line.trim() === '')).toEqual([])
+  }
+
+  const voice = await loadHelp(['voice', '--help'])
+  const description = 'Register an existing ElevenLabs voice'
+  const descriptionLine = voice.stdout.split('\n').find((line) => line.includes(description))
+  expect(descriptionLine).toBeDefined()
+  expect(descriptionLine!.indexOf(description)).toBeLessThanOrEqual(HELP_EXAMPLE_ALIGN_COLUMN_CAP)
+}, HELP_TREE_TIMEOUT_MS)
+
+test.concurrent('command help hides --output-dir when the command cannot create a run directory', async () => {
+  for (const command of helpSurfaces.filter((entry) => !commandCreatesRunDirectory(entry.name))) {
+    const result = await loadHelp(helpArgv(command.name))
+    expect(result.exitCode).toBe(0)
+    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
+    expect(globalFlagsSection).toContain('--output-root')
+    expect(globalFlagsSection).not.toContain('--output-dir')
+  }
+
+  for (const command of helpSurfaces.filter((entry) => commandCreatesRunDirectory(entry.name))) {
+    const result = await loadHelp(helpArgv(command.name))
+    expect(result.exitCode).toBe(0)
+    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
+    expect(globalFlagsSection).toContain('--output-dir')
+    expect(globalFlagsSection).toContain('--output-root')
+  }
+
+  const root = await loadHelp(['--help'])
+  expect(root.stdout).toContain('--output-dir')
+}, HELP_TREE_TIMEOUT_MS)
+
+test.concurrent('commandAcceptsGlobalFlag keeps universal flags and restricts characters-root', () => {
+  expect(commandAcceptsGlobalFlag('config', 'output-root')).toBe(true)
+  expect(commandAcceptsGlobalFlag('config', 'verbose')).toBe(true)
+  expect(commandAcceptsGlobalFlag('config', 'bin-dir')).toBe(true)
+  expect(commandAcceptsGlobalFlag('config', 'output-dir')).toBe(false)
+  expect(commandAcceptsGlobalFlag('write', 'output-dir')).toBe(true)
+  expect(commandAcceptsGlobalFlag('voice', 'characters-root')).toBe(true)
+  expect(commandAcceptsGlobalFlag('comic', 'characters-root')).toBe(true)
+  expect(commandAcceptsGlobalFlag('voice clone', 'characters-root')).toBe(true)
+  expect(commandAcceptsGlobalFlag('comic draft-scenes', 'characters-root')).toBe(true)
+  expect(commandAcceptsGlobalFlag('extract', 'characters-root')).toBe(false)
+  expect(commandAcceptsGlobalFlag('config', 'characters-root')).toBe(false)
+})
+
+test.concurrent('command help does not advertise --model-path', async () => {
+  for (const command of ['write', 'resume', 'tts', 'config', 'extract', 'voice', 'comic']) {
+    const result = await loadHelp(helpArgv(command))
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).not.toContain('--model-path')
+  }
+
+  const root = await loadHelp(['--help'])
+  expect(root.stdout).not.toContain('--model-path')
+}, HELP_TREE_TIMEOUT_MS)
+
+test.concurrent('command help hides --characters-root outside voice and comic', async () => {
+  for (const command of ['voice', 'comic', 'comic draft-scenes']) {
+    const result = await loadHelp(helpArgv(command))
+    expect(result.exitCode).toBe(0)
+    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
+    expect(globalFlagsSection).toContain('--characters-root')
+  }
+
+  for (const command of ['extract', 'config', 'write']) {
+    const result = await loadHelp(helpArgv(command))
+    expect(result.exitCode).toBe(0)
+    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
+    expect(globalFlagsSection).not.toContain('--characters-root')
+    expect(globalFlagsSection).toContain('--output-root')
+  }
+
+  const root = await loadHelp(['--help'])
+  expect(root.stdout).toContain('--characters-root')
+  expect(root.stdout).toContain('--output-root')
+}, HELP_TREE_TIMEOUT_MS)
+
+test.concurrent('cookie flags appear on config help and leave the global surface', async () => {
+  const config = await loadHelp(['config', '--help'])
+  expect(config.exitCode).toBe(0)
+  expect(getCommandFlagsSection(config.stdout)).toContain('--cookies')
+  expect(getCommandFlagsSection(config.stdout)).toContain('--cookies-from-browser')
+  expect(getCommandFlagsSection(config.stdout)).toContain('Auth')
+
+  for (const command of ['download', 'extract', 'write']) {
+    const result = await loadHelp(helpArgv(command))
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).not.toContain('--cookies-from-browser')
+    expect(result.stdout).not.toMatch(/--cookies(?!-)/)
+  }
+
+  const root = await loadHelp(['--help'])
+  expect(root.stdout).not.toContain('--cookies-from-browser')
+  expect(root.stdout).not.toMatch(/--cookies(?!-)/)
+  expect(root.stdout).toContain('--output-root')
+}, HELP_TREE_TIMEOUT_MS)
+
+test.concurrent('every help page advertises exactly the flags registered for that command', async () => {
+  for (const command of helpSurfaces) {
+    const result = await loadHelp(helpArgv(command.name))
+    expect(result.exitCode).toBe(0)
+    expect(advertisedFlagNames(getCommandFlagsSection(result.stdout)).sort()).toEqual(visibleFlagNames(command.flags))
+
+    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
+    const expectedGlobals = visibleFlagNames(globalFlagsForCommand(GLOBAL_FLAG_DEFINITIONS, command.name))
+    expect(advertisedFlagNames(globalFlagsSection).sort()).toEqual(expectedGlobals)
+  }
+}, HELP_TREE_TIMEOUT_MS)
+
+test.concurrent('config help keeps persisted reusable video input flags', async () => {
+  const result = await loadHelp(['config', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  for (const flag of persistedVideoInputFlags) {
+    expect(FLAG_TO_CONFIG_PATH[flag]).toBeDefined()
+    expect(getCommandFlagsSection(result.stdout)).toContain(`--${flag}`)
+  }
+})
+
+test.concurrent('retained benchmark fixtures stay in place', async () => {
+  const setup = await loadHelp(['setup', '--help'])
+  expect(setup.stdout).not.toContain('--repeat')
+
+  expect(existsSync(resolve('docs/benchmarks'))).toBe(true)
+  expect(existsSync(resolve('.claude/skills/consensus'))).toBe(true)
+  expect(existsSync(resolve('src/utils/voice-quality-scoring.ts'))).toBe(false)
+})
+
+test('CLI help spawn smoke covers exit codes and the real help tree', async () => {
+  const root = await runCommand(['src/cli/create-cli.ts', '--help'], { env: helpEnv })
+  expect(root.exitCode).toBe(0)
+  expect(root.stdout).toContain('Extract and write content, manage voices, generate speech, images, video, and music, and build comic workflows')
+
+  const extract = await runCommand(['src/cli/create-cli.ts', 'extract', '--help'], { env: helpEnv })
+  expect(extract.exitCode).toBe(0)
+  expect(extract.stdout).toContain('$ bun autoshow extract')
+
+  const benchmark = await runCommand(['src/cli/create-cli.ts', 'benchmark', '--help'], { env: helpEnv })
+  expect(benchmark.exitCode).toBe(2)
+  expect(`${benchmark.stdout}\n${benchmark.stderr}`).toContain('Unknown command "benchmark"')
 })

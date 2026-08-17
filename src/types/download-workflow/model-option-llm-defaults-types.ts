@@ -1,8 +1,4 @@
 export type ResolvedLLMModelOptions = {
-  llamaModels: string[] | undefined
-  llamaModel: string | undefined
-  llamafileModels: string[] | undefined
-  llamafileModel: string | undefined
   openaiModels: string[] | undefined
   openaiModel: string | undefined
   groqModels: string[] | undefined

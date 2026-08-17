@@ -65,7 +65,7 @@ input/examples/tts/*
 # repo are to the hosted https://ajc.pics/autoshow/examples/2-video.mp4 copy, not a local file.
 #
 # The shipped fixtures, named one per line. Personal media sits in these same directories
-# (5-audio.mp3, anthony-voice-8-seconds.mp3, synthetic-book.acsm, unreferenced tts drafts) and
+# (5-audio.mp3, anthony-voice-8-seconds.mp3, unreferenced tts drafts) and
 # stays ignored by omission, so this list is an allowlist and must not become a glob.
 !input/examples/audio/0-audio-short.mp3
 !input/examples/audio/1-audio.mp3

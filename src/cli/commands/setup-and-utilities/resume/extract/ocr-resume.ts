@@ -15,10 +15,91 @@ import type { AggregatedPriceEstimate, OcrExtractionOptions, OcrResumePassContex
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
 import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
-import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { isNormalizedReasoningEffort, resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
 import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getOcrTargetKey } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
+import { parseStoredOcrPoolLedger } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch'
+import type { OcrProviderMode, OcrPoolLedger } from '~/types'
+
+const storedOcrProviderMode = (record: Record<string, unknown>): OcrProviderMode =>
+  record['ocrProviderMode'] === 'pool' ? 'pool' : 'fanout'
+
+const assertStoredOcrProviderMode = (
+  record: Record<string, unknown>,
+  opts?: Pick<OcrExtractionOptions, 'ocrProviderMode' | 'ocrProviderModeExplicit'>
+): OcrProviderMode => {
+  const storedMode = storedOcrProviderMode(record)
+  if (opts?.ocrProviderModeExplicit && opts.ocrProviderMode !== storedMode) {
+    throw CLIUsageError(`Cannot resume a ${storedMode} OCR run as ${opts.ocrProviderMode}. Resume preserves the OCR provider mode stored in manifest.json.`)
+  }
+  return storedMode
+}
+
+const poolTargetRetired = (ledger: OcrPoolLedger, target: OcrTarget): boolean =>
+  ledger.targets.find((candidate) => candidate.targetKey === getOcrTargetKey(target))?.status === 'retired'
+
+const pageAttemptedByTarget = (
+  page: OcrPoolLedger['pages'][number],
+  target: OcrTarget
+): boolean => page.attempts.some((attempt) =>
+  attempt.status !== 'interrupted'
+  && attempt.status !== 'running'
+  && attempt.provider === target.service
+  && attempt.model === target.model
+)
+
+const uniqueTargets = (targets: readonly OcrTarget[]): OcrTarget[] => {
+  const seen = new Set<string>()
+  return targets.filter((target) => {
+    const key = getOcrTargetKey(target)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+const storedPoolRequestedReasoningEffort = (
+  ledger: OcrPoolLedger
+): NormalizedReasoningEffort | undefined => {
+  const efforts = new Set(ledger.pages.flatMap((page) => page.attempts.flatMap((attempt) =>
+    isNormalizedReasoningEffort(attempt.requestedReasoningEffort)
+      ? [attempt.requestedReasoningEffort]
+      : []
+  )))
+  if (efforts.size > 1) {
+    throw CLIUsageError(`Canonical pooled OCR manifest records conflicting requested reasoning policies: ${[...efforts].sort().join(', ')}.`)
+  }
+  return [...efforts][0]
+}
+
+const resolvePoolResumeTargets = (params: {
+  ledger: OcrPoolLedger
+  storedTargets: OcrTarget[]
+  selectedTargets: OcrTarget[] | undefined
+}): { requestedTargets: OcrTarget[], targetsToRun: OcrTarget[], reenabledTargets: OcrTarget[], unfinishedPageCount: number, onlyBlocked: boolean } => {
+  const unfinishedPages = params.ledger.pages.filter((page) => page.status !== 'accepted')
+  const selected = uniqueTargets(params.selectedTargets ?? [])
+  const selectedKeys = new Set(selected.map(getOcrTargetKey))
+  const requestedTargets = uniqueTargets([...params.storedTargets, ...selected])
+  const storedEligible = params.storedTargets.filter((target) => !poolTargetRetired(params.ledger, target))
+  const candidateTargets = uniqueTargets([...storedEligible, ...selected])
+  const targetsToRun = candidateTargets.filter((target) =>
+    unfinishedPages.some((page) =>
+      selectedKeys.has(getOcrTargetKey(target)) || !pageAttemptedByTarget(page, target)
+    )
+  )
+  return {
+    requestedTargets,
+    targetsToRun,
+    reenabledTargets: selected,
+    unfinishedPageCount: unfinishedPages.length,
+    onlyBlocked: unfinishedPages.length > 0
+      && targetsToRun.length === 0
+      && params.storedTargets.some((target) => poolTargetRetired(params.ledger, target))
+  }
+}
 
 const filterRunnableStoredOcrTargets = (
   targets: readonly OcrTarget[],
@@ -53,7 +134,9 @@ const filterRunnableStoredOcrTargets = (
 const assertSelectedOcrReasoningCompatibility = (
   record: Record<string, unknown>,
   selectedTargets: OcrTarget[] | undefined,
-  requestedReasoningEffort: NormalizedReasoningEffort | undefined
+  requestedReasoningEffort: NormalizedReasoningEffort | undefined,
+  ocrProviderMode: OcrProviderMode,
+  poolLedger?: OcrPoolLedger | undefined
 ): void => {
   if (selectedTargets === undefined || requestedReasoningEffort === undefined) {
     return
@@ -66,6 +149,34 @@ const assertSelectedOcrReasoningCompatibility = (
     if (target.service === 'tesseract') {
       continue
     }
+    const policy = resolveReasoningPolicy({
+      step: 'extract',
+      service: target.service,
+      model: target.model,
+      requestedReasoningEffort
+    })
+    if (ocrProviderMode === 'pool') {
+      const storedEffectivePolicies = new Set(poolLedger?.pages.flatMap((page) => [
+        ...page.attempts.flatMap((attempt) =>
+          attempt.provider === target.service
+          && attempt.model === target.model
+          && typeof attempt.effectiveReasoningEffort === 'string'
+            ? [attempt.effectiveReasoningEffort]
+            : []
+        ),
+        ...(page.accepted?.provider === target.service
+        && page.accepted.model === target.model
+        && typeof page.accepted.effectiveReasoningEffort === 'string'
+          ? [page.accepted.effectiveReasoningEffort]
+          : [])
+      ]) ?? [])
+      if ([...storedEffectivePolicies].some((stored) => stored !== policy.effective)) {
+        throw CLIUsageError(
+          `OCR resume reasoning policy mismatch for ${target.service}/${target.model}: the pooled page ledger records ${[...storedEffectivePolicies].sort().join(', ')}, but the current request resolves to ${policy.effective}.`
+        )
+      }
+      continue
+    }
     const state = providerStates.find((candidate) =>
       candidate['service'] === target.service
       && candidate['model'] === target.model
@@ -74,13 +185,6 @@ const assertSelectedOcrReasoningCompatibility = (
     if (!state) {
       continue
     }
-
-    const policy = resolveReasoningPolicy({
-      step: 'extract',
-      service: target.service,
-      model: target.model,
-      requestedReasoningEffort
-    })
     const metadata = isRecord(state['metadata']) ? state['metadata'] : undefined
     const storedEffective = metadata?.['effectiveReasoningEffort']
     if (storedEffective !== policy.effective) {
@@ -114,7 +218,8 @@ const toStoredSource = (record: PipelineItemRecord): Step1SourceRef => {
 const parseResumeRecord = async (
   record: unknown,
   selectedTargets: OcrTarget[] | undefined,
-  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined,
+  resumeOptions?: Pick<OcrExtractionOptions, 'ocrProviderMode' | 'ocrProviderModeExplicit'>
 ): Promise<ResumeOcrEntry | undefined> => {
   if (!isRecord(record)) {
     return undefined
@@ -130,9 +235,46 @@ const parseResumeRecord = async (
     return undefined
   }
 
-  assertSelectedOcrReasoningCompatibility(record, selectedTargets, requestedReasoningEffort)
+  const ocrProviderMode = assertStoredOcrProviderMode(record, resumeOptions)
+  const poolLedger = ocrProviderMode === 'pool'
+    ? parseStoredOcrPoolLedger(record['ocrPool'])
+    : undefined
+  if (ocrProviderMode === 'pool' && !poolLedger) {
+    throw CLIUsageError('Canonical pooled OCR manifest is missing a valid ocrPool page ledger.')
+  }
+  assertSelectedOcrReasoningCompatibility(
+    record,
+    ocrProviderMode === 'pool' ? uniqueTargets([...storedRequestedTargets, ...(selectedTargets ?? [])]) : selectedTargets,
+    requestedReasoningEffort,
+    ocrProviderMode,
+    poolLedger
+  )
 
   const source = toStoredSource(record)
+  if (ocrProviderMode === 'pool') {
+    const ledger = poolLedger as OcrPoolLedger
+    const poolTargets = resolvePoolResumeTargets({
+      ledger,
+      storedTargets: storedRequestedTargets,
+      selectedTargets
+    })
+    const runnableStored = filterRunnableStoredOcrTargets(poolTargets.targetsToRun, selectedTargets)
+    const storedReasoningEffort = storedPoolRequestedReasoningEffort(ledger)
+    return {
+      outputDir,
+      source,
+      requestedTargets: poolTargets.requestedTargets,
+      missingTargets: runnableStored,
+      completionStatus: ledger.status === 'full' ? 'full' : 'incomplete',
+      rawRecord: record,
+      onlyBlockedMissingTargets: poolTargets.onlyBlocked,
+      ocrProviderMode: 'pool',
+      unfinishedPageCount: poolTargets.unfinishedPageCount,
+      reenabledTargets: poolTargets.reenabledTargets,
+      ...(storedReasoningEffort ? { storedReasoningEffort } : {})
+    }
+  }
+
   const storedMissingTargets = filterRunnableStoredOcrTargets(
     buildMissingTargetsFromEntry(record, storedRequestedTargets, {
       includeBlocked: selectedTargets !== undefined
@@ -153,6 +295,7 @@ const parseResumeRecord = async (
     missingTargets: resolvedTargets.providersToRun,
     completionStatus: resolveCanonicalCompletionStatus(record, requestedTargets),
     rawRecord: record,
+    ocrProviderMode: 'fanout',
     onlyBlockedMissingTargets: selectedTargets === undefined
       && hasOnlyBlockedMissingTargetsFromEntry(record, storedRequestedTargets)
   }
@@ -212,13 +355,15 @@ export const hasResumableOcrTargetWork = async (
 
 const buildResumeExtractionOpts = (
   opts: OcrExtractionOptions,
-  outputDir: string
+  outputDir: string,
+  entry: ResumeOcrEntry
 ) => {
   const step2SelectionOrigins = opts.step2SelectionOrigins
     ? Object.fromEntries(
         Object.entries(opts.step2SelectionOrigins).filter(([, value]) => value !== undefined)
       ) as Record<string, 'default' | 'explicit' | 'all-shortcut'>
     : undefined
+  const reasoningEffort = opts.reasoningEffort ?? entry.storedReasoningEffort
 
   return {
     filePath: '',
@@ -229,6 +374,8 @@ const buildResumeExtractionOpts = (
     password: opts.password,
     ocrConcurrency: opts.ocrConcurrency,
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
+    ocrProviderMode: entry.ocrProviderMode,
+    ocrProviderModeExplicit: opts.ocrProviderModeExplicit,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
     chapterFiles: opts.chapterFiles,
@@ -237,7 +384,7 @@ const buildResumeExtractionOpts = (
     configPath: opts.configPath,
     ...(opts.useEpubBun ? { useEpubBun: true } : {}),
     ...(step2SelectionOrigins ? { step2SelectionOrigins } : {}),
-    ...(opts.reasoningEffort ? { reasoningEffort: opts.reasoningEffort } : {})
+    ...(reasoningEffort ? { reasoningEffort } : {})
   }
 }
 
@@ -267,11 +414,11 @@ const runResumeOcrTarget = async (
     {
       stepLabel: 'OCR',
       readItemRecord,
-      parseRecord: async (record) => await parseResumeRecord(record, selectedTargets, opts.reasoningEffort),
+      parseRecord: async (record) => await parseResumeRecord(record, selectedTargets, opts.reasoningEffort, opts),
       getProviderLabels: (targets) => targets.map((runTarget) => `${runTarget.service}/${runTarget.model}`),
       normalizeAlreadyFullRecord: markItemRecordFull,
       classifyNoMatchingRecord: (record) =>
-        selectedOcrTargetsComplete(record, selectedTargets)
+        storedOcrProviderMode(record) === 'fanout' && selectedOcrTargetsComplete(record, selectedTargets)
           ? 'full'
           : getOcrCompletionStatus(record),
       createPassContext: () => resumableStatus,
@@ -298,14 +445,16 @@ const runResumeOcrTarget = async (
         try {
           await processOcr(
             resumeFilePath,
-            buildResumeExtractionOpts(opts, entry.outputDir),
+            buildResumeExtractionOpts(opts, entry.outputDir, entry),
             entry.source,
             preparedDocument,
             undefined,
             {
               outputDir: entry.outputDir,
               requestedTargets: entry.requestedTargets,
-              targetsToRun: entry.missingTargets
+              targetsToRun: entry.missingTargets,
+              ocrProviderMode: entry.ocrProviderMode,
+              reenabledTargets: entry.reenabledTargets
             }
           )
         } catch (error) {
@@ -322,11 +471,12 @@ const runResumeOcrTarget = async (
         const remainingResumableEntry = await parseResumeRecord(
           withProviderResumeOutputDir(record, entry.outputDir),
           selectedTargets,
-          opts.reasoningEffort
+          opts.reasoningEffort,
+          opts
         )
         const hasRemainingResumableWork = (remainingResumableEntry?.missingTargets.length ?? 0) > 0
         const completionStatus = getOcrCompletionStatus(record)
-        if (selectedTargets !== undefined && !hasRemainingResumableWork && completionStatus !== 'full') {
+        if (entry.ocrProviderMode === 'fanout' && selectedTargets !== undefined && !hasRemainingResumableWork && completionStatus !== 'full') {
           return {
             ...selectedProvidersCompleteResult(entry.outputDir, record),
             hasRemainingResumableWork
@@ -402,7 +552,7 @@ export const priceOcrTarget = async (
   return await priceProviderResumeTarget<OcrTarget, ResumeOcrEntry, OcrExtractionOptions>(target, opts, {
     stepLabel: 'OCR',
     readItemRecord,
-    parseRecord: (record) => parseResumeRecord(record, selectedTargets, opts.reasoningEffort),
+    parseRecord: (record) => parseResumeRecord(record, selectedTargets, opts.reasoningEffort, opts),
     getAggregateTimingOptions: (options) => ({
       ocrConcurrency: options.ocrConcurrency,
       ocrConcurrencyMode: options.ocrConcurrencyMode,
@@ -415,7 +565,9 @@ export const priceOcrTarget = async (
         buildResolvedOcrStep(entry.missingTargets),
         {
           hostedOcrTokenProfilePath: estimateOpts.hostedOcrTokenProfilePath,
-          reasoningEffort: estimateOpts.reasoningEffort
+          reasoningEffort: estimateOpts.reasoningEffort,
+          ocrProviderMode: entry.ocrProviderMode,
+          ...(entry.ocrProviderMode === 'pool' ? { poolPageCount: entry.unfinishedPageCount ?? 0 } : {})
         }
       )
   })

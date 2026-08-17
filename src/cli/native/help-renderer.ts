@@ -4,7 +4,10 @@ import {
   HELP_TYPE_COLOR
 } from '~/cli/help-colors'
 import { getNativeRenderableCommands } from './builtins'
+import { globalFlagsForCommand } from './global-flag-support'
 import type { CliCommandDefinition, CliFlagDefinition, CliFlagsDefinition, CliParameterDefinition, CliRootDefinition } from '~/types'
+
+export const HELP_EXAMPLE_ALIGN_COLUMN_CAP = 100
 
 // Help rendering never needs the handler, so nested subcommands can supply
 // handler-less definitions purely to describe their own help output.
@@ -52,6 +55,9 @@ const flagGroup = (definition: CliFlagDefinition): string | undefined => {
 
 const isFlagHidden = (definition: CliFlagDefinition): boolean =>
   definition.help?.hidden === true
+
+const isCommandHidden = (command: CliCommandHelpDefinition): boolean =>
+  command.help?.hidden === true
 
 const formatFlagName = (name: string, definition: CliFlagDefinition): string => {
   if (definition.type === Boolean && definition.negatable === true) {
@@ -116,7 +122,7 @@ const renderGroupedFlags = (
     if (Object.keys(groupFlags).length === 0) {
       continue
     }
-    lines.push(`  ${label}`, ...renderFlagRows(groupFlags, '    '), '  ')
+    lines.push(`  ${label}`, ...renderFlagRows(groupFlags, '    '), '')
     for (const key of Object.keys(groupFlags)) {
       groupedKeys.add(key)
     }
@@ -155,7 +161,7 @@ const renderParameters = (command: CliCommandHelpDefinition): string[] => {
 
 const renderSubcommands = (command: CliCommandHelpDefinition): string[] => {
   const prefix = `${command.name} `
-  const subcommands = (command.subcommands ?? []).map((subcommand) => [
+  const subcommands = (command.subcommands ?? []).filter((subcommand) => !isCommandHidden(subcommand)).map((subcommand) => [
     subcommand.name.startsWith(prefix) ? subcommand.name.slice(prefix.length) : subcommand.name,
     subcommand.description
   ] as const)
@@ -176,9 +182,12 @@ const renderExamples = (command: CliCommandHelpDefinition): string[] => {
     return []
   }
   const width = examples.reduce((value, [example]) => Math.max(value, visibleLength(example)), 0)
+  const rows = width > HELP_EXAMPLE_ALIGN_COLUMN_CAP
+    ? examples.flatMap(([example, description]) => [`  ${example}`, `    ${description}`])
+    : examples.map(([example, description]) => `  ${padRight(example, width)}  -  ${description}`)
   return [
     'Examples',
-    ...examples.map(([example, description]) => `  ${padRight(example, width)}  -  ${description}`),
+    ...rows,
     ''
   ]
 }
@@ -223,10 +232,10 @@ export const renderRootHelp = (
     for (const command of groupCommands) {
       lines.push(`    ${padRight(command.name, nameWidth)}  ${command.description}`)
     }
-    lines.push('  ')
+    lines.push('')
   }
 
-  while (lines.at(-1) === '  ') {
+  while (lines.at(-1)?.trim() === '') {
     lines.pop()
   }
 
@@ -237,8 +246,12 @@ export const renderCommandHelp = (
   root: CliRootDefinition,
   command: CliCommandHelpDefinition
 ): string => {
-  const parameterUsage = (command.parameters ?? []).map((parameter) => parameter.key).join(' ')
-  const usageParts = [root.scriptName, command.name, parameterUsage, '[flags]'].filter(Boolean)
+  const parameters = command.parameters ?? []
+  const parameterUsage = parameters.map((parameter) => parameter.key).join(' ')
+  const subcommandUsage = (command.subcommands ?? []).length > 0 && parameters.length === 0
+    ? '<subcommand>'
+    : ''
+  const usageParts = [root.scriptName, command.name, parameterUsage, subcommandUsage, '[flags]'].filter(Boolean)
   const lines = [
     `${root.scriptName} ${command.name} ${formatVersion(root.version)} - ${command.description}`,
     '',
@@ -254,12 +267,13 @@ export const renderCommandHelp = (
   if (Object.keys(flags).length > 0) {
     lines.push('Flags')
     lines.push(...renderGroupedFlags(flags, root.flagGroups))
-    if (lines.at(-1) !== '') {
-      lines.push('')
+    while (lines.at(-1)?.trim() === '') {
+      lines.pop()
     }
+    lines.push('')
   }
 
-  lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(root.globalFlags), '  '), '')
+  lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(globalFlagsForCommand(root.globalFlags, command.name)), '  '), '')
 
   const examples = renderExamples(command)
   if (examples.length > 0) {
@@ -270,7 +284,7 @@ export const renderCommandHelp = (
     lines.push(...notes)
   }
 
-  while (lines.at(-1) === '') {
+  while (lines.at(-1)?.trim() === '') {
     lines.pop()
   }
 

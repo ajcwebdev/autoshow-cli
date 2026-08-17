@@ -167,6 +167,18 @@ export const classifyFetchRetry = (
   const noRetry = (reason: string): RetryDecision => ({ shouldRetry: false, delayMs: 0, reason })
   const doRetry = (delayMs: number, reason: string): RetryDecision => ({ shouldRetry: true, delayMs, reason })
 
+  if (retryClass === 'runtime_http_create_conservative') {
+    const metadata = extractErrorMetadata(error)
+    const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+    if (status === 425 || status === 429) {
+      const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
+      return doRetry(parseRetryAfterMs(headers) ?? 0, `provider rejected paid create with retryable status ${status}`)
+    }
+    return noRetry(status === undefined
+      ? 'paid create outcome is ambiguous'
+      : `paid create status ${status} is not safe to redispatch`)
+  }
+
   // An explicit retryable flag always wins: deterministic errors (e.g. a 200
   // response with a malformed/business-rejected body) mark themselves
   // non-retryable so the default retry-on-any-error behavior skips them.
@@ -193,9 +205,6 @@ export const classifyFetchRetry = (
   const retryCause = getWrappedRetryCause(error)
 
   if (isAbortError(retryCause) || isTimeoutError(retryCause)) {
-    if (retryClass === 'runtime_http_create_conservative') {
-      return noRetry('abort/timeout on conservative request')
-    }
     return doRetry(0, 'abort/timeout')
   }
 
@@ -207,6 +216,32 @@ export const classifyFetchRetry = (
   // client errors (4xx above) and side-effecting aborts are the only cases we
   // refuse to retry; any other unrecognized error is treated as transient.
   return doRetry(0, 'unclassified error')
+}
+
+/**
+ * Retry a paid create request only when the provider definitely rejected it
+ * before admitting work. Network failures, timeouts, 408/409 responses, and
+ * 5xx responses are ambiguous and must be reconciled instead of redispatched.
+ */
+export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  if (status !== 425 && status !== 429) {
+    return {
+      shouldRetry: false,
+      delayMs: 0,
+      reason: status === undefined
+        ? 'paid create outcome is ambiguous'
+        : `paid create status ${status} is not safe to redispatch`
+    }
+  }
+
+  const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
+  return {
+    shouldRetry: true,
+    delayMs: parseRetryAfterMs(headers) ?? 0,
+    reason: `provider rejected paid create with retryable status ${status}`
+  }
 }
 
 const getRetryPolicy = (retryClass: RetryClass, overrides?: Partial<RetryPolicy>): RetryPolicy => {
@@ -336,12 +371,6 @@ export const withRetry = async <T>(
           maxAttempts = Math.max(maxAttempts, Math.max(1, Math.floor(ctx.rateLimitMaxAttempts)))
         }
 
-        const isLastAttempt = attempt >= maxAttempts - 1
-        if (isLastAttempt) {
-          stopReason = 'max attempts reached'
-          break
-        }
-
         if (!decision.shouldRetry) {
           if (!retried) {
             throw error
@@ -350,7 +379,24 @@ export const withRetry = async <T>(
           break
         }
 
-        ctx.onRetryAttempt?.(error, decision)
+        const isLastAttempt = attempt >= maxAttempts - 1
+        if (isLastAttempt && ctx.retryHookCanExtendAttempts !== true) {
+          stopReason = 'max attempts reached'
+          break
+        }
+
+        const retryDelayHandled = await ctx.onRetryAttempt?.(error, decision) === true
+
+        if (retryDelayHandled) {
+          retried = true
+          maxAttempts = Math.max(maxAttempts, attempt + 2)
+          continue
+        }
+
+        if (isLastAttempt) {
+          stopReason = 'max attempts reached'
+          break
+        }
 
         if (decision.delayMs > 0) {
           retried = true
@@ -412,38 +458,6 @@ export const withRetry = async <T>(
     }
   })
 }
-
-/**
- * Run a local model-server request (llama.cpp, llamafile, ...) with
- * retry-on-any-error semantics. Each attempt re-runs `attempt`; when an attempt
- * throws, `recover` is invoked (e.g. to stop a wedged server) so the next
- * attempt starts from a clean slate. No classifier is passed, so withRetry
- * retries regardless of the error type — the only thing that matters is that a
- * failure happened.
- */
-export const runLocalModelWithRetry = async <T>(opts: {
-  operationName: string
-  timeoutMs?: number
-  attempt: (signal: AbortSignal | undefined) => Promise<T>
-  recover?: () => Promise<void>
-}): Promise<T> =>
-  withRetry(
-    {
-      retryClass: 'runtime_local_inference',
-      operationName: opts.operationName,
-      ...(typeof opts.timeoutMs === 'number' ? { timeoutMs: opts.timeoutMs } : {})
-    },
-    async (signal) => {
-      try {
-        return await opts.attempt(signal)
-      } catch (error) {
-        if (opts.recover) {
-          await opts.recover().catch(() => {})
-        }
-        throw error
-      }
-    }
-  )
 
 export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
   const deadline = Date.now() + opts.deadlineMs

@@ -4,17 +4,18 @@ import {
   batchFlags,
   booleanAllProvidersFlag,
   ocrInputFlags,
+  ocrProviderModeFlag,
   ocrTuningFlags,
+  primaryOcrFlag,
   priceFlag,
   reasoningEffortFlag,
   sharedConcurrencyFlags,
   transcriptionFlags
 } from './shared-flags'
 import { epubInspectFlags } from './ocr-flags'
-import { formatProviderList, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { formatProviderList, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from './service-selector-normalization/extract-selectors'
-import { WRITE_OCR_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 
 const extractProviderSelectionFlags = {
@@ -27,7 +28,8 @@ const extractProviderSelectionFlags = {
 const extractDocumentFlags = {
   ...ocrInputFlags,
   ...ocrTuningFlags,
-  'primary-ocr': strFlag(`In multi-provider OCR, write top-level extraction artifacts from one requested provider: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (as service or service/model)`)
+  ...ocrProviderModeFlag,
+  ...primaryOcrFlag
 } as const satisfies CliFlagsDefinition
 
 export const extractStep2CommandFlags = {

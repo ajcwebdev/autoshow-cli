@@ -1,0 +1,78 @@
+{
+  "deepinfra": {
+    "description": "DeepInfra hosted open-weight text-to-speech and voice design",
+    "type": "api",
+    "models": {
+      "ResembleAI/chatterbox-turbo": {
+        "description": "ResembleAI Chatterbox Turbo low-latency dialogue TTS model hosted on DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/ResembleAI/chatterbox-turbo",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra TTS pricing",
+        "pricingNotes": "ResembleAI Chatterbox Turbo uses $1.00 / 1M characters hosted rate.",
+        "costPer1kCharsCents": 0.1,
+        "limits": { "maxInputCharacters": 5000 },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "XiaomiMiMo/MiMo-V2.5-tts": {
+        "description": "Xiaomi MiMo V2.5 TTS promotional free speech model hosted on DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/XiaomiMiMo/MiMo-V2.5-tts",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra Promotional Free pricing",
+        "pricingNotes": "Xiaomi MiMo V2.5 TTS is promotional free ($0.00 / 1M chars) on DeepInfra.",
+        "costPer1kCharsCents": 0.0,
+        "limits": { "maxInputCharacters": 1000 },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "XiaomiMiMo/MiMo-V2.5-tts-voicedesign": {
+        "description": "Xiaomi MiMo V2.5 Voice Design promotional free model hosted on DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/XiaomiMiMo/MiMo-V2.5-tts-voicedesign",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra Promotional Free pricing",
+        "pricingNotes": "Xiaomi MiMo V2.5 VoiceDesign is promotional free ($0.00 / 1M chars) on DeepInfra.",
+        "costPer1kCharsCents": 0.0,
+        "limits": { "maxInputCharacters": 1000 },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "Qwen/Qwen3-TTS": {
+        "description": "Qwen3-TTS zero-shot reference cloning TTS model hosted on DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3-TTS",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra TTS pricing",
+        "pricingNotes": "Qwen3-TTS uses $20.00 / 1M characters hosted rate.",
+        "costPer1kCharsCents": 2.0,
+        "limits": { "maxInputCharacters": 4000 },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "Qwen/Qwen3-TTS-VoiceDesign": {
+        "description": "Qwen3-TTS VoiceDesign prompt-based voice creation model hosted on DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3-TTS-VoiceDesign",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra TTS pricing",
+        "pricingNotes": "Qwen3-TTS VoiceDesign uses $20.00 / 1M characters hosted rate.",
+        "costPer1kCharsCents": 2.0,
+        "limits": { "maxInputCharacters": 4000 },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      }
+    }
+  }
+}

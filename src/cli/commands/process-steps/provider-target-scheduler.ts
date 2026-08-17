@@ -1,4 +1,5 @@
 import type { ProviderTargetFailure, ProviderTargetSchedulerEntry, ProviderTargetSchedulerResult, RunProviderTargetSchedulerOptions, TargetPoolKind } from '~/types'
+import { runHostedConcurrencyRequest } from './hosted-concurrency-coordinator'
 
 const normalizeConcurrency = (value: number): number =>
   Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
@@ -19,7 +20,7 @@ const runPool = async <TTarget, TResult>(
   entries: Array<ProviderTargetSchedulerEntry<TTarget>>,
   pool: TargetPoolKind,
   concurrency: number,
-  options: Pick<RunProviderTargetSchedulerOptions<TTarget, TResult>, 'runTarget' | 'resourceGate' | 'getResourceGate' | 'onLifecycle'>,
+  options: Pick<RunProviderTargetSchedulerOptions<TTarget, TResult>, 'runTarget' | 'resourceGate' | 'getResourceGate' | 'onLifecycle' | 'hostedConcurrencyCoordinator' | 'hostedWorkClass' | 'getHostedProvider' | 'getHostedAccountLabel' | 'getHostedWorkId' | 'abortSignal'>,
   results: Array<TResult | undefined>,
   failures: Array<ProviderTargetFailure<TTarget>>
 ): Promise<void> => {
@@ -40,10 +41,6 @@ const runPool = async <TTarget, TResult>(
       }
 
       const entry = orderedEntries[current] as ProviderTargetSchedulerEntry<TTarget>
-      const resourceGate = options.getResourceGate
-        ? options.getResourceGate(entry.target)
-        : options.resourceGate
-      const release = resourceGate ? await resourceGate.acquire() : undefined
       const startedAt = Date.now()
       options.onLifecycle?.({
         index: entry.index,
@@ -53,10 +50,34 @@ const runPool = async <TTarget, TResult>(
       })
 
       try {
-        try {
-          results[entry.index] = await options.runTarget(entry.index, entry.target)
-        } finally {
-          release?.()
+        const runTarget = async (): Promise<TResult> => {
+          const resourceGate = options.getResourceGate
+            ? options.getResourceGate(entry.target)
+            : options.resourceGate
+          const release = resourceGate ? await resourceGate.acquire() : undefined
+          try {
+            return await options.runTarget(entry.index, entry.target)
+          } finally {
+            release?.()
+          }
+        }
+        if (pool === 'hosted' && options.hostedConcurrencyCoordinator) {
+          const provider = options.getHostedProvider?.(entry.target) ?? readHostedProvider(entry.target)
+          results[entry.index] = await runHostedConcurrencyRequest({
+            coordinator: options.hostedConcurrencyCoordinator,
+            admission: {
+              provider,
+              accountLabel: options.getHostedAccountLabel?.(entry.target),
+              workClass: options.hostedWorkClass ?? 'provider-target',
+              configuredLimit: normalizedConcurrency,
+              workId: options.getHostedWorkId?.(entry.index, entry.target) ?? `${options.hostedWorkClass ?? 'provider-target'}:${provider}:${entry.index}`,
+              unitIndex: entry.index,
+              context: { targetIndex: entry.index },
+              abortSignal: options.abortSignal
+            }
+          }, async () => await runTarget())
+        } else {
+          results[entry.index] = await runTarget()
         }
         options.onLifecycle?.({
           index: entry.index,
@@ -90,6 +111,16 @@ const runPool = async <TTarget, TResult>(
       await runWorker()
     })
   )
+}
+
+const readHostedProvider = (target: unknown): string => {
+  if (target && typeof target === 'object') {
+    const direct = (target as { service?: unknown }).service
+    if (typeof direct === 'string' && direct.length > 0) return direct
+    const nested = (target as { target?: { service?: unknown } }).target?.service
+    if (typeof nested === 'string' && nested.length > 0) return nested
+  }
+  return 'hosted-provider'
 }
 
 export const runProviderTargetScheduler = async <TTarget, TResult>(

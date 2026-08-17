@@ -38,7 +38,14 @@ export const structuredOpts: StructuredRequestOptions = {
 }
 
 export const installOpenAIRestContractHooks = (): void => {
-  tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-openai-rest-' })
+  tempDirs = setupContractSuiteLifecycle({
+    envKeys,
+    tempPrefix: 'autoshow-openai-rest-',
+    restoreBunSleep: true,
+    beforeEachExtra: () => {
+      ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+    }
+  })
 }
 
 export { jsonResponse }

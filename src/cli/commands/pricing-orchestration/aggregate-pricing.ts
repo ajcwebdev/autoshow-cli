@@ -2,7 +2,6 @@ import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, Aggrega
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { resolveSttStep2Execution } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { SUPADATA_STT_AGGREGATE_NOTE } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import { SCRAPECREATORS_STT_AGGREGATE_NOTE } from '~/utils/pricing/scrapecreators-pricing'
@@ -18,6 +17,7 @@ const buildTimingOptions = (
   opts: AggregateTimingOptions,
   context: { ttsInputText?: string | undefined } = {}
 ) => ({
+  concurrencyMode: opts.concurrencyMode,
   ...(typeof context.ttsInputText === 'string' ? { ttsInputText: context.ttsInputText } : {}),
   ...(typeof opts.ttsChunkConcurrency === 'number' ? { ttsChunkConcurrency: opts.ttsChunkConcurrency } : {}),
   ...(typeof opts.ocrConcurrency === 'number' ? { ocrConcurrency: opts.ocrConcurrency } : {}),
@@ -106,10 +106,6 @@ export async function buildAggregatedPriceEstimate (
   const mediaWrite = command === 'write' && routing.family === 'media' && !textInputWrite
   const isRemoteTarget = /^https?:\/\//i.test(resolvedTarget)
 
-  if (resolvedStep2.route === 'native-document' && resolvedStep2.sourceKind === 'acsm') {
-    notes.push(ACSM_PRICE_NOTE)
-  }
-
   if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'media') || mediaWrite)) {
     for (const stt of await buildSttEstimates(resolvedTarget, opts)) {
       addStep(stt)
@@ -122,7 +118,8 @@ export async function buildAggregatedPriceEstimate (
   if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'document') || documentWrite) && resolvedStep2.route === 'ocr' && !isProcessingOptions(opts)) {
     for (const extract of await buildExtractEstimates(resolvedTarget, resolvedStep2, {
       hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath,
-      reasoningEffort: opts.reasoningEffort
+      reasoningEffort: opts.reasoningEffort,
+      ocrProviderMode: opts.ocrProviderMode
     })) {
       addStep(extract)
     }

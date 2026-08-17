@@ -352,6 +352,83 @@
                 "promptTokens": 1157,
                 "completionTokens": 1626,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.013215999999999999,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 663,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 24,
+                "tokenProfilePromptTokensPerPage": 326,
+                "tokenProfileCompletionTokensPerPage": 662.792,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03375,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1788,
+                "completionTokens": 529,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 7,
+                "tokenProfilePromptTokensPerPage": 1788.286,
+                "tokenProfileCompletionTokensPerPage": 528.571,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.023747499999999998,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1321,
+                "completionTokens": 692,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 20,
+                "tokenProfilePromptTokensPerPage": 1320.5,
+                "tokenProfileCompletionTokensPerPage": 692.15,
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -573,6 +650,84 @@
                 "inputValue": 1933,
                 "promptTokens": 1169,
                 "completionTokens": 764
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.2,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.010256000000000001,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 804,
+                "promptTokens": 326,
+                "completionTokens": 478
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.059410000000000004,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 3283,
+                "promptTokens": 1954,
+                "completionTokens": 1329
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 0.33,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 0.4,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0920925,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 5459,
+                "promptTokens": 1367,
+                "completionTokens": 4092
               }
             ]
           },
@@ -1345,7 +1500,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.010256000000000001,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 478,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.059410000000000004,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1954,
+                "completionTokens": 1329,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0920925,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1367,
+                "completionTokens": 4092,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1595,6 +1822,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 21398,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 31,
+                  "profileThroughputPagesPerMinute": 2.804,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 21398,
+                "throughputValue": 2.804,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 8249,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 8,
+                  "profileThroughputPagesPerMinute": 7.274,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 8249,
+                "throughputValue": 7.274,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 5591,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 24,
+                  "profileThroughputPagesPerMinute": 10.732,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 5591,
+                "throughputValue": 10.732,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1860,6 +2188,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 22737,
                 "throughputValue": 2.639,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 5419,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5419,
+                "throughputValue": 11.072,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 22889,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 22889,
+                "throughputValue": 2.621,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 22679,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 22679,
+                "throughputValue": 2.646,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 188102,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 188102,
+                "throughputValue": 0.319,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 10349,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 10349,
+                "throughputValue": 5.798,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 95879,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 95879,
+                "throughputValue": 0.626,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 25991,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 25991,
+                "throughputValue": 2.308,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 77789,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 77789,
+                "throughputValue": 0.771,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2478,6 +2910,322 @@
                 "completionTokens": 764
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5419,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 59,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n技術として生き残った部分が非常に少ないため、光学文字認識という言葉は現在ではデジタル文字認識を含むものとみなされている。（鏡やレンズといった光学技術を使った）光学文字認識と（スキャナーとアルゴリズムによる）デジタル文字認識は本来別の領域と考えられていた。\nするのに必要とされる。さらに、文字コードに変換することで機械翻訳や盲声合成の入力にも使えるようになり、テキストマイニングも可能となる。研究\nタが編集できる形式（文字コードの列）に変換するソフトウェアである。\n光学文字認識（こうがくもじにんしき、Optical character recognition）\nしかし、コストがかかりすぎることが判明し、研究は挫折した[2]。\nには、単に活字をコンピュータ内の文字コードに変換するだけでなく、\n<b>合衆国特許第 1.915.993 号）。1935 年、タウシェクもアメリカで特許を取得した（アメリカ合衆国特許第 2.026.329 号）</b>\nる特許を取得した。アメリカでは 1933 年、ポール・W・ハンデルが同様のテンプレート・マッチング方式の OCR 技術の特許を取得している（アメリカ\nすることでマッチングを見つけるという技法を提案した。1929年、<u></u>グスタフ・タウシェク（英語版）も同様のアイデアを思いつき、ドイツで OCR に関す\nゴールドバーグはデータ入力手段として OCR 技術の開発を続けた。後に彼は、画像を光電管で読み取り、必要な識別パターンを含むテンプレートと比較\nゴールドバーグ（英語版）は、文字列を読み取り電信符号に変換する機械を開発した[變出典]。同じころエドマンド・フルニエ・ダルベ\nのもある。\n（例えばワードプロセッサのファイルのようなもの）を生成することが可能であり、中には画像などの文書以外の部分が含まれていても正しく認識するもどの書体を高い識字率で変換することが可能である。いくつかのシステムでは読み込まれた画像からそれとほぼ同じになるようフォーマットされた出力初期のシステムは特定の書体を 読むための「トレーニング」が必要であった（事前にその書体のサンプルを読ませることを意味する）。現在では、ほとん\n分野としては、パターン認識、人工知能、コンピュータビジョンが対応する。\nして始まった。研究は続けられているが、OCR の中心はその実装と応用に移っている。紙に印刷された文書をデジタイズし、よりコンパクトな形で記録\n光学文字認識\n1949年、\nトフォン\n光学文字認識の原点は、\n歴史\n米国復員軍人援護局から視覚障害者支援のためという要請を受け、\n（英語版）という携帯型スキャナを開発した。これを印刷物のページ上ですべらせると、文字の形状によって異なる音を発する\n電信技術の拡張と視覚障害者が文字を読むための機械の開発という 2 つの問題にまつわる活動である[1]。1914年エマニュエル：\nその文字を読み上げるという部分も含まれており、\n一般に OCR と略記される。 OCR は、人工知能やマシンビジョンの研究分野と\nは、活字の文書の画像（通常イメージスキャナーで取り込まれる）をコンピュー\nRCA の技術者らが初期のコンピュータを使った OCR を研究した。この研究\n٥\n初期の音声合成の研究でもある。\n(英語版)\nはオプ",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "技術として生き残った部分が非常に少ないため、光学文字認識という言葉は現在ではデジタル文字認識を含むものとみなされている。（鏡やレンズといった光学技術を使った）光学文字認識と（スキャナーとアルゴリズムによる）デジタル文字認識は本来別の領域と考えられていた。\nするのに必要とされる。さらに、文字コードに変換することで機械翻訳や盲声合成の入力にも使えるようになり、テキストマイニングも可能となる。研究\nタが編集できる形式（文字コードの列）に変換するソフトウェアである。\n光学文字認識（こうがくもじにんしき、Optical character recognition）\nしかし、コストがかかりすぎることが判明し、研究は挫折した[2]。\nには、単に活字をコンピュータ内の文字コードに変換するだけでなく、\n<b>合衆国特許第 1.915.993 号）。1935 年、タウシェクもアメリカで特許を取得した（アメリカ合衆国特許第 2.026.329 号）</b>\nる特許を取得した。アメリカでは 1933 年、ポール・W・ハンデルが同様のテンプレート・マッチング方式の OCR 技術の特許を取得している（アメリカ\nすることでマッチングを見つけるという技法を提案した。1929年、<u></u>グスタフ・タウシェク（英語版）も同様のアイデアを思いつき、ドイツで OCR に関す\nゴールドバーグはデータ入力手段として OCR 技術の開発を続けた。後に彼は、画像を光電管で読み取り、必要な識別パターンを含むテンプレートと比較\nゴールドバーグ（英語版）は、文字列を読み取り電信符号に変換する機械を開発した[變出典]。同じころエドマンド・フルニエ・ダルベ\nのもある。\n（例えばワードプロセッサのファイルのようなもの）を生成することが可能であり、中には画像などの文書以外の部分が含まれていても正しく認識するもどの書体を高い識字率で変換することが可能である。いくつかのシステムでは読み込まれた画像からそれとほぼ同じになるようフォーマットされた出力初期のシステムは特定の書体を 読むための「トレーニング」が必要であった（事前にその書体のサンプルを読ませることを意味する）。現在では、ほとん\n分野としては、パターン認識、人工知能、コンピュータビジョンが対応する。\nして始まった。研究は続けられているが、OCR の中心はその実装と応用に移っている。紙に印刷された文書をデジタイズし、よりコンパクトな形で記録\n光学文字認識\n1949年、\nトフォン\n光学文字認識の原点は、\n歴史\n米国復員軍人援護局から視覚障害者支援のためという要請を受け、\n（英語版）という携帯型スキャナを開発した。これを印刷物のページ上ですべらせると、文字の形状によって異なる音を発する\n電信技術の拡張と視覚障害者が文字を読むための機械の開発という 2 つの問題にまつわる活動である[1]。1914年エマニュエル：\nその文字を読み上げるという部分も含まれており、\n一般に OCR と略記される。 OCR は、人工知能やマシンビジョンの研究分野と\nは、活字の文書の画像（通常イメージスキャナーで取り込まれる）をコンピュー\nRCA の技術者らが初期のコンピュータを使った OCR を研究した。この研究\n٥\n初期の音声合成の研究でもある。\n(英語版)\nはオプ"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 22889,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 12,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 326,
+            "completionTokens": 478,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 478
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n光学文字認識論\n\n光学生字認識論（Optical Character Recognition：OCR）は、活字の文字画像（原稿、印刷物、手書き）を電子化する技術。OCRは、光明画像認識技術を応用し、文字を識別する。OCR技術の基礎研究は、1910年代にバレンティンによって始まった。\n\n当初のシステムは特定の書体と配置にしか対応できなかった。しかし、近年では画像処理技術の進歩により、様々な書体やノイズを含む文字認識が可能になった。現在では、読み取り精度や高速化が追求されている。取り込んだ画像をコンピュータが文字として認識できるように処理する技術で、実現するには、文字のパターン認識、形状補正、誤認識訂正など高度な技術が要求される。\n\n光学生字認識の原則は、電気的または機械的装置を使って、紙媒体上の文字や記号を認識し、コンピュータが処理できる形式に変換すること。この問題に対する接近法は、同じスペクトルの画像化、即ちOCR。シンプルなワープロフォント（ゴシック体、明朝体）などで書かれた文字であれば、OCRの精度は高い。しかし、手書き文字や特殊なフォント、不鮮明な画像認識は難しい。\n\nソフトウェアとスキャナを組み合わせることで実現され、近年では、携帯電話やスマートフォンのカメラで撮影した文字を認識できるアプリケーションも登場している。\n主な使い道としては、印刷された書類や名刺、領収書などをデジタル化すること。例えば、手書きのアンケート回答をデータ化することや、スキャンした文書を編集可能なテキストデータに変換することなどができる。また、過去の文献や記録をデジタルアーカイブ化する際にも、OCR技術が役立つ。\n近年では、AI（人工知能）技術と組み合わせることで、より高度な文字認識が可能になっている。\n\nIBMの文字認識装置は、何となく文字を認識するような、突拍子もないことを試みた。これは、文字認識における本質的な問題を明らかにするものであった。光明画像のパターンは、比較的容易に識別できるが、文字を識別するということの認識は、現象化された書体だけではなく、文字の形状や文脈も考慮しなければならない。",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "光学文字認識論\n\n光学生字認識論（Optical Character Recognition：OCR）は、活字の文字画像（原稿、印刷物、手書き）を電子化する技術。OCRは、光明画像認識技術を応用し、文字を識別する。OCR技術の基礎研究は、1910年代にバレンティンによって始まった。\n\n当初のシステムは特定の書体と配置にしか対応できなかった。しかし、近年では画像処理技術の進歩により、様々な書体やノイズを含む文字認識が可能になった。現在では、読み取り精度や高速化が追求されている。取り込んだ画像をコンピュータが文字として認識できるように処理する技術で、実現するには、文字のパターン認識、形状補正、誤認識訂正など高度な技術が要求される。\n\n光学生字認識の原則は、電気的または機械的装置を使って、紙媒体上の文字や記号を認識し、コンピュータが処理できる形式に変換すること。この問題に対する接近法は、同じスペクトルの画像化、即ちOCR。シンプルなワープロフォント（ゴシック体、明朝体）などで書かれた文字であれば、OCRの精度は高い。しかし、手書き文字や特殊なフォント、不鮮明な画像認識は難しい。\n\nソフトウェアとスキャナを組み合わせることで実現され、近年では、携帯電話やスマートフォンのカメラで撮影した文字を認識できるアプリケーションも登場している。\n主な使い道としては、印刷された書類や名刺、領収書などをデジタル化すること。例えば、手書きのアンケート回答をデータ化することや、スキャンした文書を編集可能なテキストデータに変換することなどができる。また、過去の文献や記録をデジタルアーカイブ化する際にも、OCR技術が役立つ。\n近年では、AI（人工知能）技術と組み合わせることで、より高度な文字認識が可能になっている。\n\nIBMの文字認識装置は、何となく文字を認識するような、突拍子もないことを試みた。これは、文字認識における本質的な問題を明らかにするものであった。光明画像のパターンは、比較的容易に識別できるが、文字を識別するということの認識は、現象化された書体だけではなく、文字の形状や文脈も考慮しなければならない。"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 22679,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 942,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 1954,
+            "completionTokens": 1329,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 1954,
+                "completionTokens": 1329
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n光学文字認識\n\n  し に は 1940 年、米 国 特許 庁  で 審 査 し か し、単 に 書 き 写 す だ け で き ス ト ー ル が か か ず ぎ た ら 内 容 は 判 断 し 難 く な っ た と い う 歴 史 光 学 文 字 認 識\n\n  の も の で あ る 。 例 え ば 初 期 の 書 籍 に は 印 刷 さ れ た テ キ ス ト が 多 か っ た が 、 高 価 で あ り 検 索 が 困 難 で あ っ た 。 そ の た め 、 検 索 の 必 要 性 が あ り 、 形 式 が 文 字 図 形 が も に ン ン で 取 り 込 ま れ る OCR(光 学 的 文 字 認 識 ） の 技 術 が 検 索 さ れ て き た 。 し か し 、 従 来 の OCRで は 、 人 間 が 読 み 取 る こと が で き る 限 界 検 索 で あ っ た 。 技 術 革 新 の 進 展 に 伴 い 、 従 来 の OCRで は 、 読 み 取 り が 困 難 で あ っ た ゴ ル バ マ ン 語 の 検 索 が 可 能 に な っ た 。 ま た 、 画 像 か ら 文 字 を 読 み 取 る 技 術 に つ い て は 、 1935年 、 米 国 特許 庁 で タ ウ ィ ン グ カ ー が 開 発 し た 技 術 開 発 さ れ た 。 し か し 、 彼 は 、 画 像 を 光 学 的 に 読 み 取 り 、 印 刷 物 の 機 械 読 取 り の 開 発 に 関 し て は 触 れ て い な か っ た 。 1940年 、 イ ギ リ ス で キ ネ デ ィ は 、 電 子 の 開 発 さ れ た 。 同 じ 頃 、 ド イ ツ で オ プ テ ィ カ ル の 技 術 が 開 発 さ れ た 。\n\n  光 学 文 字 認 識\n\n  Optical character recognition\n\n  は 、 活 字 の 書 類 の 画 像 を 読 み 取 り 、 そ の 書 類 に 含 ま れ る 文 字 列 を 機 械 的 に 検 索 し 、 さ ら に 機 械 に 読 み 取 れ る デ ー タ に 転 換 す る 技 術 で あ る 。 初 期 の 技 術 で は 、 印 刷 さ れ た 活 字 の 読 み 取 り に 対 応 で き る 限 界 が あ っ た 。 し か し 、 技 術 の 進 歩 に よ り 、 ゴ ル ド バ ル 氏 は 、 1930年 代 に OCRの 開 発 に 着 手 し 、 検 索 機 能 を 持 つ 機 械 の 開 発 に 成功 し た 。 彼 は 、 印 刷 さ れ た 文 字 を 読 み 取 り 、 機 械 に よ っ て 読 み 取 り 、 検 索 を 可 能 に し た 。 ま た 、 彼 は 、 読 み 取 り さ れ た デ ー タ を 機 械 に よ っ て 処 理 し 、 検 索 を 可 能 に し た 。\n\n  光 学 文 字 認 識 の 歴 史\n\n  光 学 文 字 認 識 の 技 術 は 、 1940年 代 に 開 発 さ れ た 。 当 初 は 、 印 刷 さ れ た 文 字 を 読 み 取 る た め に 開 発 さ れ た 。 し か し 、 技 術 の 進 歩 に よ り 、 検 索 機 能 を 持 つ 機 械 の 開 発 が 可 能 に な っ た 。 ま た 、 読 み 取 り さ れ た デ ー タ を 機 械 に よ っ て 処 理 し 、 検 索 を 可 能 に し た 。\n\n  光 学 文 字 認 識 の 応 用\n\n  光 学 文 字 認 識 の 技 術 は 、 様 々 な 分 野 で 応 用 さ れ て い る 。 例 え ば 、 書 籍 や 雑 誌 の 検 索 、 文 書 の 読 み 取 り 、 検 索 シ ス テ ム の 開 発 など で 応 用 さ れ て い る 。 ま た 、 医 学 分 野 で は 、 医 学 文 書 の 読 み 取 り に 応 用 さ れ て い る 。\n\n  光 学 文 字 認 識 の 将 来\n\n  光 学 文 字 認 識 の 技 術 は 、 今 後 も さ ら に 進 歩 す る こ と が 予想 さ れ る 。 例 え ば 、 検 索 機 能 を 持 つ 機 械 の 開 発 や 、 読 み 取 り さ れ た デ ー タ の 機 械 処 理 な ど で の 応 用 が 進 展 す る こ と が 予想 さ れ る 。 ま た 、 光 学 文 字 認 識 の 技 術 は 、 様 々 な 分 野 で 応 用 さ れ て い る 。",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "光学文字認識\n\n  し に は 1940 年、米 国 特許 庁  で 審 査 し か し、単 に 書 き 写 す だ け で き ス ト ー ル が か か ず ぎ た ら 内 容 は 判 断 し 難 く な っ た と い う 歴 史 光 学 文 字 認 識\n\n  の も の で あ る 。 例 え ば 初 期 の 書 籍 に は 印 刷 さ れ た テ キ ス ト が 多 か っ た が 、 高 価 で あ り 検 索 が 困 難 で あ っ た 。 そ の た め 、 検 索 の 必 要 性 が あ り 、 形 式 が 文 字 図 形 が も に ン ン で 取 り 込 ま れ る OCR(光 学 的 文 字 認 識 ） の 技 術 が 検 索 さ れ て き た 。 し か し 、 従 来 の OCRで は 、 人 間 が 読 み 取 る こと が で き る 限 界 検 索 で あ っ た 。 技 術 革 新 の 進 展 に 伴 い 、 従 来 の OCRで は 、 読 み 取 り が 困 難 で あ っ た ゴ ル バ マ ン 語 の 検 索 が 可 能 に な っ た 。 ま た 、 画 像 か ら 文 字 を 読 み 取 る 技 術 に つ い て は 、 1935年 、 米 国 特許 庁 で タ ウ ィ ン グ カ ー が 開 発 し た 技 術 開 発 さ れ た 。 し か し 、 彼 は 、 画 像 を 光 学 的 に 読 み 取 り 、 印 刷 物 の 機 械 読 取 り の 開 発 に 関 し て は 触 れ て い な か っ た 。 1940年 、 イ ギ リ ス で キ ネ デ ィ は 、 電 子 の 開 発 さ れ た 。 同 じ 頃 、 ド イ ツ で オ プ テ ィ カ ル の 技 術 が 開 発 さ れ た 。\n\n  光 学 文 字 認 識\n\n  Optical character recognition\n\n  は 、 活 字 の 書 類 の 画 像 を 読 み 取 り 、 そ の 書 類 に 含 ま れ る 文 字 列 を 機 械 的 に 検 索 し 、 さ ら に 機 械 に 読 み 取 れ る デ ー タ に 転 換 す る 技 術 で あ る 。 初 期 の 技 術 で は 、 印 刷 さ れ た 活 字 の 読 み 取 り に 対 応 で き る 限 界 が あ っ た 。 し か し 、 技 術 の 進 歩 に よ り 、 ゴ ル ド バ ル 氏 は 、 1930年 代 に OCRの 開 発 に 着 手 し 、 検 索 機 能 を 持 つ 機 械 の 開 発 に 成功 し た 。 彼 は 、 印 刷 さ れ た 文 字 を 読 み 取 り 、 機 械 に よ っ て 読 み 取 り 、 検 索 を 可 能 に し た 。 ま た 、 彼 は 、 読 み 取 り さ れ た デ ー タ を 機 械 に よ っ て 処 理 し 、 検 索 を 可 能 に し た 。\n\n  光 学 文 字 認 識 の 歴 史\n\n  光 学 文 字 認 識 の 技 術 は 、 1940年 代 に 開 発 さ れ た 。 当 初 は 、 印 刷 さ れ た 文 字 を 読 み 取 る た め に 開 発 さ れ た 。 し か し 、 技 術 の 進 歩 に よ り 、 検 索 機 能 を 持 つ 機 械 の 開 発 が 可 能 に な っ た 。 ま た 、 読 み 取 り さ れ た デ ー タ を 機 械 に よ っ て 処 理 し 、 検 索 を 可 能 に し た 。\n\n  光 学 文 字 認 識 の 応 用\n\n  光 学 文 字 認 識 の 技 術 は 、 様 々 な 分 野 で 応 用 さ れ て い る 。 例 え ば 、 書 籍 や 雑 誌 の 検 索 、 文 書 の 読 み 取 り 、 検 索 シ ス テ ム の 開 発 など で 応 用 さ れ て い る 。 ま た 、 医 学 分 野 で は 、 医 学 文 書 の 読 み 取 り に 応 用 さ れ て い る 。\n\n  光 学 文 字 認 識 の 将 来\n\n  光 学 文 字 認 識 の 技 術 は 、 今 後 も さ ら に 進 歩 す る こ と が 予想 さ れ る 。 例 え ば 、 検 索 機 能 を 持 つ 機 械 の 開 発 や 、 読 み 取 り さ れ た デ ー タ の 機 械 処 理 な ど で の 応 用 が 進 展 す る こ と が 予想 さ れ る 。 ま た 、 光 学 文 字 認 識 の 技 術 は 、 様 々 な 分 野 で 応 用 さ れ て い る 。"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 188102,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 3860,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<|ref|>sub_title<|/ref|><|det|>[[835, 60, 884, 216]]<|/det|>\n光学文字認識 \n\n<|ref|>text<|/ref|><|det|>[[730, 60, 760, 220]]<|/det|>\n光学文字認識（こうがくもじんし、Optical Character Recognition） \n\n<|ref|>text<|/ref|><|det|>[[730, 222, 760, 480]]<|/det|>\nは、活字の文書の画像（通常イメージスキャナーで取り込まれる）をコンピュ \n\n<|ref|>text<|/ref|><|det|>[[730, 480, 760, 940]]<|/det|>\nは、人工知能やマシン・ビジョンの研究分野と \n\n<|ref|>text<|/ref|><|det|>[[690, 60, 730, 940]]<|/det|>\nタが編集できる形式（文字ロードの列）に変換するソフトウェアである。一般にOCRと略記される。OCRは、人工知能やマシン・ビジョンの研究分野と \n\n<|ref|>sub_title<|/ref|><|det|>[[650, 60, 690, 220]]<|/det|>\n光学文字認識（こうがくもじんし、Opti \n\n<|ref|>text<|/ref|><|det|>[[650, 222, 690, 940]]<|/det|>\nは、文字ロードに変換することで機械翻訳や音合成の入力にも使えるようになり、テキストマイニングも可能となる。研究 \n\n<|ref|>text<|/ref|><|det|>[[610, 60, 650, 940]]<|/det|>\n分野としては、パターン認識、人工知能、コンピュータ・ビジョンが対応する。 \n\n<|ref|>text<|/ref|><|det|>[[570, 60, 610, 940]]<|/det|>\n（鏡やレンズといった光学技術を使った）光学文字認識（スキャナーとアルゴリズムによる）デジタル文字認識を含むものとみなされている。 \n\n<|ref|>text<|/ref|><|det|>[[530, 60, 570, 940]]<|/det|>\n初期のシステムは特定の書体を読むための「トレーニング」が必要であった（事前にその書体のサンプルを読ませることが可能であり、中には画像など文科以外の部分が含まれていても正しく認識するも \n\n<|ref|>text<|/ref|><|det|>[[490, 60, 530, 940]]<|/det|>\nどの書体を高い識字率で変換するというもので）を生成することを試み込まれた出力と \n\n<|ref|>text<|/ref|><|det|>[[450, 60, 490, 940]]<|/det|>\n（例えばワードプロセッサのフィルのようなもの）を生成することが可能であり、中には画像など文科以外の部分が含まれていても正しく認識す \n\n<|ref|>sub_title<|/ref|><|det|>[[411, 60, 451, 220]]<|/det|>\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歷史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n历史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学\n学\n学\n学\n学\n学\n学\n学\n学\n学\n史\n史\n史\n史\n史\n史\n史\n史\n史\n学\n学\n学\n学\n学\n学\n学\n学\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n史\n史\n史\n史\n史\n史\n史\n史\n史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n历史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n学史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n学史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n学史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n学\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n学\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史\n学\n史学\n史学\n史\n史\n史\n史学\n史\n学\n史学\n史\n史\n史\n史\n史学\n史\n史\n史\n学\n史学\n史\n史\n史\n史\n史\n史\n史\n史\n学\n史学\n史\n史\n史\n史\n史学\n史\n学\n史学\n史\n史\n学\n史学\n史\n史\n史\n史\n史\n史学\n史\n史\n学\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史\n学\n史学\n史\n史\n史\n史\n学\n史学\n史\n史\n史\n学\n史学\n史\n史\n史\n学\n史\n史\n史\n史\n史\n史\n史\n史\n学\n史\n史\n史\n史\n史\n学\n史\n史\n史\n学\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n学\n史\n史\n史\n史\n学\n史\n史\n史\n史\n学\n史学\n史\n史\n史\n史学\n史\n史\n史\n史\n学\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n学\n史学\n史\n史\n史学\n史\n史\n史\n史\n史\n学\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n学\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史\n学\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n学\n史学\n史\n史\n学\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n学\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n学\n史\n史\n史\n史\n史\n学\n史学\n史\n史\n学\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史\n学\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n学史\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n学史\n史\n史\n史\n史\n史\n史\n史\n史\n史学\n学史\n史\n史\n史\n史\n史\n史\n史\n史\n学史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n学史\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n学史\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史学\n学史\n史\n史\n史\n史\n史\n史\n史学\n史\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史\n史\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史\n学史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n学史\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n学史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n学史\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史\n学史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史\n学史\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n学史\n史\n史\n史\n史\n学史\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n学史\n史\n史\n史\n史学\n学史\n史\n史\n史\n史\n史学\n史\n史\n史\n史学\n学史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n学史\n史\n史\n史学\n史\n学史\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n学史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史\n学史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史学\n史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史\n学史\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史\n史\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史学\n学史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n学史\n史\n史\n史\n史\n史\n史学\n史\n史\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史\n史\n学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史\n学\n史\n学\n史学\n史\n学\n史学\n史学\n史学\n史\n学\n史\n学\n史学\n史学\n史\n学\n史\n学\n史\n学\n史\n学\n史\n学\n史\n史\n学\n史\n学\n史\n学\n史\n学\n史\n史学\n史\n学\n史\n学\n史\n学\n史\n学\n史学\n史\n学\n史\n学\n史\n学\n史\n学\n学\n史\n学\n史\n学\n史\n学\n史\n学\n学\n史学\n史\n学\n史\n学\n史\n学\n史\n史\n学\n学\n史\n学\n史\n学\n史\n学\n学\n史\n史\n学\n史\n学\n史\n学\n史\n史\n学\n史学\n史\n学\n史\n学\n史\n学\n学\n史\n学\n学\n史\n学\n史\n学\n史\n史\n学\n史\n史\n学\n史\n学\n史\n学\n学\n史\n学\n史学\n史\n学\n史\n学\n史\n史\n学\n史\n学\n学\n史\n学\n史\n学\n学\n史\n学\n史\n史\n学\n史\n学\n史\n史\n学\n史\n学\n史学\n史\n学\n史\n学\n学\n史\n学\n史\n学\n史学\n史\n学\n史\n史\n学\n史\n学\n史\n学\n史学\n史\n学\n史学\n史\n学\n史\n学\n史\n学\n史学\n史\n学\n学\n史\n学\n史\n学\n史\n学\n史学\n史\n史\n学\n史\n学\n史\n学\n史\n学\n史学\n史学\n史\n学\n史\n史\n学\n史\n学\n史\n史\n史\n学\n史\n学\n史\n学\n史\n学\n学\n学\n史\n学\n史\n学\n史\n学\n史\n史\n史\n学\n史\n史\n学\n史\n学\n史\n史\n史学\n史\n学\n史\n学\n史\n学\n史\n史\n史\n史\n学\n史\n史\n学\n史\n史\n学\n史\n史\n学\n史学\n史\n史\n学\n史\n史\n学\n史\n史\n学\n学\n史\n史\n学\n史\n学\n史\n史\n学\n史学\n史\n史\n学\n史学\n史\n学\n史\n学\n史\n史\n史\n学\n史\n史学\n史\n史\n学\n史\n史\n学\n史\n史\n史\n学\n史\n史\n学\n史学\n史\n史\n史\n学\n史\n学\n史\n史\n学\n史\n史\n史\n学\n史学\n史\n史\n学\n史\n学\n史\n史\n学\n史\n史学\n史\n史\n学\n史\n学\n史\n史\n学\n史学\n史学\n史\n史\n学\n史\n史\n学\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n学\n史\n史\n学\n史\n史学\n史\n史\n史\n史\n史\n史\n史\n学\n史\n史学\n史\n史\n史\n史\n史学\n史\n史\n学\n史\n史学\n史\n史\n史\n史\n学\n史\n史\n史学\n史\n史\n史\n史学\n史\n史\n学\n史\n史\n史学\n史\n史\n史\n学\n史\n史\n史学\n史\n史\n史学\n史\n史\n史\n学\n史\n史\n学\n史\n史\n史\n史\n史\n史\n学\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n学\n史\n史\n学\n史\n学\n史学\n史\n史\n史\n史\n史\n史\n史学\n史\n学\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n学\n史学\n史\n史学\n史\n史\n史\n史\n史\n史\n学\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史\n学\n史学\n史学\n史\n史\n史\n史\n史\n史\n史\n学\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学\n史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学）\n史学（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）\n史学（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学）\n史学\n史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）\n史学\n史学（史学）\n史学\n史学\n史学\n史学\n史学",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<|ref|>sub_title<|/ref|><|det|>[[835, 60, 884, 216]]<|/det|>\n光学文字認識 \n\n<|ref|>text<|/ref|><|det|>[[730, 60, 760, 220]]<|/det|>\n光学文字認識（こうがくもじんし、Optical Character Recognition） \n\n<|ref|>text<|/ref|><|det|>[[730, 222, 760, 480]]<|/det|>\nは、活字の文書の画像（通常イメージスキャナーで取り込まれる）をコンピュ \n\n<|ref|>text<|/ref|><|det|>[[730, 480, 760, 940]]<|/det|>\nは、人工知能やマシン・ビジョンの研究分野と \n\n<|ref|>text<|/ref|><|det|>[[690, 60, 730, 940]]<|/det|>\nタが編集できる形式（文字ロードの列）に変換するソフトウェアである。一般にOCRと略記される。OCRは、人工知能やマシン・ビジョンの研究分野と \n\n<|ref|>sub_title<|/ref|><|det|>[[650, 60, 690, 220]]<|/det|>\n光学文字認識（こうがくもじんし、Opti \n\n<|ref|>text<|/ref|><|det|>[[650, 222, 690, 940]]<|/det|>\nは、文字ロードに変換することで機械翻訳や音合成の入力にも使えるようになり、テキストマイニングも可能となる。研究 \n\n<|ref|>text<|/ref|><|det|>[[610, 60, 650, 940]]<|/det|>\n分野としては、パターン認識、人工知能、コンピュータ・ビジョンが対応する。 \n\n<|ref|>text<|/ref|><|det|>[[570, 60, 610, 940]]<|/det|>\n（鏡やレンズといった光学技術を使った）光学文字認識（スキャナーとアルゴリズムによる）デジタル文字認識を含むものとみなされている。 \n\n<|ref|>text<|/ref|><|det|>[[530, 60, 570, 940]]<|/det|>\n初期のシステムは特定の書体を読むための「トレーニング」が必要であった（事前にその書体のサンプルを読ませることが可能であり、中には画像など文科以外の部分が含まれていても正しく認識するも \n\n<|ref|>text<|/ref|><|det|>[[490, 60, 530, 940]]<|/det|>\nどの書体を高い識字率で変換するというもので）を生成することを試み込まれた出力と \n\n<|ref|>text<|/ref|><|det|>[[450, 60, 490, 940]]<|/det|>\n（例えばワードプロセッサのフィルのようなもの）を生成することが可能であり、中には画像など文科以外の部分が含まれていても正しく認識す \n\n<|ref|>sub_title<|/ref|><|det|>[[411, 60, 451, 220]]<|/det|>\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史\n歴\n史\n歴\n史\n歴\n史\n歴\n史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歷史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n历史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学\n学\n学\n学\n学\n学\n学\n学\n学\n学\n史\n史\n史\n史\n史\n史\n史\n史\n史\n学\n学\n学\n学\n学\n学\n学\n学\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n史\n史\n史\n史\n史\n史\n史\n史\n史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史\n史学\n史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n历史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n学史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n史学\n史学\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n史学\n歴史\n史学\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n史学\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n歴史\n学史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n歴史\n歴史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n学史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n学史\n史学\n史学\n史\n史\n史\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n学\n史学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n学\n史学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n学\n史学\n史学\n史学\n史\n史\n史\n史学\n史学\n史\n学\n史学\n史学\n史\n史\n史\n史学\n史\n史\n史\n学\n史学\n史学\n史\n史\n史\n史学\n史\n学\n史学\n史\n史\n史\n史\n史学\n史\n史\n史\n学\n史学\n史\n史\n史\n史\n史\n史\n史\n史\n学\n史学\n史\n史\n史\n史\n史学\n史\n学\n史学\n史\n史\n学\n史学\n史\n史\n史\n史\n史\n史学\n史\n史\n学\n史学\n史\n史\n史\n史\n史学\n史学\n史\n史\n学\n史学\n史\n史\n史\n史\n学\n史学\n史\n史\n史\n学\n史学\n史\n史\n史\n学\n史\n史\n史\n史\n史\n史\n史\n史\n学\n史\n史\n史\n史\n史\n学\n史\n史\n史\n学\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n学\n史\n史\n史\n史\n学\n史\n史\n史\n史\n学\n史学\n史\n史\n史\n史学\n史\n史\n史\n史\n学\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n学\n史学\n史\n史\n史学\n史\n史\n史\n史\n史\n学\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n学\n史学\n史\n史\n史学\n史学\n史\n史\n史\n史\n学\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n学\n史学\n史\n史\n学\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n学\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n学\n史\n史\n史\n史\n史\n学\n史学\n史\n史\n学\n史学\n史\n史\n史学\n史\n史\n史学\n史\n史\n学\n史\n史\n史\n史学\n史\n史\n史学\n史\n史\n学史\n史\n史\n史\n史\n史\n史学\n史\n史\n史\n学史\n史\n史\n史\n史\n史\n史\n史\n史\n史学\n学史\n史\n史\n史\n史\n史\n史\n史\n史\n学史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史\n学史\n史\n史\n史\n史\n史\n史\n史学\n史\n史\n学史\n史\n史\n史\n史学\n史\n史\n史\n史\n史\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史\n史学\n学史\n史\n史\n史\n史\n史\n史\n史学\n史\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史\n史\n史学\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史\n学史\n史\n史\n史\n史学\n史\n史\n史\n史学\n史\n学史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n学史\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n史\n史\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n学史\n史\n史\n史\n史\n史学\n史学\n史学\n史学\n学史\n史学\n史学\n史学\n史学\n学史\n史\n史\n史\n史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学史\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史学\n史\n史\n学史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史\n学史\n史\n史\n史\n史\n史学\n史\n史\n史\n史\n学史\n史\n史\n史\n史\n学史\n史\n史\n史\n史学\n史学\n史\n史\n史\n史\n学史\n史\n史\n史\n史学\n学史\n史\n史\n史\n史\n史学\n史\n史\n史\n史学\n学史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n学史\n史\n史\n史学\n史\n学史\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n学史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史\n学史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史学\n史\n史\n史\n史\n史\n学史\n史\n史\n史学\n史学\n史学\n史\n史\n史\n史\n学史\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史\n史\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史\n史\n史学\n学史\n史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n学史\n史\n史\n史\n史\n史\n史学\n史\n史\n史学\n学史\n史\n史\n史\n史\n史学\n史学\n史\n史学\n史学\n学史\n史\n史\n史\n史\n史学\n史\n史\n史学\n史学\n学史\n史\n史\n史\n史\n学史\n史\n史学\n史学\n史学\n史学\n史学\n史学\n史\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史\n史\n学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史\n学\n史学\n史学\n史学\n史学\n史\n学\n史\n学\n史学\n史\n学\n史学\n史学\n史学\n史\n学\n史\n学\n史学\n史学\n史\n学\n史\n学\n史\n学\n史\n学\n史\n学\n史\n史\n学\n史\n学\n史\n学\n史\n学\n史\n史学\n史\n学\n史\n学\n史\n学\n史\n学\n史学\n史\n学\n史\n学\n史\n学\n史\n学\n学\n史\n学\n史\n学\n史\n学\n史\n学\n学\n史学\n史\n学\n史\n学\n史\n学\n史\n史\n学\n学\n史\n学\n史\n学\n史\n学\n学\n史\n史\n学\n史\n学\n史\n学\n史\n史\n学\n史学\n史\n学\n史\n学\n史\n学\n学\n史\n学\n学\n史\n学\n史\n学\n史\n史\n学\n史\n史\n学\n史\n学\n史\n学\n学\n史\n学\n史学\n史\n学\n史\n学\n史\n史\n学\n史\n学\n学\n史\n学\n史\n学\n学\n史\n学\n史\n史\n学\n史\n学\n史\n史\n学\n史\n学\n史学\n史\n学\n史\n学\n学\n史\n学\n史\n学\n史学\n史\n学\n史\n史\n学\n史\n学\n史\n学\n史学\n史\n学\n史学\n史\n学\n史\n学\n史\n学\n史学\n史\n学\n学\n史\n学\n史\n学\n史\n学\n史学\n史\n史\n学\n史\n学\n史\n学\n史\n学\n史学\n史学\n史\n学\n史\n史\n学\n史\n学\n史\n史\n史\n学\n史\n学\n史\n学\n史\n学\n学\n学\n史\n学\n史\n学\n史\n学\n史\n史\n史\n学\n史\n史\n学\n史\n学\n史\n史\n史学\n史\n学\n史\n学\n史\n学\n史\n史\n史\n史\n学\n史\n史\n学\n史\n史\n学\n史\n史\n学\n史学\n史\n史\n学\n史\n史\n学\n史\n史\n学\n学\n史\n史\n学\n史\n学\n史\n史\n学\n史学\n史\n史\n学\n史学\n史\n学\n史\n学\n史\n史\n史\n学\n史\n史学\n史\n史\n学\n史\n史\n学\n史\n史\n史\n学\n史\n史\n学\n史学\n史\n史\n史\n学\n史\n学\n史\n史\n学\n史\n史\n史\n学\n史学\n史\n史\n学\n史\n学\n史\n史\n学\n史\n史学\n史\n史\n学\n史\n学\n史\n史\n学\n史学\n史学\n史\n史\n学\n史\n史\n学\n史\n史\n史学\n史\n史\n史\n史\n史\n史\n学\n史\n史\n学\n史\n史学\n史\n史\n史\n史\n史\n史\n史\n学\n史\n史学\n史\n史\n史\n史\n史学\n史\n史\n学\n史\n史学\n史\n史\n史\n史\n学\n史\n史\n史学\n史\n史\n史\n史学\n史\n史\n学\n史\n史\n史学\n史\n史\n史\n学\n史\n史\n史学\n史\n史\n史学\n史\n史\n史\n学\n史\n史\n学\n史\n史\n史\n史\n史\n史\n学\n史\n史\n史学\n史\n史学\n史\n史\n史\n史\n学\n史\n史\n学\n史\n学\n史学\n史\n史\n史\n史\n史\n史\n史学\n史\n学\n史\n史\n史\n史\n史\n史\n史\n史学\n史\n学\n史学\n史\n史学\n史\n史\n史\n史\n史\n史\n学\n史学\n史\n史学\n史\n史\n史\n史\n史学\n史\n学\n史学\n史学\n史\n史\n史\n史\n史\n史\n史\n学\n史学\n史学\n史\n史\n史\n史\n史\n史学\n史\n学\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n史\n史学\n史学\n史学\n史学\n史学\n史学\n歴史\n史学\n史学\n歴史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学\n史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学）\n史学（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）\n史学（史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学（史学）\n史学\n史学）\n史学\n史学\n史学\n史学\n史学\n史学\n史学\n史学）\n史学\n史学（史学）\n史学\n史学\n史学\n史学\n史学"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 10349,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 6,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n科技有限公司\n税設計模横標樂記樹訳樓権樨樣樮樘言樳許樕樜樢樭樎樫樸樱証樼訂樯樥樦樊樺樍樟樒樞樔樛樋樰樲樿樾樚樃樧樻樬樽樈騨騘騹樏験騎騮騙騳騢騪騣騭騸騂騞騍騜騰騼騕騿騱騲騊騒騃騋騩騻騦騟騏訹香馨馬首騔馦馮馘馰馏馆馜馸馄馝馭馈馂馅馳馴馻馼馵馥馞馕馐馿馗馧馾馍馋馑馓馃馊馎馟馲馶馽馀馹騀\n馁馯馫馷馣馉馪馛馇馒馌馚馩馠馤馢馱馡馈記基馔訨城音榦榨榕榮榜榖榬榙概榘榿榥榋榄榰榸榏榴榹榭榼榟榻榧榾榽榓榈榚榔榶榯榵榗榁榎榪榞榲榫榢榒榃榣榺榆榊榇榍榡榝榠榉榛榳查柟柜査柦染柔柨柩柠柴柏柢柹柘柕柿柙柄柱柰柼柸柭柞柾柮柯柺柎柛柫柖柪柶柧柚柒柗柣柂柍柝某柷柀柵柬柡柲柶柜韟知石矟韻韓短韹韩響韥韨韘韢韭矿矢矩矻矶韼韞韴韸韜矮韔韵韠矓韮矰韦韰矼蟳蟟蟥蟻蟓蟢蟭蟹矹蟫韛韬韍韫矦矨矬蟼矜蟩蟰蟦����域\n柳韪��用��埳培埜埥埓用�",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "科技有限公司\n税設計模横標樂記樹訳樓権樨樣樮樘言樳許樕樜樢樭樎樫樸樱証樼訂樯樥樦樊樺樍樟樒樞樔樛樋樰樲樿樾樚樃樧樻樬樽樈騨騘騹樏験騎騮騙騳騢騪騣騭騸騂騞騍騜騰騼騕騿騱騲騊騒騃騋騩騻騦騟騏訹香馨馬首騔馦馮馘馰馏馆馜馸馄馝馭馈馂馅馳馴馻馼馵馥馞馕馐馿馗馧馾馍馋馑馓馃馊馎馟馲馶馽馀馹騀\n馁馯馫馷馣馉馪馛馇馒馌馚馩馠馤馢馱馡馈記基馔訨城音榦榨榕榮榜榖榬榙概榘榿榥榋榄榰榸榏榴榹榭榼榟榻榧榾榽榓榈榚榔榶榯榵榗榁榎榪榞榲榫榢榒榃榣榺榆榊榇榍榡榝榠榉榛榳查柟柜査柦染柔柨柩柠柴柏柢柹柘柕柿柙柄柱柰柼柸柭柞柾柮柯柺柎柛柫柖柪柶柧柚柒柗柣柂柍柝某柷柀柵柬柡柲柶柜韟知石矟韻韓短韹韩響韥韨韘韢韭矿矢矩矻矶韼韞韴韸韜矮韔韵韠矓韮矰韦韰矼蟳蟟蟥蟻蟓蟢蟭蟹矹蟫韛韬韍韫矦矨矬蟼矜蟩蟰蟦����域\n柳韪��用��埳培埜埥埓用�"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 95879,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 414,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n光学文评索大全 (文)为: 《七七七》\n央不期集不名形式、文字厂中出 (列)资换示多段子) 《七七七》五了笔而各一般 (位)型上略记书。(如) 004 年后, 从已知能やじく) 七七七) 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔,",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "光学文评索大全 (文)为: 《七七七》\n央不期集不名形式、文字厂中出 (列)资换示多段子) 《七七七》五了笔而各一般 (位)型上略记书。(如) 004 年后, 从已知能やじく) 七七七) 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔, 《七七七》五了笔,"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 25991,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 15,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n# 光学文字認識\n\n**光学文字認識**（こうがくもじにんしき、**Optical character recognition**）は、活字の文書の**画像**（通常イメージスキャナーで取り込まれる）をコンピュータが編集できる形式（**文字コード**の列）に変換するソフトウェアである。一般に OCR と略記される。OCRは、人工知能やマシンビジョンの研究分野として始まった。研究は続けられているが、OCRの中心はその実装と応用に移っている。紙に印刷された文書をデジタル化し、よりコンパクトな形で記録するのに必要とされる。さらに、文字コードに変換することで機械翻訳や音韻合成の入力にも使えるようになり、**テキストマイニング**も可能となる。研究分野としては、**パターン認識**、**人工知能**、**コンピュータビジョン**が対応する。\n\n（鏡やレンズといった光学技術を使った）光学文字認識と（スキャナーとアルゴリズムによる）デジタル文字認識は本来別の領域と考えられていた。光学技術として生き残った部分が非常に少ないため、光学文字認識という言葉は現在ではデジタル文字認識を含むものとみなされている。\n\n初期のシステムは特定の書体を読むための「トレーニング」が必要であった（事前にその書体のサンプルを読ませることを意味する）。現在では、ほとんどの書体を高い識字率で変換することが可能である。いくつかのシステムでは読み込まれた画像からそれとほぼ同じになるようフォーマットされた出力（例えばワードプロセッサのファイルのようなもの）を生成することが可能であり、中には画像などの文書以外の部分が含まれていても正しく認識するものもある。\n\n光学文字認識の原点は、電信技術の拡張と視覚障害者が文字を読むための機械の開発という二つの問題にまつわる活動である[1]。1914年にマニュエル・ゴールドバーク（英語版）は、文字列を読み取り電信符号に変換する機械を開発した[要出典]。同じころエドマンド・フルニエ・ダルベ（英語版）はオフトフォン（英語版）という携帯型スキャナーを開発した。これを印刷物のページ上ですべらせると、文字の形状によって異なる音を発する。\n\nゴールドバークはデータ入力手段としてOCR技術の開発を続けた。後に彼は、画像を光電管で読み取り、必要な識別パターンを含むテンプレートと比較することでマッチングを見つけるという技法を提案した。1929年、スタファ・タウシェク（英語版）も同様のアイデアを思いつき、ドイツでOCRに関する特許を取得した。アメリカでは1933年、ポール・W・ハッデルが同様のテンプレート・マッチング方式のOCR技術の特許を取得している（アメリカ合衆国特許第1,915,993号）。\n\n1935年、タウシェクもアメリカで特許を取得した（アメリカ合衆国特許第2,026,329号）。\n\n1936年、米国復員軍人援護局から視覚障害者支援のためという要請を受け、RCAの技術者らが初期のコンピュータを使ったOCRを研究した。この研究には、単に活字をコンピュータ内の文字コードに変換するだけでなく、その文字を読み上げるという部分も含まれており、初期の音韻合成の研究でもある。しかし、コストがかかりすぎることが判明し、研究は挫折した[2]。",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\n# 光学文字認識\n\n**光学文字認識**（こうがくもじにんしき、**Optical character recognition**）は、活字の文書の**画像**（通常イメージスキャナーで取り込まれる）をコンピュータが編集できる形式（**文字コード**の列）に変換するソフトウェアである。一般に OCR と略記される。OCRは、人工知能やマシンビジョンの研究分野として始まった。研究は続けられているが、OCRの中心はその実装と応用に移っている。紙に印刷された文書をデジタル化し、よりコンパクトな形で記録するのに必要とされる。さらに、文字コードに変換することで機械翻訳や音韻合成の入力にも使えるようになり、**テキストマイニング**も可能となる。研究分野としては、**パターン認識**、**人工知能**、**コンピュータビジョン**が対応する。\n\n（鏡やレンズといった光学技術を使った）光学文字認識と（スキャナーとアルゴリズムによる）デジタル文字認識は本来別の領域と考えられていた。光学技術として生き残った部分が非常に少ないため、光学文字認識という言葉は現在ではデジタル文字認識を含むものとみなされている。\n\n初期のシステムは特定の書体を読むための「トレーニング」が必要であった（事前にその書体のサンプルを読ませることを意味する）。現在では、ほとんどの書体を高い識字率で変換することが可能である。いくつかのシステムでは読み込まれた画像からそれとほぼ同じになるようフォーマットされた出力（例えばワードプロセッサのファイルのようなもの）を生成することが可能であり、中には画像などの文書以外の部分が含まれていても正しく認識するものもある。\n\n光学文字認識の原点は、電信技術の拡張と視覚障害者が文字を読むための機械の開発という二つの問題にまつわる活動である[1]。1914年にマニュエル・ゴールドバーク（英語版）は、文字列を読み取り電信符号に変換する機械を開発した[要出典]。同じころエドマンド・フルニエ・ダルベ（英語版）はオフトフォン（英語版）という携帯型スキャナーを開発した。これを印刷物のページ上ですべらせると、文字の形状によって異なる音を発する。\n\nゴールドバークはデータ入力手段としてOCR技術の開発を続けた。後に彼は、画像を光電管で読み取り、必要な識別パターンを含むテンプレートと比較することでマッチングを見つけるという技法を提案した。1929年、スタファ・タウシェク（英語版）も同様のアイデアを思いつき、ドイツでOCRに関する特許を取得した。アメリカでは1933年、ポール・W・ハッデルが同様のテンプレート・マッチング方式のOCR技術の特許を取得している（アメリカ合衆国特許第1,915,993号）。\n\n1935年、タウシェクもアメリカで特許を取得した（アメリカ合衆国特許第2,026,329号）。\n\n1936年、米国復員軍人援護局から視覚障害者支援のためという要請を受け、RCAの技術者らが初期のコンピュータを使ったOCRを研究した。この研究には、単に活字をコンピュータ内の文字コードに変換するだけでなく、その文字を読み上げるという部分も含まれており、初期の音韻合成の研究でもある。しかし、コストがかかりすぎることが判明し、研究は挫折した[2]。"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 77789,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 8,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 1367,
+            "completionTokens": 4092,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 1367,
+                "completionTokens": 4092
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n```\n光学文字認識\n\n光学文字認識（かがくもじにんしき、Optical Character Recognition: OCR）は、文字を光学的に認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "```\n光学文字認識\n\n光学文字認識（かがくもじにんしき、Optical Character Recognition: OCR）は、文字を光学的に認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取得し、その画像から文字を認識する技術である。光学文字認識は、文字を画像として取"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
           }
         }
       ]

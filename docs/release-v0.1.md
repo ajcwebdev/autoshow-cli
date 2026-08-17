@@ -2,6 +2,8 @@
 
 This release note explains what AutoShow is, what ships in v0.1, and how to start using the Bun CLI.
 
+This is a historical release snapshot. Provider selectors and examples reflect v0.1 and may no longer be accepted by the current CLI; use the command documentation and `--help` for current models.
+
 Current CLI help in this repo reports `bun autoshow v0.1.0`; this document uses `v0.1` as the release label.
 
 ## Outline
@@ -22,7 +24,6 @@ Current CLI help in this repo reports `bun autoshow v0.1.0`; this document uses 
   - [config](#config)
   - [links](#links)
   - [resume](#resume)
-  - [benchmark](#benchmark)
   - [voice](#voice)
   - [help and version](#help-and-version)
 - [Shared Runtime Behavior](#shared-runtime-behavior)
@@ -36,10 +37,10 @@ AutoShow is a Bun-native, pipeline-oriented CLI with one command-first entrypoin
 bun autoshow <command> [input] [flags]
 ```
 
-AutoShow currently exposes 15 named commands, plus built-in `help` and `version`. The named commands are split into two groups:
+AutoShow currently exposes 14 named commands, plus built-in `help` and `version`. The named commands are split into two groups:
 
 - `process-steps`: the ordered pipeline commands, Step 0 through Step 8.
-- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, voice management, benchmarking, and CLI discovery.
+- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, voice management, and CLI discovery.
 
 Use the [command overview](./commands.md) for the full command map and selection guide.
 
@@ -55,7 +56,7 @@ Process-step commands are ordered by pipeline step number. Each section below su
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm`, plus YouTube, Twitch, and TikTok URLs
-  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
+  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz`
   - local `.html` / `.htm`, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, directories, RSS/podcast feeds, and YouTube channels
 - Key outputs:
@@ -76,7 +77,7 @@ bun autoshow metadata input/examples/document/1-document.pdf
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm`, plus YouTube, Twitch, TikTok, RSS/podcast, and channel sources
-  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
+  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz`
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
@@ -98,7 +99,7 @@ bun autoshow download input/examples/document/1-document.pdf
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm` through local or hosted STT, captions, or X Space routes
-  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv` through OCR or native extraction
+  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv` through OCR or native extraction
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz` through OCR
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
@@ -120,11 +121,11 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 [`write`](./commands/process-steps/step-3-write/write-text.md) runs the full extraction plus prompt-rendering and JSON LLM-output pipeline.
 
 - Primary inputs/providers:
-  - routed media, document, image, article, and batch inputs accepted by `extract`, including `.mp3`, `.mp4`, `.wav`, `.webm`, `.pdf`, `.epub`, `.acsm`, `.docx`, `.png`, `.jpg`, `.html`, `.md`, and `.txt`
+  - routed media, document, image, article, and batch inputs accepted by `extract`, including `.mp3`, `.mp4`, `.wav`, `.webm`, `.pdf`, `.epub`, `.docx`, `.png`, `.jpg`, `.html`, `.md`, and `.txt`
   - raw local `.md` / `.txt` files and raw text directories when `--text-input` or the project text convention is used
   - project lyric draft inputs under `./output/<name>/text/` with `prompt.md` (or `--prompt-file`) and optional `tracks.md`
   - prompt families for summaries, chapters, marketing, social copy, creative writing, and song lyrics
-  - hosted LLM providers and local llama.cpp or llamafile
+  - hosted LLM providers. Write has no local LLM; omitting `--llm` selects the cheapest hosted model.
 - Key outputs:
   - timestamped write run directory under `output/` with `prompt.md` and `manifest.json`
   - single-target JSON output as `text.json`; multi-target JSON output as `text-<model>.json`
@@ -141,11 +142,11 @@ bun autoshow write ./output/demo/text --prompt rockSong
 
 ### Step 4: tts
 
-[`tts`](./commands/process-steps/step-4-tts/text-to-speech.md) generates speech audio from local `.md` or `.txt` files.
+[`tts`](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md) generates speech audio from local `.md` or `.txt` files.
 
 - Primary inputs/providers:
   - local Markdown or plaintext files: `.md` and `.txt`
-  - local Kitten TTS and hosted TTS providers
+  - hosted TTS providers
 - Key outputs:
   - single-target runs under `./output/<timestamp>_<label>/` with `speech.wav` and `manifest.json`
   - multi-target runs with `speech-<service>-<sanitized-model>.wav` files plus `manifest.json`
@@ -154,7 +155,7 @@ bun autoshow write ./output/demo/text --prompt rockSong
 Example:
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
 ```
 
 ### Step 5: image
@@ -218,12 +219,12 @@ Examples:
 
 ```bash
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
-bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
+bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-pro-preview
 ```
 
 ### Step 8: comic
 
-[`comic`](./commands/process-steps/step-8-comic/comic.md) runs staged episode-script-to-comic workflows.
+[`comic`](./commands/process-steps/step-8-comic/00-comic-overview.md) runs staged episode-script-to-comic workflows.
 
 - Primary inputs/providers:
   - episode script Markdown files under `input/scripts/NN-script/*.md`, or strict episode-scene shorthands such as `02-01`
@@ -349,31 +350,9 @@ Example:
 bun autoshow resume ./output/<run-or-batch-dir> --provider deepinfra
 ```
 
-### benchmark
-
-[`benchmark`](./commands/setup-and-utilities/benchmark/benchmark.md) scores or compares existing outputs and selected benchmark inputs.
-
-- Primary inputs/providers:
-  - STT compression/speed benchmark source audio files such as `.mp3`, `.m4a`, `.wav`, `.flac`, `.ogg`, and `.aac`
-  - existing TTS run directories with `manifest.json` and speech audio outputs
-  - existing write, image, and video run directories with `manifest.json`, `.json`, `.png` / `.jpg` / `.webp` / `.svg`, or `.mp4` outputs
-  - configured local or hosted judging providers where a benchmark mode needs them
-- Key outputs:
-  - STT benchmark output under `output/benchmark/<timestamp>/` with `source.m4a`, variant `.m4a` files, per-service `transcription.txt`, raw benchmark `result.json`, `benchmark-attempt.json`, and final `report.json`
-  - TTS reports beside the run as `voice-quality-report.json` and `voice-quality-report.md`
-  - text reports beside the run as `provider-comparison-report.json` and `provider-comparison-report.md`
-  - image reports beside the run as `image-quality-report.json`, `image-quality-report.md`, `provider-comparison-report.json`, and `provider-comparison-report.md`
-  - video reports beside the run as `video-quality-report.json`, `video-quality-report.md`, `provider-comparison-report.json`, and `provider-comparison-report.md`
-
-Example:
-
-```bash
-bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper
-```
-
 ### voice
 
-[`voice`](./commands/process-steps/step-4-tts/voice-management.md) manages durable provider voice registrations separately from speech synthesis.
+[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) manages durable provider voice registrations separately from speech synthesis.
 
 - Primary inputs/providers:
   - authored character voice briefs in `input/characters/character-voices.json`
@@ -413,7 +392,7 @@ Shared runtime behavior applies across multiple process steps:
 - Per-step provider/local concurrency controls provider fan-out.
 - Flag and config resolution project into STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing option slices. Standalone generation, pricing, and resume consumers receive only their domain slice plus named shared controls; the full media/document write path uses its own composed `ProcessingOptions` boundary.
 
-Root help also exposes shared controls for config paths, verbosity, JSON output, cookies, and model paths.
+Root help also exposes shared controls for config paths, verbosity, JSON output, and cookies.
 
 See [Pricing Preflight](./commands.md#pricing-preflight) and the individual command docs for provider-specific pricing behavior.
 

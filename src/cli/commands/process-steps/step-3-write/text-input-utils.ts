@@ -7,10 +7,10 @@ import type { LeafPrompt, PromptFileResult, RenderedTextArtifactResult, Step3Met
 import { ensureDirectory } from '~/utils/cli-utils'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { PROJECT_ROOT } from '~/utils/runtime-paths'
 
 const TEXT_INPUT_EXTENSIONS = new Set(['.md', '.txt'])
 const TRACK_LINE_PATTERN = /^\s*(\d+)\.\s+(.+?)\s*$/
-const PROJECT_ROOT = resolve(import.meta.dir, '../../../../../')
 
 const promptFileCache = new Map<string, string>()
 const promptFileResultCache = new Map<string, PromptFileResult>()
@@ -56,9 +56,7 @@ const SERVICE_FILE_SUFFIX: Record<Step3Metadata['llmService'], string> = {
   glm: 'glm',
   kimi: 'kimi',
   together: 'together',
-  cerebras: 'cerebras',
-  'llama.cpp': 'llama',
-  llamafile: 'llamafile'
+  cerebras: 'cerebras'
 }
 
 const sanitizeModelName = (model: string): string =>
@@ -81,13 +79,11 @@ const SERVICE_DISPLAY_LABEL: Record<Step3Metadata['llmService'], string> = {
   glm: 'GLM',
   kimi: 'Kimi',
   together: 'Together',
-  cerebras: 'Cerebras',
-  'llama.cpp': 'llama.cpp',
-  llamafile: 'Llamafile'
+  cerebras: 'Cerebras'
 }
 
 const toRegistryLlmService = (service: Step3Metadata['llmService']): string =>
-  service === 'llama.cpp' ? 'llama' : service
+  service
 
 const toTitleCase = (value: string): string =>
   value.replace(/\b[a-z]/g, char => char.toUpperCase())

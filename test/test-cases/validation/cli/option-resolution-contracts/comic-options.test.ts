@@ -33,10 +33,14 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import {
   draftScenesCommandDefinition,
+  generateAudioCommandDefinition,
   generateImagesCommandDefinition,
+  generateSlideshowCommandDefinition,
   referenceSketchCommandDefinition
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
 import {
+  comicGenerateAudioFlags,
+  comicGenerateSlideshowFlags,
   draftScenesFlags,
   generateImagesFlags,
   referenceSketchFlags
@@ -57,7 +61,7 @@ import type { PanelBundleData, PromptsConfig } from '~/types'
 
 const engineeringBayLocation = { key: 'engineering-bay', raw: 'INT. ENGINEERING BAY' }
 
-const parseSubcommandArgs = (args: string[], command: typeof draftScenesCommandDefinition | typeof generateImagesCommandDefinition | typeof referenceSketchCommandDefinition) =>
+const parseSubcommandArgs = (args: string[], command: typeof draftScenesCommandDefinition | typeof generateImagesCommandDefinition | typeof generateAudioCommandDefinition | typeof generateSlideshowCommandDefinition | typeof referenceSketchCommandDefinition) =>
   parseCommandInvocation([command.name, ...args], command, GLOBAL_FLAG_DEFINITIONS)
 
 const parseDraftScenesArgs = (args: string[]) =>
@@ -143,7 +147,6 @@ describe('option resolution contracts', () => {
   test('comic generate-images rejects removed option spellings as unknown arguments', () => {
       expect(() => parseGenerateImagesArgs(['script.md', '--llm-model', 'gpt-5.5'])).toThrow('Unexpected flag: --llm-model')
       expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unexpected flag: --panel-limit')
-      expect(() => parseGenerateImagesArgs(['script.md', '--panel', '2'])).toThrow('Unexpected flag: --panel')
       expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: --chunk')
       expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: --sketch-group-size')
       expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('Unexpected flag: --sketch-panels')
@@ -551,7 +554,25 @@ describe('comic native parser definitions', () => {
   test('uses the help flag tables directly as the parser definitions', () => {
     expect(draftScenesCommandDefinition.flags).toBe(draftScenesFlags)
     expect(generateImagesCommandDefinition.flags).toBe(generateImagesFlags)
+    expect(generateAudioCommandDefinition.flags).toBe(comicGenerateAudioFlags)
+    expect(generateSlideshowCommandDefinition.flags).toBe(comicGenerateSlideshowFlags)
     expect(referenceSketchCommandDefinition.flags).toBe(referenceSketchFlags)
+  })
+
+  test('parses comic slideshow target and local timing options from its native flag table', () => {
+    const parsed = parseSubcommandArgs(['script.md', '--audio-target=elevenlabs=eleven_v3', '--untimed-panel-ms', '2500', '--fps', '24', '--price'], generateSlideshowCommandDefinition)
+    expect(parsed.parameters['script-path']).toBe('script.md')
+    expect(parsed.flags).toMatchObject({ 'audio-target': 'elevenlabs=eleven_v3', 'untimed-panel-ms': '2500', fps: '24', price: true })
+  })
+
+  test('parses comic generate-audio --slideshow and the hidden --panel-video alias', () => {
+    const slideshow = parseSubcommandArgs(['script.md', '--slideshow'], generateAudioCommandDefinition)
+    expect(slideshow.flags['slideshow']).toBe(true)
+    expect(slideshow.flags['panel-video']).toBe(false)
+
+    const alias = parseSubcommandArgs(['script.md', '--panel-video'], generateAudioCommandDefinition)
+    expect(alias.flags['panel-video']).toBe(true)
+    expect(alias.flags['slideshow']).toBe(false)
   })
 
   test('uses native inline assignment, separator, last-wins, and positional rules', () => {

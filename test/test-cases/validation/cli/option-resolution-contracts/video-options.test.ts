@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
+import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/process-steps/step-6-video/video-targets'
 
 describe('option resolution contracts', () => {
   test('Luma Labs video resolution follows the documented Ray 3.2 values', () => {
@@ -13,6 +13,19 @@ describe('option resolution contracts', () => {
       'lumalabs-video': 'ray-3.2',
       'video-resolution': '360p'
     }))).toThrow('Expected 540p, 720p, 1080p')
+  })
+
+  test('retired video selectors fail with replacement guidance', () => {
+    for (const [provider, model, replacement] of [
+      ['minimax', 'MiniMax-Hailuo-2.3', 'MiniMax-H3'],
+      ['minimax', 'S2V-01', 'MiniMax-H3'],
+      ['replicate', 'runwayml/aleph-2', 'grok-imagine-video'],
+      ['replicate', 'wan-video/wan-2.7-t2v', 'bytedance/seedance-2.0-fast']
+    ] as const) {
+      expect(() => buildOptsFromFlags(false, {
+        [`${provider}-video`]: model
+      })).toThrow(`Use "${replacement}" instead`)
+    }
   })
 
   test('video mode defaults to text and validates media inputs', () => {
@@ -34,18 +47,6 @@ describe('option resolution contracts', () => {
         'video-input-image': imageDataUrl
       })).map(target => target.service)).toEqual(['gemini'])
 
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
-        'minimax-video': 'I2V-01',
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl
-      })).map(target => target.service)).toEqual(['minimax'])
-
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
-        'glm-video': 'vidu2-image',
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl
-      })).map(target => target.service)).toEqual(['glm'])
-
       expect(() => collectVideoTargets(buildOptsFromFlags(false, {
         'grok-video': 'grok-imagine-video',
         'video-mode': 'reference-to-video',
@@ -66,41 +67,8 @@ describe('option resolution contracts', () => {
       }))).toThrow('--video-duration, --video-aspect-ratio, and --video-resolution are not valid with Grok --video-mode edit')
     })
 
-  test('GLM and MiniMax video media modes enforce model capability limits', () => {
+  test('all-video reference mode keeps compatible active targets', () => {
       const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
-
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'minimax-video': 'S2V-01'
-      }))).toThrow('--video-mode text is not supported by minimax/S2V-01')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'minimax-video': 'T2V-01',
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl
-      }))).toThrow('--video-mode image-to-video is not supported by minimax/T2V-01')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'minimax-video': 'S2V-01',
-        'video-mode': 'reference-to-video',
-        'video-reference-image': [imageDataUrl, imageDataUrl]
-      }))).toThrow('MiniMax S2V-01 supports exactly one --video-reference-image')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'glm-video': 'vidu2-reference',
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl
-      }))).toThrow('--video-mode image-to-video is not supported by glm/vidu2-reference')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'glm-video': 'vidu2-start-end'
-      }))).toThrow('--video-mode text is not supported by glm/vidu2-start-end')
-
-      expect(collectVideoTargets(buildOptsFromFlags(false, {
-        'glm-video': 'vidu2-reference',
-        'video-mode': 'reference-to-video',
-        'video-reference-image': [imageDataUrl, imageDataUrl, imageDataUrl]
-      })).map(target => target.model)).toEqual(['vidu2-reference'])
-
       const allReferenceTargets = collectVideoTargets(buildOptsFromFlags(false, {
         'all-video': true,
         'video-mode': 'reference-to-video',
@@ -109,8 +77,6 @@ describe('option resolution contracts', () => {
       expect(allReferenceTargets.map(target => `${target.service}/${target.model}`)).toEqual([
         'gemini/veo-3.1-fast-generate-preview',
         'gemini/veo-3.1-generate-preview',
-        'minimax/S2V-01',
-        'glm/vidu2-reference',
         'grok/grok-imagine-video',
         'grok/grok-imagine-video-1.5',
         'replicate/alibaba/happyhorse-1.1',
@@ -165,11 +131,9 @@ describe('option resolution contracts', () => {
         'video-resolution': '1080p'
       }))).toThrow('Expected 480p or 720p')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
-        'replicate-video': 'wan-video/wan-2.7-t2v',
-        'video-mode': 'image-to-video',
-        'video-input-image': imageDataUrl
-      }))).toThrow('--video-mode image-to-video is not supported by replicate/wan-video/wan-2.7-t2v')
+      expect(() => buildOptsFromFlags(false, {
+        'replicate-video': 'wan-video/wan-2.7-t2v'
+      })).toThrow('Use "bytedance/seedance-2.0-fast" instead')
 
       expect(() => collectVideoTargets(buildOptsFromFlags(false, {
         'replicate-video-reference-audio': audioDataUrl
@@ -257,5 +221,32 @@ describe('option resolution contracts', () => {
         'gemini-video': 'veo-3.1-generate-preview',
         'video-resolution': '4k'
       }))).toHaveLength(1)
+    })
+
+  test('Grok video rejects 1080p on Imagine Video', () => {
+      expect(() => collectVideoTargets(buildOptsFromFlags(false, {
+        'grok-video': 'grok-imagine-video',
+        'video-resolution': '1080p'
+      }))).toThrow('Expected 480p or 720p')
+    })
+
+  test('all-video image-to-video keeps compatible I2V targets', () => {
+      const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
+      const targets = collectVideoTargets(buildOptsFromFlags(false, {
+        'all-video': true,
+        'video-mode': 'image-to-video',
+        'video-input-image': imageDataUrl
+      })).map(target => `${target.service}/${target.model}`)
+
+      expect(targets).toContain('gemini/veo-3.1-fast-generate-preview')
+      expect(targets).toContain('ltx/ltx-2-3-fast')
+      expect(targets).toContain('replicate/alibaba/happyhorse-1.1')
+      expect(targets).not.toContain('replicate/wan-video/wan-2.7-t2v')
+    })
+
+  test('video artifact names use the single-file name or a sanitized multi-target name', () => {
+      expect(getVideoArtifactFileName({ service: 'gemini', model: 'veo-3.1-generate-preview' }, true)).toBe('generated-video.mp4')
+      expect(getVideoArtifactFileName({ service: 'gemini', model: 'veo-3.1-generate-preview' }, false)).toBe('generated-video-gemini-veo-3.1-generate-preview.mp4')
+      expect(getVideoArtifactFileName({ service: 'replicate', model: 'wan-video/wan-2.7-t2v' }, false)).toBe('generated-video-replicate-wan-video-wan-2.7-t2v.mp4')
     })
 })

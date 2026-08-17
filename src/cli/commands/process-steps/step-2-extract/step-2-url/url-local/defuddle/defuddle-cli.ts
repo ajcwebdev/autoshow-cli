@@ -1,14 +1,13 @@
 import { mkdir, rm, stat } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import type { CheckResult, ResolvedDefuddleCli, RunOptions, RunResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
-import { getConfiguredBinDir } from '~/utils/runtime-paths'
+import { getConfiguredBinDir, PROJECT_ROOT } from '~/utils/runtime-paths'
 
 const DEFUDDLE_CLI_VERSION = '0.17.0'
 
-const PROJECT_ROOT = resolve(import.meta.dir, '../../../../../../../../')
 const RUNTIME = join(PROJECT_ROOT, 'runtime')
 let defuddleCliSetupPromise: Promise<void> | undefined
 

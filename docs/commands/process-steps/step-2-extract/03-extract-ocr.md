@@ -1,6 +1,6 @@
 # extract OCR
 
-Documents and images route through local OCR, hosted OCR, or native text extraction depending on the input format.
+Documents and images route through hosted OCR or native text extraction depending on the input format.
 
 ## Outline
 
@@ -8,13 +8,12 @@ Documents and images route through local OCR, hosted OCR, or native text extract
 - [OCR Environment](#ocr-environment)
 - [OCR Routing](#ocr-routing)
 - [Shared OCR Options](#shared-ocr-options)
-- [ACSM Fulfillment](#acsm-fulfillment)
+- [Multi-Provider Execution Modes](#multi-provider-execution-modes)
 - [EPUB Options](#epub-options)
   - [Inspect Modes](#inspect-modes)
   - [Native EPUB Export](#native-epub-export)
 - [PDF Chapter Detection](#pdf-chapter-detection)
 - [OCR Services](#ocr-services)
-  - [Tesseract](#tesseract)
   - [Mistral OCR](#mistral-ocr)
   - [GLM OCR](#glm-ocr)
   - [Kimi OCR](#kimi-ocr)
@@ -23,10 +22,13 @@ Documents and images route through local OCR, hosted OCR, or native text extract
   - [Anthropic OCR](#anthropic-ocr)
   - [Gemini OCR](#gemini-ocr)
   - [DeepInfra OCR](#deepinfra-ocr)
+  - [Replicate OCR](#replicate-ocr)
+  - [fal.ai OCR](#falai-ocr)
 - [OCR Notes](#ocr-notes)
 - [Incomplete Runs and Blocked Providers](#incomplete-runs-and-blocked-providers)
+- [Provider Capabilities](#provider-capabilities)
 
-See the [`extract` overview](./01-extract.md) for input routing across STT, OCR, article HTML, and X/Twitter inputs. Remote article URLs and local HTML are documented separately in [URL and X extraction](./04-extract-url.md).
+See the [`extract` overview](./01-extract.md) for input routing and default document/image OCR. Remote article URLs are documented separately in [URL and X extraction](./04-extract-url.md).
 
 The standalone `extract` command uses route-aware `--provider provider[=model]` selectors for document/OCR inputs. The `write` and `config` commands use the step selector `--ocr provider[=model]`; `resume` uses target-aware `--provider provider[=model]`.
 
@@ -36,69 +38,61 @@ The standalone `extract` command uses route-aware `--provider provider[=model]` 
 # full setup
 bun autoshow setup
 
-# document foundations: mutool + qpdf + Calibre ebook-convert + ACSM fulfillment
+# document foundations: mutool + qpdf + Calibre ebook-convert
 bun autoshow setup --step calibre
-
-# ACSM fulfillment only
-bun autoshow setup --step acsm
-
-# ACSM authorization
-bun autoshow setup --step acsm-authorize
 ```
 
-Tesseract is the only local OCR engine and is installed as part of `bun autoshow setup`. All other OCR engines are hosted services selected by provider.
-
-ACSM support is installed by `bun autoshow setup --step calibre` and can be repaired independently with `bun autoshow setup --step acsm`. Setup downloads the pinned Calibre ACSM Input plugin release, creates a managed Python environment for the standalone plugin scripts, and writes `calibre-acsm-fulfill` plus `calibre-acsm-authorize` into `runtime/bin`. Run `bun autoshow setup --step acsm-authorize` once to create the local activation files used by fulfillment.
+Hosted OCR engines are selected by provider. Calibre `ebook-convert` remains available for supported convertible ebook inputs.
 
 ## OCR Environment
 
-Use these only when you select the matching hosted OCR engine:
-
-```bash
-MISTRAL_API_KEY=...
-OPENAI_API_KEY=...
-XAI_API_KEY=...
-ANTHROPIC_API_KEY=...
-GEMINI_API_KEY=...
-GLM_API_KEY=...
-KIMI_API_KEY=...
-DEEPINFRA_API_KEY=...
-```
+| Provider  | Required env        |
+| --------- | ------------------- |
+| Mistral   | `MISTRAL_API_KEY`   |
+| OpenAI    | `OPENAI_API_KEY`    |
+| Grok      | `XAI_API_KEY`       |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| Gemini    | `GEMINI_API_KEY`    |
+| GLM       | `GLM_API_KEY`       |
+| Kimi      | `KIMI_API_KEY`      |
+| DeepInfra | `DEEPINFRA_API_KEY` |
+| Replicate | `REPLICATE_API_KEY` |
+| fal.ai    | `FAL_KEY`           |
 
 ## OCR Routing
 
-| Input family | Default path | Other available paths |
-|--------------|--------------|-----------------------|
-| PDF | `mutool+tesseract` | `--provider tesseract`, `--provider mistral`, `--provider glm`, `--provider kimi`, `--provider openai`, `--provider grok`, `--provider anthropic`, `--provider gemini`, `--provider deepinfra` |
-| EPUB | cleaned native extraction (`epub-text`) | `--provider tesseract`, hosted OCR engines, `--epub-bun` |
-| ACSM | fulfill locally to EPUB/PDF, then follow the fulfilled EPUB/PDF path | same as the fulfilled output |
-| Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | normalize to EPUB, then follow the EPUB path | same |
-| DOCX / PPTX / XLSX / ODF | native ZIP/XML text extraction | OCR flags are ignored with a warning |
-| RTF | native RTF text extraction | OCR flags are ignored with a warning |
-| CBZ | per-image OCR | local or hosted engines |
-| CSV | raw text | OCR flags are ignored with a warning |
-| PNG / JPG / JPEG / TIF / TIFF | local OCR by default | hosted OCR also supported; some providers normalize `TIF`/`TIFF` to `PNG` when ImageMagick is available |
-| WebP / BMP | normalize locally when possible, then OCR | hosted support varies by provider |
-| GIF | local OCR by default | hosted support varies by provider |
+| Input family                                       | Default path                                                         | Hosted paths                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------- |
+| PDF                                                | See the [`extract` overview](./01-extract.md#local-ocr)              | hosted OCR engines                                       |
+| EPUB                                               | cleaned native extraction (`epub-text`)                              | hosted OCR engines, `--epub-bun`                         |
+| Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | normalize to EPUB, then follow the EPUB path                         | same                                                     |
+| DOCX / PPTX / XLSX / ODF                           | native ZIP/XML text extraction                                       | OCR flags are ignored with a warning                     |
+| RTF                                                | native RTF text extraction                                           | OCR flags are ignored with a warning                     |
+| CBZ                                                | per-image OCR                                                        | hosted OCR engines                                       |
+| CSV                                                | raw text                                                             | OCR flags are ignored with a warning                     |
+| PNG / JPG / JPEG / TIF / TIFF                      | See the [`extract` overview](./01-extract.md#local-ocr)              | hosted OCR engines                                       |
+| WebP / BMP                                         | normalize when possible, then OCR                                    | hosted OCR engines                                       |
+| GIF                                                | See the [`extract` overview](./01-extract.md#local-ocr)              | hosted OCR engines                                       |
 
-Hosted OCR service tables list provider-native direct input formats. For hosted direct-image inputs, AutoShow keeps native uploads when the provider supports the source format; otherwise, providers that accept `PNG` can normalize `WEBP`, `GIF`, and `BMP` to `PNG` locally with Bun.Image, and can normalize `TIF/TIFF` to `PNG` when ImageMagick (`magick` or `convert`) is available.
+Hosted direct-image inputs retain native uploads when supported by the provider. Otherwise, providers accepting `PNG` normalize `WEBP`, `GIF`, and `BMP` to `PNG` via Bun.Image, and normalize `TIF`/`TIFF` to `PNG` when ImageMagick (`magick` or `convert`) is available.
 
 ## Shared OCR Options
 
-| Flag | Description |
-|------|-------------|
-| `--format <format>` | Output format: `text`, `json`, `tsv`, or `hocr` |
-| `--password <value>` | Password for encrypted PDFs |
-| `--all-providers` | Enable every supported OCR provider/model for this route |
-| `--primary-ocr <service[/model]>` | In multi-provider OCR, choose which requested provider writes top-level extraction artifacts |
-| `--provider-concurrency <n>` | Hosted providers/models to run concurrently per item; default `10` |
-| `--local-concurrency <n>` | Local providers to run concurrently per item; default `10` |
-| `--ocr-concurrency <n>` | Page-level OCR concurrency cap. Local OCR defaults to `10`; hosted OCR defaults to `auto`. Explicit values are hosted hard caps. |
-| `--ocr-dpi <n>` | Render DPI for OCR pages |
-| `--chapters`, `--no-chapters` | EPUB native text runs and long PDF chapter autodetection: write chapter files under `chapters/`; use `--no-chapters` for a single extracted file |
-| `--length <n>` | Hard export limit in thousands of characters; splits oversized EPUB or PDF chapter files |
-| `--pdf-chapter-mode <mode>` | PDF chapter detection mode: `local`, `auto`, or `llm` |
-| `--price` | Show the aggregated OCR estimate and exit |
+| Flag                                   | Description                                                                                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--format <format>`                    | Output format: `text`, `json`, `tsv`, or `hocr`                                                                                                                    |
+| `--password <value>`                   | Password for encrypted PDFs                                                                                                                                        |
+| `--all-providers`                      | Enable every supported hosted OCR provider/model for this route                                                                                                    |
+| `--ocr-provider-mode <mode>`           | Multi-provider execution: `fanout` or `pool`; default `fanout`                                                                                                     |
+| `--primary-ocr <service[/model]>`      | In fan-out multi-provider OCR, choose which requested complete provider result writes top-level extraction artifacts; invalid in pool mode                         |
+| `--provider-concurrency <n>`           | Hosted providers/models to run concurrently per item; default `7`                                                                                                  |
+| `--ocr-concurrency <n>`                | Page-level OCR concurrency cap. Hosted OCR defaults to `auto`. Explicit values are hosted hard caps.                                                               |
+| `--concurrency-mode <ramp\|immediate>` | Approach each hosted provider/account page cap from one request at one added slot every five seconds (`ramp`, default), or start at the resolved cap (`immediate`) |
+| `--ocr-dpi <n>`                        | Render DPI for OCR pages                                                                                                                                           |
+| `--chapters`, `--no-chapters`          | EPUB native text runs and long PDF chapter autodetection: write chapter files under `chapters/`; use `--no-chapters` for a single extracted file                   |
+| `--length <n>`                         | Hard export limit in thousands of characters; splits oversized EPUB or PDF chapter files                                                                           |
+| `--pdf-chapter-mode <mode>`            | PDF chapter detection mode: `local`, `auto`, or `llm`                                                                                                              |
+| `--price`                              | Show the aggregated OCR estimate and exit                                                                                                                          |
 
 ```bash
 # Default PDF extraction
@@ -109,53 +103,55 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 
 # Fan out across every OCR provider in price mode
 bun autoshow extract input/examples/document/1-document.pdf --all-providers --price
+
+# Estimate one pooled composite extraction across three targets
+bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.5 --provider mistral=mistral-ocr-4-0 --provider kimi=kimi-k3 --ocr-provider-mode pool --ocr-concurrency 10 --price
 ```
 
-For token-priced hosted OCR providers, `--price` uses model-specific input/output token heuristics from recent benchmark usage. Actual runs write usage to the provider entry in `manifest.json` when available, and post-run cost diagnostics use those actual token counts.
+See [Provider Capabilities](#provider-capabilities) for the per-model release date, dedicated-OCR vs VLM, native PDF, image, limit, structured-output, and pool matrix.
 
-The human price table shows `step`, `provider`, `model`, and `cost`, plus `input` and `estimatedTime` columns when those values are available. Run with `--json` when you need the structured estimate fields behind the total, including page counts, prompt/completion tokens, input/output rates, and `estimateType`.
+For token-priced hosted OCR providers, `--price` uses model-specific input/output token heuristics from observed usage profiles. Actual runs record token usage in `manifest.json`, and post-run cost diagnostics use those actual counts.
 
-For `.acsm` inputs, `--price` does not run fulfillment because that step can contact Adobe or distributor servers. The estimate prints an ACSM note and omits page-priced OCR costs until a fulfilled EPUB or PDF exists.
+The price summary shows `step`, `provider`, `model`, `cost`, `input`, and `estimatedTime`. Run with `--json` for detailed structured fields including page counts, prompt/completion tokens, input/output rates, and `estimateType`.
 
-## ACSM Fulfillment
+## Multi-Provider Execution Modes
 
-AutoShow treats `.acsm` files as local preprocessing inputs. The raw ACSM file is never sent to OCR providers. Step 1 invokes:
+`fanout` is the default: every selected OCR target receives the full document and writes a complete independent result below `providers/<service>-<model>/`. No top-level extraction is written unless `--primary-ocr` selects one of those complete results.
+
+`pool` creates one composite extraction. Eligible targets draw pages dynamically from one shared queue, so faster targets can process a larger share and transient failures hand off pages to another target. Accepted pages are assembled in original page order and written as the top-level extraction. Provider directories contain isolated page attempts and usage evidence rather than complete independent documents, and `--primary-ocr` is rejected.
 
 ```bash
-calibre-acsm-fulfill <input.acsm> <output-dir>
+bun autoshow extract document.pdf \
+  --provider grok=grok-4.5 \
+  --provider mistral=mistral-ocr-4-0 \
+  --provider kimi=kimi-k3 \
+  --ocr-provider-mode pool \
+  --ocr-concurrency 10
 ```
 
-The wrapper must write exactly one `.epub` or `.pdf` into `<output-dir>` and exit `0`. AutoShow resolves `calibre-acsm-fulfill` from `--bin-dir` first, then the setup-managed `runtime/bin` wrapper, then `PATH`; there is no config key and no command-template flag.
+`--provider-concurrency` bounds active hosted targets. Independent provider/account lanes each reach the applicable OCR page cap, while targets sharing an account lane share that cap. An explicit `--ocr-concurrency 10` is a fixed ceiling per applicable lane; omitting the flag keeps hosted `auto` cap selection. That choice determines the ceiling, while `--concurrency-mode` determines how hosted page work approaches it.
 
-After setup, run `bun autoshow setup --step acsm-authorize` once to create the local activation files used by the standalone plugin scripts. You can press Enter at the Adobe ID prompt for anonymous authorization, or copy an existing `activation.xml`, `device.xml`, and `devicesalt` into `runtime/tools/acsm-calibre-plugin/account`.
-
-On success, AutoShow records `sourceFormat: "acsm"`, `normalizedFormat: "epub"` or `"pdf"`, and `conversionChain: ["calibre-acsm-plugin"]` in the manifest item's metadata, then continues through the normal EPUB/PDF extraction path. On failure, wrapper stdout/stderr is not copied into user-facing errors or manifests because plugin activation data, account paths, and backup details may be sensitive.
-
-Limitations:
-
-- You are responsible for lawful access, authorization state, and any DRM/key handling needed for the fulfilled book to be readable.
-- Fulfillment may contact Adobe or distributor servers even though it is not an AutoShow paid-provider run.
-- AutoShow does not integrate online ACSM converters and does not upload ACSM files for conversion.
+Pool mode is accepted for PDFs, CBZ archives, and supported images where selected targets can normalize into compatible page units. `--price` labels the per-target page allocation heuristic and charges the page set once; `resume --price` estimates only unfinished pages.
 
 ## EPUB Options
 
 ### Inspect Modes
 
-| Flag | Result |
-|------|--------|
-| `--epub-bun` | Inspect EPUB structure with the Bun ZIP/XML parser and write structured EPUB data into the canonical item's metadata |
+| Flag         | Result                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| `--epub-bun` | Inspect EPUB structure with the Bun ZIP/XML parser and write structured EPUB data into item metadata |
 
 ```bash
 bun autoshow extract input/examples/document/1-epub.epub --epub-bun --format json
 ```
 
 - Inspect mode is metadata-only for EPUB inputs.
-- If `--format` is set in inspect mode, it must be `json`.
-- `--chapters`, `--no-chapters`, and `--length` are ignored in inspect mode.
+- When `--format` is set in inspect mode, it must be `json`.
+- Chapter flags (`--chapters`, `--no-chapters`, `--length`) are ignored in inspect mode.
 
 ### Native EPUB Export
 
-The default EPUB path writes cleaned native text instead of synthetic `Page N` output.
+The default EPUB path extracts cleaned native text instead of OCR page rendering.
 
 ```bash
 bun autoshow extract input/examples/document/1-epub.epub
@@ -163,13 +159,9 @@ bun autoshow extract input/examples/document/1-epub.epub --length 50
 bun autoshow extract input/examples/document/1-epub.epub --no-chapters
 ```
 
-- EPUB native extraction writes one cleaned file per kept section under `chapters/` by default.
-- Chapter artifact names use `chapters/<ordinal>-<source-index>-<slug>.txt`; for example, `chapters/01-003-introduction.txt`.
-- The ordinal sorts by logical chapter order. The source index is the original EPUB source/spine section index, padded to at least 3 digits and never truncated.
-- `--length <n>` splits oversized section files using the same base name with `-part-NN` suffixes, widened to `-part-NNN` at 100 or more generated files.
-- `--no-chapters` disables EPUB chapter files and leaves only the top-level extracted text unless another export flag such as `--length` is present.
-- `--no-chapters --length <n>` keeps the legacy `chunks/` side artifacts for EPUB native text.
-- `--chapters`, `--no-chapters`, and `--length` are ignored for non-EPUB/non-PDF inputs and for EPUB runs that use a hosted OCR engine or image/PDF OCR path.
+- EPUB native extraction writes one cleaned file per kept section under `chapters/` by default (`chapters/<ordinal>-<source-index>-<slug>.txt`).
+- `--length <n>` splits oversized section files with `-part-NN` suffixes.
+- `--no-chapters` disables chapter splitting and outputs a single extracted text file.
 
 ## PDF Chapter Detection
 
@@ -180,104 +172,68 @@ bun autoshow extract input/examples/document/3-document.pdf --chapters --pdf-cha
 bun autoshow extract input/examples/document/book.pdf --no-chapters
 ```
 
-- PDFs with at least 40 extracted pages automatically attempt local chapter detection and write best-effort chapter files under `chapters/` when chapters are found.
-- `--chapters` on any PDF runs chapter autodetection regardless of length.
-- `--no-chapters` disables PDF chapter detection and leaves a single extracted file.
-- Detection is local-first by default and uses PDF bookmarks, TOC-like pages, printed-page-to-PDF-page mapping, and heading fallback.
-- PDF chapter artifact names use `chapters/<ordinal>-<pdf-start-page>-<slug>.txt`; for example, `chapters/01-011-introduction.txt`.
-- The ordinal sorts by logical chapter order. The PDF start page is padded to at least 3 digits and never truncated.
-- `--pdf-chapter-mode local` keeps detection fully heuristic and local.
-- Automatic long-PDF detection uses local mode; pass explicit `--chapters --pdf-chapter-mode auto` to allow model assistance when the local result is weak and a default LLM is configured.
-- `--chapters --pdf-chapter-mode llm` always attempts the model-assisted resolver after building the local evidence dossier.
-- `--length <n>` hard-splits oversized PDF chapter files using the same base name with `-part-NN` suffixes, widened to `-part-NNN` at 100 or more generated files.
-- Detection diagnostics are written under `items[].metadata.step2.pdfChapterDetection`, and the export summary is written under `items[].metadata.step2.chapterExport`.
+- PDFs with at least 40 extracted pages automatically attempt local chapter detection and write chapter files under `chapters/`.
+- `--chapters` forces chapter autodetection regardless of PDF page count.
+- `--no-chapters` disables PDF chapter detection and produces a single extracted file.
+- Detection is local-first by default, using PDF bookmarks, TOC pages, and heading heuristics (`chapters/<ordinal>-<pdf-start-page>-<slug>.txt`).
+- `--pdf-chapter-mode local` keeps detection fully local and heuristic.
+- `--pdf-chapter-mode auto` allows model-assisted resolution when local heuristics are weak and an LLM is configured.
+- `--pdf-chapter-mode llm` always attempts model-assisted resolution.
+- `--length <n>` splits oversized chapter files with `-part-NN` suffixes.
 
 ## OCR Services
 
-### Tesseract
-
-| Option | Value |
-|--------|-------|
-| Selector | default PDF/image path, or `--provider tesseract` |
-| Language | `--ocr-language <codes>` such as `eng` or `eng+fra` |
-
-```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider tesseract
-bun autoshow extract input/examples/document/1-document.pdf --provider tesseract --ocr-language eng+fra --ocr-dpi 300
-```
-
-Tesseract language and DPI controls work on the `extract` document/OCR route and on [`write`](../step-3-write/write-text.md). Non-Tesseract engines may ignore local OCR controls and report a warning when they do.
-
 ### Mistral OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider mistral[=<model>]` |
-| Models | `mistral-ocr-2512`, `mistral-ocr-4-0` |
-| Direct input support | PDF and standard images (`PNG`, `JPG`, `TIF`) |
+| Option               | Value                                 |
+| -------------------- | ------------------------------------- |
+| Selector             | `--provider mistral[=<model>]`        |
+| Models               | `mistral-ocr-2512`, `mistral-ocr-4-0` |
+| Direct input support | PDF, `PNG`, `JPG`, `TIF`              |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-2512
 bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-4-0
 ```
 
-Passing `--provider mistral` keeps the cheapest Mistral OCR default, `mistral-ocr-2512`. `mistral-ocr-4-0` uses the OCR 4 page rate; AutoShow does not bill annotated-page mode because it does not request document or bbox annotations. The `mistral-ocr-latest` alias is not accepted — AutoShow registers concrete model IDs only, so name `mistral-ocr-4-0` directly.
-
-No numeric Mistral OCR file-size/page-count caps were found in `project/links/mistral-general-ocr-links.md`, so this CLI does not enforce any new numeric limits for that provider from that source.
-
-Mistral OCR normalizes `WEBP`, `GIF`, and `BMP` direct-image inputs to `PNG` locally before upload.
+Bare `--provider mistral` defaults to `mistral-ocr-2512`.
 
 ### GLM OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider glm[=<model>]` |
-| Models | cheapest supported model, or `glm-ocr` |
-| Direct input support | PDF plus `PNG` and `JPG` |
+| Option               | Value                      |
+| -------------------- | -------------------------- |
+| Selector             | `--provider glm[=<model>]` |
+| Models               | `glm-ocr`                  |
+| Direct input support | PDF, `PNG`, `JPG`          |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider glm=glm-ocr
 ```
 
-GLM OCR currently enforces the bundled docs caps from `project/links/glm-all-links.md`: images up to 10 MB, PDFs up to 50 MB, and PDFs up to 100 pages.
-
-GLM OCR normalizes `WEBP`, `GIF`, and `BMP` direct-image inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error.
+Caps: images up to 10 MB, PDFs up to 50 MB and 100 pages.
 
 ### Kimi OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider kimi[=<model>]` |
-| Models | `kimi-k2.6`, `kimi-k3` |
-| Direct input support | `PNG`, `JPG/JPEG`, `WEBP`, and `GIF`; rendered PDF/EPUB pages as `PNG` |
+| Option               | Value                                                |
+| -------------------- | ---------------------------------------------------- |
+| Selector             | `--provider kimi[=<model>]`                          |
+| Models               | `kimi-k2.6`, `kimi-k3`                               |
+| Direct input support | `PNG`, `JPG`, `WEBP`, `GIF`; rendered PDF/EPUB pages |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k2.6
 bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k3
-bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k2.6 --price
 ```
 
-Kimi OCR normalizes `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. Direct or rendered image uploads are capped at 100 MB.
-
-Kimi OCR uses token pricing estimates and recorded usage when available.
-
-| Kimi OCR model | Input | Output | Price-mode page heuristic | Initial speed estimate |
-|----------------|-------|--------|---------------------------|------------------------|
-| `kimi-k2.6` | $0.95 / 1M cache-miss tokens | $4.00 / 1M tokens | 4,265 input + 516 output tokens, about $0.0061/page after calibration or $6.12/1K pages | 16,355 ms/page |
-| `kimi-k3` | $3.00 / 1M cache-miss tokens | $15.00 / 1M tokens | 4,265 input + 516 output tokens reused from K2.6, about $0.0205/page or $20.54/1K pages | 16,355 ms/page (provisional) |
-
-- Passing `--provider kimi` keeps the cheapest/general Kimi OCR default, `kimi-k2.6`.
-- Kimi OCR price mode uses cache-miss input/output pricing from `project/links/kimi-general-ocr-text-links.md`. Cached input pricing is not used because OCR image requests are not cache-stable.
-- Kimi OCR disables thinking for `kimi-k2.6`. Kimi K3 thinking is always on and rejects the `thinking` field, so AutoShow omits it for `kimi-k3`; its page heuristics are reused from K2.6 and are provisional until calibrated.
-- Actual Kimi OCR runs write `promptTokens` and `completionTokens` into the canonical provider metadata when the API returns usage.
+Bare `--provider kimi` defaults to `kimi-k2.6`. Direct or rendered image uploads are capped at 100 MB.
 
 ### OpenAI OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider openai[=<model>]` |
-| Models | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
-| Direct input support | PDF plus `PNG`, `JPG`, `WEBP`, and `GIF` |
+| Option               | Value                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| Selector             | `--provider openai[=<model>]`                                                             |
+| Models               | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
+| Direct input support | PDF, `PNG`, `JPG`, `WEBP`, `GIF`                                                          |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-sol
@@ -285,124 +241,170 @@ bun autoshow extract input/examples/document/1-document.pdf --provider openai=gp
 bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.4-nano
 ```
 
-OpenAI OCR normalizes `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. OpenAI OCR currently enforces the bundled PDF size cap from `project/links/openai-general-ocr-text-links.md`: PDFs up to 50 MB.
-
-Passing `--provider openai` on an OCR-routed `extract` run keeps the existing cheapest OpenAI OCR default. The concrete GPT-5.6 tier IDs above are available when selected explicitly or through `--all-providers`; the `gpt-5.6` alias is not registered separately.
-
-GPT-5.6 OCR price mode uses post-run calibrated page heuristics from the 2026-07-13 OCR resume calibration run:
-
-| OpenAI OCR model | Price-mode page heuristic | Initial speed estimate |
-|------------------|---------------------------|------------------------|
-| `gpt-5.6-sol` | 1,625 input + 940 output tokens, about $0.0363/page or $36.33/1K pages | 9,497 ms/page |
-| `gpt-5.6-terra` | 1,625 input + 743 output tokens, about $0.0122/page or $12.17/1K pages | 5,349 ms/page |
-| `gpt-5.6-luna` | 1,625 input + 858 output tokens, about $0.0014/page or $1.35/1K pages | 3,919 ms/page |
+Bare `--provider openai` defaults to the cheapest registered OpenAI OCR model. Maximum PDF size is 50 MB.
 
 ### Grok OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider grok[=<model>]` |
-| Models | `grok-4.3`, `grok-4.20-0309-non-reasoning`, `grok-4.5` |
-| Direct input support | `PNG` and `JPG/JPEG`; rendered PDF/EPUB pages as `PNG` |
+| Option               | Value                                                  |
+| -------------------- | ------------------------------------------------------ |
+| Selector             | `--provider grok[=<model>]`                            |
+| Models               | `grok-4.3`, `grok-4.20-0309-non-reasoning`, `grok-4.5` |
+| Direct input support | `PNG`, `JPG`; rendered PDF/EPUB pages                  |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.3
-bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.20-0309-non-reasoning
 bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.5
-bun autoshow extract input/examples/document/1-document.jpg --provider grok=grok-4.3 --price
 ```
 
-Grok OCR uses xAI's OpenAI-compatible chat endpoint with image input. Passing `--provider grok` keeps the stable Grok OCR default, `grok-4.3`. Direct images and rendered PDF pages are capped at 20 MiB each. `--price` uses a provisional estimate of 4,000 input tokens and 1,000 output tokens per page for `grok-4.3` and `grok-4.5` until calibrated usage data is available; actual runs record returned token usage when xAI includes it. Grok 4.5 uses `$2 / $0.30 / $6` per 1M input/cached/output tokens through 200K input tokens and `$4 / $0.60 / $12` above 200K.
-
-Grok OCR normalizes `WEBP`, `GIF`, and `BMP` direct-image inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error.
+Bare `--provider grok` defaults to `grok-4.3`. Direct images and rendered pages are capped at 20 MiB each.
 
 ### Anthropic OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider anthropic[=<model>]` |
-| Models | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-haiku-4-5`, `claude-opus-5` |
-| Direct input support | Standard unencrypted PDFs plus `PNG`, `JPG`, `WEBP`, and `GIF` |
+| Option               | Value                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| Selector             | `--provider anthropic[=<model>]`                                                            |
+| Models               | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-haiku-4-5`, `claude-opus-5` |
+| Direct input support | Unencrypted PDFs, `PNG`, `JPG`, `WEBP`, `GIF`                                               |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-fable-5
-bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-opus-4-8
-bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-sonnet-5
 bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-haiku-4-5
-bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-opus-5
+bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-sonnet-5
 ```
 
-Anthropic OCR normalizes `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces conservative first-party Claude limits from `project/links/claude-general-ocr-text-links.md`: direct images up to 5 MB each, PDF uploads through the Files API, and only standard unencrypted PDFs. Eligible PDFs are sent through the Files API; larger or failing documents fall back to per-page PDF chunk OCR through the Files API. Uploaded files are deleted best-effort after each run. Passing `--provider anthropic` without a model on an OCR-routed `extract` run keeps the cheapest Anthropic OCR default, `claude-haiku-4-5`; Fable, Opus, and Sonnet run only when selected explicitly or through `--all-providers`. Limited-availability `claude-mythos-5` is intentionally not registered.
-
-Claude Fable 5 OCR price mode uses the post-run calibrated page heuristic from the 2026-07-13 OCR resume calibration run:
-
-| Anthropic OCR model | Price-mode page heuristic | Initial speed estimate |
-|---------------------|---------------------------|------------------------|
-| `claude-fable-5` | 2,024 input + 869 output tokens, about $0.0637/page or $63.69/1K pages | 11,827 ms/page |
-| `claude-opus-5` | 1,657.5 input + 474.5 output tokens reused from Claude Opus 4.8, about $0.0201/page or $20.15/1K pages | 7,914 ms/page (provisional) |
+Bare `--provider anthropic` defaults to `claude-haiku-4-5`. Direct images are capped at 5 MB each.
 
 ### Gemini OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider gemini[=<model>]` |
-| Models | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
-| Bare default | `gemini-3.5-flash-lite` |
-| Retired selector | `gemini-3.1-flash-lite` is rejected with guidance to use `gemini-3.5-flash-lite`; historical pricing and manifest identity remain readable |
-| Direct input support | PDF plus `PNG`, `JPG`, `WEBP`, and `BMP` |
+| Option               | Value                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| Selector             | `--provider gemini[=<model>]`                                                             |
+| Models               | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
+| Direct input support | PDF, `PNG`, `JPG`, `WEBP`, `BMP`                                                          |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
-bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.6-flash
 ```
 
-Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces the bundled docs caps from `project/links/gemini-general-ocr-text-links.md`: inline PDFs up to 50 MB, inline non-PDF inputs up to 100 MB, Files API uploads up to 2 GB per file, and PDFs up to 1000 pages. Passing `--provider gemini` resolves to `gemini-3.5-flash-lite`. The retired `gemini-3.1-flash-lite` selector is absent from active validation and `--all-providers`; direct selection names `gemini-3.5-flash-lite` as the replacement, and an unfinished historical resume requires that replacement to be added explicitly as a distinct target. Gemini 3.6 Flash (`$1.50 / 1M input`, `$7.50 / 1M output`) and Gemini 3.5 Flash-Lite (`$0.30 / 1M input`, `$2.50 / 1M output`) use flat Standard rates with no published context tiers, and both reuse Gemini 3.1 Flash-Lite's page heuristic of 1,157 input and 1,626 output tokens at 2,921 ms/page until calibrated. Google still listed 2027-05-07 as the earliest shutdown date and `gemini-3.5-flash-lite` as the replacement when AutoShow retired the old selector on 2026-08-13.
+Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. Caps include inline PDFs up to 50 MB, Files API uploads up to 2 GB, and PDFs up to 1,000 pages.
 
 ### DeepInfra OCR
 
-| Option | Value |
-|--------|-------|
-| Selector | `--provider deepinfra[=<model>]` |
-| Models | `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct` |
-| Direct input support | `PNG`, `JPG/JPEG`, and `WEBP`; rendered PDF/EPUB pages as `PNG` |
+| Option               | Value                                                                                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Selector             | `--provider deepinfra[=<model>]`                                                                                                                                                            |
+| Models               | `google/gemma-3-27b-it`, `meta-llama/Llama-4-Scout-17B-16E-Instruct`, `mistralai/Mistral-Small-3.2-24B-Instruct-2506`, `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct` |
+| Direct input support | `PNG`, `JPG`, `WEBP`; rendered PDF/EPUB pages                                                                                                                                               |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct
-bun autoshow extract input/examples/document/1-document.jpg --provider deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct
-bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct --price
+bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct
 ```
 
-DeepInfra OCR normalizes `GIF` and `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. Uploads are capped at 20 MB per direct or rendered image and omit OpenAI's `detail` parameter.
+Bare `--provider deepinfra` defaults to `Qwen/Qwen3-VL-30B-A3B-Instruct`. Uploads are capped at 20 MB per image.
 
-DeepInfra OCR uses token pricing estimates and recorded usage when available.
+### Replicate OCR
 
-| DeepInfra OCR model | Input | Output | Price-mode page heuristic | Initial speed estimate |
-|---------------------|-------|--------|---------------------------|------------------------|
-| `Qwen/Qwen3-VL-235B-A22B-Instruct` | $0.20 / 1M tokens | $0.88 / 1M tokens | 4,081 input + 526 output tokens, about $0.0013/page or $1.28/1K pages | 20,000 ms/page |
-| `Qwen/Qwen3-VL-30B-A3B-Instruct` | $0.15 / 1M tokens | $0.60 / 1M tokens | 7,981 input + 472 output tokens, about $0.0015/page or $1.48/1K pages | 12,618 ms/page |
+| Option               | Value                                                          |
+| -------------------- | -------------------------------------------------------------- |
+| Selector             | `--provider replicate[=<model>]`                               |
+| Models               | `datalab-to/ocr`, `datalab-to/marker`, `lucataco/deepseek-ocr` |
+| Direct input support | PDF, `PNG`, `JPG`, `WEBP`; rendered PDF/EPUB pages             |
 
-- DeepInfra OCR price mode uses model-specific token heuristics. Actual runs write `promptTokens` and `completionTokens` into the canonical provider metadata when DeepInfra returns usage.
-- Cached-token pricing is not used for OCR estimates because AutoShow sends direct or rendered page images and those image requests are not cache-stable.
-- DeepInfra implementation details are based on DeepInfra's [Vision & OCR](https://docs.deepinfra.com/chat/vision), [OpenAI-compatible Chat Completions](https://docs.deepinfra.com/api-reference/chat-completions/openai-chat-completions), and [OCR catalog](https://deepinfra.com/models/ocr) docs.
+```bash
+bun autoshow extract input/examples/document/1-document.pdf --provider replicate=datalab-to/ocr
+bun autoshow extract input/examples/document/1-document.pdf --provider replicate=datalab-to/marker
+bun autoshow extract input/examples/document/1-document.pdf --provider replicate=lucataco/deepseek-ocr
+```
+
+### fal.ai OCR
+
+| Option               | Value                                              |
+| -------------------- | -------------------------------------------------- |
+| Selector             | `--provider fal[=<model>]`                         |
+| Models               | `fal-ai/got-ocr/v2`, `fal-ai/florence-2-large/ocr` |
+| Direct input support | `PNG`, `JPG`, `WEBP`; rendered PDF/EPUB pages      |
+
+```bash
+bun autoshow extract input/examples/document/1-document.pdf --provider fal=fal-ai/got-ocr/v2
+bun autoshow extract input/examples/document/1-document.pdf --provider fal=fal-ai/florence-2-large/ocr
+```
+
+Specialty models for formatted documents, tables, charts, mathematical/chemical formulas, geometric shapes, and dense structured layouts.
 
 ## OCR Notes
 
-- Standalone `extract` document runs write the root extraction artifact (`extraction.txt` or a raw domain `result.json`) plus the canonical `manifest.json`.
-- EPUB export and PDF chapter autodetection write additive `chapters/` or `chunks/` side artifacts inside the same output directory.
-- Supported document formats include PDF, EPUB, ACSM, MOBI, AZW/AZW3, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, and CBZ.
-- Supported image formats include PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, and GIF.
-- Office inputs always use native extraction; OCR flags are ignored with a warning.
+- Standalone `extract` document runs write the root extraction artifact (`extraction.txt` or a raw domain `result.json`) plus canonical `manifest.json`.
+- EPUB export and PDF chapter autodetection write additive `chapters/` side artifacts inside the output directory.
+- Office inputs always use native text/XML extraction; OCR flags are ignored with a warning.
 - Config defaults can persist chapter export settings under `defaults.extract.ocr.chapters`, `defaults.extract.ocr.length`, and `defaults.extract.ocr.pdfChapterMode`.
 - Backfill existing OCR outputs with top-level [`resume`](../../setup-and-utilities/resume/resume.md).
-- Grok OCR refers to xAI `grok-4.3`. Groq `openai/gpt-oss-20b` and `openai/gpt-oss-120b` are LLM text models in this project and are not OCR benchmark targets.
-- MiniMax `MiniMax-M3` and GLM `glm-5.1` are LLM text models here. Use `glm-ocr` for GLM OCR coverage.
 
 ## Incomplete Runs and Blocked Providers
 
 Hosted OCR provider failures are classified as retryable or blocked before any retry is scheduled. Transient failures (timeouts, network errors, temporary `5xx`, genuine rate limits) stay retryable; provider-declared blockers (insufficient balance, billing required, account suspension, quota exhaustion, content-policy blocks, auth failures, and provider no-retry responses) are marked `retryable: false` and stop new page work for that provider while other requested providers continue.
 
 - A multi-provider run where at least one selected provider succeeds and another does not keeps item `status: "incomplete"`, and successful provider outputs remain usable under `providers/<service>-<model>/`.
-- The incomplete-run summary prints a Run Status table (requested/succeeded/failed/missing/retryable/blocked counts) and a Provider Failures table with the failure class, retryability, retry attempts spent, and page fallback counts (`ok / failed / canceled`) when PDF page fallback ran.
-- Each failed provider writes a redacted `error.json` (plus optional raw-response artifacts); PDF page fallback writes an auditable `fallback-state.json` recording the fallback reason, per-page cached/resumed/succeeded/failed/canceled status, chunk preparation strategy, and split-tool failures. Split-tool warnings are prefixed with the provider label.
-- Automatic `resume` skips provider entries whose canonical error state is non-retryable or blocked; explicit `resume <dir> --provider provider=model` re-opts into that provider after you fix the balance, billing, credentials, policy, or model cause.
+- The incomplete-run summary prints a Run Status table and a Provider Failures table with the failure class, retryability, retry attempts spent, and page fallback counts.
+- Each failed provider writes a redacted `error.json` (plus optional raw-response artifacts); PDF page fallback writes an auditable `fallback-state.json`.
+- Automatic `resume` skips provider entries whose canonical error state is non-retryable or blocked; explicit `resume <dir> --provider provider=model` re-opts into that provider after fixing the underlying cause.
+
+## Provider Capabilities
+
+Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.md#provider-capabilities): ✅ supported in AutoShow, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Recency marks follow the TTS convention: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first.
+
+Pricing is the AutoShow registry rate. Cost rank orders models cheapest-first within each table (1 = cheapest) and ties share a rank; token-priced models rank on the registry-estimated cost per 1,000 pages (per-page token estimates times token rates), shown as the ≈ figure.
+
+`--format text|json|tsv|hocr` is available for every engine. Written TSV and hOCR artifacts are synthesized from page text for all providers. Password PDFs are decrypted before upload or render except Anthropic, which rejects encrypted PDFs.
+
+### Dedicated OCR
+
+| Provider                             | Released      | Kind                    | Native PDF            | Images                      | Image cap      | PDF cap        | Pages          | Markdown                         | Tables / formulas / layout                                            | BBoxes                               | Password PDFs          | Pool   | Pricing                                              | Cost rank |
+| ------------------------------------ | ------------- | ----------------------- | --------------------- | --------------------------- | -------------- | -------------- | -------------- | -------------------------------- | --------------------------------------------------------------------- | ------------------------------------ | ---------------------- | ------ | ---------------------------------------------------- | --------- |
+| Mistral `mistral-ocr-4-0`            | ✅ 2026-06-23 | ✅ Hosted dedicated OCR | ✅ Native PDF upload  | ✅ PNG JPG TIF              | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ✅ Per-page markdown             | ⚠️ BBox and block labels exist; AutoShow does not request annotations | ❌ Not requested                     | ✅ Decrypt then upload | ✅ Yes | $4.00/1k pages                                       | 5/8       |
+| GLM `glm-ocr`                        | ✅ 2026-02    | ✅ Hosted layout OCR    | ✅ Native PDF upload  | ✅ PNG JPG                  | ❌ 10 MB       | ⚠️ 50 MB       | ❌ 100 pages   | ✅ `md_results`                  | ✅ Tables, formulas, seals, handwriting claimed                       | ⚠️ `bbox_2d` returned, not persisted | ✅ Decrypt then upload | ✅ Yes | $0.03 in / $0.03 out per 1M tokens (≈$0.09/1k pages) | 1/8       |
+| Mistral `mistral-ocr-2512`           | ⚠️ 2025-12    | ✅ Hosted dedicated OCR | ✅ Native PDF upload  | ✅ PNG JPG TIF              | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ✅ Per-page markdown             | ⚠️ Layout in markdown; annotations unused                             | ❌ Not requested                     | ✅ Decrypt then upload | ✅ Yes | $2.00/1k pages                                       | 2/8       |
+| Replicate `lucataco/deepseek-ocr`    | ⚠️ 2025-10-21 | ✅ Hosted dedicated OCR | ⚠️ Rendered PNG pages | ✅ One image per prediction | ⚠️ Unpublished | ⚠️ N/A         | ⚠️ N/A         | ✅ Convert to Markdown           | ⚠️ Markdown structure                                                 | ❌ No                                | ✅ Render then upload  | ❌ No  | $3.30/1k pages                                       | 4/8       |
+| Replicate `datalab-to/ocr`           | ⚠️ 2025-10    | ✅ Hosted dedicated OCR | ✅ Native PDF upload  | ✅ PNG JPG WEBP             | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ When the API returns markdown | ⚠️ Document OCR                                                       | ❌ Not requested                     | ✅ Decrypt then upload | ❌ No  | $2.00/1k pages                                       | 2/8       |
+| Replicate `datalab-to/marker`        | ❌ 2024-11    | ✅ Hosted dedicated OCR | ✅ Native PDF upload  | ✅ PNG JPG WEBP             | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ Unpublished | ⚠️ When the API returns markdown | ⚠️ Fast mode only; accurate/`page_schema` unused                      | ❌ Not exposed                       | ✅ Decrypt then upload | ❌ No  | $4.00/1k pages                                       | 5/8       |
+| fal.ai `fal-ai/got-ocr/v2`           | ❌ 2024-09    | ✅ Hosted specialty OCR | ⚠️ Rendered PNG pages | ✅ PNG JPG WEBP             | ⚠️ Unpublished | ⚠️ N/A         | ⚠️ N/A         | ⚠️ `do_format=true`              | ✅ Tables, charts, formulas, dense layout                             | ❌ No                                | ✅ Render then upload  | ❌ No  | $50.00/1k pages                                      | 8/8       |
+| fal.ai `fal-ai/florence-2-large/ocr` | ❌ 2024-06-17 | ✅ Hosted general OCR   | ⚠️ Rendered PNG pages | ✅ PNG JPG WEBP             | ⚠️ Unpublished | ⚠️ N/A         | ⚠️ N/A         | ❌ Plain `results`               | ❌ General OCR only                                                   | ❌ No                                | ✅ Render then upload  | ❌ No  | $7.55/1k pages                                       | 7/8       |
+
+### Frontier VLMs
+
+| Provider                            | Released      | Kind                   | Native PDF                   | Images              | Image cap          | PDF cap          | Pages          | Structured pages           | Reasoning                     | Password PDFs              | Pool   | Pricing                                          | Cost rank |
+| ----------------------------------- | ------------- | ---------------------- | ---------------------------- | ------------------- | ------------------ | ---------------- | -------------- | -------------------------- | ----------------------------- | -------------------------- | ------ | ------------------------------------------------ | --------- |
+| OpenAI `gpt-5.6-terra`              | ✅ 2026-08    | ⚠️ VLM Responses       | ✅ Native PDF                | ✅ PNG JPG WEBP GIF | ⚠️ Request payload | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON page schema        | ✅ Optional through max       | ✅ Decrypt then upload     | ✅ Yes | $2.00 / $12.00 per 1M tokens (≈$12.17/1k pages)  | 12/20     |
+| OpenAI `gpt-5.6-luna`               | ✅ 2026-08    | ⚠️ VLM Responses       | ✅ Native PDF                | ✅ PNG JPG WEBP GIF | ⚠️ Request payload | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON page schema        | ✅ Optional through max       | ✅ Decrypt then upload     | ✅ Yes | $0.20 / $1.20 per 1M tokens (≈$1.35/1k pages)    | 1/20      |
+| Gemini `gemini-3.5-flash-lite`      | ✅ 2026-08    | ⚠️ VLM GenerateContent | ✅ Inline 50 MB / Files 2 GB | ✅ PNG JPG WEBP BMP | ✅ 2 GB            | ✅ 2 GB          | ✅ 1000 pages  | ✅ Native JSON schema      | ✅ Optional including minimal | ✅ Decrypt then upload     | ✅ Yes | $0.30 / $2.50 per 1M tokens (≈$4.41/1k pages)    | 5/20      |
+| OpenAI `gpt-5.6-sol`                | ✅ 2026-07    | ⚠️ VLM Responses       | ✅ Native PDF                | ✅ PNG JPG WEBP GIF | ⚠️ Request payload | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON page schema        | ✅ Optional through max       | ✅ Decrypt then upload     | ✅ Yes | $5.00 / $30.00 per 1M tokens (≈$36.33/1k pages)  | 18/20     |
+| Anthropic `claude-sonnet-5`         | ✅ 2026-07    | ⚠️ VLM Messages        | ✅ Unencrypted Files API     | ✅ PNG JPG WEBP GIF | ❌ 5 MB            | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ Prompted JSON pages     | ✅ Optional through max       | ❌ Encrypted PDFs rejected | ✅ Yes | $2.00 / $10.00 per 1M tokens (≈$8.06/1k pages)   | 9/20      |
+| Anthropic `claude-opus-5`           | ✅ 2026-07    | ⚠️ VLM Messages        | ✅ Unencrypted Files API     | ✅ PNG JPG WEBP GIF | ❌ 5 MB            | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ Prompted JSON pages     | ✅ Optional, on by default    | ❌ Encrypted PDFs rejected | ✅ Yes | $5.00 / $25.00 per 1M tokens (≈$20.15/1k pages)  | 15/20     |
+| Gemini `gemini-3.6-flash`           | ✅ 2026-07    | ⚠️ VLM GenerateContent | ✅ Inline 50 MB / Files 2 GB | ✅ PNG JPG WEBP BMP | ✅ 2 GB            | ✅ 2 GB          | ✅ 1000 pages  | ✅ Native JSON schema      | ✅ Optional including minimal | ✅ Decrypt then upload     | ✅ Yes | $1.50 / $7.50 per 1M tokens (≈$13.93/1k pages)   | 13/20     |
+| Grok `grok-4.5`                     | ✅ 2026-07    | ⚠️ VLM chat            | ⚠️ Rendered PNG pages        | ✅ PNG JPG          | ❌ 20 MiB          | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text prompt       | ✅ Required                   | ✅ Render then upload      | ✅ Yes | $2.00 / $6.00 per 1M tokens (≈$14.00/1k pages)   | 14/20     |
+| Kimi `kimi-k3`                      | ✅ 2026-07    | ⚠️ VLM chat            | ⚠️ Rendered PNG pages        | ✅ PNG JPG WEBP GIF | ⚠️ 100 MB          | ⚠️ N/A           | ⚠️ N/A         | ❌ Prompt forbids markdown | ✅ Required effort            | ✅ Render then upload      | ✅ Yes | $3.00 / $15.00 per 1M tokens (≈$20.54/1k pages)  | 17/20     |
+| Anthropic `claude-fable-5`          | ✅ 2026-06-09 | ⚠️ VLM Messages        | ✅ Unencrypted Files API     | ✅ PNG JPG WEBP GIF | ❌ 5 MB            | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ Prompted JSON pages     | ✅ Required adaptive thinking | ❌ Encrypted PDFs rejected | ✅ Yes | $10.00 / $50.00 per 1M tokens (≈$63.69/1k pages) | 19/20     |
+| Gemini `gemini-3.5-flash`           | ✅ 2026-06    | ⚠️ VLM GenerateContent | ✅ Inline 50 MB / Files 2 GB | ✅ PNG JPG WEBP BMP | ✅ 2 GB            | ✅ 2 GB          | ✅ 1000 pages  | ✅ Native JSON schema      | ✅ Optional including minimal | ✅ Decrypt then upload     | ✅ Yes | $1.50 / $9.00 per 1M tokens (≈$7.31/1k pages)    | 7/20      |
+| Anthropic `claude-opus-4-8`         | ✅ 2026-05    | ⚠️ VLM Messages        | ✅ Unencrypted Files API     | ✅ PNG JPG WEBP GIF | ❌ 5 MB            | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ Prompted JSON pages     | ✅ Optional through max       | ❌ Encrypted PDFs rejected | ✅ Yes | $5.00 / $25.00 per 1M tokens (≈$20.15/1k pages)  | 15/20     |
+| Grok `grok-4.3`                     | ✅ 2026-05    | ⚠️ VLM chat            | ⚠️ Rendered PNG pages        | ✅ PNG JPG          | ❌ 20 MiB          | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text prompt       | ❌ Unsupported                | ✅ Render then upload      | ✅ Yes | $1.25 / $2.50 per 1M tokens (≈$7.50/1k pages)    | 8/20      |
+| OpenAI `gpt-5.5`                    | ✅ 2026-04-23 | ⚠️ VLM Responses       | ✅ Native PDF                | ✅ PNG JPG WEBP GIF | ⚠️ Request payload | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON page schema        | ✅ Optional through high      | ✅ Decrypt then upload     | ✅ Yes | $5.00 / $30.00 per 1M tokens (≈$72.02/1k pages)  | 20/20     |
+| OpenAI `gpt-5.4-mini`               | ✅ 2026-03-17 | ⚠️ VLM Responses       | ✅ Native PDF                | ✅ PNG JPG WEBP GIF | ⚠️ Request payload | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON page schema        | ✅ Optional through high      | ✅ Decrypt then upload     | ✅ Yes | $0.75 / $4.50 per 1M tokens (≈$10.54/1k pages)   | 11/20     |
+| OpenAI `gpt-5.4-nano`               | ✅ 2026-03-17 | ⚠️ VLM Responses       | ✅ Native PDF                | ✅ PNG JPG WEBP GIF | ⚠️ Request payload | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON page schema        | ✅ Optional through high      | ✅ Decrypt then upload     | ✅ Yes | $0.20 / $1.25 per 1M tokens (≈$2.90/1k pages)    | 2/20      |
+| Grok `grok-4.20-0309-non-reasoning` | ✅ 2026-03-09 | ⚠️ VLM chat            | ⚠️ Rendered PNG pages        | ✅ PNG JPG          | ❌ 20 MiB          | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text prompt       | ❌ Unsupported                | ✅ Render then upload      | ✅ Yes | $1.25 / $2.50 per 1M tokens (≈$4.16/1k pages)    | 4/20      |
+| Kimi `kimi-k2.6`                    | ⚠️ 2026-01    | ⚠️ VLM chat            | ⚠️ Rendered PNG pages        | ✅ PNG JPG WEBP GIF | ⚠️ 100 MB          | ⚠️ N/A           | ⚠️ N/A         | ❌ Prompt forbids markdown | ⚠️ Optional thinking          | ✅ Render then upload      | ✅ Yes | $0.95 / $4.00 per 1M tokens (≈$6.12/1k pages)    | 6/20      |
+| Gemini `gemini-3.1-pro-preview`     | ⚠️ 2025-12    | ⚠️ VLM GenerateContent | ✅ Inline 50 MB / Files 2 GB | ✅ PNG JPG WEBP BMP | ✅ 2 GB            | ✅ 2 GB          | ✅ 1000 pages  | ✅ Native JSON schema      | ✅ Optional through high      | ✅ Decrypt then upload     | ✅ Yes | $2.00 / $12.00 per 1M tokens (≈$9.52/1k pages)   | 10/20     |
+| Anthropic `claude-haiku-4-5`        | ⚠️ 2025-10-01 | ⚠️ VLM Messages        | ✅ Unencrypted Files API     | ✅ PNG JPG WEBP GIF | ❌ 5 MB            | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ Prompted JSON pages     | ❌ Unsupported                | ❌ Encrypted PDFs rejected | ✅ Yes | $1.00 / $5.00 per 1M tokens (≈$4.03/1k pages)    | 3/20      |
+
+### Hosted open VLMs
+
+| Provider                                                  | Released      | Kind        | Native PDF            | Images          | Image cap | PDF cap | Pages  | Structured pages     | Reasoning      | Password PDFs         | Pool   | Pricing                                        | Cost rank |
+| --------------------------------------------------------- | ------------- | ----------- | --------------------- | --------------- | --------- | ------- | ------ | -------------------- | -------------- | --------------------- | ------ | ---------------------------------------------- | --------- |
+| DeepInfra `Qwen/Qwen3-VL-235B-A22B-Instruct`              | ⚠️ 2025-09-23 | ⚠️ VLM chat | ⚠️ Rendered PNG pages | ✅ PNG JPG WEBP | ❌ 20 MB  | ⚠️ N/A  | ⚠️ N/A | ❌ Plain text prompt | ❌ Unsupported | ✅ Render then upload | ✅ Yes | $0.20 / $0.88 per 1M tokens (≈$1.28/1k pages)  | 4/5       |
+| DeepInfra `Qwen/Qwen3-VL-30B-A3B-Instruct`                | ⚠️ 2025-09-23 | ⚠️ VLM chat | ⚠️ Rendered PNG pages | ✅ PNG JPG WEBP | ❌ 20 MB  | ⚠️ N/A  | ⚠️ N/A | ❌ Plain text prompt | ❌ Unsupported | ✅ Render then upload | ✅ Yes | $0.15 / $0.60 per 1M tokens (≈$1.48/1k pages)  | 5/5       |
+| DeepInfra `mistralai/Mistral-Small-3.2-24B-Instruct-2506` | ⚠️ 2025-06-20 | ⚠️ VLM chat | ⚠️ Rendered PNG pages | ✅ PNG JPG WEBP | ❌ 20 MB  | ⚠️ N/A  | ⚠️ N/A | ❌ Plain text prompt | ❌ Unsupported | ✅ Render then upload | ✅ Yes | $0.075 / $0.20 per 1M tokens (≈$0.69/1k pages) | 1/5       |
+| DeepInfra `meta-llama/Llama-4-Scout-17B-16E-Instruct`     | ❌ 2025-04-05 | ⚠️ VLM chat | ⚠️ Rendered PNG pages | ✅ PNG JPG WEBP | ❌ 20 MB  | ⚠️ N/A  | ⚠️ N/A | ❌ Plain text prompt | ❌ Unsupported | ✅ Render then upload | ✅ Yes | $0.10 / $0.30 per 1M tokens (≈$0.94/1k pages)  | 3/5       |
+| DeepInfra `google/gemma-3-27b-it`                         | ❌ 2025-03-12 | ⚠️ VLM chat | ⚠️ Rendered PNG pages | ✅ PNG JPG WEBP | ❌ 20 MB  | ⚠️ N/A  | ⚠️ N/A | ❌ Plain text prompt | ❌ Unsupported | ✅ Render then upload | ✅ Yes | $0.08 / $0.16 per 1M tokens (≈$0.71/1k pages)  | 2/5       |
+
+Mistral OCR 4 can return bounding boxes, block types, and confidence when annotations are requested; AutoShow uses non-annotated markdown extraction. GLM returns layout labels and `bbox_2d` but AutoShow joins text only. Claude Fable 5 requires 30-day data retention and is unavailable under ZDR. Replicate and fal.ai targets are not pool-eligible. WEBP, GIF, and BMP normalize to PNG when a provider accepts PNG; TIF/TIFF normalize through ImageMagick when available.
+
+OCR test coverage is documented in [Step 2 Tests: OCR](06-extract-ocr-tests.md).

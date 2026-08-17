@@ -1,6 +1,6 @@
 import { beforeAll, afterAll } from 'bun:test'
 import { cleanupTestOutput, STABLE_EXAMPLE_AUDIO_URL, STABLE_EXAMPLE_AUDIO_TITLE } from '../../../../../../test-utils/test-helpers'
-import { budgetedTest } from '../../../../../../test-utils/budget'
+import { budgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../../test-utils/budget'
 import { runCommandAndExpectOutputDir } from '../../../../../../test-utils/service-test-kit'
 import { assertSttExtractRun } from '../../../../../../test-utils/assert-stt-extract-run'
 
@@ -28,7 +28,7 @@ budgetedTest('transcribe-whisper-large-v3-turbo', 'whisper large-v3-turbo model 
   const outputDir = await runCommandAndExpectOutputDir(
     STABLE_EXAMPLE_AUDIO_TITLE,
     ['src/cli/create-cli.ts', 'extract', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'whisper=large-v3-turbo'],
-    { testName }
+    { testName, timeoutMs: LONG_E2E_TEST_TIMEOUT_MS }
   )
 
   await assertSttExtractRun(outputDir, {
@@ -40,7 +40,7 @@ budgetedTest('transcribe-whisper-large-v3-turbo', 'whisper large-v3-turbo model 
     providerStates: true,
     splitSegmentsDir: false
   })
-})
+}, LONG_E2E_TEST_TIMEOUT_MS)
 
 budgetedTest('transcribe-whisper-tiny-split', 'whisper tiny with split processes video input', async () => {
   await cleanupVideoOutput()
@@ -49,7 +49,7 @@ budgetedTest('transcribe-whisper-tiny-split', 'whisper tiny with split processes
   const outputDir = await runCommandAndExpectOutputDir(
     videoTitleSuffix,
     ['src/cli/create-cli.ts', 'extract', videoInputPath, '--provider', 'whisper=tiny', '--split'],
-    { testName }
+    { testName, timeoutMs: LONG_E2E_TEST_TIMEOUT_MS }
   )
 
   await assertSttExtractRun(outputDir, {
@@ -61,4 +61,4 @@ budgetedTest('transcribe-whisper-tiny-split', 'whisper tiny with split processes
     providerStates: true,
     splitSegmentsDir: 'split-attempts/pass_001/segments'
   })
-})
+}, LONG_E2E_TEST_TIMEOUT_MS)

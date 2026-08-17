@@ -19,16 +19,20 @@ import {
   roundMs,
   withNormalizedTiming,
 } from './timing-shared'
+import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 const buildSinglePagePdfFallbackStep = (
   params: ExtractStepBuildParams & { singlePagePdfFallbackMsPerPage: number }
 ): { entry: TimingStepEntry, confidence: EstimateConfidence } => {
   const { target, resolvedPageCount, estimation, pageConcurrency, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount, rasterizedPages, singlePagePdfFallbackPages, singlePagePdfFallbackMsPerPage } = params
   const directPdfPages = Math.max(0, resolvedPageCount - singlePagePdfFallbackPages)
-  const registryProcessingTimeMs = roundMs(computePoolWallTimeMs([
+  const pageDurations = [
     ...Array.from({ length: directPdfPages }, () => estimation.msPerPage),
     ...Array.from({ length: singlePagePdfFallbackPages }, () => singlePagePdfFallbackMsPerPage)
-  ], pageConcurrency))
+  ]
+  const registryProcessingTimeMs = roundMs(params.isHostedOcr
+    ? estimateHostedConcurrencyWallTimeMs(pageDurations, pageConcurrency, params.concurrencyMode)
+    : computePoolWallTimeMs(pageDurations, pageConcurrency))
   const timed = resolveHostedOcrTiming(target, resolvedPageCount, registryProcessingTimeMs, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount)
   const sharedProviderLaneScale = resolveSharedProviderLaneScale(sharedProviderLaneTargetCount, timed.profileLaneTargetCount)
   const processingTimeMs = applySharedProviderLaneScale(timed.processingTimeMs, sharedProviderLaneTargetCount, timed.profileLaneTargetCount)
@@ -69,10 +73,13 @@ const buildRasterizedFallbackStep = (
   const { target, resolvedPageCount, estimation, pageConcurrency, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount, rasterizedPages } = params
   const directPdfPages = Math.max(0, resolvedPageCount - rasterizedPages)
   const msPerPage = estimation.msPerPage
-  const registryProcessingTimeMs = roundMs(computePoolWallTimeMs([
+  const pageDurations = [
     ...Array.from({ length: directPdfPages }, () => msPerPage),
     ...Array.from({ length: rasterizedPages }, () => msPerPage * RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER)
-  ], pageConcurrency))
+  ]
+  const registryProcessingTimeMs = roundMs(params.isHostedOcr
+    ? estimateHostedConcurrencyWallTimeMs(pageDurations, pageConcurrency, params.concurrencyMode)
+    : computePoolWallTimeMs(pageDurations, pageConcurrency))
   const timed = resolveHostedOcrTiming(target, resolvedPageCount, registryProcessingTimeMs, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount)
   const sharedProviderLaneScale = resolveSharedProviderLaneScale(sharedProviderLaneTargetCount, timed.profileLaneTargetCount)
   const processingTimeMs = applySharedProviderLaneScale(timed.processingTimeMs, sharedProviderLaneTargetCount, timed.profileLaneTargetCount)
@@ -153,6 +160,12 @@ export const buildExtractTimingSteps = (input: ComputeEstimatedProcessingTimesIn
         ...(input.mistralOcrModel && typeof input.extractPageCount === 'number'
           ? [{ provider: 'mistral' as const, model: input.mistralOcrModel, pageCount: input.extractPageCount }]
           : []),
+        ...(input.replicateOcrModel && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'replicate' as const, model: input.replicateOcrModel, pageCount: input.extractPageCount }]
+          : []),
+        ...(input.falOcrModel && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'fal' as const, model: input.falOcrModel, pageCount: input.extractPageCount }]
+          : []),
         ...(input.glmOcrModel && typeof input.extractPageCount === 'number'
           ? [{ provider: 'glm' as const, model: input.glmOcrModel, pageCount: input.extractPageCount }]
           : []),
@@ -207,7 +220,9 @@ export const buildExtractTimingSteps = (input: ComputeEstimatedProcessingTimesIn
     const baseParams: ExtractStepBuildParams = {
       target,
       resolvedPageCount: resolved.pageCount,
-      resolvedProcessingTimeMs: resolved.processingTimeMs,
+      resolvedProcessingTimeMs: isHostedOcr
+        ? estimateHostedConcurrencyWallTimeMs(Array.from({ length: resolved.pageCount }, () => estimation.msPerPage), pageConcurrency, input.concurrencyMode ?? 'ramp')
+        : resolved.processingTimeMs,
       estimation,
       pageConcurrency,
       ocrConcurrencyMode,
@@ -217,6 +232,7 @@ export const buildExtractTimingSteps = (input: ComputeEstimatedProcessingTimesIn
       singlePagePdfFallbackPages,
       isPooledOcr,
       isHostedOcr,
+      concurrencyMode: input.concurrencyMode ?? 'ramp',
     }
     if (singlePagePdfFallbackPages > 0 && typeof estimation.singlePagePdfFallbackMsPerPage === 'number') {
       const { entry, confidence } = buildSinglePagePdfFallbackStep({

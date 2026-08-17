@@ -1,5 +1,5 @@
 import type { PriceSelectionEntry } from '~/types'
-import { command, exact, prefix } from '../helpers'
+import { command, exact } from '../helpers'
 
 export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/whisper-default.test.ts', [
@@ -13,9 +13,6 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/whisper-large-v3-turbo.test.ts', [
     command('transcribe-whisper-large-v3-turbo', 'transcribe-whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'whisper=large-v3-turbo', '--price']),
     command('transcribe-whisper-tiny-split', 'transcribe-whisper-tiny-split', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/2-video.mp4', '--provider', 'whisper=tiny', '--split', '--price']),
-  ]),
-  ...prefix('test/test-cases/e2e/local/step-2-stt-e2e/stt-local/reverb/', [
-    command('transcribe-reverb', 'transcribe-reverb', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'reverb', '--stt-reverb-verbatimicity', '0.5', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/assemblyai-current-models.test.ts', [
     command('transcribe-assemblyai-universal-3-5-pro', 'transcribe-assemblyai-universal-3-5-pro', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'assemblyai=universal-3-5-pro', '--price']),

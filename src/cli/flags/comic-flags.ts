@@ -18,6 +18,7 @@ import {
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
+import { sharedConcurrencyFlags } from './shared-flags'
 
 // These tables are both the native parser definitions and the comic help metadata.
 
@@ -26,7 +27,8 @@ const comicPriceFlag = {
 } as const satisfies CliFlagsDefinition
 
 const comicConcurrencyFlag = {
-  concurrency: strFlag(colorizeHelpDescription(`Number of image/prompt tasks to run in parallel (default: ${DEFAULT_CLI_CONCURRENCY})`))
+  concurrency: strFlag(colorizeHelpDescription(`Number of image/prompt tasks to run in parallel (default: ${DEFAULT_CLI_CONCURRENCY})`)),
+  'concurrency-mode': sharedConcurrencyFlags['concurrency-mode']
 } as const satisfies CliFlagsDefinition
 
 const comicImageFlags = {
@@ -91,11 +93,18 @@ export const generateImagesFlags = {
 const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
   'provider',
   'all-providers',
-  'all-local',
   'provider-concurrency',
   'local-concurrency',
   'tts-chunk-concurrency',
+  'concurrency-mode',
 ])
+
+const comicSoundscapeSelectionFlags = {
+  'sfx-provider': strFlag(colorizeHelpDescription('Dedicated sound-effect target as provider=model; accepts elevenlabs=eleven_text_to_sound_v2, replicate=sepal/audiogen@<pinned-version>, or stability=stable-audio-3 and has no hosted default')),
+  'sfx-license-use': strFlag(colorizeHelpDescription('Required intended-use declaration for license-restricted SFX targets: noncommercial|commercial|unknown; never inferred from model selection')),
+  'sfx-concurrency': strFlag(colorizeHelpDescription('Bounded parallel sound-effect requests (default: 2)')),
+  'soundscape-timing-policy': strFlag(colorizeHelpDescription('Inline cue timing: strict|proportional; proportional records its estimate and error bound (default: strict)')),
+} as const satisfies CliFlagsDefinition
 
 const comicAudioContractFlags = {
   profile: strFlag(colorizeHelpDescription('Approved casting profile key (default: default)')),
@@ -105,15 +114,33 @@ const comicAudioContractFlags = {
   'allow-ambiguous-redispatch': boolFlag(colorizeHelpDescription('Explicitly authorize repurchasing a provider-admitted slot that has no recoverable audio')),
   'max-generation-slots': strFlag(colorizeHelpDescription('Generate at most this many unresolved immutable slots, checkpoint, and exit without a final WAV')),
   role: strListFlag(colorizeHelpDescription('Map an uncatalogued or compound speaker label to a logical voice subject, LABEL=role:key or LABEL=voice:key; repeatable')),
-  'sample-rate': strFlag(colorizeHelpDescription('Final WAV sample rate in Hz (default: 48000)')),
-  channels: strFlag(colorizeHelpDescription('Final channel count: 1|2 (default: 2)')),
-  codec: strFlag(colorizeHelpDescription('Final PCM codec: pcm_s16le|pcm_s24le (default: pcm_s24le)')),
+  slideshow: boolFlag(colorizeHelpDescription('Automatically render the synchronized still-panel MP4 video upon audio completion')),
+  'panel-video': {
+    ...boolFlag(colorizeHelpDescription('Alias for --slideshow')),
+    help: { hidden: true }
+  },
 } as const satisfies CliFlagsDefinition
 
 export const comicGenerateAudioFlags = {
   ...withHelpGroup(comicAudioSelectionFlags, 'provider-selection'),
+  ...withHelpGroup(comicSoundscapeSelectionFlags, 'provider-selection'),
   ...withHelpGroup(comicAudioContractFlags, 'comic-audio'),
   ...withHelpGroup(comicPriceFlag, 'pricing'),
+} as const satisfies CliFlagsDefinition
+
+const comicPresentationFlags = {
+  'audio-target': strFlag(colorizeHelpDescription('Select one complete canonical audio run as provider=model; inferred only when selection is unambiguous')),
+  'untimed-panel-ms': strFlag(colorizeHelpDescription('Hold duration for a panel without dialogue or a discrete effect (default: 2000)')),
+  fps: strFlag(colorizeHelpDescription('Constant output frame rate from 1 through 120 (default: 30)')),
+} as const satisfies CliFlagsDefinition
+
+const comicPresentationPriceFlag = {
+  price: boolFlag(colorizeHelpDescription('Report the $0 local render cost without provider calls or writes')),
+} as const satisfies CliFlagsDefinition
+
+export const comicGenerateSlideshowFlags = {
+  ...withHelpGroup(comicPresentationFlags, 'comic-presentation'),
+  ...withHelpGroup(comicPresentationPriceFlag, 'pricing'),
 } as const satisfies CliFlagsDefinition
 
 const referenceSketchSheetFlags = {

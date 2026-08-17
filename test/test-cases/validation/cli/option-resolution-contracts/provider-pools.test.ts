@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { runOcrProviderTargetPools, isLocalOcrTarget } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool'
-import { runLlmProviderTargetPools, isLocalLlmTarget } from '~/cli/commands/process-steps/step-3-write/llm-provider-pool'
+import { runLlmProviderTargetPools } from '~/cli/commands/process-steps/step-3-write/llm-provider-pool'
 import type { LLMTarget, OcrTarget, Step3Metadata } from '~/types'
 
 describe('option resolution contracts', () => {
@@ -36,7 +36,7 @@ describe('option resolution contracts', () => {
       expect([...completedIndices].sort((left, right) => left - right)).toEqual([0, 1, 2, 3, 4])
     })
 
-  test('LLM provider pools enforce hosted and local limits independently and preserve target indexes', async () => {
+  test('LLM provider pools enforce hosted limits and preserve target indexes', async () => {
       const metadata = (service: Step3Metadata['llmService'], model: string): Step3Metadata => ({
         llmService: service,
         llmModel: model,
@@ -55,36 +55,32 @@ describe('option resolution contracts', () => {
         run: async () => ({ result: '{}', metadata: metadata(service, model) })
       })
       const targets: LLMTarget[] = [
-        target('llama.cpp', 'local-a'),
         target('openai', 'hosted-a'),
         target('groq', 'hosted-b'),
         target('glm', 'hosted-glm'),
         target('together', 'hosted-together'),
         target('cerebras', 'hosted-cerebras'),
-        target('llama.cpp', 'local-b'),
         target('gemini', 'hosted-c')
       ]
-      const active = { local: 0, hosted: 0, total: 0 }
-      const max = { local: 0, hosted: 0, total: 0 }
+      const active = { hosted: 0, total: 0 }
+      const max = { hosted: 0, total: 0 }
       const orderedModels: string[] = []
 
       await runLlmProviderTargetPools(targets, { provider: 2, local: 1 }, async (index, llmTarget) => {
-        const group = isLocalLlmTarget(llmTarget) ? 'local' : 'hosted'
-        active[group] += 1
+        active.hosted += 1
         active.total += 1
-        max[group] = Math.max(max[group], active[group])
+        max.hosted = Math.max(max.hosted, active.hosted)
         max.total = Math.max(max.total, active.total)
 
         await Bun.sleep(5)
 
         orderedModels[index] = llmTarget.model
-        active[group] -= 1
+        active.hosted -= 1
         active.total -= 1
       })
 
-      expect(max.local).toBe(1)
       expect(max.hosted).toBe(2)
-      expect(max.total).toBe(3)
+      expect(max.total).toBe(2)
       expect(orderedModels).toEqual(targets.map((entry) => entry.model))
     })
 })

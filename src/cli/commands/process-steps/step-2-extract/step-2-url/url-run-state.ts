@@ -11,6 +11,7 @@ import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-c
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { buildArticleSlug } from '~/cli/commands/process-steps/step-1-download/document/prepare-html-article'
 import { runProviderTargetScheduler } from '../../provider-target-scheduler'
+import { runHostedConcurrencyRequest } from '../../hosted-concurrency-coordinator'
 import { URL_ARTICLE_BACKENDS } from '../step-2-shared/provider-registry'
 import { collectEstimatedExtractTargets, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from '../step-2-ocr/ocr-costs'
 import { runUrlArticleProviderWithStats } from './url-provider-registry'
@@ -386,7 +387,7 @@ export const runAllUrlBackends = async (
   source: string,
   requestedBackends: HtmlArticleBackend[],
   sourceUrl: string | undefined,
-  opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts'>,
+  opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts' | 'hostedConcurrencyCoordinator'>,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
 ): Promise<UrlProviderRunOutcome[]> => {
   const urlRunOptions = buildUrlRunOptions(opts)
@@ -400,31 +401,37 @@ export const runAllUrlBackends = async (
       provider: opts.urlProviderConcurrency,
       local: 1
     },
+    hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator,
+    hostedWorkClass: 'url',
+    getHostedProvider: (backend) => backend,
+    getHostedWorkId: (index, backend) => `url:${backend}:${sourceUrl ?? source}:${index}`,
     getPool: (backend) => isLocalUrlBackend(backend) ? 'local' : 'hosted',
-    runTarget: async (_index, backend) => {
-      try {
-        const success = await runWithLogContext({ step: 'step-2-url', provider: backend }, async () =>
-          await runUrlBackendDirect(source, backend, sourceUrl, extractionOpts, urlRunOptions)
-        )
-        return { status: 'succeeded', success }
-      } catch (error) {
-        return {
-          status: 'failed',
-          backend,
-          message: formatErrorMessage(error),
-          attempts: getErrorAttempts(error)
-        }
-      }
-    }
+    runTarget: async (_index, backend) => ({
+      status: 'succeeded' as const,
+      success: await runWithLogContext({ step: 'step-2-url', provider: backend }, async () =>
+        await runUrlBackendDirect(source, backend, sourceUrl, extractionOpts, urlRunOptions)
+      )
+    })
   })
 
-  return scheduled.results.filter((entry): entry is UrlProviderRunOutcome => entry !== undefined)
+  const telemetry = opts.hostedConcurrencyCoordinator?.snapshot()
+  return [
+    ...scheduled.results.filter((entry): entry is UrlProviderRunOutcome => entry !== undefined).map((entry) => entry.status === 'succeeded' && telemetry
+      ? { ...entry, success: { ...entry.success, metadata: { ...entry.success.metadata, hostedConcurrency: telemetry } } }
+      : entry),
+    ...scheduled.failures.map(({ target: backend, error, message }) => ({
+      status: 'failed' as const,
+      backend,
+      message,
+      attempts: getErrorAttempts(error)
+    }))
+  ].sort((left, right) => requestedBackends.indexOf(left.status === 'succeeded' ? left.success.backend : left.backend) - requestedBackends.indexOf(right.status === 'succeeded' ? right.success.backend : right.backend))
 }
 
 export const runUrlArticleBackendPlan = async (
   source: string,
   plan: UrlArticleBackendPlan,
-  opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts'>,
+  opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts' | 'hostedConcurrencyCoordinator'>,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
 ): Promise<UrlProviderRunOutcome[]> => {
   if (plan.allUrlMode) {
@@ -442,10 +449,24 @@ export const runUrlArticleBackendPlan = async (
 
   const requestedBackend = plan.requestedBackends[0] ?? 'defuddle'
   const urlRunOptions = buildUrlRunOptions(opts)
+  const runBackend = async (): Promise<UrlProviderSuccess> => await runSingleUrlBackend(source, requestedBackend, plan.sourceUrl, extractionOpts, urlRunOptions)
   return [
     await runWithLogContext({ step: 'step-2-url' }, async () => ({
       status: 'succeeded' as const,
-      success: await runSingleUrlBackend(source, requestedBackend, plan.sourceUrl, extractionOpts, urlRunOptions)
+      success: await (isLocalUrlBackend(requestedBackend) || !opts.hostedConcurrencyCoordinator
+        ? runBackend()
+        : runHostedConcurrencyRequest({
+            coordinator: opts.hostedConcurrencyCoordinator,
+            admission: {
+              provider: requestedBackend,
+              workClass: 'url',
+              configuredLimit: opts.urlProviderConcurrency,
+              workId: `url:${requestedBackend}:${plan.sourceUrl ?? source}`,
+              unitIndex: 0
+            }
+          }, async () => await runBackend())).then((success) => opts.hostedConcurrencyCoordinator
+            ? { ...success, metadata: { ...success.metadata, hostedConcurrency: opts.hostedConcurrencyCoordinator.snapshot() } }
+            : success)
     })).catch((error) => ({
       status: 'failed' as const,
       backend: requestedBackend,

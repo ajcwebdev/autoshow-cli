@@ -3,8 +3,6 @@ import { CLIUsageError } from '~/utils/error-handler'
 import { readEnv } from '~/utils/validate/env-utils'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
-import { isKittenTtsSetupReady } from '../tts-local/kitten/kitten-tts-targets'
-import { hasCachedKittenTtsModel } from '../tts-local/kitten/kitten-tts-model-cache'
 import { parseHumeVoiceCatalogEnvelope } from '../tts-services/hume/hume-advanced-provider'
 
 const HOSTED_TTS_CREDENTIALS = {
@@ -18,8 +16,13 @@ const HOSTED_TTS_CREDENTIALS = {
   deepgram: { env: 'DEEPGRAM_API_KEY', label: 'Deepgram TTS' },
   speechify: { env: 'SPEECHIFY_API_KEY', label: 'Speechify TTS' },
   hume: { env: 'HUME_API_KEY', label: 'Hume TTS' },
-  cartesia: { env: 'CARTESIA_API_KEY', label: 'Cartesia TTS' }
-} as const satisfies Record<Exclude<TtsProvider, 'kitten'>, { env: string, label: string }>
+  cartesia: { env: 'CARTESIA_API_KEY', label: 'Cartesia TTS' },
+  fish: { env: 'FISH_API_KEY', label: 'Fish Audio TTS' },
+  inworld: { env: 'INWORLD_API_KEY', label: 'Inworld AI TTS' },
+  deepinfra: { env: 'DEEPINFRA_API_KEY', label: 'DeepInfra TTS' },
+  replicate: { env: 'REPLICATE_API_TOKEN', label: 'Replicate TTS' },
+  fal: { env: 'FAL_API_KEY', label: 'fal.ai TTS' }
+} as const satisfies Record<TtsProvider, { env: string, label: string }>
 
 export type TtsExecutionReadinessObservation = Readonly<{
   targetKey: string
@@ -62,23 +65,6 @@ const missingCredentialObservation = (
     message: `${env} environment variable is required for ${label}.`,
     retryable: false,
     blockedReason: 'provider-credential-not-configured'
-  }
-})
-
-const blockedKittenObservation = (
-  targetKey: string,
-  code: 'local-tts-runtime-not-ready' | 'local-tts-model-not-cached' | 'local-tts-readiness-check-failed',
-  message: string
-): TtsExecutionReadinessObservation => ({
-  targetKey,
-  accountState: 'unavailable',
-  status: 'blocked',
-  error: {
-    phase: 'readiness',
-    code,
-    message,
-    retryable: false,
-    blockedReason: 'local-setup-required'
   }
 })
 
@@ -142,13 +128,31 @@ export const listHumeVoiceIdsForReadiness = async (
   return availableIds
 }
 
+export const listInworldVoiceIdsForReadiness = async (
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<Set<string>> => {
+  const authorization = apiKey.startsWith('Basic ') ? apiKey : `Basic ${apiKey}`
+  const response = await fetchImpl('https://api.inworld.ai/voices/v1/voices?languages=EN_US', {
+    headers: { Authorization: authorization }
+  })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const payload = await response.json() as { voices?: unknown }
+  if (!Array.isArray(payload.voices)) throw new Error('Inworld voice catalog response omits voices.')
+  return new Set(payload.voices.flatMap(value =>
+    value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voiceId?: unknown }).voiceId === 'string'
+      ? [(value as { voiceId: string }).voiceId]
+      : []
+  ))
+}
+
 const checkAdvancedVoiceReadiness = async (
   target: TtsTarget,
   apiKey: string
 ): Promise<TtsExecutionReadinessObservation> => {
   const targetKey = target.targetKey as string
   const voiceIds = [...new Set(target.readinessVoiceIds ?? [])]
-  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify'].includes(target.service)) {
+  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify', 'inworld'].includes(target.service)) {
     return { targetKey, accountState: 'available', status: 'ready' }
   }
   try {
@@ -171,6 +175,12 @@ const checkAdvancedVoiceReadiness = async (
     if (target.service === 'hume') {
       const availableIds = await listHumeVoiceIdsForReadiness(apiKey)
       if (voiceIds.some(voiceId => !availableIds.has(voiceId))) return advancedVoiceBlockedObservation(targetKey, 'hume-voice-not-ready', 'One or more approved Hume voices are missing or inaccessible for the configured account.', false)
+      return { targetKey, accountState: 'available', status: 'ready' }
+    }
+    if (target.service === 'inworld') {
+      const availableIds = await listInworldVoiceIdsForReadiness(apiKey)
+      const missingVoiceIds = voiceIds.filter(voiceId => !availableIds.has(voiceId))
+      if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice list --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     if (target.service === 'minimax') {
@@ -212,7 +222,7 @@ const checkAdvancedVoiceReadiness = async (
     if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'speechify-voice-not-ready', 'One or more approved Speechify voices are missing, inaccessible, or unavailable for the selected model.', false)
     return { targetKey, accountState: 'available', status: 'ready' }
   } catch {
-    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : 'Speechify'
+    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
     return advancedVoiceBlockedObservation(targetKey, `${target.service}-readiness-inspection-failed`, `${label} read-only voice readiness inspection failed before synthesis.`, true)
   }
 }
@@ -252,48 +262,9 @@ export const validateTtsTargetsForExecution = (
       return targets.map((target) => blockedMediaRuntimeObservation(target.targetKey as string, unavailableTools))
     }
 
-    const kittenTargets = targets.filter((target) => target.service === 'kitten')
-    let kittenSetupReady = true
-    let kittenProbeError: unknown
-    const kittenModelReady = new Map<string, boolean>()
-    if (kittenTargets.length > 0) {
-      try {
-        kittenSetupReady = await isKittenTtsSetupReady()
-        const models = [...new Set(kittenTargets.map((target) => target.model))]
-        const cacheResults = await Promise.all(models.map(async (model) => [model, await hasCachedKittenTtsModel(model)] as const))
-        for (const [model, ready] of cacheResults) kittenModelReady.set(model, ready)
-      } catch (error) {
-        kittenProbeError = error
-      }
-    }
-
     const humeReadinessByVoiceSet = new Map<string, Promise<TtsExecutionReadinessObservation>>()
 
     return await Promise.all(targets.map(async (target): Promise<TtsExecutionReadinessObservation> => {
-      if (target.service === 'kitten') {
-        if (kittenProbeError !== undefined) {
-          return blockedKittenObservation(
-            target.targetKey as string,
-            'local-tts-readiness-check-failed',
-            'Kitten TTS readiness could not be verified without mutation. Run `bun autoshow setup --step tts`, then retry.'
-          )
-        }
-        if (!kittenSetupReady) {
-          return blockedKittenObservation(
-            target.targetKey as string,
-            'local-tts-runtime-not-ready',
-            'Kitten TTS runtime or required Python imports are not ready. Run `bun autoshow setup --step tts` before synthesis.'
-          )
-        }
-        if (!kittenModelReady.get(target.model)) {
-          return blockedKittenObservation(
-            target.targetKey as string,
-            'local-tts-model-not-cached',
-            `Kitten TTS model ${target.model} is not cached. Run \`bun autoshow setup --step tts\` before synthesis.`
-          )
-        }
-        return { targetKey: target.targetKey as string, accountState: 'available', status: 'ready' }
-      }
       const credential = HOSTED_TTS_CREDENTIALS[target.service]
       const apiKey = readEnv(credential.env)
       if (apiKey && target.service === 'hume' && (target.readinessVoiceIds?.length ?? 0) > 0) {

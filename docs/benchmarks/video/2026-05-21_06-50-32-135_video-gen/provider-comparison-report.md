@@ -41,45 +41,45 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>minimax/T2V-01</code> | $0.1900 |
-| 2 | <code>minimax/T2V-01-Director</code> | $0.1900 |
-| 3 | <code>glm/cogvideox-3</code> | $0.2000 |
-| 4 | <code>gemini/veo-3.1-lite-generate-preview</code> | $0.4000 |
-| 5 | <code>glm/viduq1-text</code> | $0.4000 |
-| 6 | <code>grok/grok-imagine-video</code> | $0.4000 |
-| 7 | <code>minimax/MiniMax-Hailuo-2.3</code> | $0.5600 |
-| 8 | <code>gemini/veo-3.1-fast-generate-preview</code> | $0.8000 |
-| 9 | <code>gemini/veo-3.1-generate-preview</code> | $3.2000 |
+| Rank | Provider                                          | Evidence |
+| ---: | ------------------------------------------------- | -------- |
+|    1 | <code>minimax/T2V-01</code>                       | $0.1900  |
+|    2 | <code>minimax/T2V-01-Director</code>              | $0.1900  |
+|    3 | <code>glm/cogvideox-3</code>                      | $0.2000  |
+|    4 | <code>gemini/veo-3.1-lite-generate-preview</code> | $0.4000  |
+|    5 | <code>glm/viduq1-text</code>                      | $0.4000  |
+|    6 | <code>grok/grok-imagine-video</code>              | $0.4000  |
+|    7 | <code>minimax/MiniMax-Hailuo-2.3</code>           | $0.5600  |
+|    8 | <code>gemini/veo-3.1-fast-generate-preview</code> | $0.8000  |
+|    9 | <code>gemini/veo-3.1-generate-preview</code>      | $3.2000  |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>grok/grok-imagine-video</code> | 41.60s |
-| 2 | <code>gemini/veo-3.1-lite-generate-preview</code> | 62.05s |
-| 3 | <code>gemini/veo-3.1-generate-preview</code> | 72.03s |
-| 4 | <code>gemini/veo-3.1-fast-generate-preview</code> | 72.17s |
-| 5 | <code>minimax/MiniMax-Hailuo-2.3</code> | 123.61s |
-| 6 | <code>minimax/T2V-01-Director</code> | 155.06s |
-| 7 | <code>minimax/T2V-01</code> | 165.16s |
-| 8 | <code>glm/viduq1-text</code> | 196.37s |
-| 9 | <code>glm/cogvideox-3</code> | 348.39s |
+| Rank | Provider                                          | Evidence |
+| ---: | ------------------------------------------------- | -------- |
+|    1 | <code>grok/grok-imagine-video</code>              | 41.60s   |
+|    2 | <code>gemini/veo-3.1-lite-generate-preview</code> | 62.05s   |
+|    3 | <code>gemini/veo-3.1-generate-preview</code>      | 72.03s   |
+|    4 | <code>gemini/veo-3.1-fast-generate-preview</code> | 72.17s   |
+|    5 | <code>minimax/MiniMax-Hailuo-2.3</code>           | 123.61s  |
+|    6 | <code>minimax/T2V-01-Director</code>              | 155.06s  |
+|    7 | <code>minimax/T2V-01</code>                       | 165.16s  |
+|    8 | <code>glm/viduq1-text</code>                      | 196.37s  |
+|    9 | <code>glm/cogvideox-3</code>                      | 348.39s  |
 
 ### Automated Quality
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>gemini/veo-3.1-generate-preview</code> | 88.00/100 explicit quality score |
-| 2 | <code>minimax/MiniMax-Hailuo-2.3</code> | 88.00/100 explicit quality score |
-| 3 | <code>minimax/T2V-01-Director</code> | 88.00/100 explicit quality score |
-| 4 | <code>grok/grok-imagine-video</code> | 86.00/100 explicit quality score |
-| 5 | <code>gemini/veo-3.1-lite-generate-preview</code> | 84.00/100 explicit quality score |
-| 6 | <code>gemini/veo-3.1-fast-generate-preview</code> | 80.00/100 explicit quality score |
-| 7 | <code>glm/viduq1-text</code> | 80.00/100 explicit quality score |
-| 8 | <code>minimax/T2V-01</code> | 80.00/100 explicit quality score |
-| 9 | <code>glm/cogvideox-3</code> | 78.00/100 explicit quality score |
+| Rank | Provider                                          | Evidence                         |
+| ---: | ------------------------------------------------- | -------------------------------- |
+|    1 | <code>gemini/veo-3.1-generate-preview</code>      | 88.00/100 explicit quality score |
+|    2 | <code>minimax/MiniMax-Hailuo-2.3</code>           | 88.00/100 explicit quality score |
+|    3 | <code>minimax/T2V-01-Director</code>              | 88.00/100 explicit quality score |
+|    4 | <code>grok/grok-imagine-video</code>              | 86.00/100 explicit quality score |
+|    5 | <code>gemini/veo-3.1-lite-generate-preview</code> | 84.00/100 explicit quality score |
+|    6 | <code>gemini/veo-3.1-fast-generate-preview</code> | 80.00/100 explicit quality score |
+|    7 | <code>glm/viduq1-text</code>                      | 80.00/100 explicit quality score |
+|    8 | <code>minimax/T2V-01</code>                       | 80.00/100 explicit quality score |
+|    9 | <code>glm/cogvideox-3</code>                      | 78.00/100 explicit quality score |
 
 ### Human Quality
 
@@ -87,17 +87,17 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider | Quality Evidence | Processing Time | Monetary Cost |
-| --- | --- | ---: | ---: |
-| <code>gemini/veo-3.1-fast-generate-preview</code> | 80.00 explicit quality score | 72.17s | $0.8000 |
-| <code>gemini/veo-3.1-generate-preview</code> | 88.00 explicit quality score | 72.03s | $3.2000 |
-| <code>gemini/veo-3.1-lite-generate-preview</code> | 84.00 explicit quality score | 62.05s | $0.4000 |
-| <code>glm/cogvideox-3</code> | 78.00 explicit quality score | 348.39s | $0.2000 |
-| <code>glm/viduq1-text</code> | 80.00 explicit quality score | 196.37s | $0.4000 |
-| <code>grok/grok-imagine-video</code> | 86.00 explicit quality score | 41.60s | $0.4000 |
-| <code>minimax/MiniMax-Hailuo-2.3</code> | 88.00 explicit quality score | 123.61s | $0.5600 |
-| <code>minimax/T2V-01</code> | 80.00 explicit quality score | 165.16s | $0.1900 |
-| <code>minimax/T2V-01-Director</code> | 88.00 explicit quality score | 155.06s | $0.1900 |
+| Provider                                          | Quality Evidence             | Processing Time | Monetary Cost |
+| ------------------------------------------------- | ---------------------------- | --------------: | ------------: |
+| <code>gemini/veo-3.1-fast-generate-preview</code> | 80.00 explicit quality score |          72.17s |       $0.8000 |
+| <code>gemini/veo-3.1-generate-preview</code>      | 88.00 explicit quality score |          72.03s |       $3.2000 |
+| <code>gemini/veo-3.1-lite-generate-preview</code> | 84.00 explicit quality score |          62.05s |       $0.4000 |
+| <code>glm/cogvideox-3</code>                      | 78.00 explicit quality score |         348.39s |       $0.2000 |
+| <code>glm/viduq1-text</code>                      | 80.00 explicit quality score |         196.37s |       $0.4000 |
+| <code>grok/grok-imagine-video</code>              | 86.00 explicit quality score |          41.60s |       $0.4000 |
+| <code>minimax/MiniMax-Hailuo-2.3</code>           | 88.00 explicit quality score |         123.61s |       $0.5600 |
+| <code>minimax/T2V-01</code>                       | 80.00 explicit quality score |         165.16s |       $0.1900 |
+| <code>minimax/T2V-01-Director</code>              | 88.00 explicit quality score |         155.06s |       $0.1900 |
 
 ## Notes
 

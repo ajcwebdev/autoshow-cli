@@ -67,7 +67,6 @@ describe('option resolution contracts', () => {
         'elevenlabs-tts-seed': '12345',
         'elevenlabs-tts-text-normalization': 'ON',
         'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3'],
-        'elevenlabs-tts-optimize-streaming-latency': '2',
         'openai-ocr': 'gpt-5.5',
         'grok-ocr': 'grok-4.3',
         'deepinfra-ocr': 'Qwen/Qwen3-VL-30B-A3B-Instruct',
@@ -127,7 +126,6 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsSeed).toBe(12345)
       expect(opts.elevenlabsTtsTextNormalization).toBe('on')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2', 'dict_3'])
-      expect(opts.elevenlabsTtsOptimizeStreamingLatency).toBe(2)
       expect(opts.openaiOcrModel).toBe('gpt-5.5')
       expect(opts.grokOcrModel).toBe('grok-4.3')
       expect(opts.deepinfraOcrModel).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
@@ -178,6 +176,26 @@ describe('option resolution contracts', () => {
 
       expect(automatic).toContain('chapters/*.txt (EPUB native text runs, or PDF chapter autodetection)')
       expect(disabled).not.toContain('chapters/*.txt (EPUB native text runs, or PDF chapter autodetection)')
+    })
+
+  test('pooled OCR expected files describe isolated page attempts instead of fanout results', async () => {
+      const opts = buildOptsFromFlags(false, {
+        'ocr-provider-mode': 'pool',
+        'openai-ocr': 'gpt-5.5',
+        'mistral-ocr': 'mistral-ocr-4-0',
+        format: 'text'
+      })
+
+      await expect(buildExpectedFilesList(
+        'extract',
+        opts,
+        'input/examples/document/3-document.pdf'
+      )).resolves.toEqual([
+        'extraction.txt',
+        'providers/<service>-<model>/attempts/page-<number>/attempt-<number>/result.json',
+        'providers/<service>-<model>/attempts/page-<number>/attempt-<number>/usage.json',
+        'manifest.json'
+      ])
     })
 
   test('buildOptsFromFlags only accepts canonical flag keys', () => {

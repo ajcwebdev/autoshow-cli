@@ -54,10 +54,14 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
     },
     resourceGate: opts.resourceGate,
     getResourceGate: opts.getResourceGate,
+    hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator,
+    hostedWorkClass: opts.hostedWorkClass,
+    getHostedWorkId: (index, target) => `${stepLabel}:${outputDir}:${target.service}:${target.model}:${index}`,
     getPool: opts.getTargetPool ?? (() => 'hosted'),
     runTarget: async (_index, target) => {
       const usesWorkspace = !singleTarget || opts.useWorkspaceForSingleTarget === true
       const workspaceDir = usesWorkspace ? opts.getWorkspaceDir(outputDir, target) : outputDir
+      let completed = false
 
       if (usesWorkspace) {
         await mkdir(workspaceDir, { recursive: true })
@@ -65,30 +69,37 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
 
       try {
         const result = await opts.runTarget(target, workspaceDir)
-        return await opts.finalizeTarget(target, result, singleTarget)
+        const finalized = await opts.finalizeTarget(target, result, singleTarget)
+        completed = true
+        return finalized
       } catch (error) {
         await opts.onTargetFailure?.(target, error, workspaceDir)
         throw error
       } finally {
-        if (usesWorkspace) {
+        if (usesWorkspace && (completed || opts.preserveWorkspaceOnFailure !== true)) {
           await rm(workspaceDir, { recursive: true, force: true })
         }
       }
     }
   })
   const successes = scheduled.results.filter((result): result is TResult => result !== undefined)
-  const failedTargets = scheduled.failures.map(({ target, message }) => {
+  const failedTargets = scheduled.failures.map(({ target, message, error }) => {
     l.error(`Failed to run ${stepLabel} target ${target.service}/${target.model}: ${message}`)
-    return `${target.service}/${target.model}: ${message}`
+    return { summary: `${target.service}/${target.model}: ${message}`, error }
   })
 
   if (successes.length === 0) {
-    const details = failedTargets.length > 0 ? failedTargets.join('; ') : noProviderMessage
-    throw InfraError(`No ${stepLabel} outputs were generated. ${details}`, { stage: 'process:run-targets' })
+    const details = failedTargets.length > 0 ? failedTargets.map(failure => failure.summary).join('; ') : noProviderMessage
+    const firstCause = failedTargets[0]?.error
+    throw InfraError(`No ${stepLabel} outputs were generated. ${details}`, {
+      stage: 'process:run-targets',
+      ...(firstCause instanceof Error ? { cause: firstCause } : {}),
+      metadata: { failures: failedTargets.map(failure => failure.summary) }
+    })
   }
 
   if (failedTargets.length > 0) {
-    l.warn(`${stepLabel} run completed with partial failures: ${failedTargets.join('; ')}`)
+    l.warn(`${stepLabel} run completed with partial failures: ${failedTargets.map(failure => failure.summary).join('; ')}`)
   }
 
   return successes

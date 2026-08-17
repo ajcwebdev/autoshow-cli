@@ -55,7 +55,7 @@ describe('logging contracts', () => {
 
       const output = captured.stdout[0] as string
       expect(hasAnsi(output)).toBe(true)
-      expect(stripAnsi(output)).toContain('[00:00:00] \u2713 Complete!')
+      expect(stripAnsi(output)).toContain('[00:00:00.000] \u2713 Complete!')
     })
 
   test('human sink renders multiple titled sections on one event', () => {
@@ -73,7 +73,7 @@ describe('logging contracts', () => {
       })
 
       const output = stripAnsi(captured.stdout[0] as string)
-      expect(output).toContain('[00:00:00] \u2022 Complete')
+      expect(output).toContain('[00:00:00.000] \u2022 Complete')
       expect(output).toContain('total: 12m 40s, 18.81\u00a2')
       expect(output).toContain('Artifacts')
       expect(output).toContain('\u2502 speech \u2502 speech.wav')

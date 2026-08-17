@@ -36,22 +36,9 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildModelDescription } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { Step2ProviderRegistryEntry } from '~/types'
-import { booleanProvider, sttModelProvider } from './entry-builders'
+import { sttModelProvider } from './entry-builders'
 
 export const STEP2_STT_PROVIDER_REGISTRY = [
-  booleanProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'reverb-stt',
-    targetService: 'reverb',
-    providerSpecProvider: 'reverb',
-    bootstrapProviderId: 'reverb',
-    configKey: 'reverb',
-    allShortcut: 'all-local-stt',
-    runtimeKey: 'useReverb',
-    model: 'reverb',
-    description: 'Use Reverb ASR for transcription'
-  }),
   sttModelProvider('deepinfra', 'deepinfraStt', {
     supportedModels: SUPPORTED_DEEPINFRA_STT_MODELS,
     validateModel: validateDeepinfraSttModel,
@@ -142,6 +129,6 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     allShortcut: 'all-local-stt',
     supportedModels: SUPPORTED_WHISPERFILE_MODELS,
     validateModel: validateWhisperfileModel,
-    description: 'Local whisperfile/llamafile model (free): tiny|tiny.en|small|small.en|medium|medium.en|large-v2|large-v3'
+    description: 'Local whisperfile model (free): tiny|tiny.en|small|small.en|medium|medium.en|large-v2|large-v3'
   })
 ] as const satisfies readonly Step2ProviderRegistryEntry[]

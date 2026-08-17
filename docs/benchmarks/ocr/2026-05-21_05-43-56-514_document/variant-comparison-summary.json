@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-43-56-514_document",
-  "generatedAt": "2026-07-01T20:11:40.728Z",
+  "generatedAt": "2026-08-14T17:47:07.830Z",
   "pageAligned": true,
   "variants": [
     {
@@ -14,25 +14,25 @@
     {
       "variantId": "page-level-hybrid",
       "source": "deterministic selected provider pages",
-      "charCount": 8992,
-      "wordCount": 1465,
+      "charCount": 110,
+      "wordCount": 17,
       "pageCount": 1,
       "selectedPageSourceCounts": {
-        "anthropic/claude-sonnet-5": 1
+        "fal/fal-ai/got-ocr/v2": 1
       },
-      "lowConfidencePageCount": 0,
-      "outlierPageCount": 0
+      "lowConfidencePageCount": 1,
+      "outlierPageCount": 1
     }
   ],
   "pairwiseDistances": [
     {
       "referenceVariantId": "status-quo-consensus",
       "candidateVariantId": "page-level-hybrid",
-      "wer": 0.005464,
-      "cer": 0.003549,
-      "wordDistance": 8,
+      "wer": 0.995219,
+      "cer": 0.989123,
+      "wordDistance": 1457,
       "wordReferenceCount": 1464,
-      "charDistance": 31,
+      "charDistance": 8639,
       "charReferenceCount": 8734
     }
   ]

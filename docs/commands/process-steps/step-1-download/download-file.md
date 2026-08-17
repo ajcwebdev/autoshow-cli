@@ -10,7 +10,6 @@ Download media or documents and collect metadata without running transcription, 
 - [Output](#output)
 - [Examples](#examples)
 - [Setup and Environment](#setup-and-environment)
-- [Processing Step Layout](#processing-step-layout)
 
 ```bash
 bun autoshow download <input>
@@ -18,32 +17,32 @@ bun autoshow download <input>
 
 ## Supported Inputs
 
-| Input | Behavior |
-|-------|----------|
-| YouTube / Twitch / TikTok URL | `yt-dlp` download, normalize to compressed audio-only media, collect media metadata |
-| Direct media URL (`.mp3`, `.mp4`, etc.) | HTTP fetch, normalize to compressed audio-only media, collect media metadata |
-| Direct document URL (`.pdf`, `.epub`, `.acsm`, `.docx`, etc.) | HTTP fetch to a temp file, detect format, collect document metadata |
-| Direct document URL without an extension | HEAD probe plus download + magic-byte detection |
-| Remote article / HTML URL | Article extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
-| X/Twitter Space URL or raw Space ID | `yt-dlp` download of Space audio, normalize to compressed audio-only media, collect media metadata |
-| X/Twitter post URL | X API lookup of linked Space, then `yt-dlp` download of Space audio |
-| Local `.html` / `.htm` file | Article extraction with local `defuddle` |
-| Local media file | normalize to compressed audio-only media, collect media metadata |
-| Local document file | detect format by magic bytes first, then extension |
-| YouTube channel URL | batch the latest videos |
-| RSS / podcast feed URL | batch the latest episodes |
-| URL list file (`.md` / `.txt`) | batch each listed input |
-| Directory | batch each supported local input |
+| Input                                                         | Behavior                                                                                                               |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| YouTube / Twitch / TikTok URL                                 | `yt-dlp` download, normalize to compressed audio-only media, collect media metadata                                    |
+| Direct media URL (`.mp3`, `.mp4`, etc.)                       | HTTP fetch, normalize to compressed audio-only media, collect media metadata                                           |
+| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | HTTP fetch to a temp file, detect format, collect document metadata                                                    |
+| Direct document URL without an extension                      | HEAD probe plus download + magic-byte detection                                                                        |
+| Remote article / HTML URL                                     | Article extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
+| X/Twitter Space URL or raw Space ID                           | `yt-dlp` download of Space audio, normalize to compressed audio-only media, collect media metadata                     |
+| X/Twitter post URL                                            | X API lookup of linked Space, then `yt-dlp` download of Space audio                                                    |
+| Local `.html` / `.htm` file                                   | Article extraction with local `defuddle`                                                                               |
+| Local media file                                              | normalize to compressed audio-only media, collect media metadata                                                       |
+| Local document file                                           | detect format by magic bytes first, then extension                                                                     |
+| YouTube channel URL                                           | batch the latest videos                                                                                                |
+| RSS / podcast feed URL                                        | batch the latest episodes                                                                                              |
+| URL list file (`.md` / `.txt`)                                | batch each listed input                                                                                                |
+| Directory                                                     | batch each supported local input                                                                                       |
 
 Use `--best-quality` for streaming sources when you want the best available video stream plus the best available audio stream instead of the default audio-only artifact. For direct media URLs and local media files, `--best-quality` keeps the source file as-is because there is no alternate quality ladder to select.
 
-**Supported document formats:** PDF, EPUB, ACSM, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
+**Supported document formats:** PDF, EPUB, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
 
 **Supported image formats:** PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF
 
 Convertible ebook inputs (MOBI, AZW/AZW3, PRC, FB2, and LIT) are normalized to EPUB through Calibre during step 1. The source format and conversion chain are recorded under `items[].metadata.step1` in `manifest.json`.
 
-ACSM inputs are fulfilled locally before document metadata is collected. Run `bun autoshow setup --step calibre` to install document tooling and ACSM fulfillment support, or `bun autoshow setup --step acsm` to install only the ACSM wrapper/plugin runtime. Setup writes `calibre-acsm-fulfill` and `calibre-acsm-authorize` under `runtime/bin`; run `bun autoshow setup --step acsm-authorize` once before extracting real ACSM files. AutoShow does not automate DRM removal and does not use online ACSM converters.
+`.acsm` inputs follow ordinary unsupported-input behavior. Obtain a lawful readable EPUB or PDF outside AutoShow before using `download`.
 
 Step-1 item metadata in `manifest.json` also includes `slug`, which is derived from the original filename without its final extension when available.
 
@@ -58,7 +57,7 @@ Step-1 item metadata in `manifest.json` also includes `slug`, which is derived f
 --batch-limit        Batch: number of items to process (default 5)
 --batch-all          Batch: process all items
 --batch-order        Batch: item order newest|oldest (default newest)
---batch-concurrency  Batch: number of items to process concurrently (default 10)
+--batch-concurrency  Batch: number of items to process concurrently (default 7)
 --price              Show aggregated cost estimate for all active pipeline steps and exit
 ```
 
@@ -85,14 +84,7 @@ Without a positional AutoShow input, `download --` runs yt-dlp directly and skip
 ```bash
 bun autoshow download -- --list-extractors
 bun autoshow download -- --flat-playlist --dump-json https://youtube.com/@channelname
-
-# Download separate highest-quality video and audio assets for a time range
-bun autoshow download -- \
-  --download-sections '*14:30-14:45' \
-  --force-keyframes-at-cuts \
-  -f 'bestvideo,bestaudio' \
-  -o 'output/D3WD52pfM8I_14m30s-14m45s_%(format_id)s.%(ext)s' \
-  'https://www.youtube.com/watch?v=D3WD52pfM8I'
+bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" https://youtube.com/watch?v=abc
 ```
 
 ## Output
@@ -133,16 +125,7 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
   <episode-2>.mp3|.m4a|.ogg|.flac
 ```
 
-With `--keep-original-media --flat-batch`, the same batch directory keeps the original downloaded media extensions instead of the normalized audio-only artifact:
-
-```text
-output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
-  manifest.json
-  <episode-1>.mp3
-  <episode-2>.mp3
-```
-
-Batch source inventory is stored once in the manifest's optional top-level `source` object. Every item uses the canonical item shape with `status`, `metadata`, and `providers`; there is no companion batch control file.
+With `--keep-original-media --flat-batch`, downloaded media files keep their original extensions (e.g. `.mp3`) instead of normalizing to compressed audio. Batch source inventory is stored in the manifest's top-level `source` object.
 
 ## Examples
 
@@ -185,31 +168,8 @@ bun autoshow download -- --version
 
 Setup details are centralized in [`setup.md`](../../setup-and-utilities/setup/setup.md).
 
-For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. When that happens, pass `--cookies <file>` or `--cookies-from-browser <browser>` to `download` / `extract`.
+For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. When that happens, persist cookies once with `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`, then rerun `download` / `extract`.
 
 For X post URL inputs, set `X_BEARER_TOKEN` so AutoShow can resolve the linked Space before downloading. X Space playback itself is handled by yt-dlp and may require the same cookie setup as other authenticated media sources.
 
-## Processing Step Layout
-
-CLI commands are split between runtime processing steps and setup/utilities:
-
-```text
-src/cli/commands/
-  process-steps/
-    step-0-metadata/
-    step-1-download/
-    step-2-extract/
-    step-3-write/
-    step-4-tts/
-    step-5-image/
-    step-6-video/
-    step-7-music/
-    step-8-comic/
-  setup-and-utilities/
-    benchmark/
-    config/
-    links/
-    models/
-    resume/
-    setup/
-```
+Download test coverage is documented in [Step 1 Tests: Download](download-tests.md).

@@ -1,12 +1,16 @@
-import { lstat, mkdir, readdir } from 'node:fs/promises'
+import { lstat, mkdir, readdir, rename, unlink } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
-import { dirname, extname, join, relative, resolve, sep } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import type {
   AudioRun,
   AccountCapabilityObservation,
   AnyCapabilityRecord,
+  CompactAudioArchive,
+  CompactTargetRender,
   CanonicalAudioProviderProjection,
+  CanonicalBatchProgress,
   CanonicalDialogueTurn,
+  FalTtsModel,
   ComicDialoguePlan,
   ComicTtsRenderContext,
   GenericTtsDialoguePlan,
@@ -47,7 +51,9 @@ import {
   validateSpeechifyTtsLanguageForModel,
   validateSpeechifyTtsModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { CLIUsageError, InternalError, extractErrorMetadata } from '~/utils/error-handler'
+import { sanitizeLogText } from '~/utils/app-logger/redaction'
+import { parseRetryAfterMs } from '~/utils/retries'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
 import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
@@ -55,6 +61,19 @@ import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions,
 import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
 import { planElevenLabsNativeDialogueBatches, prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
+import {
+  FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION,
+  FISH_TIMESTAMP_SERIALIZER_VERSION,
+  FISH_TTS_SERIALIZER_VERSION,
+  isFishNativeDialogueModel,
+  isFishTimestampModel,
+  planFishNativeDialogueBatches,
+  prepareFishDialogueText,
+} from '../tts-services/fish/fish-tts-request'
+import { prepareDeepinfraChatterboxText } from '../tts-services/tts-deepinfra/deepinfra-text-preparation'
+import { DEEPINFRA_TTS_SERIALIZER_VERSION, resolveDeepinfraTtsRequestControls, resolveDeepinfraTtsVoiceField } from '../tts-services/tts-deepinfra/deepinfra-tts-request'
+import { FAL_TTS_SERIALIZER_VERSION, resolveFalTtsVoiceField } from '../tts-services/tts-fal/fal-tts-request'
+import { INWORLD_TTS_SERIALIZER_VERSION } from '../tts-services/inworld/inworld-tts-request'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import {
   normalizeTtsTurnControls,
@@ -65,6 +84,7 @@ import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSing
 import {
   canonicalTargetKey,
   canonicalTtsJson,
+  computePaidSpeechSlotHash,
   computeRenderIdentity,
   computeVoiceContextKey,
   hashCanonicalTtsValue,
@@ -83,11 +103,16 @@ import {
 } from './contract-validation'
 import type { CurrentTtsRenderArtifacts } from './current-render-artifacts'
 import {
+  appendJsonlArtifactLine,
+  hardlinkContainedArtifact,
   readContainedArtifactFile,
   releasePreparedInvocationAttemptClaim,
+  removeContainedDirectory,
   reserveInvocationAttemptDirectory,
   writeImmutableArtifactFile,
 } from './safe-artifact-store'
+import { resolveStableTtsArtifactDir, resolveTtsOutputLayout } from './tts-output-layout'
+import { classifyTtsProviderAdmissionError } from './tts-request-evidence'
 
 const SCHEMA_VERSION = 'phase-0-v1'
 const PREPARATION_VERSION = 'generic-tts-v1'
@@ -108,7 +133,15 @@ const CAPABILITY_SOURCE_REFS: Record<TtsTarget['service'], string[]> = {
   hume: ['https://dev.hume.ai/reference/text-to-speech-tts/synthesize-json'],
   cartesia: ['https://docs.cartesia.ai/build-with-cartesia/tts-models/sonic-3-5'],
   minimax: ['https://platform.minimax.io/docs/api-reference/api-overview'],
-  kitten: ['https://github.com/KittenML/KittenTTS']
+  fish: ['https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech'],
+  inworld: ['https://docs.inworld.ai/'],
+  deepinfra: ['https://docs.deepinfra.com/apis/text-to-speech'],
+  replicate: ['https://replicate.com/docs'],
+  fal: [
+    'https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2',
+    'https://fal.ai/models/fal-ai/maya',
+    'https://fal.ai/models/async/tts-pro/v1.0',
+  ],
 }
 
 type WrittenJson<T> = { value: T, path: string, sha256: string }
@@ -130,6 +163,8 @@ type AttemptSlot = {
   expectedRequestControlsHash: string
   expectedEndpointKind: string
   expectedSerializerVersion: string
+  expectedVoiceField: string
+  slotHash?: string | undefined
   timingSegmentIndex?: number | undefined
 }
 type RecordedOutput = {
@@ -157,16 +192,19 @@ type CapabilityFixture = {
 }
 
 export type CurrentTtsRecoveredGenerationSlot = Readonly<{
-  value: Extract<ProviderBatchResult, { provenance: 'provider-dispatch' }>
+  value: ProviderBatchResult
   path: string
   sha256: string
-  attemptRoot: string
+  attemptRoot?: string | undefined
   outputPaths: readonly string[]
+  requiresMaterialization?: boolean | undefined
 }>
 
 export type CurrentTtsRenderAttempt = {
   requestEvidence: TtsRequestEvidenceScope
   preparedState: PipelineProviderState
+  providerDispatchRequired: boolean
+  plannedChunkCount: number
   executionSelection?: readonly {
     generationSlotId: string
     turnId: string
@@ -184,7 +222,7 @@ export type CurrentTtsRenderAttempt = {
     completedGenerationSlotIds: string[]
     remainingGenerationSlotCount: number
   }>
-  finalizeFailure: (error: unknown) => Promise<PipelineProviderState>
+  finalizeFailure: (error: unknown, phase?: SanitizedProviderError['phase']) => Promise<PipelineProviderState>
 }
 
 export type CreateCurrentTtsRenderAttemptOptions = {
@@ -216,6 +254,25 @@ const writeJson = async <T>(rootDir: string, path: string, value: T): Promise<Wr
 }
 
 const writeJsonCreateOnly = writeJson
+
+const writeJsonReplace = async <T>(rootDir: string, path: string, value: T): Promise<WrittenJson<T>> => {
+  const bytes = `${canonicalTtsJson(value)}\n`
+  const destinationRef = contained(rootDir, path)
+  try {
+    const existing = await readContainedArtifactFile(rootDir, destinationRef)
+    if (existing.sha256 === sha256Bytes(bytes)) return { value, path, sha256: existing.sha256 }
+  } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT')) throw error
+  }
+  const temporaryRef = join(dirname(destinationRef), `.archive-${randomUUID()}.tmp`)
+  const temporary = await writeImmutableArtifactFile(rootDir, temporaryRef, bytes)
+  try {
+    await rename(temporary.path, resolve(rootDir, destinationRef))
+  } finally {
+    await unlink(temporary.path).catch(() => undefined)
+  }
+  return { value, path, sha256: temporary.sha256 }
+}
 
 const writeTextCreateOnly = async (rootDir: string, path: string, value: string): Promise<{ path: string, sha256: string }> => {
   const bytes = value.endsWith('\n') ? value : `${value}\n`
@@ -321,8 +378,6 @@ const resolveEffectiveInvocationControls = (
   selection: TtsTargetSelection
 ): Readonly<Record<string, unknown>> => {
   switch (target.service) {
-    case 'kitten':
-      return resolveTtsTargetInvocationControls('kitten', invocation, { maxChunkChars: TTS_CHUNK_CHARACTER_LIMITS.kitten })
     case 'openai': {
       const controls = resolveTtsTargetInvocationControls('openai', invocation, {
         instructions: selection.openaiInstructions,
@@ -345,7 +400,6 @@ const resolveEffectiveInvocationControls = (
         seed: selection.elevenLabsSeed,
         textNormalization: selection.elevenLabsTextNormalization,
         pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators,
-        optimizeStreamingLatency: selection.elevenLabsOptimizeStreamingLatency,
       })
     case 'minimax':
       return resolveTtsTargetInvocationControls('minimax', invocation, {
@@ -394,6 +448,18 @@ const resolveEffectiveInvocationControls = (
       return resolveTtsTargetInvocationControls('hume', invocation, {})
     case 'cartesia':
       return resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage })
+    case 'fish':
+      return resolveTtsTargetInvocationControls('fish', invocation, {})
+    case 'inworld':
+      return resolveTtsTargetInvocationControls('inworld', invocation, {
+        steeringPrompt: selection.inworldInstructions,
+      })
+    case 'deepinfra':
+      return resolveTtsTargetInvocationControls('deepinfra', invocation, {})
+    case 'replicate':
+      return resolveTtsTargetInvocationControls('replicate', invocation, {})
+    case 'fal':
+      return resolveTtsTargetInvocationControls('fal', invocation, { voiceInstruction: selection.falInstructions })
   }
 }
 
@@ -411,8 +477,6 @@ const serializerContract = (
     return Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? value : undefined
   }
   switch (target.service) {
-    case 'kitten':
-      return { endpointKind: 'local-runner', serializerVersion: 'kitten.tts.phase-0-v1', controls: { maxChunkChars: numberValue('maxChunkChars') ?? TTS_CHUNK_CHARACTER_LIMITS.kitten } }
     case 'openai':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'openai.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(stringValue('instructions') ? { instructions: stringValue('instructions') } : {}), ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
     case 'grok':
@@ -428,6 +492,20 @@ const serializerContract = (
       return { endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: stringValue('audioFormat') ?? 'mp3', ...(stringValue('language') ? { language: stringValue('language') } : {}) } }
     case 'deepgram':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'deepgram.tts.phase-0-v1', controls: { ...(stringValue('encoding') ? { encoding: stringValue('encoding') } : {}), ...(stringValue('container') ? { container: stringValue('container') } : {}), ...(numberValue('bitRate') !== undefined ? { bitRate: numberValue('bitRate') } : {}), ...(numberValue('sampleRate') !== undefined ? { sampleRate: numberValue('sampleRate') } : {}), ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
+    case 'fish':
+      if (strategy === 'native-dialogue') return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION, controls: { format: 'wav', model: 's2.1-pro' } }
+      if (isFishTimestampModel(target.model)) return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_TIMESTAMP_SERIALIZER_VERSION, controls: { format: 'wav', model: target.model } }
+      return { endpointKind: 'speech-synthesis', serializerVersion: FISH_TTS_SERIALIZER_VERSION, controls: { format: 'wav' } }
+    case 'inworld': {
+      const steeringPrompt = stringValue('steeringPrompt')
+      return { endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: { format: 'wav', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 }, ...(steeringPrompt ? { steeringPrompt } : {}) } }
+    }
+    case 'deepinfra':
+      return { endpointKind: 'inference', serializerVersion: DEEPINFRA_TTS_SERIALIZER_VERSION, controls: resolveDeepinfraTtsRequestControls(target.model, stringValue('promptInstructions')) }
+    case 'replicate':
+      return { endpointKind: 'predictions', serializerVersion: 'replicate.kokoro.v1', controls: { format: 'wav', ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
+    case 'fal':
+      return { endpointKind: 'queue', serializerVersion: FAL_TTS_SERIALIZER_VERSION, controls: { format: 'wav', ...(stringValue('voiceInstruction') ? { voiceInstruction: stringValue('voiceInstruction') } : {}) } }
     case 'elevenlabs': {
       if (strategy === 'native-dialogue') return {
         endpointKind: 'text-to-dialogue-with-timestamps',
@@ -464,7 +542,6 @@ const serializerContract = (
           ...(numberValue('seed') !== undefined ? { seed: numberValue('seed') } : {}),
           ...(stringValue('textNormalization') ? { textNormalization: stringValue('textNormalization') } : {}),
           ...(pronunciationDictionaryLocators?.length ? { pronunciationDictionaryLocators } : {}),
-          ...(numberValue('optimizeStreamingLatency') !== undefined ? { optimizeStreamingLatency: numberValue('optimizeStreamingLatency') } : {}),
         }
       }
     }
@@ -480,6 +557,31 @@ const serializerContract = (
   }
 }
 
+const serializerVoiceField = (
+  target: TtsTarget,
+  strategy: ProviderRenderStrategy,
+  voiceKind: AttemptTurn['voice']['kind']
+): string => {
+  switch (target.service) {
+    case 'openai': return 'voice'
+    case 'grok': return 'voice_id'
+    case 'groq': return 'voice'
+    case 'cartesia': return 'voice.id'
+    case 'hume': return strategy === 'native-utterances' ? 'utterances[].voice.id' : 'utterances[].voice'
+    case 'speechify': return 'voice_id'
+    case 'deepgram': return 'query.model'
+    case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'
+    case 'gemini': return strategy === 'native-dialogue' ? 'speechConfig.multiSpeakerVoiceConfig' : 'speechConfig.voiceConfig'
+    case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
+    case 'minimax': return 'voice_setting.voice_id'
+    case 'fish': return strategy === 'native-dialogue' ? 'reference_id[]' : 'reference_id'
+    case 'inworld': return 'voiceId'
+    case 'deepinfra': return resolveDeepinfraTtsVoiceField(target.model)
+    case 'replicate': return 'input.voice'
+    case 'fal': return resolveFalTtsVoiceField(target.model as FalTtsModel)
+  }
+}
+
 const preparedText = (text: string) => ({
   schemaVersion: 1 as const,
   canonicalText: text,
@@ -490,8 +592,30 @@ const preparedText = (text: string) => ({
   spans: [...text].length === 0 ? [] : [{ kind: 'mapped' as const, canonicalStart: 0, canonicalEnd: [...text].length, providerStart: 0, providerEnd: [...text].length }]
 })
 
+const prepareSegmentedTurnText = (
+  text: string,
+  target: TtsTarget,
+  delivery?: string | undefined
+  ) => target.service === 'elevenlabs' && target.model === 'eleven_v3'
+  ? prepareElevenLabsDialogueText(text, delivery)
+  : target.service === 'fish'
+    ? prepareFishDialogueText(text, delivery, target.model)
+    : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-turbo'
+      ? prepareDeepinfraChatterboxText(text)
+      : preparedText(text)
+
 const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): SanitizedProviderError => {
-  const status = typeof (error as { status?: unknown })?.status === 'number' ? (error as { status: number }).status : undefined
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  const stage = typeof metadata['stage'] === 'string' ? sanitizeLogText(metadata['stage']).slice(0, 160) : undefined
+  const errorName = error instanceof Error && error.name ? sanitizeLogText(error.name).slice(0, 120) : undefined
+  const providerMessage = error instanceof Error && error.message
+    ? sanitizeLogText(error.message).replace(/\s+/gu, ' ').trim().slice(0, 600)
+    : undefined
+  const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
+  const requestId = headers?.get('x-request-id') ?? headers?.get('request-id') ?? headers?.get('cf-ray') ?? undefined
+  const retryAfterMs = parseRetryAfterMs(headers)
+  const explicitRetryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
   const message = status !== undefined
     ? `TTS provider request failed with HTTP status ${status}.`
     : phase === 'static-validation'
@@ -507,12 +631,26 @@ const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): 
               : phase === 'reconciliation'
                 ? 'TTS retained provider evidence reconciliation failed.'
                 : 'TTS provider synthesis failed.'
-  return { phase, code: status ? `http_${status}` : 'tts_target_failed', message, retryable: status === 408 || status === 429 || (status !== undefined && status >= 500) }
+  const retryable = explicitRetryable ?? (status === 408 || status === 425 || status === 429 || (status !== undefined && status >= 500))
+  return {
+    phase,
+    code: status ? `http_${status}` : typeof metadata['code'] === 'string' ? sanitizeLogText(metadata['code']).slice(0, 120) : 'tts_target_failed',
+    message,
+    retryable,
+    ...(status !== undefined ? { status } : {}),
+    ...(stage ? { stage } : {}),
+    ...(errorName ? { errorName } : {}),
+    ...(providerMessage ? { providerMessage } : {}),
+    ...(requestId ? { requestId: sanitizeLogText(requestId).slice(0, 200) } : {}),
+    ...(retryAfterMs !== undefined ? { retryAfterMs } : {})
+  }
 }
 
 const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean): PlannedCost => {
   const pricing = getTtsPricing(target.service, target.model)
-  const cents = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
+  const cents = pricing.costPerRequestCents !== undefined
+    ? pricing.costPerRequestCents
+    : pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
     ? characters / 1e6 * (pricing.inputCostPer1MCharsCents + pricing.outputCostPer1MCharsCents)
     : characters / 1000 * (pricing.costPer1kCharsCents ?? 0)
   const totalCents = cents + (includeSetup ? target.setupCostCents ?? 0 : 0)
@@ -535,13 +673,11 @@ const buildCapabilityFixture = (
     sourceRefs: CAPABILITY_SOURCE_REFS[target.service]
   }, 'evidenceHash')
   const hasProtectedSpeakerAssets = Object.keys(target.protectedSpeakerVoiceAssets ?? {}).length > 0
-  const voiceKinds = target.service === 'kitten'
-    ? ['local-model-voice' as const]
-    : target.protectedVoiceAsset
-      ? ['reference-asset' as const]
-      : hasProtectedSpeakerAssets
-        ? ['provider-id' as const, 'reference-asset' as const]
-        : ['provider-id' as const]
+  const voiceKinds = target.protectedVoiceAsset
+    ? ['reference-asset' as const]
+    : hasProtectedSpeakerAssets
+      ? ['provider-id' as const, 'reference-asset' as const]
+      : ['provider-id' as const]
   const constraints = feature === 'native-dialogue'
     ? target.service === 'elevenlabs'
       ? { voiceKinds, maxCharacters: 2000, supportedOutputFormats: ['mp3', 'wav', 'pcm'], minSpeakers: 1, maxSpeakers: 10 }
@@ -741,11 +877,9 @@ const comicTimelineLayout = (
 }
 
 const chunkLimit = (target: TtsTarget): number =>
-  target.service === 'kitten'
-    ? Number.MAX_SAFE_INTEGER
-    : resolveTtsChunkCharacterLimit(target.service, target.model)
-      ?? TTS_CHUNK_CHARACTER_LIMITS[target.service]
-      ?? 2000
+  resolveTtsChunkCharacterLimit(target.service, target.model)
+    ?? TTS_CHUNK_CHARACTER_LIMITS[target.service]
+    ?? 2000
 
 const defaultVoiceValue = (target: TtsTarget): string => {
   switch (target.service) {
@@ -756,6 +890,7 @@ const defaultVoiceValue = (target: TtsTarget): string => {
     case 'minimax': return 'English_expressive_narrator'
     case 'hume': return 'Male English Actor'
     case 'cartesia': return 'f786b574-daa5-4673-aa0c-cbe3e8534c02'
+    case 'fish': return '7f92f8afb8ec43bf81429cc1c9199cb1'
     case 'elevenlabs': return ELEVENLABS_DEFAULT_VOICE_ID
     case 'speechify': return SPEECHIFY_DEFAULT_TTS_VOICE
     default: return 'provider-default'
@@ -784,9 +919,7 @@ export const prepareComicSegmentedProviderTexts = (
   const limit = chunkLimit(target)
   for (const [timingSegmentIndex, segment] of splitCanonicalTextAtTimingCues(turn).entries()) {
     if (!segment) continue
-    const prepared = target.service === 'elevenlabs' && target.model === 'eleven_v3'
-      ? prepareElevenLabsDialogueText(segment, turn.delivery?.description).providerText
-      : segment
+    const prepared = prepareSegmentedTurnText(segment, target, turn.delivery?.description).providerText
     for (const chunk of splitTextIntoChunks(prepared, limit)) {
       providerTexts.push(chunk)
       timingSegmentIndexes.push(timingSegmentIndex)
@@ -868,8 +1001,9 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     const registry = parseSpeakerVoiceMappings(options.ttsOptions.ttsSpeakers)
     const normalizedText = canonicalTurns.map(turn => `${context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel}: ${turn.canonicalText}`).join('\n')
     const distinctSpeakers = new Set(canonicalTurns.map(turn => (context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel).normalize('NFKC').trim().toLocaleUpperCase('en-US')))
-    const hasSegmentedOnlyIntent = context.dialoguePlan.nodes.some(node => node.kind === 'overlap')
-      || canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
+    const hasOverlapIntent = context.dialoguePlan.nodes.some(node => node.kind === 'overlap')
+    const hasDeliveryOrEffect = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
+    const hasSegmentedOnlyIntent = hasOverlapIntent || (hasDeliveryOrEffect && options.target.service !== 'fish')
     const hasTurnControls = canonicalTurns.some(turn => {
       const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
       return keys.length > 0 && !(options.target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
@@ -880,7 +1014,8 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
       && resolveGeminiDialogueStrategyForText(normalizedText, registry, TTS_CHUNK_CHARACTER_LIMITS.gemini, 'auto') === 'native'
     const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && !hasTurnControls
     const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && !hasTurnControls && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
-    const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (geminiNative || elevenLabsNative || humeNative)
+    const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && !hasTurnControls
+    const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (geminiNative || elevenLabsNative || humeNative || fishNative)
     if (context.modePreference === 'native' && !nativeEligible) throw CLIUsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
     const native = context.modePreference !== 'segmented' && nativeEligible
     const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
@@ -898,7 +1033,9 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
         ? planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
         : humeNative
           ? planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
-          : []
+          : fishNative
+            ? planFishNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash, delivery: turn.canonical.delivery?.description }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+            : []
     const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined }> = native
       ? nativeGroups
       : turns.map(turn => segmentedSlotGroup(turn, options.target))
@@ -913,7 +1050,7 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
         const cost = plannedCost(options.target, [...providerText].length, includesSetup)
         includesSetup = false
         const timingSegmentIndex = group.timingSegmentIndexes?.[slotIndex]
-        const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }
+        const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: serializerVoiceField(options.target, strategy, primaryTurn.voice.kind), ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }
         slots.push(slot)
         return { generationSlotId: slot.generationSlotId, slotIndex, requestedTakeCount: 1, plannedCost: cost }
       })
@@ -965,9 +1102,7 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     }
     const kind = mapping?.voiceKind === 'ref-audio' || (!mapping && options.target.protectedVoiceAsset)
       ? 'reference-asset'
-      : options.target.service === 'kitten'
-        ? 'local-model-voice'
-        : 'provider-id'
+      : 'provider-id'
     const invocation: TtsTargetInvocation = Object.freeze({
       sourceId: canonical.turnId,
       sourceIndex,
@@ -993,7 +1128,8 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     : false
   const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent
   const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
-  const native = geminiNative || elevenLabsNative || humeNative
+  const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && registry !== undefined && !hasProviderTurnControls
+  const native = geminiNative || elevenLabsNative || humeNative || fishNative
   const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
   const limit = chunkLimit(options.target)
   let nativeTurnCursor = 0
@@ -1012,10 +1148,12 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
       ? planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
       : humeNative && registry
         ? planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
-        : []
+        : fishNative && registry
+          ? planFishNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice, delivery: turn.canonical.delivery?.description }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+          : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
     ? nativeGroups
-    : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(turn.canonical.canonicalText, limit) }))
+    : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText, limit) }))
   if (geminiNative && nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini native dialogue partition omitted normalized turns.')
   let includesSetup = true
   const slots: AttemptSlot[] = []
@@ -1027,7 +1165,7 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
       const cost = plannedCost(options.target, [...providerText].length, includesSetup)
       includesSetup = false
-      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion }
+      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: serializerVoiceField(options.target, strategy, primaryTurn.voice.kind) }
       slots.push(slot)
       return { generationSlotId: slot.generationSlotId, slotIndex, requestedTakeCount: 1, plannedCost: cost }
     })
@@ -1058,7 +1196,7 @@ export type PureCurrentTtsRenderPlanOptions = Omit<CreateCurrentTtsRenderAttempt
 const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions) => {
   const operation = options.comicContext ? 'comic-audio' as const : 'tts-synthesis' as const
   if (options.target.operation && options.target.operation !== operation) throw CLIUsageError('TTS target operation does not match its render context.')
-  const transport = options.target.transport ?? (options.target.service === 'kitten' ? 'local-process' : 'hosted-api')
+  const transport = options.target.transport ?? 'hosted-api'
   const targetKey = options.target.targetKey ?? canonicalTargetKey(operation, options.target.service, options.target.model, transport)
   const capabilitySeed = hashCanonicalTtsValue({ schemaVersion: 1, provider: options.target.service, model: options.target.model, transport, adapterSchemaVersion: SCHEMA_VERSION })
   const draft = planInputs({ ...options, outputDir: '.' }, capabilitySeed)
@@ -1086,9 +1224,7 @@ const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions)
   const plannedRenderCost = sumCosts(planned.slots.map((slot) => slot.plannedCost))
   const resolvedTurnById = new Map(planned.turns.map((turn) => [turn.canonical.turnId, {
     ...turn.canonical,
-    providerText: options.comicContext && options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3'
-      ? prepareElevenLabsDialogueText(turn.canonical.canonicalText, turn.canonical.delivery?.description)
-      : preparedText(turn.canonical.canonicalText),
+    providerText: prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description),
     voice: turn.binding,
     providerControls: turn.controls,
     ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1 as const, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description, disposition: options.comicContext?.deliveryDispositionByTurnId?.[turn.canonical.turnId] ?? 'serialized' } } } : {})
@@ -1231,24 +1367,11 @@ export const assertCurrentTtsProviderStateSafeForRedispatch = async (options: {
   if (!projection || !render) {
     throw CLIUsageError(`Stored TTS target ${options.state.service}/${options.state.model ?? ''} does not match the exact planned render identity; rebuild instead of resuming it.`)
   }
-  const journalEvent = [...render.events].reverse().find((event) => event.admissionJournalRef)
-  if (!journalEvent?.admissionJournalRef) return
-  if (!journalEvent.admissionJournalSha256 || !journalEvent.admissionJournalSnapshotId) {
-    throw CLIUsageError('Stored TTS admission journal is missing its immutable checksum binding; automatic provider redispatch is unsafe.')
-  }
-  const providerRoot = resolve(options.rootDir, options.state.artifactDir)
-  const journalPath = resolve(providerRoot, journalEvent.admissionJournalRef)
-  const journalRelative = relative(providerRoot, journalPath)
-  if (!journalRelative || journalRelative === '..' || journalRelative.startsWith(`..${sep}`)) {
-    throw CLIUsageError('Stored TTS admission journal escapes its provider artifact directory.')
-  }
-  const journal = await readVerifiedJson<RenderAdmissionJournalSnapshot>(
-    options.rootDir,
-    journalPath,
-    journalEvent.admissionJournalSha256,
-    'Stored TTS admission journal'
-  )
-  if (journal.renderIdentity !== options.expectedRenderIdentity || journal.snapshotId !== journalEvent.admissionJournalSnapshotId) {
+  const journalPath = projection.activeWork?.kind === 'render' ? projection.activeWork.journalPath : undefined
+  if (!journalPath) return
+  const retained = await readContainedArtifactFile(options.rootDir, journalPath)
+  const journal = await readLatestJournalSnapshot(options.rootDir, `${options.rootDir}/${journalPath}`, retained.sha256)
+  if (journal.renderIdentity !== options.expectedRenderIdentity) {
     throw CLIUsageError('Stored TTS admission journal does not bind the exact retained render; automatic provider redispatch is unsafe.')
   }
   const unsafeRequest = journal.requests.find((request) => {
@@ -1276,7 +1399,7 @@ const stateForProjection = (
   return {
     service: target.service,
     model: target.model,
-    local: target.service === 'kitten',
+    local: false,
     operation,
     targetKey,
     transport,
@@ -1300,7 +1423,10 @@ const readAudioMetadataProjection = (state: PipelineProviderState): CanonicalAud
   return state.metadata[namespace] as CanonicalAudioProviderProjection | undefined
 }
 
-type LoadedRecoveryBatch = CurrentTtsRecoveredGenerationSlot
+type LoadedRecoveryBatch = CurrentTtsRecoveredGenerationSlot & Readonly<{
+  value: Extract<ProviderBatchResult, { provenance: 'provider-dispatch' }>
+  attemptRoot: string
+}>
 
 export type CurrentTtsCompletedRecovery = {
   kind: 'complete-render'
@@ -1341,22 +1467,25 @@ export const resolveCurrentTtsPriorAdmittedAttemptCount = async (options: {
   if (!projection || active?.kind !== 'render' || retainedCount === 0) return retainedCount
   const render = projection.renderHistory.find((entry) => entry.renderIdentity === active.renderIdentity)
   const event = render?.events.find((entry) => entry.sequence === active.eventSequence)
-  if (
-    event?.status !== 'running'
-    || event.attempt !== retainedCount
-    || !event.admissionJournalRef
-    || !event.admissionJournalSha256
-    || !event.admissionJournalSnapshotId
-  ) return retainedCount
-
-  const providerRoot = resolve(options.rootDir, options.state.artifactDir)
-  const journalPath = resolveRetainedPath(providerRoot, event.admissionJournalRef, 'Stored TTS admission journal')
-  const journal = await readVerifiedJson<RenderAdmissionJournalSnapshot>(
-    options.rootDir,
-    journalPath,
-    event.admissionJournalSha256,
-    'Stored TTS admission journal'
-  )
+  if (event?.status !== 'running' || event.attempt !== retainedCount) return retainedCount
+  const journalPath = active.journalPath
+  if (!journalPath) return retainedCount
+  const boundJournalRef = event.admissionJournalRef
+    ? `${options.state.artifactDir}/${event.admissionJournalRef}`
+    : journalPath
+  const journal = boundJournalRef.endsWith('.jsonl')
+    ? await readJournalSnapshotFromLedger(
+      options.rootDir,
+      `${options.rootDir}/${journalPath}`,
+      event.admissionJournalSnapshotId,
+      event.admissionJournalSha256
+    )
+    : await readVerifiedJson<RenderAdmissionJournalSnapshot>(
+      options.rootDir,
+      `${options.rootDir}/${boundJournalRef}`,
+      event.admissionJournalSha256 ?? (await readContainedArtifactFile(options.rootDir, boundJournalRef)).sha256,
+      'Stored TTS admission journal'
+    )
   if (
     journal.snapshotId !== event.admissionJournalSnapshotId
     || journal.renderIdentity !== active.renderIdentity
@@ -1370,7 +1499,7 @@ export const resolveCurrentTtsPriorAdmittedAttemptCount = async (options: {
   if (journal.requests.length === 0 || journal.requests.some((request) => request.transitions.length !== 1 || request.transitions[0]?.state !== 'prepared')) {
     throw CLIUsageError('Stored TTS provider attempt has no durable dispatch but is not an exact prepared-only journal.')
   }
-  const attemptsDirectory = dirname(dirname(journalPath))
+  const attemptsDirectory = join(options.rootDir, dirname(journalPath), 'attempts')
   const claimPath = join(attemptsDirectory, `.attempt-${String(journal.attempt).padStart(3, '0')}.claim`)
   try {
     await lstat(claimPath)
@@ -1396,6 +1525,34 @@ const resolveRetainedPath = (baseDir: string, artifactRef: string, label: string
   return path
 }
 
+const readJournalSnapshotFromLedger = async (
+  rootDir: string,
+  path: string,
+  snapshotId?: string,
+  expectedSha256?: string
+): Promise<RenderAdmissionJournalSnapshot> => {
+  const retained = await readContainedArtifactFile(rootDir, contained(rootDir, path))
+  if (expectedSha256 && retained.sha256 !== expectedSha256 && !snapshotId) {
+    throw CLIUsageError('Stored TTS admission journal checksum does not match retained canonical evidence.')
+  }
+  const lines = retained.bytes.toString('utf8').split('\n').filter((line) => line.length > 0)
+  if (lines.length === 0) throw CLIUsageError('Stored TTS admission journal is empty.')
+  const parsedLines = lines.map((line) => JSON.parse(line) as { snapshot?: RenderAdmissionJournalSnapshot })
+  const selected = snapshotId
+    ? parsedLines.find((entry) => entry.snapshot?.snapshotId === snapshotId)
+    : parsedLines.at(-1)
+  if (!selected?.snapshot) throw CLIUsageError('Stored TTS admission journal line is missing its snapshot.')
+  validateRenderAdmissionJournalSnapshot(selected.snapshot)
+  return selected.snapshot
+}
+
+const readLatestJournalSnapshot = async (
+  rootDir: string,
+  path: string,
+  expectedSha256: string
+): Promise<RenderAdmissionJournalSnapshot> =>
+  await readJournalSnapshotFromLedger(rootDir, path, undefined, expectedSha256)
+
 const readVerifiedJson = async <T>(rootDir: string, path: string, expectedSha256: string, label: string): Promise<T> => {
   let retained
   try {
@@ -1416,6 +1573,55 @@ const copyCreateOnly = async (rootDir: string, source: string, destination: stri
   await writeImmutableArtifactFile(rootDir, contained(rootDir, destination), sourceFile.bytes)
 }
 
+const hasErrorCode = (error: unknown, code: string): boolean =>
+  typeof error === 'object'
+  && error !== null
+  && 'code' in error
+  && (error as { code?: unknown }).code === code
+
+const publishReportedOutput = async (
+  rootDir: string,
+  source: string,
+  destination: string,
+  projection: CanonicalAudioProviderProjection
+): Promise<string> => {
+  const sourceFile = await readContainedArtifactFile(rootDir, contained(rootDir, source))
+  const destinationRef = contained(rootDir, destination)
+  const protectedRefs = projection.renderHistory
+    .flatMap((render) => render.events)
+    .flatMap((event) => event.reportedOutputRefs ?? [])
+    .filter((ref) => ref.path === destinationRef)
+  if (protectedRefs.some((ref) => ref.sha256 !== sourceFile.sha256)) {
+    throw CLIUsageError(`Reported TTS output ${destinationRef} is checksum-bound to an earlier successful render and cannot be replaced.`)
+  }
+  try {
+    const existing = await readContainedArtifactFile(rootDir, destinationRef)
+    if (existing.sha256 === sourceFile.sha256) return sourceFile.sha256
+  } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT')) throw error
+  }
+
+  const temporaryRef = join(dirname(destinationRef), `.reported-output-${randomUUID()}.tmp`)
+  const temporary = await writeImmutableArtifactFile(rootDir, temporaryRef, sourceFile.bytes)
+  try {
+    await rename(temporary.path, resolve(rootDir, destinationRef))
+  } finally {
+    await unlink(temporary.path).catch(() => undefined)
+  }
+  return sourceFile.sha256
+}
+
+const materializeRecoveredBatch = async (
+  rootDir: string,
+  batch: CurrentTtsRecoveredGenerationSlot
+): Promise<void> => {
+  if (!batch.requiresMaterialization) return
+  const file = await writeJson(rootDir, batch.path, batch.value)
+  if (file.sha256 !== batch.sha256) {
+    throw CLIUsageError(`Recovered TTS generation slot ${batch.value.generationSlotId} changed identity during durable result promotion.`)
+  }
+}
+
 export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTtsRenderPlanOptions & {
   rootDir: string
   state: PipelineProviderState
@@ -1431,6 +1637,44 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   if (!resultProjection || !metadataProjection || canonicalTtsJson(resultProjection) !== canonicalTtsJson(metadataProjection)) {
     throw CLIUsageError('Stored TTS provider state is missing one exact canonical projection.')
   }
+  if (
+    resultProjection.archive
+    && resultProjection.selectedSuccess?.renderIdentity === pure.renderIdentity
+    && resultProjection.renderHistory.length === 0
+  ) {
+    const archive = resultProjection.archive
+    const compactRender = await readVerifiedJson<CompactTargetRender>(options.rootDir, resolve(options.rootDir, archive.renderRef.path), archive.renderRef.sha256, 'Compact TTS render')
+    if (compactRender.renderIdentity !== pure.renderIdentity || compactRender.renderPlanId !== pure.renderPlanId || compactRender.targetKey !== pure.targetKey) {
+      throw CLIUsageError('Compact TTS render does not bind the exact planned render identity.')
+    }
+    await readVerifiedJson(options.rootDir, resolve(options.rootDir, archive.timelineRef.path), archive.timelineRef.sha256, 'Compact TTS timeline')
+    const finalAudio = await readObservedAudio(options.rootDir, resolve(options.rootDir, archive.finalRef.path))
+    if (sha256Bytes(finalAudio.bytes) !== archive.finalRef.sha256) {
+      throw CLIUsageError('Compact TTS final output no longer matches its archive checksum.')
+    }
+    return {
+      kind: 'complete-render',
+      preparedState: options.state,
+      chunkCount: compactRender.slots.length,
+      reconciliationBlockers: [],
+      finalize: async (_workspaceDir, reportedOutputPath) => {
+        await hardlinkContainedArtifact(options.rootDir, archive.finalRef.path, contained(options.rootDir, reportedOutputPath)).catch(async () => {
+          await publishReportedOutput(options.rootDir, resolve(options.rootDir, archive.finalRef.path), reportedOutputPath, resultProjection)
+        })
+        return {
+          artifactDir: options.state.artifactDir,
+          operation: pure.operation,
+          targetKey: pure.targetKey,
+          transport: pure.transport,
+          renderIdentity: pure.renderIdentity,
+          resultIdentity: resultProjection.selectedSuccess?.resultIdentity as string,
+          audioRunId: resultProjection.selectedSuccess?.audioRunId as string,
+          strategy: pure.planned.strategy,
+          projection: resultProjection,
+        }
+      }
+    }
+  }
   const retainedRender = resultProjection.renderHistory.find((entry) => entry.renderIdentity === pure.renderIdentity)
   if (!retainedRender) {
     throw CLIUsageError(`Stored TTS target ${options.state.service}/${options.state.model ?? ''} does not match the exact planned render identity; rebuild instead of resuming it.`)
@@ -1438,6 +1682,75 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   const providerRoot = resolve(options.rootDir, options.state.artifactDir)
   const renderRoot = resolveRetainedPath(providerRoot, retainedRender.renderDir, 'Stored TTS render directory')
   const plannedSlotIds = pure.planned.slots.map((slot) => slot.generationSlotId)
+  const selectedSuccess = resultProjection.selectedSuccess?.renderIdentity === pure.renderIdentity
+    ? resultProjection.selectedSuccess
+    : undefined
+  const prepareSelectedSuccess = async (): Promise<CurrentTtsCompletedRecovery | undefined> => {
+    if (!selectedSuccess) return undefined
+    const selectedEvent = retainedRender.events.find((event) => event.sequence === selectedSuccess.eventSequence)
+    if (
+      selectedEvent?.status !== 'succeeded'
+      || selectedEvent.audioRunId !== selectedSuccess.audioRunId
+      || selectedEvent.providerRenderResultIdentity !== selectedSuccess.resultIdentity
+      || !selectedEvent.audioRunRef
+      || !selectedEvent.audioRunSha256
+    ) throw CLIUsageError('Selected TTS success does not bind one complete terminal render event.')
+    const audioRunPath = resolveRetainedPath(providerRoot, selectedEvent.audioRunRef, 'Selected TTS AudioRun')
+    const audioRun = await readVerifiedJson<AudioRun>(options.rootDir, audioRunPath, selectedEvent.audioRunSha256, 'Selected TTS AudioRun')
+    const { audioRunId: _audioRunId, ...audioRunBase } = audioRun
+    if (
+      audioRun.audioRunId !== selectedSuccess.audioRunId
+      || audioRun.audioRunId !== hashCanonicalTtsValue(audioRunBase)
+      || audioRun.targetKey !== pure.targetKey
+      || audioRun.renderIdentity !== pure.renderIdentity
+      || audioRun.renderPlanId !== pure.renderPlanId
+      || audioRun.providerResult.resultIdentity !== selectedSuccess.resultIdentity
+    ) throw CLIUsageError('Selected TTS AudioRun does not bind the exact planned render and selected success.')
+    const providerResultPath = resolveRetainedPath(renderRoot, audioRun.providerResult.path, 'Selected TTS provider result')
+    const providerResult = await readVerifiedJson<ProviderRenderResult>(options.rootDir, providerResultPath, audioRun.providerResult.sha256, 'Selected TTS provider result')
+    validateProviderRenderResult(providerResult)
+    if (
+      providerResult.status !== 'succeeded'
+      || providerResult.resultIdentity !== selectedSuccess.resultIdentity
+      || providerResult.renderIdentity !== pure.renderIdentity
+      || providerResult.renderPlanId !== pure.renderPlanId
+    ) throw CLIUsageError('Selected TTS provider result is not a complete success for the exact planned render.')
+    const audioRunRoot = dirname(audioRunPath)
+    for (const ref of [audioRun.mixPlan, audioRun.transformLedger, audioRun.finalTimeline]) {
+      await readVerifiedJson(options.rootDir, resolveRetainedPath(audioRunRoot, ref.path, 'Selected TTS AudioRun dependency'), ref.sha256, 'Selected TTS AudioRun dependency')
+    }
+    const finalOutput = audioRun.finalOutputs[0]
+    if (!finalOutput || audioRun.finalOutputs.length !== 1) throw CLIUsageError('Selected TTS AudioRun must retain exactly one canonical final output.')
+    const finalOutputPath = resolveRetainedPath(audioRunRoot, finalOutput.path, 'Selected TTS final output')
+    const finalAudio = await readObservedAudio(options.rootDir, finalOutputPath)
+    if (
+      sha256Bytes(finalAudio.bytes) !== finalOutput.sha256
+      || finalAudio.durationMs !== finalOutput.durationMs
+      || canonicalTtsJson(finalAudio.format) !== canonicalTtsJson(finalOutput.format)
+    ) throw CLIUsageError('Selected TTS final output no longer matches its AudioRun checksum, duration, or format.')
+    const eventOutput = selectedEvent.outputRefs?.find((ref) => resolveRetainedPath(providerRoot, ref.path, 'Selected TTS event output') === finalOutputPath)
+    if (!eventOutput || eventOutput.sha256 !== finalOutput.sha256) throw CLIUsageError('Selected TTS terminal event does not checksum-bind its AudioRun final output.')
+    return {
+      kind: 'complete-render',
+      preparedState: options.state,
+      chunkCount: plannedSlotIds.length,
+      reconciliationBlockers: [],
+      finalize: async (_workspaceDir, reportedOutputPath) => {
+        await publishReportedOutput(options.rootDir, finalOutputPath, reportedOutputPath, resultProjection)
+        return {
+          artifactDir: options.state.artifactDir,
+          operation: pure.operation,
+          targetKey: pure.targetKey,
+          transport: pure.transport,
+          renderIdentity: pure.renderIdentity,
+          resultIdentity: selectedSuccess.resultIdentity,
+          audioRunId: selectedSuccess.audioRunId,
+          strategy: pure.planned.strategy,
+          projection: resultProjection,
+        }
+      }
+    }
+  }
   type RetainedJournalEvidence = {
     value: RenderAdmissionJournalSnapshot
     path: string
@@ -1454,7 +1767,9 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     }
     if (knownJournalSnapshots.has(event.admissionJournalSnapshotId)) continue
     const path = resolveRetainedPath(providerRoot, event.admissionJournalRef, 'Stored TTS admission journal')
-    const value = await readVerifiedJson<RenderAdmissionJournalSnapshot>(options.rootDir, path, event.admissionJournalSha256, 'Stored TTS admission journal')
+    const value = path.endsWith('.jsonl')
+      ? await readLatestJournalSnapshot(options.rootDir, path, event.admissionJournalSha256)
+      : await readVerifiedJson<RenderAdmissionJournalSnapshot>(options.rootDir, path, event.admissionJournalSha256, 'Stored TTS admission journal')
     validateRenderAdmissionJournalSnapshot(value)
     if (
       value.snapshotId !== event.admissionJournalSnapshotId
@@ -1532,6 +1847,9 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     if (attemptRoot === terminalDirectJournal.attemptRoot) terminalJournalEvidence = attemptFrontier
   }
 
+  const selectedRecovery = await prepareSelectedSuccess()
+  if (selectedRecovery) return selectedRecovery
+
   type RetainedBatchCandidate = {
     batchId: string
     generationSlotId: string
@@ -1577,6 +1895,35 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
           attemptRoot: resolve(renderRoot, ...relativeResult.slice(0, batchResultsIndex))
         })
       }
+    }
+  }
+  for (const attemptRoot of new Set([...journalEvidenceById.values()].map((evidence) => evidence.attemptRoot))) {
+    const orphanResultNames = (await readdir(attemptRoot, { recursive: true }))
+      .map((name) => name.split(sep).join('/'))
+      .filter((name) => /^batch-results\/[^/]+\/[^/]+\/provider-batch-result\.json$/.test(name))
+      .sort()
+    for (const name of orphanResultNames) {
+      const path = resolve(attemptRoot, name)
+      const retained = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, path))
+      let value: ProviderBatchResult
+      try {
+        value = JSON.parse(retained.bytes.toString('utf8')) as ProviderBatchResult
+        validateProviderBatchResult(value)
+      } catch {
+        throw CLIUsageError('Stored TTS attempt contains an invalid orphan provider batch result; reconciliation is required.')
+      }
+      if (value.provenance !== 'provider-dispatch') continue
+      if (value.renderIdentity !== pure.renderIdentity || value.renderPlanId !== pure.renderPlanId) {
+        throw CLIUsageError('Stored TTS attempt contains a cross-render orphan provider batch result; reconciliation is required.')
+      }
+      addBatchCandidate({
+        batchId: value.batchId,
+        generationSlotId: value.generationSlotId,
+        batchResultId: value.batchResultId,
+        path,
+        sha256: retained.sha256,
+        attemptRoot
+      })
     }
   }
 
@@ -1637,6 +1984,175 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     if (!conflictingSlot) loadedBatches.push({ value: value as Extract<ProviderBatchResult, { provenance: 'provider-dispatch' }>, path, sha256: candidate.sha256, attemptRoot, outputPaths })
   }
 
+  // A process can be terminated after durable audio and completion evidence are
+  // published but before the small provider-batch-result JSON is promoted. The
+  // immutable journal, invocation plan, render plan, and canonical audio path
+  // contain enough evidence to reconstruct that missing local result without
+  // purchasing the generation slot again.
+  for (const evidence of journalEvidenceById.values()) {
+    const completedRequests = evidence.value.requests.filter((request) =>
+      request.transitions.at(-1)?.state === 'completed'
+      && !loadedBatches.some((batch) => batch.value.generationSlotId === request.generationSlotId))
+    for (const request of completedRequests) {
+      const requestsForSlot = evidence.value.requests.filter((candidate) => candidate.generationSlotId === request.generationSlotId)
+      if (requestsForSlot.length !== 1 || request.retryOfRequestOrdinal !== undefined) continue
+      const slot = pure.planned.slots.find((candidate) => candidate.generationSlotId === request.generationSlotId)
+      const batch = pure.planned.batches.find((candidate) => candidate.batchId === request.batchId)
+      if (!slot || !batch || slot.batchId !== request.batchId) {
+        throw CLIUsageError('Completed TTS request does not bind an immutable planned generation slot.')
+      }
+      const invocationPath = resolveRetainedPath(evidence.attemptRoot, request.batchInvocationPlanRef, 'Stored batch invocation plan')
+      const invocationPlan = await readVerifiedJson<ProviderBatchInvocationPlan>(
+        options.rootDir,
+        invocationPath,
+        request.batchInvocationPlanSha256,
+        'Stored batch invocation plan'
+      )
+      if (
+        invocationPlan.batchInvocationPlanId !== request.batchInvocationPlanId
+        || invocationPlan.renderIdentity !== pure.renderIdentity
+        || invocationPlan.renderPlanId !== pure.renderPlanId
+        || invocationPlan.invocationId !== evidence.value.invocationId
+        || invocationPlan.generationSlotId !== slot.generationSlotId
+      ) throw CLIUsageError('Completed TTS request invocation plan does not bind its exact immutable generation slot.')
+
+      const batchResultDir = resolve(evidence.attemptRoot, 'batch-results', slot.batchId, slot.generationSlotId)
+      const outputNames = (await readdir(batchResultDir).catch((error) => {
+        if ((error as { code?: unknown })?.code === 'ENOENT') return []
+        throw error
+      }))
+        .filter((name) => /^audio-\d{3}\.[A-Za-z0-9]+$/.test(name))
+        .sort()
+      if (outputNames.length === 0) continue
+      if (outputNames.some((name, index) => !name.startsWith(`audio-${String(index + 1).padStart(3, '0')}.`))) {
+        throw CLIUsageError(`Completed TTS generation slot ${slot.generationSlotId} has non-contiguous retained audio outputs.`)
+      }
+      const recordedOutputs: RecordedOutput[] = await Promise.all(outputNames.map(async (name) => {
+        const path = resolve(batchResultDir, name)
+        const audio = await readObservedAudio(options.rootDir, path)
+        return {
+          path,
+          relativeToBatchResult: contained(batchResultDir, path),
+          sha256: sha256Bytes(audio.bytes),
+          format: audio.format,
+          durationMs: audio.durationMs,
+          warnings: ['Recovered from durable completion evidence after interrupted batch-result promotion.']
+        }
+      }))
+      const preparedTransition = request.transitions.find((transition) => transition.state === 'prepared')
+      const completedTransition = request.transitions.at(-1)
+      if (preparedTransition?.state !== 'prepared' || completedTransition?.state !== 'completed') {
+        throw CLIUsageError('Completed TTS request is missing its prepared or completed transition evidence.')
+      }
+      const requestFingerprint = hashCanonicalTtsValue({
+        endpointKind: slot.expectedEndpointKind,
+        serializerVersion: slot.expectedSerializerVersion,
+        requestBodyHash: preparedTransition.requestBodyHash
+      })
+      if (requestFingerprint !== request.requestFingerprint) {
+        throw CLIUsageError('Completed TTS request fingerprint does not match the immutable serializer contract.')
+      }
+      const acceptedTransition = [...request.transitions].reverse().find((transition) => transition.state === 'provider-accepted')
+      const observedRequest: ObservedProviderRequest = {
+        requestOrdinal: request.requestOrdinal,
+        invocationId: evidence.value.invocationId,
+        batchId: slot.batchId,
+        generationSlotId: slot.generationSlotId,
+        batchInvocationPlanId: invocationPlan.batchInvocationPlanId,
+        provider: options.target.service,
+        model: options.target.model,
+        transport: pure.transport,
+        endpointKind: slot.expectedEndpointKind,
+        serializerVersion: slot.expectedSerializerVersion,
+        requestBodyHash: preparedTransition.requestBodyHash,
+        actualRequestControlsHash: slot.expectedRequestControlsHash,
+        actualContinuationHash: hashCanonicalTtsValue({ kind: 'none' }),
+        turns: slot.turnIds.map((turnId) => {
+          const turn = pure.planned.turns.find((candidate) => candidate.canonical.turnId === turnId)
+          if (!turn) throw CLIUsageError(`Completed TTS generation slot ${slot.generationSlotId} references an unknown turn.`)
+          return {
+            turnId,
+            providerTextHash: sha256Bytes(slot.providerText),
+            voiceField: slot.expectedVoiceField,
+            actualSerializedVoice: { kind: turn.voice.kind, valueHash: turn.voice.valueHash, provider: options.target.service },
+            actualSerializedControlsHash: slot.expectedRequestControlsHash
+          }
+        }),
+        ...(acceptedTransition?.state === 'provider-accepted' && acceptedTransition.providerRequestId ? { providerRequestId: acceptedTransition.providerRequestId } : {}),
+        ...(acceptedTransition?.state === 'provider-accepted' ? { acceptedAt: acceptedTransition.at } : {})
+      }
+      const outputs: ProviderBatchOutput[] = recordedOutputs.map((output, outputIndex) => ({
+        outputId: `output-${hashCanonicalTtsValue({ generationSlotId: slot.generationSlotId, outputIndex, sha256: output.sha256, format: output.format }).slice(0, 24)}`,
+        artifactRef: output.relativeToBatchResult,
+        sha256: output.sha256,
+        format: output.format,
+        durationMs: output.durationMs
+      }))
+      const resultBase = {
+        schemaVersion: 1 as const,
+        renderPlanId: pure.renderPlanId,
+        renderIdentity: pure.renderIdentity,
+        batchId: slot.batchId,
+        generationSlotId: slot.generationSlotId,
+        status: 'succeeded' as const,
+        requestedTurnIds: slot.turnIds,
+        outputs,
+        generatedBatch: {
+          batchId: slot.batchId,
+          generationSlotId: slot.generationSlotId,
+          takes: outputs.map((output, outputIndex) => ({
+            takeId: `take-${hashCanonicalTtsValue({ generationSlotId: slot.generationSlotId, outputId: output.outputId, sha256: output.sha256 }).slice(0, 24)}`,
+            generationSlotId: slot.generationSlotId,
+            audio: { artifactRef: output.artifactRef, outputId: output.outputId, sha256: output.sha256, format: output.format },
+            durationMs: output.durationMs ?? 0,
+            timing: {
+              availability: 'unavailable' as const,
+              clock: 'take-audio-ms' as const,
+              provenance: 'unavailable' as const,
+              turns: slot.turnIds.map((turnId) => {
+                const turn = pure.planned.turns.find((candidate) => candidate.canonical.turnId === turnId)
+                if (!turn) throw CLIUsageError(`Completed TTS generation slot ${slot.generationSlotId} references an unknown turn.`)
+                return { turnId, subjectKey: turn.canonical.subjectKey }
+              }),
+              reason: 'Provider timing metadata was not durably promoted before process interruption.'
+            },
+            warnings: [...(recordedOutputs[outputIndex]?.warnings ?? [])]
+          })),
+          batchCost: { planned: slot.plannedCost, observed: [] },
+          costEvidence: [],
+          generatedAt: completedTransition.at,
+          source: 'provider-dispatch' as const,
+          batchInvocationPlanId: invocationPlan.batchInvocationPlanId,
+          observedRequestOrdinals: [request.requestOrdinal]
+        },
+        turnOutcomes: slot.turnIds.map((turnId) => ({ turnId, status: 'succeeded' as const, outputIds: outputs.map((output) => output.outputId) })),
+        createdResources: [],
+        cost: { planned: slot.plannedCost, observed: [] },
+        provenance: 'provider-dispatch' as const,
+        invocationId: evidence.value.invocationId,
+        attempt: evidence.value.attempt,
+        batchInvocationPlan: {
+          batchInvocationPlanId: invocationPlan.batchInvocationPlanId,
+          artifactRef: contained(evidence.attemptRoot, invocationPath),
+          sha256: request.batchInvocationPlanSha256
+        },
+        admissionBasis: {
+          journalId: evidence.value.journalId,
+          snapshotId: evidence.value.snapshotId,
+          artifactRef: contained(evidence.attemptRoot, evidence.path),
+          sha256: evidence.sha256
+        },
+        observedRequests: [observedRequest],
+        retryAttempts: []
+      }
+      const result = withIdentity(resultBase, 'batchResultId') as Extract<ProviderBatchResult, { provenance: 'provider-dispatch' }>
+      validateProviderBatchResult(result)
+      const path = resolve(batchResultDir, 'provider-batch-result.json')
+      const sha256 = sha256Bytes(`${canonicalTtsJson(result)}\n`)
+      loadedBatches.push({ value: result, path, sha256, attemptRoot: evidence.attemptRoot, outputPaths: recordedOutputs.map((output) => output.path), requiresMaterialization: true })
+    }
+  }
+
   const completedSlotIds = new Set<string>()
   const retainedAttemptCosts: PlannedCost[] = []
   const costedDispatches = new Set<string>()
@@ -1683,7 +2199,8 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     }
     const blocker = reconciliationBlockers.find((entry) => entry.generationSlotId === slotId)
     if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
-      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation.`)
+      const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
+      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
     }
   }
   for (const batch of loadedBatches) {
@@ -1699,6 +2216,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   const retainedCumulativePlannedCost = sumCosts(retainedAttemptCosts)
   for (const slotId of completedSlotIds) {
     if (loadedBatches.filter((batch) => batch.value.generationSlotId === slotId).length !== 1) {
+      if (options.ttsOptions.ttsAllowAmbiguousRedispatch === true) continue
       throw CLIUsageError(`Stored completed TTS generation slot ${slotId} has no exact promoted batch result.`)
     }
   }
@@ -1749,6 +2267,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     chunkCount: plannedSlotIds.length,
     reconciliationBlockers,
     finalize: async (workspaceDir, reportedOutputPath) => {
+      await Promise.all(loadedBatches.map(async (batch) => await materializeRecoveredBatch(options.rootDir, batch)))
       const orderedBatches = pure.planned.slots.map((slot) => loadedBatches.find((batch) => batch.value.generationSlotId === slot.generationSlotId) as LoadedRecoveryBatch)
       if (!renderResult || !resultPath || !resultSha256) {
         const batchRefs: ProviderBatchResultRef[] = orderedBatches.map((batch) => ({
@@ -1903,7 +2422,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
         createdAt: recoveryAt
       }, 'audioRunId') as AudioRun
       const audioRunFile = await writeJsonCreateOnly(options.rootDir, `${audioRunRoot}/audio-run.json`, audioRun)
-      await copyCreateOnly(options.rootDir, assembledPath, reportedOutputPath)
+      await publishReportedOutput(options.rootDir, assembledPath, reportedOutputPath, resultProjection)
       const reportedBytes = (await readContainedArtifactFile(options.rootDir, contained(options.rootDir, reportedOutputPath))).bytes
       const readinessAuthorization = terminalReadinessAuthorization
       if (activeRenderResult.closedBy.kind === 'provider-attempt' && !readinessAuthorization) {
@@ -1971,11 +2490,283 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   }
 }
 
+const resolvedPlanTurn = (plan: ProviderRenderPlan, turnId: string) => {
+  for (const node of plan.nodes) {
+    if (node.kind === 'turn' && node.turn.turnId === turnId) return node.turn
+    if (node.kind === 'overlap') {
+      const turn = node.turns.find((entry) => entry.turnId === turnId)
+      if (turn) return turn
+    }
+  }
+  return undefined
+}
+
+const portableResolvedPlanTurn = (plan: ProviderRenderPlan, turnId: string) => {
+  const turn = resolvedPlanTurn(plan, turnId)
+  if (!turn) return undefined
+  const { voice, ...turnWithoutVoice } = turn
+  return {
+    ...turnWithoutVoice,
+    bindingIdentityHash: voice.kind === 'approved-snapshot' ? voice.entryHash : voice.identityHash,
+    providerVoice: voice.providerVoice,
+    providerModel: voice.providerModel,
+    ...(voice.kind === 'approved-snapshot' && voice.providerRevision ? { providerRevision: voice.providerRevision } : {}),
+    synthesisSettings: voice.synthesisSettings,
+    capabilityFixtureHash: voice.capabilityFixtureHash
+  }
+}
+
+const compatibleSegmentedSlotHash = (plan: ProviderRenderPlan, generationSlotId: string): string | undefined => {
+  if (plan.strategy !== 'segmented') return undefined
+  const batch = plan.batches.find((entry) => entry.generationSlots.some((slot) => slot.generationSlotId === generationSlotId))
+  const slot = batch?.generationSlots.find((entry) => entry.generationSlotId === generationSlotId)
+  const artifact = plan.strategyArtifacts?.generationSlots.find((entry) => entry.generationSlotId === generationSlotId)
+  if (!batch || !slot || !artifact) return undefined
+  const turns = batch.orderedTurnIds.map((turnId) => portableResolvedPlanTurn(plan, turnId))
+  if (turns.some((turn) => !turn)) return undefined
+  return hashCanonicalTtsValue({
+    schemaVersion: 1,
+    sourceIdentityHash: plan.sourceIdentityHash,
+    dialoguePlanId: plan.dialoguePlanId,
+    targetKey: plan.targetKey,
+    provider: plan.provider,
+    model: plan.model,
+    transport: plan.transport,
+    requestedOutput: plan.requestedOutput,
+    batchId: batch.batchId,
+    generationSlotId,
+    orderedTurnIds: batch.orderedTurnIds,
+    requestControls: batch.requestControls,
+    slotIndex: slot.slotIndex,
+    requestedTakeCount: slot.requestedTakeCount,
+    providerTextSha256: artifact.sha256,
+    turns
+  })
+}
+
+const paidSpeechSlotHashFor = (
+  options: PureCurrentTtsRenderPlanOptions,
+  planned: ReturnType<typeof buildPureCurrentTtsRenderPlan>['planned'],
+  slot: AttemptSlot
+): string => computePaidSpeechSlotHash({
+  dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
+  turnIds: slot.turnIds,
+  providerText: slot.providerText,
+  serializedVoiceHash: hashCanonicalTtsValue(slot.turnIds.map((turnId) => planned.turns.find((turn) => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
+  requestControlsHash: slot.expectedRequestControlsHash,
+  outputFormat: requestedOutput(options),
+  endpointKind: slot.expectedEndpointKind,
+  serializerVersion: slot.expectedSerializerVersion,
+})
+
+const recoverSlotReuseFromExistingWav = async (input: {
+  rootDir: string
+  layout: ReturnType<typeof resolveTtsOutputLayout>
+  renderPlanId: string
+  renderIdentity: string
+  slot: AttemptSlot
+  slotHash: string
+  expectedSha256?: string | undefined
+  requiresMaterialization: boolean
+}): Promise<CurrentTtsRecoveredGenerationSlot> => {
+  const wavPath = `${input.rootDir}/${input.layout.slotWavPath(input.slotHash)}`
+  const audio = await readObservedAudio(input.rootDir, wavPath)
+  const sha256 = sha256Bytes(audio.bytes)
+  if (input.expectedSha256 && input.expectedSha256 !== sha256) {
+    throw CLIUsageError(`Stored TTS slot ${input.slotHash} no longer matches its archive checksum.`)
+  }
+  const outputId = `output-${hashCanonicalTtsValue({ generationSlotId: input.slot.generationSlotId, outputIndex: 0, sha256, format: audio.format }).slice(0, 24)}`
+  const resultBase = {
+    schemaVersion: 1 as const,
+    renderPlanId: input.renderPlanId,
+    renderIdentity: input.renderIdentity,
+    batchId: input.slot.batchId,
+    generationSlotId: input.slot.generationSlotId,
+    status: 'succeeded' as const,
+    requestedTurnIds: input.slot.turnIds,
+    outputs: [{
+      outputId,
+      artifactRef: input.layout.slotWavPath(input.slotHash),
+      sha256,
+      format: audio.format,
+      durationMs: audio.durationMs,
+    }],
+    turnOutcomes: input.slot.turnIds.map((turnId) => ({ turnId, status: 'succeeded' as const, outputIds: [outputId] })),
+    createdResources: [] as [],
+    cost: { planned: input.slot.plannedCost, observed: [] },
+    provenance: 'slot-reuse' as const,
+    slotHash: input.slotHash,
+    observedRequests: [] as [],
+    retryAttempts: [] as [],
+  }
+  const value = withIdentity(resultBase, 'batchResultId') as ProviderBatchResult
+  validateProviderBatchResult(value)
+  return {
+    value,
+    path: `${input.rootDir}/${input.layout.slotResultPath(input.slotHash)}`,
+    sha256: sha256Bytes(`${canonicalTtsJson(value)}\n`),
+    outputPaths: [wavPath],
+    requiresMaterialization: input.requiresMaterialization,
+  }
+}
+
+/**
+ * Reuses verified `audio/slots/<slotHash>.wav` files across a new render identity.
+ * A voice/profile change therefore does not repurchase unaffected turns. Recast lists
+ * reused hashes and never copies audio or relabels a prior dispatch as the new render.
+ */
+export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurrentTtsRenderPlanOptions & {
+  rootDir: string
+  outputDir: string
+  artifactRoot?: string | undefined
+  state: PipelineProviderState
+  materialize?: boolean | undefined
+  reconciliationMode?: 'enforce' | 'report' | undefined
+}): Promise<CurrentTtsPartialRecovery | CurrentTtsSafeRedispatch | undefined> => {
+  const pure = buildPureCurrentTtsRenderPlan(options)
+  if (pure.planned.strategy !== 'segmented' || options.state.targetKey !== pure.targetKey) return undefined
+  if (options.materialize !== false && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
+    const report = await prepareCurrentTtsCompatibleSlotRecovery({ ...options, materialize: false, reconciliationMode: 'report' })
+    const blocker = report?.reconciliationBlockers[0]
+    if (blocker) {
+      const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
+      throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+    }
+  }
+  const projection = readAudioProjection(options.state)
+  if (!projection) return undefined
+  const layout = resolveTtsOutputLayout(options.artifactRoot ?? (options.comicContext ? 'audio/providers' : 'providers'), pure.targetKey, pure.renderIdentity)
+  const archivedByHash = new Map<string, CompactTargetRender['slots'][number]>()
+  if (projection.archive) {
+    const compactRender = await readVerifiedJson<CompactTargetRender>(
+      options.rootDir,
+      resolve(options.rootDir, projection.archive.renderRef.path),
+      projection.archive.renderRef.sha256,
+      'Compact TTS render'
+    )
+    for (const slot of compactRender.slots) archivedByHash.set(slot.slotHash, slot)
+  }
+  const recovered = new Map<string, CurrentTtsRecoveredGenerationSlot>()
+  for (const slot of pure.planned.slots) {
+    const slotHash = paidSpeechSlotHashFor(options, pure.planned, slot)
+    const wavPath = `${options.rootDir}/${layout.slotWavPath(slotHash)}`
+    try {
+      await lstat(wavPath)
+    } catch (error) {
+      if (hasErrorCode(error, 'ENOENT')) continue
+      throw error
+    }
+    recovered.set(slot.generationSlotId, await recoverSlotReuseFromExistingWav({
+      rootDir: options.rootDir,
+      layout,
+      renderPlanId: pure.renderPlanId,
+      renderIdentity: pure.renderIdentity,
+      slot,
+      slotHash,
+      expectedSha256: archivedByHash.get(slotHash)?.sha256,
+      requiresMaterialization: options.materialize !== false,
+    }))
+  }
+  const providerRoot = resolve(options.rootDir, options.state.artifactDir)
+  const currentSlots = new Map(pure.planned.slots.map((slot) => [slot.generationSlotId, slot] as const))
+  const blockerCandidates = new Map<string, CurrentTtsReconciliationBlocker>()
+
+  for (const retainedRender of [...projection.renderHistory].reverse()) {
+    if (retainedRender.renderIdentity === pure.renderIdentity) continue
+    const retainedPlanPath = resolveRetainedPath(providerRoot, retainedRender.renderPlanRef, 'Stored TTS render plan')
+    const retainedPlan = await readVerifiedJson<ProviderRenderPlan>(options.rootDir, retainedPlanPath, retainedRender.renderPlanSha256, 'Stored TTS render plan')
+    validateProviderRenderPlanIdentity(retainedPlan)
+    if (retainedPlan.renderIdentity !== retainedRender.renderIdentity || retainedPlan.renderPlanId !== retainedRender.renderPlanId) {
+      throw CLIUsageError('Stored TTS render plan identity does not match its canonical projection.')
+    }
+    const currentPlan = pure.renderPlan
+    if (
+      retainedPlan.strategy !== 'segmented'
+      || retainedPlan.targetKey !== currentPlan.targetKey
+      || retainedPlan.sourceIdentityHash !== currentPlan.sourceIdentityHash
+      || retainedPlan.dialoguePlanId !== currentPlan.dialoguePlanId
+      || retainedPlan.provider !== currentPlan.provider
+      || retainedPlan.model !== currentPlan.model
+      || retainedPlan.transport !== currentPlan.transport
+      || canonicalTtsJson(retainedPlan.requestedOutput) !== canonicalTtsJson(currentPlan.requestedOutput)
+    ) continue
+
+    const retainedSlotIds = retainedPlan.batches.flatMap((batch) => batch.generationSlots.map((slot) => slot.generationSlotId))
+    const compatibleSlotIds = new Set(retainedSlotIds.filter((generationSlotId) => {
+      if (!currentSlots.has(generationSlotId)) return false
+      const oldCompatibilityHash = compatibleSegmentedSlotHash(retainedPlan, generationSlotId)
+      return oldCompatibilityHash !== undefined && oldCompatibilityHash === compatibleSegmentedSlotHash(currentPlan, generationSlotId)
+    }))
+    if (compatibleSlotIds.size === 0) continue
+
+    const retainedArtifactRoot = options.artifactRoot ?? (options.comicContext ? 'audio/providers' : 'providers')
+    const retainedLayout = resolveTtsOutputLayout(retainedArtifactRoot, pure.targetKey, retainedRender.renderIdentity)
+    const retainedRenderJournalPath = `${resolveStableTtsArtifactDir(retainedArtifactRoot, pure.targetKey)}/renders/${retainedRender.renderIdentity}/journal.jsonl`
+    const journalCandidates = new Set<string>([
+      `${options.rootDir}/${retainedLayout.journalPath}`,
+      `${options.rootDir}/${retainedRenderJournalPath}`,
+    ])
+    if (projection.activeWork?.kind === 'render' && projection.activeWork.renderIdentity === retainedRender.renderIdentity && projection.activeWork.journalPath) {
+      journalCandidates.add(`${options.rootDir}/${projection.activeWork.journalPath}`)
+    }
+    for (const journalPath of journalCandidates) {
+      try {
+        await lstat(journalPath)
+      } catch (error) {
+        if (hasErrorCode(error, 'ENOENT')) continue
+        throw error
+      }
+      const retained = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, journalPath))
+      const lines = retained.bytes.toString('utf8').split('\n').filter((line) => line.length > 0)
+      const last = lines.at(-1)
+      if (!last) continue
+      const parsed = JSON.parse(last) as { snapshot?: RenderAdmissionJournalSnapshot }
+      if (!parsed.snapshot) continue
+      validateRenderAdmissionJournalSnapshot(parsed.snapshot)
+      const journal = parsed.snapshot
+      if (journal.renderIdentity !== retainedPlan.renderIdentity || journal.renderPlanId !== retainedPlan.renderPlanId) continue
+      for (const request of journal.requests) {
+        if (!compatibleSlotIds.has(request.generationSlotId)) continue
+        const state = request.transitions.at(-1)?.state
+        if (
+          state === undefined
+          || state === 'completed'
+          || state === 'prepared'
+          || state === 'provider-rejected'
+          || state === 'confirmed-not-admitted'
+        ) continue
+        blockerCandidates.set(`${retainedPlan.renderIdentity}\0${journal.journalId}\0${request.requestOrdinal}`, {
+          generationSlotId: request.generationSlotId,
+          state,
+          attempt: journal.attempt,
+          invocationId: journal.invocationId,
+          requestOrdinal: request.requestOrdinal,
+        })
+      }
+    }
+  }
+  const reconciliationBlockers = [...blockerCandidates.values()]
+    .filter((blocker) => !recovered.has(blocker.generationSlotId))
+    .sort((left, right) => left.attempt - right.attempt || left.requestOrdinal - right.requestOrdinal)
+  const blocker = reconciliationBlockers[0]
+  if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
+    const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
+    throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+  }
+  if (recovered.size === 0) {
+    return reconciliationBlockers.length === 0
+      ? undefined
+      : { kind: 'safe-redispatch', retainedCumulativePlannedCost: { amounts: [] }, reconciliationBlockers }
+  }
+  return { kind: 'partial-slots', recoveredSlots: [...recovered.values()], retainedCumulativePlannedCost: { amounts: [] }, reconciliationBlockers }
+}
+
 export type CurrentTtsResumePricePlan = Readonly<{
   readiness: PureCurrentTtsReadinessPlan
   plannedCost: PlannedCost
   plannedSlotCount: number
   unresolvedSlotCount: number
+  unresolvedCharacterCount: number
   recoveredSlotCount: number
   recoveryKind: 'none' | CurrentTtsCompletedRecovery['kind'] | CurrentTtsPartialRecovery['kind'] | CurrentTtsSafeRedispatch['kind']
   reconciliationBlockers: readonly CurrentTtsReconciliationBlocker[]
@@ -1986,8 +2777,9 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
   state?: PipelineProviderState | undefined
 }): Promise<CurrentTtsResumePricePlan> => {
   const { rootDir, state, ...planOptions } = options
+  const planned = buildPureCurrentTtsRenderPlan(planOptions)
   const readiness = planCurrentTtsReadiness(planOptions)
-  const slots = readiness.renderPlan.batches.flatMap((batch) => batch.generationSlots)
+  const slots = planned.planned.slots
   const requestedSlotLimit = planOptions.ttsOptions.ttsMaxGenerationSlots
   if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) {
     throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
@@ -1995,19 +2787,24 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
   const projection = state ? readAudioProjection(state) : undefined
   const retainedHasPlannedRender = projection?.activeWork?.kind === 'render'
     && projection.renderHistory.some((render) => render.renderIdentity === readiness.renderIdentity)
-  const recovery = state && retainedHasPlannedRender
+  const sameRenderArchive = Boolean(projection?.archive && projection.selectedSuccess?.renderIdentity === readiness.renderIdentity)
+  const recovery = state && (retainedHasPlannedRender || sameRenderArchive)
     ? await prepareCurrentTtsCompletedRecovery({ rootDir, state, ...planOptions, reconciliationMode: 'report' })
     : undefined
-  const recoveredIds = new Set(recovery?.kind === 'complete-render'
+  const compatibleRecovery = state && !retainedHasPlannedRender && !sameRenderArchive
+    ? await prepareCurrentTtsCompatibleSlotRecovery({ rootDir, outputDir: rootDir, state, ...planOptions, materialize: false, reconciliationMode: 'report' })
+    : undefined
+  const effectiveRecovery = recovery ?? compatibleRecovery
+  const recoveredIds = new Set(effectiveRecovery?.kind === 'complete-render'
     ? slots.map((slot) => slot.generationSlotId)
-    : recovery?.kind === 'partial-slots'
-      ? recovery.recoveredSlots.map((slot) => slot.value.generationSlotId)
+    : effectiveRecovery?.kind === 'partial-slots'
+      ? effectiveRecovery.recoveredSlots.map((slot) => slot.value.generationSlotId)
       : [])
   const unresolvedSlots = slots.filter((slot) => !recoveredIds.has(slot.generationSlotId))
   const selectedSlots = requestedSlotLimit === undefined
     ? unresolvedSlots
     : unresolvedSlots.slice(0, requestedSlotLimit)
-  const plannedCost = recovery === undefined && requestedSlotLimit === undefined
+  const plannedCost = effectiveRecovery === undefined && requestedSlotLimit === undefined
     ? readiness.plannedCost
     : sumCosts(selectedSlots.map((slot) => slot.plannedCost))
   return {
@@ -2015,9 +2812,10 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
     plannedCost,
     plannedSlotCount: selectedSlots.length,
     unresolvedSlotCount: unresolvedSlots.length,
+    unresolvedCharacterCount: selectedSlots.reduce((count, slot) => count + [...slot.providerText].length, 0),
     recoveredSlotCount: slots.length - unresolvedSlots.length,
-    recoveryKind: recovery?.kind ?? 'none',
-    reconciliationBlockers: recovery?.reconciliationBlockers ?? []
+    recoveryKind: effectiveRecovery?.kind ?? 'none',
+    reconciliationBlockers: effectiveRecovery?.reconciliationBlockers ?? []
   }
 }
 
@@ -2045,10 +2843,24 @@ export const createCurrentTtsRenderAttempt = async (
     renderIdentity,
     renderPlan,
   } = purePlan
-  const artifactRoot = (options.artifactRoot ?? 'providers').replace(/\/+$/, '')
-  if (!artifactRoot || artifactRoot.includes('\\') || artifactRoot.split('/').some((part) => !part || part === '.' || part === '..')) throw CLIUsageError(`Invalid TTS provider artifact root: ${artifactRoot}`)
-  const targetRelativeDir = `${artifactRoot}/${targetKey}`
+  const artifactRoot = options.artifactRoot ?? (options.comicContext ? 'audio/providers' : 'providers')
+  const compactArchive = Boolean(options.comicContext) || artifactRoot.replace(/\/+$/, '') === 'audio/providers'
+  const layout = resolveTtsOutputLayout(artifactRoot, targetKey, renderIdentity)
+  const targetRelativeDir = resolveStableTtsArtifactDir(artifactRoot, targetKey)
+  const archiveRelativeDir = layout.artifactDir
   const targetDir = `${options.outputDir}/${targetRelativeDir}`
+  const journalRelativePath = `${targetRelativeDir}/renders/${renderIdentity}/journal.jsonl`
+  const paidSpeechSlotHash = (slot: AttemptSlot): string => slot.slotHash ?? computePaidSpeechSlotHash({
+    dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
+    turnIds: slot.turnIds,
+    providerText: slot.providerText,
+    serializedVoiceHash: hashCanonicalTtsValue(slot.turnIds.map((turnId) => planned.turns.find((turn) => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
+    requestControlsHash: slot.expectedRequestControlsHash,
+    outputFormat: requestedOutput(options),
+    endpointKind: slot.expectedEndpointKind,
+    serializerVersion: slot.expectedSerializerVersion,
+  })
+  for (const slot of planned.slots) slot.slotHash = paidSpeechSlotHash(slot)
   if ((options.recoveredSlots?.length ?? 0) > 0 && planned.strategy !== 'segmented') {
     throw CLIUsageError('Recovered TTS generation slots may seed only an immutable segmented render.')
   }
@@ -2068,9 +2880,7 @@ export const createCurrentTtsRenderAttempt = async (
     recoveredBySlot.set(recovered.value.generationSlotId, recovered)
   }
   const unresolvedSlots = planned.slots.filter((slot) => !recoveredBySlot.has(slot.generationSlotId))
-  if (unresolvedSlots.length === 0) {
-    throw CLIUsageError('A new TTS provider attempt requires at least one unresolved immutable generation slot.')
-  }
+  const localCompositionOnly = unresolvedSlots.length === 0
   const requestedSlotLimit = options.ttsOptions.ttsMaxGenerationSlots
   if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) {
     throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
@@ -2078,6 +2888,15 @@ export const createCurrentTtsRenderAttempt = async (
   if (requestedSlotLimit !== undefined && planned.strategy !== 'segmented') {
     throw CLIUsageError('Bounded generation-slot execution is supported only for segmented TTS renders.')
   }
+  const renderRoot = `${targetDir}/renders/${renderIdentity}`
+  for (const [slotId, recovered] of recoveredBySlot) {
+    if (recovered.value.provenance !== 'slot-reuse') continue
+    recoveredBySlot.set(slotId, {
+      ...recovered,
+      path: `${renderRoot}/slots/${recovered.value.slotHash}/provider-batch-result.json`,
+    })
+  }
+  await Promise.all([...recoveredBySlot.values()].map(async (batch) => await materializeRecoveredBatch(options.outputDir, batch)))
   const attemptSlots = requestedSlotLimit === undefined ? unresolvedSlots : unresolvedSlots.slice(0, requestedSlotLimit)
   const attemptSlotIds = new Set(attemptSlots.map((slot) => slot.generationSlotId))
   const unresolvedBatchIds = [...new Set(attemptSlots.map((slot) => slot.batchId))]
@@ -2086,7 +2905,6 @@ export const createCurrentTtsRenderAttempt = async (
     options.retainedCumulativePlannedCost ?? { amounts: [] },
     unresolvedPlannedCost
   ])
-  const renderRoot = `${targetDir}/renders/${renderIdentity}`
   const branchRoot = `${targetDir}/branches/${branchPlan.branchPlanId}`
   const attemptsRoot = `${renderRoot}/attempts`
   const priorAttemptNumbers = (await readdir(attemptsRoot).catch(() => []))
@@ -2112,7 +2930,7 @@ export const createCurrentTtsRenderAttempt = async (
   const accountScopeHash = hashCanonicalTtsValue({
     provider: options.target.service,
     transport,
-    credentialScope: options.target.service === 'kitten' ? 'local-process' : 'configured-provider-account'
+    credentialScope: 'configured-provider-account'
   })
   const capabilityObservation = withIdentity({
     capabilityScopeHash,
@@ -2186,6 +3004,15 @@ export const createCurrentTtsRenderAttempt = async (
     if (!journalFile) throw InternalError('TTS admission journal was not started before attempted provider work.', { stage: 'tts:admission' })
     return journalFile
   }
+  const journalEventFields = () => {
+    const file = requireJournalFile()
+    return {
+      readinessAuthorization,
+      admissionJournalSnapshotId: journal.snapshotId,
+      admissionJournalRef: contained(targetDir, file.path),
+      admissionJournalSha256: file.sha256,
+    }
+  }
   const ensureJournalStarted = async (): Promise<void> => {
     if (journalFile) return
     const reserved = await reserveInvocationAttemptDirectory(options.outputDir, {
@@ -2197,7 +3024,17 @@ export const createCurrentTtsRenderAttempt = async (
       throw InternalError('Reserved TTS attempt directory does not match its immutable invocation identity.', { stage: 'tts:admission' })
     }
     attemptReservation = reserved
-    journalFile = await writeJson(options.outputDir, `${attemptRoot}/admission-journal-${String(journalSequence).padStart(4, '0')}.json`, journal)
+    try {
+      await writeJsonCreateOnly(options.outputDir, `${targetDir}/attempt-${String(attemptNumber).padStart(3, '0')}.json`, {
+        schemaVersion: 1,
+        attempt: attemptNumber,
+        invocationId,
+        journalPath: journalRelativePath,
+      })
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes('already exists')) throw error
+    }
+    journalFile = await writeJournalLine(journal)
   }
   const preparedAt = journal.capturedAt
   const events: CanonicalAudioProviderProjection['renderHistory'][number]['events'] = [{
@@ -2215,7 +3052,18 @@ export const createCurrentTtsRenderAttempt = async (
     result?: WrittenJson<ProviderRenderResult> | undefined
     audioRun?: WrittenJson<AudioRun> | undefined
   }): CanonicalAudioProviderProjection => ({
-      activeWork: { kind: 'render', renderIdentity, eventSequence: events.length },
+      activeWork: {
+        kind: 'render',
+        renderIdentity,
+        eventSequence: events.length,
+        ...(journalFile ? { journalPath: journalRelativePath } : {}),
+        ...(planned.slots.some((slot) => recoveredBySlot.has(slot.generationSlotId))
+          ? {
+              completedSlotHashes: planned.slots.flatMap((slot) =>
+                recoveredBySlot.has(slot.generationSlotId) ? [paidSpeechSlotHash(slot)] : [])
+            }
+          : {})
+      },
       ...(terminal?.result && terminal.audioRun ? { selectedSuccess: { renderIdentity, eventSequence: events.length, resultIdentity: terminal.result.value.resultIdentity, audioRunId: terminal.audioRun.value.audioRunId } } : {}),
       branchHistory: [{ sequence: 1, branchPlanId: branchPlan.branchPlanId, branchPlanRef: contained(targetDir, branchFile.path), branchPlanSha256: branchFile.sha256, createdAt: preparedAt }],
       readinessAttempts: [{ sequence: 1, branchPlanId: branchPlan.branchPlanId, readinessResultRef: contained(targetDir, readinessFile.path), readinessResultHash: readinessFile.sha256, accountObservationHashes: [capabilityObservation.observationHash], at: readinessCheckedAt, status: 'ready', admissionDisposition: 'eligible' }],
@@ -2244,21 +3092,29 @@ export const createCurrentTtsRenderAttempt = async (
     return recovered ? [{ value: recovered.value, path: recovered.path, sha256: recovered.sha256 }] : []
   })
   const promotedBatchFiles = new Map<string, WrittenJson<ProviderBatchResult>>()
-  const buildBatchProgress = (resultFiles: readonly WrittenJson<ProviderBatchResult>[]) => planned.batches.map((batch) => ({
+  const buildBatchProgress = (resultFiles: readonly WrittenJson<ProviderBatchResult>[]): CanonicalBatchProgress[] => planned.batches.map((batch) => ({
     batchId: batch.batchId,
-    generationSlots: batch.generationSlots.flatMap((slot) => {
+    generationSlots: batch.generationSlots.flatMap<CanonicalBatchProgress['generationSlots'][number]>((slot) => {
       const request = runtimeRequests.find((entry) => entry.slot.generationSlotId === slot.generationSlotId)
       const recovered = recoveredBySlot.get(slot.generationSlotId)
       const result = resultFiles.find((file) => file.value.generationSlotId === slot.generationSlotId)
       const invocationPlan = request
         ? { batchInvocationPlanId: request.invocationFile.value.batchInvocationPlanId, path: contained(renderRoot, request.invocationFile.path), sha256: request.invocationFile.sha256 }
-        : recovered
+        : recovered?.value.provenance === 'provider-dispatch' && recovered.attemptRoot
           ? {
               batchInvocationPlanId: recovered.value.batchInvocationPlan.batchInvocationPlanId,
               path: contained(renderRoot, resolveRetainedPath(recovered.attemptRoot, recovered.value.batchInvocationPlan.artifactRef, 'Recovered batch invocation plan')),
               sha256: recovered.value.batchInvocationPlan.sha256
             }
           : undefined
+      if (recovered?.value.provenance === 'slot-reuse' && result) {
+        return [{
+          generationSlotId: slot.generationSlotId,
+          source: 'slot-reuse' as const,
+          slotHash: recovered.value.slotHash,
+          batchResult: { batchResultId: result.value.batchResultId, path: layout.slotResultPath(recovered.value.slotHash), sha256: result.sha256, status: 'succeeded' as const }
+        }]
+      }
       return invocationPlan ? [{
         generationSlotId: slot.generationSlotId,
         source: 'provider-dispatch' as const,
@@ -2268,26 +3124,47 @@ export const createCurrentTtsRenderAttempt = async (
     })
   })).filter((batch) => batch.generationSlots.length > 0)
   let publishJournalState = async (): Promise<void> => {}
+  const writeJournalLine = async (snapshot: RenderAdmissionJournalSnapshot): Promise<WrittenJson<RenderAdmissionJournalSnapshot>> => {
+    const lastRequest = snapshot.requests.at(-1)
+    const lastTransition = lastRequest?.transitions.at(-1)
+    await appendJsonlArtifactLine(options.outputDir, journalRelativePath, {
+      seq: journalSequence,
+      at: snapshot.capturedAt,
+      event: lastTransition?.state ?? (snapshot.recordedResult ? 'recorded-result' : snapshot.recordedBatchResults.length > 0 ? 'recorded-batch' : 'prepared'),
+      snapshotId: snapshot.snapshotId,
+      ...(snapshot.previousSnapshotId ? { previousSnapshotId: snapshot.previousSnapshotId } : {}),
+      ...(lastRequest ? { requestOrdinal: lastRequest.requestOrdinal, generationSlotId: lastRequest.generationSlotId } : {}),
+      ...(lastRequest ? { slotHash: paidSpeechSlotHash(planned.slots.find((slot) => slot.generationSlotId === lastRequest.generationSlotId) ?? planned.slots[0] as AttemptSlot) } : {}),
+      snapshot,
+    })
+    return await writeJsonCreateOnly(
+      options.outputDir,
+      `${attemptRoot}/admission-journal-${journalSequence}.json`,
+      snapshot
+    )
+  }
   const writeNextJournal = async (next: RenderAdmissionJournalSnapshot): Promise<void> => {
     requireJournalFile()
     const previous = journal
     const { snapshotId: _discardedSnapshotId, ...base } = next
     const candidate = withIdentity(base as unknown as Record<string, unknown>, 'snapshotId') as unknown as RenderAdmissionJournalSnapshot
     validateRenderAdmissionJournalSnapshot(candidate, previous)
-    const candidateSequence = journalSequence + 1
-    const candidateFile = await writeJson(options.outputDir, `${attemptRoot}/admission-journal-${String(candidateSequence).padStart(4, '0')}.json`, candidate)
+    journalSequence += 1
+    const candidateFile = await writeJournalLine(candidate)
     journal = candidate
-    journalSequence = candidateSequence
     journalFile = candidateFile
     await publishJournalState()
   }
   publishJournalState = async () => {
     const at = now()
-    const activeJournal = requireJournalFile()
+    requireJournalFile()
     const retainedProgress = buildBatchProgress([...recoveredBatchFiles, ...promotedBatchFiles.values()])
-    events.push({ sequence: events.length + 1, status: 'running', at, attempt: attemptNumber, readinessAuthorization, admissionJournalSnapshotId: journal.snapshotId, admissionJournalRef: contained(targetDir, activeJournal.path), admissionJournalSha256: activeJournal.sha256, ...(retainedProgress.length > 0 ? { batchProgress: retainedProgress } : {}) })
+    events.push({ sequence: events.length + 1, status: 'running', at, attempt: attemptNumber, ...journalEventFields(), ...(retainedProgress.length > 0 ? { batchProgress: retainedProgress } : {}) })
     pointerEvents.push({ sequence: pointerEvents.length + 1, action: 'activate-render', renderIdentity, eventSequence: events.length, actor: LOCAL_ACTOR, at })
     currentProjection = buildProjection()
+    if (currentProjection.activeWork?.kind === 'render') {
+      currentProjection.activeWork.completedSlotHashes = planned.slots.flatMap((slot) => outputsBySlot.has(slot.generationSlotId) || recoveredBySlot.has(slot.generationSlotId) ? [paidSpeechSlotHash(slot)] : [])
+    }
     await publish(stateForProjection(options.target, targetKey, transport, targetRelativeDir, currentProjection))
   }
   const appendTerminalProjection = (
@@ -2302,16 +3179,13 @@ export const createCurrentTtsRenderAttempt = async (
     }
   ): CanonicalAudioProviderProjection => {
     const at = now()
-    const activeJournal = requireJournalFile()
+    if (!localCompositionOnly) requireJournalFile()
     events.push({
       sequence: events.length + 1,
       status,
       at,
-      attempt: attemptNumber,
-      readinessAuthorization,
-      admissionJournalSnapshotId: journal.snapshotId,
-      admissionJournalRef: contained(targetDir, activeJournal.path),
-      admissionJournalSha256: activeJournal.sha256,
+      attempt: localCompositionOnly ? priorAttemptCount : attemptNumber,
+      ...(localCompositionOnly ? {} : journalEventFields()),
       ...(terminal.result ? { providerRenderResultIdentity: terminal.result.value.resultIdentity, providerRenderResultRef: contained(targetDir, terminal.result.path), providerRenderResultSha256: terminal.result.sha256 } : {}),
       ...(terminal.outputRefs ? { outputRefs: terminal.outputRefs } : {}),
       ...(terminal.reportedOutputRefs ? { reportedOutputRefs: terminal.reportedOutputRefs } : {}),
@@ -2344,7 +3218,6 @@ export const createCurrentTtsRenderAttempt = async (
     const succeeded = providerCompleted && recordedOutputs.length > 0
     const ambiguous = !succeeded && requests.some((entry) => entry.terminal === 'ambiguous' || entry.terminal === undefined)
     const status = succeeded ? 'succeeded' as const : ambiguous ? 'ambiguous' as const : 'failed' as const
-    const batchResultDir = `${attemptRoot}/batch-results/${slot.batchId}/${slot.generationSlotId}`
     const outputs: ProviderBatchOutput[] = recordedOutputs.map((output, outputIndex) => ({
       outputId: `output-${hashCanonicalTtsValue({ generationSlotId: slot.generationSlotId, outputIndex, sha256: output.sha256, format: output.format }).slice(0, 24)}`,
       artifactRef: output.relativeToBatchResult,
@@ -2436,7 +3309,11 @@ export const createCurrentTtsRenderAttempt = async (
     }
     const result = withIdentity(resultBase, 'batchResultId') as unknown as ProviderBatchResult
     validateProviderBatchResult(result)
-    const file = await writeJson(options.outputDir, `${batchResultDir}/provider-batch-result.json`, result)
+    const file = await writeJson(
+      options.outputDir,
+      `${attemptRoot}/batch-results/${slot.batchId}/${slot.generationSlotId}/provider-batch-result.json`,
+      result
+    )
     promotedBatchFiles.set(slot.generationSlotId, file)
     const reference = {
       batchId: file.value.batchId,
@@ -2611,11 +3488,30 @@ export const createCurrentTtsRenderAttempt = async (
             runtime.terminal = 'ambiguous'
             return
           }
-          rejected = !accepted && typeof (error as { status?: unknown })?.status === 'number'
+          rejected = !accepted && classifyTtsProviderAdmissionError(error) === 'rejected'
           const kind = rejected ? 'rejection' as const : 'ambiguity' as const
           const state = rejected ? 'provider-rejected' as const : 'ambiguous' as const
           const sanitized = sanitizeError(error, 'synthesis')
-          const evidence = withIdentity({ schemaVersion: 1 as const, journalId, invocationId, provider: options.target.service, requestOrdinal: runtime.request.requestOrdinal, requestFingerprint, evidenceKind: kind, observedAt: now(), fields: { code: sanitized.code, retryable: sanitized.retryable } }, 'evidenceHash')
+          const evidence = withIdentity({
+            schemaVersion: 1 as const,
+            journalId,
+            invocationId,
+            provider: options.target.service,
+            requestOrdinal: runtime.request.requestOrdinal,
+            requestFingerprint,
+            evidenceKind: kind,
+            observedAt: now(),
+            fields: {
+              code: sanitized.code,
+              retryable: sanitized.retryable,
+              ...(sanitized.status !== undefined ? { status: sanitized.status } : {}),
+              ...(sanitized.stage ? { stage: sanitized.stage } : {}),
+              ...(sanitized.errorName ? { errorName: sanitized.errorName } : {}),
+              ...(sanitized.providerMessage ? { providerMessage: sanitized.providerMessage } : {}),
+              ...(sanitized.requestId ? { requestId: sanitized.requestId } : {}),
+              ...(sanitized.retryAfterMs !== undefined ? { retryAfterMs: sanitized.retryAfterMs } : {})
+            }
+          }, 'evidenceHash')
           const file = await writeJson(options.outputDir, `${attemptRoot}/evidence/request-${String(runtime.request.requestOrdinal).padStart(4, '0')}-${kind}.json`, evidence)
           const transition = rejected
             ? { sequence: 0, state: 'provider-rejected' as const, at: evidence.observedAt, evidence: { journalId, invocationId, requestOrdinal: runtime.request.requestOrdinal, requestFingerprint, proofKind: 'rejection' as const, kind: 'sanitized-artifact' as const, path: contained(attemptRoot, file.path), sha256: file.sha256 } }
@@ -2628,23 +3524,36 @@ export const createCurrentTtsRenderAttempt = async (
         throw error
       }
     },
-    recordOutput: async ({ chunkIndex, path, outputIndex = 1, timing, providerGenerationId, warnings }) => await locked(async () => {
+    recordOutput: async ({ chunkIndex, path, timing, timingFactory, providerGenerationId, warnings }) => await locked(async () => {
       const slot = slotFor(invocation, { chunkIndex } as TtsSerializedRequestObservation)
       if (!journalFile || !runtimeRequests.some((entry) => entry.slot.generationSlotId === slot.generationSlotId)) {
         throw CLIUsageError('TTS serializer output does not bind one dispatched generation slot.')
       }
+      const slotHash = paidSpeechSlotHash(slot)
+      const outputIndex = (outputsBySlot.get(slot.generationSlotId)?.length ?? 0) + 1
       const batchResultDir = `${attemptRoot}/batch-results/${slot.batchId}/${slot.generationSlotId}`
-      const suffix = extname(path) || '.audio'
-      const destination = `${batchResultDir}/audio-${String(outputIndex).padStart(3, '0')}${suffix}`
+      const destination = `${batchResultDir}/audio-${String(outputIndex).padStart(3, '0')}.wav`
       await copyCreateOnly(options.outputDir, path, destination)
+      const slotWavPath = `${options.outputDir}/${layout.slotWavPath(slotHash)}`
+      try {
+        await lstat(slotWavPath)
+      } catch (error) {
+        if (!hasErrorCode(error, 'ENOENT')) throw error
+        await copyCreateOnly(options.outputDir, destination, slotWavPath)
+      }
       const audio = await readObservedAudio(options.outputDir, destination)
+      if (timing && timingFactory) throw CLIUsageError('TTS serializer output supplied conflicting timing representations.')
+      if (timingFactory && slot.turnIds.length !== 1) throw CLIUsageError('Provider timing for a hosted TTS chunk must bind exactly one planned turn.')
+      const turn = timingFactory ? planned.turns.find((entry) => entry.canonical.turnId === slot.turnIds[0]) as AttemptTurn | undefined : undefined
+      if (timingFactory && !turn) throw CLIUsageError('Provider timing could not bind its planned turn identity.')
+      const boundTiming = timingFactory && turn ? timingFactory({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey }) : timing
       const recorded = {
         path: destination,
         relativeToBatchResult: contained(batchResultDir, destination),
         sha256: sha256Bytes(audio.bytes),
         format: audio.format,
         durationMs: audio.durationMs,
-        ...(timing ? { timing } : {}),
+        ...(boundTiming ? { timing: boundTiming } : {}),
         ...(providerGenerationId ? { providerGenerationId } : {}),
         ...(warnings ? { warnings: [...warnings] } : {})
       }
@@ -2669,6 +3578,58 @@ export const createCurrentTtsRenderAttempt = async (
   type ClosedProviderAttempt = {
     resultFile?: WrittenJson<ProviderRenderResult> | undefined
     batchResultFiles: Array<WrittenJson<ProviderBatchResult>>
+  }
+  const closeLocalComposition = async (): Promise<ClosedProviderAttempt> => {
+    if (!localCompositionOnly || recoveredBatchFiles.length !== planned.slots.length) {
+      throw InternalError('Local TTS composition requires one verified recovered result for every generation slot.', { stage: 'tts:recovery' })
+    }
+    const batchResultFiles = [...recoveredBatchFiles]
+      .sort((left, right) => planned.slots.findIndex((slot) => slot.generationSlotId === left.value.generationSlotId) - planned.slots.findIndex((slot) => slot.generationSlotId === right.value.generationSlotId))
+    const batchRefs: ProviderBatchResultRef[] = batchResultFiles.map((file) => ({
+      batchId: file.value.batchId,
+      generationSlotId: file.value.generationSlotId,
+      batchResultId: file.value.batchResultId,
+      artifactRef: contained(renderRoot, file.path),
+      sha256: file.sha256
+    }))
+    const observedRequests = batchResultFiles.flatMap((file) => file.value.observedRequests)
+    const requestedTurnIds = planned.turns.map((turn) => turn.canonical.turnId)
+    const turnOutcomes = requestedTurnIds.map((turnId) => {
+      const results = batchResultFiles.map((file) => file.value).filter((result) => result.requestedTurnIds.includes(turnId))
+      const requests = results.flatMap((result) => result.observedRequests.filter((request) => request.turns.some((turn) => turn.turnId === turnId)))
+      return {
+        turnId,
+        status: 'succeeded' as const,
+        observedRequests: requests.map((request) => ({ invocationId: request.invocationId, requestOrdinal: request.requestOrdinal })),
+        batchIds: [...new Set(results.map((result) => result.batchId))],
+        generationSlotIds: results.map((result) => result.generationSlotId),
+        outputIds: results.flatMap((result) => result.outputs.map((output) => output.outputId))
+      }
+    })
+    const compositionId = hashCanonicalTtsValue({ renderPlanId, renderIdentity, batchResults: batchRefs })
+    const renderResult = withIdentity({
+      schemaVersion: 1 as const,
+      closedBy: { kind: 'local-composition' as const, compositionId },
+      renderPlanId,
+      renderIdentity,
+      status: 'succeeded' as const,
+      requestedTurnIds,
+      batchResults: batchRefs,
+      observedRequests,
+      outputs: batchResultFiles.flatMap((file) => file.value.outputs.map((output) => ({ ...output, batchResultId: file.value.batchResultId }))),
+      generatedBatches: batchResultFiles.flatMap((file) => file.value.generatedBatch ? [file.value.generatedBatch] : []),
+      turnOutcomes,
+      createdResources: batchResultFiles.flatMap((file) => file.value.createdResources),
+      retryAttempts: batchResultFiles.flatMap((file) => file.value.retryAttempts),
+      cost: {
+        currentComposition: { planned: plannedRenderCost, observed: [] },
+        closingAttempt: { planned: { amounts: [] }, observed: [] },
+        cumulativeRenderHistory: { planned: sumCosts(batchResultFiles.map((file) => file.value.cost.planned)), observed: [] }
+      }
+    }, 'resultIdentity') as ProviderRenderResult
+    validateProviderRenderResult(renderResult)
+    const resultFile = await writeJsonCreateOnly(options.outputDir, `${renderRoot}/compositions/${compositionId}/provider-render-result.json`, renderResult)
+    return { resultFile, batchResultFiles }
   }
   let closedProviderAttempt: ClosedProviderAttempt | undefined
   const closeProviderAttempt = async (closingError?: SanitizedProviderError | undefined): Promise<ClosedProviderAttempt> => {
@@ -2746,9 +3707,9 @@ export const createCurrentTtsRenderAttempt = async (
 
   let terminalState: PipelineProviderState | undefined
 
-  const finalizeFailure = async (error: unknown): Promise<PipelineProviderState> => {
+  const finalizeFailure = async (error: unknown, phase?: SanitizedProviderError['phase']): Promise<PipelineProviderState> => {
     if (terminalState) return terminalState
-    const sanitized = sanitizeError(error, runtimeRequests.length > 0 ? 'synthesis' : 'static-validation')
+    const sanitized = sanitizeError(error, phase ?? (runtimeRequests.length > 0 ? 'synthesis' : 'static-validation'))
     if (runtimeRequests.length === 0) {
       const at = now()
       events.push({ sequence: events.length + 1, status: 'failed', at, attempt: priorAttemptCount, error: sanitized })
@@ -2776,16 +3737,18 @@ export const createCurrentTtsRenderAttempt = async (
 
   const finalizeSuccess = async (audioPath: string, reportedOutputPath: string): Promise<CurrentTtsRenderArtifacts> => {
     if (terminalState) throw CLIUsageError('TTS render attempt was already finalized.')
-    if (requestedSlotLimit !== undefined) throw CLIUsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
+    if (requestedSlotLimit !== undefined && !localCompositionOnly) throw CLIUsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
     if (
-      runtimeRequests.length === 0
+      (!localCompositionOnly && runtimeRequests.length === 0)
       || planned.slots.some((slot) => !recoveredBySlot.has(slot.generationSlotId) && !(outputsBySlot.get(slot.generationSlotId)?.length))
     ) throw CLIUsageError('TTS target returned success without serializer-observed or verified recovered output for every planned generation slot.')
-    const { resultFile, batchResultFiles } = await closeProviderAttempt()
+    const { resultFile, batchResultFiles } = localCompositionOnly
+      ? await closeLocalComposition()
+      : await closeProviderAttempt()
     if (!resultFile || resultFile.value.status !== 'succeeded') throw CLIUsageError('TTS provider attempt did not close as a complete success.')
     const audioRunRoot = `${renderRoot}/results/${resultFile.value.resultIdentity}/audio-run`
     const finalPath = `${audioRunRoot}/final.wav`
-    const masteringDir = `${attemptRoot}/mastering`
+    const masteringDir = localCompositionOnly ? `${dirname(resultFile.path)}/mastering` : `${attemptRoot}/mastering`
     await mkdir(masteringDir, { recursive: true })
     const masteringProfile = options.ttsOptions.ttsMasteringProfile
     let masteredPath: string
@@ -2795,9 +3758,12 @@ export const createCurrentTtsRenderAttempt = async (
       const outputPathsBySlot = new Map(planned.slots.map((slot) => {
         const file = resultBySlot.get(slot.generationSlotId)
         if (!file) throw CLIUsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
-        return [slot.generationSlotId, file.value.outputs.map(output => resolveRetainedPath(dirname(resolve(options.outputDir, file.path)), output.artifactRef, `Comic generation slot ${slot.generationSlotId} provider output`))] as const
+          return [slot.generationSlotId, file.value.outputs.map(output => resolveRetainedPath(output.artifactRef.includes('/') ? options.outputDir : dirname(file.path), output.artifactRef, `Comic generation slot ${slot.generationSlotId} provider output`))] as const
       }))
       masteredPath = await assembleComicSegmentedAudio({ dialoguePlan: options.comicContext.dialoguePlan, turns: planned.turns.map(turn => turn.canonical), slots: planned.slots, outputPathsBySlot, masteringDir, providerLabel: options.target.service, profile: masteringProfile })
+    } else if (localCompositionOnly && planned.strategy === 'segmented') {
+      const recoveredOutputPaths = batchResultFiles.flatMap((file) => file.value.outputs.map((output) => resolveRetainedPath(output.artifactRef.includes('/') ? options.outputDir : dirname(file.path), output.artifactRef, `Recovered generation slot ${file.value.generationSlotId} provider output`)))
+      masteredPath = await concatAndConvertToWav(recoveredOutputPaths, masteringDir, `${options.target.service}-recovery-mastering`, undefined, masteringProfile)
     } else {
       masteredPath = await concatAndConvertToWav([audioPath], masteringDir, `${options.target.service}-mastering`, undefined, masteringProfile)
     }
@@ -2831,9 +3797,9 @@ export const createCurrentTtsRenderAttempt = async (
       const slotIds = new Set(planned.slots.filter(slot => slot.turnIds.length === 1 && slot.turnIds[0] === turnId && (slot.timingSegmentIndex ?? 0) === segmentIndex).map(slot => slot.generationSlotId))
       return batchResultFiles.filter(file => slotIds.has(file.value.generationSlotId)).flatMap(file => file.value.outputs).reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
     }
-    const layout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration, timingSegmentDuration) : undefined
+    const timelineLayout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration, timingSegmentDuration) : undefined
     let genericTimelineCursorMs = 0
-    const assembledTurns = layout?.turns ?? planned.turns.map((turn) => {
+    const assembledTurns = timelineLayout?.turns ?? planned.turns.map((turn) => {
       const startMs = genericTimelineCursorMs
       genericTimelineCursorMs += turnDuration(turn.canonical.turnId)
       return { turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, startMs, endMs: genericTimelineCursorMs }
@@ -2844,11 +3810,11 @@ export const createCurrentTtsRenderAttempt = async (
       const parametersHash = hashCanonicalTtsValue(turn.effect)
       return [{ operationId: hashCanonicalTtsValue({ kind: 'effect', turnId: assembled.turnId, parametersHash, finalRangeMs: { start: assembled.startMs, end: assembled.endMs } }), kind: 'effect' as const, finalRangeMs: { start: assembled.startMs, end: assembled.endMs }, parametersHash }]
     })
-    const overlapOperations = (layout?.overlaps ?? []).map((overlap) => {
+    const overlapOperations = (timelineLayout?.overlaps ?? []).map((overlap) => {
       const parametersHash = hashCanonicalTtsValue({ groupId: overlap.groupId })
       return { operationId: hashCanonicalTtsValue({ kind: 'overlap', groupId: overlap.groupId, parametersHash, finalRangeMs: { start: overlap.start, end: overlap.end } }), kind: 'overlap' as const, finalRangeMs: { start: overlap.start, end: overlap.end }, parametersHash }
     })
-    const pauseOperations = (layout?.pauses ?? []).map((pause) => {
+    const pauseOperations = (timelineLayout?.pauses ?? []).map((pause) => {
       const parametersHash = hashCanonicalTtsValue(pause.parameters)
       return { operationId: hashCanonicalTtsValue({ kind: 'pause', parametersHash, finalRangeMs: { start: pause.start, end: pause.end } }), kind: 'pause' as const, finalRangeMs: { start: pause.start, end: pause.end }, parametersHash }
     })
@@ -2892,32 +3858,205 @@ export const createCurrentTtsRenderAttempt = async (
       speechSources,
       transformLedgerRef: { path: contained(audioRunRoot, ledgerFile.path), sha256: ledgerFile.sha256 }
     }, 'timelineId')
-    const timelineFile = await writeJson(options.outputDir, `${audioRunRoot}/final-timeline.json`, timeline)
+    const reportedOutputSha256 = resolve(masteredPath) === resolve(reportedOutputPath)
+      ? sha256Bytes((await readContainedArtifactFile(options.outputDir, contained(options.outputDir, reportedOutputPath))).bytes)
+      : await hardlinkContainedArtifact(options.outputDir, contained(options.outputDir, masteredPath), contained(options.outputDir, reportedOutputPath))
+        .then((file) => file.sha256)
+        .catch(async () => await publishReportedOutput(options.outputDir, masteredPath, reportedOutputPath, currentProjection))
+
+    if (!compactArchive || localCompositionOnly || options.comicContext) {
+      const timelineFile = await writeJson(options.outputDir, `${audioRunRoot}/final-timeline.json`, timeline)
+      const audioRun = withIdentity({
+        schemaVersion: 1 as const,
+        targetKey,
+        renderPlanId,
+        renderIdentity,
+        providerResult: { resultIdentity: resultFile.value.resultIdentity, path: contained(renderRoot, resultFile.path), sha256: resultFile.sha256 },
+        takeSelections: [],
+        continuationCheckpoints: [],
+        mixPlan: { mixPlanId: mixPlan.mixPlanId, path: contained(audioRunRoot, mixPlanFile.path), sha256: mixPlanFile.sha256 },
+        transformLedger: { transformLedgerId: ledger.transformLedgerId, path: contained(audioRunRoot, ledgerFile.path), sha256: ledgerFile.sha256 },
+        finalTimeline: { timelineId: timeline.timelineId, path: contained(audioRunRoot, timelineFile.path), sha256: timelineFile.sha256 },
+        finalOutputs: [{ path: contained(audioRunRoot, finalPath), sha256: sha256Bytes(finalAudio.bytes), format: finalAudio.format, durationMs: finalAudio.durationMs }],
+        createdAt: now()
+      }, 'audioRunId') as AudioRun
+      const audioRunFile = await writeJson(options.outputDir, `${audioRunRoot}/audio-run.json`, audioRun)
+      const archiveTimelineFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveTimelinePath}`, timeline)
+      const compactSlots = planned.slots.map((slot) => {
+        const file = batchResultFiles.find((entry) => entry.value.generationSlotId === slot.generationSlotId)
+        const output = file?.value.outputs[0]
+        if (!output) throw CLIUsageError(`Compact TTS render is missing paid output for ${slot.generationSlotId}.`)
+        return {
+          slotHash: paidSpeechSlotHash(slot),
+          turnIds: [...slot.turnIds],
+          sha256: output.sha256,
+          durationMs: output.durationMs ?? 0,
+          voiceHash: hashCanonicalTtsValue(slot.turnIds.map((turnId) => planned.turns.find((turn) => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
+        }
+      })
+      const compactRender = withIdentity({
+        schemaVersion: 1 as const,
+        targetKey,
+        renderIdentity,
+        renderPlanId,
+        dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
+        ...(options.comicContext ? { snapshotId: options.comicContext.voiceSnapshot.snapshotId } : {}),
+        strategy: planned.strategy,
+        format: finalAudio.format,
+        cost: resultFile.value.cost,
+        slots: compactSlots,
+        outputs: {
+          final: {
+            path: contained(options.outputDir, reportedOutputPath),
+            sha256: sha256Bytes(finalAudio.bytes),
+            durationMs: finalAudio.durationMs,
+          }
+        },
+        retryErrorSummary: {
+          requestCount: resultFile.value.observedRequests.length,
+          retryCount: resultFile.value.retryAttempts.length,
+          failedSlotCount: 0,
+        }
+      }, 'renderId') as unknown as CompactTargetRender
+      const compactRenderFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveRenderPath}`, compactRender)
+      currentProjection = appendTerminalProjection('succeeded', {
+        result: resultFile,
+        audioRun: audioRunFile,
+        batchResultFiles,
+        outputRefs: [{ path: contained(targetDir, finalPath), sha256: sha256Bytes(finalAudio.bytes) }],
+        reportedOutputRefs: [{ path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256 }]
+      })
+      currentProjection.archive = {
+        schemaVersion: 1,
+        renderRef: { path: layout.archiveRenderPath, sha256: compactRenderFile.sha256 },
+        timelineRef: { path: layout.archiveTimelinePath, sha256: archiveTimelineFile.sha256 },
+        finalRef: { path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256 },
+        slotCount: compactSlots.length,
+      }
+      if (!localCompositionOnly && !options.comicContext) {
+        const { activeWork: _activeWork, ...rest } = currentProjection
+        currentProjection = rest
+      }
+      const usedSlotReuse = [...recoveredBySlot.values()].some((entry) => entry.value.provenance === 'slot-reuse')
+      if (usedSlotReuse && !localCompositionOnly) {
+        currentProjection = {
+          selectedSuccess: currentProjection.selectedSuccess,
+          archive: currentProjection.archive,
+          branchHistory: [],
+          readinessAttempts: [],
+          renderHistory: [],
+          pointerEvents: [{
+            sequence: 1,
+            action: 'select-success',
+            renderIdentity,
+            eventSequence: 1,
+            resultIdentity: resultFile.value.resultIdentity,
+            audioRunId: audioRun.audioRunId,
+            actor: LOCAL_ACTOR,
+            at: now(),
+          }],
+        }
+      }
+      terminalState = stateForProjection(options.target, targetKey, transport, usedSlotReuse && !localCompositionOnly ? archiveRelativeDir : targetRelativeDir, currentProjection)
+      await publish(terminalState)
+      return { artifactDir: targetRelativeDir, operation, targetKey, transport, renderIdentity, resultIdentity: resultFile.value.resultIdentity, audioRunId: audioRun.audioRunId, strategy: planned.strategy, projection: currentProjection }
+    }
+
+    const timelineFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveTimelinePath}`, timeline)
+    const compactSlots = planned.slots.map((slot) => {
+      const file = batchResultFiles.find((entry) => entry.value.generationSlotId === slot.generationSlotId)
+      const output = file?.value.outputs[0]
+      if (!output) throw CLIUsageError(`Compact TTS render is missing paid output for ${slot.generationSlotId}.`)
+      return {
+        slotHash: paidSpeechSlotHash(slot),
+        turnIds: [...slot.turnIds],
+        sha256: output.sha256,
+        durationMs: output.durationMs ?? 0,
+        voiceHash: hashCanonicalTtsValue(slot.turnIds.map((turnId) => planned.turns.find((turn) => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
+      }
+    })
+    const compactRenderBase = {
+      schemaVersion: 1 as const,
+      targetKey,
+      renderIdentity,
+      renderPlanId,
+      dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
+      strategy: planned.strategy,
+      format: finalAudio.format,
+      cost: resultFile.value.cost,
+      slots: compactSlots,
+      outputs: {
+        final: {
+          path: contained(options.outputDir, reportedOutputPath),
+          sha256: sha256Bytes(finalAudio.bytes),
+          durationMs: finalAudio.durationMs,
+        }
+      },
+      retryErrorSummary: {
+        requestCount: resultFile.value.observedRequests.length,
+        retryCount: resultFile.value.retryAttempts.length,
+        failedSlotCount: 0,
+      }
+    }
+    const compactRender = withIdentity(compactRenderBase, 'renderId') as unknown as CompactTargetRender
+    const compactRenderFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveRenderPath}`, compactRender)
+    const archive: CompactAudioArchive = {
+      schemaVersion: 1,
+      renderRef: { path: layout.archiveRenderPath, sha256: compactRenderFile.sha256 },
+      timelineRef: { path: layout.archiveTimelinePath, sha256: timelineFile.sha256 },
+      finalRef: { path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256 },
+      slotCount: compactSlots.length,
+    }
     const audioRun = withIdentity({
       schemaVersion: 1 as const,
       targetKey,
       renderPlanId,
       renderIdentity,
-      providerResult: { resultIdentity: resultFile.value.resultIdentity, path: contained(renderRoot, resultFile.path), sha256: resultFile.sha256 },
+      providerResult: { resultIdentity: resultFile.value.resultIdentity, path: layout.archiveRenderPath, sha256: compactRenderFile.sha256 },
       takeSelections: [],
       continuationCheckpoints: [],
       mixPlan: { mixPlanId: mixPlan.mixPlanId, path: contained(audioRunRoot, mixPlanFile.path), sha256: mixPlanFile.sha256 },
       transformLedger: { transformLedgerId: ledger.transformLedgerId, path: contained(audioRunRoot, ledgerFile.path), sha256: ledgerFile.sha256 },
-      finalTimeline: { timelineId: timeline.timelineId, path: contained(audioRunRoot, timelineFile.path), sha256: timelineFile.sha256 },
-      finalOutputs: [{ path: contained(audioRunRoot, finalPath), sha256: sha256Bytes(finalAudio.bytes), format: finalAudio.format, durationMs: finalAudio.durationMs }],
+      finalTimeline: { timelineId: timeline.timelineId, path: layout.archiveTimelinePath, sha256: timelineFile.sha256 },
+      finalOutputs: [{ path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256, format: finalAudio.format, durationMs: finalAudio.durationMs }],
       createdAt: now()
     }, 'audioRunId') as AudioRun
-    const audioRunFile = await writeJson(options.outputDir, `${audioRunRoot}/audio-run.json`, audioRun)
-    if (resolve(masteredPath) !== resolve(reportedOutputPath)) {
-      await copyCreateOnly(options.outputDir, masteredPath, reportedOutputPath)
+    const referencedSlotHashes = new Set(compactSlots.map((slot) => slot.slotHash))
+    currentProjection = {
+      selectedSuccess: {
+        renderIdentity,
+        eventSequence: 1,
+        resultIdentity: resultFile.value.resultIdentity,
+        audioRunId: audioRun.audioRunId,
+      },
+      archive,
+      branchHistory: [],
+      readinessAttempts: [],
+      renderHistory: [],
+      pointerEvents: [{
+        sequence: 1,
+        action: 'select-success',
+        renderIdentity,
+        eventSequence: 1,
+        resultIdentity: resultFile.value.resultIdentity,
+        audioRunId: audioRun.audioRunId,
+        actor: LOCAL_ACTOR,
+        at: now(),
+      }],
     }
-    const reportedAudio = (await readContainedArtifactFile(options.outputDir, contained(options.outputDir, reportedOutputPath))).bytes
-    const outputRefs = [{ path: contained(targetDir, finalPath), sha256: sha256Bytes(finalAudio.bytes) }]
-    const reportedOutputRefs = [{ path: contained(options.outputDir, reportedOutputPath), sha256: sha256Bytes(reportedAudio) }]
-    currentProjection = appendTerminalProjection('succeeded', { result: resultFile, batchResultFiles, audioRun: audioRunFile, outputRefs, reportedOutputRefs })
-    terminalState = stateForProjection(options.target, targetKey, transport, targetRelativeDir, currentProjection)
+    terminalState = stateForProjection(options.target, targetKey, transport, archiveRelativeDir, currentProjection)
     await publish(terminalState)
-    return { artifactDir: targetRelativeDir, operation, targetKey, transport, renderIdentity, resultIdentity: resultFile.value.resultIdentity, audioRunId: audioRun.audioRunId, strategy: planned.strategy, projection: currentProjection }
+    await removeContainedDirectory(options.outputDir, layout.workDir)
+    await removeContainedDirectory(options.outputDir, targetRelativeDir)
+    await removeContainedDirectory(options.outputDir, artifactRoot)
+    const slotEntries = await readdir(`${options.outputDir}/${layout.slotsDir}`).catch(() => [])
+    await Promise.all(slotEntries.map(async (name) => {
+      const slotHash = name.replace(/\.wav$/, '')
+      if (name.endsWith('.wav') && !referencedSlotHashes.has(slotHash)) {
+        await unlink(`${options.outputDir}/${layout.slotsDir}/${name}`).catch(() => undefined)
+      }
+    }))
+    return { artifactDir: archiveRelativeDir, operation, targetKey, transport, renderIdentity, resultIdentity: resultFile.value.resultIdentity, audioRunId: audioRun.audioRunId, strategy: planned.strategy, projection: currentProjection }
   }
 
   const finalizeCheckpoint = async () => {
@@ -2938,16 +4077,13 @@ export const createCurrentTtsRenderAttempt = async (
       throw CLIUsageError('Bounded TTS generation checkpoint did not close with durable successful slot evidence.')
     }
     const at = now()
-    const activeJournal = requireJournalFile()
+    requireJournalFile()
     events.push({
       sequence: events.length + 1,
       status: 'running',
       at,
       attempt: attemptNumber,
-      readinessAuthorization,
-      admissionJournalSnapshotId: journal.snapshotId,
-      admissionJournalRef: contained(targetDir, activeJournal.path),
-      admissionJournalSha256: activeJournal.sha256,
+      ...journalEventFields(),
       providerRenderResultIdentity: resultFile.value.resultIdentity,
       providerRenderResultRef: contained(targetDir, resultFile.path),
       providerRenderResultSha256: resultFile.sha256,
@@ -2984,5 +4120,5 @@ export const createCurrentTtsRenderAttempt = async (
           providerSegmentIndex: slot.slotIndex
         }
       })
-  return { requestEvidence: scopeFor(), preparedState, executionSelection, finalizeSuccess, finalizeCheckpoint, finalizeFailure }
+  return { requestEvidence: scopeFor(), preparedState, providerDispatchRequired: !localCompositionOnly, plannedChunkCount: planned.slots.length, executionSelection, finalizeSuccess, finalizeCheckpoint, finalizeFailure }
 }

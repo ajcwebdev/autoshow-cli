@@ -25,8 +25,8 @@ const asArray = (value: unknown): unknown[] => {
 }
 
 const buildTtsMetadata = (overrides: Partial<Step4Metadata> = {}): Step4Metadata => ({
-  ttsService: 'kitten',
-  ttsModel: 'kitten-tts-mini',
+  ttsService: 'openai',
+  ttsModel: 'gpt-4o-mini-tts-2025-12-15',
   processingTime: 100,
   audioFileName: 'speech.wav',
   audioFileSize: 10,
@@ -182,7 +182,7 @@ describe('tts batch output contracts', () => {
         partial: 0,
         fail: 0,
         wallTimeMs: 300,
-        requestedProviders: [{ service: 'kitten', model: 'kitten-tts-mini' }]
+        requestedProviders: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }]
       }
     )
 

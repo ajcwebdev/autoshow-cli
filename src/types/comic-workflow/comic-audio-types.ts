@@ -7,6 +7,7 @@ import type {
   SanitizedProviderVoiceMetadata,
   TtsProvider,
   TypedProviderSynthesisSettings,
+  ComicPresentationMetadata,
 } from '~/types'
 
 export type ComicSourceIdentity = {
@@ -19,7 +20,7 @@ export type ComicSourceIdentity = {
 
 export type StructuredScriptArtifactRef = {
   path: 'metadata/structured-script.json'
-  artifactSchemaVersion: 4
+  artifactSchemaVersion: 5
   sha256: string
 }
 
@@ -117,6 +118,7 @@ export type CanonicalComicItemMetadata = {
     structure: ComicStageRecord
     image: ComicStageRecord
     audio: ComicStageRecord
+    presentation: ComicStageRecord
   }
   audio: {
     sceneRunIdentity?: string | undefined
@@ -136,12 +138,26 @@ export type CanonicalComicItemMetadata = {
     mixPlanRef?: ComicStageArtifactRef | undefined
     finalTimelineRef?: ComicStageArtifactRef | undefined
     finalOutputRefs?: ComicStageArtifactRef[] | undefined
+    soundscapePlanId?: string | undefined
+    soundscapePlanRef?: ComicStageArtifactRef | undefined
+    soundEffectRenderPlanRef?: ComicStageArtifactRef | undefined
+    soundEffectRenderResultRef?: ComicStageArtifactRef | undefined
+    selectedSoundscapeRuns?: Array<{
+      targetKey: string
+      dialogueAudioRunId: string
+      soundscapeAudioRunId: string
+      audioRunRef: string
+      audioRunSha256: string
+      masterRef: ComicStageArtifactRef
+    }> | undefined
   }
+  presentation: ComicPresentationMetadata
 }
 
 export type ComicAudioMode = 'auto' | 'native' | 'segmented'
 export type ComicAudioDeliveryPolicy = 'strict' | 'best-effort'
 export type ComicAudioPacingProfile = 'none' | 'loose-comedy'
+export type ComicAudioSoundscapeTimingPolicy = 'strict' | 'proportional'
 
 export type ComicAudioRolePolicy = {
   speakerLabel: string
@@ -156,9 +172,13 @@ export type ComicGenerateAudioOptions = {
   mode: ComicAudioMode
   deliveryPolicy: ComicAudioDeliveryPolicy
   pacingProfile: ComicAudioPacingProfile
+  soundscapeTimingPolicy: ComicAudioSoundscapeTimingPolicy
   rolePolicies: ComicAudioRolePolicy[]
   sampleRate: number
   channels: 1 | 2
   codec: 'pcm_s16le' | 'pcm_s24le'
   price: boolean
+  sfxProvider?: string | undefined
+  sfxLicenseUse?: string | undefined
+  sfxConcurrency?: number | undefined
 }

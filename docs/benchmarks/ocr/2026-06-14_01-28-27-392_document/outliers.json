@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-28-27-392_document",
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-27-392_document",
   "thresholds": {
     "majorLengthDrift": 0.3,
     "highDisagreementFloor": 0.18,
@@ -12,151 +12,105 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 2.513789,
-    "pageDisagreementQ1": 0.465261,
-    "pageDisagreementQ3": 1.284672
+    "highDisagreement": 4.783437,
+    "pageDisagreementQ1": 4.783437,
+    "pageDisagreementQ3": 4.783437
   },
-  "blankOutputPages": [
-    {
-      "pageNumber": 0,
-      "providers": [
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-4-6",
-        "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-        "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-        "gemini/gemini-3.1-flash-lite-preview",
-        "gemini/gemini-3.1-flash-lite",
-        "gemini/gemini-3.1-pro-preview",
-        "glm/glm-ocr",
-        "grok/grok-4.3",
-        "kimi/kimi-k2.6",
-        "ocrmypdf/ocrmypdf",
-        "openai/gpt-5.4-nano",
-        "openai/gpt-5.5",
-        "paddle-ocr/paddle-ocr",
-        "tesseract/tesseract"
-      ]
-    },
-    {
-      "pageNumber": 1,
-      "providers": [
-        "mistral/mistral-ocr-2512"
-      ]
-    }
-  ],
+  "blankOutputPages": [],
   "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 26
-        }
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "mistral/mistral-ocr-2512",
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1.5,
+          "tokenCount": 30
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 9.5,
+          "tokenCount": 126
+        },
+        {
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
           "lengthDrift": 1,
           "tokenCount": 0
         },
         {
-          "providerKey": "ocrmypdf/ocrmypdf",
-          "lengthDrift": 12.510204,
-          "tokenCount": 331
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "lengthDrift": 0.916667,
+          "tokenCount": 1
         },
         {
-          "providerKey": "openai/gpt-5.4-nano",
-          "lengthDrift": 0.673469,
-          "tokenCount": 8
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1.083333,
+          "tokenCount": 25
         },
         {
-          "providerKey": "tesseract/tesseract",
-          "lengthDrift": 12.265306,
-          "tokenCount": 325
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "lengthDrift": 0.666667,
+          "tokenCount": 4
         }
       ]
     }
   ],
-  "highDisagreementPages": [],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 4.783437,
+      "selectedProviderKey": "fal/fal-ai/got-ocr/v2",
+      "selectedConfidence": 0
+    }
+  ],
   "werCerDivergencePages": [
     {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "anthropic/claude-opus-4-8",
-          "wer": 0.630846,
-          "cer": 0.439075
+          "providerKey": "replicate/datalab-to/ocr",
+          "wer": 6.048617,
+          "cer": 1.421487
         },
         {
-          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-          "wer": 0.789576,
-          "cer": 0.450018
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 2.464331,
+          "cer": 1.157715
         },
         {
-          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-          "wer": 0.730015,
-          "cer": 0.487326
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "wer": 2.50737,
+          "cer": 1.700125
         },
         {
-          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
-          "wer": 0.630846,
-          "cer": 0.436412
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 26.517619,
+          "cer": 10.424147
         },
         {
-          "providerKey": "gemini/gemini-3.1-flash-lite",
-          "wer": 0.630846,
-          "cer": 0.436115
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "wer": 0.857143,
+          "cer": 3.027527
         },
         {
-          "providerKey": "gemini/gemini-3.1-pro-preview",
-          "wer": 0.630846,
-          "cer": 0.436527
+          "providerKey": "replicate/datalab-to/marker",
+          "wer": 4.99195,
+          "cer": 1.389797
         },
         {
-          "providerKey": "grok/grok-4.3",
-          "wer": 0.727911,
-          "cer": 0.537146
-        },
-        {
-          "providerKey": "kimi/kimi-k2.6",
-          "wer": 0.709648,
-          "cer": 0.472722
-        },
-        {
-          "providerKey": "ocrmypdf/ocrmypdf",
-          "wer": 14.746476,
-          "cer": 0.99628
-        },
-        {
-          "providerKey": "paddle-ocr/paddle-ocr",
-          "wer": 0.979611,
-          "cer": 0.806382
-        },
-        {
-          "providerKey": "tesseract/tesseract",
-          "wer": 14.447034,
-          "cer": 1.072042
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 1.144036,
+          "cer": 4.660176
         }
       ]
     }
   ],
   "lowConfidencePages": [
     {
-      "pageNumber": 0,
-      "selectedProviderKey": "mistral/mistral-ocr-2512",
-      "selectedConfidence": 0.45,
-      "pageDisagreement": 0.055556
-    },
-    {
       "pageNumber": 1,
-      "selectedProviderKey": "anthropic/claude-sonnet-4-6",
-      "selectedConfidence": 0.185364,
-      "pageDisagreement": 1.694378
+      "selectedProviderKey": "fal/fal-ai/got-ocr/v2",
+      "selectedConfidence": 0,
+      "pageDisagreement": 4.783437
     }
   ]
 }

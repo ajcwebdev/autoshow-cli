@@ -13,6 +13,5 @@ export type ElevenLabsTtsRequestControls = {
   seed?: number | undefined
   textNormalization?: string | undefined
   pronunciationDictionaryLocators?: string[] | undefined
-  optimizeStreamingLatency?: number | undefined
 }
 

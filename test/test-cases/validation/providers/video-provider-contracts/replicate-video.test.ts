@@ -110,55 +110,6 @@ describe('video provider REST contracts', () => {
     })
   })
 
-  test('Replicate Wan sends audio and prompt controls', async () => {
-    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
-    const calls = installMockFetch((call) => {
-      if (call.url === 'https://api.replicate.com/v1/models/wan-video/wan-2.7-t2v/predictions' && call.method === 'POST') {
-        return jsonResponse({
-          id: 'wan-pred',
-          status: 'succeeded',
-          output: ['https://replicate.delivery/example/wan.mp4']
-        })
-      }
-      if (call.url === 'https://replicate.delivery/example/wan.mp4' && call.method === 'GET') return videoResponse()
-      throw new Error(`Unexpected Replicate Wan fetch: ${call.method} ${call.url}`)
-    })
-
-    await withTempDir(async (dir) => {
-      const audioPath = join(dir, 'voice.wav')
-      await writeFile(audioPath, new Uint8Array([13, 14, 15]))
-      const result = await runReplicateVideoGen('A cat watching rain outside', dir, {
-        model: 'wan-video/wan-2.7-t2v',
-        durationSeconds: 5,
-        resolution: '1080p',
-        aspectRatio: '16:9',
-        negativePrompt: 'blurry',
-        audio: audioPath,
-        promptExpansion: false,
-        seed: 999
-      })
-      expect(result.metadata).toMatchObject({
-        videoGenService: 'replicate',
-        videoGenModel: 'wan-video/wan-2.7-t2v',
-        inputAudio: audioPath,
-        providerCostCents: 50
-      })
-    })
-
-    expect(calls[0]?.bodyJson).toEqual({
-      input: {
-        prompt: 'A cat watching rain outside',
-        duration: 5,
-        resolution: '1080p',
-        aspect_ratio: '16:9',
-        negative_prompt: 'blurry',
-        audio: `data:audio/wav;base64,${Buffer.from(new Uint8Array([13, 14, 15])).toString('base64')}`,
-        enable_prompt_expansion: false,
-        seed: 999
-      }
-    })
-  })
-
   test('Replicate terminal failure statuses surface provider errors', async () => {
     for (const status of ['failed', 'canceled', 'aborted'] as const) {
       process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
@@ -205,11 +156,6 @@ describe('video provider REST contracts', () => {
           model: 'pixverse/pixverse-v6' as const,
           options: { mode: 'interpolate' as const, inputImage: imagePath, lastFrameImage: lastFramePath, durationSeconds: 10, resolution: '540p', generateAudio: true, multiClip: false, seed: 7 },
           expected: { quality: '540p', image: expect.stringContaining('data:image/png'), last_frame_image: expect.stringContaining('data:image/webp'), duration: 10, generate_audio_switch: true, generate_multi_clip_switch: false, seed: 7 }
-        },
-        {
-          model: 'runwayml/aleph-2' as const,
-          options: { mode: 'edit' as const, inputVideo: videoPath, seed: 9 },
-          expected: { video: expect.stringContaining('data:video/mp4'), seed: 9 }
         }
       ]
 

@@ -72,7 +72,6 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     : (() => { throw CLIUsageError('Canonical audition requires a ready voice registration.') })())
   const model = registration.providerModel
   switch (registration.provider) {
-    case 'kitten': return { kittenTtsModels: [model], ttsSpeaker: voice }
     case 'elevenlabs': return { elevenlabsTtsModels: [model], elevenlabsVoiceId: voice }
     case 'minimax': return { minimaxTtsModels: [model], minimaxTtsVoice: voice }
     case 'groq': return { groqTtsModels: [model], groqVoiceId: voice }
@@ -84,6 +83,11 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     case 'speechify': return { speechifyTtsModels: [model], speechifyVoice: voice }
     case 'hume': return { humeTtsModels: [model], humeTtsVoice: voice }
     case 'cartesia': return { cartesiaTtsModels: [model], cartesiaTtsVoice: voice }
+    case 'fish': return { fishTtsModels: [model], fishTtsVoice: voice }
+    case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
+    case 'deepinfra': return { deepinfraTtsModels: [model], deepinfraTtsVoice: voice }
+    case 'replicate': return { replicateTtsModels: [model], replicateTtsVoice: voice }
+    case 'fal': return { falTtsModels: [model], falTtsVoice: voice }
   }
 }
 

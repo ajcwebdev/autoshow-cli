@@ -22,7 +22,6 @@ import {
   SUPPORTED_GROK_IMAGE_MODELS,
   SUPPORTED_LUMALABS_IMAGE_MODELS,
   SUPPORTED_OPENAI_IMAGE_MODELS,
-  SUPPORTED_RECRAFT_IMAGE_MODELS,
   SUPPORTED_REPLICATE_IMAGE_MODELS
 } from '~/cli/commands/setup-and-utilities/models/image-models'
 import {
@@ -33,13 +32,11 @@ import {
 import {
   SUPPORTED_FAL_VIDEO_MODELS,
   SUPPORTED_GEMINI_VIDEO_MODELS,
-  SUPPORTED_GLM_VIDEO_MODELS,
   SUPPORTED_GROK_VIDEO_MODELS,
   SUPPORTED_LTX_VIDEO_MODELS,
   SUPPORTED_LUMALABS_VIDEO_MODELS,
   SUPPORTED_MINIMAX_VIDEO_MODELS,
-  SUPPORTED_REPLICATE_VIDEO_MODELS,
-  SUPPORTED_RUNWAY_VIDEO_MODELS
+  SUPPORTED_REPLICATE_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/video-models'
 import type { ImageProvider, MusicProvider, VideoProvider } from '~/types'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
@@ -50,7 +47,6 @@ const IMAGE_MODELS = {
   openai: SUPPORTED_OPENAI_IMAGE_MODELS,
   grok: SUPPORTED_GROK_IMAGE_MODELS,
   bfl: SUPPORTED_BFL_IMAGE_MODELS,
-  recraft: SUPPORTED_RECRAFT_IMAGE_MODELS,
   replicate: SUPPORTED_REPLICATE_IMAGE_MODELS,
   lumalabs: SUPPORTED_LUMALABS_IMAGE_MODELS,
   fal: SUPPORTED_FAL_IMAGE_MODELS
@@ -59,9 +55,7 @@ const IMAGE_MODELS = {
 const VIDEO_MODELS = {
   gemini: SUPPORTED_GEMINI_VIDEO_MODELS,
   minimax: SUPPORTED_MINIMAX_VIDEO_MODELS,
-  glm: SUPPORTED_GLM_VIDEO_MODELS,
   grok: SUPPORTED_GROK_VIDEO_MODELS,
-  runway: SUPPORTED_RUNWAY_VIDEO_MODELS,
   ltx: SUPPORTED_LTX_VIDEO_MODELS,
   replicate: SUPPORTED_REPLICATE_VIDEO_MODELS,
   lumalabs: SUPPORTED_LUMALABS_VIDEO_MODELS,
@@ -77,10 +71,10 @@ const MUSIC_MODELS = {
 describe('generation pricing model-selection tables', () => {
   test('tables preserve provider priority and expose both pass-through keys', () => {
     expect(IMAGE_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'openai', 'grok', 'bfl', 'recraft', 'replicate', 'lumalabs', 'fal'
+      'gemini', 'openai', 'grok', 'bfl', 'replicate', 'lumalabs', 'fal'
     ])
     expect(VIDEO_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs', 'fal'
+      'gemini', 'minimax', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'
     ])
     expect(MUSIC_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
       'elevenlabs', 'minimax', 'gemini'
@@ -128,7 +122,7 @@ describe('generation pricing model-selection tables', () => {
     })).toEqual([])
     expect(estimateMusicCosts({
       elevenlabsMusicModels: [],
-      elevenlabsMusicModel: 'music_v1'
+      elevenlabsMusicModel: 'music_v2'
     })).toEqual([])
     expect(estimateVideoCosts({
       geminiVideoModels: [],
@@ -147,7 +141,7 @@ describe('generation pricing model-selection tables', () => {
         { service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 8 }
       ],
       musicTargets: [
-        { service: 'elevenlabs', model: 'music_v1', durationSeconds: 60 },
+        { service: 'elevenlabs', model: 'music_v2', durationSeconds: 60 },
         { service: 'elevenlabs', model: 'music_v2', durationSeconds: 120 }
       ]
     })

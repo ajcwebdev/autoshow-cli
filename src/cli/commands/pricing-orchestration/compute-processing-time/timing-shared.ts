@@ -10,7 +10,8 @@ export const OCR_HOSTED_PROVIDERS = new Set([
   'grok',
   'anthropic',
   'gemini',
-  'deepinfra'
+  'deepinfra',
+  'replicate'
 ])
 export const OCR_LOCAL_PROVIDERS = new Set(['tesseract'])
 export const RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER = 2
@@ -201,7 +202,7 @@ export const applySharedProviderLaneScale = (
 ): number => roundMs(processingTimeMs * resolveSharedProviderLaneScale(currentLaneTargetCount, profiledLaneTargetCount))
 
 export const resolveHostedOcrTiming = (
-  target: { provider: string, model: string },
+  target: { provider: string, model: string, ocrProviderMode?: 'fanout' | 'pool' },
   pageCount: number,
   registryProcessingTimeMs: number,
   mode: 'auto' | 'fixed',
@@ -218,7 +219,7 @@ export const resolveHostedOcrTiming = (
   profileDisqualificationReason?: string | undefined
   profileLaneTargetCount?: number | undefined
 } => {
-  if (!isHostedOcrTimingProvider(target.provider)) {
+  if (!isHostedOcrTimingProvider(target.provider) || target.ocrProviderMode === 'pool') {
     return {
       processingTimeMs: registryProcessingTimeMs,
       estimateConfidence: 'registry'

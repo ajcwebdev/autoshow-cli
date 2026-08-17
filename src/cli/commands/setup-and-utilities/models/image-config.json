@@ -83,19 +83,6 @@
           "costMultiplier": 1,
           "msPerImage": 6080
         }
-      },
-      "grok-imagine-image": {
-        "description": "Grok Imagine text-to-image generation",
-        "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Standard pay-as-you-go",
-        "pricingNotes": "Default registry rate is the published 1K output-image price. xAI bills image inputs separately for image editing; local estimates do not count input images.",
-        "costPerImageCents": 2,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 4299
-        }
       }
     }
   },
@@ -173,65 +160,6 @@
       }
     }
   },
-  "recraft": {
-    "description": "Recraft image generation",
-    "type": "api",
-    "referenceImages": { "supported": false, "maxInputs": 0 },
-    "models": {
-      "recraftv4_1": {
-        "description": "Recraft V4.1 raster image generation",
-        "pricingSourceUrl": "https://www.recraft.ai/docs/api-reference/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Recraft API unit pricing",
-        "pricingNotes": "Raster image generation for Recraft V4.1 standard models is listed at $0.04 / 40 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageCents": 4,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 30000
-        }
-      },
-      "recraftv4_1_pro": {
-        "description": "Recraft V4.1 Pro raster image generation",
-        "pricingSourceUrl": "https://www.recraft.ai/docs/api-reference/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Recraft API unit pricing",
-        "pricingNotes": "Raster image generation for Recraft Pro models is listed at $0.25 / 250 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageCents": 25,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 45000
-        }
-      },
-      "recraftv4_1_utility": {
-        "description": "Recraft V4.1 Utility raster image generation",
-        "pricingSourceUrl": "https://www.recraft.ai/docs/api-reference/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Recraft API unit pricing",
-        "pricingNotes": "Raster image generation for Recraft V4.1 Utility standard models is listed at $0.04 / 40 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageCents": 4,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 30000
-        }
-      },
-      "recraftv4_1_utility_pro": {
-        "description": "Recraft V4.1 Utility Pro raster image generation",
-        "pricingSourceUrl": "https://www.recraft.ai/docs/api-reference/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Recraft API unit pricing",
-        "pricingNotes": "Raster image generation for Recraft Pro models is listed at $0.25 / 250 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageCents": 25,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 45000
-        }
-      }
-    }
-  },
   "replicate": {
     "description": "Replicate official image generation models",
     "type": "api",
@@ -277,76 +205,6 @@
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 30000
-        }
-      },
-      "ideogram-ai/ideogram-v4-turbo": {
-        "referenceImages": { "supported": false, "maxInputs": 0 },
-        "description": "Ideogram 4 Turbo text-to-image generation via Replicate",
-        "pricingSourceUrl": "https://replicate.com/ideogram-ai/ideogram-v4-turbo",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "Replicate official model per-output-image pricing",
-        "pricingNotes": "Replicate lists Ideogram 4 Turbo at $0.03 per output image.",
-        "costPerImageCents": 3,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 20000
-        }
-      },
-      "ideogram-ai/ideogram-v4-balanced": {
-        "referenceImages": { "supported": false, "maxInputs": 0 },
-        "description": "Ideogram 4 Balanced text-to-image generation via Replicate",
-        "pricingSourceUrl": "https://replicate.com/ideogram-ai/ideogram-v4-balanced",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "Replicate official model per-output-image pricing",
-        "pricingNotes": "Replicate lists Ideogram 4 Balanced at $0.06 per output image.",
-        "costPerImageCents": 6,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 30000
-        }
-      },
-      "ideogram-ai/ideogram-v4-quality": {
-        "referenceImages": { "supported": false, "maxInputs": 0 },
-        "description": "Ideogram 4 Quality text-to-image generation via Replicate",
-        "pricingSourceUrl": "https://replicate.com/ideogram-ai/ideogram-v4-quality",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "Replicate official model per-output-image pricing",
-        "pricingNotes": "Replicate lists Ideogram 4 Quality at $0.10 per output image.",
-        "costPerImageCents": 10,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 45000
-        }
-      },
-      "prunaai/ernie-image": {
-        "referenceImages": { "supported": false, "maxInputs": 0 },
-        "description": "Pinned ERNIE-Image text-to-image generation via Replicate",
-        "pricingSourceUrl": "https://replicate.com/prunaai/ernie-image",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "Replicate community model H100 runtime estimate",
-        "pricingNotes": "Pinned to version d5bfa4984edc317383025be5fd59a6a2d2b1992cf98bdddd788e5d5fa12a3ba4. The default estimate uses a published 34.6-second 1024x1024 example and Replicate H100 runtime pricing; actual cost varies with runtime, resolution, prompt enhancement, and output count.",
-        "costPerImageCents": 5.28,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 34600
-        }
-      },
-      "prunaai/ernie-image-turbo": {
-        "referenceImages": { "supported": false, "maxInputs": 0 },
-        "description": "Pinned ERNIE-Image-Turbo text-to-image generation via Replicate",
-        "pricingSourceUrl": "https://replicate.com/prunaai/ernie-image-turbo",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "Replicate community model H100 runtime estimate",
-        "pricingNotes": "Pinned to version fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f. The default estimate uses a published approximately 7.5-second 1024x1024 example and Replicate H100 runtime pricing; actual cost varies with runtime, resolution, prompt enhancement, and output count.",
-        "costPerImageCents": 1.15,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 7500
         }
       },
       "qwen/qwen-image-2-pro": {
@@ -453,28 +311,6 @@
         "pricingNotes": "fal.ai reports $0.01 per output megapixel. The registry default assumes a 1024x1024 output.",
         "costPerImageCents": 1,
         "estimation": { "costMultiplier": 1, "msPerImage": 60000 }
-      },
-      "microsoft/mai-image-2.5": {
-        "referenceImages": { "supported": false, "maxInputs": 0 },
-        "description": "Microsoft MAI Image 2.5 text-to-image generation via fal.ai",
-        "pricingSourceUrl": "https://api.fal.ai/v1/models/pricing?endpoint_id=microsoft/mai-image-2.5",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "fal.ai compute-second pricing",
-        "pricingNotes": "fal.ai reports $0.00007 per compute second. The provisional default assumes 30 compute seconds; actual billing varies with runtime.",
-        "costPerImageCents": 0.21,
-        "estimation": { "costMultiplier": 1, "msPerImage": 30000 }
-      },
-      "microsoft/mai-image-2.5-pro": {
-        "referenceImages": { "supported": false, "maxInputs": 0 },
-        "description": "Microsoft MAI Image 2.5 Pro text-to-image generation via fal.ai",
-        "pricingSourceUrl": "https://api.fal.ai/v1/models/pricing?endpoint_id=microsoft/mai-image-2.5-pro",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "fal.ai credit-unit pricing",
-        "pricingNotes": "fal.ai reports a 1.5-credit unit price. The registry conservatively records the returned $1.50 unit price until output credit consumption is calibrated.",
-        "costPerImageCents": 150,
-        "estimation": { "costMultiplier": 1, "msPerImage": 45000 }
       },
       "alibaba/qwen-image-3": {
         "referenceImages": { "supported": true, "maxInputs": 3 },

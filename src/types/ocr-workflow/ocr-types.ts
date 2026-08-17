@@ -134,12 +134,12 @@ export type ZipXmlFormat = 'docx' | 'pptx' | 'xlsx' | 'odf'
 export type OcrFn = (imagePath: string) => Promise<{ text: string, confidence?: number }>
 export type OcrFnProvider = OcrFn | { getOcrFn: () => Promise<OcrFn> }
 
-export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr'
+export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr' | 'replicate-ocr' | 'fal-ocr'
 
 export type HostedOcrRun = {
   pages: PageResult[]
   extractionMethod: HostedExtractOcrEngine
-  ocrService: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'
+  ocrService: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal'
   ocrModel: string
   canonicalText?: string
   totalPages?: number
@@ -152,10 +152,15 @@ export type HostedOcrRun = {
   hostedOcrScheduler?: HostedOcrSchedulerTelemetry
   requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
   effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  ocrProviderMode?: import('~/types').OcrProviderMode | undefined
+  inputSha256?: string | undefined
+  inputFormat?: string | undefined
+  inputPageNumber?: number | undefined
+  dpi?: number | undefined
 }
 
 export type OcrTarget = {
-  service: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'
+  service: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal'
   model: string
 }
 
@@ -377,6 +382,7 @@ export type OcrMetadataOptions = {
   primaryProvider?: { service: string, model: string } | undefined
   ocrConcurrency?: number | undefined
   ocrConcurrencyMode?: OcrConcurrencyMode | undefined
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   ocrProviderConcurrency?: number | undefined
   ocrLocalConcurrency?: number | undefined
   hostedOcrScheduler?: HostedOcrSchedulerTelemetry | undefined

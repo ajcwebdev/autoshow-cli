@@ -1,15 +1,11 @@
-import { afterAll, beforeAll, expect, test } from 'bun:test'
+import { afterAll, expect, test } from 'bun:test'
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import { stripAnsi } from '~/utils/terminal-colors'
 import {
-  cleanupTestOutput,
   fileExists,
   OUTPUT_DIR,
-  runCommand,
-  STABLE_EXAMPLE_AUDIO_URL,
-  STABLE_EXAMPLE_AUDIO_TITLE,
-  stopLlamaServer
+  runCommand
 } from '../../test-utils/test-helpers'
 import { E2E_TEST_TIMEOUT_MS } from '../../test-utils/budget'
 import type { WritePriceLyricsProjectFixture } from '~/types'
@@ -56,36 +52,11 @@ const listOutputDirs = async (): Promise<string[]> => {
   }
 }
 
-beforeAll(async () => {
-  await stopLlamaServer()
-})
-
 afterAll(async () => {
-  await stopLlamaServer()
-  await cleanupTestOutput(STABLE_EXAMPLE_AUDIO_TITLE)
   for (const projectDir of createdProjects) {
     await rm(projectDir, { recursive: true, force: true })
   }
 })
-
-test('ggml-org/gemma-3-270m-it-GGUF --price prints a llama cost estimate', async () => {
-  const model = 'ggml-org/gemma-3-270m-it-GGUF'
-
-  await stopLlamaServer()
-  await cleanupTestOutput(STABLE_EXAMPLE_AUDIO_TITLE)
-
-  const result = await runCommand(
-    ['src/cli/create-cli.ts', 'write', STABLE_EXAMPLE_AUDIO_URL, '--llm', `llama=${model}`, '--price'],
-    { testName: `${model} --price prints a llama cost estimate` },
-  )
-  const output = `${result.stdout}\n${result.stderr}`
-
-  expect(result.exitCode).toBe(0)
-  expect(output).toContain('Cost Estimate')
-  expect(output).toContain('llm')
-  expect(output).toContain('llama')
-  expect(output).toContain(model)
-}, E2E_TEST_TIMEOUT_MS)
 
 test('write project directory --price reports rendered lyric outputs without creating a run directory', async () => {
   const project = await createWriteLyricsProject()
@@ -95,6 +66,7 @@ test('write project directory --price reports rendered lyric outputs without cre
     'src/cli/create-cli.ts',
     'write',
     project.textDir,
+    '--text-input',
     '--price'
   ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
 

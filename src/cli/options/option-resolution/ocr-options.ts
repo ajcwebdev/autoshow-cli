@@ -14,12 +14,14 @@ import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurren
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { pick } from '~/utils/cli-utils'
 import { parseReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { CLIUsageError } from '~/utils/error-handler'
 
 const OCR_MODEL_KEYS = [
   'mistralOcrModels', 'mistralOcrModel', 'glmOcrModels', 'glmOcrModel',
   'kimiOcrModels', 'kimiOcrModel', 'openaiOcrModels', 'openaiOcrModel',
   'grokOcrModels', 'grokOcrModel', 'anthropicOcrModels', 'anthropicOcrModel',
   'geminiOcrModels', 'geminiOcrModel', 'deepinfraOcrModels', 'deepinfraOcrModel',
+  'replicateOcrModels', 'replicateOcrModel', 'falOcrModels', 'falOcrModel',
 ] as const satisfies readonly OcrRuntimeOptionKey[]
 
 export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => {
@@ -41,11 +43,22 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
       ? Math.max(1, parsedOcrConcurrency as number)
       : DEFAULT_OCR_CONCURRENCY
     : undefined
+  const rawOcrProviderMode = readStringFlag(mergedFlags, 'ocr-provider-mode', 'fanout')
+  if (rawOcrProviderMode !== 'fanout' && rawOcrProviderMode !== 'pool') {
+    throw CLIUsageError(`Invalid --ocr-provider-mode "${rawOcrProviderMode}". Expected fanout or pool.`)
+  }
+  const ocrProviderModeExplicit = hasExplicitOrConfiguredFlag(
+    'ocr-provider-mode',
+    explicitFlags,
+    configuredFlags
+  )
 
   return {
     ...pick(modelOptions, OCR_MODEL_KEYS),
     ocrConcurrency: resolvedOcrConcurrency,
     ocrConcurrencyMode: hasUserOcrConcurrency ? 'fixed' : 'auto',
+    ocrProviderMode: rawOcrProviderMode,
+    ocrProviderModeExplicit,
     ocrProviderConcurrency: resolveProviderConcurrency(
       mergedFlags,
       'ocr-provider-concurrency',
@@ -61,7 +74,6 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
       configuredFlags,
       { defaultValue: DEFAULT_OCR_CONCURRENCY }
     ),
-    keepOcrPageInputs: readBooleanFlag(mergedFlags, 'keep-ocr-page-inputs'),
     dpi: parseIntWithDefault(readOptionalStringFlag(mergedFlags, 'ocr-dpi'), 300),
     lang: readStringFlag(mergedFlags, 'ocr-language', 'eng'),
     out: normalizedOut,

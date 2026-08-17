@@ -3,6 +3,7 @@ import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
 import { collectLlmTargets, runLlmTargetsForStructuredPrompt } from '~/cli/commands/process-steps/step-3-write/run-llm'
+import { deriveGenerationResumeProviderFlags, WRITE_LLM_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
 import { writeRenderedTextArtifacts } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
@@ -18,24 +19,12 @@ import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeTarget, Step1Metadata, Step2Metadata, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
 
-const WRITE_LLM_PROVIDER_FLAGS = [
-  'all-llm',
-  'all-local-llm',
-  'llama',
-  'openai',
-  'groq',
-  'gemini',
-  'anthropic',
-  'minimax',
-  'grok',
-  'glm',
-  'kimi',
-  'together',
-  'cerebras'
-] as const
+const WRITE_LLM_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
+  WRITE_LLM_GENERATION_SELECTION,
+  'all-llm'
+)
 
 const LLM_SERVICES = new Set<Step3Metadata['llmService']>([
-  'llama.cpp',
   'openai',
   'groq',
   'gemini',
@@ -416,7 +405,7 @@ const averageTokenCount = (
 const llmRegistryService = (
   service: LLMTarget['service']
 ): string =>
-  service === 'llama.cpp' ? 'llama' : service
+  service
 
 const buildWriteResumeLlmEstimates = (
   targets: LLMTarget[],
@@ -428,9 +417,7 @@ const buildWriteResumeLlmEstimates = (
 
   return targets.map((target) => {
     const registryService = llmRegistryService(target.service)
-    const requestedReasoningEffort = target.service === 'llama.cpp' || target.service === 'llamafile'
-      ? undefined
-      : opts.reasoningEffort
+    const requestedReasoningEffort = opts.reasoningEffort
     const reasoningPolicy = resolveReasoningPolicy({
       step: 'llm',
       service: registryService,
@@ -488,9 +475,6 @@ export const writeResumeConfig = {
     )
     for (const entry of entries) {
       if (!selectedKeys.has(metadataKey(entry))) {
-        continue
-      }
-      if (entry.llmService === 'llama.cpp' || entry.llmService === 'llamafile') {
         continue
       }
       const policy = resolveReasoningPolicy({

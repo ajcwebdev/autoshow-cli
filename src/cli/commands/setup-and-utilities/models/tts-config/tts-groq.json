@@ -3,21 +3,15 @@
     "description": "Groq cloud text-to-speech",
     "type": "api",
     "catalogSourceUrl": "https://console.groq.com/docs/text-to-speech/orpheus",
-    "catalogCheckedAt": "2026-08-11",
-    "catalogNotes": "Groq documents separate English and Saudi-Arabic Orpheus models with disjoint six-voice catalogs; only the English model supports bracketed vocal directions.",
+    "catalogCheckedAt": "2026-08-15",
+    "catalogNotes": "Groq English Orpheus is the only registered AutoShow TTS selector. The Saudi-Arabic Orpheus sibling is refused and must not be re-added.",
     "voices": [
       "autumn",
       "diana",
       "hannah",
       "austin",
       "daniel",
-      "troy",
-      "abdullah",
-      "fahad",
-      "sultan",
-      "lulwa",
-      "noura",
-      "aisha"
+      "troy"
     ],
     "models": {
       "canopylabs/orpheus-v1-english": {
@@ -28,22 +22,6 @@
         "pricingTier": "On-demand pay-as-you-go",
         "pricingNotes": "Groq lists canopylabs/orpheus-v1-english Text-To-Speech as billed at $22 / 1M characters. Stored as a single character rate to avoid double-counting input text.",
         "costPer1kCharsCents": 2.2,
-        "limits": {
-          "maxInputCharacters": 200
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KChars": 16316
-        }
-      },
-      "canopylabs/orpheus-arabic-saudi": {
-        "description": "Orpheus Saudi Arabic — authentic Saudi-dialect cloud TTS",
-        "pricingSourceUrl": "https://console.groq.com/docs/text-to-speech/orpheus",
-        "pricingCheckedAt": "2026-08-11",
-        "pricingCurrency": "USD",
-        "pricingTier": "On-demand pay-as-you-go",
-        "pricingNotes": "Groq lists canopylabs/orpheus-arabic-saudi Text-To-Speech at $40 / 1M characters. The model accepts only its six Saudi-Arabic voices and does not support English-model vocal directions.",
-        "costPer1kCharsCents": 4,
         "limits": {
           "maxInputCharacters": 200
         },

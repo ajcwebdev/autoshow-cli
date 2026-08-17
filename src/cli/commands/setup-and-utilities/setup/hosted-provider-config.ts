@@ -39,11 +39,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'GLM_API_KEY',
-    label: 'GLM write/OCR/video',
+    label: 'GLM write/OCR',
     configPaths: [
       'defaults.llm.glm',
-      'defaults.extract.ocr.glmOcr',
-      'defaults.post.video.glmVideo'
+      'defaults.extract.ocr.glmOcr'
     ]
   },
   {
@@ -55,11 +54,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'CEREBRAS_API_KEY',
     label: 'Cerebras write',
     configPaths: ['defaults.llm.cerebras']
-  },
-  {
-    envVar: 'RUNWAYML_API_SECRET',
-    label: 'Runway video',
-    configPaths: ['defaults.post.video.runwayVideo']
   },
   {
     envVar: 'LTXV_API_KEY',
@@ -87,18 +81,28 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'FAL_API_KEY',
-    label: 'fal.ai image/video',
-    configPaths: ['defaults.post.image.falImage', 'defaults.post.video.falVideo']
+    label: 'fal.ai image/video/TTS/OCR',
+    configPaths: [
+      'defaults.post.image.falImage',
+      'defaults.post.video.falVideo',
+      'defaults.post.tts.falTts',
+      'defaults.extract.ocr.falOcr'
+    ]
   },
   {
-    envVar: 'RECRAFT_API_TOKEN',
-    label: 'Recraft image',
-    configPaths: ['defaults.post.image.recraftImage']
+    envVar: 'STABILITY_API_KEY',
+    label: 'Stability AI sound effects',
+    configPaths: []
   },
   {
     envVar: 'REPLICATE_API_TOKEN',
-    label: 'Replicate image/video',
-    configPaths: ['defaults.post.image.replicateImage', 'defaults.post.video.replicateVideo']
+    label: 'Replicate OCR/image/video/TTS',
+    configPaths: [
+      'defaults.extract.ocr.replicateOcr',
+      'defaults.post.image.replicateImage',
+      'defaults.post.video.replicateVideo',
+      'defaults.post.tts.replicateTts'
+    ]
   },
   {
     envVar: 'ANTHROPIC_API_KEY',
@@ -116,8 +120,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'DEEPINFRA_API_KEY',
-    label: 'DeepInfra STT/OCR',
-    configPaths: ['defaults.extract.stt.deepinfraStt', 'defaults.extract.ocr.deepinfraOcr']
+    label: 'DeepInfra STT/OCR/TTS',
+    configPaths: [
+      'defaults.extract.stt.deepinfraStt',
+      'defaults.extract.ocr.deepinfraOcr',
+      'defaults.post.tts.deepinfraTts'
+    ]
   },
   {
     envVar: 'MINIMAX_API_KEY',
@@ -166,6 +174,16 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'CARTESIA_API_KEY',
     label: 'Cartesia TTS',
     configPaths: ['defaults.post.tts.cartesiaTts']
+  },
+  {
+    envVar: 'FISH_API_KEY',
+    label: 'Fish Audio TTS',
+    configPaths: ['defaults.post.tts.fishTts']
+  },
+  {
+    envVar: 'INWORLD_API_KEY',
+    label: 'Inworld AI TTS',
+    configPaths: ['defaults.post.tts.inworldTts']
   },
   {
     envVar: 'SONIOX_API_KEY',
@@ -221,11 +239,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'X_BEARER_TOKEN',
     label: 'X Spaces metadata and download lookup',
     configPaths: []
-  },
-  {
-    envVar: 'HUGGINGFACE_TOKEN',
-    label: 'Hugging Face Reverb assets',
-    configPaths: ['defaults.extract.stt.reverb']
   }
 ] as const satisfies readonly HostedProviderEnvCheck[]
 

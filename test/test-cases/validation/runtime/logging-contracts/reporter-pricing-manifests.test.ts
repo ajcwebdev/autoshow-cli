@@ -17,12 +17,12 @@ describe('logging contracts', () => {
       const reporter = createReporter(logger)
 
       reporter.estimate({
-        totalEstimatedCost: 0,
+        totalEstimatedCost: 1.25,
         steps: [{
           step: 'tts',
-          provider: 'kitten',
-          model: 'kitten-tts-mini',
-          totalCost: 0
+          provider: 'openai',
+          model: 'gpt-4o-mini-tts-2025-12-15',
+          totalCost: 1.25
         }],
         notes: [
           'TTS estimate omitted: step 4 only runs when write produces exactly one summary.',
@@ -34,34 +34,11 @@ describe('logging contracts', () => {
         'Estimate'
       ])
       expect(writes[0]?.options?.humanTable?.details).toEqual([
-        { label: 'Total estimated cost', value: 'free (0.000\u00a2)' }
+        { label: 'Total estimated cost', value: '1.25\u00a2 (1.250\u00a2)' }
       ])
       expect(writes[0]?.options?.humanSections?.[0]?.title).toBe('Cost Estimate')
       expect(writes[0]?.options?.humanSections?.[0]?.table).toBeDefined()
       expect(writes.some(write => write.message.includes('Cost estimate notes:'))).toBe(false)
-    })
-
-  test('reporter displays Reverb cost estimates with the ASR model id', () => {
-      const { logger, writes } = createCapturingLogger()
-      const reporter = createReporter(logger)
-
-      reporter.estimate({
-        totalEstimatedCost: 0,
-        steps: [{
-          step: 'stt',
-          provider: 'reverb',
-          model: 'reverb',
-          durationSeconds: 0,
-          totalCost: 0
-        }]
-      })
-
-      const estimateTable = writes[0]?.options?.humanSections
-        ?.find(section => section.title === 'Cost Estimate')?.table
-      expect(estimateTable?.rows[0]).toMatchObject({
-        provider: 'reverb',
-        model: 'reverb_asr_v1'
-      })
     })
 
   test('extract manifest summary includes OCR cost calculation diagnostics', () => {
@@ -616,8 +593,8 @@ describe('logging contracts', () => {
           },
           {
             step: 'tts',
-            provider: 'kitten',
-            model: 'kitten-tts-mini',
+            provider: 'openai',
+            model: 'gpt-4o-mini-tts-2025-12-15',
             totalCost: 1.25,
             characterCount: 100,
             note: 'Provider credits may apply outside local estimates.'
@@ -640,7 +617,7 @@ describe('logging contracts', () => {
         align: { cost: 'right' },
         rows: [
           { step: 'video', provider: 'gemini', model: 'veo-3.1-lite-generate-preview', cost: '$2.00' },
-          { step: 'tts', provider: 'kitten', model: 'kitten-tts-mini', cost: '1.25\u00a2' },
+          { step: 'tts', provider: 'openai', model: 'gpt-4o-mini-tts-2025-12-15', cost: '1.25\u00a2' },
           { step: 'extract', provider: 'firecrawl', model: 'firecrawl', cost: '<0.01\u00a2' }
         ]
       })

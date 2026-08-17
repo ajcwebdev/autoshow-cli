@@ -4,6 +4,7 @@ import {
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { CLIUsageError } from '~/utils/error-handler'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { parseHostedConcurrencyMode } from '~/cli/options/option-resolution/flag-readers'
 import {
   validateImageSizeForModels,
 } from './image-size'
@@ -137,6 +138,7 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
   const llmModel = stringFlag(parsed, 'llm-model')
   const only = stringFlag(parsed, 'only')
   const concurrency = stringFlag(parsed, 'concurrency')
+  const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   if (enabledFlag(parsed, 'price') === true) output.price = true
   if (llmModel !== undefined) output.llmModel = parseLlmModel(llmModel)
   if (only !== undefined) {
@@ -146,6 +148,7 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
     output.only = only as NonNullable<ParsedDraftCommandArgs['only']>
   }
   if (concurrency !== undefined) output.concurrency = parseConcurrencyValue(concurrency)
+  output.concurrencyMode = parseHostedConcurrencyMode(concurrencyMode)
   return output
 }
 
@@ -159,6 +162,7 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   const maxRepairs = stringFlag(parsed, 'max-repairs')
   const notes = stringFlag(parsed, 'notes')
   const concurrency = stringFlag(parsed, 'concurrency')
+  const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   if (character !== undefined) output.character = character
   if (location !== undefined) output.location = location
   if (view !== undefined) {
@@ -175,6 +179,7 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   if (enabledFlag(parsed, 'revise') === true) output.revise = true
   if (notes !== undefined) output.notes = notes
   if (concurrency !== undefined) output.concurrency = parseConcurrencyValue(concurrency)
+  output.concurrencyMode = parseHostedConcurrencyMode(concurrencyMode)
   if (enabledFlag(parsed, 'price') === true) output.price = true
   assignSharedImageOptions(parsed, output)
 
@@ -198,6 +203,7 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
   const maxRepairs = stringFlag(parsed, 'max-repairs')
   const targetValue = stringFlag(parsed, 'target')
   const concurrency = stringFlag(parsed, 'concurrency')
+  const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   const panels = stringFlag(parsed, 'panels')
   const panelsPerImage = stringFlag(parsed, 'panels-per-image')
   const grid = stringFlag(parsed, 'grid')
@@ -219,6 +225,7 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
     output.target = targetValue as NonNullable<ParsedGenerateBaseArgs['target']>
   }
   if (concurrency !== undefined) output.concurrency = parseConcurrencyValue(concurrency)
+  output.concurrencyMode = parseHostedConcurrencyMode(concurrencyMode)
   if (panels !== undefined) output.panels = parsePanelSelector(panels)
   if (panelsPerImage !== undefined) {
     if (!isPositiveInteger(panelsPerImage)) {

@@ -15,9 +15,6 @@ export type ComicBunImageCodec = {
 export type OcrBunImageCodec = {
   webp: () => BunImageEncoder
 }
-
-export type AcsmFakeFulfillMode = 'epub' | 'encrypted-epub' | 'pdf' | 'zero' | 'multiple' | 'fail'
-
 export type SttNormalizationMetricRankingEntry = {
   rank: number
   providerKey: string

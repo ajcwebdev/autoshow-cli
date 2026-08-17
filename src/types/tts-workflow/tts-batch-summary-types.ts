@@ -15,7 +15,7 @@ export type SuccessfulTtsBatchItem = {
 }
 
 export type HostedEstimateJob = {
-  provider: Exclude<TtsTarget['service'], 'kitten'>
+  provider: TtsTarget['service']
   durationsMs: number[]
   active: number
   started: number

@@ -26,6 +26,8 @@ export const hasConfiguredOcrProviderSelection = (
   || hasSelectedModel(opts.anthropicOcrModels, opts.anthropicOcrModel)
   || hasSelectedModel(opts.geminiOcrModels, opts.geminiOcrModel)
   || hasSelectedModel(opts.deepinfraOcrModels, opts.deepinfraOcrModel)
+  || hasSelectedModel(opts.replicateOcrModels, opts.replicateOcrModel)
+  || hasSelectedModel(opts.falOcrModels, opts.falOcrModel)
 
 export const formatHtmlArticleOcrFlagsIgnoredWarning = (
   target?: string

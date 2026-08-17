@@ -109,8 +109,8 @@ export const createComicDialoguePlan = (input: {
   pacingProfile?: ComicAudioPacingProfile | undefined
   rolePolicies?: readonly ComicAudioRolePolicy[] | undefined
 }): ComicDialoguePlan => {
-  if (input.structuredScript.schemaVersion !== 4 || canonicalTtsJson(input.structuredScript.sourceIdentity) !== canonicalTtsJson(input.sourceIdentity)) {
-    throw CLIUsageError('Comic dialogue planning requires strict structured-script v4 bound to the exact source identity.')
+  if (input.structuredScript.schemaVersion !== 5 || canonicalTtsJson(input.structuredScript.sourceIdentity) !== canonicalTtsJson(input.sourceIdentity)) {
+    throw CLIUsageError('Comic dialogue planning requires strict structured-script v5 bound to the exact source identity.')
   }
   const policies = rolePolicyMap(input.rolePolicies ?? [])
   const speakable = input.structuredScript.sourceSegments.filter(segment => segment.type === 'dialogue' || segment.type === 'narration')

@@ -149,27 +149,6 @@ export const WhisperJsonOutputSchema = v.object({
   transcription: v.array(WhisperJsonSegmentSchema)
 })
 
-const ReverbWordSchema = v.object({
-  word: v.string(),
-  start: v.number(),
-  end: v.number(),
-  speaker: v.optional(v.string(), undefined)
-})
-
-const ReverbSegmentSchema = v.object({
-  start: v.number(),
-  end: v.number(),
-  text: v.string(),
-  speaker: v.optional(v.string(), undefined),
-  words: v.optional(v.array(ReverbWordSchema), undefined)
-})
-
-export const ReverbOutputSchema = v.object({
-  segments: v.array(ReverbSegmentSchema),
-  text: v.string(),
-  speakers: v.optional(v.array(v.string()), undefined)
-})
-
 const AssemblyAiUtteranceSchema = v.object({
   confidence: v.number(),
   start: v.number(),

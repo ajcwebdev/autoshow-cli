@@ -1,6 +1,6 @@
 import { expect, beforeAll, afterAll } from 'bun:test'
 import { runCommand, findLatestDirectory, cleanupTestOutput, STABLE_EXAMPLE_AUDIO_URL, STABLE_EXAMPLE_AUDIO_TITLE } from '../../../../../../test-utils/test-helpers'
-import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../../test-utils/budget'
+import { budgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../../test-utils/budget'
 import { runCommandAndExpectOutputDir } from '../../../../../../test-utils/service-test-kit'
 import { assertSttExtractRun } from '../../../../../../test-utils/assert-stt-extract-run'
 import { stripAnsi } from '~/utils/terminal-colors'
@@ -20,7 +20,7 @@ budgetedTest('transcribe-whisper-tiny', 'default transcribe processes local audi
   const outputDir = await runCommandAndExpectOutputDir(
     STABLE_EXAMPLE_AUDIO_TITLE,
     ['src/cli/create-cli.ts', 'extract', STABLE_EXAMPLE_AUDIO_URL],
-    { testName }
+    { testName, timeoutMs: LONG_E2E_TEST_TIMEOUT_MS }
   )
 
   await assertSttExtractRun(outputDir, {
@@ -32,7 +32,7 @@ budgetedTest('transcribe-whisper-tiny', 'default transcribe processes local audi
     providerStates: true,
     splitSegmentsDir: false
   })
-}, E2E_TEST_TIMEOUT_MS)
+}, LONG_E2E_TEST_TIMEOUT_MS)
 
 for (const modelCase of [
   { model: 'base', metadataSuffix: 'ggml-base' },
@@ -47,7 +47,7 @@ for (const modelCase of [
     const outputDir = await runCommandAndExpectOutputDir(
       STABLE_EXAMPLE_AUDIO_TITLE,
       ['src/cli/create-cli.ts', 'extract', STABLE_EXAMPLE_AUDIO_URL, '--provider', `whisper=${modelCase.model}`],
-      { testName }
+      { testName, timeoutMs: LONG_E2E_TEST_TIMEOUT_MS }
     )
 
     await assertSttExtractRun(outputDir, {
@@ -59,7 +59,7 @@ for (const modelCase of [
       providerStates: true,
       splitSegmentsDir: false
     })
-  }, E2E_TEST_TIMEOUT_MS)
+  }, LONG_E2E_TEST_TIMEOUT_MS)
 }
 
 budgetedTest('transcribe-whisper-split', 'split mode processes audio in segments', async () => {
@@ -68,7 +68,7 @@ budgetedTest('transcribe-whisper-split', 'split mode processes audio in segments
   const testName = 'split mode processes audio in segments'
   const result = await runCommand(
     ['src/cli/create-cli.ts', 'extract', STABLE_EXAMPLE_AUDIO_URL, '--split', '--provider', 'whisper=tiny'],
-    { testName }
+    { testName, timeoutMs: LONG_E2E_TEST_TIMEOUT_MS }
   )
 
   expect(result.exitCode).toBe(0)
@@ -88,4 +88,4 @@ budgetedTest('transcribe-whisper-split', 'split mode processes audio in segments
       splitSegmentsDir: 'split-attempts/pass_001/segments'
     })
   }
-}, E2E_TEST_TIMEOUT_MS)
+}, LONG_E2E_TEST_TIMEOUT_MS)

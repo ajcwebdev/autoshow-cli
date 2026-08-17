@@ -22,7 +22,6 @@ import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-r
 
 const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
   [
-    ...(opts.llamaModels ?? (opts.llamaModel ? [opts.llamaModel] : [])),
     ...(opts.openaiModels ?? (opts.openaiModel ? [opts.openaiModel] : [])),
     ...(opts.groqModels ?? (opts.groqModel ? [opts.groqModel] : [])),
     ...(opts.geminiModels ?? (opts.geminiModel ? [opts.geminiModel] : [])),
@@ -60,9 +59,10 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
     outputFormat: opts.out,
     pdfChapterMode: opts.pdfChapterMode,
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
+    ocrProviderMode: opts.ocrProviderMode,
+    ocrProviderModeExplicit: opts.ocrProviderModeExplicit,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
-    keepOcrPageInputs: opts.keepOcrPageInputs,
     primaryOcr: opts.primaryOcr,
     configPath: opts.configPath
   }
@@ -132,6 +132,18 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
   if (opts.deepinfraOcrModels) {
     extractionOpts.deepinfraOcrModels = opts.deepinfraOcrModels
   }
+  if (opts.replicateOcrModel) {
+    extractionOpts.replicateOcrModel = opts.replicateOcrModel
+  }
+  if (opts.replicateOcrModels) {
+    extractionOpts.replicateOcrModels = opts.replicateOcrModels
+  }
+  if (opts.falOcrModel) {
+    extractionOpts.falOcrModel = opts.falOcrModel
+  }
+  if (opts.falOcrModels) {
+    extractionOpts.falOcrModels = opts.falOcrModels
+  }
   if (typeof opts.chapterFiles === 'boolean') {
     extractionOpts.chapterFiles = opts.chapterFiles
   }
@@ -170,10 +182,13 @@ const writeDocumentOutputMetadata = async (
     providerStates,
     missingProviders,
     blockedProviders,
+    ocrProviderMode,
+    ocrPool,
     web,
     errors,
     ocrConcurrency,
     ocrConcurrencyMode,
+    concurrencyMode,
     ocrProviderConcurrency,
     ocrLocalConcurrency
   } = params
@@ -223,6 +238,7 @@ const writeDocumentOutputMetadata = async (
       provider: target.provider,
       model: target.model,
       pageCount: target.pageCount ?? step1.pageCount,
+      ...(target.ocrProviderMode ? { ocrProviderMode: target.ocrProviderMode } : {}),
       ...(typeof target.rasterizedPages === 'number' ? { rasterizedPages: target.rasterizedPages } : {}),
       ...(typeof target.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: target.singlePagePdfFallbackPages } : {})
     })),
@@ -233,6 +249,7 @@ const writeDocumentOutputMetadata = async (
       outputTokens: entry.outputTokenCount
     })),
     skipLLM: false,
+    concurrencyMode,
     ...(typeof ocrConcurrency === 'number' ? { ocrConcurrency } : {}),
     ...(ocrConcurrencyMode ? { ocrConcurrencyMode } : {}),
     ...(typeof ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency } : {}),
@@ -249,6 +266,7 @@ const writeDocumentOutputMetadata = async (
     ? buildAggregateTiming(priceAlignedTimingSteps, undefined, {
         ...(typeof ocrConcurrency === 'number' ? { ocrConcurrency } : {}),
         ...(ocrConcurrencyMode ? { ocrConcurrencyMode } : {}),
+        concurrencyMode,
         ...(typeof ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency } : {}),
         ...(typeof ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency } : {})
       })
@@ -268,6 +286,8 @@ const writeDocumentOutputMetadata = async (
     ...(providerStates ? { providerStates } : {}),
     ...(missingProviders ? { missingProviders } : {}),
     ...(blockedProviders ? { blockedProviders } : {}),
+    ...(ocrProviderMode ? { ocrProviderMode } : {}),
+    ...(ocrPool ? { ocrPool } : {}),
     step3,
     ...(web ? { web } : {}),
     cost,
@@ -378,8 +398,8 @@ export const runExtractedDocumentWrite = async ({
   const step3Serialized: Step3Metadata | Step3Metadata[] = step3Results.length === 1 ? step3Results[0]! : step3Results
   const llmInputTokenCount = step3Results.reduce((sum, item) => sum + item.inputTokenCount, 0)
   const llmOutputTokenCount = step3Results.reduce((sum, item) => sum + item.outputTokenCount, 0)
-  const llmService = step3Results[0]?.llmService ?? 'llama.cpp'
-  const llmModel = step3Results[0]?.llmModel ?? (llmConfig.llamaModel ?? 'unknown')
+  const llmService = step3Results[0]?.llmService ?? llmConfig.llmService ?? 'unknown'
+  const llmModel = step3Results[0]?.llmModel ?? (llmConfig.llmModel ?? 'unknown')
 
   const artifactFiles: Record<string, string> = {
     ...(extraArtifactFiles ?? {}),
@@ -423,10 +443,13 @@ export const runExtractedDocumentWrite = async ({
     ...(extraction.providerStates ? { providerStates: extraction.providerStates } : {}),
     ...(extraction.missingProviders ? { missingProviders: extraction.missingProviders } : {}),
     ...(extraction.blockedProviders ? { blockedProviders: extraction.blockedProviders } : {}),
+    ...(extraction.ocrProviderMode ? { ocrProviderMode: extraction.ocrProviderMode } : {}),
+    ...(extraction.ocrPool ? { ocrPool: extraction.ocrPool } : {}),
     ...(extraction.web ? { web: extraction.web } : {}),
     ...(extraction.step2Errors ? { errors: extraction.step2Errors } : {}),
     ocrConcurrency: opts.ocrConcurrency,
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
+    concurrencyMode: opts.concurrencyMode,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency
   })

@@ -22,6 +22,7 @@ export const runGrokTts = async (
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
     requestEvidence?: TtsRequestEvidenceScope | undefined
+    allowAmbiguousRedispatch?: boolean | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('XAI_API_KEY', 'tts:grok', 'Grok TTS')
@@ -54,6 +55,7 @@ export const runGrokTts = async (
     chunkExtension: 'wav',
     startTime: Date.now(),
     abortSignal: options.abortSignal,
+    allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,

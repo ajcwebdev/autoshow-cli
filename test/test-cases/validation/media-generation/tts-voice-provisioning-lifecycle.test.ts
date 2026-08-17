@@ -12,6 +12,7 @@ import type { MistralVoiceManagementRequest } from '~/cli/commands/process-steps
 import { loadVoiceConsentRecord, revokeVoiceConsentRecord, storeVoiceConsentRecord } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-consent-store'
 import { provisionMistralSavedReferenceRegistration } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
 import { loadVoiceRegistrationCatalog } from '~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry'
+import { ProviderError } from '~/utils/error-handler'
 
 const roots: string[] = []
 const makeRoot = async (): Promise<string> => {
@@ -145,6 +146,32 @@ describe('Phase 1 protected voice assets and consent', () => {
 })
 
 describe('Phase 1 provisioning journal', () => {
+  test('a definite provider rejection is terminal failed rather than reconciliation-required', async () => {
+    const root = await makeRoot()
+    let calls = 0
+    const run = () => runCrashSafeVoiceProvisioning({
+      journalRoot: root,
+      attempt: attempt('attempt_rejected'),
+      mutate: async () => {
+        calls += 1
+        throw ProviderError('Provider rejected the voice name.', {
+          status: 400,
+          headers: new Headers({ 'x-request-id': 'voice-reject-1' }),
+          stage: 'voice:create'
+        })
+      }
+    })
+
+    await expect(run()).rejects.toThrow('Provider rejected the voice name.')
+    const rejected = await loadVoiceProvisioningAttempt(root, 'vr_test', 'attempt_rejected')
+    expect(rejected.outcome).toEqual({ state: 'failed', code: 'HTTP_400', message: 'Provider rejected the voice name.' })
+    expect(rejected.transitions.map(entry => entry.phase)).toEqual(['prepared', 'request-sent', 'response-received', 'terminal'])
+
+    const replay = await run()
+    expect(replay.outcome?.state).toBe('failed')
+    expect(calls).toBe(1)
+  })
+
   test('concurrent jobs share one durable provisioning result and issue one resource', async () => {
     const root = await makeRoot()
     let calls = 0
@@ -153,7 +180,7 @@ describe('Phase 1 provisioning journal', () => {
       attempt: attempt('attempt_one'),
       mutate: async () => {
         calls++
-        await Bun.sleep(20)
+        await Bun.sleep(10)
         return {
           state: { state: 'ready', providerVoice: providerVoice('voice-one') },
           issuedResources: [{ providerVoice: providerVoice('voice-one'), observedAt: '2026-08-11T00:01:00.000Z', sanitizedResponseHash: 'e'.repeat(64) }],
@@ -304,7 +331,7 @@ describe('Phase 1 Mistral saved-reference management', () => {
     let calls = 0
     const request: MistralVoiceManagementRequest = async <T>(options: Parameters<MistralVoiceManagementRequest>[0]): Promise<T> => {
       calls++
-      await Bun.sleep(15)
+      await Bun.sleep(8)
       const body = options.body as { name: string, slug: string }
       return { id: 'voice-shared', name: body.name, slug: body.slug, created_at: '2026-08-11T00:01:00.000Z', languages: [] } as T
     }

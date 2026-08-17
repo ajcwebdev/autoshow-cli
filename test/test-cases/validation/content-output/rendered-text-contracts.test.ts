@@ -31,11 +31,6 @@ test('rendered text track headers use model display names', () => {
   })).toBe('Gemini 3.1 Pro')
 
   expect(formatRenderedLlmLabel({
-    llmService: 'llama.cpp',
-    llmModel: 'ggml-org/gemma-3-270m-it-GGUF'
-  })).toBe('Gemma 3 270M Instruct')
-
-  expect(formatRenderedLlmLabel({
     llmService: 'grok',
     llmModel: 'grok-4.3'
   })).toBe('Grok 4.3')
@@ -200,19 +195,19 @@ test('external rendered text filenames use provider aliases only for single-targ
     const externalDir = join(tempDir, 'lyrics')
     await mkdir(outputDir, { recursive: true })
 
-    const llamaMetadata = buildStep3Metadata({
-      llmService: 'llama.cpp',
-      llmModel: 'ggml-org/gemma-3-270m-it-GGUF'
+    const openaiMetadata = buildStep3Metadata({
+      llmService: 'openai',
+      llmModel: 'gpt-5.5'
     })
     const qwenMetadata = buildStep3Metadata({
-      llmService: 'llama.cpp',
-      llmModel: 'ggml-org/Qwen3-0.6B-GGUF'
+      llmService: 'gemini',
+      llmModel: 'gemini-3.5-flash'
     })
 
     const singleArtifacts = await writeRenderedTextArtifacts({
       outputDir,
       results: [{
-        metadata: llamaMetadata,
+        metadata: openaiMetadata,
         renderedText: 'single',
         parsedJson: {}
       }],
@@ -222,14 +217,14 @@ test('external rendered text filenames use provider aliases only for single-targ
     })
 
     expect(singleArtifacts.externalFiles.map((file) => file.split('/').pop())).toEqual([
-      '01-track-one-llama.md'
+      '01-track-one-chatgpt.md'
     ])
 
     const multiArtifacts = await writeRenderedTextArtifacts({
       outputDir,
       results: [
         {
-          metadata: llamaMetadata,
+          metadata: openaiMetadata,
           renderedText: 'gemma',
           parsedJson: {}
         },
@@ -245,8 +240,8 @@ test('external rendered text filenames use provider aliases only for single-targ
     })
 
     expect(multiArtifacts.externalFiles.map((file) => file.split('/').pop()).sort()).toEqual([
-      '01-track-one-ggml-org-Qwen3-0.6B-GGUF.md',
-      '01-track-one-ggml-org-gemma-3-270m-it-GGUF.md'
+      '01-track-one-gemini-3.5-flash.md',
+      '01-track-one-gpt-5.5.md'
     ])
   } finally {
     await rm(tempDir, { recursive: true, force: true })

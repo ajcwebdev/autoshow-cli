@@ -1,7 +1,6 @@
 import type { SpeakerVoiceRegistry } from '~/types'
 
 export type TtsTargetSelection = {
-  kittenModels: string[]
   elevenlabsModels: string[]
   minimaxModels: string[]
   groqModels: string[]
@@ -13,6 +12,11 @@ export type TtsTargetSelection = {
   speechifyModels: string[]
   humeModels: string[]
   cartesiaModels: string[]
+  fishModels: string[]
+  inworldModels: string[]
+  deepinfraModels: string[]
+  replicateModels: string[]
+  falModels: string[]
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
   multiSpeakerRequested: boolean
   minimaxVoiceId: string | undefined
@@ -42,7 +46,6 @@ export type TtsTargetSelection = {
   elevenLabsSeed: number | undefined
   elevenLabsTextNormalization: string | undefined
   elevenLabsPronunciationDictionaryLocators: string[] | undefined
-  elevenLabsOptimizeStreamingLatency: number | undefined
   speechifyVoiceId: string | undefined
   speechifyAudioFormat: string | undefined
   speechifyLanguage: string | undefined
@@ -50,6 +53,13 @@ export type TtsTargetSelection = {
   humeVoiceProvider: string | undefined
   cartesiaVoiceId: string | undefined
   cartesiaLanguage: string | undefined
+  fishVoiceId: string | undefined
+  inworldVoiceId: string | undefined
+  inworldInstructions: string | undefined
+  deepinfraVoiceId: string | undefined
+  replicateVoiceId: string | undefined
+  falVoiceId: string | undefined
+  falInstructions: string | undefined
   groqVoiceId: string | undefined
   grokVoiceId: string | undefined
   grokLanguage: string | undefined

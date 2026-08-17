@@ -1,6 +1,5 @@
 import type { ResolvedFlagContext, SttRuntimeOptions, SttRuntimeOptionKey } from '~/types'
 import {
-  parseFloatWithDefault,
   parseIntWithDefault,
   parseOptionalPositiveIntFlag,
   readBooleanFlag,
@@ -35,7 +34,6 @@ export const buildSttOptions = (ctx: ResolvedFlagContext): SttRuntimeOptions => 
     sttLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'stt-local-concurrency', explicitFlags, configuredFlags),
     sttSegmentConcurrency: Math.max(1, parseIntWithDefault(readOptionalStringFlag(mergedFlags, 'stt-segment-concurrency'), DEFAULT_CLI_CONCURRENCY)),
     sttPreflightConcurrency: Math.max(1, parseIntWithDefault(readOptionalStringFlag(mergedFlags, 'stt-preflight-concurrency'), DEFAULT_CLI_CONCURRENCY)),
-    reverbVerbatimicity: parseFloatWithDefault(readOptionalStringFlag(mergedFlags, 'stt-reverb-verbatimicity'), 0.5),
     split: readBooleanFlag(mergedFlags, 'split'),
   }
 }

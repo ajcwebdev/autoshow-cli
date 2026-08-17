@@ -114,10 +114,6 @@ const SERVICE_GROUP_VALUES = new Set(["cloud", "hosted", "service", "thirdparty"
 const LOCAL_PROVIDER_HINTS = [
   "tesseract",
   "whisper",
-  "reverb",
-  "kitten",
-  "llama.cpp",
-  "llama",
   "local",
 ];
 

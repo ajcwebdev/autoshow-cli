@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-29-201_document",
-  "generatedAt": "2026-07-01T20:20:14.013Z",
-  "pageAligned": false,
+  "generatedAt": "2026-08-14T17:47:37.216Z",
+  "pageAligned": true,
   "variants": [
     {
       "variantId": "status-quo-consensus",
@@ -14,26 +14,13 @@
     {
       "variantId": "page-level-hybrid",
       "source": "deterministic selected provider pages",
-      "charCount": 1764,
-      "wordCount": 248,
-      "pageCount": 2,
-      "selectedPageSourceCounts": {
-        "anthropic/claude-opus-4-8": 1,
-        "mistral/mistral-ocr-2512": 1
-      },
-      "lowConfidencePageCount": 1,
-      "outlierPageCount": 2
-    },
-    {
-      "variantId": "page-level-hybrid-new-provider-files",
-      "source": "deterministic selected provider pages from newly discovered provider result files",
-      "charCount": 855,
-      "wordCount": 121,
+      "charCount": 847,
+      "wordCount": 122,
       "pageCount": 1,
       "selectedPageSourceCounts": {
-        "gemini/gemini-3.5-flash": 1
+        "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct": 1
       },
-      "lowConfidencePageCount": 0,
+      "lowConfidencePageCount": 1,
       "outlierPageCount": 1
     }
   ],
@@ -41,21 +28,11 @@
     {
       "referenceVariantId": "status-quo-consensus",
       "candidateVariantId": "page-level-hybrid",
-      "wer": 1.2,
-      "cer": 1.081582,
-      "wordDistance": 162,
+      "wer": 0.296296,
+      "cer": 0.045735,
+      "wordDistance": 40,
       "wordReferenceCount": 135,
-      "charDistance": 875,
-      "charReferenceCount": 809
-    },
-    {
-      "referenceVariantId": "status-quo-consensus",
-      "candidateVariantId": "page-level-hybrid-new-provider-files",
-      "wer": 0.259259,
-      "cer": 0.032138,
-      "wordDistance": 35,
-      "wordReferenceCount": 135,
-      "charDistance": 26,
+      "charDistance": 37,
       "charReferenceCount": 809
     }
   ]

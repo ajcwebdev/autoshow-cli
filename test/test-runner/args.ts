@@ -1,6 +1,9 @@
+import { availableParallelism } from 'node:os'
 import type { RunnerArgs } from '~/types'
+import { VALIDATION_TEST_TIMEOUT_MS } from '../test-utils/timeouts'
 
-export const DEFAULT_TEST_RUNNER_CONCURRENCY = 10
+export const DEFAULT_TEST_RUNNER_CONCURRENCY = Math.max(1, availableParallelism())
+export const E2E_TEST_RUNNER_PARALLEL = 32
 export const E2E_TEST_CASE_PREFIX = 'test/test-cases/e2e/'
 
 const BUN_TEST_MAX_CONCURRENCY_FLAG = '--max-concurrency'
@@ -16,13 +19,19 @@ const hasMaxConcurrencyFlag = (args: string[]): boolean =>
 const hasParallelFlag = (args: string[]): boolean =>
   args.some(arg => arg === BUN_TEST_PARALLEL_FLAG || arg.startsWith(`${BUN_TEST_PARALLEL_FLAG}=`))
 
-export const withDefaultTestConcurrency = (args: string[]): string[] => {
+export const resolveDefaultParallel = (e2eOnly: boolean): number =>
+  e2eOnly ? E2E_TEST_RUNNER_PARALLEL : DEFAULT_TEST_RUNNER_CONCURRENCY
+
+export const withDefaultTestConcurrency = (
+  args: string[],
+  options: { e2eOnly?: boolean } = {}
+): string[] => {
   const defaultArgs: string[] = []
   if (!hasMaxConcurrencyFlag(args)) {
     defaultArgs.push(`${BUN_TEST_MAX_CONCURRENCY_FLAG}=${DEFAULT_TEST_RUNNER_CONCURRENCY}`)
   }
   if (!hasParallelFlag(args)) {
-    defaultArgs.push(`${BUN_TEST_PARALLEL_FLAG}=${DEFAULT_TEST_RUNNER_CONCURRENCY}`)
+    defaultArgs.push(`${BUN_TEST_PARALLEL_FLAG}=${resolveDefaultParallel(options.e2eOnly === true)}`)
   }
   return defaultArgs.length === 0 ? args : [...defaultArgs, ...args]
 }
@@ -32,6 +41,16 @@ export const isE2ETestCasePath = (path: string): boolean =>
 
 export const isE2EOnlyTestSelection = (files: string[]): boolean =>
   files.length > 0 && files.every(isE2ETestCasePath)
+
+export const buildBunTestFlags = (files: string[], passthroughArgs: string[]): string[] => {
+  const e2eOnly = isE2EOnlyTestSelection(files)
+  return [
+    '--timeout',
+    String(VALIDATION_TEST_TIMEOUT_MS),
+    ...(e2eOnly ? ['--retry', '1'] : []),
+    ...withDefaultTestConcurrency(passthroughArgs, { e2eOnly }),
+  ]
+}
 
 export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
   let priceMode = false

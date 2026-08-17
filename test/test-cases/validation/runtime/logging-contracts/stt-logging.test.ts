@@ -10,7 +10,6 @@ import {
   buildSttTranscriptOutputTable,
   logSttProviderConcurrency
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import { buildWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { renderHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { buildRetryAttemptTable } from '~/utils/retries'
 import { stripAnsi } from '~/utils/terminal-colors'
@@ -219,66 +218,21 @@ describe('logging contracts', () => {
       ])
 
       expect(buildSttTranscriptOutputTable({
-        provider: 'reverb',
+        provider: 'whisper',
         path: '/tmp/out/transcription.txt',
         characters: 1234,
         speakers: 2
       }).columns).toEqual(['key', 'value'])
 
       const cleanupRendered = stripAnsi(renderHumanTable(buildSttCleanupArtifactsTable([
-        { artifact: 'ctm', path: '/tmp/out/reverb-output/file.ctm' }
+        { artifact: 'ctm', path: '/tmp/out/stt-output/file.ctm' }
       ])))
-      expect(cleanupRendered).toContain('\u2502 ctm \u2502 /tmp/out/reverb-output/file.ctm')
+      expect(cleanupRendered).toContain('\u2502 ctm \u2502 /tmp/out/stt-output/file.ctm')
       expect(cleanupRendered).not.toContain('\u2502 artifact \u2502 path')
 
       expect(buildSttProviderSpeakerCountHintsTable([
         { provider: 'assemblyai/universal-3-pro', speakerCount: 2, support: 'honored' },
-        { provider: 'reverb/reverb_asr_v1', speakerCount: 2, support: 'ignored' }
+        { provider: 'whisper/tiny', speakerCount: 2, support: 'ignored' }
       ]).columns).toEqual(['provider', 'speakerCount', 'support'])
-    })
-
-  test('STT manifest summary displays concise Reverb ASR model label', () => {
-      const reverbDescriptor = '/Users/ajc/c/as/autoshow-cli/runtime/models/reverb/reverb_asr_v1/reverb_asr_v1.pt | /Users/ajc/c/as/autoshow-cli/runtime/models/reverb/reverb_asr_v1/config.yaml | diarization:v2'
-      const metadata = {
-        step2: {
-          transcriptionService: 'reverb',
-          transcriptionModel: reverbDescriptor,
-          processingTime: 67000,
-          tokenCount: 1234
-        },
-        cost: {
-          estimated: {
-            totalCost: 0,
-            steps: [{
-              step: 'stt',
-              provider: 'reverb',
-              model: 'reverb',
-              cost: 0
-            }]
-          },
-          actual: {
-            totalCost: 0,
-            steps: [{
-              step: 'stt',
-              provider: 'reverb',
-              model: reverbDescriptor,
-              cost: 0
-            }]
-          }
-        }
-      }
-
-      const summary = buildWriteManifestConsoleSummary(metadata)
-      expect(summary.runSummary?.rows[0]).toMatchObject({
-        step: 'Transcribe',
-        providerModel: 'reverb/reverb_asr_v1',
-        predictedCostCents: 0,
-        actualCostCents: 0
-      })
-      expect(summary.promptUsage?.rows[0]).toMatchObject({
-        step: 'Transcribe',
-        providerModel: 'reverb/reverb_asr_v1',
-        usage: '1234 tok'
-      })
     })
 })

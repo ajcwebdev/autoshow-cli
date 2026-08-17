@@ -1,0 +1,21 @@
+{
+  "fish": {
+    "description": "Fish Audio cloud text-to-speech and voice design",
+    "type": "api",
+    "models": {
+      "s2.1-pro": {
+        "description": "Fish S2.1 Pro multi-speaker dialogue and timestamped streaming model",
+        "pricingSourceUrl": "https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits",
+        "pricingCheckedAt": "2026-08-15",
+        "pricingCurrency": "USD",
+        "pricingTier": "Fish Audio API pay-as-you-go TTS pricing",
+        "pricingNotes": "Fish Audio bills s2.1-pro at $15.00 / M UTF-8 bytes. AutoShow estimates use the English ASCII equivalence of $0.015 / 1K characters.",
+        "costPer1kCharsCents": 1.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 3000
+        }
+      }
+    }
+  }
+}

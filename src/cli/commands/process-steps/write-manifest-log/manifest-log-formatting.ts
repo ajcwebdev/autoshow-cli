@@ -1,6 +1,5 @@
 import type { TimingEntryLike, WriteStepKind } from '~/types'
 import { formatCost } from '~/utils/app-logger/formatters'
-import { resolveReverbModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-model-labels'
 
 const WHISPER_MODEL_PATH_PATTERN = /ggml-([a-z0-9.-]+)\.bin/i
 
@@ -39,19 +38,12 @@ export const resolveWhisperModel = (value: string): string => {
   return primary
 }
 
-const normalizeProviderForMatch = (step: WriteStepKind, provider: string): string => {
-  if (step === 'llm' && provider === 'llama.cpp') {
-    return 'llama'
-  }
-  return provider
-}
+const normalizeProviderForMatch = (_step: WriteStepKind, provider: string): string =>
+  provider
 
 const normalizeModelForMatch = (step: WriteStepKind, provider: string, model: string): string => {
   if (step === 'stt' && provider === 'whisper') {
     return resolveWhisperModel(model)
-  }
-  if (step === 'stt' && provider === 'reverb') {
-    return 'reverb'
   }
   return model
 }
@@ -64,8 +56,7 @@ export const buildMatchKey = (step: WriteStepKind, provider: string, model: stri
 
 export const buildProviderModelLabel = (provider: string, model: string): string => {
   const displayProvider = provider === 'whisper' ? 'whisper.cpp' : provider
-  const displayModel = provider === 'reverb' ? resolveReverbModelLabel(model) : model
-  return `${displayProvider}/${displayModel}`
+  return `${displayProvider}/${model}`
 }
 
 export const formatPersistedWriteManifestThroughput = (

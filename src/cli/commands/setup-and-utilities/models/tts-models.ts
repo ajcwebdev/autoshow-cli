@@ -1,47 +1,16 @@
-import { createModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { createModelValidator, formatAllowedValues, throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
+import { CLIUsageError } from '~/utils/error-handler'
 import {
-  getKittenHfRepo,
-  getKittenVoices,
   getGeminiTtsVoices,
   getGroqTtsVoices,
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, DeepgramTtsModel, ElevenlabsTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, KittenTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, SpeechifyTtsModel } from '~/types'
-
-export const SUPPORTED_KITTEN_TTS_MODELS = [
-  'kitten-tts-mini',
-  'kitten-tts-micro',
-  'kitten-tts-nano',
-  'kitten-tts-nano-0.8-int8'
-] as const satisfies readonly string[]
-
-export const DEFAULT_KITTEN_TTS_MODEL = 'kitten-tts-nano-0.8-int8'
-
-export const SUPPORTED_KITTEN_TTS_VOICES = getKittenVoices()
-
-export const validateKittenTtsModel = createModelValidator<KittenTtsModel>(SUPPORTED_KITTEN_TTS_MODELS, 'kitten-tts')
-
-export const validateKittenTtsSpeaker = (speaker: string): string => {
-  if (!SUPPORTED_KITTEN_TTS_VOICES.includes(speaker)) {
-    throw CLIUsageError(
-      `Invalid --kitten-voice "${speaker}" for Kitten TTS. Allowed values: ${formatAllowedValues(SUPPORTED_KITTEN_TTS_VOICES)}`
-    )
-  }
-  return speaker
-}
-
-export const resolveKittenTtsModelId = (model: KittenTtsModel): string => {
-  const repo = getKittenHfRepo(model)
-  if (!repo) throw InternalError(`No HF repo found for Kitten TTS model "${model}"`, { stage: 'tts:kitten' })
-  return repo
-}
+import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
-  'eleven_v3',
-  'eleven_multilingual_v2',
-  'eleven_flash_v2_5'
+  'eleven_v3'
 ] as const satisfies readonly string[]
 
 export const ELEVENLABS_DEFAULT_VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'
@@ -51,7 +20,12 @@ export const SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS = [
   'off'
 ] as const satisfies readonly string[]
 
-export const validateElevenlabsTtsModel = createModelValidator<ElevenlabsTtsModel>(SUPPORTED_ELEVENLABS_TTS_MODELS, 'elevenlabs-tts')
+const validateActiveElevenlabsTtsModel = createModelValidator<ElevenlabsTtsModel>(SUPPORTED_ELEVENLABS_TTS_MODELS, 'elevenlabs-tts')
+export const validateElevenlabsTtsModel = (model: string): ElevenlabsTtsModel => {
+  const replacement = getRetiredModelReplacement('tts', 'elevenlabs', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'elevenlabs-tts', replacement)
+  return validateActiveElevenlabsTtsModel(model)
+}
 
 export const validateElevenLabsTtsTextNormalization = (value: string): string => {
   const normalized = normalizeListedValue(value, SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS)
@@ -152,8 +126,7 @@ export const validateMinimaxTtsEmotion = (value: string): string => {
 }
 
 export const SUPPORTED_GROQ_TTS_MODELS = [
-  'canopylabs/orpheus-v1-english',
-  'canopylabs/orpheus-arabic-saudi'
+  'canopylabs/orpheus-v1-english'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GROQ_ENGLISH_TTS_VOICES = [
@@ -165,20 +138,15 @@ export const SUPPORTED_GROQ_ENGLISH_TTS_VOICES = [
   'troy'
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_GROQ_ARABIC_TTS_VOICES = [
-  'abdullah',
-  'fahad',
-  'sultan',
-  'lulwa',
-  'noura',
-  'aisha'
-] as const satisfies readonly string[]
-
 const SUPPORTED_GROQ_TTS_VOICES = getGroqTtsVoices()
 export const GROQ_DEFAULT_TTS_VOICE = 'troy'
-export const GROQ_DEFAULT_ARABIC_TTS_VOICE = 'abdullah'
 
-export const validateGroqTtsModel = createModelValidator<GroqTtsModel>(SUPPORTED_GROQ_TTS_MODELS, 'groq-tts')
+const validateActiveGroqTtsModel = createModelValidator<GroqTtsModel>(SUPPORTED_GROQ_TTS_MODELS, 'groq-tts')
+export const validateGroqTtsModel = (model: string): GroqTtsModel => {
+  const replacement = getRetiredModelReplacement('tts', 'groq', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'groq-tts', replacement)
+  return validateActiveGroqTtsModel(model)
+}
 
 export const validateGroqTtsVoice = (voice: string): string => {
   const normalized = voice.trim().toLowerCase()
@@ -190,15 +158,11 @@ export const validateGroqTtsVoice = (voice: string): string => {
   return normalized
 }
 
-export const getGroqTtsVoicesForModel = (model: GroqTtsModel): readonly string[] =>
-  model === 'canopylabs/orpheus-arabic-saudi'
-    ? SUPPORTED_GROQ_ARABIC_TTS_VOICES
-    : SUPPORTED_GROQ_ENGLISH_TTS_VOICES
+export const getGroqTtsVoicesForModel = (_model: GroqTtsModel): readonly string[] =>
+  SUPPORTED_GROQ_ENGLISH_TTS_VOICES
 
-export const getGroqDefaultTtsVoiceForModel = (model: GroqTtsModel): string =>
-  model === 'canopylabs/orpheus-arabic-saudi'
-    ? GROQ_DEFAULT_ARABIC_TTS_VOICE
-    : GROQ_DEFAULT_TTS_VOICE
+export const getGroqDefaultTtsVoiceForModel = (_model: GroqTtsModel): string =>
+  GROQ_DEFAULT_TTS_VOICE
 
 export const validateGroqTtsVoiceForModel = (model: GroqTtsModel, voice: string): string => {
   const normalized = voice.trim().toLowerCase()
@@ -272,48 +236,32 @@ export const MISTRAL_DEFAULT_REF_AUDIO = 'input/examples/audio/anthony-voice.mp3
 export const validateMistralTtsModel = createModelValidator<MistralTtsModel>(SUPPORTED_MISTRAL_TTS_MODELS, 'mistral-tts')
 
 export const SUPPORTED_OPENAI_TTS_MODELS = [
-  'gpt-4o-mini-tts-2025-12-15',
-  'tts-1',
-  'tts-1-hd'
+  'gpt-4o-mini-tts-2025-12-15'
 ] as const satisfies readonly string[]
 
 export const OPENAI_DEFAULT_TTS_VOICE = 'alloy'
 
 export const SUPPORTED_OPENAI_TTS_VOICES = getOpenAITtsVoices()
-export const SUPPORTED_OPENAI_CLASSIC_TTS_VOICES = [
-  'alloy',
-  'ash',
-  'coral',
-  'echo',
-  'fable',
-  'onyx',
-  'nova',
-  'sage',
-  'shimmer'
-] as const satisfies readonly string[]
 
 export type OpenAITtsVoiceSelection = Readonly<
   | { kind: 'built-in', voiceId: string, requestVoice: string }
   | { kind: 'custom', voiceId: string, requestVoice: Readonly<{ id: string }> }
 >
 
-export const validateOpenAITtsModel = createModelValidator<OpenAITtsModel>(SUPPORTED_OPENAI_TTS_MODELS, 'openai-tts')
+const validateActiveOpenAITtsModel = createModelValidator<OpenAITtsModel>(SUPPORTED_OPENAI_TTS_MODELS, 'openai-tts')
+export const validateOpenAITtsModel = (model: string): OpenAITtsModel => {
+  const replacement = getRetiredModelReplacement('tts', 'openai', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'openai-tts', replacement)
+  return validateActiveOpenAITtsModel(model)
+}
 
 export const resolveOpenAITtsVoiceForModel = (
-  model: OpenAITtsModel,
+  _model: OpenAITtsModel,
   voice: string
 ): OpenAITtsVoiceSelection => {
   const trimmed = voice.trim()
   const builtInVoice = normalizeListedValue(trimmed, SUPPORTED_OPENAI_TTS_VOICES)
   if (builtInVoice) {
-    const allowedValues = model === 'tts-1' || model === 'tts-1-hd'
-      ? SUPPORTED_OPENAI_CLASSIC_TTS_VOICES
-      : SUPPORTED_OPENAI_TTS_VOICES
-    if (!allowedValues.includes(builtInVoice)) {
-      throw CLIUsageError(
-        `Invalid --tts-voice openai="${voice}" for ${model}. Allowed built-in values: ${formatAllowedValues(allowedValues)}, or an eligible custom voice ID beginning with voice_.`
-      )
-    }
     return { kind: 'built-in', voiceId: builtInVoice, requestVoice: builtInVoice }
   }
   if (/^voice_\S+$/.test(trimmed)) {
@@ -452,8 +400,7 @@ export const validateDeepgramTtsVoice = (voice: string): DeepgramTtsModel => {
 }
 
 export const SUPPORTED_SPEECHIFY_TTS_MODELS = [
-  'simba-3.2',
-  'simba-3.0'
+  'simba-3.2'
 ] as const satisfies readonly string[]
 
 export const SPEECHIFY_DEFAULT_TTS_VOICE = 'geffen_32'
@@ -473,15 +420,6 @@ export const SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES = [
   'carly',
   'sophia'
 ] as const satisfies readonly string[]
-export const SPEECHIFY_SIMBA_3_0_LANGUAGES = [
-  'en',
-  'de-DE',
-  'es-ES',
-  'es-MX',
-  'fr-FR',
-  'it-IT',
-  'pt-BR'
-] as const satisfies readonly string[]
 export const SUPPORTED_SPEECHIFY_TTS_AUDIO_FORMATS = [
   'mp3',
   'ogg',
@@ -490,7 +428,12 @@ export const SUPPORTED_SPEECHIFY_TTS_AUDIO_FORMATS = [
   'pcm'
 ] as const satisfies readonly string[]
 
-export const validateSpeechifyTtsModel = createModelValidator<SpeechifyTtsModel>(SUPPORTED_SPEECHIFY_TTS_MODELS, 'speechify-tts')
+const validateActiveSpeechifyTtsModel = createModelValidator<SpeechifyTtsModel>(SUPPORTED_SPEECHIFY_TTS_MODELS, 'speechify-tts')
+export const validateSpeechifyTtsModel = (model: string): SpeechifyTtsModel => {
+  const replacement = getRetiredModelReplacement('tts', 'speechify', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'speechify-tts', replacement)
+  return validateActiveSpeechifyTtsModel(model)
+}
 
 export const validateSpeechifyTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
@@ -507,15 +450,10 @@ export const validateSpeechifyTtsLanguageForModel = (
   const normalized = language?.trim()
   if (!normalized) return undefined
 
-  const supported = model === 'simba-3.2'
-    ? normalized === 'en' || normalized.toLowerCase().startsWith('en-')
-    : SPEECHIFY_SIMBA_3_0_LANGUAGES.some((candidate) => candidate.toLowerCase() === normalized.toLowerCase())
-      || normalized.toLowerCase().startsWith('en-')
+  const supported = normalized === 'en' || normalized.toLowerCase().startsWith('en-')
   if (!supported) {
     throw CLIUsageError(
-      model === 'simba-3.2'
-        ? `Speechify ${model} supports only en or en-* languages; received "${language}".`
-        : `Speechify ${model} does not support language "${language}". Allowed values: en, en-*, ${SPEECHIFY_SIMBA_3_0_LANGUAGES.slice(1).join(', ')}.`
+      `Speechify ${model} supports only en or en-* languages; received "${language}".`
     )
   }
   return normalized
@@ -589,6 +527,154 @@ export const validateCartesiaTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
     throw CLIUsageError('Invalid --cartesia-tts-voice value. Expected a non-empty Cartesia voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_FISH_TTS_MODELS = [
+  's2.1-pro'
+] as const satisfies readonly string[]
+
+export const FISH_DEFAULT_TTS_VOICE = '7f92f8afb8ec43bf81429cc1c9199cb1'
+
+const validateActiveFishTtsModel = createModelValidator<FishTtsModel>(SUPPORTED_FISH_TTS_MODELS, 'fish-tts')
+export const validateFishTtsModel = (model: string): FishTtsModel => {
+  const replacement = getRetiredModelReplacement('tts', 'fish', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'fish-tts', replacement)
+  return validateActiveFishTtsModel(model)
+}
+
+export const validateFishTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --fish-tts-voice value. Expected a non-empty Fish model/voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_INWORLD_TTS_MODELS = [
+  'realtime-tts-2'
+] as const satisfies readonly string[]
+
+export const INWORLD_DEFAULT_TTS_VOICE = 'voice_inworld_standard_en'
+
+const validateActiveInworldTtsModel = createModelValidator<InworldTtsModel>(SUPPORTED_INWORLD_TTS_MODELS, 'inworld-tts')
+export const validateInworldTtsModel = (model: string): InworldTtsModel => {
+  const replacement = getRetiredModelReplacement('tts', 'inworld', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'inworld-tts', replacement)
+  return validateActiveInworldTtsModel(model)
+}
+
+export const validateInworldTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --inworld-voice value. Expected a non-empty Inworld voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_DEEPINFRA_TTS_MODELS = [
+  'ResembleAI/chatterbox-turbo',
+  'XiaomiMiMo/MiMo-V2.5-tts',
+  'XiaomiMiMo/MiMo-V2.5-tts-voicedesign',
+  'Qwen/Qwen3-TTS',
+  'Qwen/Qwen3-TTS-VoiceDesign'
+] as const satisfies readonly string[]
+
+export const DEEPINFRA_DEFAULT_TTS_VOICE = 'standard'
+
+const validateActiveDeepinfraTtsModel = createModelValidator<DeepinfraTtsModel>(SUPPORTED_DEEPINFRA_TTS_MODELS, 'deepinfra-tts')
+export const validateDeepinfraTtsModel = (model: string): DeepinfraTtsModel => {
+  const replacement = getRetiredModelReplacement('tts', 'deepinfra', model)
+  if (replacement !== undefined) return throwRetiredModelSelection(model, 'deepinfra-tts', replacement)
+  return validateActiveDeepinfraTtsModel(model)
+}
+
+export const validateDeepinfraTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --deepinfra-voice value. Expected a non-empty DeepInfra model/voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_REPLICATE_TTS_MODELS = [
+  'jaaari/kokoro-82m'
+] as const satisfies readonly string[]
+
+export const SUPPORTED_REPLICATE_TTS_VOICES = [
+  'af_alloy',
+  'af_aoede',
+  'af_bella',
+  'af_jessica',
+  'af_kore',
+  'af_nicole',
+  'af_nova',
+  'af_river',
+  'af_sarah',
+  'af_sky',
+  'am_adam',
+  'am_echo',
+  'am_eric',
+  'am_fenrir',
+  'am_liam',
+  'am_michael',
+  'am_onyx',
+  'am_puck',
+  'bf_alice',
+  'bf_emma',
+  'bf_isabella',
+  'bf_lily',
+  'bm_daniel',
+  'bm_fable',
+  'bm_george',
+  'bm_lewis',
+  'ff_siwis',
+  'hf_alpha',
+  'hf_beta',
+  'hm_omega',
+  'hm_psi',
+  'if_sara',
+  'im_nicola',
+  'jf_alpha',
+  'jf_gongitsune',
+  'jf_nezumi',
+  'jf_tebukuro',
+  'jm_kumo',
+  'zf_xiaobei',
+  'zf_xiaoni',
+  'zf_xiaoxiao',
+  'zf_xiaoyi',
+  'zm_yunjian',
+  'zm_yunxi',
+  'zm_yunxia',
+  'zm_yunyang'
+] as const satisfies readonly string[]
+
+export const REPLICATE_DEFAULT_TTS_VOICE = 'af_bella'
+
+export const SUPPORTED_FAL_TTS_MODELS = [
+  'fal-ai/bytedance/seed-speech/tts/v2',
+  'fal-ai/maya',
+  'async/tts-pro/v1.0'
+] as const satisfies readonly string[]
+
+export const validateFalTtsModel = createModelValidator<FalTtsModel>(SUPPORTED_FAL_TTS_MODELS, 'fal-tts')
+
+export const validateFalTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --fal-voice value. Expected a non-empty fal.ai voice ID or voice description.')
+  }
+  return normalized
+}
+
+export const validateReplicateTtsModel = createModelValidator<ReplicateTtsModel>(SUPPORTED_REPLICATE_TTS_MODELS, 'replicate-tts')
+
+export const validateReplicateTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!SUPPORTED_REPLICATE_TTS_VOICES.includes(normalized as typeof SUPPORTED_REPLICATE_TTS_VOICES[number])) {
+    throw CLIUsageError(`Invalid --replicate-voice value "${normalized}". Expected a supported Kokoro voice: ${SUPPORTED_REPLICATE_TTS_VOICES.join(', ')}.`)
   }
   return normalized
 }

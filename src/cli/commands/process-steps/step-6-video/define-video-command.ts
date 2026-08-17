@@ -4,6 +4,7 @@ import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { selectCheapestDefaultTextVideoSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
@@ -42,6 +43,20 @@ const hasValue = (value: unknown): boolean =>
 
 const hasVideoProviderSelection = (flags: Record<string, unknown>): boolean =>
   flags['all-video'] === true || Object.values(STANDALONE_VIDEO_PROVIDER_TARGETS).some((flagName) => hasValue(flags[flagName]))
+
+const rejectRetiredVideoProviderSelectors = (occurrences: readonly { name: string, value: unknown }[]): void => {
+  for (const occurrence of occurrences) {
+    if (occurrence.name !== 'provider' || typeof occurrence.value !== 'string') continue
+    const separator = occurrence.value.indexOf('=')
+    if (separator < 1) continue
+    const provider = occurrence.value.slice(0, separator)
+    const model = occurrence.value.slice(separator + 1)
+    const replacement = getRetiredModelReplacement('video', provider, model)
+    if (replacement !== undefined) {
+      throw CLIUsageError(`Model "${model}" is retired for --provider ${provider}=<model>. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`)
+    }
+  }
+}
 
 const setSingleVideoProviderSelection = (
   flags: Record<string, unknown>,
@@ -116,12 +131,9 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video input/ajc.png', 'Generate image-to-video outputs from an input image'],
       ['bun autoshow video "a cinematic mountain sunrise"', 'Generate text-to-video with the cheapest default target'],
       ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=veo-3.1-lite-generate-preview', 'Generate video with Gemini Veo'],
-      ['bun autoshow video "a cinematic mountain sunrise" --provider minimax=MiniMax-Hailuo-2.3', 'Generate video with MiniMax Hailuo'],
-      ['bun autoshow video "a cat playing with yarn" --provider glm=cogvideox-3', 'Generate video with GLM CogVideoX'],
       ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video', 'Generate video with Grok'],
-      ['bun autoshow video "a cinematic mountain sunrise" --provider runway=gen4.5', 'Generate video with Runway Gen-4.5'],
       ['bun autoshow video "a product reveal shot" --provider ltx=ltx-2-3-fast', 'Generate video with LTX'],
-      ['bun autoshow video "a cinematic mountain sunrise" --provider replicate=wan-video/wan-2.7-t2v', 'Generate video with Replicate Wan'],
+      ['bun autoshow video "a cinematic mountain sunrise" --provider replicate=bytedance/seedance-2.0-fast', 'Generate video with Replicate Seedance'],
       ['bun autoshow video "a slow dolly through a misty greenhouse" --provider lumalabs=ray-3.2', 'Generate video with Luma Labs Ray 3.2'],
       ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
     ]
@@ -141,6 +153,7 @@ export const videoCommand = defineCliCommand({
     videoCommandOptionNames
   )
   const resolvedInput = resolveVideoInput(input, optionNormalized.flags)
+  rejectRetiredVideoProviderSelectors(optionNormalized.flagOccurrences)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     optionNormalized.flags,
     optionNormalized.explicitFlags,
@@ -162,7 +175,7 @@ export const videoCommand = defineCliCommand({
   const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
   const videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
-    throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|glm|grok|runway|ltx|replicate|lumalabs|fal[=model]')
+    throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|grok|ltx|replicate|lumalabs|fal[=model]')
   }
 
   const pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)

@@ -18,6 +18,8 @@ export type ResumeResult = ResumeTotals
 
 export type ResumeDisplayOptions = {
   itemLabel?: string | undefined
+  itemIndex?: number | undefined
+  deferItemFailure?: boolean | undefined
 }
 
 export type ResumeSuiteSummary = ResumeTotals & {
@@ -65,6 +67,7 @@ export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetada
   existingEntries: TMetadata[]
   currentManifestMetadata: Record<string, unknown>
   currentProviderStates: PipelineProviderState[]
+  itemIndex?: number | undefined
 }
 
 export type GenerationResumeProviderIdentity = ProviderIdentity & {
@@ -100,7 +103,8 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, 
   ) => string | undefined
   resolveInput?: (
     target: ResumeTarget,
-    currentManifestMetadata: Record<string, unknown>
+    currentManifestMetadata: Record<string, unknown>,
+    item: PipelineManifestItem
   ) => string | Promise<string>
   serializeEntries?: (
     entries: TMetadata[]

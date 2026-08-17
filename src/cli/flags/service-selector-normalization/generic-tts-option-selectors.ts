@@ -7,13 +7,10 @@ import { STANDALONE_TTS_PROVIDER_TARGETS } from './provider-targets'
 const TTS_PROVIDER_BY_TARGET = Object.fromEntries(
   Object.entries(STANDALONE_TTS_PROVIDER_TARGETS).map(([provider, target]) => [target, provider])
 ) as Record<string, string>
-const LOCAL_TTS_PROVIDERS = new Set<string>(['kitten'])
-
 const TTS_GENERIC_OPTION_TARGETS = {
   'tts-voice': {
     voiceIdentity: true,
     targets: {
-      kitten: 'kitten-voice',
       groq: 'groq-voice',
       grok: 'grok-tts-voice',
       mistral: 'mistral-tts-voice',
@@ -23,6 +20,11 @@ const TTS_GENERIC_OPTION_TARGETS = {
       speechify: 'speechify-voice',
       hume: 'hume-tts-voice',
       cartesia: 'cartesia-tts-voice',
+      fish: 'fish-tts-voice',
+      inworld: 'inworld-voice',
+      deepinfra: 'deepinfra-voice',
+      replicate: 'replicate-voice',
+      fal: 'fal-voice',
       minimax: 'minimax-tts-voice',
       elevenlabs: 'elevenlabs-voice'
     }
@@ -84,7 +86,9 @@ const TTS_GENERIC_OPTION_TARGETS = {
   'tts-instructions': {
     voiceIdentity: false,
     targets: {
-      openai: 'openai-tts-instructions'
+      openai: 'openai-tts-instructions',
+      fal: 'fal-tts-instructions',
+      inworld: 'inworld-tts-instructions'
     }
   },
   'tts-output-format': {
@@ -137,12 +141,8 @@ const readSelectedTtsProviders = (
   defaultProvider?: string | undefined
 ): string[] => {
   const allProvidersSelected = flags['all-tts'] === true
-  const allLocalSelected = flags['all-local-tts'] === true
-  if (allProvidersSelected || allLocalSelected) {
-    return Object.keys(STANDALONE_TTS_PROVIDER_TARGETS).filter((provider) =>
-      (allProvidersSelected && !LOCAL_TTS_PROVIDERS.has(provider))
-      || (allLocalSelected && LOCAL_TTS_PROVIDERS.has(provider))
-    )
+  if (allProvidersSelected) {
+    return Object.keys(STANDALONE_TTS_PROVIDER_TARGETS)
   }
 
   const providers: string[] = []

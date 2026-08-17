@@ -1,5 +1,6 @@
-import type { LlmModel } from '~/types'
+import type { HostedConcurrencyRuntimeOptions, LlmModel } from '~/types'
 
-export type GenerateSceneJsonOptions = {
+export type GenerateSceneJsonOptions = HostedConcurrencyRuntimeOptions & {
   model: LlmModel
+  concurrency?: number | undefined
 }

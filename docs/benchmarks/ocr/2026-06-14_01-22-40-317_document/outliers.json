@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-22-40-317_document",
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-22-40-317_document",
   "thresholds": {
     "majorLengthDrift": 0.3,
     "highDisagreementFloor": 0.18,
@@ -12,90 +12,67 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 0.71582,
-    "pageDisagreementQ1": 0.163163,
-    "pageDisagreementQ3": 0.384226
+    "highDisagreement": 1.925147,
+    "pageDisagreementQ1": 1.925147,
+    "pageDisagreementQ3": 1.925147
   },
-  "blankOutputPages": [
-    {
-      "pageNumber": 0,
-      "providers": [
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-4-6",
-        "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-        "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-        "gemini/gemini-3.1-flash-lite-preview",
-        "gemini/gemini-3.1-flash-lite",
-        "gemini/gemini-3.1-pro-preview",
-        "glm/glm-ocr",
-        "grok/grok-4.3",
-        "kimi/kimi-k2.6",
-        "ocrmypdf/ocrmypdf",
-        "openai/gpt-5.4-nano",
-        "openai/gpt-5.5",
-        "paddle-ocr/paddle-ocr",
-        "tesseract/tesseract"
-      ]
-    },
+  "blankOutputPages": [],
+  "repeatedTextPages": [
     {
       "pageNumber": 1,
       "providers": [
-        "mistral/mistral-ocr-2512"
+        "fal/fal-ai/got-ocr/v2"
       ]
     }
   ],
-  "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 63
-        }
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "glm/glm-ocr",
-          "lengthDrift": 0.5,
-          "tokenCount": 31
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.658915,
+          "tokenCount": 107
         },
         {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 0
-        },
-        {
-          "providerKey": "ocrmypdf/ocrmypdf",
-          "lengthDrift": 0.596774,
-          "tokenCount": 25
-        },
-        {
-          "providerKey": "tesseract/tesseract",
-          "lengthDrift": 0.564516,
-          "tokenCount": 27
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "lengthDrift": 12.193798,
+          "tokenCount": 851
         }
       ]
     }
   ],
-  "highDisagreementPages": [],
-  "werCerDivergencePages": [],
-  "lowConfidencePages": [
-    {
-      "pageNumber": 0,
-      "selectedProviderKey": "mistral/mistral-ocr-2512",
-      "selectedConfidence": 0.45,
-      "pageDisagreement": 0.052632
-    },
+  "highDisagreementPages": [
     {
       "pageNumber": 1,
-      "selectedProviderKey": "grok/grok-4.3",
-      "selectedConfidence": 0.464203,
-      "pageDisagreement": 0.494758
+      "pageDisagreement": 1.925147,
+      "selectedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "selectedConfidence": 0.476866
+    }
+  ],
+  "werCerDivergencePages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 1.103132,
+          "cer": 0.748636
+        },
+        {
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "wer": 12.752253,
+          "cer": 10.321629
+        }
+      ]
+    }
+  ],
+  "lowConfidencePages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "selectedConfidence": 0.476866,
+      "pageDisagreement": 1.925147
     }
   ]
 }

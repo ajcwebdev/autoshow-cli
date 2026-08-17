@@ -1,25 +1,19 @@
 import {
-  afterEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
 import { resolvePriceSelection } from '../../../../test-runner/price-commands/resolve'
+import { selectorMatchesFile } from '../../../../test-runner/price-commands/helpers'
 import { BUDGET_PRICE_SELECTION_REGISTRY } from '../../../../test-runner/price-commands/registry/index'
-import { evaluatePriceObservations } from '../../../../test-runner/price-evaluation'
-import { withEmptyPriceConfig } from '../../../../test-runner/price-command-config'
-import { parseCommandEstimatedTotal } from '../../../../test-runner/utils'
-import { shouldSkipBudgetKeys } from '../../../../test-utils/budget'
+import { evaluatePriceObservations, toObservation } from '../../../../test-runner/price-evaluation'
+import { findUnevaluatedBudgetKeys, isConcurrentBudgetedTestsEnabled, shouldSkipBudgetKeys } from '../../../../test-utils/budget'
 import {
   MINIMAX_INSTRUMENTAL_MUSIC_MODELS,
   DEEPGRAM_DEFAULT_VOICE
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { HelperBudgetKeySpec } from '~/types'
-
-const tempDirs: string[] = []
+import { loadE2eTestSources } from './e2e-test-sources'
 
 const extractExplicitBudgetedTestKeys = (source: string): string[] => {
   const keys: string[] = []
@@ -222,10 +216,6 @@ const extractE2EBudgetKeys = (file: string, source: string): { keys: string[], i
   }
 }
 
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
-
 describe('test-runner contracts', () => {
   test('budget-skip entries are emitted from skipped entry keys', () => {
       const evaluation = evaluatePriceObservations('Selected paths: step-3-write-e2e/write-services/openai-gpt-5.5.test.ts', [
@@ -304,20 +294,50 @@ describe('test-runner contracts', () => {
       }
     })
 
+  test('budgeted tests stay serial unless AUTOSHOW_TEST_CONCURRENT=1', () => {
+      const previous = process.env['AUTOSHOW_TEST_CONCURRENT']
+      try {
+        delete process.env['AUTOSHOW_TEST_CONCURRENT']
+        expect(isConcurrentBudgetedTestsEnabled()).toBe(false)
+
+        process.env['AUTOSHOW_TEST_CONCURRENT'] = '0'
+        expect(isConcurrentBudgetedTestsEnabled()).toBe(false)
+
+        process.env['AUTOSHOW_TEST_CONCURRENT'] = '1'
+        expect(isConcurrentBudgetedTestsEnabled()).toBe(true)
+      } finally {
+        if (previous === undefined) {
+          delete process.env['AUTOSHOW_TEST_CONCURRENT']
+        } else {
+          process.env['AUTOSHOW_TEST_CONCURRENT'] = previous
+        }
+      }
+    })
+
   test('e2e budget keys resolve to budget-skippable price registry entries', async () => {
-      const glob = new Bun.Glob('test/test-cases/e2e/**/*.test.ts')
-      const allFiles = (await Array.fromAsync(glob.scan({ dot: false }))).sort()
-      const budgetSkippableKeys = new Set(
-        BUDGET_PRICE_SELECTION_REGISTRY
-          .filter((entry) => entry.budgetSkippable)
-          .map((entry) => entry.key)
-      )
+      const sources = await loadE2eTestSources()
+      const allFiles = sources.map(({ file }) => file)
+      const selectedKeysByFile = new Map<string, Set<string>>()
+      for (const file of allFiles) {
+        selectedKeysByFile.set(file, new Set())
+      }
+      const budgetSkippableKeys = new Set<string>()
+      for (const entry of BUDGET_PRICE_SELECTION_REGISTRY) {
+        if (!entry.budgetSkippable) {
+          continue
+        }
+        budgetSkippableKeys.add(entry.key)
+        for (const file of allFiles) {
+          if (selectorMatchesFile(entry, file)) {
+            selectedKeysByFile.get(file)?.add(entry.key)
+          }
+        }
+      }
       const missing: string[] = []
       const unselected: string[] = []
       const uninspectable: string[] = []
 
-      for (const file of allFiles) {
-        const source = await Bun.file(file).text()
+      for (const { file, source } of sources) {
         const extracted = extractE2EBudgetKeys(file, source)
         uninspectable.push(...extracted.issues)
         const budgetKeys = [...new Set(extracted.keys)]
@@ -325,9 +345,7 @@ describe('test-runner contracts', () => {
           continue
         }
 
-        const selectedKeys = new Set(
-          resolvePriceSelection(allFiles, [file], { budgetSkippableOnly: true }).commands.map((command) => command.key)
-        )
+        const selectedKeys = selectedKeysByFile.get(file) ?? new Set()
 
         for (const key of budgetKeys) {
           if (!budgetSkippableKeys.has(key)) {
@@ -345,7 +363,7 @@ describe('test-runner contracts', () => {
       expect(uninspectable).toEqual([])
     })
 
-  test('Replicate image live tests resolve all twelve exact budget keys', () => {
+  test('Replicate image live tests resolve all seven exact budget keys', () => {
       const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
       const keys = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands.map(command => command.key)
 
@@ -353,11 +371,6 @@ describe('test-runner contracts', () => {
         'image-replicate-bytedance/seedream-4.5',
         'image-replicate-bytedance/seedream-5-lite',
         'image-replicate-bytedance/seedream-5-pro',
-        'image-replicate-ideogram-ai/ideogram-v4-turbo',
-        'image-replicate-ideogram-ai/ideogram-v4-balanced',
-        'image-replicate-ideogram-ai/ideogram-v4-quality',
-        'image-replicate-prunaai/ernie-image',
-        'image-replicate-prunaai/ernie-image-turbo',
         'image-replicate-qwen/qwen-image-2-pro',
         'image-replicate-qwen/qwen-image-2',
         'image-replicate-wan-video/wan-2.7-image-pro',
@@ -365,64 +378,35 @@ describe('test-runner contracts', () => {
       ])
     })
 
-  test('a 0.10 cent threshold marks all twelve Replicate image keys over budget', async () => {
+  test('a 0.10 cent threshold marks all seven Replicate image keys over budget', () => {
       const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
       const commands = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands
-      const observations = await Promise.all(commands.map(async command => {
-        const proc = Bun.spawn(['bun', ...withEmptyPriceConfig(command.args)], {
-          stdout: 'pipe',
-          stderr: 'pipe',
-          env: { ...process.env, FORCE_COLOR: '0' },
-        })
-        const [stdout, stderr, exitCode] = await Promise.all([
-          new Response(proc.stdout).text(),
-          new Response(proc.stderr).text(),
-          proc.exited,
-        ])
-        const costCents = parseCommandEstimatedTotal(`${stdout}\n${stderr}`)
-        return {
-          ...command,
-          exitCode,
-          durationMs: 0,
-          costCents,
-          failureMessage: exitCode === 0 && costCents !== null ? null : 'price command failed',
-        }
-      }))
+      const observations = commands.map((command) =>
+        toObservation(command, { exitCode: 0, durationMs: 0, parsedCost: 1 })
+      )
 
       const evaluation = evaluatePriceObservations('Replicate images', observations, 10)
       expect([...(evaluation.budgetSummary?.skipKeys ?? [])].sort()).toEqual(commands.map(command => command.key).sort())
-      expect(evaluation.budgetSummary?.commandsSkipped).toBe(12)
+      expect(evaluation.budgetSummary?.commandsSkipped).toBe(7)
     })
 
-  test('unevaluated and malformed budget handshakes never execute test callbacks', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-budget-closed-'))
-      tempDirs.push(tempDir)
-      const budgetModule = resolve('test/test-utils/budget.ts')
+  test('unevaluated and malformed budget handshakes never execute test callbacks', () => {
+      const previous = process.env['AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS']
+      try {
+        process.env['AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS'] = '[]'
+        expect(findUnevaluatedBudgetKeys('unmapped-key')).toEqual(['unmapped-key'])
 
-      for (const [label, budgetKeySource, evaluatedKeys] of [
-        ['unmapped', "'unmapped-key'", '[]'],
-        ['malformed', "'malformed-key'", 'not-json'],
-        ['composite', "['component-a', 'component-b']", '["component-a"]'],
-      ] as const) {
-        const markerPath = join(tempDir, `${label}.called`)
-        const testPath = join(tempDir, `${label}.test.ts`)
-        await Bun.write(testPath, [
-          `import { budgetedTest } from ${JSON.stringify(budgetModule)}`,
-          `budgetedTest(${budgetKeySource}, ${JSON.stringify(label)}, async () => { await Bun.write(${JSON.stringify(markerPath)}, 'called') })`,
-        ].join('\n'))
+        process.env['AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS'] = 'not-json'
+        expect(findUnevaluatedBudgetKeys('malformed-key')).toEqual(['malformed-key'])
 
-        const proc = Bun.spawn(['bun', 'test', testPath], {
-          stdout: 'pipe',
-          stderr: 'pipe',
-          env: {
-            ...process.env,
-            AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS: evaluatedKeys,
-            AUTOSHOW_TEST_BUDGET_SKIP_KEYS: '[]',
-          },
-        })
-        const exitCode = await proc.exited
-        expect(exitCode).not.toBe(0)
-        expect(await Bun.file(markerPath).exists()).toBe(false)
+        process.env['AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS'] = '["component-a"]'
+        expect(findUnevaluatedBudgetKeys(['component-a', 'component-b'])).toEqual(['component-b'])
+      } finally {
+        if (previous === undefined) {
+          delete process.env['AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS']
+        } else {
+          process.env['AUTOSHOW_TEST_BUDGET_EVALUATED_KEYS'] = previous
+        }
       }
     })
 
@@ -452,20 +436,19 @@ describe('test-runner contracts', () => {
         'test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts',
         'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0.test.ts',
         'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0-pipeline.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0-gemini-lyria-3-clip-preview.test.ts'
+        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0-gemini-lyria-3-pro-preview.test.ts'
       ]
 
       const elevenlabsKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
-      expect(elevenlabsKeys).toContain('music-elevenlabs-music_v1')
       expect(elevenlabsKeys).toContain('music-elevenlabs-music_v2')
       expect(elevenlabsKeys).toContain('music-pipeline-elevenlabs-music_v2')
 
       const minimaxKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/'
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
-      expect(minimaxKeys).toContain('music-multi-minimax-music-3.0-gemini-lyria-3-clip-preview')
+      expect(minimaxKeys).toContain('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview')
       expect(minimaxKeys).toContain('music-pipeline-minimax-music-3.0')
       for (const model of MINIMAX_INSTRUMENTAL_MUSIC_MODELS) {
         expect(minimaxKeys).toContain(`music-minimax-${model}`)

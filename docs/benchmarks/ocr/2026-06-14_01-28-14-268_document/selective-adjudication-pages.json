@@ -5,10 +5,12 @@
     {
       "pageNumber": 1,
       "reason": [
-        "page-outlier"
+        "low-confidence-selected-provider",
+        "page-outlier",
+        "high-disagreement"
       ],
-      "replacedProviderKey": "gemini/gemini-3.5-flash",
-      "replacedConfidence": 0.911733
+      "replacedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "replacedConfidence": 0.618957
     }
   ]
 }

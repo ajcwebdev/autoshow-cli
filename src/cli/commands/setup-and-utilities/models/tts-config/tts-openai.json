@@ -4,7 +4,7 @@
     "type": "api",
     "catalogSourceUrl": "https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create",
     "catalogCheckedAt": "2026-08-11",
-    "catalogNotes": "The speech request schema enumerates 13 built-in voices plus a typed custom voice object { id }; custom voices are limited to eligible customers. tts-1 and tts-1-hd support the documented nine-voice subset.",
+    "catalogNotes": "The speech request schema enumerates 13 built-in voices plus a typed custom voice object { id }; custom voices are limited to eligible customers.",
     "voices": [
       "alloy",
       "ash",
@@ -30,34 +30,6 @@
         "pricingNotes": "OpenAI GPT-4o Mini TTS estimates use published text-input and audio-output character rates. Custom voice consent/setup costs are handled separately when selected; free credits, batch/flex/priority prices, enterprise pricing, taxes, and provider credits are ignored.",
         "inputCostPer1MCharsCents": 60,
         "outputCostPer1MCharsCents": 1200,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KChars": 21351
-        }
-      },
-      "tts-1": {
-        "description": "OpenAI TTS-1 — lower-latency classic speech model",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-06-14",
-        "pricingCurrency": "USD",
-        "pricingTier": "OpenAI API standard audio generation pricing",
-        "pricingNotes": "OpenAI TTS-1 bills per input character; there is no separate text-input rate. Free credits, batch/flex/priority prices, enterprise pricing, taxes, and provider credits are ignored. Previous generation; verify provider retirement status at the next hosted-TTS model refresh.",
-        "inputCostPer1MCharsCents": 0,
-        "outputCostPer1MCharsCents": 1500,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KChars": 21351
-        }
-      },
-      "tts-1-hd": {
-        "description": "OpenAI TTS-1 HD — higher-quality classic speech model",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-06-14",
-        "pricingCurrency": "USD",
-        "pricingTier": "OpenAI API standard audio generation pricing",
-        "pricingNotes": "OpenAI TTS-1 HD bills per input character; there is no separate text-input rate. Free credits, batch/flex/priority prices, enterprise pricing, taxes, and provider credits are ignored. Previous generation; verify provider retirement status at the next hosted-TTS model refresh.",
-        "inputCostPer1MCharsCents": 0,
-        "outputCostPer1MCharsCents": 3000,
         "estimation": {
           "costMultiplier": 1,
           "msPer1KChars": 21351

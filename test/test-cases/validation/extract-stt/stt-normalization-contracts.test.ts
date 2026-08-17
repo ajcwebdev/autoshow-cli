@@ -23,9 +23,6 @@ const readStreamText = async (
 ): Promise<string> =>
   stream && typeof stream !== 'number' ? await new Response(stream).text() : ''
 
-const deprecatedTierSplitKey = 'tier' + 'Split'
-const deprecatedOverallTierKey = 'overall' + 'Tier'
-
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
@@ -191,10 +188,8 @@ describe('STT normalization contracts', () => {
 	    expect(serviceProviders.find((provider) => provider.provider === 'mistral-voxtral-mini-2602')?.qualityWarnings.join(' ')).toContain('coarse')
 	    expect(serviceProviders.find((provider) => provider.provider === 'supadata-auto')?.duplicateGroupId).toBeDefined()
 	    expect(serviceProviders[0]?.segmentStats.segmentCount).toBeGreaterThan(0)
-	    expect(deprecatedTierSplitKey in report).toBe(false)
 	    expect('tiers' in report).toBe(false)
 	    expect(serviceProviders.every((provider) => provider.supportsDiarization === false && provider.diarizationSupport === 'not-supported')).toBe(true)
-	    expect(serviceProviders.every((provider) => !(deprecatedOverallTierKey in provider))).toBe(true)
 
 	    const markdown = await Bun.file(join(runDir, 'reference-comparison-report.md')).text()
 	    expect(markdown).toContain('## Metric Rankings')

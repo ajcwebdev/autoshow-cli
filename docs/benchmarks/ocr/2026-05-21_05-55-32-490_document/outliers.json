@@ -12,131 +12,159 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 0.2950435,
-    "pageDisagreementQ1": 0.230361,
-    "pageDisagreementQ3": 0.256234
+    "highDisagreement": 0.368332,
+    "pageDisagreementQ1": 0.311864,
+    "pageDisagreementQ3": 0.334451
   },
   "blankOutputPages": [
     {
-      "pageNumber": 1,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.637658,
-      "pageDisagreement": 0.256234,
-      "reason": "blank provider output"
-    },
-    {
       "pageNumber": 2,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.690187,
-      "pageDisagreement": 0.226748,
-      "reason": "blank provider output"
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
     },
     {
       "pageNumber": 3,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.689012,
-      "pageDisagreement": 0.230361,
-      "reason": "blank provider output"
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
     },
     {
       "pageNumber": 4,
-      "selectedProviderKey": "anthropic/claude-haiku-4-5",
-      "selectedConfidence": 0.684846,
-      "pageDisagreement": 0.233447,
-      "reason": "blank provider output"
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
     }
   ],
   "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
       "pageNumber": 1,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.637658,
-      "pageDisagreement": 0.256234,
-      "reason": "major provider length drift"
+      "providers": [
+        {
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 6.785467,
+          "tokenCount": 1125
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 6.820069,
+          "tokenCount": 1130
+        }
+      ]
     },
     {
       "pageNumber": 2,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.690187,
-      "pageDisagreement": 0.226748,
-      "reason": "major provider length drift"
+      "providers": [
+        {
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.321519,
+          "tokenCount": 261
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        }
+      ]
     },
     {
       "pageNumber": 3,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.689012,
-      "pageDisagreement": 0.230361,
-      "reason": "major provider length drift"
+      "providers": [
+        {
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        }
+      ]
     },
     {
       "pageNumber": 4,
-      "selectedProviderKey": "anthropic/claude-haiku-4-5",
-      "selectedConfidence": 0.684846,
-      "pageDisagreement": 0.233447,
-      "reason": "major provider length drift"
+      "providers": [
+        {
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        }
+      ]
     },
     {
       "pageNumber": 5,
-      "selectedProviderKey": "anthropic/claude-haiku-4-5",
-      "selectedConfidence": 0.186934,
-      "pageDisagreement": 0.602271,
-      "reason": "major provider length drift"
+      "providers": [
+        {
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        }
+      ]
     }
   ],
   "highDisagreementPages": [
     {
-      "pageNumber": 5,
-      "selectedProviderKey": "anthropic/claude-haiku-4-5",
-      "selectedConfidence": 0.186934,
-      "pageDisagreement": 0.602271,
-      "reason": "high provider disagreement"
+      "pageNumber": 1,
+      "pageDisagreement": 1.763958,
+      "selectedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "selectedConfidence": 0.479388
     }
   ],
   "werCerDivergencePages": [
     {
       "pageNumber": 1,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.637658,
-      "pageDisagreement": 0.256234,
-      "reason": "word/character disagreement divergence"
+      "providers": [
+        {
+          "providerKey": "replicate/datalab-to/ocr",
+          "wer": 6.143449,
+          "cer": 5.258561
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 0.595504,
+          "cer": 0.434268
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "wer": 6.15818,
+          "cer": 5.165688
+        }
+      ]
     }
   ],
   "lowConfidencePages": [
     {
       "pageNumber": 1,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.637658,
-      "pageDisagreement": 0.256234,
-      "reason": "low selected-page confidence"
-    },
-    {
-      "pageNumber": 2,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.690187,
-      "pageDisagreement": 0.226748,
-      "reason": "low selected-page confidence"
-    },
-    {
-      "pageNumber": 3,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.689012,
-      "pageDisagreement": 0.230361,
-      "reason": "low selected-page confidence"
-    },
-    {
-      "pageNumber": 4,
-      "selectedProviderKey": "anthropic/claude-haiku-4-5",
-      "selectedConfidence": 0.684846,
-      "pageDisagreement": 0.233447,
-      "reason": "low selected-page confidence"
-    },
-    {
-      "pageNumber": 5,
-      "selectedProviderKey": "anthropic/claude-haiku-4-5",
-      "selectedConfidence": 0.186934,
-      "pageDisagreement": 0.602271,
-      "reason": "low selected-page confidence"
+      "selectedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "selectedConfidence": 0.479388,
+      "pageDisagreement": 1.763958
     }
   ]
 }

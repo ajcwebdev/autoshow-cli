@@ -1,5 +1,4 @@
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
-  kitten: 'kitten-tts',
   elevenlabs: 'elevenlabs-tts',
   minimax: 'minimax-tts',
   groq: 'groq-tts',
@@ -10,7 +9,12 @@ export const STANDALONE_TTS_PROVIDER_TARGETS = {
   deepgram: 'deepgram-tts',
   speechify: 'speechify-tts',
   hume: 'hume-tts',
-  cartesia: 'cartesia-tts'
+  cartesia: 'cartesia-tts',
+  fish: 'fish-tts',
+  inworld: 'inworld-tts',
+  deepinfra: 'deepinfra-tts',
+  replicate: 'replicate-tts',
+  fal: 'fal-tts'
 } as const satisfies Record<string, string>
 
 export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
@@ -18,7 +22,6 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
   openai: 'openai-image',
   grok: 'grok-image',
   bfl: 'bfl-image',
-  recraft: 'recraft-image',
   replicate: 'replicate-image',
   lumalabs: 'lumalabs-image',
   fal: 'fal-image'
@@ -27,9 +30,7 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
 export const STANDALONE_VIDEO_PROVIDER_TARGETS = {
   gemini: 'gemini-video',
   minimax: 'minimax-video',
-  glm: 'glm-video',
   grok: 'grok-video',
-  runway: 'runway-video',
   ltx: 'ltx-video',
   replicate: 'replicate-video',
   lumalabs: 'lumalabs-video',
@@ -91,8 +92,30 @@ export const deriveGenerationResumeModelFields = <const TDescriptor extends Gene
 
 export const deriveGenerationResumeProviderFlags = <const TDescriptor extends GenerationSelectionDescriptor>(
   descriptor: TDescriptor,
-  allProvidersFlag: string
-): readonly string[] => [allProvidersFlag, ...Object.values(descriptor.providerTargets)]
+  ...shortcutFlags: readonly string[]
+): readonly string[] => [...shortcutFlags, ...Object.values(descriptor.providerTargets)]
+
+export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
+  STANDALONE_TTS_PROVIDER_TARGETS,
+  {
+    elevenlabs: { modelsKey: 'elevenlabsTtsModels', modelKey: 'elevenlabsTtsModel' },
+    minimax: { modelsKey: 'minimaxTtsModels', modelKey: 'minimaxTtsModel' },
+    groq: { modelsKey: 'groqTtsModels', modelKey: 'groqTtsModel' },
+    grok: { modelsKey: 'grokTtsModels', modelKey: 'grokTtsModel' },
+    mistral: { modelsKey: 'mistralTtsModels', modelKey: 'mistralTtsModel' },
+    openai: { modelsKey: 'openaiTtsModels', modelKey: 'openaiTtsModel' },
+    gemini: { modelsKey: 'geminiTtsModels', modelKey: 'geminiTtsModel' },
+    deepgram: { modelsKey: 'deepgramTtsModels', modelKey: 'deepgramTtsModel' },
+    speechify: { modelsKey: 'speechifyTtsModels', modelKey: 'speechifyTtsModel' },
+    hume: { modelsKey: 'humeTtsModels', modelKey: 'humeTtsModel' },
+    cartesia: { modelsKey: 'cartesiaTtsModels', modelKey: 'cartesiaTtsModel' },
+    fish: { modelsKey: 'fishTtsModels', modelKey: 'fishTtsModel' },
+    inworld: { modelsKey: 'inworldTtsModels', modelKey: 'inworldTtsModel' },
+    deepinfra: { modelsKey: 'deepinfraTtsModels', modelKey: 'deepinfraTtsModel' },
+    replicate: { modelsKey: 'replicateTtsModels', modelKey: 'replicateTtsModel' },
+    fal: { modelsKey: 'falTtsModels', modelKey: 'falTtsModel' }
+  }
+)
 
 export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_IMAGE_PROVIDER_TARGETS,
@@ -101,7 +124,6 @@ export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
     openai: { modelsKey: 'openaiImageModels', modelKey: 'openaiImageModel' },
     grok: { modelsKey: 'grokImageModels', modelKey: 'grokImageModel' },
     bfl: { modelsKey: 'bflImageModels', modelKey: 'bflImageModel' },
-    recraft: { modelsKey: 'recraftImageModels', modelKey: 'recraftImageModel' },
     replicate: { modelsKey: 'replicateImageModels', modelKey: 'replicateImageModel' },
     lumalabs: { modelsKey: 'lumalabsImageModels', modelKey: 'lumalabsImageModel' },
     fal: { modelsKey: 'falImageModels', modelKey: 'falImageModel' }
@@ -113,9 +135,7 @@ export const VIDEO_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   {
     gemini: { modelsKey: 'geminiVideoModels', modelKey: 'geminiVideoModel' },
     minimax: { modelsKey: 'minimaxVideoModels', modelKey: 'minimaxVideoModel' },
-    glm: { modelsKey: 'glmVideoModels', modelKey: 'glmVideoModel' },
     grok: { modelsKey: 'grokVideoModels', modelKey: 'grokVideoModel' },
-    runway: { modelsKey: 'runwayVideoModels', modelKey: 'runwayVideoModel' },
     ltx: { modelsKey: 'ltxVideoModels', modelKey: 'ltxVideoModel' },
     replicate: { modelsKey: 'replicateVideoModels', modelKey: 'replicateVideoModel' },
     lumalabs: { modelsKey: 'lumalabsVideoModels', modelKey: 'lumalabsVideoModel' },
@@ -133,7 +153,6 @@ export const MUSIC_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
 )
 
 export const WRITE_STT_PROVIDER_TARGETS = {
-  reverb: 'reverb-stt',
   deepinfra: 'deepinfra-stt',
   deepgram: 'deepgram-stt',
   soniox: 'soniox-stt',
@@ -162,12 +181,12 @@ export const WRITE_OCR_PROVIDER_TARGETS = {
   grok: 'grok-ocr',
   anthropic: 'anthropic-ocr',
   gemini: 'gemini-ocr',
-  deepinfra: 'deepinfra-ocr'
+  deepinfra: 'deepinfra-ocr',
+  replicate: 'replicate-ocr',
+  fal: 'fal-ocr'
 } as const satisfies Record<string, string>
 
 export const WRITE_LLM_PROVIDER_TARGETS = {
-  llama: 'llama',
-  llamafile: 'llamafile',
   openai: 'openai',
   groq: 'groq',
   gemini: 'gemini',
@@ -180,7 +199,22 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
   cerebras: 'cerebras'
 } as const satisfies Record<string, string>
 
+export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
+  WRITE_LLM_PROVIDER_TARGETS,
+  {
+    openai: { modelsKey: 'openaiModels', modelKey: 'openaiModel' },
+    groq: { modelsKey: 'groqModels', modelKey: 'groqModel' },
+    gemini: { modelsKey: 'geminiModels', modelKey: 'geminiModel' },
+    anthropic: { modelsKey: 'anthropicModels', modelKey: 'anthropicModel' },
+    minimax: { modelsKey: 'minimaxModels', modelKey: 'minimaxModel' },
+    grok: { modelsKey: 'grokModels', modelKey: 'grokModel' },
+    glm: { modelsKey: 'glmModels', modelKey: 'glmModel' },
+    kimi: { modelsKey: 'kimiModels', modelKey: 'kimiModel' },
+    together: { modelsKey: 'togetherModels', modelKey: 'togetherModel' },
+    cerebras: { modelsKey: 'cerebrasModels', modelKey: 'cerebrasModel' }
+  }
+)
+
 export const BOOLEAN_PROVIDER_TARGETS = new Set<string>([
-  'reverb-stt',
   'tesseract-ocr'
 ])

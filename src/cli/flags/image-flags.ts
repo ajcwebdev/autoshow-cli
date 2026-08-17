@@ -9,9 +9,8 @@ import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES, OPENAI_
 import { BFL_OUTPUT_FORMATS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/bfl/run-bfl-image-gen'
 import { LUMALABS_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/run-lumalabs-image-gen'
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
-import { RECRAFT_ASPECT_RATIOS, RECRAFT_IMAGE_COUNT_RANGE } from '~/cli/commands/process-steps/step-5-image/image-generation-services/recraft/run-recraft-image-gen'
 import { REPLICATE_QWEN_ASPECT_RATIO_VALUES, REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES, REPLICATE_WAN_IMAGE_COUNT_RANGE } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
-import { FAL_IMAGE_COUNT_RANGE, FAL_MAI_ASPECT_RATIOS, FAL_REVE_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/fal-image-service/run-fal-image-gen'
+import { FAL_IMAGE_COUNT_RANGE, FAL_REVE_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/fal-image-service/run-fal-image-gen'
 
 // Values Seedream accepts that no other image provider does, so the clause stays right
 // if the shared ratios change.
@@ -19,9 +18,7 @@ const imageAspectRatioLists = [
   GROK_IMAGE_ASPECT_RATIO_VALUES,
   GEMINI_NATIVE_ASPECT_RATIO_VALUES,
   LUMALABS_ASPECT_RATIOS,
-  RECRAFT_ASPECT_RATIOS,
   REPLICATE_QWEN_ASPECT_RATIO_VALUES,
-  FAL_MAI_ASPECT_RATIOS,
   FAL_REVE_ASPECT_RATIOS
 ] as const
 const sharedImageAspectRatios = new Set<string>(imageAspectRatioLists.flat())
@@ -31,14 +28,13 @@ const seedreamOnlyAspectRatios = REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES.filter(
 
 export const imageGenFlags = {
   'image-aspect-ratio': strFlag(`Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; Replicate Seedream also supports ${formatValueList(seedreamOnlyAspectRatios)})`),
-  'image-size': strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI gpt-image-2, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), WIDTHxHEIGHT for BFL/Replicate custom sizing, or Recraft model-specific WIDTHxHEIGHT/aspect ratio values`),
+  'image-size': strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI gpt-image-2, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), or WIDTHxHEIGHT for BFL/Replicate/fal.ai custom sizing`),
   'image-quality': strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto)`),
   'image-format': strFlag(`Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI/fal.ai default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`),
   'image-background': strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto)`),
   'image-count': strFlag(`Number of images to generate in one provider request where supported: ${formatValuesByProvider([
     { provider: 'OpenAI', values: [formatRange(OPENAI_IMAGE_COUNT_RANGE)] },
     { provider: 'Grok', values: [formatRange(GROK_IMAGE_COUNT_RANGE)] },
-    { provider: 'Recraft', values: [formatRange(RECRAFT_IMAGE_COUNT_RANGE)] },
     { provider: 'Replicate Wan', values: [formatRange(REPLICATE_WAN_IMAGE_COUNT_RANGE)] },
     { provider: 'fal.ai', values: [formatRange(FAL_IMAGE_COUNT_RANGE)] }
   ])}; default: 1`),
@@ -70,7 +66,7 @@ export const imageCommandOptionNames = {
 const imageProviderSelectionFlags = {
   provider: strListFlag(`Image provider[=model]: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}; repeatable`),
   ...booleanAllProvidersFlag,
-  ...pickFlags(sharedConcurrencyFlags, ['provider-concurrency'])
+  ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition
 
 export const imageGenerationOptionNames = [

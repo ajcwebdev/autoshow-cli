@@ -13,7 +13,6 @@ import { ensureSonioxSttSetup } from '~/cli/commands/process-steps/step-2-extrac
 import { ensureSupadataSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-supadata/supadata'
 import { ensureScrapeCreatorsSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/scrapecreators/scrapecreators'
 import { ensureSpeechmaticsSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/speechmatics/speechmatics'
-import { ensureReverbRuntimeSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/reverb/reverb'
 import { ensureWhisperReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
 import { ensureWhisperfileReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
 import { ensureGlmOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/glm-ocr/glm'
@@ -64,9 +63,6 @@ const handlers: Record<string, BootstrapHandler> = {
   },
   whisperfile: {
     ensure: async (model) => await ensureWhisperfileReady(model ?? DEFAULT_WHISPER_MODEL)
-  },
-  reverb: {
-    ensure: async () => await ensureReverbRuntimeSetup()
   },
   'deepgram-stt': {
     ensure: async () => await ensureDeepgramSttSetup()

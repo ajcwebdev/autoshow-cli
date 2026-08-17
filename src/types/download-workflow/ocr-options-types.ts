@@ -1,11 +1,12 @@
-import type { OcrConcurrencyMode, OutputFormat, ResolvedLLMModelOptions } from '~/types'
+import type { OcrConcurrencyMode, OcrProviderMode, OutputFormat, ResolvedLLMModelOptions } from '~/types'
 
 export type OcrRuntimeOptions = {
   ocrConcurrency: number | undefined
   ocrConcurrencyMode: OcrConcurrencyMode
+  ocrProviderMode: OcrProviderMode
+  ocrProviderModeExplicit: boolean
   ocrProviderConcurrency: number
   ocrLocalConcurrency: number
-  keepOcrPageInputs: boolean
   dpi: number
   lang: string
   out: OutputFormat
@@ -27,6 +28,10 @@ export type OcrRuntimeOptions = {
   geminiOcrModel: string | undefined
   deepinfraOcrModels: string[] | undefined
   deepinfraOcrModel: string | undefined
+  replicateOcrModels: string[] | undefined
+  replicateOcrModel: string | undefined
+  falOcrModels: string[] | undefined
+  falOcrModel: string | undefined
   primaryOcr: string | undefined
   chapterFiles: boolean | undefined
   chapterChunkLimitChars: number | undefined

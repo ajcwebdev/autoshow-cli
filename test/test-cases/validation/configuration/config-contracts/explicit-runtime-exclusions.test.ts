@@ -4,7 +4,7 @@ import { buildConfigPatchFromFlags, FLAG_TO_CONFIG_PATH, RUNTIME_ONLY_FLAGS } fr
 describe('config explicit flag and runtime exclusion contracts', () => {
   test('runtime-only options are excluded from saved config patches', () => {
     expect(buildConfigPatchFromFlags({
-      'reverb-stt': true,
+      'tesseract-ocr': true,
       price: true,
       password: 'secret-pdf-password',
       'config-path': '/tmp/autoshow.json',
@@ -23,7 +23,7 @@ describe('config explicit flag and runtime exclusion contracts', () => {
       show: true,
       reset: true
     }, new Set([
-      'reverb-stt',
+      'tesseract-ocr',
       'price',
       'password',
       'config-path',
@@ -44,8 +44,8 @@ describe('config explicit flag and runtime exclusion contracts', () => {
     ]))).toEqual({
       defaults: {
         extract: {
-          stt: {
-            reverb: true
+          ocr: {
+            tesseract: true
           }
         }
       }

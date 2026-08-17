@@ -1,7 +1,5 @@
 import { rethrowAsUsage } from '~/utils/error-handler'
 import {
-  validateLlamaModel,
-  validateLlamafileModel,
   validateOpenAIModel,
   validateGroqModel,
   validateGeminiModel,
@@ -34,10 +32,11 @@ import {
   validateAnthropicOcrModel,
   validateGeminiOcrModel,
   validateDeepinfraOcrModel,
+  validateReplicateOcrModel,
+  validateFalOcrModel,
   validateMistralOcrModel,
   validateOpenAIOcrModel,
   validateGrokOcrModel,
-  validateKittenTtsModel,
   validateElevenlabsTtsModel,
   validateMinimaxTtsModel,
   validateGroqTtsModel,
@@ -49,6 +48,11 @@ import {
   validateSpeechifyTtsModel,
   validateHumeTtsModel,
   validateCartesiaTtsModel,
+  validateFishTtsModel,
+  validateInworldTtsModel,
+  validateDeepinfraTtsModel,
+  validateReplicateTtsModel,
+  validateFalTtsModel,
   validateElevenlabsMusicModel,
   validateMinimaxMusicModel,
   validateGeminiMusicModel,
@@ -56,25 +60,20 @@ import {
   validateGrokImageModel,
   validateOpenAIImageModel,
   validateBflImageModel,
-  validateRecraftImageModel,
   validateReplicateImageModel,
   validateLumalabsImageModel,
   validateFalImageModel,
   validateGeminiVideoModel,
   validateMinimaxVideoModel,
-  validateGlmVideoModel,
   validateGrokVideoModel,
   validateLtxVideoModel,
   validateReplicateVideoModel,
-  validateRunwayVideoModel,
   validateLumalabsVideoModel,
   validateFalVideoModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { AllShortcutFlag, BuildOptsDefaults, FlagOccurrenceValue, RepeatableModelFlag } from '~/types'
 import { readStringFlag } from './flag-readers'
 import { appendUnique, expandAllShortcutModels } from './model-flag-selection'
-
-const DEFAULT_KITTEN_TTS_MODEL = 'kitten-tts-nano-0.8-int8'
 
 export const validateCliValue = <T>(validator: (value: string) => T, value: string): T =>
   rethrowAsUsage(() => validator(value))
@@ -84,7 +83,7 @@ export const readRuntimeModelOptions = (
   flags: Record<string, unknown>,
   rawModelOccurrences: Partial<Record<RepeatableModelFlag, FlagOccurrenceValue[]>>,
   allShortcutFlags: Record<AllShortcutFlag, boolean>,
-  defaults: BuildOptsDefaults
+  _defaults: BuildOptsDefaults
 ) => {
   const mergedFlags = flags
   const readValidatedMany = <T extends string>(
@@ -129,8 +128,8 @@ export const readRuntimeModelOptions = (
   const anthropicOcrModels = readValidatedMany('anthropic-ocr', validateAnthropicOcrModel)
   const geminiOcrModels = readValidatedMany('gemini-ocr', validateGeminiOcrModel)
   const deepinfraOcrModels = readValidatedMany('deepinfra-ocr', validateDeepinfraOcrModel)
-  const llamaModels = readValidatedMany('llama', validateLlamaModel)
-  const llamafileModels = readValidatedMany('llamafile', validateLlamafileModel)
+  const replicateOcrModels = readValidatedMany('replicate-ocr', validateReplicateOcrModel)
+  const falOcrModels = readValidatedMany('fal-ocr', validateFalOcrModel)
   const openaiModels = readValidatedMany('openai', validateOpenAIModel)
   const groqModels = readValidatedMany('groq', validateGroqModel)
   const geminiModels = readValidatedMany('gemini', validateGeminiModel)
@@ -165,8 +164,8 @@ export const readRuntimeModelOptions = (
   const anthropicOcrModel = first(anthropicOcrModels)
   const geminiOcrModel = first(geminiOcrModels)
   const deepinfraOcrModel = first(deepinfraOcrModels)
-  const llamaModel = first(llamaModels)
-  const llamafileModel = first(llamafileModels)
+  const replicateOcrModel = first(replicateOcrModels)
+  const falOcrModel = first(falOcrModels)
   const openaiModel = first(openaiModels)
   const groqModel = first(groqModels)
   const geminiModel = first(geminiModels)
@@ -177,7 +176,6 @@ export const readRuntimeModelOptions = (
   const kimiModel = first(kimiModels)
   const togetherModel = first(togetherModels)
   const cerebrasModel = first(cerebrasModels)
-  const kittenTtsModels = readValidatedMany('kitten-tts', validateKittenTtsModel)
   const elevenlabsTtsModels = readValidatedMany('elevenlabs-tts', validateElevenlabsTtsModel)
   const minimaxTtsModels = readValidatedMany('minimax-tts', validateMinimaxTtsModel)
   const groqTtsModels = readValidatedMany('groq-tts', validateGroqTtsModel)
@@ -189,29 +187,15 @@ export const readRuntimeModelOptions = (
   const speechifyTtsModels = readValidatedMany('speechify-tts', validateSpeechifyTtsModel)
   const humeTtsModels = readValidatedMany('hume-tts', validateHumeTtsModel)
   const cartesiaTtsModels = readValidatedMany('cartesia-tts', validateCartesiaTtsModel)
-  const hasExplicitTtsEngine = [
-    kittenTtsModels,
-    elevenlabsTtsModels,
-    minimaxTtsModels,
-    groqTtsModels,
-    grokTtsModels,
-    mistralTtsModels,
-    openaiTtsModels,
-    geminiTtsModels,
-    deepgramTtsModels,
-    speechifyTtsModels,
-    humeTtsModels,
-    cartesiaTtsModels,
-  ].some((value) => value !== undefined && value.length > 0)
-  const kittenTtsModelValues = defaults.defaultTtsEngine === 'kitten' && !hasExplicitTtsEngine
-    ? [DEFAULT_KITTEN_TTS_MODEL]
-    : kittenTtsModels
-  const kittenTtsModelValue = first(kittenTtsModelValues)
+  const fishTtsModels = readValidatedMany('fish-tts', validateFishTtsModel)
+  const inworldTtsModels = readValidatedMany('inworld-tts', validateInworldTtsModel)
+  const deepinfraTtsModels = readValidatedMany('deepinfra-tts', validateDeepinfraTtsModel)
+  const replicateTtsModels = readValidatedMany('replicate-tts', validateReplicateTtsModel)
+  const falTtsModels = readValidatedMany('fal-tts', validateFalTtsModel)
   const geminiImageModels = readValidatedMany('gemini-image', validateGeminiImageModel)
   const openaiImageModels = readValidatedMany('openai-image', validateOpenAIImageModel)
   const grokImageModels = readValidatedMany('grok-image', validateGrokImageModel)
   const bflImageModels = readValidatedMany('bfl-image', validateBflImageModel)
-  const recraftImageModels = readValidatedMany('recraft-image', validateRecraftImageModel)
   const replicateImageModels = readValidatedMany('replicate-image', validateReplicateImageModel)
   const lumalabsImageModels = readValidatedMany('lumalabs-image', validateLumalabsImageModel)
   const falImageModels = readValidatedMany('fal-image', validateFalImageModel)
@@ -220,9 +204,7 @@ export const readRuntimeModelOptions = (
   const geminiMusicModels = readValidatedMany('gemini-music', validateGeminiMusicModel)
   const geminiVideoModels = readValidatedMany('gemini-video', validateGeminiVideoModel)
   const minimaxVideoModels = readValidatedMany('minimax-video', validateMinimaxVideoModel)
-  const glmVideoModels = readValidatedMany('glm-video', validateGlmVideoModel)
   const grokVideoModels = readValidatedMany('grok-video', validateGrokVideoModel)
-  const runwayVideoModels = readValidatedMany('runway-video', validateRunwayVideoModel)
   const ltxVideoModels = readValidatedMany('ltx-video', validateLtxVideoModel)
   const replicateVideoModels = readValidatedMany('replicate-video', validateReplicateVideoModel)
   const lumalabsVideoModels = readValidatedMany('lumalabs-video', validateLumalabsVideoModel)
@@ -279,10 +261,10 @@ export const readRuntimeModelOptions = (
     geminiOcrModel,
     deepinfraOcrModels,
     deepinfraOcrModel,
-    llamaModels,
-    llamaModel,
-    llamafileModels,
-    llamafileModel,
+    replicateOcrModels,
+    replicateOcrModel,
+    falOcrModels,
+    falOcrModel,
     openaiModels,
     openaiModel,
     groqModels,
@@ -303,8 +285,6 @@ export const readRuntimeModelOptions = (
     togetherModel,
     cerebrasModels,
     cerebrasModel,
-    kittenTtsModelValues,
-    kittenTtsModelValue,
     elevenlabsTtsModels,
     elevenlabsTtsModel: first(elevenlabsTtsModels),
     minimaxTtsModels,
@@ -327,6 +307,16 @@ export const readRuntimeModelOptions = (
     humeTtsModel: first(humeTtsModels),
     cartesiaTtsModels,
     cartesiaTtsModel: first(cartesiaTtsModels),
+    fishTtsModels,
+    fishTtsModel: first(fishTtsModels),
+    inworldTtsModels,
+    inworldTtsModel: first(inworldTtsModels),
+    deepinfraTtsModels,
+    deepinfraTtsModel: first(deepinfraTtsModels),
+    replicateTtsModels,
+    replicateTtsModel: first(replicateTtsModels),
+    falTtsModels,
+    falTtsModel: first(falTtsModels),
     geminiImageModels,
     geminiImageModel: first(geminiImageModels),
     openaiImageModels,
@@ -335,8 +325,6 @@ export const readRuntimeModelOptions = (
     grokImageModel: first(grokImageModels),
     bflImageModels,
     bflImageModel: first(bflImageModels),
-    recraftImageModels,
-    recraftImageModel: first(recraftImageModels),
     replicateImageModels,
     replicateImageModel: first(replicateImageModels),
     lumalabsImageModels,
@@ -353,12 +341,8 @@ export const readRuntimeModelOptions = (
     geminiVideoModel: first(geminiVideoModels),
     minimaxVideoModels,
     minimaxVideoModel: first(minimaxVideoModels),
-    glmVideoModels,
-    glmVideoModel: first(glmVideoModels),
     grokVideoModels,
     grokVideoModel: first(grokVideoModels),
-    runwayVideoModels,
-    runwayVideoModel: first(runwayVideoModels),
     ltxVideoModels,
     ltxVideoModel: first(ltxVideoModels),
     replicateVideoModels,

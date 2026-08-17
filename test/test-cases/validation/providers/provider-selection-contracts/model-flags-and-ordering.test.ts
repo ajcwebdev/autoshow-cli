@@ -27,10 +27,7 @@ describe('provider selection contracts', () => {
       ['openai', 'gpt-5.6'],
       ['openai-ocr', 'gpt-5.6'],
       ['minimax-music', 'music-2' + '.5'],
-      ['minimax-music', 'music-2' + '.6-free'],
       ['minimax-video', 'MiniMax-Hailuo-' + '02'],
-      ['glm-video', 'viduq1-' + 'image'],
-      ['glm-video', 'viduq1-' + 'start-end'],
       ['gemini-image', 'imagen-4.0-generate-001'],
       ['gemini-image', 'gemini-3.1-flash-image-preview'],
       ['bfl-image', 'flux-2-pro-preview'],
@@ -54,7 +51,6 @@ describe('provider selection contracts', () => {
 
   test('STT provider canonical ordering is stable', () => {
     expect(getStep2ProviderSelectionFlagNames('stt')).toEqual([
-      'reverb-stt',
       'deepinfra-stt',
       'deepgram-stt',
       'soniox-stt',
@@ -85,7 +81,9 @@ describe('provider selection contracts', () => {
       'grok-ocr',
       'anthropic-ocr',
       'gemini-ocr',
-      'deepinfra-ocr'
+      'deepinfra-ocr',
+      'replicate-ocr',
+      'fal-ocr'
     ])
   })
 
@@ -259,7 +257,7 @@ describe('provider selection contracts', () => {
 
     const localOpts = buildOptsFromFlags(false, { 'all-local-stt': true })
     const localServices = collectSttTargets(localOpts).map((target) => target.service)
-    expect(localServices).toContain('reverb')
+    expect(localServices).not.toContain('reverb')
     expect(localServices).toContain('whisper')
     expect(localServices).not.toContain('deepgram')
     expect(localServices).not.toContain('mistral')

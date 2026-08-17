@@ -19,13 +19,11 @@ describe('config image and TTS default contracts', () => {
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expectConfigPatchRoundTrip({
       'bfl-image': ['flux-2-pro'],
-      'recraft-image': ['recraftv4_1'],
       'replicate-image': ['wan-video/wan-2.7-image'],
       'image-size': '1024x1024',
       'image-format': 'webp'
     }, 'image', {
       bflImage: ['flux-2-pro'],
-      recraftImage: ['recraftv4_1'],
       replicateImage: ['wan-video/wan-2.7-image'],
       imageSize: '1024x1024',
       imageFormat: 'webp'
@@ -34,24 +32,20 @@ describe('config image and TTS default contracts', () => {
 
   test('buildConfigPatchFromFlags saves and merges Replicate video defaults', () => {
     expectConfigPatchRoundTrip({
-      'replicate-video': ['wan-video/wan-2.7-t2v'],
+      'replicate-video': ['bytedance/seedance-2.0-fast'],
       'replicate-video-seed': '123',
       'replicate-video-generate-audio': false,
       'replicate-video-reference-video': ['input/examples/video/reference.mp4'],
       'replicate-video-reference-audio': ['input/examples/audio/reference.mp3'],
       'replicate-video-negative-prompt': 'blur',
-      'replicate-video-audio': 'input/examples/audio/narration.wav',
-      'replicate-video-prompt-expansion': true,
       'video-duration': '-1'
     }, 'video', {
-      replicateVideo: ['wan-video/wan-2.7-t2v'],
+      replicateVideo: ['bytedance/seedance-2.0-fast'],
       replicateVideoSeed: 123,
       replicateVideoGenerateAudio: false,
       replicateVideoReferenceVideos: ['input/examples/video/reference.mp4'],
       replicateVideoReferenceAudios: ['input/examples/audio/reference.mp3'],
       replicateVideoNegativePrompt: 'blur',
-      replicateVideoAudio: 'input/examples/audio/narration.wav',
-      replicateVideoPromptExpansion: true,
       videoDuration: -1
     })
   })
@@ -131,8 +125,7 @@ describe('config image and TTS default contracts', () => {
       'elevenlabs-tts-speed': '1.1',
       'elevenlabs-tts-seed': '12345',
       'elevenlabs-tts-text-normalization': 'on',
-      'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3'],
-      'elevenlabs-tts-optimize-streaming-latency': '2'
+      'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3']
     }
     expectConfigPatchRoundTrip(requestControlFlags, 'tts', {
       grokTtsLanguage: 'ar-SA',
@@ -160,8 +153,7 @@ describe('config image and TTS default contracts', () => {
       elevenlabsTtsSpeed: 1.1,
       elevenlabsTtsSeed: 12345,
       elevenlabsTtsTextNormalization: 'on',
-      elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3'],
-      elevenlabsTtsOptimizeStreamingLatency: 2
+      elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2', 'dict_3']
     })
   })
 

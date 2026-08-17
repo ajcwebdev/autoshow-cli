@@ -76,7 +76,7 @@ const legacyModuleStems = [
 const activeRunMarker = ['.active-run', 'json'].join('.')
 const unsupportedSourceFixturePath = join(
   repositoryRoot,
-  'test/test-cases/validation/cli/cli-usage-errors.test.ts'
+  'test/test-cases/validation/cli/cli-usage-errors/tts-usage.test.ts'
 )
 
 const scanRoots = [
@@ -86,7 +86,6 @@ const scanRoots = [
   resolve(repositoryRoot, 'docs/benchmarks'),
   resolve(repositoryRoot, 'docs/diagrams'),
   resolve(repositoryRoot, 'docs/diagrams.md'),
-  resolve(repositoryRoot, 'docs/tests'),
   resolve(repositoryRoot, 'docs/release-v0.1.md'),
   resolve(repositoryRoot, 'docs/adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md'),
   resolve(repositoryRoot, '.codex/skills/consensus'),
@@ -102,26 +101,36 @@ const stableJson = (value: unknown): string => JSON.stringify(value, (_key, nest
     : nested
 )
 
-const walkFiles = async (path: string): Promise<string[]> => {
-  const file = Bun.file(path)
-  if (await file.exists() && extname(path) !== '') {
-    return [path]
-  }
+const walkFilesCache = new Map<string, Promise<string[]>>()
 
-  let entries
-  try {
-    entries = await readdir(path, { withFileTypes: true })
-  } catch {
-    return []
-  }
+const walkFiles = (path: string): Promise<string[]> => {
+  const cached = walkFilesCache.get(path)
+  if (cached) return cached
 
-  const nested = await Promise.all(entries.flatMap((entry) => {
-    if (entry.name === 'node_modules' || entry.name === '.git') {
+  const pending = (async (): Promise<string[]> => {
+    const file = Bun.file(path)
+    if (await file.exists() && extname(path) !== '') {
+      return [path]
+    }
+
+    let entries
+    try {
+      entries = await readdir(path, { withFileTypes: true })
+    } catch {
       return []
     }
-    return [walkFiles(join(path, entry.name))]
-  }))
-  return nested.flat()
+
+    const nested = await Promise.all(entries.flatMap((entry) => {
+      if (entry.name === 'node_modules' || entry.name === '.git') {
+        return []
+      }
+      return [walkFiles(join(path, entry.name))]
+    }))
+    return nested.flat()
+  })()
+
+  walkFilesCache.set(path, pending)
+  return pending
 }
 
 const lineNumberFor = (content: string, index: number): number =>
@@ -129,10 +138,19 @@ const lineNumberFor = (content: string, index: number): number =>
 
 const escaped = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-const exactFilenamePattern = (filename: string): RegExp =>
-  new RegExp(`(^|[/\\s'"\u0060([=:])${escaped(filename)}(?=$|[/\\s'"\u0060)\\],;:])`, 'gm')
-
 const tokenPattern = (token: string): RegExp => new RegExp(`\\b${escaped(token)}\\b`, 'g')
+
+const legacyFilenameRegex = new RegExp(
+  `(^|[/\\s'"\u0060([=:])(?:${legacyControlFilenames.map(escaped).join('|')})(?=$|[/\\s'"\u0060)\\],;:])`,
+  'gm'
+)
+
+const legacyTokenRegex = new RegExp(
+  `\\b(?:${[...legacyTypeAndHelperNames, ...legacyModuleStems].map(escaped).join('|')})\\b`,
+  'g'
+)
+
+const legacyResumeRecordFieldRegex = tokenPattern(legacyResumeRecordField)
 
 const currentTreeFiles = async (): Promise<string[]> =>
   (await Promise.all(scanRoots.map(walkFiles))).flat().filter((path) => {
@@ -153,21 +171,18 @@ describe('canonical persistence legacy guard', () => {
         content = content.split(legacyControlFilenames.at(-1) ?? '').join('')
       }
 
+      for (const match of content.matchAll(legacyFilenameRegex)) {
+        const filename = match[0].slice((match[1] ?? '').length)
+        violations.push(`${relative(repositoryRoot, path)}:${lineNumberFor(content, match.index ?? 0)} references ${filename}`)
+      }
       for (const filename of legacyControlFilenames) {
-        const filenamePattern = exactFilenamePattern(filename)
-        for (const match of content.matchAll(filenamePattern)) {
-          violations.push(`${relative(repositoryRoot, path)}:${lineNumberFor(content, match.index ?? 0)} references ${filename}`)
-        }
         if (basename(path) === filename) {
           violations.push(`${relative(repositoryRoot, path)} uses the retired control filename ${filename}`)
         }
       }
 
-      for (const name of [...legacyTypeAndHelperNames, ...legacyModuleStems]) {
-        const namePattern = tokenPattern(name)
-        for (const match of content.matchAll(namePattern)) {
-          violations.push(`${relative(repositoryRoot, path)}:${lineNumberFor(content, match.index ?? 0)} references ${name}`)
-        }
+      for (const match of content.matchAll(legacyTokenRegex)) {
+        violations.push(`${relative(repositoryRoot, path)}:${lineNumberFor(content, match.index ?? 0)} references ${match[0]}`)
       }
 
       if (
@@ -175,8 +190,7 @@ describe('canonical persistence legacy guard', () => {
         || path.includes('/types/setup-support/resume-types.ts')
         || path.includes('/validation/resume-manifests/')
       ) {
-        const recordFieldPattern = tokenPattern(legacyResumeRecordField)
-        for (const match of content.matchAll(recordFieldPattern)) {
+        for (const match of content.matchAll(legacyResumeRecordFieldRegex)) {
           violations.push(`${relative(repositoryRoot, path)}:${lineNumberFor(content, match.index ?? 0)} references ${legacyResumeRecordField}`)
         }
       }

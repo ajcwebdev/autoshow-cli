@@ -9,7 +9,7 @@ export type ExtractTimingEstimation = {
 }
 
 export type ExtractStepBuildParams = {
-  target: { provider: string, model: string }
+  target: { provider: string, model: string, ocrProviderMode?: 'fanout' | 'pool' }
   resolvedPageCount: number
   resolvedProcessingTimeMs: number
   estimation: ExtractTimingEstimation
@@ -21,4 +21,5 @@ export type ExtractStepBuildParams = {
   singlePagePdfFallbackPages: number
   isPooledOcr: boolean
   isHostedOcr: boolean
+  concurrencyMode: import('~/types').HostedConcurrencyMode
 }

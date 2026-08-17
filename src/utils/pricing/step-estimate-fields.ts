@@ -48,6 +48,8 @@ export const STEP_FIELDS = {
   ],
   tts: [
     'costMultiplier',
+    'costPerRequestCents',
+    'requestCount',
     'costPer1kCharactersCents',
     'inputCostPer1MCharactersCents',
     'outputCostPer1MCharactersCents',
@@ -123,6 +125,8 @@ export const STEP_REPORT_FIELDS = {
   ],
   tts: [
     ['characterCount', 'characters'],
+    ['requestCount', 'requests'],
+    'costPerRequestCents',
     'setupCostCents'
   ],
   image: [],

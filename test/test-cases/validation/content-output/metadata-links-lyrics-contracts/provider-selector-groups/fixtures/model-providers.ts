@@ -13,6 +13,7 @@ export const CARTESIA_MODELS_LINKS = sectionLinks('Cartesia', 'Models')
 export const CEREBRAS_MODELS_LINKS = sectionLinks('Cerebras', 'Models')
 export const DEAPI_MODELS_LINKS = sectionLinks('DeAPI', 'Models')
 export const SPEECHIFY_MODELS_LINKS = sectionLinks('Speechify', 'Models')
+export const INWORLD_MODELS_LINKS = sectionLinks('Inworld', 'Models')
 export const REPLICATE_MODELS_LINKS = sectionLinks('Replicate', 'Models')
 export const RUNWAY_MODELS_LINKS = sectionLinks('Runway', 'Models')
 

@@ -131,6 +131,7 @@ const formatStructuredScriptReviewPrompt = (
     '- Keep `speakerLabel` as the original bold label and `speakerKey` as the canonical character key when unambiguous.',
     '- Keep `rawMentions` limited to exact character mentions present in each beat text.',
     '- Keep `sourceSegments` as deterministic source coverage records; do not paraphrase or omit source segment text.',
+    '- Preserve `scene.soundscape` exactly. Sound directives, cue IDs, anchors, source spans, and required/optional policy are derived locally and must never be invented or changed.',
     '- Preserve the parser-assigned `location` object on every beat and source segment exactly. Location keys are resolved locally from the canonical catalog and must never be guessed or changed.',
     '- Keep beat indexes sequential starting at 1.',
     '- Keep `scriptSlug` and `sourceFile` aligned to the source file shown below.',
@@ -153,7 +154,8 @@ const formatStructuredScriptReviewPrompt = (
 export const reviewStructuredScriptWithLlm = async (
   sourceMarkdown: string,
   provisional: StructuredScriptData,
-  model: LlmModel
+  model: LlmModel,
+  scheduling: Parameters<typeof runComicStructuredLlm>[3] = {}
 ): Promise<{ structuredScript: StructuredScriptData; response: StructuredScriptReviewResponse; durationMs: number }> => {
   const characterNames = getCharacterKeys()
   const prompt = formatStructuredScriptReviewPrompt(sourceMarkdown, provisional, characterNames)
@@ -162,7 +164,7 @@ export const reviewStructuredScriptWithLlm = async (
     schemaName: STRUCTURED_SCRIPT_JSON_SCHEMA_NAME,
     valibotSchema: StructuredScriptDataSchema,
     jsonSchema: buildStructuredScriptJsonSchema(characterNames).schema,
-  }, model)
+  }, model, scheduling)
   const durationMs = Date.now() - requestStart
 
   const parsed = stripStructuredScriptNullableOptionals(
@@ -178,6 +180,7 @@ export const reviewStructuredScriptWithLlm = async (
       sourceSegments: provisional.sourceSegments,
       beatLocations: provisional.beats.map(beat => beat.location),
       sceneLocation: provisional.scene.location,
+      sceneSoundscape: provisional.scene.soundscape,
     }
   )
 

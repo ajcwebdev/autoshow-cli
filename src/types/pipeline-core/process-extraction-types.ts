@@ -3,7 +3,7 @@ import type { DocFormat, HostedOcrScheduler, ProviderIdentityBase } from '~/type
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { COST_SOURCES } from '../costing/pricing-vocabularies'
 
-export type DetectResult = DocFormat | 'acsm' | null
+export type DetectResult = DocFormat | null
 
 export type HtmlArticleBackend = 'defuddle' | 'firecrawl' | 'glm-reader' | 'spider' | 'supadata' | 'zyte'
 
@@ -36,9 +36,11 @@ export const ExtractionOptionsSchema = v.object({
   renderConcurrency: v.optional(v.number(), undefined),
   ocrConcurrency: v.optional(v.number(), undefined),
   ocrConcurrencyMode: v.optional(v.picklist(['auto', 'fixed']), undefined),
+  ocrProviderMode: v.optional(v.picklist(['fanout', 'pool']), undefined),
+  ocrProviderModeExplicit: v.optional(v.boolean(), undefined),
+  ocrPoolDocumentPageNumber: v.optional(v.number(), undefined),
   ocrProviderConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
   ocrLocalConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
-  keepOcrPageInputs: v.optional(v.boolean(), undefined),
   useTesseract: v.optional(v.boolean(), undefined),
   mistralOcrModel: v.optional(v.string(), undefined),
   mistralOcrModels: v.optional(v.array(v.string()), undefined),
@@ -56,6 +58,10 @@ export const ExtractionOptionsSchema = v.object({
   geminiOcrModels: v.optional(v.array(v.string()), undefined),
   deepinfraOcrModel: v.optional(v.string(), undefined),
   deepinfraOcrModels: v.optional(v.array(v.string()), undefined),
+  replicateOcrModel: v.optional(v.string(), undefined),
+  replicateOcrModels: v.optional(v.array(v.string()), undefined),
+  falOcrModel: v.optional(v.string(), undefined),
+  falOcrModels: v.optional(v.array(v.string()), undefined),
   configPath: v.optional(v.string(), undefined),
   primaryOcr: v.optional(v.string(), undefined),
   chapterFiles: v.optional(v.boolean(), undefined),
@@ -113,13 +119,13 @@ const ChapterExportSummarySchema = v.object({
 
 export const ExtractionMetadataSchema = v.object({
   extractionMethod: v.picklist([
-    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'epub-bun',
+    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'ocr-pool', 'epub-bun',
     'epub-text',
-    'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr',
+    'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr', 'pdf+replicate-ocr', 'pdf+fal-ocr',
     'office-native', 'rtf-native',
-    'cbz+tesseract', 'cbz+mistral-ocr', 'cbz+glm-ocr', 'cbz+kimi-ocr', 'cbz+openai-ocr', 'cbz+grok-ocr', 'cbz+anthropic-ocr', 'cbz+gemini-ocr', 'cbz+deepinfra-ocr',
+    'cbz+tesseract', 'cbz+mistral-ocr', 'cbz+glm-ocr', 'cbz+kimi-ocr', 'cbz+openai-ocr', 'cbz+grok-ocr', 'cbz+anthropic-ocr', 'cbz+gemini-ocr', 'cbz+deepinfra-ocr', 'cbz+replicate-ocr', 'cbz+fal-ocr',
     'csv-raw',
-    'image+tesseract', 'image+mistral-ocr', 'image+glm-ocr', 'image+kimi-ocr', 'image+openai-ocr', 'image+grok-ocr', 'image+anthropic-ocr', 'image+gemini-ocr', 'image+deepinfra-ocr',
+    'image+tesseract', 'image+mistral-ocr', 'image+glm-ocr', 'image+kimi-ocr', 'image+openai-ocr', 'image+grok-ocr', 'image+anthropic-ocr', 'image+gemini-ocr', 'image+deepinfra-ocr', 'image+replicate-ocr', 'image+fal-ocr',
     'glm-ocr',
     'kimi-ocr',
     'openai-ocr',
@@ -127,6 +133,8 @@ export const ExtractionMetadataSchema = v.object({
     'anthropic-ocr',
     'gemini-ocr',
     'deepinfra-ocr',
+    'replicate-ocr',
+    'fal-ocr',
     'html+defuddle', 'html+firecrawl', 'html+glm-reader', 'html+spider', 'html+supadata', 'html+zyte'
   ]),
   totalPages: v.number(),
@@ -154,8 +162,11 @@ export const ExtractionMetadataSchema = v.object({
   pdfChunkPreparation: v.optional(v.record(v.string(), v.unknown()), undefined),
   ocrProviderUsage: v.optional(v.array(v.record(v.string(), v.unknown())), undefined),
   hostedOcrScheduler: v.optional(v.record(v.string(), v.unknown()), undefined),
+  hostedConcurrency: v.optional(v.record(v.string(), v.unknown()), undefined),
   requestedReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined),
-  effectiveReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined)
+  effectiveReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined),
+  ocrProviderMode: v.optional(v.picklist(['fanout', 'pool']), undefined),
+  ocrPoolTargetUsage: v.optional(v.array(v.record(v.string(), v.unknown())), undefined)
 })
 
 export const DocumentMetadataSchema = v.object({
@@ -202,6 +213,8 @@ export type ProcessDocumentOutput = {
   providerStates?: Array<Record<string, unknown>> | undefined
   missingProviders?: ProviderIdentityBase[] | undefined
   blockedProviders?: ProviderIdentityBase[] | undefined
+  ocrProviderMode?: import('~/types').OcrProviderMode | undefined
+  ocrPool?: import('~/types').OcrPoolLedger | undefined
   web?: WebArticleMetadata | undefined
   step2Errors?: Array<ProviderIdentityBase & {
     message: string
@@ -222,6 +235,8 @@ export type ProcessDocumentOutput = {
 export type ExtractionOptions = v.InferOutput<typeof ExtractionOptionsSchema> & {
   ocrPreparationCache?: import('~/types').OcrPreparationCache | undefined
   hostedOcrScheduler?: HostedOcrScheduler | undefined
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
+  hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
 }
 export type PageResult = v.InferOutput<typeof PageResultSchema>
 export type ExtractionResult = v.InferOutput<typeof ExtractionResultSchema>

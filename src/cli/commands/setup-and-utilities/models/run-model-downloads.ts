@@ -1,9 +1,8 @@
 import { SUPPORTED_WHISPER_MODELS, validateWhisperModel, validateWhisperfileModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ensureLlamaModelDownloaded } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
 import { downloadWhisperModel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/bootstrap'
 import { downloadWhisperfileBinary } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
-import { ensureLlamafileBundleDownloaded } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/llamafile-download'
 import * as l from '~/utils/app-logger/app-logger'
+import { CLIUsageError } from '~/utils/error-handler'
 
 const downloadWhisper = async (model: string): Promise<void> => {
   const whisperModel = validateWhisperModel(model)
@@ -19,21 +18,6 @@ const downloadWhisperfile = async (model: string): Promise<void> => {
   l.write('success', `Download complete: whisperfile:${whisperfileModel}`)
 }
 
-const downloadLlama = async (model: string): Promise<void> => {
-  l.write('info', `Downloading llama model: ${model}`)
-  await ensureLlamaModelDownloaded(model)
-  l.write('success', `Download complete: ${model}`)
-}
-
-const downloadLlamafile = async (model: string): Promise<void> => {
-  l.write('info', `Downloading llamafile bundle: ${model}`)
-  // ensureLlamafileBundleDownloaded validates against the known bundle list.
-  await ensureLlamafileBundleDownloaded(model)
-  l.write('success', `Download complete: llamafile:${model}`)
-}
-
-// `provider:model` selectors route explicitly. The `whisperfile:`/`llamafile:` prefixes
-// disambiguate from `whisper`/`llama` whose model names overlap (e.g. `tiny`, `small`).
 const runModelDownload = async (model: string): Promise<void> => {
   const trimmed = model.trim()
   const separatorIndex = trimmed.indexOf(':')
@@ -43,12 +27,8 @@ const runModelDownload = async (model: string): Promise<void> => {
     switch (prefix) {
       case 'whisper': await downloadWhisper(value); return
       case 'whisperfile': await downloadWhisperfile(value); return
-      case 'llama': await downloadLlama(value); return
-      case 'llamafile': await downloadLlamafile(value); return
-      // Unknown prefix falls through to legacy resolution (e.g. Hugging Face repo ids
-      // such as `ggml-org/Qwen3-0.6B-GGUF` contain no `:`, so this only catches a real
-      // unrecognized prefix and treats the whole string as a llama target).
-      default: break
+      default:
+        throw CLIUsageError(`Unknown model prefix "${prefix}". Expected whisper:<model> or whisperfile:<model>.`)
     }
   }
 
@@ -58,7 +38,7 @@ const runModelDownload = async (model: string): Promise<void> => {
     return
   }
 
-  await downloadLlama(trimmed)
+  throw CLIUsageError(`Unknown local model "${trimmed}". Expected a Whisper model name or whisperfile:<model>.`)
 }
 
 export const runModelDownloads = async (models: readonly string[]): Promise<void> => {

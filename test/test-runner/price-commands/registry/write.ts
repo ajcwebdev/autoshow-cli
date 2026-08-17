@@ -44,20 +44,6 @@ export const writeRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-3-write-e2e/write-services/kimi-k2.6.test.ts', [
     command('write-kimi-kimi-k2.6', 'write-kimi-kimi-k2.6', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--llm', 'kimi=kimi-k2.6', '--prompt', 'shortSummary', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-local.test.ts', [
-    command('write-llama-qwen3-0.6b', 'write-llama-qwen3-0.6b', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--llm', 'llama=ggml-org/Qwen3-0.6B-GGUF', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-llamafile.test.ts', [
-    command('write-llamafile-qwen3.5-0.8b', 'write-llamafile-qwen3.5-0.8b', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--llm', 'llamafile=Qwen3.5-0.8B-Q8_0', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/local/step-3-write-e2e/write-local/write-project-lyrics.test.ts', [
-    command('write-project-lyrics-single-default-llama', 'write-project-lyrics-single-default-llama', ['src/cli/create-cli.ts', 'write', 'input/examples/document/1-document.pdf', '--prompt', 'folkSong', '--price']),
-    command('write-project-lyrics-directory-default-llama', 'write-project-lyrics-directory-default-llama', ['src/cli/create-cli.ts', 'write', 'input/examples/document/1-document.pdf', '--prompt', 'shortSummary', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/kitten-tts-pipeline.test.ts', [
-    command('write-groq-openai/gpt-oss-20b', 'write-groq-openai/gpt-oss-20b', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--llm', 'groq=openai/gpt-oss-20b', '--prompt', 'shortSummary', '--price']),
-    command('write-openai-gpt-5.5', 'write-openai-gpt-5.5', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--llm', 'openai=gpt-5.5', '--prompt', 'shortSummary', '--price']),
-  ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/openai-gpt-image-2-pipeline.test.ts', [
     command('write-groq-openai/gpt-oss-20b', 'write-groq-openai/gpt-oss-20b', ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--llm', 'groq=openai/gpt-oss-20b', '--prompt', 'shortSummary', '--price']),
   ]),

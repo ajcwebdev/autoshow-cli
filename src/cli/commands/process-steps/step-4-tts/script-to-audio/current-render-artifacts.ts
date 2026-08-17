@@ -82,11 +82,7 @@ export const rebaseCurrentTtsProjectionArtifactRefs = (
               batchInvocationPlan: { ...slot.batchInvocationPlan, path: rebaseArtifactPath(prefix, slot.batchInvocationPlan.path) },
               ...(slot.batchResult ? { batchResult: { ...slot.batchResult, path: rebaseArtifactPath(prefix, slot.batchResult.path) } } : {})
             }
-          : {
-              ...slot,
-              materializationPlan: { ...slot.materializationPlan, path: rebaseArtifactPath(prefix, slot.materializationPlan.path) },
-              batchResult: { ...slot.batchResult, path: rebaseArtifactPath(prefix, slot.batchResult.path) }
-            }),
+          : slot),
         ...(batch.currentTakeSelection ? { currentTakeSelection: { ...batch.currentTakeSelection, path: rebaseArtifactPath(prefix, batch.currentTakeSelection.path) } } : {}),
         ...(batch.continuationCheckpoint ? { continuationCheckpoint: { ...batch.continuationCheckpoint, path: rebaseArtifactPath(prefix, batch.continuationCheckpoint.path) } } : {})
       })) } : {})
@@ -110,7 +106,7 @@ export const buildCurrentTtsProviderState = (
   return {
     service: metadata.ttsService,
     model: metadata.ttsModel,
-    local: metadata.ttsService === 'kitten',
+    local: false,
     operation: metadata.operation,
     targetKey: metadata.targetKey,
     transport: metadata.transport,
@@ -161,6 +157,14 @@ const appendCurrentTtsProjection = (
   current: CanonicalAudioProviderProjection,
   incoming: CanonicalAudioProviderProjection
 ): CanonicalAudioProviderProjection => {
+  if (
+    incoming.archive
+    && incoming.selectedSuccess
+    && !incoming.activeWork
+    && current.branchHistory.length === 0
+    && current.readinessAttempts.length === 0
+    && current.renderHistory.length === 0
+  ) return incoming
   if (
     current.branchHistory.length === 0
     && current.readinessAttempts.length === 0
@@ -349,9 +353,11 @@ const appendCurrentTtsProjection = (
       }
     : current.selectedSuccess
 
+  const archive = incoming.archive ?? current.archive
   return {
     ...(activeWork ? { activeWork } : {}),
     ...(selectedSuccess ? { selectedSuccess } : {}),
+    ...(archive ? { archive } : {}),
     branchHistory,
     readinessAttempts,
     renderHistory,
@@ -370,7 +376,7 @@ export const appendCurrentTtsProviderState = (
     || incoming.transport !== current.transport
     || incoming.service !== current.service
     || incoming.model !== current.model
-    || incoming.artifactDir !== current.artifactDir
+    || (incoming.artifactDir !== current.artifactDir && !getTtsProjectionOrThrow(incoming).archive)
   ) {
     throw CLIUsageError('TTS resume cannot change operation-scoped target identity or its stable artifact directory. Rebuild this TTS output with the current command before resuming it.')
   }
@@ -382,6 +388,7 @@ export const appendCurrentTtsProviderState = (
   const namespace = current.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
   return {
     ...current,
+    artifactDir: incoming.artifactDir,
     status: projected.status,
     attempts: projected.attempts,
     metadata: { ...current.metadata, ...incoming.metadata, [namespace]: projection },

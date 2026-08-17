@@ -158,7 +158,7 @@ export function buildTextProviderRows(runDir: string, manifestRecord: TextManife
     const processingTimeMs = timing?.processingTimeMs ?? asNumber(entry.processingTime);
     const msPerUnit = timing?.msPerUnit
       ?? (processingTimeMs !== null && totalTokenCount > 0 ? round3(processingTimeMs / (totalTokenCount / 1000)) : null);
-    const group = service === "llama.cpp" ? "local" : "service";
+    const group = "service";
     const actualCostCents = cost?.source === "actual" ? cost.costCents : null;
     const estimatedCostCents = cost?.source === "estimated" ? cost.costCents : null;
     const costCents = group === "local" ? 0 : actualCostCents ?? estimatedCostCents;

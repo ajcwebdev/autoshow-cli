@@ -65,14 +65,6 @@ describe('image command flag spellings', () => {
     expect(retargetedGrok).toContain('--search-grounding is not supported by Grok/grok-imagine-image-quality')
     expect(retargetedGrok).not.toContain('--image-')
 
-    const recraftMessage = messageFor(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1',
-      'image-format': 'webp',
-      'image-input': ['reference.png']
-    })))
-    const retargetedRecraft = renameFlagSpellings(recraftMessage, imageCommandOptionNames)
-    expect(retargetedRecraft).toContain('--format, --input are not supported by Recraft/recraftv4_1')
-    expect(retargetedRecraft).not.toContain('--image-')
   })
 })
 
@@ -93,7 +85,7 @@ describe('video and music command flag spellings', () => {
 
   test('runtime provider-list errors match their command-boundary twins', async () => {
     await expect(rejectionMessageFor(async () => await runVideoGen('prompt', '/tmp/unused', {} as VideoGenOptions)))
-      .resolves.toBe('Specify a video generation provider with --provider gemini|minimax|glm|grok|runway|ltx|replicate|lumalabs|fal[=model]')
+      .resolves.toBe('Specify a video generation provider with --provider gemini|minimax|grok|ltx|replicate|lumalabs|fal[=model]')
     await expect(rejectionMessageFor(async () => await runMusicGen('prompt', '/tmp/unused', {} as MusicGenOptions)))
       .resolves.toBe('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   })

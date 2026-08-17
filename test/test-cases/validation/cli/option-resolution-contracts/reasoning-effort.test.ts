@@ -138,14 +138,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         })
       ).toThrow()
 
-      expect(() =>
-        resolveReasoningPolicy({
-          step: 'llm',
-          service: 'llama.cpp',
-          model: 'llama',
-          requestedReasoningEffort: 'low'
-        })
-      ).toThrow()
     })
 
     it('rejects disabled effort when model requires reasoning', () => {
@@ -274,49 +266,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
           reasoningEffort: 'high'
         })
         expect(receivedOptions?.requestedReasoningEffort).toBe('high')
-      } finally {
-        await rm(outputDir, { recursive: true, force: true })
-      }
-    })
-
-    it('does not apply hosted reasoning overrides to local LLM targets', async () => {
-      const outputDir = await mkdtemp(join(tmpdir(), 'autoshow-reasoning-local-scope-'))
-      const receivedOptions = new Map<string, StructuredRequestOptions | undefined>()
-      const target = (service: LLMTarget['service'], model: string): LLMTarget => ({
-        service,
-        label: service,
-        model,
-        run: async (_prompt, targetModel, options) => {
-          receivedOptions.set(service, options)
-          const metadata: Step3Metadata = {
-            llmService: service,
-            llmModel: targetModel,
-            processingTime: 1,
-            inputTokenCount: 1,
-            outputTokenCount: 1,
-            outputFileName: '',
-            outputFormat: 'json',
-            structuredMode: 'native',
-            structuredPresetNames: []
-          }
-          return { result: '{"content":"ok"}', metadata }
-        }
-      })
-
-      try {
-        await runLlmTargetsForStructuredPrompt({
-          prompt: 'Test prompt',
-          outputDir,
-          targets: [
-            target('llama.cpp', 'local-model'),
-            target('openai', 'gpt-5.5')
-          ],
-          structuredSchema,
-          structuredValidationContext: { leafPromptNames: ['content'], presetNames: [] },
-          reasoningEffort: 'high'
-        })
-        expect(receivedOptions.get('llama.cpp')?.requestedReasoningEffort).toBeUndefined()
-        expect(receivedOptions.get('openai')?.requestedReasoningEffort).toBe('high')
       } finally {
         await rm(outputDir, { recursive: true, force: true })
       }

@@ -83,9 +83,6 @@ export const runElevenLabsTts = async (
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
       const params = new URLSearchParams({ output_format: outputFormat })
-      if (typeof options.controls?.optimizeStreamingLatency === 'number') {
-        params.set('optimize_streaming_latency', String(options.controls.optimizeStreamingLatency))
-      }
       const voiceSettings = options.controls?.voiceSettings
       const requestBody = {
         text: chunk,
@@ -118,9 +115,6 @@ export const runElevenLabsTts = async (
           ...(options.controls?.textNormalization ? { textNormalization: options.controls.textNormalization } : {}),
           ...(pronunciationDictionaryLocators && pronunciationDictionaryLocators.length > 0
             ? { pronunciationDictionaryLocators }
-            : {}),
-          ...(typeof options.controls?.optimizeStreamingLatency === 'number'
-            ? { optimizeStreamingLatency: options.controls.optimizeStreamingLatency }
             : {})
         },
         continuation: { kind: 'none' }

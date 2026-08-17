@@ -13,6 +13,9 @@ import { runComicStructuredLlm } from '../../comic-utils/structured-script-utils
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
+import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import {
   atomicWriteJson,
   getLocationReferencePath,
@@ -56,7 +59,7 @@ type Dependencies = {
 }
 
 const CAMERA_CONTRACTS: Record<LocationView, string> = {
-  establishing: 'Use a clean wide three-quarter establishing camera that clearly explains the location layout, depth, major fixed anchors, and traversable space.',
+  establishing: 'Use a standing eye-level wide three-quarter establishing camera that clearly explains the location layout, depth, major fixed anchors, and traversable space. Keep the camera at adult standing height; never use aerial, isometric, overhead, bird\'s-eye, or plan views.',
   reverse: 'Use a materially opposite reverse camera looking back across the same space toward the establishing camera position. Reveal the reverse faces of fixed anchors and do not repeat or mirror the establishing composition.',
   side: 'Use a materially perpendicular side camera across the same space. Reveal a lateral relationship that neither the establishing nor reverse view shows; do not repeat, mirror, or slightly pan an existing composition.',
 }
@@ -156,7 +159,11 @@ export const locationReferenceSketchCommand = async (options: ReferenceSketchCom
     if (view !== 'establishing') throw ValidationError(`The first view for location "${key}" must be establishing`, { stage: 'comic:location-reference' })
     const scripts = await collectLocationSourceScripts(key)
     if (scripts.length === 0) throw ValidationError(`No script scene location normalizes to "${key}"`, { stage: 'comic:location-reference' })
-    const result = await (dependencies.aggregateSpecification ?? aggregateSpecification)({ key, scripts, model: options.llmModel ?? DEFAULT_LLM_MODEL })
+    const aggregationModel = options.llmModel ?? DEFAULT_LLM_MODEL
+    const result = await runComicHostedRequest({
+      concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+    }, findRegistryServiceForModel('llm', aggregationModel) ?? 'comic-llm', 'comic-llm', `location-spec:${key}`, 0, async () => await (dependencies.aggregateSpecification ?? aggregateSpecification)({ key, scripts, model: aggregationModel }))
     entry = { key, name: result.name, specification: result.specification, sourceScripts: scripts.map(script => relative(dirname(getLocationsRoot()), script.path).replace(/\\/g, '/')) }
   }
 
@@ -199,12 +206,19 @@ export const locationReferenceSketchCommand = async (options: ReferenceSketchCom
       ? `Generate a fresh composition from the canonical references. Do not edit or imitate the rejected candidate. Failed camera checks: ${lastQa?.failedChecks.join('; ')}. ${lastQa?.editInstructions}`
       : `Edit the first image only. Failed checks: ${lastQa?.failedChecks.join('; ')}. ${lastQa?.editInstructions} Preserve everything already correct.` : ''
     const path = join(attemptsRoot, `${view}-attempt-${attempt}.png`)
-    const response = await requestImage(`${viewPrompt(entry, view, options.notes)}\n\n${repair}`, references, retryMode === 'edit' ? DEFAULT_IMAGE_MODEL : model, size, quality)
+    const attemptModel = retryMode === 'edit' ? DEFAULT_IMAGE_MODEL : model
+    const response = await runComicHostedRequest({
+      concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+    }, resolveComicImageProvider(attemptModel), 'comic-image', `location:${key}:${view}`, attempt, async () => await requestImage(`${viewPrompt(entry, view, options.notes)}\n\n${repair}`, references, attemptModel, size, quality))
     await writeImage(path, response.result.imageBase64, response.result.mimeType)
     current = path
     if (!qaEnabled) break
     try {
-      lastQa = validateQaResult(await judge({ imagePath: path, view, specification: entry.specification, existingViewPaths: otherExisting.map(item => item.imagePath), styleReference: stylePath, model: options.qaModel ?? DEFAULT_QA_MODEL }))
+      lastQa = validateQaResult(await runComicHostedRequest({
+        concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+      }, 'openai', 'comic-qa', `location-qa:${key}:${view}`, attempt, async () => await judge({ imagePath: path, view, specification: entry.specification, existingViewPaths: otherExisting.map(item => item.imagePath), styleReference: stylePath, model: options.qaModel ?? DEFAULT_QA_MODEL })))
       await atomicWriteJson(join(attemptsRoot, `${view}-attempt-${attempt}-qa.json`), lastQa)
       qaReports.push({ view, attempt, retryMode, result: lastQa })
       await writeQaReports()

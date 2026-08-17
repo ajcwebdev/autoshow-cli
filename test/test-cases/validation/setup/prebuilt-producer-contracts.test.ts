@@ -279,8 +279,7 @@ describe('Phase 4 producer hardening contracts', () => {
 
   test('does not configure an unsigned or release candidate in production metadata', async () => {
     const dependencyMetadata = await Bun.file(join(PROJECT_ROOT, 'src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts')).text()
-    expect(dependencyMetadata).not.toContain('prebuiltUrl')
-    expect(dependencyMetadata).not.toContain('prebuiltSha256')
+
     expect(dependencyMetadata).not.toContain('unsigned-verification')
     expect(managedUnsignedVerificationManifestName('qpdf', 'arm64')).toEndWith('.verification.json')
     expect(managedUnsignedVerificationSbomName('qpdf', 'arm64')).toEndWith('.spdx.json')

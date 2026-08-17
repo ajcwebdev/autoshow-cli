@@ -254,7 +254,7 @@ const TIER_DESCRIPTIONS = {
   3: "Lowest balanced options, generally weaker across the combined benchmark categories.",
 } as const;
 
-const LOCAL_STT_SERVICES = new Set(["whisper", "reverb"]);
+const LOCAL_STT_SERVICES = new Set(["whisper"]);
 type ProviderGroup = "local" | "cloud";
 type TierGroupName = "local" | "thirdPartyDiarization" | "thirdPartyNonDiarization";
 type DiarizationSupport = "supported" | "not-supported";

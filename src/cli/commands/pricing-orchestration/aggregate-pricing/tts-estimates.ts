@@ -25,6 +25,8 @@ const buildTtsEstimatesFromCosts = async (
       step: 'tts' as const,
       provider: cost.provider,
       model: cost.model,
+      ...(cost.costPerRequestCents !== undefined ? { costPerRequestCents: cost.costPerRequestCents } : {}),
+      ...(cost.requestCount !== undefined ? { requestCount: cost.requestCount } : {}),
       ...(cost.costPer1kCharactersCents !== undefined ? { costPer1kCharactersCents: cost.costPer1kCharactersCents } : {}),
       ...(cost.inputCostPer1MCharactersCents !== undefined ? { inputCostPer1MCharactersCents: cost.inputCostPer1MCharactersCents } : {}),
       ...(cost.outputCostPer1MCharactersCents !== undefined ? { outputCostPer1MCharactersCents: cost.outputCostPer1MCharactersCents } : {}),

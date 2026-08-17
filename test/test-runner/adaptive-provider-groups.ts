@@ -10,11 +10,11 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { AdaptiveProviderFlagValue, AdaptiveProviderGroup, AdaptiveProviderGroupKind } from '~/types'
 
-const LOCAL_STT_PROVIDERS = ['reverb', 'whisper', 'whisperfile'] as const satisfies readonly (keyof typeof WRITE_STT_PROVIDER_TARGETS)[]
+const LOCAL_STT_PROVIDERS = ['whisper', 'whisperfile'] as const satisfies readonly (keyof typeof WRITE_STT_PROVIDER_TARGETS)[]
 const LOCAL_OCR_PROVIDERS = ['tesseract'] as const satisfies readonly (keyof typeof WRITE_OCR_PROVIDER_TARGETS)[]
 const LOCAL_URL_PROVIDERS = ['defuddle'] as const satisfies readonly (typeof URL_ARTICLE_BACKENDS)[number][]
-const LOCAL_LLM_PROVIDERS = ['llama', 'llamafile'] as const satisfies readonly (keyof typeof WRITE_LLM_PROVIDER_TARGETS)[]
-const LOCAL_TTS_PROVIDERS = ['kitten'] as const satisfies readonly (keyof typeof STANDALONE_TTS_PROVIDER_TARGETS)[]
+const LOCAL_LLM_PROVIDERS = [] as const satisfies readonly (keyof typeof WRITE_LLM_PROVIDER_TARGETS)[]
+const LOCAL_TTS_PROVIDERS = [] as const satisfies readonly (keyof typeof STANDALONE_TTS_PROVIDER_TARGETS)[]
 
 const withoutLocalProviders = (
   providers: readonly string[],
@@ -79,11 +79,8 @@ const CORE_VALUE_FLAGS = [
   'video',
   'music',
   'all-providers',
-  'llama',
   'whisper',
-  'reverb',
   'deepinfra',
-  'kitten-tts',
 ] as const
 
 export const ADAPTIVE_PROVIDER_VALUE_FLAGS = [
@@ -216,10 +213,6 @@ export const parseProviderName = (token: string | null | undefined): string | nu
     return null
   }
 
-  if (provider === 'llama.cpp') {
-    return 'llama'
-  }
-
   return provider
 }
 
@@ -237,7 +230,7 @@ const inferExtractKind = (input: string | null, provider: string): 'transcribe' 
   if (extension && DOCUMENT_EXTENSIONS.has(extension)) {
     return 'extract'
   }
-  if (provider.includes('stt') || provider === 'whisper' || provider === 'reverb') {
+  if (provider.includes('stt') || provider === 'whisper') {
     return 'transcribe'
   }
   if (provider.includes('ocr') || provider === 'tesseract') {

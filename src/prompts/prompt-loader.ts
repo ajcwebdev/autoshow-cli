@@ -5,6 +5,7 @@ import * as v from 'valibot'
 import type { LeafPrompt, PromptEntry, PromptExampleFormat, PromptExamples, PromptsRegistry, PromptTokenEstimate, ResolvedLeafPrompt } from '~/types'
 import { BoundedTextCapture, buildCaptureMetadata } from '~/utils/bounded-capture'
 import { AppError, CLIUsageError } from '~/utils/error-handler'
+import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import { validateData } from '~/utils/validate/validation'
 
 const MARKDOWN_EXAMPLE_PRESENTATION_PREFIX = 'Format the output like so:'
@@ -35,7 +36,7 @@ const CompositePromptSchema = v.object({
 const PromptEntrySchema = v.union([LeafPromptSchema, CompositePromptSchema])
 const PromptsRegistrySchema = v.record(v.string(), PromptEntrySchema)
 
-const PROMPTS_DIR = resolve(import.meta.dir, 'entries')
+const PROMPTS_DIR = resolve(PROJECT_ROOT, 'src/prompts/entries')
 const PROMPT_FILE_EXTENSION = '.json'
 
 let cachedRegistry: PromptsRegistry | undefined

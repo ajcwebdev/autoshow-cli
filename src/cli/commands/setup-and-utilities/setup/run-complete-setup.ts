@@ -2,33 +2,15 @@ import { mkdir, readdir, rm, stat } from 'node:fs/promises'
 import type { Dirent } from 'node:fs'
 import { join } from 'node:path'
 import { setupTesseractOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-local/tesseract-setup'
-import { setupReverb } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/reverb/reverb'
-import {
-checkReverbAsrAssets,
-reverbDiarizationDir as reverbDiarizationDirFromAssets,
-reverbDiarizationEmbeddingDir as reverbDiarizationEmbeddingDirFromAssets,
-reverbModelDir as reverbModelDirFromAssets
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/reverb/reverb-assets'
 import { downloadWhisperModel, setupWhisper } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
 import { setupWhisperfile } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
-import { ensureLlamafileBundleDownloaded, resolveLlamafileBundlePath } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/llamafile-download'
-import { DEFAULT_LLAMAFILE_MODEL } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/llamafile-constants'
 import { DEFAULT_WHISPERFILE_MODEL } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { defuddleRuntimeDir, setupDefuddleCli } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
-import { checkLlamaInstalled, runLlamaSetup } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama'
-import { ensureLlamaModelDownloaded } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
-import { resolveLlamaCacheClearPaths } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-cache'
-import { llamaSetupModelsMetadataPath } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-metadata'
-import { ensureKittenTtsSetup, setupKittenTts } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-setup'
-import { hasCachedKittenTtsModel, resolveKittenTtsCacheClearPaths } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
-import { resolveKittenTtsModelId, SUPPORTED_KITTEN_TTS_MODELS, SUPPORTED_LLAMA_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { DEFAULT_KITTEN_TTS_MODEL } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { setupCalibreDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
-import { isAcsmAuthorized, runAcsmAuthorization, setupAcsmFulfillment } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/acsm'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
-import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, KittenTtsModel, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
+import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { l as globalLogger, isJsonResultActive } from '~/utils/app-logger/app-logger'
 import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
@@ -40,8 +22,6 @@ import {
   RUNTIME_BUILD_DIR,
   RUNTIME_DIR,
   RUNTIME_TOOLS_DIR,
-  acsmCalibrePluginToolDir,
-  acsmFulfillManagedBinaryPath,
   calibreToolDir,
   ebookConvertManagedBinaryPath,
   ffmpegBuildDir,
@@ -71,18 +51,11 @@ import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-per
 const RUNTIME = RUNTIME_DIR
 
 export const whisperBinaryPath = join(RUNTIME, 'bin/whisper-cli')
-export const llamaBinaryPath = join(RUNTIME, 'bin/llama-server')
 export const whisperLibDir = join(RUNTIME, 'bin/lib')
-export const reverbUvEnvDir = join(RUNTIME, 'bin/reverb')
-export const kittenTtsUvEnvDir = join(RUNTIME, 'bin/kitten-tts')
 export const whisperBuildDir = join(RUNTIME, 'build/whisper.cpp')
 export const whisperModelsDir = join(RUNTIME, 'models/whisper')
 export const whisperfileDir = join(RUNTIME, 'bin/whisperfile')
 export const whisperfileBinaryPath = (model: string): string => join(whisperfileDir, `whisper-${model}.llamafile`)
-const llamaModelsDir = join(RUNTIME, 'models/llama')
-export const reverbModelDir = reverbModelDirFromAssets
-const reverbDiarizationDir = reverbDiarizationDirFromAssets
-const reverbDiarizationEmbeddingDir = reverbDiarizationEmbeddingDirFromAssets
 const mergeEnv = (env?: Record<string, string | undefined>): Record<string, string | undefined> =>
   env ? { ...(process.env as Record<string, string | undefined>), ...env } : process.env as Record<string, string | undefined>
 
@@ -278,7 +251,6 @@ export const setupUv = async (): Promise<void> => {
 
 export const defaultWhisperModel = 'tiny'
 export const defaultMusicWhisperModel = 'large-v3-turbo'
-export const defaultLlamaModel = 'ggml-org/gemma-3-270m-it-GGUF'
 
 const withCompactSetup = async (fn: () => Promise<void>): Promise<void> => {
   const previous = isCompactSetupMode()
@@ -294,12 +266,7 @@ const ensureRuntimeDirs = async (): Promise<void> => {
     mkdir(RUNTIME_TOOLS_DIR, { recursive: true }),
     mkdir(whisperBuildDir, { recursive: true }),
     mkdir(whisperModelsDir, { recursive: true }),
-    mkdir(whisperfileDir, { recursive: true }),
-    mkdir(llamaModelsDir, { recursive: true }),
-    mkdir(reverbUvEnvDir, { recursive: true }).catch(() => undefined),
-    mkdir(reverbModelDir, { recursive: true }).catch(() => undefined),
-    mkdir(reverbDiarizationDir, { recursive: true }).catch(() => undefined),
-    mkdir(reverbDiarizationEmbeddingDir, { recursive: true }).catch(() => undefined)
+    mkdir(whisperfileDir, { recursive: true })
   ])
 }
 
@@ -352,33 +319,6 @@ const logSetupProviderConfiguration = (
     envVars,
     mode: shouldUseVerboseHumanOutput() ? 'all' : 'missing'
   })
-
-export const downloadKittenTtsModel = async (
-  model: KittenTtsModel,
-  options: { pythonPath?: string } = {}
-): Promise<void> => {
-  const kittenPython = options.pythonPath ?? `${kittenTtsUvEnvDir}/bin/python`
-  if (!await pathExists(kittenPython)) { l.warn(`Kitten TTS venv not found, skipping model download: ${model}`); return }
-
-  // Constructing KittenTTS loads the model in full. On a warm run that was the
-  // single most expensive step in setup, spent only to confirm a cache hit.
-  if (await hasCachedKittenTtsModel(model)) {
-    logSetupToolStatus(l, { tool: 'kitten-tts', status: 'ready', detail: `${model} (cached)` })
-    return
-  }
-
-  const hfModelId = resolveKittenTtsModelId(model)
-  logSetupToolStatus(l, { tool: 'kitten-tts', status: 'downloading', detail: model })
-  const result = await runCapture(
-    kittenPython,
-    ['-c', `from kittentts import KittenTTS; KittenTTS("${hfModelId}")`],
-    { allowFailure: true }
-  )
-  if (result.exitCode !== 0) {
-    throw InfraError(`Kitten TTS model download failed for ${model}: ${formatCommandFailure(kittenPython, ['-c', 'from kittentts import KittenTTS; KittenTTS("<model>")'], result)}`, { stage: 'setup:kitten-tts' })
-  }
-  logSetupToolStatus(l, { tool: 'kitten-tts', status: 'ready', detail: model })
-}
 
 // Binary units so the reported figure matches what `du -h` prints for the same
 // directory; a decimal figure next to a du-shaped path invites a false mismatch.
@@ -555,25 +495,20 @@ const logSetupSummary = async (
 ): Promise<boolean> => {
   const localToolChecks = [
     ['whisper-cli', await pathExists(whisperBinaryPath)] as const,
-    ['llama-server', await pathExists(llamaBinaryPath)] as const,
-    ['Kitten TTS env', await pathExists(`${kittenTtsUvEnvDir}/bin/python`)] as const,
     ['ffmpeg', hasRuntimeTool('ffmpeg')] as const,
     ['ffprobe', hasRuntimeTool('ffprobe')] as const,
     ['yt-dlp', hasRuntimeTool('yt-dlp')] as const,
     ['mutool', hasRuntimeTool('mutool')] as const,
     ['ebook-convert', hasRuntimeTool('ebook-convert')] as const,
-    ['calibre-acsm-fulfill', hasRuntimeTool('calibre-acsm-fulfill')] as const,
     ['tesseract', hasRuntimeTool('tesseract')] as const,
     ['qpdf', hasRuntimeTool('qpdf')] as const
   ]
   const localModelChecks = [
     [`whisper ${defaultWhisperModel}`, await pathExists(`${whisperModelsDir}/ggml-${defaultWhisperModel}.bin`)] as const,
-    [`whisper ${defaultMusicWhisperModel}`, await pathExists(`${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`)] as const,
-    ['Reverb ASR', await checkReverbAsrAssets()] as const
+    [`whisper ${defaultMusicWhisperModel}`, await pathExists(`${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`)] as const
   ]
   const missingTools = localToolChecks.filter(([, ok]) => !ok).map(([name]) => name)
   const missingModels = localModelChecks.filter(([, ok]) => !ok).map(([name]) => name)
-  const acsmAuthorized = await isAcsmAuthorized()
   const runtimeBytes = await directorySize(RUNTIME_DIR)
   const healthy = missingTools.length === 0 && missingModels.length === 0
 
@@ -606,11 +541,6 @@ const logSetupSummary = async (
         item: 'hosted providers',
         status: `${providerSummary.configured}/${providerSummary.total} present`,
         detail: providerSummary.missing === 0 ? 'all env vars set' : `${providerSummary.missing} missing`
-      },
-      {
-        item: 'ACSM authorization',
-        status: acsmAuthorized ? 'ready' : 'action needed',
-        detail: acsmAuthorized ? 'account activated' : 'bun autoshow setup --step acsm-authorize (required before ACSM fulfillment)'
       },
       {
         item: 'validation',
@@ -654,36 +584,12 @@ const runFullSetup = async (): Promise<boolean> => {
             await downloadWhisperModel(defaultMusicWhisperModel)
           }
         },
-        {
-          label: 'llama',
-          run: async () => {
-            await runLlamaSetup()
-            if (await checkLlamaInstalled()) {
-              await ensureLlamaModelDownloaded(defaultLlamaModel)
-            } else { l.warn('llama.cpp not available, skipping model download') }
-          }
-        },
-        { label: 'Reverb', run: setupReverb },
-        {
-          label: 'document tools',
-          // The Setup Summary carries an "ACSM authorization" row, so a full setup
-          // does not also warn: someone who never fulfills an .acsm would otherwise
-          // see the same warning forever, which is how a real to-do becomes noise.
-          run: async () => { await setupCalibreDocumentTools({ printAuthorizeHint: false }) }
-        },
-        { label: 'OCR', run: setupTesseractOcr },
-        {
-          label: 'TTS',
-          run: async () => {
-            await setupKittenTts()
-            await downloadKittenTtsModel(DEFAULT_KITTEN_TTS_MODEL)
-          }
-        }
+        { label: 'document tools', run: setupCalibreDocumentTools },
+        { label: 'OCR', run: setupTesseractOcr }
       ])
     })
 
     await validateBinary('whisper-cli', whisperBinaryPath, ['--help'])
-    await validateBinary('llama-server', llamaBinaryPath, ['--version'])
 
     await pruneBuildTrees()
     await logReclaimableWhisperCoremlArtifacts()
@@ -709,23 +615,18 @@ export const runCompleteSetup = async (): Promise<boolean> => await runFullSetup
 
 const runSetupTranscription = async (): Promise<void> => {
   await downloadWhisperModel('large-v3-turbo')
-  await setupReverb()
   logSetupProviderConfiguration('Transcription Provider Configuration', TRANSCRIPTION_PROVIDER_ENV_KEYS)
   l.write('success', 'Transcription setup complete')
 }
 
 const runSetupWrite = async (): Promise<void> => {
-  if (!await checkLlamaInstalled()) await runLlamaSetup()
-  for (const model of SUPPORTED_LLAMA_MODELS) await ensureLlamaModelDownloaded(model)
   logSetupProviderConfiguration('Write Provider Configuration', WRITE_PROVIDER_ENV_KEYS)
-  l.write('success', 'Write setup complete')
+  l.write('success', 'Write setup complete (all write providers are API-based)')
 }
 
 const runSetupTts = async (): Promise<void> => {
-  await ensureKittenTtsSetup()
-  for (const model of SUPPORTED_KITTEN_TTS_MODELS) await downloadKittenTtsModel(model)
   logSetupProviderConfiguration('TTS Provider Configuration', TTS_PROVIDER_ENV_KEYS)
-  l.write('success', 'TTS setup complete')
+  l.write('success', 'TTS setup complete (all TTS providers are API-based)')
 }
 
 const runSetupImage = async (): Promise<void> => {
@@ -768,53 +669,13 @@ const runSetupMusic = async (): Promise<void> => {
   l.write('success', 'Music setup complete')
 }
 
-const computeMedian = (values: number[]): number => {
-  if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1]! + sorted[mid]!) / 2) : sorted[mid]!
-}
-
-const computeP90 = (values: number[]): number => {
-  if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  return sorted[Math.max(0, Math.min(sorted.length - 1, Math.ceil(0.9 * sorted.length) - 1))]!
-}
-
-const logBenchmarkResults = (stepLabel: string, durations: number[]): void => {
-  const median = computeMedian(durations)
-  const p90 = computeP90(durations)
-  const rows = [{
-    medianMs: median,
-    p90Ms: p90,
-    minMs: Math.min(...durations),
-    maxMs: Math.max(...durations),
-    outliers: durations.filter(v => v > p90).length
-  }]
-
-  l.write('info', `Setup Benchmark (${stepLabel}, ${durations.length} runs)`, {
-    category: 'command',
-    humanTable: createHumanTable(rows, ['medianMs', 'p90Ms', 'minMs', 'maxMs', 'outliers']),
-    metadata: { step: stepLabel, runs: durations.length, results: rows }
-  })
-}
-
 export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {
   const whisperModelPath = `${whisperModelsDir}/ggml-${defaultWhisperModel}.bin`
   const lyricsWhisperModelPath = `${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`
-  // The weights live in llama.cpp's own cache outside runtime/, so clearing
-  // runtime paths alone leaves a possibly-corrupt GGUF in place and the next
-  // "redownload" silently returns from a warm cache.
-  const llamaModelPaths = await resolveLlamaCacheClearPaths(defaultLlamaModel)
-  // Kitten weights live in the shared HuggingFace cache, also outside runtime/.
-  const kittenModelPaths = SUPPORTED_KITTEN_TTS_MODELS.flatMap(resolveKittenTtsCacheClearPaths)
   switch (step) {
     case 'whisper-binary': return [whisperBinaryPath, whisperBuildDir]
     case 'whisper-model': return [whisperModelPath]
     case 'whisperfile': return [whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL)]
-    case 'llama-binary': return [llamaBinaryPath, llamaSetupModelsMetadataPath, ...llamaModelPaths]
-    case 'llamafile': return [resolveLlamafileBundlePath(DEFAULT_LLAMAFILE_MODEL)]
-    case 'reverb': return [reverbModelDir, reverbDiarizationDir, reverbDiarizationEmbeddingDir]
     case 'defuddle': return [defuddleRuntimeDir]
     case 'music': return [whisperBinaryPath, whisperBuildDir, lyricsWhisperModelPath]
     // 'all' is the union of every step above plus the managed tool trees, so the
@@ -825,16 +686,6 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
       whisperModelPath,
       lyricsWhisperModelPath,
       whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL),
-      resolveLlamafileBundlePath(DEFAULT_LLAMAFILE_MODEL),
-      llamaBinaryPath,
-      llamaSetupModelsMetadataPath,
-      ...llamaModelPaths,
-      reverbModelDir,
-      reverbDiarizationDir,
-      reverbDiarizationEmbeddingDir,
-      reverbUvEnvDir,
-      kittenTtsUvEnvDir,
-      ...kittenModelPaths,
       defuddleRuntimeDir,
       ytDlpManagedBinaryPath,
       ffmpegManagedBinaryPath,
@@ -843,8 +694,6 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
       lameBuildDir,
       mutoolManagedBinaryPath,
       ebookConvertManagedBinaryPath,
-      acsmFulfillManagedBinaryPath,
-      acsmCalibrePluginToolDir,
       tesseractManagedBinaryPath,
       tesseractBuildDir,
       tessdataDir,
@@ -854,10 +703,8 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
       RUNTIME_TOOLS_DIR
     ]
     case 'yt-dlp': return [ytDlpManagedBinaryPath, ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegBuildDir, ffmpegToolDir, lameBuildDir, lameToolDir]
-    case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir, acsmFulfillManagedBinaryPath, acsmCalibrePluginToolDir]
-    case 'acsm': return [acsmFulfillManagedBinaryPath, acsmCalibrePluginToolDir]
-    case 'acsm-authorize': return []
-    case 'tts': return [kittenTtsUvEnvDir, ...kittenModelPaths]
+    case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir]
+    case 'tts': return []
     case 'uv': case 'transcription': case 'write': case 'image': case 'video': return []
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }
@@ -884,13 +731,8 @@ const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
     case 'whisper-binary': await setupWhisper(); return true
     case 'whisper-model': await downloadWhisperModel(defaultWhisperModel); return true
     case 'whisperfile': await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL); return true
-    case 'llama-binary': await runLlamaSetup(); return true
-    case 'llamafile': await ensureLlamafileBundleDownloaded(DEFAULT_LLAMAFILE_MODEL); return true
-    case 'reverb': await setupReverb(); return true
     case 'defuddle': await setupDefuddleCli(); return true
     case 'calibre': await setupCalibreDocumentTools(); return true
-    case 'acsm': await setupAcsmFulfillment(); return true
-    case 'acsm-authorize': await runAcsmAuthorization(); return true
     case 'transcription': await runSetupTranscription(); return true
     case 'write': await runSetupWrite(); return true
     case 'tts': await runSetupTts(); return true
@@ -901,26 +743,8 @@ const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
   }
 }
 
-export const runSetupStep = async (step: SetupStepId, options?: { forceRedownload?: boolean, repeat?: number }): Promise<boolean> => {
-  const repeat = options?.repeat ?? 1
+export const runSetupStep = async (step: SetupStepId, options?: { forceRedownload?: boolean }): Promise<boolean> => {
   await ensureRuntimeDirs()
-
-  if (repeat <= 1) {
-    await applyRunOptions(step, options)
-    return await executeStepOnce(step)
-  }
-
-  const timings: number[] = []
-  let healthy = true
-  for (let i = 0; i < repeat; i++) {
-    await applyRunOptions(step, options)
-    const start = Date.now()
-    healthy = await executeStepOnce(step) && healthy
-    const duration = Date.now() - start
-    timings.push(duration)
-    l.write('info', `Run ${i + 1}/${repeat}: ${duration}ms`)
-  }
-
-  logBenchmarkResults(step, timings)
-  return healthy
+  await applyRunOptions(step, options)
+  return await executeStepOnce(step)
 }

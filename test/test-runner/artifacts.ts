@@ -5,8 +5,22 @@ import { formatTimestampForDir } from './utils'
 
 const LATEST_LOG_FILE = 'latest.log'
 const ACTIVE_RUN_FILE = '.active-run.json'
+const RUNNER_LOG_FLUSH_INTERVAL_MS = 100
+const RUNNER_LOG_FLUSH_SIZE_BYTES = 64 * 1024
+const COMMAND_LOG_TAIL_BYTES = 256 * 1024
 
 const TEST_OUTPUT_ROOT = resolve(process.cwd(), 'project/test-output')
+
+type RunnerLogWriter = ReturnType<ReturnType<typeof Bun.file>['writer']>
+
+type RunnerLogHandle = {
+  writer: RunnerLogWriter
+  pendingBytes: number
+  closed: boolean
+  flushTimer: ReturnType<typeof setInterval>
+}
+
+const runnerLogHandles = new WeakMap<TestRunArtifacts, RunnerLogHandle>()
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -19,8 +33,22 @@ const readTextIfExists = async (path: string): Promise<string> => {
   }
 }
 
-const readJsonIfExists = async (path: string): Promise<Record<string, unknown> | null> => {
-  const text = await readTextIfExists(path)
+const readTextTailIfExists = async (path: string, maxBytes: number): Promise<string> => {
+  try {
+    const file = Bun.file(path)
+    const size = file.size
+    if (size <= maxBytes) {
+      return await file.text()
+    }
+    const omitted = size - maxBytes
+    const tail = await file.slice(omitted).text()
+    return `[truncated ${omitted} leading bytes]\n${tail}`
+  } catch {
+    return ''
+  }
+}
+
+const parseJsonRecord = (text: string): Record<string, unknown> | null => {
   if (!text.trim()) {
     return null
   }
@@ -31,6 +59,39 @@ const readJsonIfExists = async (path: string): Promise<Record<string, unknown> |
   } catch {
     return null
   }
+}
+
+const readJsonIfExists = async (path: string): Promise<Record<string, unknown> | null> => {
+  return parseJsonRecord(await readTextIfExists(path))
+}
+
+const openRunnerLogSink = (artifacts: TestRunArtifacts): void => {
+  const handle: RunnerLogHandle = {
+    writer: Bun.file(artifacts.runnerLogPath).writer(),
+    pendingBytes: 0,
+    closed: false,
+    flushTimer: setInterval(() => {
+      if (handle.closed || handle.pendingBytes === 0) {
+        return
+      }
+      handle.pendingBytes = 0
+      void handle.writer.flush()
+    }, RUNNER_LOG_FLUSH_INTERVAL_MS),
+  }
+  handle.flushTimer.unref()
+  runnerLogHandles.set(artifacts, handle)
+}
+
+const endRunnerLogSink = async (artifacts: TestRunArtifacts): Promise<void> => {
+  const handle = runnerLogHandles.get(artifacts)
+  if (!handle || handle.closed) {
+    return
+  }
+  handle.closed = true
+  clearInterval(handle.flushTimer)
+  handle.pendingBytes = 0
+  await handle.writer.end()
+  runnerLogHandles.delete(artifacts)
 }
 
 const ensureParentDirectory = async (path: string): Promise<void> => {
@@ -164,6 +225,7 @@ export const cleanupTestOutputRoot = async (
 }
 
 export const cleanupRunArtifacts = async (artifacts: TestRunArtifacts): Promise<void> => {
+  await endRunnerLogSink(artifacts)
   await rm(artifacts.runDir, { recursive: true, force: true })
 }
 
@@ -196,12 +258,11 @@ export const createRunArtifacts = async (rootDir = TEST_OUTPUT_ROOT): Promise<Te
     pid: process.pid,
     startedAt: startedAtIso,
   }, null, 2)}\n`)
-  await Bun.write(runnerLogPath, '')
   await Bun.write(commandLogPath, '')
   await Bun.write(metricsLogPath, '')
   await mkdir(metadataDirPath, { recursive: true })
 
-  return {
+  const artifacts: TestRunArtifacts = {
     rootDir,
     runId,
     runDir,
@@ -217,11 +278,23 @@ export const createRunArtifacts = async (rootDir = TEST_OUTPUT_ROOT): Promise<Te
     startedAtMs,
     startedAtIso,
   }
+  openRunnerLogSink(artifacts)
+  return artifacts
 }
 
-export const appendRunnerLog = async (artifacts: TestRunArtifacts, text: string): Promise<void> => {
-  await ensureParentDirectory(artifacts.runnerLogPath)
-  await appendFile(artifacts.runnerLogPath, text)
+export const appendRunnerLog = (artifacts: TestRunArtifacts, text: string): void => {
+  const handle = runnerLogHandles.get(artifacts)
+  if (handle && !handle.closed) {
+    handle.writer.write(text)
+    handle.pendingBytes += text.length
+    if (handle.pendingBytes >= RUNNER_LOG_FLUSH_SIZE_BYTES) {
+      handle.pendingBytes = 0
+      void handle.writer.flush()
+    }
+    return
+  }
+
+  void appendFile(artifacts.runnerLogPath, text)
 }
 
 export const appendCommandLog = async (artifacts: TestRunArtifacts, text: string): Promise<void> => {
@@ -249,11 +322,14 @@ export const writeLatestRunLog = async (
   artifacts: TestRunArtifacts,
   exitCode: number
 ): Promise<string> => {
+  await endRunnerLogSink(artifacts)
   const latestLogPath = resolve(artifacts.rootDir, LATEST_LOG_FILE)
-  const report = await readJsonIfExists(artifacts.reportJsonPath)
-  const reportText = await readTextIfExists(artifacts.reportJsonPath)
-  const runnerLog = await readTextIfExists(artifacts.runnerLogPath)
-  const commandLog = await readTextIfExists(artifacts.commandLogPath)
+  const [reportText, runnerLog, commandLog] = await Promise.all([
+    readTextIfExists(artifacts.reportJsonPath),
+    readTextIfExists(artifacts.runnerLogPath),
+    readTextTailIfExists(artifacts.commandLogPath, COMMAND_LOG_TAIL_BYTES),
+  ])
+  const report = parseJsonRecord(reportText)
   const lines: string[] = []
 
   appendRunSummary(lines, report, artifacts, exitCode)

@@ -6,6 +6,9 @@ describe('config load schema contracts', () => {
   test('loadConfig accepts current array-shaped defaults', async () => {
     const fullConfig = {
       defaults: {
+        concurrency: {
+          mode: 'immediate'
+        },
         llm: {
           openai: ['gpt-5.4-mini'],
           grok: ['grok-4.3'],
@@ -59,26 +62,22 @@ describe('config load schema contracts', () => {
             elevenlabsTtsSeed: 12345,
             elevenlabsTtsTextNormalization: 'on',
             elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2'],
-            elevenlabsTtsOptimizeStreamingLatency: 2,
             minimaxTts: ['speech-2.8-turbo'],
             minimaxTtsVoice: 'AutoShowTestVoice',
             chunkConcurrency: 3
           },
           image: {
             bflImage: ['flux-2-pro'],
-            recraftImage: ['recraftv4_1'],
             replicateImage: ['wan-video/wan-2.7-image'],
             imageFormat: 'jpeg'
           },
           video: {
-            replicateVideo: ['wan-video/wan-2.7-t2v'],
+            replicateVideo: ['bytedance/seedance-2.0-fast'],
             replicateVideoSeed: 123,
             replicateVideoGenerateAudio: false,
             replicateVideoReferenceVideos: ['input/examples/video/reference.mp4'],
             replicateVideoReferenceAudios: ['input/examples/audio/reference.mp3'],
             replicateVideoNegativePrompt: 'blur',
-            replicateVideoAudio: 'input/examples/audio/narration.wav',
-            replicateVideoPromptExpansion: true,
             videoDuration: -1
           }
         }

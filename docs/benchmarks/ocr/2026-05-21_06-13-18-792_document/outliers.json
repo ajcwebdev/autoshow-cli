@@ -12,120 +12,89 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 1.19607,
-    "pageDisagreementQ1": 0.306638,
-    "pageDisagreementQ3": 0.662411
+    "highDisagreement": 0.952704,
+    "pageDisagreementQ1": 0.340314,
+    "pageDisagreementQ3": 0.58527
   },
-  "blankOutputPages": [],
+  "blankOutputPages": [
+    {
+      "pageNumber": 2,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 8,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 9,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    },
+    {
+      "pageNumber": 10,
+      "providers": [
+        "replicate/datalab-to/ocr",
+        "replicate/datalab-to/marker"
+      ]
+    }
+  ],
   "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "lengthDrift": 0.880137,
-          "tokenCount": 35
-        }
-      ]
-    },
-    {
-      "pageNumber": 3,
-      "providers": [
-        {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "lengthDrift": 0.737589,
-          "tokenCount": 37
-        }
-      ]
-    },
-    {
-      "pageNumber": 6,
-      "providers": [
-        {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "lengthDrift": 0.506173,
-          "tokenCount": 40
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 4.645367,
+          "tokenCount": 1767
         },
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "lengthDrift": 0.740741,
-          "tokenCount": 141
-        }
-      ]
-    },
-    {
-      "pageNumber": 7,
-      "providers": [
-        {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "lengthDrift": 0.42735,
-          "tokenCount": 67
-        }
-      ]
-    },
-    {
-      "pageNumber": 8,
-      "providers": [
-        {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "lengthDrift": 0.328358,
-          "tokenCount": 180
-        }
-      ]
-    },
-    {
-      "pageNumber": 9,
-      "providers": [
-        {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "lengthDrift": 0.659686,
-          "tokenCount": 65
-        }
-      ]
-    }
-  ],
-  "highDisagreementPages": [
-    {
-      "pageNumber": 1,
-      "pageDisagreement": 2.190119,
-      "selectedProviderKey": "anthropic/claude-sonnet-5",
-      "selectedConfidence": 0
-    }
-  ],
-  "werCerDivergencePages": [
-    {
-      "pageNumber": 1,
-      "providers": [
-        {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "wer": 1.372577,
-          "cer": 4.318445
-        },
-        {
-          "providerKey": "anthropic/claude-opus-4-8",
-          "wer": 1.372577,
-          "cer": 4.318445
-        },
-        {
-          "providerKey": "gemini/gemini-3.5-flash",
-          "wer": 1.372577,
-          "cer": 4.318445
-        },
-        {
-          "providerKey": "grok/grok-4.20-0309-non-reasoning",
-          "wer": 1.347586,
-          "cer": 4.165357
-        },
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 1.372577,
-          "cer": 4.318445
-        },
-        {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 1.372577,
-          "cer": 4.318445
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 4.341853,
+          "tokenCount": 1672
         }
       ]
     },
@@ -133,9 +102,19 @@
       "pageNumber": 2,
       "providers": [
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "wer": 1.136969,
-          "cer": 0.96668
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.475771,
+          "tokenCount": 335
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -143,34 +122,19 @@
       "pageNumber": 3,
       "providers": [
         {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "wer": 0.636758,
-          "cer": 1.619613
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
         },
         {
-          "providerKey": "anthropic/claude-opus-4-8",
-          "wer": 0.636758,
-          "cer": 1.619613
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.744681,
+          "tokenCount": 246
         },
         {
-          "providerKey": "gemini/gemini-3.5-flash",
-          "wer": 0.636758,
-          "cer": 1.619613
-        },
-        {
-          "providerKey": "grok/grok-4.20-0309-non-reasoning",
-          "wer": 0.637659,
-          "cer": 1.58157
-        },
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.636758,
-          "cer": 1.619613
-        },
-        {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 0.636758,
-          "cer": 1.619613
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -178,9 +142,19 @@
       "pageNumber": 4,
       "providers": [
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "wer": 1.192122,
-          "cer": 0.805428
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.41954,
+          "tokenCount": 247
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -188,34 +162,19 @@
       "pageNumber": 5,
       "providers": [
         {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "wer": 0.224711,
-          "cer": 0.590879
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
         },
         {
-          "providerKey": "anthropic/claude-opus-4-8",
-          "wer": 0.224711,
-          "cer": 0.590879
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.380435,
+          "tokenCount": 127
         },
         {
-          "providerKey": "gemini/gemini-3.5-flash",
-          "wer": 0.224711,
-          "cer": 0.590879
-        },
-        {
-          "providerKey": "grok/grok-4.20-0309-non-reasoning",
-          "wer": 0.253708,
-          "cer": 0.591704
-        },
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.224711,
-          "cer": 0.590879
-        },
-        {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 0.224711,
-          "cer": 0.590879
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -223,9 +182,24 @@
       "pageNumber": 6,
       "providers": [
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "wer": 2.011739,
-          "cer": 1.827127
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "lengthDrift": 0.942029,
+          "tokenCount": 4
+        },
+        {
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "lengthDrift": 0.623188,
+          "tokenCount": 112
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -233,34 +207,19 @@
       "pageNumber": 7,
       "providers": [
         {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "wer": 0.484661,
-          "cer": 0.82029
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
         },
         {
-          "providerKey": "anthropic/claude-opus-4-8",
-          "wer": 0.323804,
-          "cer": 0.527949
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "lengthDrift": 0.690265,
+          "tokenCount": 35
         },
         {
-          "providerKey": "gemini/gemini-3.5-flash",
-          "wer": 0.323804,
-          "cer": 0.527949
-        },
-        {
-          "providerKey": "grok/grok-4.20-0309-non-reasoning",
-          "wer": 0.347434,
-          "cer": 0.533814
-        },
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.323804,
-          "cer": 0.527949
-        },
-        {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 0.323804,
-          "cer": 0.527949
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -268,9 +227,19 @@
       "pageNumber": 8,
       "providers": [
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "wer": 0.914594,
-          "cer": 0.701295
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.419231,
+          "tokenCount": 369
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -278,34 +247,19 @@
       "pageNumber": 9,
       "providers": [
         {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "wer": 0.494465,
-          "cer": 0.84677
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
         },
         {
-          "providerKey": "anthropic/claude-opus-4-8",
-          "wer": 0.494465,
-          "cer": 0.84677
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.94382,
+          "tokenCount": 346
         },
         {
-          "providerKey": "gemini/gemini-3.5-flash",
-          "wer": 0.494465,
-          "cer": 0.84677
-        },
-        {
-          "providerKey": "grok/grok-4.20-0309-non-reasoning",
-          "wer": 0.501571,
-          "cer": 0.837985
-        },
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.494465,
-          "cer": 0.84677
-        },
-        {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 0.494465,
-          "cer": 0.84677
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
         }
       ]
     },
@@ -313,9 +267,90 @@
       "pageNumber": 10,
       "providers": [
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "wer": 0.987174,
-          "cer": 0.790392
+          "providerKey": "replicate/datalab-to/ocr",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.449664,
+          "tokenCount": 216
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 1,
+          "tokenCount": 0
+        }
+      ]
+    }
+  ],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 1.434099,
+      "selectedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "selectedConfidence": 0.499497
+    },
+    {
+      "pageNumber": 6,
+      "pageDisagreement": 2.137359,
+      "selectedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "selectedConfidence": 0
+    }
+  ],
+  "werCerDivergencePages": [
+    {
+      "pageNumber": 3,
+      "providers": [
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 0.643436,
+          "cer": 0.360537
+        }
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "providers": [
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 0.423844,
+          "cer": 0.228689
+        }
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "providers": [
+        {
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 3.005238,
+          "cer": 1.907594
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 3.534775,
+          "cer": 2.213243
+        },
+        {
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "wer": 4.934965,
+          "cer": 2.874943
+        },
+        {
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 3.125561,
+          "cer": 2.068072
+        }
+      ]
+    },
+    {
+      "pageNumber": 9,
+      "providers": [
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 0.694947,
+          "cer": 0.364653
         }
       ]
     }
@@ -323,45 +358,21 @@
   "lowConfidencePages": [
     {
       "pageNumber": 1,
-      "selectedProviderKey": "anthropic/claude-sonnet-5",
-      "selectedConfidence": 0,
-      "pageDisagreement": 2.190119
-    },
-    {
-      "pageNumber": 3,
-      "selectedProviderKey": "gemini/gemini-3.5-flash",
-      "selectedConfidence": 0,
-      "pageDisagreement": 0.977901
-    },
-    {
-      "pageNumber": 5,
-      "selectedProviderKey": "gemini/gemini-3.5-flash",
-      "selectedConfidence": 0.423625,
-      "pageDisagreement": 0.43234
+      "selectedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "selectedConfidence": 0.499497,
+      "pageDisagreement": 1.434099
     },
     {
       "pageNumber": 6,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.489261,
-      "pageDisagreement": 0.648111
+      "selectedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "selectedConfidence": 0,
+      "pageDisagreement": 2.137359
     },
     {
       "pageNumber": 7,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.366406,
-      "pageDisagreement": 0.503749
-    },
-    {
-      "pageNumber": 9,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.066008,
-      "pageDisagreement": 0.667178
-    },
-    {
-      "pageNumber": 10,
-      "selectedProviderKey": "openai/gpt-5.4-mini",
-      "selectedConfidence": 0.683386,
-      "pageDisagreement": 0.336906
+      "selectedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "selectedConfidence": 0.338288,
+      "pageDisagreement": 0.636382
     }
   ]
 }

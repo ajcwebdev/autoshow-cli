@@ -100,6 +100,28 @@ export const computeRenderIdentity = (input: {
   outputProfileHash: string
 }): string => hashCanonicalTtsValue(input)
 
+export const computePaidSpeechSlotHash = (input: {
+  dialoguePlanId: string
+  turnIds: readonly string[]
+  providerText: string
+  serializedVoiceHash: string
+  requestControlsHash: string
+  outputFormat: unknown
+  endpointKind: string
+  serializerVersion: string
+}): string => hashCanonicalTtsValue({
+  schemaVersion: 1,
+  kind: 'paid-speech-slot',
+  dialoguePlanId: input.dialoguePlanId,
+  turnIds: [...input.turnIds],
+  providerText: input.providerText,
+  serializedVoiceHash: input.serializedVoiceHash,
+  requestControlsHash: input.requestControlsHash,
+  outputFormat: input.outputFormat,
+  endpointKind: input.endpointKind,
+  serializerVersion: input.serializerVersion,
+})
+
 export const computeLegacySingleRenderIdentity = (input: {
   itemInput: string
   targetKey: string

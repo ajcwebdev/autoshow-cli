@@ -33,8 +33,8 @@ describe('setup performance artifact', () => {
 
     await recordSetupPerformancePhase('mupdf', 'archive-preparation', async () => {}, { sourceCached: false })
     await Promise.all([
-      recordSetupPerformancePhase('mupdf', 'compile-link', async () => { await Bun.sleep(15) }, { parallelJobs: 8 }),
-      recordSetupPerformancePhase('qpdf', 'compile-link', async () => { await Bun.sleep(15) }, { parallelJobs: 8 })
+      recordSetupPerformancePhase('mupdf', 'compile-link', async () => { await Bun.sleep(8) }, { parallelJobs: 8 }),
+      recordSetupPerformancePhase('qpdf', 'compile-link', async () => { await Bun.sleep(8) }, { parallelJobs: 8 })
     ])
 
     const result = await finishSetupPerformanceRun({

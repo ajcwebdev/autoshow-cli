@@ -29,7 +29,6 @@ export const validateTtsTargetSelection = (
     }
 
     const allProviderModels = [
-      { provider: 'kitten' as const, models: selection.kittenModels },
       { provider: 'elevenlabs' as const, models: selection.elevenlabsModels },
       { provider: 'minimax' as const, models: selection.minimaxModels },
       { provider: 'groq' as const, models: selection.groqModels },
@@ -101,6 +100,9 @@ export const validateTtsTargetSelection = (
   if ((selection.openaiInstructions || typeof selection.openaiSpeed === 'number') && selection.openaiModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('OpenAI TTS', 'openai', 'request control flags'))
   }
+  if (selection.inworldInstructions && selection.inworldModels.length === 0) {
+    throw CLIUsageError(requireProviderSelectionMessage('Inworld TTS', 'inworld', 'request control flags'))
+  }
   if (selection.openaiInstructions) {
     const incompatibleModels = selection.openaiModels.filter((model) => model !== 'gpt-4o-mini-tts-2025-12-15')
     if (incompatibleModels.length > 0) {
@@ -146,7 +148,6 @@ export const validateTtsTargetSelection = (
     || typeof selection.elevenLabsSeed === 'number'
     || selection.elevenLabsTextNormalization
     || (selection.elevenLabsPronunciationDictionaryLocators && selection.elevenLabsPronunciationDictionaryLocators.length > 0)
-    || typeof selection.elevenLabsOptimizeStreamingLatency === 'number'
   )
   if (hasElevenLabsRequestControlFlags && selection.elevenlabsModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('ElevenLabs TTS', 'elevenlabs', 'request control flags'))

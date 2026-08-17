@@ -498,6 +498,16 @@ const parseCommandTreeArgv = (
   const subcommandIndex = findSubcommandIndex(argv, command, globalFlags)
   if (subcommandIndex === undefined) {
     const parsed = parseCommandArgv(argv, command, globalFlags)
+    if (parsed.mode === 'help' || parsed.mode === 'version') {
+      return parsed
+    }
+    if (command.defaultSubcommand) {
+      const defaultCommand = createSubcommandMap(command).get(command.defaultSubcommand)
+      if (defaultCommand === undefined) {
+        throw new NativeNoSuchCommandError(`${command.name} ${command.defaultSubcommand}`)
+      }
+      return parseCommandTreeArgv([defaultCommand.name, ...argv.slice(1)], defaultCommand, globalFlags)
+    }
     return parsed.mode === 'command' && Object.keys(parsed.rawParsed.unknown).length === 0
       ? { ...parsed, mode: 'help' }
       : parsed
@@ -530,7 +540,7 @@ const parseCommandTreeArgv = (
     throw new NativeNoSuchCommandError(`${command.name} ${subcommandName}`)
   }
 
-  return parseCommandArgv([
+  return parseCommandTreeArgv([
     subcommand.name,
     ...argv.slice(1, subcommandIndex),
     ...argv.slice(subcommandIndex + 1)

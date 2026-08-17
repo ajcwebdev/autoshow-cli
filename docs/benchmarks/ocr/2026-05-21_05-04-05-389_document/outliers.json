@@ -12,76 +12,112 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 2.055237,
-    "pageDisagreementQ1": 0.461587,
-    "pageDisagreementQ3": 1.099047
+    "highDisagreement": 131.988286,
+    "pageDisagreementQ1": 131.988286,
+    "pageDisagreementQ3": 131.988286
   },
-  "blankOutputPages": [
-    {
-      "pageNumber": 0,
-      "providers": [
-        "anthropic/claude-haiku-4-5",
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-5",
-        "gemini/gemini-3.5-flash",
-        "grok/grok-4.20-0309-non-reasoning",
-        "openai/gpt-5.4-mini"
-      ]
-    },
+  "blankOutputPages": [],
+  "repeatedTextPages": [
     {
       "pageNumber": 1,
       "providers": [
-        "mistral/mistral-ocr-4-0"
+        "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct"
       ]
     }
   ],
-  "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "lengthDrift": 1,
-          "tokenCount": 2411
-        }
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "lengthDrift": 0.815072,
-          "tokenCount": 346
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "lengthDrift": 0.859658,
+          "tokenCount": 3485
         },
         {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "lengthDrift": 1,
-          "tokenCount": 0
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.367129,
+          "tokenCount": 2562
         },
         {
-          "providerKey": "openai/gpt-5.4-mini",
-          "lengthDrift": 0.793693,
-          "tokenCount": 386
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "lengthDrift": 0.717182,
+          "tokenCount": 530
+        },
+        {
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "lengthDrift": 0.998933,
+          "tokenCount": 2
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 0.721985,
+          "tokenCount": 521
+        },
+        {
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "lengthDrift": 0.761473,
+          "tokenCount": 3301
         }
       ]
     }
   ],
-  "highDisagreementPages": [],
-  "werCerDivergencePages": [],
-  "lowConfidencePages": [
-    {
-      "pageNumber": 0,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.45,
-      "pageDisagreement": 0.142857
-    },
+  "highDisagreementPages": [
     {
       "pageNumber": 1,
-      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "pageDisagreement": 131.988286,
+      "selectedProviderKey": "fal/fal-ai/got-ocr/v2",
+      "selectedConfidence": 0
+    }
+  ],
+  "werCerDivergencePages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "replicate/datalab-to/ocr",
+          "wer": 161.851303,
+          "cer": 180.318577
+        },
+        {
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 108.70449,
+          "cer": 121.049232
+        },
+        {
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "wer": 251.490106,
+          "cer": 279.221939
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 184.781186,
+          "cer": 185.743183
+        },
+        {
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "wer": 38.604424,
+          "cer": 36.405992
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "wer": 37.943601,
+          "cer": 44.123097
+        },
+        {
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 238.214523,
+          "cer": 269.921297
+        }
+      ]
+    }
+  ],
+  "lowConfidencePages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "fal/fal-ai/got-ocr/v2",
       "selectedConfidence": 0,
-      "pageDisagreement": 1.417777
+      "pageDisagreement": 131.988286
     }
   ]
 }

@@ -1,8 +1,5 @@
-import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import type { ProviderVoiceRef, TtsEntryMetadata } from '~/types'
+import { describe, expect, test } from 'bun:test'
+import type { ProviderVoiceRef } from '~/types'
 import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import {
@@ -17,15 +14,9 @@ import {
   createSpeechifyAdvancedProvider,
   SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE,
 } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-advanced-provider'
-import { discoverAudioFiles, makeProviderKey, makeTtsBenchmarkKey } from '~/cli/commands/setup-and-utilities/benchmark/tts-eval-lib'
 
 const CHECKED_AT = '2026-08-11T00:00:00.000Z'
 const protectedSample = { storeId: 'voice_store', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64) }
-const roots: string[] = []
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
-})
 
 describe('Phase 4 capability fixtures', () => {
   test('declare implemented management facets without inventing native dialogue or design support', () => {
@@ -112,28 +103,5 @@ describe('Cartesia and Speechify advanced voice adapters', () => {
     const createCall = calls[1]
     expect(createCall?.headers).toEqual({ 'Idempotency-Key': 'attempt-speechify' })
     expect((createCall?.body as FormData).get('consent')).toBe(JSON.stringify({ fullName: 'Authorized Speaker', email: 'speaker@example.com' }))
-  })
-})
-
-describe('voice-aware TTS benchmark identity', () => {
-  test('keeps same-provider/model renders distinct while preserving explicit legacy fallback', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-tts-benchmark-'))
-    roots.push(root)
-    await Promise.all([writeFile(join(root, 'voice-a.wav'), 'a'), writeFile(join(root, 'voice-b.wav'), 'b')])
-    const base: Omit<TtsEntryMetadata, 'audioFileName'> = { ttsService: 'openai', ttsModel: 'gpt-4o-mini-tts', processingTime: 1, audioFileSize: 1, chunkCount: 1, targetKey: 'tts-synthesis:openai:gpt-4o-mini-tts:hosted-api' }
-    const entries: TtsEntryMetadata[] = [
-      { ...base, audioFileName: 'voice-a.wav', renderIdentity: 'a'.repeat(64), snapshotEntryId: 'entry-a', characterIdentity: 'hero' },
-      { ...base, audioFileName: 'voice-b.wav', renderIdentity: 'b'.repeat(64), snapshotEntryId: 'entry-b', characterIdentity: 'narrator' }
-    ]
-    const firstKey = makeTtsBenchmarkKey(entries[0]!)
-    const secondKey = makeTtsBenchmarkKey(entries[1]!)
-    expect(firstKey).not.toBe(secondKey)
-    expect(firstKey).toContain(`render:${'a'.repeat(64)}`)
-    expect(firstKey).toContain('snapshot-entry:entry-a')
-    expect(firstKey).toContain('character:hero')
-    const discovered = discoverAudioFiles(root, entries)
-    expect(discovered.found.size).toBe(2)
-    expect(makeProviderKey('openai', 'gpt-4o-mini-tts')).toBe('openai/gpt-4o-mini-tts')
-    expect(makeTtsBenchmarkKey({ ...entries[0]!, targetKey: undefined, renderIdentity: undefined, snapshotEntryId: undefined, characterIdentity: undefined })).toBe('legacy:openai/gpt-4o-mini-tts')
   })
 })

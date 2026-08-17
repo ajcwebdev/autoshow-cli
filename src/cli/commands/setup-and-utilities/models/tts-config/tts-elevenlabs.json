@@ -16,28 +16,6 @@
           "costMultiplier": 1,
           "msPer1KChars": 35885
         }
-      },
-      "eleven_multilingual_v2": {
-        "description": "ElevenLabs Multilingual v2",
-        "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "ElevenLabs API text-to-speech pricing",
-        "pricingNotes": "ElevenLabs Multilingual v2 TTS is estimated at $0.10/1K characters. Timing is provisional pending separately approved calibration. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsCents": 10,
-        "limits": { "maxInputCharacters": 10000 },
-        "estimation": { "costMultiplier": 1, "msPer1KChars": 35885 }
-      },
-      "eleven_flash_v2_5": {
-        "description": "ElevenLabs Flash v2.5",
-        "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "ElevenLabs API text-to-speech pricing",
-        "pricingNotes": "ElevenLabs Flash v2.5 TTS is estimated at $0.05/1K characters. Timing is provisional pending separately approved calibration. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsCents": 5,
-        "limits": { "maxInputCharacters": 40000 },
-        "estimation": { "costMultiplier": 1, "msPer1KChars": 35885 }
       }
     }
   }

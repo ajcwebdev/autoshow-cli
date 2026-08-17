@@ -24,6 +24,6 @@ test('mistral named saved-voice creation is rejected before provider setup', asy
   expect(result.exitCode).toBe(2)
   expect(result.outputDir).toBeNull()
   expect(output).toContain('cannot perform named saved-reference creation during TTS synthesis')
-  expect(output).toContain('comic reference-voice')
+  expect(output).toContain('The voice command does not create Mistral saved voices')
   expect(output).not.toContain('MISTRAL_API_KEY')
 })

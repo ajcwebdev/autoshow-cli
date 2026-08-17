@@ -8,10 +8,7 @@ import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
 import { writeLegacyTtsManifestFixture } from '../../../../test-utils/manifest-helpers'
 import {
-  deprecatedOverallTierKey,
-  deprecatedTierSplitKey,
   expectTtsRankingSurfaces,
-  hasOwnKeyDeep,
   runConsensusBuildReport,
   setupTempRoots,
   writeJson
@@ -26,10 +23,6 @@ describe('grouped report contracts', () => {
       await writeFile(inputTextPath, 'A short input text for synthetic speech comparison.\n')
 
       const ttsEntries = [
-        { ttsService: 'kitten', ttsModel: 'kitten-tts-a', speaker: 'A', processingTime: 4000, audioFileName: 'missing-local-a.wav', audioFileSize: 100, chunkCount: 1 },
-        { ttsService: 'kitten', ttsModel: 'kitten-tts-b', speaker: 'B', processingTime: 1000, audioFileName: 'missing-local-b.wav', audioFileSize: 110, chunkCount: 1 },
-        { ttsService: 'kitten', ttsModel: 'kitten-tts-c', speaker: 'C', processingTime: 3000, audioFileName: 'missing-local-c.wav', audioFileSize: 115, chunkCount: 1 },
-        { ttsService: 'kitten', ttsModel: 'kitten-tts-d', speaker: 'D', processingTime: 2000, audioFileName: 'missing-local-d.wav', audioFileSize: 118, chunkCount: 1 },
         { ttsService: 'openai', ttsModel: 'gpt-4o-mini-tts', speaker: 'alloy', processingTime: 2500, audioFileName: 'missing-openai.wav', audioFileSize: 120, chunkCount: 1 },
         { ttsService: 'elevenlabs', ttsModel: 'eleven_v3', speaker: 'Rachel', processingTime: 900, audioFileName: 'missing-elevenlabs.wav', audioFileSize: 130, chunkCount: 1 },
         { ttsService: 'minimax', ttsModel: 'speech-02-hd', speaker: 'Wise_Woman', processingTime: 1800, audioFileName: 'missing-minimax.wav', audioFileSize: 140, chunkCount: 1 },
@@ -37,10 +30,6 @@ describe('grouped report contracts', () => {
       ]
 
       const qualityByProvider: Record<string, { humanSpeechScore: number, medianWer: number }> = {
-        'kitten/kitten-tts-a': { humanSpeechScore: 80, medianWer: 0.05 },
-        'kitten/kitten-tts-b': { humanSpeechScore: 93, medianWer: 0.15 },
-        'kitten/kitten-tts-c': { humanSpeechScore: 75, medianWer: 0.02 },
-        'kitten/kitten-tts-d': { humanSpeechScore: 87, medianWer: 0.1 },
         'openai/gpt-4o-mini-tts': { humanSpeechScore: 91, medianWer: 0.04 },
         'elevenlabs/eleven_v3': { humanSpeechScore: 85, medianWer: 0.12 },
         'minimax/speech-02-hd': { humanSpeechScore: 70, medianWer: 0.01 },
@@ -78,7 +67,7 @@ describe('grouped report contracts', () => {
             providerKey,
             ttsService: entry.ttsService,
             ttsModel: entry.ttsModel,
-            group: entry.ttsService === 'kitten' ? 'local' : 'cloud',
+            group: 'cloud',
             humanSpeechScore: quality.humanSpeechScore,
             metricDetails: {
               roundtripStt: {
@@ -111,38 +100,29 @@ describe('grouped report contracts', () => {
         providers?: unknown
       }
 
-      expect(hasOwnKeyDeep(report, deprecatedTierSplitKey)).toBe(false)
-      expect(hasOwnKeyDeep(report, deprecatedOverallTierKey)).toBe(false)
       expect(report.overall).toBeUndefined()
       expect(report.providers).toBeUndefined()
       expectTtsRankingSurfaces(report)
       expect(report.tiering.metric).toBe('balanced-overall')
       expect(report.tiering.method).toBe('equal-thirds-by-group-overall-rank')
-      expect(report.tiering.groups.local.tiers.map((tier) => tier.count)).toEqual([1, 1, 2])
+      expect(report.tiering.groups.local.tiers.map((tier) => tier.count)).toEqual([0, 0, 0])
       expect(report.tiering.groups.thirdParty.tiers.map((tier) => tier.count)).toEqual([1, 1, 2])
-      expect(report.providerGroups.local.providers.every((provider) => provider.tierGroup === 'local')).toBe(true)
+      expect(report.providerGroups.local.providers).toEqual([])
       expect(report.providerGroups.service.providers.every((provider) => provider.tierGroup === 'thirdParty')).toBe(true)
-      expect([...report.providerGroups.local.providers, ...report.providerGroups.service.providers].every((provider) => provider.groupOverallRank > 0 && [1, 2, 3].includes(provider.groupTier))).toBe(true)
-      expect(report.rankingSurfaces.local.price).toHaveLength(4)
+      expect(report.providerGroups.service.providers.every((provider) => provider.groupOverallRank > 0 && [1, 2, 3].includes(provider.groupTier))).toBe(true)
+      expect(report.rankingSurfaces.local.price).toHaveLength(0)
       expect(report.rankingSurfaces.service.price).toHaveLength(4)
-      expect(report.rankingSurfaces.local.speed).toHaveLength(4)
+      expect(report.rankingSurfaces.local.speed).toHaveLength(0)
       expect(report.rankingSurfaces.service.speed).toHaveLength(4)
-      expect(report.rankingSurfaces.local.automatedQuality).toHaveLength(4)
+      expect(report.rankingSurfaces.local.automatedQuality).toHaveLength(0)
       expect(report.rankingSurfaces.service.automatedQuality).toHaveLength(4)
-      expect(report.rankingSurfaces.local.humanQuality).toHaveLength(4)
+      expect(report.rankingSurfaces.local.humanQuality).toHaveLength(0)
       expect(report.rankingSurfaces.service.humanQuality).toHaveLength(4)
-      expect(report.rankingSurfaces.local.price.every((entry) => entry.value === 0 && entry.label === '$0.00 local monetary cost')).toBe(true)
       expect(report.rankingSurfaces.service.price.map((entry) => entry.providerKey)).toEqual([
         'minimax/speech-02-hd',
         'openai/gpt-4o-mini-tts',
         'elevenlabs/eleven_v3',
         'cartesia/sonic-3'
-      ])
-      expect(report.rankingSurfaces.local.speed.map((entry) => entry.providerKey)).toEqual([
-        'kitten/kitten-tts-b',
-        'kitten/kitten-tts-d',
-        'kitten/kitten-tts-c',
-        'kitten/kitten-tts-a'
       ])
       expect(report.rankingSurfaces.service.speed.map((entry) => entry.providerKey)).toEqual([
         'elevenlabs/eleven_v3',
@@ -150,40 +130,21 @@ describe('grouped report contracts', () => {
         'openai/gpt-4o-mini-tts',
         'cartesia/sonic-3'
       ])
-      expect(report.rankingSurfaces.local.automatedQuality.map((entry) => entry.providerKey)).toEqual([
-        'kitten/kitten-tts-c',
-        'kitten/kitten-tts-a',
-        'kitten/kitten-tts-d',
-        'kitten/kitten-tts-b'
-      ])
       expect(report.rankingSurfaces.service.automatedQuality.map((entry) => entry.providerKey)).toEqual([
         'minimax/speech-02-hd',
         'openai/gpt-4o-mini-tts',
         'cartesia/sonic-3',
         'elevenlabs/eleven_v3'
       ])
-      expect(report.rankingSurfaces.local.automatedQuality.every((entry) => entry.metric === 'roundtrip WER accuracy' && entry.label.includes('roundtrip WER'))).toBe(true)
       expect(report.rankingSurfaces.service.automatedQuality.every((entry) => entry.metric === 'roundtrip WER accuracy' && entry.label.includes('roundtrip WER'))).toBe(true)
-      expect(report.rankingSurfaces.local.humanQuality.map((entry) => entry.providerKey)).toEqual([
-        'kitten/kitten-tts-b',
-        'kitten/kitten-tts-d',
-        'kitten/kitten-tts-a',
-        'kitten/kitten-tts-c'
-      ])
       expect(report.rankingSurfaces.service.humanQuality.map((entry) => entry.providerKey)).toEqual([
         'cartesia/sonic-3',
         'openai/gpt-4o-mini-tts',
         'elevenlabs/eleven_v3',
         'minimax/speech-02-hd'
       ])
-      expect(report.rankingSurfaces.local.highestQuality.map((entry) => entry.providerKey)).toEqual(
-        report.rankingSurfaces.local.humanQuality.map((entry) => entry.providerKey)
-      )
       expect(report.rankingSurfaces.service.highestQuality.map((entry) => entry.providerKey)).toEqual(
         report.rankingSurfaces.service.humanQuality.map((entry) => entry.providerKey)
-      )
-      expect(report.rankingSurfaces.local.fastest.map((entry) => entry.providerKey)).toEqual(
-        report.rankingSurfaces.local.speed.map((entry) => entry.providerKey)
       )
       expect(report.rankingSurfaces.service.cheapest.map((entry) => entry.providerKey)).toEqual(
         report.rankingSurfaces.service.price.map((entry) => entry.providerKey)

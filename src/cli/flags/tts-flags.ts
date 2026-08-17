@@ -4,7 +4,7 @@ import {
   SUPPORTED_HUME_TTS_VOICE_PROVIDERS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { SPEECHIFY_CUSTOM_VOICE_GENDERS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
-import { batchFlags, booleanAllLocalFlag, booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
+import { batchFlags, booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { boolFlag, formatProviderList, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
@@ -30,11 +30,11 @@ export const ttsFlags = {
   'elevenlabs-tts-style': strFlag('ElevenLabs voice_settings style from 0 to 1'),
   'elevenlabs-tts-use-speaker-boost': boolFlag('Enable ElevenLabs voice_settings use_speaker_boost'),
   'elevenlabs-tts-seed': strFlag('ElevenLabs deterministic generation seed'),
-  'elevenlabs-tts-pronunciation-dictionary-locator': strListFlag('ElevenLabs pronunciation dictionary locator; repeatable as dictionary_id or dictionary_id:version_id'),
-  'elevenlabs-tts-optimize-streaming-latency': strFlag('ElevenLabs optimize_streaming_latency value from 0 to 4')
+  'elevenlabs-tts-pronunciation-dictionary-locator': strListFlag('ElevenLabs pronunciation dictionary locator; repeatable as dictionary_id or dictionary_id:version_id')
 } as const satisfies CliFlagsDefinition
 
 export const genericTtsOptionFlags = {
+  'tts-allow-ambiguous-redispatch': boolFlag('Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio'),
   'tts-voice': strListFlag('Generic TTS voice selector. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-speed': strListFlag('Generic TTS speed. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-language': strListFlag('Generic TTS language. Use value with one selected provider, or provider=value with multiple providers.'),
@@ -45,13 +45,12 @@ export const genericTtsOptionFlags = {
   'tts-text-normalization': strListFlag('Generic TTS text normalization. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-instructions': strListFlag('Generic TTS voice/style instructions. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-output-format': strListFlag('Generic TTS output format. Use value with one selected provider, or provider=value with multiple providers.'),
-  'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (default 30; Grok-only default 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
+  'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (Grok-only default 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
 } as const satisfies CliFlagsDefinition
 
 const ttsProviderSelectionFlags = {
-  provider: strListFlag(`TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}; repeatable (default: kitten)`),
+  provider: strListFlag(`TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}; repeatable (default: cheapest hosted)`),
   ...booleanAllProvidersFlag,
-  ...booleanAllLocalFlag,
   ...sharedConcurrencyFlags
 } as const satisfies CliFlagsDefinition
 
@@ -90,8 +89,7 @@ const elevenlabsTtsCommandOptionNames = [
   'elevenlabs-tts-style',
   'elevenlabs-tts-use-speaker-boost',
   'elevenlabs-tts-seed',
-  'elevenlabs-tts-pronunciation-dictionary-locator',
-  'elevenlabs-tts-optimize-streaming-latency'
+  'elevenlabs-tts-pronunciation-dictionary-locator'
 ] as const
 
 export const ttsCommandFlags = {

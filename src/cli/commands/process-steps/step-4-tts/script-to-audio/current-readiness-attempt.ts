@@ -137,7 +137,7 @@ export const createCurrentTtsBlockedReadinessState = async (
   const accountScopeHash = hashCanonicalTtsValue({
     provider: options.target.service,
     transport: plan.transport,
-    credentialScope: options.target.service === 'kitten' ? 'local-process' : 'configured-provider-account'
+    credentialScope: 'configured-provider-account'
   })
   const capabilityObservation = withIdentity({
     capabilityScopeHash: plan.capabilityScopeHash,
@@ -255,7 +255,7 @@ export const createCurrentTtsBlockedReadinessState = async (
   return {
     service: options.target.service,
     model: options.target.model,
-    local: options.target.service === 'kitten',
+    local: false,
     operation: plan.operation,
     targetKey: plan.targetKey,
     transport: plan.transport,

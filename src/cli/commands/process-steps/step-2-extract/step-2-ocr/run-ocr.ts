@@ -1,8 +1,8 @@
-import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DocumentMetadata, EpubArtifactFile, ExtractionMetadata, ExtractionOptions, ExtractionResult, HostedOcrRun, PageResult } from '~/types'
-import { CLIUsageError, isAppError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import { writeFile } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildPdfChapterArtifacts } from './pdf/ocr-chapters/ocr-chapter-artifacts'
@@ -12,7 +12,6 @@ import {
   shouldExportEpubChapters
 } from './chapter-export-defaults'
 import { buildEpubTextOutput } from './ebook/epub/export'
-import { EPUB_UNREADABLE_CONTENT_REASON } from './ebook/epub/inspect-core'
 import { runEpubBunInspect } from './ebook/epub/run-epub-bun-inspect'
 import {
   countSelectedOcrEngines,
@@ -55,54 +54,6 @@ import {
 
 const allInspectedEpubChaptersAreEmpty = (chapters: Array<{ text: string }>): boolean =>
   chapters.length > 0 && chapters.every((chapter) => chapter.text.trim().length === 0)
-
-const isUnreadableEpubContentError = (error: unknown): boolean =>
-  isAppError(error) && error.metadata['reason'] === EPUB_UNREADABLE_CONTENT_REASON
-
-const maybeWriteAcsmFulfillmentHandoff = async (
-  filePath: string,
-  step1Metadata: DocumentMetadata,
-  outputDir: string,
-  error: unknown
-): Promise<void> => {
-  if (!isUnreadableEpubContentError(error)) return
-  if (step1Metadata.sourceFormat !== 'acsm' || step1Metadata.format !== 'epub') return
-
-  const handoffDir = join(outputDir, 'fulfilled')
-  const fulfilledRelativePath = 'fulfilled/fulfilled.epub'
-  const fulfilledOutputPath = join(outputDir, fulfilledRelativePath)
-  await mkdir(handoffDir, { recursive: true })
-  await cp(filePath, fulfilledOutputPath)
-  await writeFile(join(outputDir, 'acsm-handoff.md'), [
-    '# ACSM Fulfillment Handoff',
-    '',
-    `ACSM fulfillment completed and produced \`${fulfilledRelativePath}\`, but AutoShow could not extract text because the EPUB content appears encrypted or unsupported.`,
-    '',
-    'AutoShow does not remove DRM or decrypt EPUB content.',
-    '',
-    'If you have a readable EPUB or PDF from your own authorized workflow, run:',
-    '',
-    '```sh',
-    'bun autoshow extract path/to/readable.epub',
-    '```',
-    ''
-  ].join('\n'))
-  l.write('info', `Saved ACSM fulfillment handoff artifact: ${fulfilledOutputPath}`)
-}
-
-const inspectEpubWithAcsmHandoff = async <T>(
-  filePath: string,
-  step1Metadata: DocumentMetadata,
-  outputDir: string,
-  inspect: () => Promise<T>
-): Promise<T> => {
-  try {
-    return await inspect()
-  } catch (error) {
-    await maybeWriteAcsmFulfillmentHandoff(filePath, step1Metadata, outputDir, error)
-    throw error
-  }
-}
 
 export const runOcr = async (
   filePath: string,
@@ -215,12 +166,7 @@ export const runOcr = async (
       l.warn(EPUB_EXPORT_FLAGS_IGNORED_INSPECT_WARNING)
     }
     l.write('info', 'Inspecting EPUB with Bun ZIP/XML parser')
-    const inspected = await inspectEpubWithAcsmHandoff(
-      filePath,
-      step1Metadata,
-      opts.outputDir,
-      async () => await runEpubBunInspect(filePath)
-    )
+    const inspected = await runEpubBunInspect(filePath)
     pages = inspected.payload.chapters.map((chapter) => ({
       pageNumber: chapter.index,
       method: 'text',
@@ -230,12 +176,7 @@ export const runOcr = async (
     epubPayload = inspected.payload as Record<string, unknown>
   } else if (inputAdapter.family === 'epub' && !hasOcrFlag(opts)) {
     l.write('info', 'Extracting EPUB chapter text with Bun ZIP/XML parser')
-    const inspected = await inspectEpubWithAcsmHandoff(
-      filePath,
-      step1Metadata,
-      opts.outputDir,
-      async () => await runEpubBunInspect(filePath)
-    )
+    const inspected = await runEpubBunInspect(filePath)
     if (allInspectedEpubChaptersAreEmpty(inspected.payload.chapters)) {
       throw ValidationError(
         'Native EPUB text extraction returned no text for any inspected chapter. The EPUB XHTML may be malformed or unsupported by the native extractor; retry with OCR (for example --provider tesseract).',

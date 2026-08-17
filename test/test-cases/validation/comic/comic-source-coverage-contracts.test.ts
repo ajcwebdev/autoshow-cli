@@ -9,6 +9,7 @@ import {
   getStructuredScriptPath,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
 import { parseScriptMarkdownToStructuredData as parseStructuredScript } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
+import { validateStructuredScriptSourceSpans } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { generateJsonPrompt } from '~/cli/commands/process-steps/step-8-comic/comic-utils/json-prompt-utils'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import {
@@ -326,6 +327,40 @@ describe('comic source coverage contracts', () => {
     expect(lowercaseDialogueBeat?.delivery).toBe('softly')
   })
 
+  test('structured parser keeps exact spans after a speaker-associated direction', () => {
+    const source = [
+      '# Episode Test',
+      '',
+      '**STARSHIP HORIZON**',
+      '',
+      '---',
+      '',
+      '## Scene: "Repeated Speaker"',
+      '',
+      '**INT. CARGO BAY - MORNING**',
+      '',
+      '**CAPTAIN**',
+      '',
+      'First line.',
+      '',
+      '(the room goes quiet)',
+      '',
+      'Second line.',
+      '',
+      '_The engineer crosses the room._',
+      '',
+      '**CAPTAIN**',
+      '',
+      'Third line.',
+    ].join('\n')
+    const structured = parseScriptMarkdownToStructuredData(source, 'input/test-repeated-speaker.md')
+
+    expect(() => validateStructuredScriptSourceSpans(structured, source)).not.toThrow()
+    expect(structured.beats.every(beat => beat.sourceSpans.length > 0)).toBe(true)
+    expect(structured.beats.find(beat => beat.text === 'the room goes quiet')?.sourceSpans[0]?.text).toContain('the room goes quiet')
+    expect(structured.beats.find(beat => beat.text === 'The engineer crosses the room.')?.sourceSpans[0]?.text).toContain('The engineer crosses the room.')
+  })
+
   test('structured parser strips screenplay timing notation from spoken dialogue', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',
@@ -560,7 +595,7 @@ describe('comic source coverage contracts', () => {
     }))
     configureCharactersRoot(charactersRoot)
     const structuredScript: StructuredScriptData = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       scriptSlug: sceneSlug,
       sourceFile: 'input/test.md',
       sourceIdentity: {
@@ -580,6 +615,7 @@ describe('comic source coverage contracts', () => {
         section: 'COLD OPEN',
         title: 'Coverage Test',
         location: { key: 'cargo-bay', raw: 'STARSHIP HORIZON' },
+        soundscape: { cues: [], ambientBeds: [] },
       },
       characterKeys: [],
       beats: [],
@@ -621,5 +657,50 @@ describe('comic source coverage contracts', () => {
     expect(report.complete).toBe(false)
     expect(report.missingSegments.map(segment => segment.id)).toEqual(['beat-0002'])
     expect(() => assertSourceCoverageReportComplete(report)).toThrow(/beat-0002/)
+  })
+
+  test('an italicised delivery parenthetical stays a delivery and does not consume the spoken line', () => {
+    const script = [
+      '# Episode Test',
+      '',
+      '## Scene 1 - "Emphasis"',
+      '',
+      '**INT. CARGO BAY - MORNING**',
+      '',
+      '**CAPTAIN**',
+      '',
+      '_(beat)_',
+      '',
+      'We can. But it is everyone.',
+      '',
+      '**ENGINEER**',
+      '',
+      '_(already standing, delighted)_',
+      '',
+      'Then everyone it is.',
+      '',
+      '**PILOT**',
+      '',
+      '*(quietly)*',
+      '',
+      'Stations.',
+      '',
+    ].join('\n')
+
+    const parsed = parseScriptMarkdownToStructuredData(script, 'input/emphasis-delivery.md')
+    const dialogue = parsed.beats.filter(beat => beat.type === 'dialogue')
+
+    expect(dialogue.map(beat => beat.text)).toEqual([
+      'We can. But it is everyone.',
+      'Then everyone it is.',
+      'Stations.',
+    ])
+    expect(dialogue.map(beat => beat.speakerLabel)).toEqual(['CAPTAIN', 'ENGINEER', 'PILOT'])
+    // Timing notation is pacing, so "(beat)" must not survive as an acting note.
+    expect(dialogue[0]!.delivery).toBeUndefined()
+    expect(dialogue[1]!.delivery).toBe('already standing, delighted')
+    expect(dialogue[2]!.delivery).toBe('quietly')
+    expect(parsed.beats.some(beat => beat.text.trim() === '')).toBe(false)
+    expect(() => validateStructuredScriptSourceSpans(parsed, script)).not.toThrow()
   })
 })

@@ -3,8 +3,6 @@ import { InfraError, InternalError } from '~/utils/error-handler'
 import type { LLMOptions, LLMTarget, PendingStructuredRunResult, RunLlmTargetsForStructuredPromptOptions, StructuredRequestOptions, StructuredRunResult, StructuredValidationContext, TranscriptionResult, VideoMetadata } from '~/types'
 import { buildPrompt as buildPromptFromUtils } from './write-utils/prompt-utils'
 import { resolvePromptNames } from '~/prompts/prompt-loader'
-import { runLlamaModel } from './write-local/llama/run-llama'
-import { runLlamafileModel } from './write-local/llamafile/run-llamafile'
 import { runGroqModel } from './write-services/write-groq/run-groq'
 import { runOpenAIModel } from './write-services/write-openai/run-openai'
 import { runGeminiModel } from './write-services/write-gemini/run-gemini'
@@ -28,9 +26,6 @@ import { buildStructuredValidationFailureEnvelope, isStructuredValidationFailure
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 const sanitizeModelName = (model: string): string =>
   model.replace(/[/\\:*?"<>|]/g, '-')
-
-const isLocalLlmService = (service: LLMTarget['service']): boolean =>
-  service === 'llama.cpp' || service === 'llamafile'
 
 const countTargetModels = (targets: LLMTarget[]): Map<string, number> => {
   const counts = new Map<string, number>()
@@ -69,8 +64,6 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
   appendTargets('kimi', 'Kimi', options.kimiModels, options.kimiModel, runKimiModel)
   appendTargets('together', 'Together', options.togetherModels, options.togetherModel, runTogetherModel)
   appendTargets('cerebras', 'Cerebras', options.cerebrasModels, options.cerebrasModel, runCerebrasModel)
-  appendTargets('llama.cpp', 'llama.cpp', options.llamaModels, options.llamaModel, runLlamaModel)
-  appendTargets('llamafile', 'Llamafile', options.llamafileModels, options.llamafileModel, runLlamafileModel)
 
   return targets
 }
@@ -79,12 +72,9 @@ export const runLlmTargetsForStructuredPrompt = async (
   options: RunLlmTargetsForStructuredPromptOptions
 ): Promise<StructuredRunResult[]> => {
   for (const target of options.targets) {
-    if (isLocalLlmService(target.service)) {
-      continue
-    }
     resolveReasoningPolicy({
       step: 'llm',
-      service: target.service === 'llama.cpp' ? 'llama' : target.service,
+      service: target.service,
       model: target.model,
       requestedReasoningEffort: options.reasoningEffort
     })
@@ -101,9 +91,7 @@ export const runLlmTargetsForStructuredPrompt = async (
     local: options.llmLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
   }, async (index, target) => {
     try {
-      const targetReasoningEffort = isLocalLlmService(target.service)
-        ? undefined
-        : options.reasoningEffort
+      const targetReasoningEffort = options.reasoningEffort
       const structuredMode = resolveStructuredStrategy(target.service)
       const validationRetryBudget = resolveValidationRetryBudget(target.service)
 
@@ -173,7 +161,7 @@ export const runLlmTargetsForStructuredPrompt = async (
       l.error(`Failed to run ${target.label} model ${target.model}: ${message}`)
       failedTargetsByIndex[index] = `${target.service}/${target.model}: ${message}`
     }
-  })
+  }, options.hostedConcurrencyCoordinator, options.outputDir)
 
   const results = resultsByTargetIndex.filter((result): result is PendingStructuredRunResult => result !== undefined)
   const failedTargets = failedTargetsByIndex.filter((failure): failure is string => failure !== undefined)
@@ -193,7 +181,10 @@ export const runLlmTargetsForStructuredPrompt = async (
   }
 
   return results.map((result) => ({
-    metadata: result.metadata,
+    metadata: {
+      ...result.metadata,
+      ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    },
     renderedText: result.renderedText,
     parsedJson: result.parsedJson
   }))
@@ -305,6 +296,8 @@ export const runLLM = async (
     structuredValidationContext,
     llmProviderConcurrency: options.llmProviderConcurrency,
     llmLocalConcurrency: options.llmLocalConcurrency,
+    concurrencyMode: options.concurrencyMode,
+    hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
     reasoningEffort: options.reasoningEffort
   })
 }

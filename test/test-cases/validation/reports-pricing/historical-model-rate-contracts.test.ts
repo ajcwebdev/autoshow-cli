@@ -8,7 +8,8 @@ import {
   getTtsPricing,
   getVideoModelMeta,
   hasRetiredModelRate,
-  RETIRED_MODEL_RATES
+  RETIRED_MODEL_RATES,
+  getRetiredModelReplacement
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ModelCategory } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveTranscriptionModel } from '~/cli/commands/pricing-orchestration/run-step-walk'
@@ -73,9 +74,6 @@ const collectModelIdentities = (
 const normalizeHistoricalIdentity = (
   identity: HistoricalIdentity
 ): HistoricalIdentity => {
-  if (identity.category === 'llm' && identity.service === 'llama.cpp') {
-    return { ...identity, service: 'llama' }
-  }
   if (identity.category === 'stt' && identity.service === 'whisper') {
     const model = resolveTranscriptionModel({
       transcriptionService: identity.service,
@@ -98,7 +96,7 @@ describe('historical model rate contracts', () => {
   test('every committed benchmark step model resolves through active or retired rates', async () => {
     const identities: HistoricalIdentity[] = []
     let runCount = 0
-    const glob = new Bun.Glob('docs/benchmarks/**/manifest.json')
+    const glob = new Bun.Glob('docs/benchmarks/*/*/manifest.json')
     for await (const file of glob.scan({ cwd: process.cwd(), onlyFiles: true })) {
       runCount += 1
       collectModelIdentities(await Bun.file(file).json(), file, identities)
@@ -107,6 +105,7 @@ describe('historical model rate contracts', () => {
 
     const unresolved = identities
       .map(normalizeHistoricalIdentity)
+      .filter(identity => !(identity.category === 'llm' && (identity.service === 'llama.cpp' || identity.service === 'llama' || identity.service === 'llamafile')))
       .filter(identity => !isActiveModel(identity))
       .filter(identity => !hasRetiredModelRate(identity.category, identity.service, identity.model))
       .map(identity => `${identity.category} ${identity.service}:${identity.model} (${identity.file})`)
@@ -141,6 +140,12 @@ describe('historical model rate contracts', () => {
       outputCostPer1MCharsCents: 1200
     })
     expect(getImageCost('gemini', 'gemini-3.1-flash-image-preview')).toBe(6.7)
+    expect(getMusicModelMeta('elevenlabs', 'music_v1')).toMatchObject({
+      costPerMinuteCents: 15
+    })
+    expect(getMusicModelMeta('gemini', 'lyria-3-clip-preview')).toMatchObject({
+      costPerTrackCents: 4
+    })
     expect(getMusicModelMeta('minimax', 'music-2.6')).toMatchObject({
       costPerTrackCents: 15,
       lyricsCostPerTrackCents: 1
@@ -150,13 +155,42 @@ describe('historical model rate contracts', () => {
     })
   })
 
-  test('MiniMax 01-series benchmark rates remain available while the published enums still serve them', () => {
+  test('retired MiniMax 01-series benchmark rates remain available outside active enums', () => {
     for (const model of MINIMAX_01_SERIES_MODELS) {
-      expect(getModelRegistry().video['minimax']?.models[model], model).toBeDefined()
+      expect(getModelRegistry().video['minimax']?.models[model], model).toBeUndefined()
       expect(getVideoModelMeta('minimax', model), model).toMatchObject({
         blockSizeSec: 6,
         blockCost720pCents: 19
       })
     }
+  })
+
+  test('retired video selectors retain exact rates and ADR-013 replacements', () => {
+    expect(getVideoModelMeta('minimax', 'MiniMax-Hailuo-2.3-Fast')).toMatchObject({
+      fixedCostByResolutionDurationCents: { '720p': { '6': 19, '10': 32 }, '1080p': { '6': 33 } }
+    })
+    expect(getVideoModelMeta('glm', 'cogvideox-3')).toMatchObject({ baseJobFeeCents: 20 })
+    expect(getVideoModelMeta('runway', 'gen4.5')).toMatchObject({ baseCostPerSecondCents: 12 })
+    expect(getVideoModelMeta('replicate', 'runwayml/aleph-2')).toMatchObject({ baseCostPerSecondCents: 33.6 })
+    expect(getVideoModelMeta('replicate', 'wan-video/wan-2.7-t2v')).toMatchObject({
+      costPerSecondByResolutionCents: { '720p': 10, '1080p': 10 }
+    })
+  })
+
+  test('retired image selectors retain exact rates and ADR-013 replacements', () => {
+    expect(getImageCost('fal', 'microsoft/mai-image-2.5')).toBe(0.21)
+    expect(getImageCost('fal', 'microsoft/mai-image-2.5-pro')).toBe(150)
+    expect(getImageCost('replicate', 'ideogram-ai/ideogram-v4-turbo')).toBe(3)
+    expect(getImageCost('replicate', 'ideogram-ai/ideogram-v4-balanced')).toBe(6)
+    expect(getImageCost('replicate', 'ideogram-ai/ideogram-v4-quality')).toBe(10)
+    expect(getImageCost('replicate', 'prunaai/ernie-image')).toBe(5.28)
+    expect(getImageCost('replicate', 'prunaai/ernie-image-turbo')).toBe(1.15)
+    expect(getImageCost('recraft', 'recraftv4_1')).toBe(4)
+    expect(getImageCost('recraft', 'recraftv4_1_utility')).toBe(4)
+    expect(getImageCost('recraft', 'recraftv4_1_pro')).toBe(25)
+    expect(getImageCost('recraft', 'recraftv4_1_utility_pro')).toBe(25)
+    expect(getImageCost('grok', 'grok-imagine-image')).toBe(2)
+    expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image')).toBe('grok-imagine-image-2.0')
+    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBe('flux-2-klein-4b')
   })
 })

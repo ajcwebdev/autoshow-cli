@@ -72,7 +72,7 @@ export type Step2RuntimeMetadata = {
 }
 
 export type Step2Metadata = {
-  transcriptionService: 'whisper' | 'whisperfile' | 'reverb' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'groq' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
+  transcriptionService: 'whisper' | 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'groq' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
   transcriptionModel: string
   processingTime: number
   tokenCount: number
@@ -81,6 +81,7 @@ export type Step2Metadata = {
   captionFormat?: 'vtt' | undefined
   timings?: Step2TimingMetadata | undefined
   runtime?: Step2RuntimeMetadata | undefined
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
   billing?: {
     creditsUsed?: number | undefined
     creditRateCents?: number | undefined

@@ -5,6 +5,7 @@ import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { createOpenAIResponse } from '~/utils/openai/openai-client'
 import { runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
+import { setHttpCaptureBytesForTests } from '~/utils/bounded-capture'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 setupContractSuiteLifecycle({
@@ -128,19 +129,24 @@ describe('provider REST client differential contracts', () => {
     })
 
     test(`${client.name} bounds oversized error diagnostics`, async () => {
-      const oversizedBody = `${'x'.repeat(16 * 1024 * 1024)}tail-marker`
-      installMockFetch(() => new Response(oversizedBody, { status: 422 }))
+      setHttpCaptureBytesForTests(64)
+      try {
+        const oversizedBody = `${'x'.repeat(65)}tail-marker`
+        installMockFetch(() => new Response(oversizedBody, { status: 422 }))
 
-      const error = await captureError(client)
-      expect(error.name).toBe(client.errorName)
-      expect(error['bodyBytes']).toBe(new TextEncoder().encode(oversizedBody).byteLength)
-      expect(error['bodyTruncated']).toBe(true)
-      expect(error['bodyPreview']).toBeString()
-      expect(error['bodyPreview']).toEndWith('tail-marker')
+        const error = await captureError(client)
+        expect(error.name).toBe(client.errorName)
+        expect(error['bodyBytes']).toBe(oversizedBody.length)
+        expect(error['bodyTruncated']).toBe(true)
+        expect(error['bodyPreview']).toBeString()
+        expect(error['bodyPreview']).toEndWith('tail-marker')
+      } finally {
+        setHttpCaptureBytesForTests()
+      }
     })
   }
 
-  test('Gemini and Replicate normalize fetch TimeoutErrors for retry classification', async () => {
+  test('Gemini and Replicate normalize fetch TimeoutErrors without ambiguous create redispatch', async () => {
     const geminiCalls = installMockFetch(() => {
       throw new DOMException('provider request timed out', 'TimeoutError')
     })
@@ -152,12 +158,8 @@ describe('provider REST client differential contracts', () => {
       throw new DOMException('provider request timed out', 'TimeoutError')
     })
     const replicateError = await captureError(clients[3] as ClientCase)
-    expect(replicateError).toMatchObject({
-      kind: 'retry_exhausted',
-      retryClass: 'runtime_http_create_retriable'
-    })
-    expect((replicateError.cause as Error).name).toBe('AbortError')
-    expect(replicateCalls).toHaveLength(2)
+    expect(replicateError.name).toBe('AbortError')
+    expect(replicateCalls).toHaveLength(1)
   })
 
   test('Gemini keeps its established successful-response JSON validation message', async () => {

@@ -1,7 +1,6 @@
 import { rename } from 'node:fs/promises'
 import type { ProtectedAssetRef, Step4Metadata, TtsOptions, TtsRequestEvidenceScope, TtsTarget, TtsTargetInvocation } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
-import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { runDialogueWorkSelector } from './dialogue-work-selector'
 import { concatAndConvertToWav } from './tts-utils/audio-utils'
 import { finalizeTtsRun } from './tts-utils/finalize-tts-run'
@@ -55,7 +54,7 @@ const buildObservedVoice = (
       }
     })()
   : {
-      kind: target.service === 'kitten' ? 'local-model-voice' : 'provider-id',
+      kind: 'provider-id',
       value,
       valueHash: sha256Bytes(value)
     }
@@ -176,35 +175,28 @@ export const runMultiSpeakerTts = async (
           options.ttsMasteringProfile
         ))
       } else {
-        const release = target.service === 'kitten' && options.generationResourceGate
-          ? await options.generationResourceGate.acquire()
-          : undefined
-        try {
-          signal.throwIfAborted()
-          const baseJob = options.hostedTtsChunkJobContext
-          const segmentJob = {
-            ...baseJob,
-            jobId: `${baseJob?.jobId ?? `tts-${target.service}`}-turn-${i}-segment-${providerSegmentIndex}`,
-            turnIndex: i,
-            segmentIndex: providerSegmentIndex,
-            originalOrder: (baseJob?.originalOrder ?? 0) + i / 1_000 + providerSegmentIndex / 1_000_000
-          }
-          const segmentOptions: TtsOptions = options.hostedTtsChunkScheduler
-            ? {
-                ...options,
-                hostedTtsChunkJobContext: segmentJob,
-                hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(
-                  options.hostedTtsChunkScheduler,
-                  { job: segmentJob, scopeLabel: options.hostedTtsLaneScopeLabel }
-                )
-              }
-            : options
-          const result = await target.run(providerText, providerSegmentWorkspace, segmentOptions, invocation, invocationEvidence)
-          providerSegmentPaths.push(result.audioPath)
-          observedSpeaker = result.metadata.speaker?.trim() ?? observedSpeaker
-        } finally {
-          release?.()
+        signal.throwIfAborted()
+        const baseJob = options.hostedTtsChunkJobContext
+        const segmentJob = {
+          ...baseJob,
+          jobId: `${baseJob?.jobId ?? `tts-${target.service}`}-turn-${i}-segment-${providerSegmentIndex}`,
+          turnIndex: i,
+          segmentIndex: providerSegmentIndex,
+          originalOrder: (baseJob?.originalOrder ?? 0) + i / 1_000 + providerSegmentIndex / 1_000_000
         }
+        const segmentOptions: TtsOptions = options.hostedTtsChunkScheduler
+          ? {
+              ...options,
+              hostedTtsChunkJobContext: segmentJob,
+              hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(
+                options.hostedTtsChunkScheduler,
+                { job: segmentJob, scopeLabel: options.hostedTtsLaneScopeLabel }
+              )
+            }
+          : options
+        const result = await target.run(providerText, providerSegmentWorkspace, segmentOptions, invocation, invocationEvidence)
+        providerSegmentPaths.push(result.audioPath)
+        observedSpeaker = result.metadata.speaker?.trim() ?? observedSpeaker
       }
     }
     const turnAudioPath = await concatAndConvertToWav(
@@ -231,9 +223,7 @@ export const runMultiSpeakerTts = async (
     }
   }
 
-  const concurrency = target.service === 'kitten'
-    ? options.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
-    : normalizeHostedTtsChunkConcurrency(options.ttsChunkConcurrency)
+  const concurrency = normalizeHostedTtsChunkConcurrency(options.ttsChunkConcurrency)
   const segmentResults = await runDialogueWorkSelector({
     concurrency,
     workspaceRoot: segmentsDir,

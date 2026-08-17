@@ -119,6 +119,16 @@ const readJsonRecord = async (
   return parsed
 }
 
+const selectedRenderForProvider = (
+  provider: PipelineProviderState
+): CanonicalAudioProviderProjection['renderHistory'][number] | undefined => {
+  const projection = provider.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+  const selected = projection?.selectedSuccess
+  return projection && selected
+    ? projection.renderHistory.find((render) => render.renderIdentity === selected.renderIdentity)
+    : undefined
+}
+
 const activeRenderForProvider = (
   provider: PipelineProviderState
 ): CanonicalAudioProviderProjection['renderHistory'][number] | undefined => {
@@ -128,7 +138,7 @@ const activeRenderForProvider = (
   if (active?.kind === 'render') {
     return projection.renderHistory.find((render) => render.renderIdentity === active.renderIdentity)
   }
-  return undefined
+  return selectedRenderForProvider(provider)
 }
 
 const activeBranchForProvider = (
@@ -343,7 +353,12 @@ export const resolveTtsResumeSourceContext = async (
   }
   const sourceContext = contexts[0]
   if (!sourceContext) {
-    throw CLIUsageError('TTS resume has no retained active source/dialogue evidence and cannot authorize synthesis. Rebuild this output with the current tts command.')
+    return {
+      sourceIdentity: itemDialoguePlan.sourceIdentity,
+      dialoguePlan: itemDialoguePlan,
+      dialoguePlanArtifact,
+      retainedPlanIdentities: new Map()
+    }
   }
   if (contexts.some((context) =>
     canonicalTtsJson(context.sourceIdentity) !== canonicalTtsJson(sourceContext.sourceIdentity)

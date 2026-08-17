@@ -134,7 +134,25 @@ const nestedCommand = defineCliCommand({
   subcommands: [nestedRunCommand]
 }, () => {})
 
-const commands = [runCommand, linksCommand, subcommandsCommand, variadicCommand, nestedCommand] as const satisfies readonly CliCommandDefinition[]
+const defaultedStatusCommand = defineCliCommand({
+  name: 'defaulted status',
+  description: 'Default child fixture',
+  flags: {
+    name: {
+      description: 'Name',
+      type: String
+    }
+  }
+}, () => {})
+
+const defaultedCommand = defineCliCommand({
+  name: 'defaulted',
+  description: 'Parent with a default subcommand',
+  defaultSubcommand: 'status',
+  subcommands: [defaultedStatusCommand]
+}, () => {})
+
+const commands = [runCommand, linksCommand, subcommandsCommand, variadicCommand, nestedCommand, defaultedCommand] as const satisfies readonly CliCommandDefinition[]
 
 const root: CliRootDefinition = {
   scriptName: 'bun test-cli',
@@ -386,6 +404,16 @@ describe('native CLI parser contracts', () => {
     expect(parsed.flags['tag']).toEqual(['before', 'after'])
     expect(parsed.rawParsed.flagOccurrences.filter((occurrence) => occurrence.name === 'tag')).toHaveLength(2)
     expect(parseNativeCli(['nested'], commands, globalFlags).mode).toBe('help')
+    expect(parseNativeCli(['defaulted'], commands, globalFlags)).toEqual(expect.objectContaining({
+      mode: 'command',
+      command: defaultedStatusCommand
+    }))
+    expect(parseNativeCli(['defaulted', '--name=fixture'], commands, globalFlags).flags['name']).toBe('fixture')
+    expect(parseNativeCli(['defaulted', '--help'], commands, globalFlags)).toEqual(expect.objectContaining({
+      mode: 'help',
+      command: defaultedCommand
+    }))
+    expect(parseNativeCli(['defaulted', 'help'], commands, globalFlags).mode).toBe('help')
     expect(parseNativeCli(['nested', 'run', '--help'], commands, globalFlags).command).toBe(nestedRunCommand)
     expect(parseNativeCli(['help', 'nested', 'run'], commands, globalFlags).command).toBe(nestedRunCommand)
     expect(parseNativeCli(['nested', '--unknown'], commands, globalFlags).rawParsed.unknown).toEqual({ unknown: true })

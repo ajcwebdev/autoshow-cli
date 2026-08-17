@@ -18,21 +18,24 @@ Use this when `yt-dlp` hits a YouTube sign-in prompt or `Sign in to confirm you'
 Preferred:
 
 ```bash
-bun autoshow extract --cookies-from-browser chrome "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+bun autoshow config --cookies-from-browser chrome
+bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 Fallback:
 
 ```bash
-bun autoshow extract --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+bun autoshow config --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
+bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 Key rules:
 
-- Use the global CLI flags after the command name: `bun autoshow extract --cookies-from-browser chrome ...`, `bun autoshow download --cookies /path/to/cookies.txt ...`, or `bun autoshow metadata --cookies-from-browser firefox ...`.
-- `--cookies` takes precedence over `--cookies-from-browser`.
-- If `--cookies` is set but unreadable, AutoShow warns, does not pass cookies to `yt-dlp`, and does not fall back to browser import.
-- `bun autoshow setup --cookies-from-browser chrome --doctor` and `bun autoshow setup --cookies /absolute/path/to/cookies.txt --doctor` show the active cookie mode and file readability.
+- Cookie auth is machine-wide and configured only through `bun autoshow config`. Processing commands such as `extract`, `download`, and `metadata` no longer accept `--cookies` or `--cookies-from-browser`.
+- Config persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
+- A configured cookies file takes precedence over browser import.
+- If the configured cookies path is unreadable, AutoShow warns, does not pass cookies to `yt-dlp`, and does not fall back to browser import.
+- `bun autoshow setup --doctor` shows the active cookie mode and file readability from the saved config.
 
 ## Fastest Fix: Browser Import
 
@@ -44,30 +47,31 @@ Use this if `yt-dlp` can read a browser profile on the current machine.
 https://www.youtube.com/robots.txt
 ```
 
-2. Retry the exact command that failed, with the browser import flag immediately after the command name:
+2. Persist the browser import, then retry the command that failed:
 
 ```bash
-bun autoshow extract --cookies-from-browser chrome "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+bun autoshow config --cookies-from-browser chrome
+bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 Other common browser values:
 
 ```bash
-bun autoshow extract --cookies-from-browser firefox "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
-bun autoshow extract --cookies-from-browser brave "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
-bun autoshow extract --cookies-from-browser edge "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+bun autoshow config --cookies-from-browser firefox
+bun autoshow config --cookies-from-browser brave
+bun autoshow config --cookies-from-browser edge
 ```
 
 Profile-specific values are passed through to `yt-dlp`, so values such as `chrome:Default` can be used when needed:
 
 ```bash
-bun autoshow extract --cookies-from-browser chrome:Default "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+bun autoshow config --cookies-from-browser chrome:Default
 ```
 
 3. Verify the same cookie source through doctor:
 
 ```bash
-bun autoshow setup --cookies-from-browser chrome --doctor
+bun autoshow setup --doctor
 ```
 
 ## Fallback: Export `cookies.txt`
@@ -89,6 +93,7 @@ High-leverage notes:
 - Do not use a DevTools snippet like `document.cookie`. It cannot read `HttpOnly` auth cookies.
 - For a fresh private/incognito export, use a conforming browser exporter such as `Get cookies.txt LOCALLY` for Chrome or `cookies.txt` for Firefox.
 - Do not commit the exported file.
+- Do not paste cookie-file contents into `config/autoshow.json`. Persist the path only.
 
 5. Put the file somewhere stable, for example:
 
@@ -98,10 +103,11 @@ cp ~/Downloads/cookies.txt runtime/auth/youtube.cookies.txt
 chmod 600 runtime/auth/youtube.cookies.txt 2>/dev/null || true
 ```
 
-6. Pass the file with `--cookies` immediately after the command name:
+6. Persist the file path with `config --cookies`:
 
 ```bash
-bun autoshow extract --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+bun autoshow config --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
+bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 Use a real absolute path. Do not use `~`; AutoShow passes the value through to `yt-dlp`.
@@ -109,7 +115,7 @@ Use a real absolute path. Do not use `~`; AutoShow passes the value through to `
 7. Verify the same file through doctor:
 
 ```bash
-bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt --doctor
+bun autoshow setup --doctor
 ```
 
 8. Quick sanity check:
@@ -128,29 +134,28 @@ Expected:
 
 ## Precedence And Diagnostics
 
-When both flags are present, `--cookies` wins:
+When both auth settings are saved, the cookies file wins:
 
 ```bash
-bun autoshow extract --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt --cookies-from-browser chrome "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+bun autoshow config --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt --cookies-from-browser chrome
 ```
 
-If that file is unreadable, AutoShow reports the unreadable path, does not pass any cookie argument to `yt-dlp`, and does not fall back to `--cookies-from-browser`. Fix the path, permissions, or remove `--cookies` before retrying.
+If that file is unreadable, AutoShow reports the unreadable path, does not pass any cookie argument to `yt-dlp`, and does not fall back to `--cookies-from-browser`. Fix the path, permissions, or update the saved config before retrying.
 
-Doctor uses the same global flags:
+Doctor reads the same saved config:
 
 ```bash
-bun autoshow setup --cookies-from-browser chrome --doctor
-bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt --doctor
+bun autoshow setup --doctor
 ```
 
-The doctor output includes the configured YouTube cookie mode. For `--cookies`, it also checks whether the file is readable.
+The doctor output includes the configured YouTube cookie mode. For a cookies file, it also checks whether the file is readable.
 
 ## Unsupported Legacy Env Vars
 
-The native CLI currently wires YouTube auth through these global flags only:
+The native CLI currently wires YouTube auth through these config flags only:
 
-- `--cookies-from-browser`
-- `--cookies`
+- `bun autoshow config --cookies-from-browser`
+- `bun autoshow config --cookies`
 
 Do not rely on these legacy env vars for native `bun autoshow` commands:
 
@@ -176,11 +181,11 @@ Passthrough is accepted only by `download`, and only for media URL inputs — no
 bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" https://youtube.com/watch?v=abc
 ```
 
-`--cookies` and `--cookies-from-browser` stay AutoShow flags; do not also pass `--cookies` through the `--` boundary.
+Configure cookies with `bun autoshow config` first. Do not pass `--cookies` through the `--` boundary.
 
 ## If It Still Fails
 
-- `cookies-file` shows as missing in doctor: fix or remove `--cookies`. AutoShow will not fall back while that flag is present.
+- `cookies-file` shows as missing in doctor: fix the path or run `bun autoshow config --cookies <file>`. AutoShow will not fall back while a cookies file is configured.
 - Browser import still fails: try a more specific profile such as `chrome:Default`, or export a dedicated `cookies.txt` file.
 - A fresh exported file still fails: confirm it starts with a Netscape cookie header, includes YouTube auth cookies, and was not committed or moved to a path with unreadable permissions.
 - Cookies still are not enough: forward the extra `yt-dlp` options yourself with `bun autoshow download <url> -- --user-agent "…"` or `-- --extractor-args "youtube:player_client=web"`. See [Passing yt-dlp arguments](#passing-yt-dlp-arguments).

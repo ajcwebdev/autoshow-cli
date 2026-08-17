@@ -15,6 +15,7 @@ export type TtsMetadataBase<TService extends string = string> = {
 }
 
 export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
   clonedVoiceId?: string | undefined
   cloneCostCents?: number | undefined
   operation?: 'tts-synthesis' | 'comic-audio' | undefined
@@ -59,6 +60,7 @@ export type Step5Metadata = {
   providerModeration?: unknown
   providerCostCents?: number | undefined
   providerCostSource?: GenerationProviderCostSource | undefined
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }
 
 export type Step6VideoMetadata = {
@@ -100,6 +102,19 @@ export type Step6VideoMetadata = {
   providerStorageError?: unknown
   providerCostCents?: number | undefined
   providerCostSource?: GenerationProviderCostSource | undefined
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
+}
+
+export type ElevenLabsCompositionChunk = {
+  text: string
+  duration_ms: number
+  positive_styles: string[]
+  negative_styles: string[]
+  context_adherence: 'low' | 'medium' | 'high'
+}
+
+export type ElevenLabsCompositionPlan = {
+  chunks: ElevenLabsCompositionChunk[]
 }
 
 export type Step7MusicMetadata = {
@@ -125,6 +140,8 @@ export type Step7MusicMetadata = {
   generatedSongTitle?: string | undefined
   generatedStyleTags?: string | undefined
   generatedText?: string | undefined
+  compositionPlanChunkCount?: number | undefined
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }
 
 export type TimingRateBasis = 'durationSecond' | 'page' | 'section' | '1KTokens' | '1KCharacters' | 'image'

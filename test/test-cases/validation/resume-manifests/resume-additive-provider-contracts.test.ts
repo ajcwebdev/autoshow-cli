@@ -521,7 +521,7 @@ describe('additive resume provider selection', () => {
     const freshFailure: SttTarget = { service: 'groq', model: 'whisper-large-v3-turbo', local: false }
     const untouched: SttTarget = { service: 'speechmatics', model: 'melia-1', local: false }
     const attemptedSkip: SttTarget = { service: 'soniox', model: 'stt-rt-v4', local: false }
-    const schedulerSkip: SttTarget = { service: 'reverb', model: 'reverb_asr_v2', local: false }
+    const schedulerSkip: SttTarget = { service: 'together', model: 'openai/whisper-large-v3', local: false }
     const requestedTargets = [resumedRoot, freshSuccess, currentFailure, freshFailure, untouched, attemptedSkip, schedulerSkip]
     const successes: Array<SttProviderSuccess | undefined> = [
       {
@@ -551,7 +551,7 @@ describe('additive resume provider selection', () => {
       ['deepgram:nova-3', { ...currentFailure, artifactDir: 'providers/deepgram-nova-3', status: 'failed', attempts: 5 }],
       ['speechmatics:melia-1', { ...untouched, artifactDir: 'providers/speechmatics-melia-1', status: 'missing', attempts: 2 }],
       ['soniox:stt-rt-v4', { ...attemptedSkip, artifactDir: 'providers/soniox-stt-rt-v4', status: 'skipped', attempts: 4 }],
-      ['reverb:reverb_asr_v2', { ...schedulerSkip, artifactDir: 'providers/reverb-reverb_asr_v2', status: 'skipped', attempts: 0 }]
+      ['together:openai/whisper-large-v3', { ...schedulerSkip, artifactDir: 'providers/together-openai-whisper-large-v3', status: 'skipped', attempts: 0 }]
     ])
 
     const states = buildSttProviderStates(requestedTargets, successes, failures, existingStates)

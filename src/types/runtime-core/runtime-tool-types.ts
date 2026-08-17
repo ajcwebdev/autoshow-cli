@@ -4,7 +4,6 @@ export const RUNTIME_TOOL_IDS = [
   'yt-dlp',
   'mutool',
   'ebook-convert',
-  'calibre-acsm-fulfill',
   'tesseract',
   'qpdf'
 ] as const

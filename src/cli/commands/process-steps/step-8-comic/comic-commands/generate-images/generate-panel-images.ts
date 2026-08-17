@@ -43,6 +43,7 @@ import {
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
+import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 
 export const generatePanelImages = async (
@@ -62,6 +63,7 @@ export const generatePanelImages = async (
   const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
   const maxRepairs = options.maxRepairs ?? 2
   const qaEntriesByDirectory = new Map<string, PageQaEntry[]>()
+  let hostedRequestIndex = 0
 
   try {
     const prompts = useVariationOutputPaths ? await loadPromptsConfig() : undefined
@@ -231,13 +233,13 @@ export const generatePanelImages = async (
                   : ''
                 const requestStart = Date.now()
                 const attemptModel = attempt > 0 ? DEFAULT_IMAGE_MODEL : model
-                const imageResponse = await requestImage({
+                const imageResponse = await runComicHostedRequest(options, resolveComicImageProvider(attemptModel), 'comic-image', `${sceneSlug}:panel-${panelNumber}:${model}`, hostedRequestIndex++, async () => await requestImage({
                   normalizedPrompt: [promptForVariation, repair, restart].filter(Boolean).join('\n\n'),
                   referenceImages: attempt > 0 && currentPath && !restartFromCanonicalReferences ? [currentPath, ...referenceImages] : referenceImages,
                   model: attemptModel,
                   size: options.size,
                   quality: options.quality,
-                })
+                }))
                 const requestDurationMs = Date.now() - requestStart
                 stats.totalDurationMs += requestDurationMs
                 await writeImage(attemptPath, imageResponse.result.imageBase64, imageResponse.result.mimeType)
@@ -246,7 +248,7 @@ export const generatePanelImages = async (
                 stats.imagesGenerated++
                 if (!qaEnabled) { await copyFile(attemptPath, outputPath); break }
                 try {
-                  qaEntry = await judge({ pageNumber: panelNumber, pagePath: attemptPath, panelData: bundleData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel })
+                  qaEntry = await runComicHostedRequest(options, 'openai', 'comic-qa', `${sceneSlug}:panel-${panelNumber}:qa`, hostedRequestIndex++, async () => await judge({ pageNumber: panelNumber, pagePath: attemptPath, panelData: bundleData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel }))
                   stats.totalInputTokens += qaEntry.usage.inputTokens
                   stats.totalOutputTokens += qaEntry.usage.outputTokens
                   stats.totalCost += qaEntry.usage.costUsd

@@ -24,6 +24,7 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 const DEFAULT_IMAGE_SIZE: ImageGenerationSize = '1024x1536'
 const DEFAULT_CHARACTER_SKETCH_QUALITY: ImageGenerationQuality = 'medium'
@@ -110,7 +111,10 @@ export const characterSketchCommand = async (
         ? [character.sourcePath, character.outlineSheetPath]
         : [stableReferencePath]
       const requestStart = Date.now()
-      const response = await requestImage(buildPrompt(character.name, character.description, view, prompts, options.notes, character.generationInstructions, bootstrap), references, model, size, quality)
+      const response = await runComicHostedRequest({
+        concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+      }, resolveComicImageProvider(model), 'comic-image', `character:${key}:${model}`, CHARACTER_SKETCH_VIEWS.indexOf(view), async () => await requestImage(buildPrompt(character.name, character.description, view, prompts, options.notes, character.generationInstructions, bootstrap), references, model, size, quality))
       const duration = Date.now() - requestStart
       stats.totalDurationMs += duration
       await writeImage(outputPath, response.result.imageBase64, response.result.mimeType)

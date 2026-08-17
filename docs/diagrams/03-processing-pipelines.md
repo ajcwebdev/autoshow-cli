@@ -61,9 +61,9 @@ tryResolveYoutubeCaptionTranscription()
 
 STT providers are run through local and hosted provider pools:
 
-| Pool | Providers |
-|------|-----------|
-| Local | `whisper`, `whisperfile`, `reverb`. |
+| Pool   | Providers                                                                                                                                                                       |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local  | `whisper`, `whisperfile`.                                                                                                                                                       |
 | Hosted | `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
 
 Output layout:
@@ -87,11 +87,11 @@ Extract items record `extractRoute: "media"`. Extract and write items use the sa
 
 Provider failures do not discard the whole output directory. A run can finish as:
 
-| Status | Meaning |
-|--------|---------|
-| `full` | All requested providers completed or the selected single provider completed. |
+| Status       | Meaning                                                                                                  |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| `full`       | All requested providers completed or the selected single provider completed.                             |
 | `incomplete` | At least one provider succeeded and at least one requested provider failed, was missing, or was skipped. |
-| `failed` | No requested provider produced a usable result. |
+| `failed`     | No requested provider produced a usable result.                                                          |
 
 ## Document and Article Pipeline
 
@@ -129,7 +129,7 @@ processOcr()
   |
   +--> hosted OCR:
          mistral, glm, kimi, openai, grok, anthropic, gemini,
-         deepinfra
+         deepinfra, replicate, fal
 ```
 
 Document extract output:

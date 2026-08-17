@@ -1,4 +1,5 @@
 import type { BatchRuntimeOptions } from './batch-options-types'
+import type { HostedConcurrencyRuntimeOptions } from '../cli-surface/cli-types'
 
 export type SttRuntimeOptions = {
   whisperModels: string[] | undefined
@@ -43,13 +44,11 @@ export type SttRuntimeOptions = {
   sttLocalConcurrency: number
   sttSegmentConcurrency: number
   sttPreflightConcurrency: number
-  reverbVerbatimicity: number
   split: boolean
 }
 
-export type SttExtractionOptions = SttRuntimeOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & {
+export type SttExtractionOptions = SttRuntimeOptions & HostedConcurrencyRuntimeOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & {
   outputRootDir: string
-  useReverb: boolean
   youtubeCaptions: boolean
   step2SelectionOrigins: Partial<Record<string, 'default' | 'explicit' | 'all-shortcut'>>
   prompts: string[]

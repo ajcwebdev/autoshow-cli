@@ -14,21 +14,21 @@ const makeTempRoot = setupTempRoots()
 describe('grouped report contracts', () => {
   test('Text comparison report emits metadata ranking surfaces without provider APIs', async () => {
       const runDir = await makeTempRoot('autoshow-text-consensus-')
-      await writeFile(join(runDir, 'llama-output.md'), 'Local text output.\n')
+      await writeFile(join(runDir, 'openai-output.md'), 'OpenAI text output.\n')
       await writeFile(join(runDir, 'groq-output.md'), 'Groq text output.\n')
       await writeFile(join(runDir, 'minimax-output.md'), 'MiniMax text output.\n')
 
       await writeSingleManifestFixture(runDir, 'write', {
           step3: [
             {
-              llmService: 'llama.cpp',
-              llmModel: 'Meta-Llama-3.1-8B-Instruct-Q4_K_M',
+              llmService: 'openai',
+              llmModel: 'gpt-5.4-nano',
               processingTime: 2400,
               inputTokenCount: 2000,
               outputTokenCount: 1000,
               tokenCountSource: 'provider',
               providerUsage: { prompt_tokens: 2000, completion_tokens: 1000 },
-              outputFileName: 'llama-output.md'
+              outputFileName: 'openai-output.md'
             },
             {
               llmService: 'groq',
@@ -55,6 +55,7 @@ describe('grouped report contracts', () => {
           cost: {
             actual: {
               steps: [
+                { step: 'llm', provider: 'openai', model: 'gpt-5.4-nano', cost: 0.4 },
                 { step: 'llm', provider: 'groq', model: 'openai/gpt-oss-120b', cost: 1.2 },
                 { step: 'llm', provider: 'minimax', model: 'MiniMax-M3', cost: 3.6 }
               ]
@@ -63,7 +64,7 @@ describe('grouped report contracts', () => {
           timing: {
             actual: {
               steps: [
-                { step: 'llm', provider: 'llama.cpp', model: 'Meta-Llama-3.1-8B-Instruct-Q4_K_M', processingTimeMs: 2400, msPerUnit: 800 },
+                { step: 'llm', provider: 'openai', model: 'gpt-5.4-nano', processingTimeMs: 2400, msPerUnit: 800 },
                 { step: 'llm', provider: 'groq', model: 'openai/gpt-oss-120b', processingTimeMs: 6000, msPerUnit: 300 },
                 { step: 'llm', provider: 'minimax', model: 'MiniMax-M3', processingTimeMs: 2500, msPerUnit: 700 }
               ]
@@ -88,10 +89,10 @@ describe('grouped report contracts', () => {
 
       expect(report.category).toBe('text')
       expectTtsRankingSurfaces(report)
-      expect(report.providerGroups.local.count).toBe(1)
-      expect(report.providerGroups.service.count).toBe(2)
-      expect(report.providerGroups.local.providers[0]).toMatchObject({
-        providerKey: 'llama.cpp/Meta-Llama-3.1-8B-Instruct-Q4_K_M',
+      expect(report.providerGroups.local.count).toBe(0)
+      expect(report.providerGroups.service.count).toBe(3)
+      expect(report.providerGroups.local.providers).toEqual([])
+      expect(report.providerGroups.service.providers.find((provider) => provider.providerKey === 'openai/gpt-5.4-nano')).toMatchObject({
         inputTokenCount: 2000,
         outputTokenCount: 1000,
         outputExists: true
@@ -102,18 +103,16 @@ describe('grouped report contracts', () => {
         providerUsage: { total_tokens: 12000 },
         rawProviderUsage: { queue_time: 0.01 }
       })
-      expect(report.rankingSurfaces.local.price).toHaveLength(1)
-      expect(report.rankingSurfaces.local.price[0]).toMatchObject({
-        providerKey: 'llama.cpp/Meta-Llama-3.1-8B-Instruct-Q4_K_M',
-        value: 0
-      })
+      expect(report.rankingSurfaces.local.price).toHaveLength(0)
       expect(report.rankingSurfaces.service.price.map((entry) => entry.providerKey)).toEqual([
+        'openai/gpt-5.4-nano',
         'groq/openai/gpt-oss-120b',
         'minimax/MiniMax-M3'
       ])
       expect(report.rankingSurfaces.service.speed.map((entry) => [entry.providerKey, entry.metric, entry.value])).toEqual([
         ['groq/openai/gpt-oss-120b', 'msPerUnit', 300],
-        ['minimax/MiniMax-M3', 'msPerUnit', 700]
+        ['minimax/MiniMax-M3', 'msPerUnit', 700],
+        ['openai/gpt-5.4-nano', 'msPerUnit', 800]
       ])
       expect(report.rankingSurfaces.service.automatedQuality).toEqual([])
       expect(report.rankingSurfaces.service.humanQuality).toEqual([])

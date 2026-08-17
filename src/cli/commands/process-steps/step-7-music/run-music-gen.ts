@@ -11,7 +11,7 @@ export const runMusicTargets = async (
   targets: MusicTarget[],
   prompt: string,
   outputDir: string,
-  options?: Pick<MusicGenOptions, 'musicProviderConcurrency' | 'musicLocalConcurrency' | 'generationResourceGate'>,
+  options?: Pick<MusicGenOptions, 'musicProviderConcurrency' | 'musicLocalConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
 ): Promise<{ musicPaths: string[], metadata: Step7MusicMetadata[] }> => {
   const successes = await runSingleFileTargets<MusicTarget, Step7MusicMetadata>({
     targets,
@@ -23,6 +23,8 @@ export const runMusicTargets = async (
       local: options?.musicLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
     },
     resourceGate: options?.generationResourceGate,
+    hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator,
+    hostedWorkClass: 'music',
     runTarget: async (target, workspaceDir) =>
       target.run(prompt, workspaceDir).then(({ musicPath, metadata }) => ({ filePath: musicPath, metadata })),
     workspacePrefix: '.music-tmp',
@@ -38,7 +40,10 @@ export const runMusicTargets = async (
 
   return {
     musicPaths: successes.map((entry) => entry.filePath),
-    metadata: successes.map((entry) => entry.metadata),
+    metadata: successes.map((entry) => ({
+      ...entry.metadata,
+      ...(options?.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    })),
   }
 }
 

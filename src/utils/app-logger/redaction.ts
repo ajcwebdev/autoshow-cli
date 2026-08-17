@@ -81,6 +81,9 @@ const sanitizeEnvAssignments = (value: string): string => {
     .replace(/\bsk-[A-Za-z0-9_-]{16,}\b/g, 'sk-REDACTED')
 }
 
+const sanitizeEmailAddresses = (value: string): string =>
+  value.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED_EMAIL]')
+
 // The opaque-id prefixes below (project, account, org, request, trace) are ordinary
 // words that also appear in directory names, so the rule would otherwise corrupt real
 // filesystem paths the user needs to be able to copy. Secret-shaped rules (token_, key_,
@@ -126,11 +129,13 @@ export const sanitizeLogText = (value: string): string => {
     return value
   }
 
-  return sanitizeEnvAssignments(
-    sanitizeDiagnosticIdentifiers(
-      sanitizeQuerySecrets(
-        sanitizeUrlCredentials(
-          sanitizeHeaderAuthorization(value)
+  return sanitizeEmailAddresses(
+    sanitizeEnvAssignments(
+      sanitizeDiagnosticIdentifiers(
+        sanitizeQuerySecrets(
+          sanitizeUrlCredentials(
+            sanitizeHeaderAuthorization(value)
+          )
         )
       )
     )

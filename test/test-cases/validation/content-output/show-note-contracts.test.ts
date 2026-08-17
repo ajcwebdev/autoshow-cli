@@ -216,17 +216,17 @@ test('show notes mirror single and multi-output JSON naming', async () => {
       outputDir,
       results: [
         buildResult({ llmModel: 'gpt-5.5', outputFileName: 'text-gpt-5.5.json' }, 'first'),
-        buildResult({ llmModel: 'ggml-org/Qwen3-0.6B-GGUF', outputFileName: 'text-ggml-org-Qwen3-0.6B-GGUF.json' }, 'second')
+        buildResult({ llmService: 'gemini', llmModel: 'gemini-3.5-flash', outputFileName: 'text-gemini-3.5-flash.json' }, 'second')
       ],
       sourceText: 'source'
     })
 
     expect(Object.values(multi.internalArtifacts).sort()).toEqual([
-      'show-note-ggml-org-Qwen3-0.6B-GGUF.md',
+      'show-note-gemini-3.5-flash.md',
       'show-note-gpt-5.5.md'
     ])
     expect(await Bun.file(join(outputDir, 'show-note-gpt-5.5.md')).text()).toContain('first')
-    expect(await Bun.file(join(outputDir, 'show-note-ggml-org-Qwen3-0.6B-GGUF.md')).text()).toContain('second')
+    expect(await Bun.file(join(outputDir, 'show-note-gemini-3.5-flash.md')).text()).toContain('second')
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }
@@ -268,7 +268,7 @@ test('show notes render generated media assets with relative embeds and links', 
     }]
     const step7Metadata: Step7MusicMetadata[] = [{
       musicService: 'elevenlabs',
-      musicModel: 'music_v1',
+      musicModel: 'music_v2',
       processingTime: 1,
       musicFileName: 'generated-music.mp3',
       musicFileSize: 100,

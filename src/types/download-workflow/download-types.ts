@@ -6,7 +6,6 @@ export type DownloadFlowId =
   | 'mupdf-source'
   | 'mupdf-prebuilt'
   | 'calibre-dmg'
-  | 'acsm-calibre-plugin'
   | 'leptonica-source'
   | 'tesseract-source'
   | 'tessdata'
@@ -15,11 +14,7 @@ export type DownloadFlowId =
   | 'qpdf-prebuilt'
   | 'whisper-model'
   | 'whisperfile-binary'
-  | 'llama-tarball'
-  | 'llamafile-binary'
   | 'whisper-source'
-  | 'reverb-source'
-  | 'reverb-model'
 
 export type DownloadRequest = {
   url: string

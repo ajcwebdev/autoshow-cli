@@ -36,6 +36,7 @@ DEFAULT_SKETCH_PANELS_PER_IMAGE,
 hasOnlyTrailingPanelSelectionMisses,
 } from '../generate-images/comic-page-utils'
 import { runWithConcurrency } from '~/utils/run-with-concurrency'
+import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 const SKETCH_CHUNK_SIZE = DEFAULT_SKETCH_PANELS_PER_IMAGE
 
@@ -267,6 +268,7 @@ export const generateSceneSketches = async (
   options: GenerateSceneSketchesOptions,
   dependencies: ComicImageGenerationDependencies = {}
 ) => {
+  let hostedRequestIndex = 0
   const prompts = await loadPromptsConfig()
   const sketchPrompts = prompts['Sketch Prompts']
   const requestImage = dependencies.requestImage ?? (async input => {
@@ -432,13 +434,13 @@ export const generateSceneSketches = async (
             }
 
             const requestStart = Date.now()
-            const imageResponse = await requestImage({
+            const imageResponse = await runComicHostedRequest(options, resolveComicImageProvider(model), 'comic-image', `${sceneSlug}:sketch:${model}`, hostedRequestIndex++, async () => await requestImage({
               normalizedPrompt,
               referenceImages: resolvedReferences.all,
               model,
               size: options.size,
               quality: options.quality,
-            })
+            }))
             const requestDurationMs = Date.now() - requestStart
             stats.totalDurationMs += requestDurationMs
 

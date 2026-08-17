@@ -5,6 +5,7 @@ const TIMED_EXTRACT_PROVIDERS = new Set<TimedExtractProvider>([
   'tesseract',
   'defuddle',
   'mistral',
+  'replicate',
   'glm',
   'kimi',
   'openai',
@@ -46,6 +47,7 @@ export const buildAggregateTiming = (
       provider: step.provider,
       model: step.model,
       pageCount: step.pageCount,
+      ...(step.ocrProviderMode ? { ocrProviderMode: step.ocrProviderMode } : {}),
       ...(typeof step.rasterizedPages === 'number' ? { rasterizedPages: step.rasterizedPages } : {}),
       ...(typeof step.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: step.singlePagePdfFallbackPages } : {})
     }))
@@ -56,6 +58,7 @@ export const buildAggregateTiming = (
     .map((step) => ({
       service: step.provider as Step4Metadata['ttsService'],
       model: step.model,
+      characterCount: step.characterCount,
       ...(typeof step.setupTimeMs === 'number' ? { setupTimeMs: step.setupTimeMs } : {}),
       ...(typeof step.chunkConcurrency === 'number' ? { chunkConcurrency: step.chunkConcurrency } : {})
     }))
@@ -106,6 +109,7 @@ export const buildAggregateTiming = (
     || videoTimingTargets.length > 0
     || musicTimingTargets.length > 0
     ? computeEstimatedProcessingTimes({
+        concurrencyMode: options.concurrencyMode,
         ...(sttTimingTargets.length > 0 && typeof sttTimingDurationSeconds === 'number'
           ? {
               sttTargets: sttTimingTargets,

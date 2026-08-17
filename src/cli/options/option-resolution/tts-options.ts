@@ -1,14 +1,12 @@
-import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateElevenLabsTtsTextNormalization, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateInworldTtsVoice, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost,   validateFalTtsVoice, validateReplicateTtsVoice, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsLegacyCreationDiagnosticOptions, TtsOptionResolutionAuthority, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
-import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalOccurrenceStringFlag, readOptionalStringFlag, readOptionalStringListFlag, readStringFlag } from './flag-readers'
+import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalOccurrenceStringFlag, readOptionalStringFlag, readOptionalStringListFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
 import { pick } from '~/utils/cli-utils'
 import { validateTtsSynthesisCreationOptions } from '~/cli/commands/process-steps/step-4-tts/synthesis-creation-guard'
 import { CLIUsageError } from '~/utils/error-handler'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { parseSpeakerVoiceMappings } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
-
-const DEFAULT_KITTEN_TTS_SPEAKER = 'Jasper'
 
 type TtsOptionResolutionContext = TtsOptionResolutionAuthority & {
   explicitFlags?: ReadonlySet<string> | undefined
@@ -97,7 +95,9 @@ export const TTS_MODEL_KEYS = [
   'mistralTtsModels', 'mistralTtsModel', 'openaiTtsModels', 'openaiTtsModel',
   'geminiTtsModels', 'geminiTtsModel', 'deepgramTtsModels', 'deepgramTtsModel',
   'speechifyTtsModels', 'speechifyTtsModel', 'humeTtsModels', 'humeTtsModel',
-  'cartesiaTtsModels', 'cartesiaTtsModel',
+  'cartesiaTtsModels', 'cartesiaTtsModel', 'fishTtsModels', 'fishTtsModel',
+  'inworldTtsModels', 'inworldTtsModel', 'deepinfraTtsModels', 'deepinfraTtsModel',
+  'replicateTtsModels', 'replicateTtsModel', 'falTtsModels', 'falTtsModel'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
 export const buildTtsOptions = (
@@ -110,8 +110,6 @@ export const buildTtsOptions = (
   } & TtsOptionResolutionAuthority = {}
 ): TtsRuntimeOptions => {
   const {
-    kittenTtsModelValues,
-    kittenTtsModelValue,
     groqTtsModels,
     grokTtsModels,
     deepgramTtsModels,
@@ -149,14 +147,7 @@ export const buildTtsOptions = (
 
   const options: TtsRuntimeOptions = {
     ...pick(modelOptions, TTS_MODEL_KEYS),
-    ttsSpeaker: (() => {
-      const raw = readStringFlag(flags, 'kitten-voice', DEFAULT_KITTEN_TTS_SPEAKER)
-      return kittenTtsModelValue !== undefined
-        ? validateCliValue(validateKittenTtsSpeaker, raw)
-        : raw
-    })(),
-    kittenTtsModels: kittenTtsModelValues,
-    kittenTtsModel: kittenTtsModelValue === undefined ? undefined : validateCliValue(validateKittenTtsModel, kittenTtsModelValue),
+    ttsAllowAmbiguousRedispatch: readBooleanFlag(flags, 'tts-allow-ambiguous-redispatch'),
     grokTtsVoice: (() => {
       const value = readOptionalStringFlag(flags, 'grok-tts-voice')
       if (value === undefined) return undefined
@@ -202,6 +193,48 @@ export const buildTtsOptions = (
       return validateCliValue(validateCartesiaTtsVoice, value)
     })(),
     cartesiaTtsLanguage: readOptionalStringFlag(flags, 'cartesia-tts-language'),
+    fishTtsModels: modelOptions.fishTtsModels,
+    fishTtsModel: modelOptions.fishTtsModel,
+    fishTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'fish-tts-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.fishTtsModels === undefined) return value
+      return validateCliValue(validateFishTtsVoice, value)
+    })(),
+    inworldTtsModels: modelOptions.inworldTtsModels,
+    inworldTtsModel: modelOptions.inworldTtsModel,
+    inworldTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'inworld-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.inworldTtsModels === undefined) return value
+      return validateCliValue(validateInworldTtsVoice, value)
+    })(),
+    inworldTtsInstructions: readOptionalOccurrenceStringFlag(flagOccurrences, 'inworld-tts-instructions') ?? readOptionalStringFlag(flags, 'inworld-tts-instructions'),
+    deepinfraTtsModels: modelOptions.deepinfraTtsModels,
+    deepinfraTtsModel: modelOptions.deepinfraTtsModel,
+    deepinfraTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'deepinfra-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.deepinfraTtsModels === undefined) return value
+      return validateCliValue(validateDeepinfraTtsVoice, value)
+    })(),
+    falTtsModels: modelOptions.falTtsModels,
+    falTtsModel: modelOptions.falTtsModel,
+    falTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'fal-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.falTtsModels === undefined) return value
+      return validateCliValue(validateFalTtsVoice, value)
+    })(),
+    falTtsInstructions: readOptionalStringFlag(flags, 'fal-tts-instructions'),
+    replicateTtsModels: modelOptions.replicateTtsModels,
+    replicateTtsModel: modelOptions.replicateTtsModel,
+    replicateTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'replicate-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.replicateTtsModels === undefined) return value
+      return validateCliValue(validateReplicateTtsVoice, value)
+    })(),
     groqVoiceId: (() => {
       const value = readOptionalStringFlag(flags, 'groq-voice')
       if (value === undefined) return undefined
@@ -242,7 +275,6 @@ export const buildTtsOptions = (
       return validateCliValue(validateElevenLabsTtsTextNormalization, value)
     })(),
     elevenlabsTtsPronunciationDictionaryLocators: readOptionalStringListFlag(flags, 'elevenlabs-tts-pronunciation-dictionary-locator'),
-    elevenlabsTtsOptimizeStreamingLatency: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-optimize-streaming-latency'), 'elevenlabs-tts-optimize-streaming-latency', { min: 0, max: 4, integer: true }),
     minimaxTtsVoice: readOptionalStringFlag(flags, 'minimax-tts-voice'),
     minimaxTtsLanguageBoost: (() => {
       const value = readOptionalStringFlag(flags, 'minimax-tts-language-boost')

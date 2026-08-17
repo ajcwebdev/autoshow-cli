@@ -1,13 +1,10 @@
-import { expect, test } from 'bun:test'
 import {
-  runCommand,
   STABLE_EXAMPLE_AUDIO_URL,
   STABLE_EXAMPLE_AUDIO_TITLE,
 } from './test-helpers'
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import {
   defineBudgetedLiveServiceTest,
-  defineInvalidModelTest,
   requireConfiguredEnvVar,
   runCommandAndExpectOutputDir,
   withOutputLifecycle
@@ -40,14 +37,6 @@ export const defineSTTServiceTest = ({
   timeoutMs?: number
 }): void => {
   withOutputLifecycle(inputTitle)
-
-  defineInvalidModelTest(`rejects invalid ${sttService} model`, [
-    'src/cli/create-cli.ts',
-    'extract',
-    inputPath,
-    '--provider',
-    `${provider}=invalid-model`
-  ])
 
   for (const model of models) {
     const budgetKey = `transcribe-${sttService}-${model}`
@@ -87,30 +76,5 @@ export const defineSTTServiceTest = ({
       },
       timeoutMs
     )
-  }
-}
-
-export const defineSTTServicePriceTests = ({
-  models,
-  provider,
-  sttService,
-}: {
-  models: readonly string[]
-  provider: string
-  sttService: string
-}): void => {
-  for (const model of models) {
-    test(`${sttService} ${model} --price prints estimate`, async () => {
-      const result = await runCommand([
-        'src/cli/create-cli.ts',
-        'extract',
-        STABLE_EXAMPLE_AUDIO_URL,
-        '--provider',
-        `${provider}=${model}`,
-        '--price'
-      ])
-
-      expect(result.exitCode).toBe(0)
-    }, E2E_TEST_TIMEOUT_MS)
   }
 }

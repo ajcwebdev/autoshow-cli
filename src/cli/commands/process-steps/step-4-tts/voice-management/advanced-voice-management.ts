@@ -1,9 +1,11 @@
+import { randomUUID } from 'node:crypto'
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
   CharacterVoiceBrief,
   PlannedCost,
   ProviderVoiceCloneRequest,
+  ProviderVoiceMutationResult,
   TtsVoiceProvider,
   VoiceCandidate,
   VoiceConsentRecord,
@@ -15,6 +17,7 @@ import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-a
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { appendVoiceRegistration, hashCharacterVoiceBrief } from './character-voice-registry'
 import { buildReadyVoiceRegistrationDraft } from './voice-registration-management'
+import { DEFAULT_VOICE_RETENTION_POLICY } from './voice-registration-management'
 import { computeVoiceCandidateId, validateVoiceCandidate } from './voice-management-contracts'
 import { runCrashSafeVoiceProvisioning } from './provisioning-journal'
 
@@ -140,6 +143,7 @@ const createAttempt = (input: {
   protectedEvidence: VoiceProvisioningAttempt['protectedRequestEvidence']
   requestFingerprint: string
   now: string
+  providerHandle?: string | undefined
 }): VoiceProvisioningAttempt => {
   const attemptId = `vp_${hashCanonicalTtsValue({ candidateId: input.candidate.candidateId, operation: input.candidate.operation }).slice(0, 40)}`
   const base = {
@@ -151,7 +155,9 @@ const createAttempt = (input: {
     lockLeaseId: `lease_${hashCanonicalTtsValue({ attemptId, accountScopeHash: input.accountScopeHash }).slice(0, 32)}`,
     requestFingerprint: input.requestFingerprint,
     protectedRequestEvidence: input.protectedEvidence,
-    reconciliation: { strategy: 'provider-operation' as const, protectedLookupEvidence: input.protectedEvidence },
+    reconciliation: input.providerHandle
+      ? { strategy: 'provider-search' as const, providerHandle: input.providerHandle, protectedLookupEvidence: input.protectedEvidence }
+      : { strategy: 'provider-operation' as const, protectedLookupEvidence: input.protectedEvidence },
     transitions: [{ sequence: 1, phase: 'prepared' as const, at: input.now }],
     issuedResources: [],
     compareAndSwapVersion: 0
@@ -198,7 +204,8 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     accountScopeHash: input.provider.accountScopeHash,
     protectedEvidence: evidence,
     requestFingerprint: hashCanonicalTtsValue({ candidateId: candidate.candidateId, registrationDraftId: candidate.registrationDraftId, desiredName: input.desiredName, sourceVoice: input.sourceVoice ?? null, eligibilitySnapshotHash: input.eligibilitySnapshotHash ?? null }),
-    now: now()
+    now: now(),
+    ...(input.provider.provider === 'fish' ? { providerHandle: input.desiredName } : {}),
   })
   const design = requireDesignPort(input.provider)
   const attempt = await runCrashSafeVoiceProvisioning({
@@ -206,7 +213,14 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     attempt: initial,
     mutate: async () => {
       if (!candidate.providerCandidateId) throw CLIUsageError('Advanced voice candidate omits its provider candidate ID.')
-      const result = await design.materializeCandidate({ providerCandidateId: candidate.providerCandidateId, desiredName: input.desiredName, localAttemptId: initial.attemptId, ...(input.sourceVoice ? { sourceVoice: input.sourceVoice } : {}), ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {}) })
+      const result = await design.materializeCandidate({
+        providerCandidateId: candidate.providerCandidateId,
+        desiredName: input.desiredName,
+        localAttemptId: initial.attemptId,
+        ...(candidate.previewAssets[0] ? { protectedPreview: candidate.previewAssets[0] } : {}),
+        ...(input.sourceVoice ? { sourceVoice: input.sourceVoice } : {}),
+        ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {})
+      })
       if (result.state !== 'ready' || !result.providerVoice) throw CLIUsageError(`${input.provider.provider} candidate materialization did not return a ready provider voice.`)
       return {
         state: { state: 'ready' as const, providerVoice: result.providerVoice },
@@ -232,7 +246,7 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     provenanceRef: input.provenanceRef,
     ...(input.consent ? { consent: input.consent, consentRecordRef: input.consentRecordRef } : {}),
     capabilityFixtureHash: input.capabilityFixtureHash,
-    sanitizedProviderMetadata: { candidateId: candidate.candidateId, attemptId: attempt.attemptId, briefHash: hashCharacterVoiceBrief(input.brief) }
+    sanitizedProviderMetadata: { candidateId: candidate.candidateId, attemptId: attempt.attemptId, briefHash: hashCharacterVoiceBrief(input.brief), desiredName: input.desiredName }
   })
   await appendVoiceRegistration(input.charactersRoot, registration)
   return { candidate: materialized, registration, attempt }
@@ -242,6 +256,93 @@ export const planAdvancedClone = (request: ProviderVoiceCloneRequest): { estimat
   estimatedCostCents: 0,
   requestFingerprint: hashCanonicalTtsValue({ ...request, protectedSamples: request.protectedSamples.map(sample => sample.sha256) })
 })
+
+const cloneProvisioningState = (result: ProviderVoiceMutationResult, attemptId: string): VoiceRegistration['provisioning'] => {
+  if (result.state === 'ready') {
+    if (!result.providerVoice) throw CLIUsageError('Ready voice clone response omits the provider voice identity.')
+    return { state: 'ready', providerVoice: result.providerVoice }
+  }
+  if (result.state === 'pending') return { state: 'pending', operationId: result.providerOperationId ?? attemptId, ...(result.providerVoice ? { providerVoice: result.providerVoice } : {}) }
+  if (result.state === 'verification-required') return { state: 'verification-required', ...(result.providerOperationId ? { operationId: result.providerOperationId } : {}), action: result.action ?? 'Complete provider voice verification.', ...(result.providerVoice ? { providerVoice: result.providerVoice } : {}) }
+  return { state: 'external-action-required', action: result.action ?? 'Complete the provider-managed clone workflow externally.', ...(result.providerVoice ? { providerVoice: result.providerVoice } : {}) }
+}
+
+export const provisionAdvancedVoiceClone = async (input: {
+  charactersRoot: string
+  journalRoot: string
+  provider: Pick<TtsVoiceProvider, 'provider' | 'clone'> & { accountScopeHash: string }
+  providerModel: string
+  subjectKey: string
+  profileKey: string
+  brief: CharacterVoiceBrief
+  request: Omit<ProviderVoiceCloneRequest, 'localAttemptId'>
+  capabilityFixtureHash: string
+  now?: (() => string) | undefined
+}): Promise<{ registration: VoiceRegistration, attempt?: VoiceProvisioningAttempt | undefined }> => {
+  if (!input.provider.clone) throw CLIUsageError(`${input.provider.provider} does not implement voice cloning.`)
+  const now = input.now ?? (() => new Date().toISOString())
+  const sourceIdentityHash = hashCanonicalTtsValue({ cloneKind: input.request.cloneKind, samples: input.request.protectedSamples.map(sample => sample.sha256), desiredName: input.request.desiredName })
+  const registrationId = `vr_${hashCanonicalTtsValue({ subjectKey: input.subjectKey, profileKey: input.profileKey, provider: input.provider.provider, providerModel: input.providerModel, sourceIdentityHash }).slice(0, 40)}`
+  const attemptId = `vp_${hashCanonicalTtsValue({ registrationId, operation: 'clone', sourceIdentityHash }).slice(0, 40)}`
+  const createdAt = now()
+  let provisioning: VoiceRegistration['provisioning']
+  let sanitizedProviderMetadata: Record<string, string | number | boolean | null | string[]> = { cloneKind: input.request.cloneKind, sampleCount: input.request.protectedSamples.length, attemptId, desiredName: input.request.desiredName }
+  let attempt: VoiceProvisioningAttempt | undefined
+  if (input.request.cloneKind === 'professional') {
+    const result = await input.provider.clone.clone({ ...input.request, localAttemptId: attemptId })
+    provisioning = cloneProvisioningState(result, attemptId)
+    sanitizedProviderMetadata = { ...sanitizedProviderMetadata, ...result.sanitizedMetadata }
+  } else {
+    const evidence = input.request.protectedSamples[0]
+    if (!evidence) throw CLIUsageError('Instant voice cloning requires at least one protected sample.')
+    const initial: VoiceProvisioningAttempt = {
+      schemaVersion: 1, attemptId, registrationDraftId: registrationId, operation: 'clone', accountScopeHash: input.provider.accountScopeHash,
+      lockLeaseId: `lease_${randomUUID().replace(/-/gu, '')}`,
+      requestFingerprint: planAdvancedClone({ ...input.request, localAttemptId: attemptId }).requestFingerprint,
+      protectedRequestEvidence: evidence,
+      ...(input.provider.provider === 'fish' ? { reconciliation: { strategy: 'provider-search' as const, providerHandle: input.request.desiredName, protectedLookupEvidence: evidence } } : {}),
+      transitions: [{ sequence: 1, phase: 'prepared', at: createdAt }], issuedResources: [], compareAndSwapVersion: 0,
+    }
+    attempt = await runCrashSafeVoiceProvisioning({
+      journalRoot: input.journalRoot,
+      attempt: initial,
+      mutate: async () => {
+        const result = await input.provider.clone!.clone({ ...input.request, localAttemptId: attemptId })
+        const state = cloneProvisioningState(result, attemptId)
+        return {
+          state,
+          issuedResources: result.providerVoice ? [{ providerVoice: result.providerVoice, observedAt: result.checkedAt, sanitizedResponseHash: hashCanonicalTtsValue(result.sanitizedMetadata) }] : [],
+          evidenceHash: hashCanonicalTtsValue(result),
+        }
+      },
+    })
+    provisioning = attempt.outcome ?? { state: 'reconciliation-required', attemptId, reason: 'Clone attempt has no terminal provider outcome.' }
+  }
+  const base = {
+    schemaVersion: 1 as const,
+    registrationId,
+    subjectKey: input.subjectKey,
+    profileKey: input.profileKey,
+    provider: input.provider.provider,
+    providerModel: input.providerModel,
+    briefHash: hashCharacterVoiceBrief(input.brief),
+    provenanceRef: input.request.provenanceRef,
+    consentRecordRef: input.request.consentRecordRef,
+    settingsSchema: `${input.provider.provider}.voice-defaults.v1`,
+    synthesisSettings: { schemaVersion: 1 as const, settingsSchema: `${input.provider.provider}.voice-defaults.v1`, values: {} },
+    capabilityFixtureHash: input.capabilityFixtureHash,
+    sanitizedProviderMetadata,
+    retention: DEFAULT_VOICE_RETENTION_POLICY,
+    cleanupState: { state: 'retained' as const, checkedAt: createdAt },
+    createdAt,
+    updatedAt: createdAt,
+    approval: { state: 'draft' as const },
+    provisioning,
+  }
+  const registration = { ...base, generationId: hashCanonicalRecordWithout({ ...base, generationId: '0'.repeat(64) }, ['generationId']) } as VoiceRegistration
+  await appendVoiceRegistration(input.charactersRoot, registration)
+  return { registration, ...(attempt ? { attempt } : {}) }
+}
 
 export const computeAdvancedProviderFixtureHash = (provider: Pick<TtsVoiceProvider, 'getDeclaredCapabilities'>): string =>
   hashCanonicalRecordWithout({ schemaVersion: 1, records: provider.getDeclaredCapabilities() }, [])

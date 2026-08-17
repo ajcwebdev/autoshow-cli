@@ -122,7 +122,7 @@ test('process lock serializes concurrent contenders', async () => {
     events.push('second-enter')
   }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: 1000 })
 
-  await Bun.sleep(30)
+  await Bun.sleep(15)
   expect(events).toEqual(['first-enter'])
 
   releaseFirst.resolve()
@@ -133,11 +133,11 @@ test('process lock serializes concurrent contenders', async () => {
 
 test('process lock serializes separate processes', async () => {
   const lockRoot = await makeTempRoot()
-  const first = spawnLockChild('first', 120, lockRoot)
+  const first = spawnLockChild('first', 60, lockRoot)
   const lockOwnerPath = join(lockRoot, 'cross-process-lock', 'owner.json')
 
   for (let attempt = 0; attempt < 400 && !await exists(lockOwnerPath); attempt += 1) {
-    await Bun.sleep(5)
+    await Bun.sleep(2)
   }
   expect(await exists(lockOwnerPath)).toBe(true)
 
@@ -163,11 +163,11 @@ test('process lock serializes separate processes', async () => {
 test('process lock keeps a live same-host owner when its heartbeat is late', async () => {
   const lockRoot = await makeTempRoot()
   const options = { blockHeartbeat: true, staleMs: 50 }
-  const first = spawnLockChild('first', 300, lockRoot, options)
+  const first = spawnLockChild('first', 150, lockRoot, options)
   const lockOwnerPath = join(lockRoot, 'cross-process-lock', 'owner.json')
 
   for (let attempt = 0; attempt < 400 && !await exists(lockOwnerPath); attempt += 1) {
-    await Bun.sleep(5)
+    await Bun.sleep(2)
   }
   expect(await exists(lockOwnerPath)).toBe(true)
 

@@ -62,6 +62,8 @@ export const runImageTargets = async (
     getWorkspaceDir: (dir, target) =>
       `${dir}/.image-tmp-${target.service}-${sanitizeModelName(target.model)}`,
     resourceGate: options.generationResourceGate,
+    hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+    hostedWorkClass: 'image',
     runTarget: async (target, workspaceDir) =>
       target.run(prompt, workspaceDir, options),
     finalizeTarget: async (target, result, singleTarget) =>
@@ -70,7 +72,10 @@ export const runImageTargets = async (
 
   return {
     imagePaths: successes.flatMap((entry) => entry.imagePaths),
-    metadata: successes.map((entry) => entry.metadata)
+    metadata: successes.map((entry) => ({
+      ...entry.metadata,
+      ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    }))
   }
 }
 

@@ -1,15 +1,17 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rename } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
   VoiceIssuedResource,
   VoiceProvisioningAttempt,
   VoiceProvisioningState,
 } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
+import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { withProcessLock } from '~/utils/process-lock'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
 import { validateVoiceProvisioningAttempt } from './voice-management-contracts'
 
 export type VoiceProvisioningProviderResponse = {
@@ -84,6 +86,23 @@ export const loadVoiceProvisioningAttempt = async (
   registrationDraftId: string,
   attemptId: string
 ): Promise<VoiceProvisioningAttempt> => await loadAttemptPath(attemptPath(journalRoot, registrationDraftId, attemptId))
+
+export const listVoiceProvisioningAttempts = async (
+  journalRoot: string,
+  registrationDraftId: string
+): Promise<VoiceProvisioningAttempt[]> => {
+  if (!SAFE_KEY.test(registrationDraftId)) return []
+  const root = join(resolve(journalRoot), registrationDraftId)
+  if (!existsSync(root)) return []
+  const attempts: VoiceProvisioningAttempt[] = []
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const path = join(root, entry.name, 'voice-provisioning-attempt.json')
+    if (!existsSync(path)) continue
+    attempts.push(await loadAttemptPath(path))
+  }
+  return attempts
+}
 
 const assertAppendPreservingUpdate = (
   current: VoiceProvisioningAttempt,
@@ -172,6 +191,31 @@ const markAmbiguous = async (
   return next
 }
 
+const markRejected = async (
+  path: string,
+  attempt: VoiceProvisioningAttempt,
+  error: unknown
+): Promise<VoiceProvisioningAttempt> => {
+  if (attempt.outcome) return attempt
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  const message = sanitizeLogText(error instanceof Error ? error.message : String(error)).slice(0, 600)
+  const evidenceHash = hashCanonicalTtsValue({ status: status ?? null, message })
+  let next = transition(attempt, 'response-received', evidenceHash)
+  await atomicWriteJson(path, next)
+  next = {
+    ...transition(next, 'terminal', evidenceHash),
+    outcome: {
+      state: 'failed',
+      code: status === undefined ? 'PROVIDER_REJECTED' : `HTTP_${status}`,
+      message
+    }
+  }
+  validateVoiceProvisioningAttempt(next)
+  await atomicWriteJson(path, next)
+  return next
+}
+
 const assertSameProvisioningIntent = (
   current: VoiceProvisioningAttempt,
   proposed: VoiceProvisioningAttempt
@@ -243,15 +287,16 @@ export const runCrashSafeVoiceProvisioning = async (
     if (existsSync(path)) {
       attempt = await loadAttemptPath(path)
       if (attempt.outcome?.state === 'ready') return attempt
+      if (attempt.outcome?.state === 'failed') return attempt
       assertSameProvisioningIntent(attempt, initial)
       if (attempt.transitions.length === 1 && attempt.transitions[0]?.phase === 'prepared' && attempt.outcome === undefined) {
         // The durable journal proves the provider mutation was never admitted, so resuming this exact
         // attempt is safe. Preserve the original lease and prepared transition.
       } else if (attempt.outcome === undefined && attempt.transitions.some(entry => entry.phase === 'request-sent')) {
         await markAmbiguous(path, attempt, new Error('Provisioning stopped after request dispatch without a durable terminal outcome.'))
-        throw CLIUsageError('Provisioning may have reached the provider; reconcile the durable attempt before retrying.')
+        throw CLIUsageError('Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
       } else {
-        throw CLIUsageError('A provisioning attempt already exists for this identity; reconcile it before another create.')
+        throw CLIUsageError('A provisioning attempt already exists for this identity; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
       }
     } else {
       await atomicWriteJson(path, initial)
@@ -289,7 +334,11 @@ export const runCrashSafeVoiceProvisioning = async (
       return attempt
     } catch (error) {
       const current = await loadAttemptPath(path)
-      await markAmbiguous(path, current, error)
+      if (classifyTtsProviderAdmissionError(error) === 'rejected') {
+        await markRejected(path, current, error)
+      } else {
+        await markAmbiguous(path, current, error)
+      }
       throw error
     }
   })

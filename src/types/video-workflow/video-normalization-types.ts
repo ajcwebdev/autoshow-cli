@@ -1,14 +1,6 @@
 export type GeminiDurationSeconds = 4 | 6 | 8
 
-export type GlmVideoDurationSeconds = 4 | 5 | 10
-
-export type GlmVideoFps = 30 | 60
-
-export type GlmVideoQuality = 'speed' | 'quality'
-
 export type GrokVideoResolution = '480p' | '720p' | '1080p'
-
-export type RunwayRatio = '1280:720' | '720:1280'
 
 export type ReplicateVideoResolution = '360p' | '480p' | '540p' | '720p' | '1080p' | '4k'
 

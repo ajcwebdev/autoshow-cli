@@ -1,11 +1,9 @@
-import { describe, expect, spyOn, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import type { MockFetchCall, TtsOptions, TtsProvider, TtsTarget, TtsTargetInvocation, TtsTargetInvocationControls } from '~/types'
-import * as kittenRunner from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/run-kitten-tts'
-import * as setupPaths from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
@@ -362,58 +360,4 @@ describe('explicit TTS target voice dispatch', () => {
       provider: 'CUSTOM_VOICE'
     })
   }, 10_000)
-
-  test('kitten serializes invocation A/X, B/Y, A/X instead of captured defaults', async () => {
-    const root = await tempDirs.make()
-    const serializedVoices: string[] = []
-    const serializedControls: Array<number | undefined> = []
-    const abortSignals: Array<AbortSignal | undefined> = []
-    const pathExistsSpy = spyOn(setupPaths, 'pathExists').mockResolvedValue(true)
-    const runnerSpy = spyOn(kittenRunner, 'runKittenTts').mockImplementation(async (_text, outputDir, options) => {
-      serializedVoices.push(options.speaker)
-      serializedControls.push(options.maxChunkChars)
-      abortSignals.push(options.abortSignal)
-      const audioPath = join(outputDir, 'speech.wav')
-      await Bun.write(audioPath, audioBytes)
-      return {
-        audioPath,
-        metadata: {
-          ttsService: 'kitten',
-          ttsModel: options.model,
-          speaker: options.speaker,
-          processingTime: 0,
-          audioFileName: 'speech.wav',
-          audioFileSize: audioBytes.byteLength,
-          chunkCount: 1
-        }
-      }
-    })
-
-    try {
-      const options = buildOptsFromFlags(false, {
-        'kitten-tts': 'kitten-tts-nano',
-        'kitten-voice': 'Jasper'
-      })
-      const target = collectTtsTargets(options).find(candidate => candidate.service === 'kitten')
-      if (!target) throw new Error('Missing Kitten TTS target')
-      expect(target.voice).toBe('Jasper')
-
-      await runInvocationMatrix(
-        target,
-        options,
-        root,
-        ['Bella', 'Luna', 'Bella'],
-        [{ maxChunkChars: 300 }, { maxChunkChars: 400 }, { maxChunkChars: 300 }]
-      )
-
-      expect(serializedVoices).toEqual(['Bella', 'Luna', 'Bella'])
-      expect(serializedVoices).not.toContain('Jasper')
-      expect(serializedControls).toEqual([300, 400, 300])
-      expect(serializedControls).not.toEqual([300, 300, 300])
-      expect(abortSignals.every(signal => signal instanceof AbortSignal)).toBe(true)
-    } finally {
-      runnerSpy.mockRestore()
-      pathExistsSpy.mockRestore()
-    }
-  })
 })

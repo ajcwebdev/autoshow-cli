@@ -1,6 +1,6 @@
 import { beforeAll, afterAll } from 'bun:test'
 import { cleanupTestOutput, STABLE_EXAMPLE_AUDIO_URL, STABLE_EXAMPLE_AUDIO_TITLE } from '../../../../../../test-utils/test-helpers'
-import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../../test-utils/budget'
+import { budgetedTest, LONG_E2E_TEST_TIMEOUT_MS } from '../../../../../../test-utils/budget'
 import { runCommandAndExpectOutputDir } from '../../../../../../test-utils/service-test-kit'
 import { assertSttExtractRun } from '../../../../../../test-utils/assert-stt-extract-run'
 
@@ -19,7 +19,7 @@ budgetedTest('transcribe-whisperfile-tiny', 'whisperfile transcribes local audio
   const outputDir = await runCommandAndExpectOutputDir(
     STABLE_EXAMPLE_AUDIO_TITLE,
     ['src/cli/create-cli.ts', 'extract', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'whisperfile=tiny'],
-    { testName }
+    { testName, timeoutMs: LONG_E2E_TEST_TIMEOUT_MS }
   )
 
   await assertSttExtractRun(outputDir, {
@@ -31,4 +31,4 @@ budgetedTest('transcribe-whisperfile-tiny', 'whisperfile transcribes local audio
     providerStates: true,
     splitSegmentsDir: false
   })
-}, E2E_TEST_TIMEOUT_MS)
+}, LONG_E2E_TEST_TIMEOUT_MS)

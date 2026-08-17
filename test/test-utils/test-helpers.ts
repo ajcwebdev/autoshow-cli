@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { mkdir, readdir, rm, appendFile, copyFile, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path'
-import { parseCommandEstimatedTotal } from '../test-runner/utils'
+import { parseCommandOutputText } from '../test-runner/utils'
 import {
   acquireAdaptiveProviderLease,
   classifyAdaptivePressure,
@@ -15,10 +15,6 @@ import { parseConfiguredEnvValueFromDotEnv } from './env-file'
 import { readOutputMetadataSummary } from './output-metadata-summary'
 import { E2E_TEST_TIMEOUT_MS } from './timeouts'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
-import { LLAMA_PROCESS_LOCK_NAME, stopDefaultLlamaServer } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
-import { LLAMAFILE_PROCESS_LOCK_NAME, stopLlamafileServer as stopLlamafileServerInternal } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/run-llamafile'
-import { withProcessLock } from '~/utils/process-lock'
-import { stripAnsi } from '~/utils/terminal-colors'
 import type {
   AdaptiveCommandAttemptRecord,
   AdaptiveConcurrencyConfig,
@@ -114,35 +110,6 @@ const parseCallerLocation = (): { file: string | null, line: number | null, colu
   }
 }
 
-const parseOutputDirFromText = (text: string): string | null => {
-  const clean = stripAnsi(text)
-  const patterns = [
-    /(?:^|\n)\s*(?:outputDir|output dir|retryOutputDir|retry output dir):\s*([^\n\r]+)/g,
-    /(?:^|\n)\s*(?:manifest):\s*([^\n\r]+\/manifest\.json)/g,
-    /Locations[\s\S]*?│\s*(?:outputDir|output dir|retryOutputDir|retry output dir)\s*│\s*([^\n\r│]+?)\s*│/g,
-    /Artifacts[\s\S]*?│\s*manifest\s*│\s*([^\n\r│]+\/manifest\.json)\s*│/g,
-    /"artifact"\s*:\s*"outputDir"[\s\S]*?"path"\s*:\s*"([^"\n\r]+)"/g,
-    /"manifest"\s*:\s*"([^"\n\r]+\/manifest\.json)"/g,
-  ]
-
-  for (const pattern of patterns) {
-    const matches = Array.from(clean.matchAll(pattern))
-    const last = matches[matches.length - 1]
-    if (!last) {
-      continue
-    }
-    const value = last[1]?.trim()
-    if (value && value.length > 0) {
-      if (value.endsWith('/manifest.json')) {
-        return dirname(value)
-      }
-      return value
-    }
-  }
-
-  return null
-}
-
 const copyManifestToArtifacts = async (outputDir: string | null, outputRoot: string): Promise<void> => {
   const artifactsDir = process.env['AUTOSHOW_TEST_ARTIFACTS_DIR']
   if (!artifactsDir || !outputDir) {
@@ -172,7 +139,6 @@ const copyManifestToArtifacts = async (outputDir: string | null, outputRoot: str
 
 const SUBPROCESS_TIMEOUT = E2E_TEST_TIMEOUT_MS
 const TEST_CONFIG_PATH = resolve(import.meta.dir, 'fixtures/empty-autoshow-config.json')
-const TEST_CACHE_DIR = resolve(process.cwd(), TEST_OUTPUT_ROOT, '.test-cache')
 const PROCESSING_COMMANDS = new Set([
   'metadata',
   'download',
@@ -186,6 +152,17 @@ const PROCESSING_COMMANDS = new Set([
   'comic'
 ])
 const HELP_FLAGS = new Set(['--help', '-h'])
+
+export const CLI_SOURCE_ENTRY = 'src/cli/create-cli.ts'
+
+export const resolveCliSpawnArgs = (args: string[], forceSource = false): string[] => {
+  const bundle = process.env['AUTOSHOW_TEST_CLI_BUNDLE']?.trim()
+  if (!forceSource && bundle && args[0] === CLI_SOURCE_ENTRY) {
+    return [bundle, ...args.slice(1)]
+  }
+  return args
+}
+
 let commandOutputCounter = 0
 const BASE_CHILD_ENV = Object.entries(process.env).reduce<Record<string, string>>((env, [key, value]) => {
   if (typeof value === 'string') {
@@ -194,11 +171,8 @@ const BASE_CHILD_ENV = Object.entries(process.env).reduce<Record<string, string>
   return env
 }, {})
 
-const getTestProcessLockRoot = (): string =>
-  process.env['AUTOSHOW_PROCESS_LOCK_DIR'] ?? join(TEST_CACHE_DIR, 'process-locks')
-
 const shouldUseEmptyTestConfig = (args: string[]): boolean => {
-  if (args[0] !== 'src/cli/create-cli.ts') {
+  if (args[0] !== CLI_SOURCE_ENTRY) {
     return false
   }
 
@@ -220,7 +194,7 @@ const withEmptyTestConfig = (args: string[]): string[] =>
     : args
 
 const isProcessingCliCommand = (args: string[]): boolean => {
-  if (args[0] !== 'src/cli/create-cli.ts') {
+  if (args[0] !== CLI_SOURCE_ENTRY) {
     return false
   }
   if (args.some((arg) => HELP_FLAGS.has(arg))) {
@@ -343,10 +317,14 @@ const runCommandAttempt = async (
     }
   }
 
-  const proc = Bun.spawn(['bun', ...args], {
+  const spawnArgs = resolveCliSpawnArgs(args, opts?.forceSourceCli === true)
+  const spawnEnv = spawnArgs[0] !== args[0] && !env['AUTOSHOW_PROJECT_ROOT']
+    ? { ...env, AUTOSHOW_PROJECT_ROOT: process.cwd() }
+    : env
+  const proc = Bun.spawn(['bun', ...spawnArgs], {
     stdout: 'pipe',
     stderr: 'pipe',
-    env,
+    env: spawnEnv,
     ...(opts?.cwd ? { cwd: opts.cwd } : {})
   })
   let timedOut = false
@@ -525,8 +503,7 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   )
   const duration = Date.now() - startTime
 
-  const combined = `${stdout}\n${stderr}`
-  const outputDir = parseOutputDirFromText(combined)
+  const { outputDir, estimatedCostCents: parsedEstimatedCostCents } = parseCommandOutputText(`${stdout}\n${stderr}`)
   const effectiveOutputRoot = outputRoot
   await copyManifestToArtifacts(outputDir, effectiveOutputRoot)
   const absoluteOutputDir = outputDir
@@ -535,7 +512,6 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   const metadataSummary = absoluteOutputDir
     ? await readOutputMetadataSummary(`${absoluteOutputDir}/manifest.json`)
     : null
-  const parsedEstimatedCostCents = parseCommandEstimatedTotal(combined)
 
   if (metricsLogPath) {
     const record = {
@@ -688,30 +664,6 @@ export const readConfiguredEnvVarSync = (key: string): string | undefined => {
   }
 
   return undefined
-}
-
-export const stopLlamaServer = async (): Promise<void> => {
-  const lockRoot = getTestProcessLockRoot()
-  await withProcessLock(
-    LLAMA_PROCESS_LOCK_NAME,
-    async () => {
-      await stopDefaultLlamaServer({ lockRoot })
-      await Bun.sleep(300)
-    },
-    { lockRoot }
-  )
-}
-
-export const stopLlamafileServer = async (): Promise<void> => {
-  const lockRoot = getTestProcessLockRoot()
-  await withProcessLock(
-    LLAMAFILE_PROCESS_LOCK_NAME,
-    async () => {
-      await stopLlamafileServerInternal({ lockRoot })
-      await Bun.sleep(300)
-    },
-    { lockRoot }
-  )
 }
 
 export const isRecord = (value: unknown): value is Record<string, unknown> => {

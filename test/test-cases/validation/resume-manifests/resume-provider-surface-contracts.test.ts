@@ -10,21 +10,34 @@ import { videoGenerationOptionNames, videoInputOptionNames } from '~/cli/flags/v
 import { musicGenFlags } from '~/cli/flags/music-flags'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import {
+  deriveGenerationResumeModelFields,
+  IMAGE_GENERATION_SELECTION,
+  MUSIC_GENERATION_SELECTION,
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,
   STANDALONE_TTS_PROVIDER_TARGETS,
   STANDALONE_VIDEO_PROVIDER_TARGETS,
-  WRITE_LLM_PROVIDER_TARGETS
+  TTS_GENERATION_SELECTION,
+  VIDEO_GENERATION_SELECTION,
+  WRITE_LLM_GENERATION_SELECTION,
+  WRITE_LLM_PROVIDER_TARGETS,
+  WRITE_OCR_PROVIDER_TARGETS,
+  WRITE_STT_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { normalizeResumeSelectorFlagsForTarget as normalizeResumeSelectorOccurrencesForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { getResumeHandler } from '~/cli/commands/setup-and-utilities/resume/resume-registry'
+import { imageResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/image-resume'
+import { musicResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
+import { ttsResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
+import { videoResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/video-resume'
+import { writeResumeConfig } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
 import { installMockFetch, jsonResponse, restoreEnv, snapshotEnv } from '../../../test-utils/rest-contract-helpers'
 import type { CliFlagOccurrence, ResumeTarget, Step3Metadata } from '~/types'
 import { flagOccurrencesFromValues } from '../../../test-utils/flag-occurrences'
 import { withTempDir } from '../../../test-utils/temp-dirs'
-import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
+import { writeLegacyTtsManifestFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const hasResumableTtsWork = getResumeHandler('tts')!.hasResumableWork
 const writeResumeHandler = getResumeHandler('write')!
@@ -76,17 +89,13 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'elevenlabs-tts-use-speaker-boost',
   'elevenlabs-tts-seed',
   'elevenlabs-tts-pronunciation-dictionary-locator',
-  'elevenlabs-tts-optimize-streaming-latency',
   'replicate-video-seed',
   'replicate-video-generate-audio',
   'replicate-video-reference-video',
   'replicate-video-reference-audio',
   'replicate-video-negative-prompt',
-  'replicate-video-audio',
-  'replicate-video-prompt-expansion',
   'grok-video-storage-filename',
   'grok-video-storage-expires-after',
-  'stt-reverb-verbatimicity',
   'stt-happyscribe-organization-id',
   'stt-supadata-lang',
   'stt-scrapecreators-lang',
@@ -126,6 +135,63 @@ const normalizeResumeSelectorFlagsForTarget = (
 const originalFetch = globalThis.fetch
 
 describe('resume provider flag surface', () => {
+  test('every extract provider is derived into route-aware resume selection', () => {
+    const expected: Record<string, { stt?: string, ocr?: string }> = {}
+    for (const [provider, flag] of Object.entries(WRITE_STT_PROVIDER_TARGETS)) {
+      expected[provider] = { ...expected[provider], stt: flag }
+    }
+    for (const [provider, flag] of Object.entries(WRITE_OCR_PROVIDER_TARGETS)) {
+      expected[provider] = { ...expected[provider], ocr: flag }
+    }
+    expect(EXTRACT_PUBLIC_SELECTOR_FLAGS).toEqual(expected)
+  })
+
+  test('every generation provider and model field is derived into resume selection', () => {
+    const cases = [
+      {
+        label: 'write',
+        config: writeResumeConfig,
+        descriptor: WRITE_LLM_GENERATION_SELECTION,
+        shortcuts: ['all-llm']
+      },
+      {
+        label: 'TTS',
+        config: ttsResumeConfig,
+        descriptor: TTS_GENERATION_SELECTION,
+        shortcuts: ['all-tts']
+      },
+      {
+        label: 'image',
+        config: imageResumeConfig,
+        descriptor: IMAGE_GENERATION_SELECTION,
+        shortcuts: ['all-image']
+      },
+      {
+        label: 'video',
+        config: videoResumeConfig,
+        descriptor: VIDEO_GENERATION_SELECTION,
+        shortcuts: ['all-video']
+      },
+      {
+        label: 'music',
+        config: musicResumeConfig,
+        descriptor: MUSIC_GENERATION_SELECTION,
+        shortcuts: ['all-music']
+      }
+    ] as const
+
+    for (const entry of cases) {
+      expect(entry.config.providerFlags, `${entry.label} resume provider inventory`).toEqual([
+        ...entry.shortcuts,
+        ...Object.values(entry.descriptor.providerTargets)
+      ])
+    }
+
+    expect(ttsResumeConfig.modelFields).toEqual(
+      deriveGenerationResumeModelFields(TTS_GENERATION_SELECTION)
+    )
+  })
+
   test('resume orchestration modules live under the resume command directory', async () => {
     const migratedModules = [
       'src/cli/commands/setup-and-utilities/resume/generation-resume.ts',
@@ -193,6 +259,7 @@ describe('resume provider flag surface', () => {
     expectResumeHasFlags(Object.keys(allArticleFlags))
     expectResumeHasFlags(Object.keys(epubInspectFlags))
     expectResumeHasFlags(Object.keys(genericTtsOptionFlags))
+    expect(buildOptsFromFlags(false, { 'tts-allow-ambiguous-redispatch': true }).ttsAllowAmbiguousRedispatch).toBe(true)
     expectResumeHasFlags(dialogueTtsCommandOptionNames)
     expectResumeHasFlags([
       ...imageGenerationOptionNames,
@@ -256,14 +323,14 @@ describe('resume target-aware provider selectors', () => {
   test('normalizes --provider and generic TTS options for TTS resume targets', () => {
     const tts = normalizeResumeSelectorFlagsForTarget(
       target('tts'),
-      { provider: ['kitten=kitten-tts-nano'], 'tts-voice': ['Luna'] },
+      { provider: ['openai=gpt-4o-mini-tts-2025-12-15'], 'tts-voice': ['alloy'] },
       new Set(['provider', 'tts-voice']),
-      ['resume', 'out', '--provider', 'kitten=kitten-tts-nano', '--tts-voice', 'Luna']
+      ['resume', 'out', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--tts-voice', 'alloy']
     )
-    expect(tts.flags['kitten-tts']).toBe('kitten-tts-nano')
-    expect(tts.flags['kitten-voice']).toBe('Luna')
-    expect(tts.explicitFlags.has('kitten-tts')).toBe(true)
-    expect(tts.explicitFlags.has('kitten-voice')).toBe(true)
+    expect(tts.flags['openai-tts']).toBe('gpt-4o-mini-tts-2025-12-15')
+    expect(tts.flags['openai-voice']).toBe('alloy')
+    expect(tts.explicitFlags.has('openai-tts')).toBe(true)
+    expect(tts.explicitFlags.has('openai-voice')).toBe(true)
   })
 
   test('normalizes --provider for generation resume targets', () => {
@@ -287,15 +354,6 @@ describe('resume target-aware provider selectors', () => {
     expect(image.flags['openai-image']).toBe('gpt-image-2')
     expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2'])
 
-    const video = normalizeResumeSelectorFlagsForTarget(
-      target('video'),
-      { provider: ['runway=gen4.5'] },
-      new Set(['provider']),
-      ['resume', 'out', '--provider', 'runway=gen4.5']
-    )
-    expect(video.flags['runway-video']).toBe('gen4.5')
-    expect(buildOpts(video.flags, video.explicitFlags, video.flagOccurrences).runwayVideoModels).toEqual(['gen4.5'])
-
     const ltxVideo = normalizeResumeSelectorFlagsForTarget(
       target('video'),
       { provider: ['ltx=ltx-2-3-pro'] },
@@ -307,12 +365,12 @@ describe('resume target-aware provider selectors', () => {
 
     const music = normalizeResumeSelectorFlagsForTarget(
       target('music'),
-      { provider: ['elevenlabs=music_v1'] },
+      { provider: ['elevenlabs=music_v2'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'elevenlabs=music_v1']
+      ['resume', 'out', '--provider', 'elevenlabs=music_v2']
     )
-    expect(music.flags['elevenlabs-music']).toBe('music_v1')
-    expect(buildOpts(music.flags, music.explicitFlags, music.flagOccurrences).elevenlabsMusicModels).toEqual(['music_v1'])
+    expect(music.flags['elevenlabs-music']).toBe('music_v2')
+    expect(buildOpts(music.flags, music.explicitFlags, music.flagOccurrences).elevenlabsMusicModels).toEqual(['music_v2'])
 
     const currentMusic = normalizeResumeSelectorFlagsForTarget(
       target('music'),
@@ -349,7 +407,7 @@ describe('resume target-aware provider selectors', () => {
     expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).deepinfraOcrModels).toEqual(['Qwen/Qwen3-VL-30B-A3B-Instruct'])
 
     const article = normalizeResumeSelectorFlagsForTarget(
-      target('extract', '/tmp/autoshow-resume-article', 'x-space'),
+      target('extract', '/tmp/autoshow-resume-article', 'article'),
       { provider: ['supadata'] },
       new Set(['provider']),
       ['resume', 'out', '--provider', 'supadata']
@@ -359,19 +417,22 @@ describe('resume target-aware provider selectors', () => {
   })
 
   test('normalizes --all-local by resolved resume target kind and extract route', () => {
-    const tts = normalizeResumeSelectorFlagsForTarget(
+    expect(() => normalizeResumeSelectorFlagsForTarget(
       target('tts'),
       { 'all-local': true },
       new Set(['all-local']),
       ['resume', 'out', '--all-local']
-    )
-    expect(tts.flags['all-local-tts']).toBe(true)
-    expect(buildOpts(tts.flags, tts.explicitFlags, tts.flagOccurrences).kittenTtsModels).toBeDefined()
+    )).toThrow('--all-local is not supported')
 
-    // Image resume has no local providers, so --all-local is rejected rather than
-    // silently dropped (see native-global-args contracts).
     expect(() => normalizeResumeSelectorFlagsForTarget(
       target('image'),
+      { 'all-local': true },
+      new Set(['all-local']),
+      ['resume', 'out', '--all-local']
+    )).toThrow('--all-local is not supported')
+
+    expect(() => normalizeResumeSelectorFlagsForTarget(
+      target('write'),
       { 'all-local': true },
       new Set(['all-local']),
       ['resume', 'out', '--all-local']
@@ -396,7 +457,7 @@ describe('resume target-aware provider selectors', () => {
     expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).useTesseract).toBe(true)
 
     const article = normalizeResumeSelectorFlagsForTarget(
-      target('extract', '/tmp/autoshow-resume-article', 'x-space'),
+      target('extract', '/tmp/autoshow-resume-article', 'article'),
       { 'all-local': true },
       new Set(['all-local']),
       ['resume', 'out', '--all-local']
@@ -604,10 +665,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'tts' as const,
           metadataKey: 'tts',
-          requestedProvider: { service: 'kitten', model: 'kitten-tts-mini' },
+          requestedProvider: { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' },
           metadata: {
-            ttsService: 'kitten',
-            ttsModel: 'kitten-tts-mini',
+            ttsService: 'openai',
+            ttsModel: 'gpt-4o-mini-tts-2025-12-15',
             processingTime: 1,
             audioFileName: 'speech.wav',
             audioFileSize: 1,
@@ -649,10 +710,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'music' as const,
           metadataKey: 'music',
-          requestedProvider: { service: 'elevenlabs', model: 'music_v1' },
+          requestedProvider: { service: 'elevenlabs', model: 'music_v2' },
           metadata: {
             musicService: 'elevenlabs',
-            musicModel: 'music_v1',
+            musicModel: 'music_v2',
             processingTime: 1,
             musicFileName: 'music.mp3',
             musicFileSize: 1,
@@ -666,8 +727,8 @@ describe('resume all-shortcut additive selection', () => {
       for (const entry of cases) {
         const runDir = join(dir, entry.kind)
         await mkdir(runDir, { recursive: true })
-        await writeSingleManifestFixture(runDir, entry.kind, {
-          input: 'prompt',
+        const record = {
+          input: 'Legacy prompt text.',
           completionStatus: 'full',
           requestedProviders: [entry.requestedProvider],
           providerStates: [{
@@ -677,7 +738,9 @@ describe('resume all-shortcut additive selection', () => {
             attempts: 1
           }],
           [entry.metadataKey]: [entry.metadata]
-        })
+        }
+        if (entry.kind === 'tts') await writeLegacyTtsManifestFixture(runDir, record)
+        else await writeSingleManifestFixture(runDir, entry.kind, record)
         const explicit = new Set(['all-providers'])
         const normalized = normalizeResumeSelectorFlagsForTarget(
           target(entry.kind, runDir),

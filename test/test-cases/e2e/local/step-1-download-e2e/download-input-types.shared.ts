@@ -1,7 +1,7 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
 import { readdir, rm } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
-import { runCommand, fileExists, findLatestDirectory, cleanupTestOutput, OUTPUT_DIR } from '../../../../test-utils/test-helpers'
+import { runCommand, fileExists, findLatestDirectory, cleanupTestOutput } from '../../../../test-utils/test-helpers'
 import { readCanonicalItemRecords, readCanonicalSource, readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import type {
@@ -13,7 +13,7 @@ import type {
   DownloadE2eStep1Metadata
 } from '~/types'
 
-const createdDirs: string[] = []
+const createdDirs = new Set<string>()
 const TIMESTAMPED_CHILD_DIR_PATTERN = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}_/
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -77,34 +77,43 @@ const parseBatchSource = (value: unknown): DownloadE2eBatchSource => {
 }
 
 const rememberDir = (dir: string): void => {
-  if (!createdDirs.includes(dir)) {
-    createdDirs.push(dir)
-  }
+  createdDirs.add(dir)
 }
 
 const normalizeOutputDir = (dir: string): string =>
   dir.replace(/\\/g, '/').replace(/^\.\//, '')
 
-const getOutputDirs = async (): Promise<string[]> => {
+const findNewestDirInRoot = async (outputRoot: string): Promise<string | null> => {
   try {
-    const entries = await readdir(OUTPUT_DIR, { withFileTypes: true })
-    return entries.filter(entry => entry.isDirectory()).map(entry => join(OUTPUT_DIR, entry.name)).sort()
+    const entries = await readdir(outputRoot, { withFileTypes: true })
+    const dirs = entries.filter((entry) => entry.isDirectory()).map((entry) => join(outputRoot, entry.name)).sort()
+    return dirs.at(-1) ?? null
   } catch {
-    return []
+    return null
   }
 }
 
-const getNewOutputDir = async (dirsBefore: Set<string>): Promise<string | null> => {
-  const dirsAfter = await getOutputDirs()
-  const newDirs = dirsAfter.filter(dir => !dirsBefore.has(dir))
-  const latest = newDirs.sort().at(-1) ?? null
+const resolveSingleOutputDir = async (
+  result: { outputDir: string | null, outputRoot: string },
+  suffix?: string
+): Promise<string | null> => {
+  if (result.outputDir) {
+    rememberDir(result.outputDir)
+    return result.outputDir
+  }
+  const latest = suffix
+    ? await findLatestDirectory(suffix, result.outputRoot)
+    : await findNewestDirInRoot(result.outputRoot)
   if (latest) {
     rememberDir(latest)
   }
   return latest
 }
 
-const resolveBatchOutputDir = async (outputDir: string | null, dirsBefore: Set<string>): Promise<string | null> => {
+const resolveBatchOutputDir = async (
+  outputDir: string | null,
+  outputRoot: string
+): Promise<string | null> => {
   if (outputDir) {
     const candidates = [outputDir, dirname(outputDir)]
     for (const candidate of candidates) {
@@ -118,7 +127,11 @@ const resolveBatchOutputDir = async (outputDir: string | null, dirsBefore: Set<s
     }
   }
 
-  return await getNewOutputDir(dirsBefore)
+  const latest = await findNewestDirInRoot(outputRoot)
+  if (latest) {
+    rememberDir(latest)
+  }
+  return latest
 }
 
 export const setupDownloadInputTypeLifecycle = (suffixes: string[]): void => {
@@ -130,7 +143,7 @@ export const setupDownloadInputTypeLifecycle = (suffixes: string[]): void => {
 
   afterAll(async () => {
     if (process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS'] === '0') {
-      await Promise.all(createdDirs.map(dir => rm(dir, { recursive: true, force: true }).catch(() => {})))
+      await Promise.all([...createdDirs].map(dir => rm(dir, { recursive: true, force: true }).catch(() => {})))
       await Promise.all(uniqueSuffixes.map(suffix => cleanupTestOutput(suffix)))
     }
   })
@@ -147,27 +160,18 @@ const assertDownloadOnlyArtifacts = async (outputDir: string, metadata: Download
 
 export const defineSingleCaseTest = (tc: DownloadE2eSingleCase): void => {
   test(tc.name, async () => {
-    if (tc.suffix) {
-      await cleanupTestOutput(tc.suffix)
-    }
-
     const input = await resolveCaseInput(tc.input)
-    const dirsBefore = tc.suffix ? null : new Set(await getOutputDirs())
     const result = await runCommand(
       ['src/cli/create-cli.ts', 'download', input],
       { testName: tc.name }
     )
     expect(result.exitCode).toBe(0)
 
-    const outputDir = result.outputDir
-      ?? (tc.suffix
-        ? await findLatestDirectory(tc.suffix, result.outputRoot)
-        : (dirsBefore ? await getNewOutputDir(dirsBefore) : null))
+    const outputDir = await resolveSingleOutputDir(result, tc.suffix)
     expect(outputDir).not.toBeNull()
     if (!outputDir) {
       return
     }
-    rememberDir(outputDir)
 
     expect(await fileExists(join(outputDir, PIPELINE_MANIFEST_FILE))).toBe(true)
     const metadata = parseMetadata(await readCanonicalRecord(outputDir))
@@ -180,7 +184,6 @@ export const defineSingleCaseTest = (tc: DownloadE2eSingleCase): void => {
 
 export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
   test(tc.name, async () => {
-    const dirsBefore = new Set(await getOutputDirs())
     const input = await resolveCaseInput(tc.input)
 
     const result = await runCommand([
@@ -193,7 +196,7 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
     })
     expect(result.exitCode).toBe(0)
 
-    const batchDir = await resolveBatchOutputDir(result.outputDir, dirsBefore)
+    const batchDir = await resolveBatchOutputDir(result.outputDir, result.outputRoot)
     expect(batchDir).not.toBeNull()
     if (!batchDir) {
       return

@@ -20,9 +20,11 @@ export const resolveOcrExtractionOptions = (
     renderConcurrency: rawOpts.renderConcurrency,
     ocrConcurrency: rawOpts.ocrConcurrency,
     ocrConcurrencyMode,
+    ocrProviderMode: rawOpts.ocrProviderMode ?? 'fanout',
+    ocrProviderModeExplicit: rawOpts.ocrProviderModeExplicit ?? false,
+    ...(typeof rawOpts.ocrPoolDocumentPageNumber === 'number' ? { ocrPoolDocumentPageNumber: rawOpts.ocrPoolDocumentPageNumber } : {}),
     ocrProviderConcurrency: rawOpts.ocrProviderConcurrency ?? DEFAULT_OCR_CONCURRENCY,
     ocrLocalConcurrency: rawOpts.ocrLocalConcurrency ?? DEFAULT_OCR_CONCURRENCY,
-    keepOcrPageInputs: rawOpts.keepOcrPageInputs === true,
     ...(rawOpts.useTesseract ? { useTesseract: true } : {}),
     ...(rawOpts.mistralOcrModel ? { mistralOcrModel: rawOpts.mistralOcrModel } : {}),
     ...(rawOpts.mistralOcrModels ? { mistralOcrModels: rawOpts.mistralOcrModels } : {}),
@@ -40,6 +42,10 @@ export const resolveOcrExtractionOptions = (
     ...(rawOpts.geminiOcrModels ? { geminiOcrModels: rawOpts.geminiOcrModels } : {}),
     ...(rawOpts.deepinfraOcrModel ? { deepinfraOcrModel: rawOpts.deepinfraOcrModel } : {}),
     ...(rawOpts.deepinfraOcrModels ? { deepinfraOcrModels: rawOpts.deepinfraOcrModels } : {}),
+    ...(rawOpts.replicateOcrModel ? { replicateOcrModel: rawOpts.replicateOcrModel } : {}),
+    ...(rawOpts.replicateOcrModels ? { replicateOcrModels: rawOpts.replicateOcrModels } : {}),
+    ...(rawOpts.falOcrModel ? { falOcrModel: rawOpts.falOcrModel } : {}),
+    ...(rawOpts.falOcrModels ? { falOcrModels: rawOpts.falOcrModels } : {}),
     ...(rawOpts.configPath ? { configPath: rawOpts.configPath } : {}),
     ...(rawOpts.primaryOcr ? { primaryOcr: rawOpts.primaryOcr } : {}),
     ...(typeof rawOpts.chapterFiles === 'boolean' ? { chapterFiles: rawOpts.chapterFiles } : {}),
@@ -54,5 +60,7 @@ export const resolveOcrExtractionOptions = (
     ...(preparedDocument?.htmlArticleBackend ? { htmlArticleBackend: preparedDocument.htmlArticleBackend } : {}),
     ...(rawOpts.reasoningEffort ? { reasoningEffort: rawOpts.reasoningEffort } : {})
   }, 'document extraction options'),
-  ocrConcurrencyMode
+  ocrConcurrencyMode,
+  ...(rawOpts.concurrencyMode ? { concurrencyMode: rawOpts.concurrencyMode } : {}),
+  ...(rawOpts.hostedConcurrencyCoordinator ? { hostedConcurrencyCoordinator: rawOpts.hostedConcurrencyCoordinator } : {})
 })

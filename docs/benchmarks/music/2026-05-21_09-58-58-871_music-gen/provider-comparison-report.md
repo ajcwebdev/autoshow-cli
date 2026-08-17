@@ -41,21 +41,21 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>gemini/lyria-3-clip-preview</code> | $0.0400 |
-| 2 | <code>gemini/lyria-3-pro-preview</code> | $0.0800 |
-| 3 | <code>elevenlabs/music_v1</code> | $0.1400 |
-| 4 | <code>minimax/music-2.6</code> | $0.1600 |
+| Rank | Provider                                 | Evidence |
+| ---: | ---------------------------------------- | -------- |
+|    1 | <code>gemini/lyria-3-clip-preview</code> | $0.0400  |
+|    2 | <code>gemini/lyria-3-pro-preview</code>  | $0.0800  |
+|    3 | <code>elevenlabs/music_v1</code>         | $0.1400  |
+|    4 | <code>minimax/music-2.6</code>           | $0.1600  |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>elevenlabs/music_v1</code> | 10.65s |
-| 2 | <code>gemini/lyria-3-clip-preview</code> | 19.52s |
-| 3 | <code>gemini/lyria-3-pro-preview</code> | 22.83s |
-| 4 | <code>minimax/music-2.6</code> | 108.63s |
+| Rank | Provider                                 | Evidence |
+| ---: | ---------------------------------------- | -------- |
+|    1 | <code>elevenlabs/music_v1</code>         | 10.65s   |
+|    2 | <code>gemini/lyria-3-clip-preview</code> | 19.52s   |
+|    3 | <code>gemini/lyria-3-pro-preview</code>  | 22.83s   |
+|    4 | <code>minimax/music-2.6</code>           | 108.63s  |
 
 ### Automated Quality
 
@@ -67,12 +67,12 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider | Quality Evidence | Processing Time | Monetary Cost |
-| --- | --- | ---: | ---: |
-| <code>elevenlabs/music_v1</code> | n/a | 10.65s | $0.1400 |
-| <code>gemini/lyria-3-clip-preview</code> | n/a | 19.52s | $0.0400 |
-| <code>gemini/lyria-3-pro-preview</code> | n/a | 22.83s | $0.0800 |
-| <code>minimax/music-2.6</code> | n/a | 108.63s | $0.1600 |
+| Provider                                 | Quality Evidence | Processing Time | Monetary Cost |
+| ---------------------------------------- | ---------------- | --------------: | ------------: |
+| <code>elevenlabs/music_v1</code>         | n/a              |          10.65s |       $0.1400 |
+| <code>gemini/lyria-3-clip-preview</code> | n/a              |          19.52s |       $0.0400 |
+| <code>gemini/lyria-3-pro-preview</code>  | n/a              |          22.83s |       $0.0800 |
+| <code>minimax/music-2.6</code>           | n/a              |         108.63s |       $0.1600 |
 
 ## Notes
 

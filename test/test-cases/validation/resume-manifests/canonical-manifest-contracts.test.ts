@@ -85,7 +85,7 @@ const policySkippedTtsProviderState = (
   return {
     service: target.service,
     model: target.model,
-    local: target.service === 'kitten',
+    local: false,
     operation: 'tts-synthesis',
     targetKey,
     transport: target.transport as string,

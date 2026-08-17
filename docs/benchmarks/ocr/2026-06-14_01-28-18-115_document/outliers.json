@@ -13,8 +13,8 @@
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
     "highDisagreement": 0.18,
-    "pageDisagreementQ1": 0.021003,
-    "pageDisagreementQ3": 0.021003
+    "pageDisagreementQ1": 0.143874,
+    "pageDisagreementQ3": 0.143874
   },
   "blankOutputPages": [],
   "repeatedTextPages": [],

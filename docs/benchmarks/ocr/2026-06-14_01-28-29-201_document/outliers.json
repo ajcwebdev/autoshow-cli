@@ -12,150 +12,90 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 0.357957,
-    "pageDisagreementQ1": 0.103519,
-    "pageDisagreementQ3": 0.205294
+    "highDisagreement": 0.443802,
+    "pageDisagreementQ1": 0.443802,
+    "pageDisagreementQ3": 0.443802
   },
-  "blankOutputPages": [
-    {
-      "pageNumber": 0,
-      "providers": [
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-4-6",
-        "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-        "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-        "gemini/gemini-3.1-flash-lite-preview",
-        "gemini/gemini-3.1-flash-lite",
-        "gemini/gemini-3.1-pro-preview",
-        "glm/glm-ocr",
-        "grok/grok-4.3",
-        "kimi/kimi-k2.6",
-        "ocrmypdf/ocrmypdf",
-        "openai/gpt-5.4-nano",
-        "openai/gpt-5.5",
-        "paddle-ocr/paddle-ocr",
-        "tesseract/tesseract"
-      ]
-    },
-    {
-      "pageNumber": 1,
-      "providers": [
-        "mistral/mistral-ocr-2512"
-      ]
-    }
-  ],
+  "blankOutputPages": [],
   "repeatedTextPages": [],
   "majorLengthDriftPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 127
-        }
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 0
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 0.454545,
+          "tokenCount": 176
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "lengthDrift": 0.785124,
+          "tokenCount": 216
         }
       ]
     }
   ],
-  "highDisagreementPages": [],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 0.443802,
+      "selectedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "selectedConfidence": 0.522941
+    }
+  ],
   "werCerDivergencePages": [
     {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "anthropic/claude-sonnet-4-6",
-          "wer": 0.35,
-          "cer": 0.060239
+          "providerKey": "replicate/datalab-to/ocr",
+          "wer": 0.396335,
+          "cer": 0.15077
         },
         {
-          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-          "wer": 0.255039,
-          "cer": 0.057123
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 0.411652,
+          "cer": 0.184937
         },
         {
-          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-          "wer": 0.24585,
-          "cer": 0.053812
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "wer": 0.349117,
+          "cer": 0.143527
         },
         {
-          "providerKey": "gemini/gemini-3.1-pro-preview",
-          "wer": 0.209981,
-          "cer": 0.04853
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 0.69438,
+          "cer": 0.33788
         },
         {
-          "providerKey": "glm/glm-ocr",
-          "wer": 0.278832,
-          "cer": 0.074997
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "wer": 0.461468,
+          "cer": 0.172079
         },
         {
-          "providerKey": "kimi/kimi-k2.6",
-          "wer": 0.333756,
-          "cer": 0.056231
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "wer": 0.444848,
+          "cer": 0.161784
         },
         {
-          "providerKey": "ocrmypdf/ocrmypdf",
-          "wer": 0.35002,
-          "cer": 0.131064
+          "providerKey": "replicate/datalab-to/marker",
+          "wer": 1.148096,
+          "cer": 0.889653
         },
         {
-          "providerKey": "openai/gpt-5.4-nano",
-          "wer": 0.368112,
-          "cer": 0.088583
-        },
-        {
-          "providerKey": "openai/gpt-5.5",
-          "wer": 0.32726,
-          "cer": 0.058062
-        },
-        {
-          "providerKey": "paddle-ocr/paddle-ocr",
-          "wer": 0.290784,
-          "cer": 0.056152
-        },
-        {
-          "providerKey": "tesseract/tesseract",
-          "wer": 0.370325,
-          "cer": 0.177578
-        },
-        {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "wer": 0.253575,
-          "cer": 0.041765
-        },
-        {
-          "providerKey": "grok/grok-4.20-0309-non-reasoning",
-          "wer": 0.389412,
-          "cer": 0.054153
-        },
-        {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.254856,
-          "cer": 0.074586
-        },
-        {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 0.203987,
-          "cer": 0.040541
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 0.38005,
+          "cer": 0.143807
         }
       ]
     }
   ],
   "lowConfidencePages": [
     {
-      "pageNumber": 0,
-      "selectedProviderKey": "mistral/mistral-ocr-2512",
-      "selectedConfidence": 0.45,
-      "pageDisagreement": 0.052632
+      "pageNumber": 1,
+      "selectedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "selectedConfidence": 0.522941,
+      "pageDisagreement": 0.443802
     }
   ]
 }

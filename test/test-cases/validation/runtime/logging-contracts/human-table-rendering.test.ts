@@ -1,8 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  buildProviderModelLabel,
-  buildTimingProviderModelLabel
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-prompt'
 import { createLogger } from '~/utils/app-logger/core'
 import { createReporter } from '~/utils/app-logger/reporter'
 import {
@@ -67,21 +63,11 @@ describe('logging contracts', () => {
 
   test('provider model ids render as one color span', () => {
       const rendered = withColorEnv({ forceColor: '1' }, () => renderHumanTable(createHumanTable([
-        { providerModel: 'elevenlabs/music_v1' }
+        { providerModel: 'elevenlabs/music_v2' }
       ], ['providerModel'])))
 
-      expect(rendered).toMatch(/\x1b\[[0-9;]*melevenlabs\/music_v1\x1b\[0m/)
-      expect(rendered).not.toMatch(/elevenlabs\x1b\[0m.*music_v1/)
-    })
-
-  test('Reverb provider model labels collapse runtime model paths', () => {
-      const metadata = {
-        transcriptionService: 'reverb',
-        transcriptionModel: '/Users/ajc/c/as/autoshow-cli/runtime/models/reverb/reverb_asr_v1/reverb_asr_v1.pt | /Users/ajc/c/as/autoshow-cli/runtime/models/reverb/reverb_asr_v1/config.yaml | diarization:v2'
-      } as const
-
-      expect(buildProviderModelLabel(metadata)).toBe('reverb/reverb_asr_v1')
-      expect(buildTimingProviderModelLabel(metadata)).toBe('reverb/reverb_asr_v1')
+      expect(rendered).toMatch(/\x1b\[[0-9;]*melevenlabs\/music_v2\x1b\[0m/)
+      expect(rendered).not.toMatch(/elevenlabs\x1b\[0m.*music_v2/)
     })
 
   test('slash paths render as one non-filename color span', () => {

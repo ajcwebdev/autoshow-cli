@@ -17,6 +17,7 @@ import {
 import { logSttSplitDecision } from '../stt-logging'
 import { dispatchStt } from './dispatch'
 import { classifySttSplitLimitError, resolveAdaptiveSplitSegmentDurationMinutes } from './split-limits'
+import { runHostedConcurrencyRequest } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 
 const MAX_ADAPTIVE_SPLIT_PASSES = 4
 
@@ -163,7 +164,7 @@ const runSplitTranscription = async (
 
       try {
         await mkdir(segmentRunOutputDir, { recursive: true })
-        const data = await dispatchStt(
+        const runSegment = async () => await dispatchStt(
           target,
           segmentDescriptor.path,
           segmentRunOutputDir,
@@ -180,6 +181,19 @@ const runSplitTranscription = async (
             totalDurationSeconds
           }
         )
+        const data = !target.local && options.hostedConcurrencyCoordinator
+          ? await runHostedConcurrencyRequest({
+              coordinator: options.hostedConcurrencyCoordinator,
+              admission: {
+                provider: target.service,
+                workClass: 'stt-segment',
+                configuredLimit: segmentConcurrency,
+                workId: `${target.service}:${target.model}:${outputDir}`,
+                unitIndex: currentIndex,
+                context: { segmentNumber: segmentDescriptor.segmentNumber }
+              }
+            }, async () => await runSegment())
+          : await runSegment()
         results.push({ segmentIndex: currentIndex, data })
       } catch (error) {
         failure = error
@@ -199,6 +213,9 @@ const runSplitTranscription = async (
   }
 
   const combined = mergeSplitTranscriptionChunks(results)
+  if (!target.local && options.hostedConcurrencyCoordinator) {
+    combined.metadata.hostedConcurrency = options.hostedConcurrencyCoordinator.snapshot()
+  }
   await Bun.write(`${outputDir}/transcription.txt`, formatTranscriptText(combined.result.segments))
   await persistTranscriptionStructuredArtifact(outputDir, combined.result)
   return combined

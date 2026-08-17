@@ -47,27 +47,6 @@ const hostedFixture = (
   }
 }
 
-const kittenFixture = (model: 'kitten-tts-mini' | 'kitten-tts-nano'): HostedFixture => {
-  const calls = { run: 0, setup: 0, fetch: 0 }
-  return {
-    calls,
-    target: {
-      service: 'kitten',
-      model,
-      voice: 'Jasper',
-      operation: 'tts-synthesis',
-      transport: 'local-process',
-      targetKey: canonicalTargetKey('tts-synthesis', 'kitten', model, 'local-process'),
-      run: async () => {
-        calls.run++
-        calls.setup++
-        calls.fetch++
-        throw new Error('Readiness fixtures must never reach Kitten setup or execution.')
-      }
-    }
-  }
-}
-
 const commandOptions = (): Parameters<typeof runSingleTtsInput>[1] => ({
   batchConcurrency: 1,
   price: false,
@@ -436,41 +415,6 @@ describe('canonical TTS execution-readiness failures', () => {
     })
   })
 
-  test('an uncached Kitten model self-blocks while a configured hosted peer remains actually ready', async () => {
-    await withTempDir('autoshow-tts-readiness-kitten-peer-', async (dir) => {
-      const inputPath = join(dir, 'source.txt')
-      const outputDir = join(dir, 'run')
-      await Bun.write(inputPath, 'Local setup readiness gates every hosted peer.')
-      configurePinnedRunDir(outputDir)
-      const openai = hostedFixture('openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy')
-      const kitten = kittenFixture('kitten-tts-nano')
-
-      await withHostedCredentials({
-        OPENAI_API_KEY: 'configured-for-local-fixture',
-        HF_HOME: join(dir, 'empty-huggingface-cache')
-      }, async () => {
-        await expect(runSingleTtsInput(
-          inputPath,
-          commandOptions(),
-          [openai.target, kitten.target],
-          undefined
-        )).rejects.toThrow('Kitten TTS')
-      })
-
-      const providers = (await readManifest(outputDir))?.items[0]?.providers ?? []
-      expect(providers).toHaveLength(2)
-      const hostedProjection = await expectBranchOnlyFailure(outputDir, providers[0]!)
-      const kittenProjection = await expectBranchOnlyFailure(outputDir, providers[1]!)
-      expect(hostedProjection.readinessAttempts[0]).toMatchObject({ status: 'ready', admissionDisposition: 'peer-blocked' })
-      expect(kittenProjection.readinessAttempts[0]).toMatchObject({ status: 'blocked', admissionDisposition: 'self-blocked' })
-      const kittenReadiness = await readReadinessResult(outputDir, providers[1]!)
-      expect(kittenReadiness.capabilityObservations[0]?.state).toBe('unavailable')
-      expect(kittenReadiness.errors[0]?.blockedReason).toBe('local-setup-required')
-      expect(openai.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
-      expect(kitten.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
-    })
-  })
-
   test('a blocked batch peer persists every item and target without protected ingestion', async () => {
     await withTempDir('autoshow-tts-readiness-batch-', async (dir) => {
       const inputDir = join(dir, 'inputs')
@@ -516,16 +460,16 @@ describe('canonical TTS execution-readiness failures', () => {
           throw new Error('Readiness-gated Mistral target must not run.')
         }
       }
-      const kitten = kittenFixture('kitten-tts-nano')
+      const openai = hostedFixture('openai', 'gpt-4o-mini-tts-2025-12-15', 'alloy')
 
       await withHostedCredentials({
         MISTRAL_API_KEY: 'configured-for-local-fixture',
-        HF_HOME: join(dir, 'empty-huggingface-cache')
+        OPENAI_API_KEY: undefined
       }, async () => {
         await expect(runTtsDirectoryBatch(
           inputDir,
           options,
-          [mistralTarget, kitten.target],
+          [mistralTarget, openai.target],
           undefined
         )).rejects.toThrow('TTS batch processing failed for 2 item(s)')
       })
@@ -547,7 +491,7 @@ describe('canonical TTS execution-readiness failures', () => {
       expect(ingestCalls).toBe(0)
       expect(await Bun.file(storeRoot).exists()).toBe(false)
       expect(mistralCalls).toEqual({ run: 0, setup: 0, fetch: 0 })
-      expect(kitten.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
+      expect(openai.calls).toEqual({ run: 0, setup: 0, fetch: 0 })
     })
   })
 })

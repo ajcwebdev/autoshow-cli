@@ -2,10 +2,13 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
-import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createManifest, createManifestItem, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState, TtsTarget } from '~/types'
 import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import type { CanonicalAudioProviderProjection, PipelineManifest, TtsTarget } from '~/types'
+
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
@@ -15,36 +18,36 @@ const options = (): Parameters<typeof runSingleTtsInput>[1] => ({
   allowOverBudget: false
 })
 
-const kittenTarget = (
+const openaiTarget = (
   model: string,
   behavior: 'success' | 'failure',
   beforeProvider: () => Promise<void>
 ): TtsTarget => {
-  const voice = 'expr-voice-2-f'
+  const voice = 'alloy'
   const bytes = createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 })
   return {
-    service: 'kitten',
+    service: 'openai',
     model,
     operation: 'tts-synthesis',
-    transport: 'local-process',
-    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', model, 'local-process'),
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'openai', model, 'hosted-api'),
     voice,
     run: async (text, outputDir, _opts, _invocation, requestEvidence) => {
       await beforeProvider()
-      if (behavior === 'failure') throw new Error(`local ${model} fixture failure before provider dispatch`)
+      if (behavior === 'failure') throw new Error(`hosted ${model} fixture failure before provider dispatch`)
       const audioPath = join(outputDir, 'speech.wav')
       await requestEvidence?.dispatch({
         chunkIndex: 1,
-        endpointKind: 'local-runner',
-        serializerVersion: 'kitten.tts.phase-0-v1',
-        serializedRequest: { text, voice },
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'openai.tts.phase-0-v1',
+        serializedRequest: { body: { input: text, voice, response_format: 'wav' } },
         providerText: text,
         voiceField: 'voice',
-        voices: [{ kind: 'local-model-voice', value: voice }],
-        requestControls: { maxChunkChars: 2000 },
+        voices: [{ kind: 'provider-id', value: voice }],
+        requestControls: { responseFormat: 'wav' },
         continuation: { kind: 'none' }
       }, { attempt: 1 }, async ({ accepted }) => {
-        await accepted({ fields: { local: true } })
+        await accepted({ providerRequestId: 'openai-lifecycle-fixture' })
         await Bun.write(audioPath, bytes)
       })
       if (!requestEvidence) await Bun.write(audioPath, bytes)
@@ -53,7 +56,7 @@ const kittenTarget = (
       return {
         audioPath,
         metadata: {
-          ttsService: 'kitten',
+          ttsService: 'openai',
           ttsModel: model,
           speaker: voice,
           processingTime: 1,
@@ -94,8 +97,8 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       configurePinnedRunDir(outputDir)
       const beforeProvider = async () => await expectCompletePreparedCardinality(outputDir, 1, 2)
       const targets = [
-        kittenTarget('kitten-tts-mini', 'success', beforeProvider),
-        kittenTarget('kitten-tts-nano', 'failure', beforeProvider)
+        openaiTarget('gpt-4o-mini-tts-2025-12-15', 'success', beforeProvider),
+        openaiTarget('gpt-4o-mini-tts', 'failure', beforeProvider)
       ]
 
       await runSingleTtsInput(inputPath, options(), targets, undefined)
@@ -121,7 +124,7 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       const outputDir = join(dir, 'run')
       await Bun.write(inputPath, 'Retain the real failure projection.')
       configurePinnedRunDir(outputDir)
-      const target = kittenTarget('kitten-tts-nano', 'failure', async () =>
+      const target = openaiTarget('gpt-4o-mini-tts-2025-12-15', 'failure', async () =>
         await expectCompletePreparedCardinality(outputDir, 1, 1)
       )
 
@@ -146,8 +149,8 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       configurePinnedRunDir(outputDir)
       const beforeProvider = async () => await expectCompletePreparedCardinality(outputDir, 2, 2)
       const targets = [
-        kittenTarget('kitten-tts-mini', 'success', beforeProvider),
-        kittenTarget('kitten-tts-nano', 'failure', beforeProvider)
+        openaiTarget('gpt-4o-mini-tts-2025-12-15', 'success', beforeProvider),
+        openaiTarget('gpt-4o-mini-tts', 'failure', beforeProvider)
       ]
 
       await runTtsDirectoryBatch(inputDir, options(), targets, undefined)
@@ -169,7 +172,7 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       await Bun.write(join(inputDir, 'first.txt'), 'First failed batch fixture.')
       await Bun.write(join(inputDir, 'second.txt'), 'Second failed batch fixture.')
       configurePinnedRunDir(outputDir)
-      const target = kittenTarget('kitten-tts-nano', 'failure', async () =>
+      const target = openaiTarget('gpt-4o-mini-tts-2025-12-15', 'failure', async () =>
         await expectCompletePreparedCardinality(outputDir, 2, 1)
       )
 
@@ -177,6 +180,94 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       const manifest = await readManifest(outputDir)
       expect(manifest?.items.map((item) => item.status)).toEqual(['failed', 'failed'])
       expect(manifest?.items.every((item) => item.providers[0]?.status === 'failed')).toBe(true)
+    })
+  })
+
+  test('directory batch --output-dir reopens the stored createdAt instead of minting a new identity', async () => {
+    await withTempDir('autoshow-tts-canonical-batch-attach-', async (dir) => {
+      const inputDir = join(dir, 'inputs')
+      const outputDir = join(dir, 'run')
+      await mkdir(inputDir)
+      await mkdir(outputDir)
+      const createdAt = '2026-08-15T20:03:25.832Z'
+      const target = openaiTarget('gpt-4o-mini-tts-2025-12-15', 'failure', async () => {
+        throw new Error('attached batch must not dispatch')
+      })
+      const items = await Promise.all(['first', 'second'].map(async (label) => {
+        const inputPath = join(inputDir, `${label}.txt`)
+        const text = `${label} retained batch fixture.`
+        await Bun.write(inputPath, text)
+        const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
+        const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text, createdAt)
+        const actor = { namespace: 'local-user' as const, actorId: 'fixture' }
+        const at = createdAt
+        const evidence = {
+          schemaVersion: 1 as const,
+          skipId: `skip-${label}`,
+          targetKey: target.targetKey as string,
+          reasonCode: 'user-requested' as const,
+          reason: 'fixture skip',
+          actor,
+          at
+        }
+        const projection = {
+          activeWork: { kind: 'policy-skip' as const, evidence },
+          branchHistory: [],
+          readinessAttempts: [],
+          renderHistory: [],
+          pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
+        }
+        const skipped: PipelineProviderState = {
+          service: target.service,
+          model: target.model,
+          operation: 'tts-synthesis',
+          targetKey: target.targetKey,
+          transport: target.transport as string,
+          artifactDir: `items/${label}/providers/${target.targetKey}`,
+          status: 'skipped',
+          attempts: 0,
+          options: {},
+          metadata: { ttsAudio: projection },
+          result: { ttsAudio: projection }
+        }
+        return createManifestItem(outputDir, {
+          input: sourceIdentity.sourceLocator.kind === 'file' ? sourceIdentity.sourceLocator.canonicalPath : inputPath,
+          status: 'skipped',
+          metadata: { tts: [] },
+          providers: [bindTtsDialoguePlanArtifact(
+            skipped,
+            await materializeTtsDialoguePlanArtifact(outputDir, dialoguePlan)
+          )]
+        })
+      }))
+      await writeManifest(outputDir, { ...createManifest('tts', 'batch', items), createdAt, updatedAt: createdAt })
+      configurePinnedRunDir(outputDir)
+
+      await runTtsDirectoryBatch(inputDir, options(), [target], undefined)
+      const attached = await readManifest(outputDir)
+      expect(attached?.createdAt).toBe(createdAt)
+      expect(attached?.scope).toBe('batch')
+      expect(attached?.items).toHaveLength(2)
+      expect(attached?.items.every((item) => item.status === 'skipped')).toBe(true)
+    })
+  })
+
+  test('directory batch --output-dir rejects an incompatible existing batch before rewriting it', async () => {
+    await withTempDir('autoshow-tts-canonical-batch-incompatible-', async (dir) => {
+      const inputDir = join(dir, 'inputs')
+      const outputDir = join(dir, 'run')
+      await mkdir(inputDir)
+      await Bun.write(join(inputDir, 'first.txt'), 'First failed batch fixture.')
+      await Bun.write(join(inputDir, 'second.txt'), 'Second failed batch fixture.')
+      configurePinnedRunDir(outputDir)
+      const target = openaiTarget('gpt-4o-mini-tts-2025-12-15', 'failure', async () => undefined)
+
+      await expect(runTtsDirectoryBatch(inputDir, options(), [target], undefined)).rejects.toThrow('TTS batch processing failed for 2 item(s)')
+      const createdAt = (await readManifest(outputDir))?.createdAt
+      await Bun.write(join(inputDir, 'third.txt'), 'A third chapter is a different batch.')
+
+      await expect(runTtsDirectoryBatch(inputDir, options(), [target], undefined)).rejects.toThrow('has 2 items, but 3 input files were found')
+      expect((await readManifest(outputDir))?.createdAt).toBe(createdAt)
     })
   })
 })

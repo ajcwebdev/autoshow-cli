@@ -25,6 +25,7 @@ export type RunCommandOptions = {
   env?: Record<string, string | undefined>
   cwd?: string
   timeoutMs?: number
+  forceSourceCli?: boolean
   attemptRunner?: RunCommandAttemptRunner
   adaptiveStateDir?: string
   adaptiveConfig?: Partial<Omit<AdaptiveConcurrencyConfig, 'stateDir'>>

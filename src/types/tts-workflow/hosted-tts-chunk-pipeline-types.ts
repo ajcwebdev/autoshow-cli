@@ -1,4 +1,4 @@
-import type { HostedTtsChunkJobContext, HostedTtsChunkScheduler, Step4Metadata, TtsProvider, TtsRequestEvidenceScope } from '~/types'
+import type { HostedTtsChunkJobContext, HostedTtsChunkScheduler, RetryPolicy, Step4Metadata, TtsProvider, TtsRequestEvidenceScope, TtsTimingFactory } from '~/types'
 
 export type HostedTtsChunkFetchContext = {
   chunk: string
@@ -7,6 +7,11 @@ export type HostedTtsChunkFetchContext = {
   requestAttempt: number
   retryReasonCode?: string | undefined
 }
+
+export type HostedTtsChunkFetchResult = Uint8Array | Readonly<{
+  audio: Uint8Array
+  timing?: TtsTimingFactory | undefined
+}>
 
 export type HostedTtsChunkPipelineOptions = {
   provider: TtsProvider
@@ -20,9 +25,12 @@ export type HostedTtsChunkPipelineOptions = {
   abortSignal?: AbortSignal | undefined
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
+  retryPolicy?: Partial<RetryPolicy> | undefined
+  /** Explicit authorization to retry paid requests with ambiguous provider admission. */
+  allowAmbiguousRedispatch?: boolean | undefined
   chunkJob?: HostedTtsChunkJobContext | undefined
   laneScopeLabel?: string | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined
   extraMetadata?: Partial<Step4Metadata> | undefined
-  fetchChunkAudio: (context: HostedTtsChunkFetchContext) => Promise<Uint8Array>
+  fetchChunkAudio: (context: HostedTtsChunkFetchContext) => Promise<HostedTtsChunkFetchResult>
 }

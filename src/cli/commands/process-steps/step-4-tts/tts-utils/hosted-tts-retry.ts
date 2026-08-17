@@ -2,6 +2,9 @@ import type { HostedTtsRetryAttemptContext, HostedTtsRetryOptions, RetryClassifi
 import { AppError } from '~/utils/error-handler'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
+import { classifyHostedRateLimitPressure } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+
+import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
 
 const HOSTED_TTS_RETRY_POLICY: RetryPolicy = {
   maxAttempts: 4,
@@ -11,12 +14,16 @@ const HOSTED_TTS_RETRY_POLICY: RetryPolicy = {
   exponential: true
 }
 
-export const classifyHostedTtsRetry: RetryClassifier = (error) =>
-  error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true
+export const classifyHostedTtsRetry: RetryClassifier = (error) => {
+  const hostedPressure = classifyHostedRateLimitPressure(error)
+  return error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true
     ? { shouldRetry: false, delayMs: 0, reason: 'provider admission outcome is ambiguous' }
     : error instanceof AppError && (error.kind === 'usage' || error.kind === 'validation' || error.kind === 'internal')
       ? { shouldRetry: false, delayMs: 0, reason: `deterministic ${error.kind} error` }
-    : classifyFetchRetry(error, 'runtime_http_create_retriable')
+      : hostedPressure
+        ? { shouldRetry: true, delayMs: hostedPressure.retryAfterMs ?? hostedPressure.delayMs ?? 0, reason: hostedPressure.reason }
+        : classifyFetchRetry(error, 'runtime_http_create_conservative')
+}
 
 const getErrorHeaders = (error: unknown): Headers | undefined => {
   if (error && typeof error === 'object' && 'headers' in error) {
@@ -30,18 +37,20 @@ const notifyHostedTtsSchedulerRetry = (
   options: HostedTtsRetryOptions,
   error: unknown,
   decision: RetryDecision
-): void => {
+): void | boolean | Promise<void | boolean> => {
   if (!options.chunkScheduler || !options.admission) {
     return
   }
 
   options.chunkScheduler.notifyRetry(options.admission)
 
-  if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
-    options.chunkScheduler.notifyRateLimit(options.admission, {
-      retryAfterMs: parseRetryAfterMs(getErrorHeaders(error)),
-      delayMs: decision.delayMs
-    })
+  const pressure = classifyHostedRateLimitPressure(error)
+  if (pressure) {
+    return options.chunkScheduler.notifyRateLimit(options.admission, {
+      ...pressure,
+      retryAfterMs: pressure.retryAfterMs ?? parseRetryAfterMs(getErrorHeaders(error)),
+      delayMs: Math.max(pressure.delayMs ?? 0, decision.delayMs)
+    }, error)
   }
 }
 
@@ -50,7 +59,14 @@ export const withHostedTtsRetry = async <T>(
   operation: (signal: AbortSignal | undefined, attempt: HostedTtsRetryAttemptContext) => Promise<T>
 ): Promise<T> => {
   options.abortSignal?.throwIfAborted()
-  const classifier = options.classifier ?? classifyHostedTtsRetry
+  const baseClassifier = options.classifier ?? classifyHostedTtsRetry
+  const classifier: RetryClassifier = (error) => {
+    const ambiguous = (error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true)
+      || classifyTtsProviderAdmissionError(error) === 'ambiguous'
+    return ambiguous && options.allowAmbiguousRedispatch === true
+      ? classifyFetchRetry(error, 'runtime_http_create_retriable')
+      : baseClassifier(error)
+  }
   let attempt = 0
   let retryReasonCode: string | undefined
   return await withRetry(
@@ -63,9 +79,10 @@ export const withHostedTtsRetry = async <T>(
         ...HOSTED_TTS_RETRY_POLICY,
         ...options.policy
       },
+      retryHookCanExtendAttempts: options.chunkScheduler?.usesSharedHostedRateLimitRecovery() === true,
       onRetryAttempt: (error, decision) => {
         retryReasonCode = decision.reason
-        notifyHostedTtsSchedulerRetry(options, error, decision)
+        return notifyHostedTtsSchedulerRetry(options, error, decision)
       }
     },
     async (attemptSignal) => {

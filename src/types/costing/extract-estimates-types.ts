@@ -1,6 +1,6 @@
 import type { ExtractStepEstimate, HostedOcrTokenReasoningPolicy, TokenPricedOcrProvider } from '~/types'
 
-export type HostedOcrPricingService = TokenPricedOcrProvider | 'mistral'
+export type HostedOcrPricingService = TokenPricedOcrProvider | 'mistral' | 'replicate' | 'fal'
 
 export type OcrCostEstimate = {
   provider: ExtractStepEstimate['provider']
@@ -28,6 +28,7 @@ export type OcrCostEstimate = {
 export type HostedOcrEstimateOptions = {
   hostedOcrTokenProfilePath?: string | undefined
   effectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
+  ocrMode?: string | undefined
 }
 
 export type HostedOcrEstimateHandler = {

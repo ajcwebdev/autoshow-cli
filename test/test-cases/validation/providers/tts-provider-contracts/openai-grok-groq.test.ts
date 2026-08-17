@@ -46,33 +46,6 @@ describe('TTS provider service contracts', () => {
       })
     }, 10_000)
 
-  test('OpenAI tts-1 drops unsupported instructions from speech requests', async () => {
-      const dir = await makeTempDir('autoshow-openai-tts-1-controls-')
-      const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-
-      process.env['OPENAI_API_KEY'] = 'openai-key'
-
-      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } }))
-
-      const result = await runOpenAITts('OpenAI classic synthesis.', dir, {
-        model: 'tts-1',
-        voiceId: 'alloy',
-        instructions: 'Speak with a warm documentary narration style.',
-        speed: 1.25
-      })
-
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toHaveLength(1)
-      expect(calls[0]?.bodyJson).toMatchObject({
-        model: 'tts-1',
-        voice: 'alloy',
-        input: 'OpenAI classic synthesis.',
-        response_format: 'wav',
-        speed: 1.25
-      })
-      expect(calls[0]?.bodyJson).not.toHaveProperty('instructions')
-    }, 10_000)
-
   test('OpenAI TTS serializes eligible custom voice IDs as typed voice objects', async () => {
       const dir = await makeTempDir('autoshow-openai-tts-custom-voice-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
@@ -153,7 +126,8 @@ describe('TTS provider service contracts', () => {
       })
 
       const result = await runGrokTts('Grok timeout retry synthesis.', dir, {
-        model: 'grok-tts'
+        model: 'grok-tts',
+        allowAmbiguousRedispatch: true
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -315,34 +289,6 @@ describe('TTS provider service contracts', () => {
         model: 'canopylabs/orpheus-v1-english',
         voice: 'troy',
         input: 'Groq English synthesis.',
-        response_format: 'wav'
-      })
-    }, 10_000)
-
-  test('Groq TTS sends the Saudi-Arabic model with its model-specific voice', async () => {
-      const dir = await makeTempDir('autoshow-groq-tts-arabic-')
-      const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-
-      process.env['GROQ_API_KEY'] = 'groq-key'
-
-      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } }))
-
-      const result = await runGroqTts('مرحبا بكم', dir, {
-        model: 'canopylabs/orpheus-arabic-saudi',
-        voiceId: 'NOURA'
-      })
-
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(result.metadata).toMatchObject({
-        ttsService: 'groq',
-        ttsModel: 'canopylabs/orpheus-arabic-saudi',
-        speaker: 'noura'
-      })
-      expect(calls).toHaveLength(1)
-      expect(calls[0]?.bodyJson).toEqual({
-        model: 'canopylabs/orpheus-arabic-saudi',
-        voice: 'noura',
-        input: 'مرحبا بكم',
         response_format: 'wav'
       })
     }, 10_000)
