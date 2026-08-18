@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { basename, isAbsolute, resolve } from 'node:path'
 import type { ParsedCommandMetric, ParsedJunitCase, TestRunArtifacts } from '~/types'
 import type { MetricContext, ReportTestContext, ServiceModelPair } from '~/types'
+import { readString } from '../utils'
 
 const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])
 
@@ -240,9 +241,9 @@ const buildPairsFromMetricArgs = (metric: ParsedCommandMetric): ServiceModelPair
 }
 
 const resolveStep2ExtractPair = (step2: Record<string, unknown>): { service: string | null, model: string | null } => {
-  const extractionMethod = typeof step2['extractionMethod'] === 'string' ? step2['extractionMethod'] : null
-  const ocrService = typeof step2['ocrService'] === 'string' ? step2['ocrService'] : null
-  const ocrModel = typeof step2['ocrModel'] === 'string' ? step2['ocrModel'] : null
+  const extractionMethod = readString(step2, 'extractionMethod')
+  const ocrService = readString(step2, 'ocrService')
+  const ocrModel = readString(step2, 'ocrModel')
 
   if (extractionMethod) {
     for (const [backend, service, model] of URL_BACKEND_PAIRS) {
@@ -291,8 +292,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'transcribe',
-      typeof step2['transcriptionService'] === 'string' ? step2['transcriptionService'] : null,
-      typeof step2['transcriptionModel'] === 'string' ? step2['transcriptionModel'] : null
+      readString(step2, 'transcriptionService'),
+      readString(step2, 'transcriptionModel')
     )
 
     const extractPair = resolveStep2ExtractPair(step2)
@@ -303,8 +304,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'write',
-      typeof step3['llmService'] === 'string' ? step3['llmService'] : null,
-      typeof step3['llmModel'] === 'string' ? step3['llmModel'] : null
+      readString(step3, 'llmService'),
+      readString(step3, 'llmModel')
     )
   }
 
@@ -312,8 +313,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'tts',
-      typeof step4['ttsService'] === 'string' ? step4['ttsService'] : null,
-      typeof step4['ttsModel'] === 'string' ? step4['ttsModel'] : null
+      readString(step4, 'ttsService'),
+      readString(step4, 'ttsModel')
     )
   }
 
@@ -321,8 +322,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'music',
-      typeof music['musicService'] === 'string' ? music['musicService'] : null,
-      typeof music['musicModel'] === 'string' ? music['musicModel'] : null
+      readString(music, 'musicService'),
+      readString(music, 'musicModel')
     )
   }
 
@@ -330,8 +331,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'tts',
-      typeof tts['ttsService'] === 'string' ? tts['ttsService'] : null,
-      typeof tts['ttsModel'] === 'string' ? tts['ttsModel'] : null
+      readString(tts, 'ttsService'),
+      readString(tts, 'ttsModel')
     )
   }
 
@@ -339,8 +340,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'image',
-      typeof image['imageService'] === 'string' ? image['imageService'] : null,
-      typeof image['imageModel'] === 'string' ? image['imageModel'] : null
+      readString(image, 'imageService'),
+      readString(image, 'imageModel')
     )
   }
 
@@ -348,12 +349,8 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'video',
-      typeof video['videoGenService'] === 'string'
-        ? video['videoGenService']
-        : typeof video['videoService'] === 'string' ? video['videoService'] : null,
-      typeof video['videoGenModel'] === 'string'
-        ? video['videoGenModel']
-        : typeof video['videoModel'] === 'string' ? video['videoModel'] : null
+      readString(video, 'videoGenService') ?? readString(video, 'videoService'),
+      readString(video, 'videoGenModel') ?? readString(video, 'videoModel')
     )
   }
 

@@ -304,24 +304,45 @@ const addAllExtractGroups = (groups: Set<AdaptiveProviderGroup>, input: string |
   addAllGroups(groups, 'extract', OCR_REMOTE_PROVIDERS)
 }
 
+/** `write --all-providers <step>` fans out over every remote provider for that step. */
+const WRITE_ALL_PROVIDER_STEPS: Record<string, { kind: AdaptiveProviderGroupKind, providers: readonly string[] }> = {
+  stt: { kind: 'transcribe', providers: STT_REMOTE_PROVIDERS },
+  ocr: { kind: 'extract', providers: OCR_REMOTE_PROVIDERS },
+  url: { kind: 'url', providers: URL_REMOTE_PROVIDERS },
+  llm: { kind: 'write', providers: LLM_REMOTE_PROVIDERS },
+}
+
+/** `write <flag> <provider>` selects a single remote provider for that step. */
+const WRITE_FLAG_GROUPS: Record<string, { kind: AdaptiveProviderGroupKind, remoteSet: Set<string> }> = {
+  'stt': { kind: 'transcribe', remoteSet: STT_REMOTE_SET },
+  'ocr': { kind: 'extract', remoteSet: OCR_REMOTE_SET },
+  'url-provider': { kind: 'url', remoteSet: URL_REMOTE_SET },
+  'llm': { kind: 'write', remoteSet: LLM_REMOTE_SET },
+}
+
+/** Commands whose only provider surface is `--provider`/`--<command>` plus `--all-providers`. */
+const SIMPLE_MEDIA_COMMANDS = {
+  tts: { kind: 'tts', remoteSet: TTS_REMOTE_SET, providers: TTS_REMOTE_PROVIDERS },
+  image: { kind: 'image', remoteSet: IMAGE_REMOTE_SET, providers: IMAGE_REMOTE_PROVIDERS },
+  video: { kind: 'video', remoteSet: VIDEO_REMOTE_SET, providers: VIDEO_REMOTE_PROVIDERS },
+  music: { kind: 'music', remoteSet: MUSIC_REMOTE_SET, providers: MUSIC_REMOTE_PROVIDERS },
+} as const satisfies Record<string, { kind: AdaptiveProviderGroupKind, remoteSet: Set<string>, providers: readonly string[] }>
+
+type SimpleMediaCommand = keyof typeof SIMPLE_MEDIA_COMMANDS
+
+const isSimpleMediaCommand = (command: string): command is SimpleMediaCommand =>
+  Object.hasOwn(SIMPLE_MEDIA_COMMANDS, command)
+
 const addWriteAllProviderGroups = (
   groups: Set<AdaptiveProviderGroup>,
   value: string | null
 ): void => {
-  switch (value) {
-    case 'stt':
-      addAllGroups(groups, 'transcribe', STT_REMOTE_PROVIDERS)
-      break
-    case 'ocr':
-      addAllGroups(groups, 'extract', OCR_REMOTE_PROVIDERS)
-      break
-    case 'url':
-      addAllGroups(groups, 'url', URL_REMOTE_PROVIDERS)
-      break
-    case 'llm':
-      addAllGroups(groups, 'write', LLM_REMOTE_PROVIDERS)
-      break
+  const target = value === null ? undefined : WRITE_ALL_PROVIDER_STEPS[value]
+  if (!target) {
+    return
   }
+
+  addAllGroups(groups, target.kind, target.providers)
 }
 
 const normalizedStepValue = (value: string | null): string | null => {
@@ -332,73 +353,85 @@ const normalizedStepValue = (value: string | null): string | null => {
   return provider
 }
 
+const applyExtractFlag = (
+  groups: Set<AdaptiveProviderGroup>,
+  input: string | null,
+  { flag, value }: AdaptiveProviderFlagValue
+): void => {
+  if (flag === 'provider') {
+    addExtractProviderGroup(groups, input, parseProviderName(value))
+    return
+  }
+  if (flag === 'url-provider') {
+    addGroup(groups, 'url', parseProviderName(value), URL_REMOTE_SET)
+    return
+  }
+  if (flag === 'all-providers') {
+    addAllExtractGroups(groups, input)
+  }
+}
+
+const applyWriteFlag = (
+  groups: Set<AdaptiveProviderGroup>,
+  { flag, value }: AdaptiveProviderFlagValue
+): void => {
+  if (flag === 'all-providers') {
+    addWriteAllProviderGroups(groups, value?.trim().toLowerCase() ?? null)
+    return
+  }
+
+  const target = WRITE_FLAG_GROUPS[flag]
+  if (!target) {
+    return
+  }
+
+  addGroup(groups, target.kind, normalizedStepValue(value), target.remoteSet)
+}
+
+const applySimpleMediaFlag = (
+  groups: Set<AdaptiveProviderGroup>,
+  command: SimpleMediaCommand,
+  { flag, value }: AdaptiveProviderFlagValue
+): void => {
+  const target = SIMPLE_MEDIA_COMMANDS[command]
+  if (flag === 'provider' || flag === command) {
+    addGroup(groups, target.kind, normalizedStepValue(value), target.remoteSet)
+    return
+  }
+  if (flag === 'all-providers') {
+    addAllGroups(groups, target.kind, target.providers)
+  }
+}
+
+const resolveFlagApplier = (
+  command: string | undefined,
+  input: string | null
+): ((groups: Set<AdaptiveProviderGroup>, flagValue: AdaptiveProviderFlagValue) => void) | null => {
+  if (command === 'extract') {
+    return (groups, flagValue) => applyExtractFlag(groups, input, flagValue)
+  }
+  if (command === 'write') {
+    return applyWriteFlag
+  }
+  if (command && isSimpleMediaCommand(command)) {
+    return (groups, flagValue) => applySimpleMediaFlag(groups, command, flagValue)
+  }
+  return null
+}
+
 export const extractAdaptiveProviderGroups = (args: string[]): AdaptiveProviderGroup[] => {
   if (args[0] !== 'src/cli/create-cli.ts') {
     return []
   }
 
-  const command = args[1]
-  const groups = new Set<AdaptiveProviderGroup>()
-  const flagValues = collectFlagValues(args)
-  const input = firstPositionalAfterCommand(args)
+  const applyFlag = resolveFlagApplier(args[1], firstPositionalAfterCommand(args))
+  if (!applyFlag) {
+    return []
+  }
 
-  if (command === 'extract') {
-    for (const { flag, value } of flagValues) {
-      if (flag === 'provider') {
-        addExtractProviderGroup(groups, input, parseProviderName(value))
-      } else if (flag === 'url-provider') {
-        addGroup(groups, 'url', parseProviderName(value), URL_REMOTE_SET)
-      } else if (flag === 'all-providers') {
-        addAllExtractGroups(groups, input)
-      }
-    }
-  } else if (command === 'write') {
-    for (const { flag, value } of flagValues) {
-      const provider = normalizedStepValue(value)
-      if (flag === 'stt') {
-        addGroup(groups, 'transcribe', provider, STT_REMOTE_SET)
-      } else if (flag === 'ocr') {
-        addGroup(groups, 'extract', provider, OCR_REMOTE_SET)
-      } else if (flag === 'url-provider') {
-        addGroup(groups, 'url', provider, URL_REMOTE_SET)
-      } else if (flag === 'llm') {
-        addGroup(groups, 'write', provider, LLM_REMOTE_SET)
-      } else if (flag === 'all-providers') {
-        addWriteAllProviderGroups(groups, value?.trim().toLowerCase() ?? null)
-      }
-    }
-  } else if (command === 'tts') {
-    for (const { flag, value } of flagValues) {
-      if (flag === 'provider' || flag === 'tts') {
-        addGroup(groups, 'tts', normalizedStepValue(value), TTS_REMOTE_SET)
-      } else if (flag === 'all-providers') {
-        addAllGroups(groups, 'tts', TTS_REMOTE_PROVIDERS)
-      }
-    }
-  } else if (command === 'image') {
-    for (const { flag, value } of flagValues) {
-      if (flag === 'provider' || flag === 'image') {
-        addGroup(groups, 'image', normalizedStepValue(value), IMAGE_REMOTE_SET)
-      } else if (flag === 'all-providers') {
-        addAllGroups(groups, 'image', IMAGE_REMOTE_PROVIDERS)
-      }
-    }
-  } else if (command === 'video') {
-    for (const { flag, value } of flagValues) {
-      if (flag === 'provider' || flag === 'video') {
-        addGroup(groups, 'video', normalizedStepValue(value), VIDEO_REMOTE_SET)
-      } else if (flag === 'all-providers') {
-        addAllGroups(groups, 'video', VIDEO_REMOTE_PROVIDERS)
-      }
-    }
-  } else if (command === 'music') {
-    for (const { flag, value } of flagValues) {
-      if (flag === 'provider' || flag === 'music') {
-        addGroup(groups, 'music', normalizedStepValue(value), MUSIC_REMOTE_SET)
-      } else if (flag === 'all-providers') {
-        addAllGroups(groups, 'music', MUSIC_REMOTE_PROVIDERS)
-      }
-    }
+  const groups = new Set<AdaptiveProviderGroup>()
+  for (const flagValue of collectFlagValues(args)) {
+    applyFlag(groups, flagValue)
   }
 
   return [...groups].sort((left, right) => left.localeCompare(right))

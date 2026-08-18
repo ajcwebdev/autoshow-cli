@@ -15,7 +15,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { appendRunnerLog, cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog } from '../../../../test-runner/artifacts'
-import { parseJunit } from '../../../../test-runner/parsers'
+import { parseJunit, parseTestcase, resolveTestcaseStatus } from '../../../../test-runner/parsers'
 import {
   COMMAND_OUTPUT_PARSE_TAIL_CHARS,
   lineHasTimedOutputPrefix,
@@ -190,5 +190,63 @@ describe('test-runner contracts', () => {
       expect(cases.filter((entry) => entry.status === 'passed')).toHaveLength(1)
       expect(cases.filter((entry) => entry.status === 'failed')).toHaveLength(1)
       expect(cases.filter((entry) => entry.status === 'skipped')).toHaveLength(1)
+    })
+
+  test('testcase status resolution prefers attribute messages over body text', () => {
+      expect(resolveTestcaseStatus('<failure message="attr wins">body text</failure>'))
+        .toEqual({ status: 'failed', failureMessage: 'attr wins' })
+      expect(resolveTestcaseStatus('<failure message="   ">  body text  </failure>'))
+        .toEqual({ status: 'failed', failureMessage: 'body text' })
+      expect(resolveTestcaseStatus('<failure />'))
+        .toEqual({ status: 'failed', failureMessage: 'Test failed' })
+      expect(resolveTestcaseStatus('<error message="boom" />'))
+        .toEqual({ status: 'failed', failureMessage: 'boom' })
+      expect(resolveTestcaseStatus('<failure>&lt;decoded&gt;</failure>'))
+        .toEqual({ status: 'failed', failureMessage: '<decoded>' })
+    })
+
+  test('testcase status resolution ranks failure over skipped and defaults to passed', () => {
+      expect(resolveTestcaseStatus('<failure message="bad" /><skipped />'))
+        .toEqual({ status: 'failed', failureMessage: 'bad' })
+      expect(resolveTestcaseStatus('<skipped message="why">reason</skipped>'))
+        .toEqual({ status: 'skipped', failureMessage: null })
+      expect(resolveTestcaseStatus('<system-out>noise</system-out>'))
+        .toEqual({ status: 'passed', failureMessage: null })
+      // Preserved from the pre-refactor parser: a self-closing failure alongside a paired error
+      // takes the failure tag's (empty) attrs and falls through to the error tag's body text.
+      expect(resolveTestcaseStatus('<failure /><error>error body</error>'))
+        .toEqual({ status: 'failed', failureMessage: 'error body' })
+    })
+
+  test('testcase parsing falls back to suite file, unnamed cases, and zero durations', () => {
+      expect(parseTestcase('name="named" file="test/a.test.ts" line="12" time="0.25"', '', 'test/suite.test.ts'))
+        .toEqual({
+          id: 'test/a.test.ts::named',
+          file: 'test/a.test.ts',
+          name: 'named',
+          line: 12,
+          durationMs: 250,
+          status: 'passed',
+          failureMessage: null,
+        })
+      expect(parseTestcase('line="oops" time="oops"', '', 'test/suite.test.ts'))
+        .toEqual({
+          id: 'test/suite.test.ts::unnamed',
+          file: 'test/suite.test.ts',
+          name: 'unnamed',
+          line: null,
+          durationMs: 0,
+          status: 'passed',
+          failureMessage: null,
+        })
+      expect(parseTestcase('name="orphan"', '<skipped />', '')).toEqual({
+        id: 'unknown-file::orphan',
+        file: 'unknown-file',
+        name: 'orphan',
+        line: null,
+        durationMs: 0,
+        status: 'skipped',
+        failureMessage: null,
+      })
     })
 })

@@ -228,6 +228,21 @@ const logPriceCommandFailure = (executed: ExecutedPriceCommand, message: string)
   }
 }
 
+// Shared by the price suite and the budget preflight, which print the same table under
+// different headings ("test key" vs "command").
+const logSkippedKeyTable = (label: string, summary: BudgetPreflightSummary): void => {
+  if (summary.skipKeys.length === 0) {
+    return
+  }
+
+  l.write('info', `${label} (${summary.skipKeys.length})`, {
+    category: 'pricing',
+    humanTable: createKeyValueTable(
+      summary.skippedEntries.map(entry => [entry.key, formatCost(entry.selectedCostCents)] as [string, string])
+    ),
+  })
+}
+
 const forwardSpawnOutput = async (
   stream: ReadableStream,
   label: RunnerStreamLabel,
@@ -408,13 +423,8 @@ const runPriceSuite = async (
     humanTable: createKeyValueTable(summaryRows),
   })
 
-  if (evaluation.budgetSummary && evaluation.budgetSummary.skipKeys.length > 0) {
-    l.write('info', `Skipped test key list (${evaluation.budgetSummary.skipKeys.length})`, {
-      category: 'pricing',
-      humanTable: createKeyValueTable(
-        evaluation.budgetSummary.skippedEntries.map(entry => [entry.key, formatCost(entry.selectedCostCents)] as [string, string])
-      ),
-    })
+  if (evaluation.budgetSummary) {
+    logSkippedKeyTable('Skipped test key list', evaluation.budgetSummary)
   }
 
   return {
@@ -422,6 +432,133 @@ const runPriceSuite = async (
     results: evaluation.commandResults,
     budgetSummary: evaluation.budgetSummary,
   }
+}
+
+type BudgetPreflightVariant = {
+  entry: PriceCommandSpec
+  groupIndex: number
+  variantIndex: number
+}
+
+type ExecutedBudgetPreflightVariant = BudgetPreflightVariant & {
+  executed: ExecutedPriceCommand
+  observation: PriceCommandObservation
+}
+
+// Splits variants against the preflight cache. A cached cost is replayed as a synthetic
+// zero-duration success so evaluation downstream cannot tell a hit from a fresh run.
+const partitionBudgetCacheHits = (
+  allVariants: BudgetPreflightVariant[],
+  cache: ReadonlyMap<string, number>
+): { hits: ExecutedBudgetPreflightVariant[], misses: BudgetPreflightVariant[] } => {
+  const hits: ExecutedBudgetPreflightVariant[] = []
+  const misses: BudgetPreflightVariant[] = []
+
+  for (const item of allVariants) {
+    const cachedCost = cache.get(argvKeyFor(item.entry.args))
+    if (cachedCost === undefined) {
+      misses.push(item)
+      continue
+    }
+
+    const executed: ExecutedPriceCommand = {
+      commandText: item.entry.args.join(' '),
+      stdout: '',
+      stderr: '',
+      exitCode: 0,
+      durationMs: 0,
+      parsedCost: cachedCost
+    }
+    hits.push({
+      ...item,
+      executed,
+      observation: toObservation(item.entry, executed)
+    })
+  }
+
+  return { hits, misses }
+}
+
+// Only successful runs with a resolved numeric estimate are cached; failures stay uncached
+// so the next preflight retries them.
+const executeMissesAndUpdateCache = async (
+  misses: BudgetPreflightVariant[],
+  cache: ReadonlyMap<string, number>,
+  fingerprint: string,
+  artifacts: TestRunArtifacts
+): Promise<ExecutedBudgetPreflightVariant[]> => {
+  const executedMisses = await runWithConcurrency(misses, PRICE_CONCURRENCY, async (item) => {
+    const executed = await executePriceCommand(item.entry, artifacts, 'BUDGET PREFLIGHT COMMAND')
+    const observation = toObservation(item.entry, executed)
+    return { ...item, executed, observation }
+  })
+
+  const nextCache = new Map(cache)
+  for (const result of executedMisses) {
+    if (result.executed.exitCode === 0 && result.executed.parsedCost !== null) {
+      nextCache.set(argvKeyFor(result.entry.args), result.executed.parsedCost)
+    }
+  }
+  await writeBudgetPreflightCache(fingerprint, nextCache)
+
+  return executedMisses
+}
+
+// Cache hits and executed misses come back interleaved by concurrency, so rebuild the
+// original group/variant order before logging failures and emitting observations.
+const collectOrderedVariantObservations = (
+  groupedCommands: { key: string, variants: PriceCommandSpec[] }[],
+  executedVariants: ExecutedBudgetPreflightVariant[]
+): PriceCommandObservation[] => {
+  const groupResults = new Map<number, ExecutedBudgetPreflightVariant[]>()
+  for (const result of executedVariants) {
+    let list = groupResults.get(result.groupIndex)
+    if (!list) {
+      list = []
+      groupResults.set(result.groupIndex, list)
+    }
+    list.push(result)
+  }
+
+  const observations: PriceCommandObservation[] = []
+
+  for (const [index, group] of groupedCommands.entries()) {
+    const variants = groupResults.get(index) ?? []
+    variants.sort((a, b) => a.variantIndex - b.variantIndex)
+
+    for (const { executed, observation, variantIndex } of variants) {
+      observations.push(observation)
+
+      if (observation.failureMessage !== null) {
+        logPriceCommandFailure(
+          executed,
+          `  variant ${variantIndex + 1}/${group.variants.length}: FAIL exit=${executed.exitCode} (could not resolve numeric estimate)`
+        )
+      }
+    }
+  }
+
+  return observations
+}
+
+const logBudgetPreflightSummary = (
+  suiteName: string,
+  budgetSummary: BudgetPreflightSummary,
+  variantCount: number
+): void => {
+  l.write('success', `${suiteName} Budget Preflight Summary`, {
+    category: 'pricing',
+    humanTable: createKeyValueTable([
+      ['Test keys checked', String(budgetSummary.commandsChecked)],
+      ['Command variants checked', String(variantCount)],
+      ['Commands runnable', String(budgetSummary.commandsRunnable)],
+      ['Commands skipped', String(budgetSummary.commandsSkipped)],
+      ['Commands failed', String(budgetSummary.commandsFailed)],
+      ['Runnable estimated cost', formatCost(budgetSummary.runnableEstimatedCostCents)],
+    ]),
+  })
+
+  logSkippedKeyTable('Skipped command list', budgetSummary)
 }
 
 const runBudgetPreflight = async (
@@ -449,97 +586,17 @@ const runBudgetPreflight = async (
   )
   const fingerprint = await hashBudgetPreflightInputs(executionCommands)
   const cache = await readBudgetPreflightCache(fingerprint)
-  const hits: Array<typeof allVariants[number] & { executed: ExecutedPriceCommand, observation: PriceCommandObservation }> = []
-  const misses = allVariants.filter((item) => {
-    const cachedCost = cache.get(argvKeyFor(item.entry.args))
-    if (cachedCost === undefined) {
-      return true
-    }
-    const executed = {
-      commandText: item.entry.args.join(' '),
-      stdout: '',
-      stderr: '',
-      exitCode: 0,
-      durationMs: 0,
-      parsedCost: cachedCost
-    }
-    hits.push({
-      ...item,
-      executed,
-      observation: toObservation(item.entry, executed)
-    })
-    return false
-  })
+  const { hits, misses } = partitionBudgetCacheHits(allVariants, cache)
 
   l.write('info', `Budget preflight cache: ${hits.length} hit(s), ${misses.length} miss(es)`)
 
-  const executedMisses = await runWithConcurrency(misses, PRICE_CONCURRENCY, async (item) => {
-    const executed = await executePriceCommand(item.entry, artifacts, 'BUDGET PREFLIGHT COMMAND')
-    const observation = toObservation(item.entry, executed)
-    return { ...item, executed, observation }
-  })
-  const executedVariants = [...hits, ...executedMisses]
-  const nextCache = new Map(cache)
-  for (const result of executedMisses) {
-    if (result.executed.exitCode === 0 && result.executed.parsedCost !== null) {
-      nextCache.set(argvKeyFor(result.entry.args), result.executed.parsedCost)
-    }
-  }
-  await writeBudgetPreflightCache(fingerprint, nextCache)
-
-  // Rebuild per-group results and log in original order
-  const groupResults = new Map<number, { executed: ExecutedPriceCommand, observation: PriceCommandObservation, variantIndex: number }[]>()
-  for (const result of executedVariants) {
-    let list = groupResults.get(result.groupIndex)
-    if (!list) {
-      list = []
-      groupResults.set(result.groupIndex, list)
-    }
-    list.push(result)
-  }
-
-  const observations: PriceCommandObservation[] = []
-
-  for (const [index, group] of groupedCommands.entries()) {
-    const variants = groupResults.get(index) ?? []
-    variants.sort((a, b) => a.variantIndex - b.variantIndex)
-
-    for (const { executed, observation, variantIndex } of variants) {
-      observations.push(observation)
-
-      if (observation.failureMessage !== null) {
-        logPriceCommandFailure(
-          executed,
-          `  variant ${variantIndex + 1}/${group.variants.length}: FAIL exit=${executed.exitCode} (could not resolve numeric estimate)`
-        )
-      }
-    }
-
-  }
+  const executedMisses = await executeMissesAndUpdateCache(misses, cache, fingerprint, artifacts)
+  const observations = collectOrderedVariantObservations(groupedCommands, [...hits, ...executedMisses])
 
   const evaluation = evaluatePriceObservations(suiteName, observations, budgetHundredthCents)
   const budgetSummary = evaluation.budgetSummary ?? buildEmptyBudgetSummary(suiteName, budgetHundredthCents)
 
-  l.write('success', `${suiteName} Budget Preflight Summary`, {
-    category: 'pricing',
-    humanTable: createKeyValueTable([
-      ['Test keys checked', String(budgetSummary.commandsChecked)],
-      ['Command variants checked', String(executionCommands.length)],
-      ['Commands runnable', String(budgetSummary.commandsRunnable)],
-      ['Commands skipped', String(budgetSummary.commandsSkipped)],
-      ['Commands failed', String(budgetSummary.commandsFailed)],
-      ['Runnable estimated cost', formatCost(budgetSummary.runnableEstimatedCostCents)],
-    ]),
-  })
-
-  if (budgetSummary.skipKeys.length > 0) {
-    l.write('info', `Skipped command list (${budgetSummary.skipKeys.length})`, {
-      category: 'pricing',
-      humanTable: createKeyValueTable(
-        budgetSummary.skippedEntries.map(entry => [entry.key, formatCost(entry.selectedCostCents)] as [string, string])
-      ),
-    })
-  }
+  logBudgetPreflightSummary(suiteName, budgetSummary, executionCommands.length)
 
   if (budgetSummary.commandsFailed > 0) {
     throw new Error(`Budget preflight failed for ${budgetSummary.commandsFailed} command(s); cannot continue with --budget`)

@@ -365,7 +365,9 @@ bun test test/test-cases/validation/media-generation/elevenlabs-sfx-adapter-cont
 bun test test/test-cases/validation/media-generation/replicate-audiogen-adapter-contracts.test.ts
 bun test test/test-cases/validation/media-generation/voice-clone-phase-1-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts
+bun test test/test-cases/validation/resume-manifests/tts-resume-batch-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/tts-resume-canonical-contracts.test.ts
+bun test test/test-cases/validation/resume-manifests/tts-resume-protected-mistral-contracts.test.ts
 git diff --check
 ```
 

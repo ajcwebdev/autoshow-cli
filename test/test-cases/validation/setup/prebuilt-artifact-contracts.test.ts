@@ -24,6 +24,7 @@ import { managedToolchainDistributionLicense } from '~/cli/commands/setup-and-ut
 import type {
   ManagedArtifactToolId,
   ManagedPrebuiltCandidate,
+  ManagedPrebuiltLicense,
   ManagedPrebuiltPayloadManifest,
   ManagedPrebuiltReleaseManifest
 } from '~/types'
@@ -59,19 +60,27 @@ type PrebuiltFixture = {
   }
 }
 
-const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<PrebuiltFixture> => {
-  const root = await tempDirs.make()
-  const packageDir = join(root, 'package')
-  const binaryPath = BINARY_BY_TOOL[tool]
+const materializeFixturePackage = async (
+  tool: ManagedArtifactToolId,
+  packageDir: string,
+  license: ManagedPrebuiltLicense
+): Promise<void> => {
   await mkdir(join(packageDir, 'bin'), { recursive: true })
   await mkdir(join(packageDir, 'licenses'), { recursive: true })
-  await Bun.write(join(packageDir, binaryPath), `${tool} ${VERSION_BY_TOOL[tool]} signed fixture\n`)
-  const license = managedToolchainDistributionLicense(tool)
+  await Bun.write(join(packageDir, BINARY_BY_TOOL[tool]), `${tool} ${VERSION_BY_TOOL[tool]} signed fixture\n`)
   for (const noticePath of license.noticePaths) {
     await mkdir(dirname(join(packageDir, noticePath)), { recursive: true })
     await Bun.write(join(packageDir, noticePath), `${tool} ${noticePath} fixture\n`)
   }
-  const payload: ManagedPrebuiltPayloadManifest = {
+}
+
+const buildPayloadManifest = async (
+  tool: ManagedArtifactToolId,
+  packageDir: string,
+  license: ManagedPrebuiltLicense
+): Promise<ManagedPrebuiltPayloadManifest> => {
+  const binaryPath = BINARY_BY_TOOL[tool]
+  return {
     schemaVersion: 1,
     tool,
     version: VERSION_BY_TOOL[tool],
@@ -96,6 +105,57 @@ const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<Preb
     trust: { signingIdentity: SIGNING_IDENTITY, teamId: TEAM_ID },
     license
   }
+}
+
+const buildReleaseManifest = (
+  tool: ManagedArtifactToolId,
+  payload: ManagedPrebuiltPayloadManifest,
+  payloadBytes: string,
+  archiveName: string,
+  archiveBytes: string
+): ManagedPrebuiltReleaseManifest => ({
+  schemaVersion: 1,
+  identity: `${tool}-${payload.version}-${payload.revision}-darwin-${payload.architecture}`,
+  tool,
+  version: payload.version,
+  revision: payload.revision,
+  platform: 'darwin',
+  architecture: payload.architecture,
+  minimumMacosVersion: payload.macosDeploymentTarget,
+  producerCommit: PRODUCER_COMMIT,
+  archive: { name: archiveName, sha256: sha256Bytes(archiveBytes) },
+  payloadManifestSha256: sha256Bytes(payloadBytes),
+  notarization: { submissionId: 'fixture-notary-submission', status: 'Accepted' },
+  sbom: { name: `${tool}-${payload.version}-${payload.revision}.spdx.json`, sha256: '1'.repeat(64) },
+  provenance: { repository: 'ajcwebdev/autoshow-cli', subjectDigest: sha256Bytes(archiveBytes) },
+  licenseReviewReferences: payload.license.reviewReferences
+})
+
+const buildFixtureDependencies = (
+  tool: ManagedArtifactToolId,
+  packageDir: string,
+  archiveBytes: string
+): PrebuiltFixture['dependencies'] => ({
+  downloadArchive: async (_candidate, destination) => { await Bun.write(destination, archiveBytes) },
+  extractArchive: async (_archivePath, destination, packageRoot) => {
+    await mkdir(destination, { recursive: true })
+    await cp(packageDir, join(destination, packageRoot), { recursive: true })
+  },
+  verifyCodeSignature: async (_binaryPath, expected) => {
+    if (expected.signingIdentity !== SIGNING_IDENTITY || expected.teamId !== TEAM_ID) throw new Error('fixture signature identity mismatch')
+  },
+  verifyArchitecture: async (_binaryPath, expected) => {
+    if (expected !== 'arm64') throw new Error('fixture architecture mismatch')
+  },
+  runBinary: async () => ({ exitCode: 0, stdout: `${tool} version ${VERSION_BY_TOOL[tool]}\n`, stderr: '' })
+})
+
+const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<PrebuiltFixture> => {
+  const root = await tempDirs.make()
+  const packageDir = join(root, 'package')
+  const license = managedToolchainDistributionLicense(tool)
+  await materializeFixturePackage(tool, packageDir, license)
+  const payload = await buildPayloadManifest(tool, packageDir, license)
   const payloadPath = join(packageDir, MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME)
   const writePayloadBytes = async (): Promise<string> => {
     const bytes = `${JSON.stringify(payload, null, 2)}\n`
@@ -105,23 +165,10 @@ const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<Preb
   const payloadBytes = await writePayloadBytes()
   const archiveBytes = `${tool} prebuilt archive fixture bytes\n`
   const archiveName = `autoshow-${tool}-${payload.version}-${payload.revision}-darwin-${payload.architecture}.zip`
-  const release: ManagedPrebuiltReleaseManifest = {
-    schemaVersion: 1,
-    identity: `${tool}-${payload.version}-${payload.revision}-darwin-${payload.architecture}`,
-    tool,
-    version: payload.version,
-    revision: payload.revision,
-    platform: 'darwin',
-    architecture: payload.architecture,
-    minimumMacosVersion: payload.macosDeploymentTarget,
-    producerCommit: PRODUCER_COMMIT,
-    archive: { name: archiveName, sha256: sha256Bytes(archiveBytes) },
-    payloadManifestSha256: sha256Bytes(payloadBytes),
-    notarization: { submissionId: 'fixture-notary-submission', status: 'Accepted' },
-    sbom: { name: `${tool}-${payload.version}-${payload.revision}.spdx.json`, sha256: '1'.repeat(64) },
-    provenance: { repository: 'ajcwebdev/autoshow-cli', subjectDigest: sha256Bytes(archiveBytes) },
-    licenseReviewReferences: payload.license.reviewReferences
-  }
+  const release = buildReleaseManifest(tool, payload, payloadBytes, archiveName, archiveBytes)
+  // The candidate embeds the serialized release manifest and its hash, and the release
+  // hashes the payload bytes, so every payload or release mutation below has to refresh
+  // the candidate afterwards or the fixture stops describing itself.
   const candidate = {} as ManagedPrebuiltCandidate
   const refreshCandidateRelease = (): void => {
     const releaseManifestJson = `${JSON.stringify(release, null, 2)}\n`
@@ -142,7 +189,7 @@ const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<Preb
     } satisfies ManagedPrebuiltCandidate)
   }
   refreshCandidateRelease()
-  const fixture: PrebuiltFixture = {
+  return {
     tool,
     root,
     packageDir,
@@ -160,22 +207,8 @@ const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<Preb
       mutate(release)
       refreshCandidateRelease()
     },
-    dependencies: {
-      downloadArchive: async (_candidate, destination) => { await Bun.write(destination, archiveBytes) },
-      extractArchive: async (_archivePath, destination, packageRoot) => {
-        await mkdir(destination, { recursive: true })
-        await cp(packageDir, join(destination, packageRoot), { recursive: true })
-      },
-      verifyCodeSignature: async (_binaryPath, expected) => {
-        if (expected.signingIdentity !== SIGNING_IDENTITY || expected.teamId !== TEAM_ID) throw new Error('fixture signature identity mismatch')
-      },
-      verifyArchitecture: async (_binaryPath, expected) => {
-        if (expected !== 'arm64') throw new Error('fixture architecture mismatch')
-      },
-      runBinary: async () => ({ exitCode: 0, stdout: `${tool} version ${VERSION_BY_TOOL[tool]}\n`, stderr: '' })
-    }
+    dependencies: buildFixtureDependencies(tool, packageDir, archiveBytes)
   }
-  return fixture
 }
 
 const installFixture = async (fixture: PrebuiltFixture, destinationDir = join(fixture.root, 'installed')): Promise<string> => {

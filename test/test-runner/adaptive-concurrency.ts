@@ -18,6 +18,7 @@ import {
   TIMEOUT_PATTERN,
   TRANSIENT_PATTERN
 } from '../test-utils/provider-failure-classifiers'
+import { readString } from './utils'
 
 const STATE_FILE = 'adaptive-concurrency.json'
 const LOCK_NAME = 'adaptive-concurrency-state'
@@ -139,7 +140,7 @@ const readSchedulerState = async (config: AdaptiveConcurrencyConfig): Promise<Ad
 
     return {
       schemaVersion: 1,
-      updatedAt: typeof parsed['updatedAt'] === 'string' ? parsed['updatedAt'] : new Date().toISOString(),
+      updatedAt: readString(parsed, 'updatedAt') ?? new Date().toISOString(),
       groups,
     }
   } catch {

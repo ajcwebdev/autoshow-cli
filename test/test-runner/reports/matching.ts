@@ -147,77 +147,124 @@ const addHeuristicMatches = async (
   return unmatchedMetrics.filter((_metric, index) => !usedMetrics.has(index))
 }
 
-export const matchMetricsToTests = async (
-  metrics: ParsedCommandMetric[],
-  junitCases: ParsedJunitCase[],
-  artifacts: TestRunArtifacts
-): Promise<{ matched: MetricMatchResult; unmatched: ParsedCommandMetric[] }> => {
-  const matched: MetricMatchResult = new Map()
-  const unmatched: ParsedCommandMetric[] = []
-  const matchableCases = junitCases.filter(tc => tc.status !== 'skipped')
+type JunitIndexes = {
+  byFileAndName: Map<string, Map<string, ParsedJunitCase>>
+  byName: Map<string, ParsedJunitCase[]>
+  byFileLine: Map<string, ParsedJunitCase[]>
+}
 
+const fileLineKey = (file: string, line: number): string => `${file}::${line}`
+
+const buildJunitIndexes = (matchableCases: ParsedJunitCase[]): JunitIndexes => {
   const byFileAndName = new Map<string, Map<string, ParsedJunitCase>>()
   const byName = new Map<string, ParsedJunitCase[]>()
   const byFileLine = new Map<string, ParsedJunitCase[]>()
 
   for (const tc of matchableCases) {
-    if (!byFileAndName.has(tc.file)) {
-      byFileAndName.set(tc.file, new Map())
-    }
-    byFileAndName.get(tc.file)!.set(tc.name, tc)
+    const namesInFile = byFileAndName.get(tc.file) ?? new Map<string, ParsedJunitCase>()
+    namesInFile.set(tc.name, tc)
+    byFileAndName.set(tc.file, namesInFile)
 
     const nameList = byName.get(tc.name) ?? []
     nameList.push(tc)
     byName.set(tc.name, nameList)
 
     if (tc.line !== null) {
-      const key = `${tc.file}::${tc.line}`
+      const key = fileLineKey(tc.file, tc.line)
       const lineList = byFileLine.get(key) ?? []
       lineList.push(tc)
       byFileLine.set(key, lineList)
     }
   }
 
+  return { byFileAndName, byName, byFileLine }
+}
+
+const findByNameInFile = (metric: ParsedCommandMetric, indexes: JunitIndexes): ParsedJunitCase | null => {
+  if (metric.testName === null || metric.callerFile === null) {
+    return null
+  }
+  return indexes.byFileAndName.get(metric.callerFile)?.get(metric.testName) ?? null
+}
+
+const findByGlobalName = (metric: ParsedCommandMetric, indexes: JunitIndexes): ParsedJunitCase | null => {
+  if (metric.testName === null) {
+    return null
+  }
+  const candidates = indexes.byName.get(metric.testName) ?? []
+  return candidates.length === 1 ? candidates[0] ?? null : null
+}
+
+const findByUniqueLine = (
+  metric: ParsedCommandMetric,
+  indexes: JunitIndexes,
+  matched: MetricMatchResult
+): ParsedJunitCase | null => {
+  if (metric.callerFile === null || metric.callerLine === null) {
+    return null
+  }
+  const candidates = indexes.byFileLine.get(fileLineKey(metric.callerFile, metric.callerLine)) ?? []
+  const candidate = candidates[0]
+  if (candidates.length !== 1 || !candidate || matched.has(candidate.id)) {
+    return null
+  }
+  return candidate
+}
+
+const DIRECT_PASSES: Array<{
+  provenance: MatchProvenance
+  find: (metric: ParsedCommandMetric, indexes: JunitIndexes, matched: MetricMatchResult) => ParsedJunitCase | null
+}> = [
+  { provenance: 'name-file', find: findByNameInFile },
+  { provenance: 'name-global', find: findByGlobalName },
+  { provenance: 'line-unique', find: findByUniqueLine },
+]
+
+const matchDirectPasses = (
+  metrics: ParsedCommandMetric[],
+  indexes: JunitIndexes,
+  matched: MetricMatchResult
+): ParsedCommandMetric[] => {
   const remaining: ParsedCommandMetric[] = []
 
   for (const metric of metrics) {
-    if (metric.testName !== null && metric.callerFile !== null) {
-      const byNameInFile = byFileAndName.get(metric.callerFile)
-      const tc = byNameInFile?.get(metric.testName)
-      if (tc) {
-        addToMatched(matched, tc, metric, 'name-file')
-        continue
+    let testCase: ParsedJunitCase | null = null
+
+    for (const pass of DIRECT_PASSES) {
+      testCase = pass.find(metric, indexes, matched)
+      if (testCase) {
+        addToMatched(matched, testCase, metric, pass.provenance)
+        break
       }
     }
 
-    if (metric.testName !== null) {
-      const candidates = byName.get(metric.testName) ?? []
-      if (candidates.length === 1) {
-        const candidate = candidates[0]
-        if (candidate) {
-          addToMatched(matched, candidate, metric, 'name-global')
-          continue
-        }
-      }
+    if (!testCase) {
+      remaining.push(metric)
     }
-
-    if (metric.callerFile !== null && metric.callerLine !== null) {
-      const key = `${metric.callerFile}::${metric.callerLine}`
-      const candidates = byFileLine.get(key) ?? []
-      const candidate = candidates[0]
-      if (candidates.length === 1 && candidate && !matched.has(candidate.id)) {
-        addToMatched(matched, candidate, metric, 'line-unique')
-        continue
-      }
-    }
-
-    remaining.push(metric)
   }
 
+  return remaining
+}
+
+/**
+ * Positional pass for metrics that share a caller file/line: when one call site logs several
+ * metrics (a helper looping over variants), JUnit reports one test case per invocation at that
+ * same line. Pairing the Nth remaining metric with the Nth still-unmatched case at that line is
+ * the only signal available, so the contract is index order in, index order out. Metrics with no
+ * caller location, and any leftovers past the shorter of the two lists, stay unmatched for the
+ * heuristic pass.
+ */
+const matchGroupOrder = (
+  remaining: ParsedCommandMetric[],
+  byFileLine: Map<string, ParsedJunitCase[]>,
+  matched: MetricMatchResult
+): ParsedCommandMetric[] => {
+  const unmatched: ParsedCommandMetric[] = []
   const groups = new Map<string, ParsedCommandMetric[]>()
+
   for (const metric of remaining) {
     if (metric.callerFile !== null && metric.callerLine !== null) {
-      const key = `${metric.callerFile}::${metric.callerLine}`
+      const key = fileLineKey(metric.callerFile, metric.callerLine)
       const list = groups.get(key) ?? []
       list.push(metric)
       groups.set(key, list)
@@ -244,6 +291,18 @@ export const matchMetricsToTests = async (
     }
   }
 
+  return unmatched
+}
+
+export const matchMetricsToTests = async (
+  metrics: ParsedCommandMetric[],
+  junitCases: ParsedJunitCase[],
+  artifacts: TestRunArtifacts
+): Promise<{ matched: MetricMatchResult; unmatched: ParsedCommandMetric[] }> => {
+  const matched: MetricMatchResult = new Map()
+  const indexes = buildJunitIndexes(junitCases.filter(tc => tc.status !== 'skipped'))
+  const remaining = matchDirectPasses(metrics, indexes, matched)
+  const unmatched = matchGroupOrder(remaining, indexes.byFileLine, matched)
   const remainingAfterHeuristic = await addHeuristicMatches(matched, unmatched, junitCases, artifacts)
   return { matched, unmatched: remainingAfterHeuristic }
 }

@@ -19,6 +19,7 @@ import type {
   AdaptiveCommandAttemptRecord,
   AdaptiveConcurrencyConfig,
   CommandResultBase,
+  OutputMetadataSummary,
   RunCommandAttemptResult,
   RunCommandOptions,
   RunCommandResult
@@ -442,6 +443,117 @@ const runCommandWithOptionalAdaptiveConcurrency = async (
   return { exitCode, stdout, stderr, adaptiveRecords }
 }
 
+type CallerLocation = { file: string | null, line: number | null, column: number | null }
+
+type RunCommandArtifacts = {
+  outputDir: string | null
+  absoluteOutputDir: string | null
+  metadataSummary: OutputMetadataSummary | null
+  parsedEstimatedCostCents: number | null
+}
+
+// Production reads config from flags, not env. Translate the harness's output-root
+// and optional bin-dir conventions into the global CLI flags the child understands.
+// Only inject for processing commands (the ones that consume the output root and the
+// managed binaries); help invocations do not need either. Insert BEFORE any `--`
+// passthrough separator so the flags are parsed by AutoShow, not forwarded to yt-dlp.
+export const injectGlobalCliFlags = (
+  baseChildArgs: string[],
+  outputRoot: string,
+  overrideBinDir: string | undefined
+): string[] => {
+  const injectedGlobalFlags = isProcessingCliCommand(baseChildArgs)
+    ? [
+      '--output-root', outputRoot,
+      ...(overrideBinDir ? ['--bin-dir', overrideBinDir] : [])
+    ]
+    : []
+
+  if (injectedGlobalFlags.length === 0) {
+    return baseChildArgs
+  }
+
+  const passthroughIndex = baseChildArgs.indexOf('--')
+  return passthroughIndex === -1
+    ? [...baseChildArgs, ...injectedGlobalFlags]
+    : [
+      ...baseChildArgs.slice(0, passthroughIndex),
+      ...injectedGlobalFlags,
+      ...baseChildArgs.slice(passthroughIndex)
+    ]
+}
+
+const buildChildEnv = (optsEnv: Record<string, string | undefined> | undefined): Record<string, string | undefined> => ({
+  ...BASE_CHILD_ENV,
+  // Don't let an inherited FORCE_COLOR (set when `bun t` runs in an interactive
+  // terminal) force ANSI codes into child CLI output. FORCE_COLOR overrides both
+  // NO_COLOR and non-TTY detection (see shouldUseTerminalColors), which breaks
+  // plain-substring assertions. Tests that need color can re-enable via opts.env.
+  FORCE_COLOR: '0',
+  ...(optsEnv ?? {})
+})
+
+const collectRunArtifacts = async (
+  stdout: string,
+  stderr: string,
+  outputRoot: string
+): Promise<RunCommandArtifacts> => {
+  const { outputDir, estimatedCostCents: parsedEstimatedCostCents } = parseCommandOutputText(`${stdout}\n${stderr}`)
+  await copyManifestToArtifacts(outputDir, outputRoot)
+  const absoluteOutputDir = outputDir
+    ? (isAbsolute(outputDir) ? outputDir : resolve(process.cwd(), outputDir))
+    : null
+  const metadataSummary = absoluteOutputDir
+    ? await readOutputMetadataSummary(`${absoluteOutputDir}/manifest.json`)
+    : null
+
+  return { outputDir, absoluteOutputDir, metadataSummary, parsedEstimatedCostCents }
+}
+
+const appendCommandMetricsRecord = async (
+  metricsLogPath: string,
+  parts: {
+    commandText: string
+    args: string[]
+    exitCode: number
+    durationMs: number
+    outputRoot: string
+    caller: CallerLocation
+    testName: string | null
+    runArtifacts: RunCommandArtifacts
+    adaptiveConfig: AdaptiveConcurrencyConfig | null
+    adaptiveRetryAttempts: number
+  }
+): Promise<void> => {
+  const { runArtifacts, caller } = parts
+  const record = {
+    kind: 'command_metric',
+    at: new Date().toISOString(),
+    source: 'runCommand',
+    command: parts.commandText,
+    args: parts.args,
+    exitCode: parts.exitCode,
+    durationMs: parts.durationMs,
+    outputDir: runArtifacts.outputDir,
+    outputRoot: parts.outputRoot,
+    callerFile: caller.file,
+    callerLine: caller.line,
+    callerColumn: caller.column,
+    testName: parts.testName,
+    estimatedCostCents: runArtifacts.metadataSummary?.estimatedCostCents ?? runArtifacts.parsedEstimatedCostCents,
+    actualCostCents: runArtifacts.metadataSummary?.actualCostCents ?? null,
+    estimatedProcessingTimeMs: runArtifacts.metadataSummary?.estimatedProcessingTimeMs ?? null,
+    actualProcessingTimeMs: runArtifacts.metadataSummary?.actualProcessingTimeMs ?? null,
+    adaptiveConcurrencyGroups: parts.adaptiveConfig ? extractAdaptiveProviderGroups(parts.args) : [],
+    adaptiveRetryAttempts: parts.adaptiveRetryAttempts,
+  }
+
+  try {
+    await appendFile(metricsLogPath, `${JSON.stringify(record)}\n`)
+  } catch {
+  }
+}
+
 export const runCommand = async (args: string[], opts?: RunCommandOptions): Promise<RunCommandResult> => {
   const testName = opts?.testName ?? null
   const baseChildArgs = withEmptyTestConfig(args)
@@ -451,39 +563,9 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   const timeoutMs = opts?.timeoutMs ?? SUBPROCESS_TIMEOUT
   const outputRoot = await resolveCommandOutputRoot(baseChildArgs, testName, opts?.env)
 
-  // Production reads config from flags, not env. Translate the harness's output-root
-  // and optional bin-dir conventions into the global CLI flags the child understands.
-  // Only inject for processing commands (the ones that consume the output root and the
-  // managed binaries); help invocations do not need either. Insert BEFORE any `--`
-  // passthrough separator so the flags are parsed by AutoShow, not forwarded to yt-dlp.
-  const overrideBinDir = opts?.env?.['AUTOSHOW_BIN_DIR']?.trim()
-  const injectedGlobalFlags = isProcessingCliCommand(baseChildArgs)
-    ? [
-      '--output-root', outputRoot,
-      ...(overrideBinDir ? ['--bin-dir', overrideBinDir] : [])
-    ]
-    : []
-  const passthroughIndex = baseChildArgs.indexOf('--')
-  const childArgs = injectedGlobalFlags.length === 0
-    ? baseChildArgs
-    : passthroughIndex === -1
-      ? [...baseChildArgs, ...injectedGlobalFlags]
-      : [
-        ...baseChildArgs.slice(0, passthroughIndex),
-        ...injectedGlobalFlags,
-        ...baseChildArgs.slice(passthroughIndex)
-      ]
+  const childArgs = injectGlobalCliFlags(baseChildArgs, outputRoot, opts?.env?.['AUTOSHOW_BIN_DIR']?.trim())
   const cmdStr = `bun ${childArgs.join(' ')}`
-
-  const env = {
-    ...BASE_CHILD_ENV,
-    // Don't let an inherited FORCE_COLOR (set when `bun t` runs in an interactive
-    // terminal) force ANSI codes into child CLI output. FORCE_COLOR overrides both
-    // NO_COLOR and non-TTY detection (see shouldUseTerminalColors), which breaks
-    // plain-substring assertions. Tests that need color can re-enable via opts.env.
-    FORCE_COLOR: '0',
-    ...(opts?.env ?? {})
-  }
+  const env = buildChildEnv(opts?.env)
 
   const caller = parseCallerLocation()
   const adaptiveConfig = shouldUseAdaptiveConcurrency(childArgs, caller.file, env)
@@ -503,43 +585,21 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   )
   const duration = Date.now() - startTime
 
-  const { outputDir, estimatedCostCents: parsedEstimatedCostCents } = parseCommandOutputText(`${stdout}\n${stderr}`)
-  const effectiveOutputRoot = outputRoot
-  await copyManifestToArtifacts(outputDir, effectiveOutputRoot)
-  const absoluteOutputDir = outputDir
-    ? (isAbsolute(outputDir) ? outputDir : resolve(process.cwd(), outputDir))
-    : null
-  const metadataSummary = absoluteOutputDir
-    ? await readOutputMetadataSummary(`${absoluteOutputDir}/manifest.json`)
-    : null
+  const runArtifacts = await collectRunArtifacts(stdout, stderr, outputRoot)
 
   if (metricsLogPath) {
-    const record = {
-      kind: 'command_metric',
-      at: new Date().toISOString(),
-      source: 'runCommand',
-      command: cmdStr,
+    await appendCommandMetricsRecord(metricsLogPath, {
+      commandText: cmdStr,
       args: childArgs,
       exitCode,
       durationMs: duration,
-      outputDir,
-      outputRoot: effectiveOutputRoot,
-      callerFile: caller.file,
-      callerLine: caller.line,
-      callerColumn: caller.column,
+      outputRoot,
+      caller,
       testName,
-      estimatedCostCents: metadataSummary?.estimatedCostCents ?? parsedEstimatedCostCents,
-      actualCostCents: metadataSummary?.actualCostCents ?? null,
-      estimatedProcessingTimeMs: metadataSummary?.estimatedProcessingTimeMs ?? null,
-      actualProcessingTimeMs: metadataSummary?.actualProcessingTimeMs ?? null,
-      adaptiveConcurrencyGroups: adaptiveConfig ? extractAdaptiveProviderGroups(childArgs) : [],
+      runArtifacts,
+      adaptiveConfig,
       adaptiveRetryAttempts: adaptiveRecords.length,
-    }
-
-    try {
-      await appendFile(metricsLogPath, `${JSON.stringify(record)}\n`)
-    } catch {
-    }
+    })
   }
 
   if (commandLogPath) {
@@ -548,7 +608,7 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
       `\n=== START cmd: ${cmdStr} ===\nstdout:\n${stdout}\nstderr:\n${stderr}\n=== END cmd: ${cmdStr} (exit=${exitCode}, ${duration}ms) ===\n`
     )
   }
-  return { exitCode, stdout, stderr, outputDir, outputRoot: effectiveOutputRoot }
+  return { exitCode, stdout, stderr, outputDir: runArtifacts.outputDir, outputRoot }
 }
 
 export const fileExists = async (path: string): Promise<boolean> => {

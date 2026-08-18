@@ -19,7 +19,7 @@ bun t test/test-cases/validation/setup/
 
 ## Current Coverage
 
-- No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts`, `native-setup-download-contracts.test.ts`, `managed-artifact-contracts.test.ts`, `prebuilt-artifact-contracts.test.ts`, `prebuilt-producer-contracts.test.ts`, and `setup-performance-contracts.test.ts`).
+- No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts`, `setup-doctor-contracts.test.ts`, `setup-progress-contracts.test.ts`, `native-setup-download-contracts.test.ts`, `managed-artifact-contracts.test.ts`, `prebuilt-artifact-contracts.test.ts`, `prebuilt-producer-contracts.test.ts`, and `setup-performance-contracts.test.ts`).
 
 ## Price Preflight
 

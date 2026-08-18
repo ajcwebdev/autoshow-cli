@@ -16,6 +16,11 @@ export const normalizeRepoPath = (path: string | null | undefined): string | nul
 export const getFiniteNumber = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null
 
+export const readString = (record: Record<string, unknown>, key: string): string | null => {
+  const value = record[key]
+  return typeof value === 'string' ? value : null
+}
+
 export const prepareCommandOutputForParse = (text: string): string => {
   if (text.length <= COMMAND_OUTPUT_PARSE_TAIL_CHARS) {
     return stripAnsi(text)

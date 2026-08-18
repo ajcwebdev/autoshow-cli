@@ -15,7 +15,7 @@ import {
 } from './service-test-kit'
 import { readCanonicalRecord } from './manifest-helpers'
 import { l } from '~/utils/app-logger/app-logger'
-import type { TtsExtraArgs } from '~/types'
+import type { RunCommandResult, TtsExtraArgs } from '~/types'
 
 const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, '')
 
@@ -28,11 +28,21 @@ const isTransientMinimaxTtsFailure = (output: string): boolean => {
   )
 }
 
-const isRunwayInsufficientCreditsFailure = (output: string): boolean =>
-  output.includes('You do not have enough credits to run this task.')
-
 const isGroqTermsAcceptanceFailure = (output: string): boolean =>
   /requires terms acceptance/i.test(stripAnsi(output))
+
+// Terminal per-service account states: no retry inside the run can clear them, so the
+// suite fails with the account-state message instead of a generic command failure.
+// Adding a provider quirk is a row here, not another branch in the test body.
+const TERMINAL_TTS_FAILURES: Record<string, {
+  matches: (output: string) => boolean
+  describe: (model: string) => string
+}> = {
+  groq: {
+    matches: isGroqTermsAcceptanceFailure,
+    describe: (model) => `Groq terms acceptance is required for ${model}`,
+  },
+}
 
 const resolveTtsExtraArgs = async (
   extraArgs: TtsExtraArgs | undefined,
@@ -40,6 +50,78 @@ const resolveTtsExtraArgs = async (
 ): Promise<readonly string[]> => {
   if (!extraArgs) return []
   return typeof extraArgs === 'function' ? await extraArgs(model) : extraArgs
+}
+
+// MiniMax alone gets one retry, because its transient chunk/deadline failures clear on a
+// second attempt. A transient failure that survives the retry is reported as such rather
+// than as a plain command failure.
+const runTtsWithMinimaxRetry = async (
+  args: string[],
+  ttsService: string,
+  model: string
+): Promise<RunCommandResult> => {
+  const result = await runCommand(args)
+  if (result.exitCode === 0 || ttsService !== 'minimax') {
+    return result
+  }
+
+  if (!isTransientMinimaxTtsFailure(`${result.stdout}\n${result.stderr}`)) {
+    return result
+  }
+
+  l.warn(`Retrying once after transient MiniMax TTS error for ${model}`)
+  await Bun.sleep(2_000)
+  const retried = await runCommand(args)
+
+  if (retried.exitCode !== 0 && isTransientMinimaxTtsFailure(`${retried.stdout}\n${retried.stderr}`)) {
+    throw new Error(`MiniMax transient TTS error persisted for ${model}\n${formatCommandFailureDiagnostics(args, retried)}`)
+  }
+
+  return retried
+}
+
+const throwOnKnownProviderFailure = (
+  ttsService: string,
+  model: string,
+  args: string[],
+  result: RunCommandResult
+): void => {
+  if (result.exitCode === 0) {
+    return
+  }
+
+  const terminalFailure = TERMINAL_TTS_FAILURES[ttsService]
+  if (!terminalFailure || !terminalFailure.matches(`${result.stdout}\n${result.stderr}`)) {
+    return
+  }
+
+  throw new Error(`${terminalFailure.describe(model)}\n${formatCommandFailureDiagnostics(args, result)}`)
+}
+
+const assertTtsArtifacts = async (
+  outputDir: string,
+  { ttsService, model, resolveExpectedSpeaker }: {
+    ttsService: string
+    model: string
+    resolveExpectedSpeaker?: ((model: string) => string | Promise<string>) | undefined
+  }
+): Promise<void> => {
+  const audioExists = await fileExists(`${outputDir}/speech.wav`)
+  expect(audioExists).toBe(true)
+
+  const audioFile = Bun.file(`${outputDir}/speech.wav`)
+  expect(audioFile.size).toBeGreaterThan(0)
+
+  const metadata = await readCanonicalRecord(outputDir) as {
+    tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string, audioFileName?: string }>
+  }
+  expect(metadata.tts?.[0]?.ttsService).toBe(ttsService)
+  expect(metadata.tts?.[0]?.ttsModel).toBe(model)
+  if (resolveExpectedSpeaker) {
+    const expectedSpeaker = await resolveExpectedSpeaker(model)
+    expect(metadata.tts?.[0]?.speaker).toBe(expectedSpeaker)
+  }
+  expect(metadata.tts?.[0]?.audioFileName).toBe('speech.wav')
 }
 
 export const defineTTSServiceTest = ({
@@ -86,35 +168,9 @@ export const defineTTSServiceTest = ({
         `${provider}=${model}`,
         ...resolvedExtraArgs
       ]
-      let result = await runCommand(args)
 
-      if (result.exitCode !== 0 && ttsService === 'minimax') {
-        const combinedOutput = `${result.stdout}\n${result.stderr}`
-        if (isTransientMinimaxTtsFailure(combinedOutput)) {
-          l.warn(`Retrying once after transient MiniMax TTS error for ${model}`)
-          await Bun.sleep(2_000)
-          result = await runCommand(args)
-
-          if (result.exitCode !== 0) {
-            const retryOutput = `${result.stdout}\n${result.stderr}`
-            if (isTransientMinimaxTtsFailure(retryOutput)) {
-              throw new Error(`MiniMax transient TTS error persisted for ${model}\n${formatCommandFailureDiagnostics(args, result)}`)
-            }
-          }
-        }
-      }
-      if (result.exitCode !== 0 && ttsService === 'runway') {
-        const combinedOutput = `${result.stdout}\n${result.stderr}`
-        if (isRunwayInsufficientCreditsFailure(combinedOutput)) {
-          throw new Error(`Runway account does not have enough credits to run this task\n${formatCommandFailureDiagnostics(args, result)}`)
-        }
-      }
-      if (result.exitCode !== 0 && ttsService === 'groq') {
-        const combinedOutput = `${result.stdout}\n${result.stderr}`
-        if (isGroqTermsAcceptanceFailure(combinedOutput)) {
-          throw new Error(`Groq terms acceptance is required for ${model}\n${formatCommandFailureDiagnostics(args, result)}`)
-        }
-      }
+      const result = await runTtsWithMinimaxRetry(args, ttsService, model)
+      throwOnKnownProviderFailure(ttsService, model, args, result)
 
       if (result.exitCode !== 0) {
         throw new Error(formatCommandFailureDiagnostics(args, result))
@@ -127,22 +183,7 @@ export const defineTTSServiceTest = ({
         throw new Error(`Expected output directory for ${inputTitle}`)
       }
 
-      const audioExists = await fileExists(`${outputDir}/speech.wav`)
-      expect(audioExists).toBe(true)
-
-      const audioFile = Bun.file(`${outputDir}/speech.wav`)
-      expect(audioFile.size).toBeGreaterThan(0)
-
-      const metadata = await readCanonicalRecord(outputDir) as {
-        tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string, audioFileName?: string }>
-      }
-      expect(metadata.tts?.[0]?.ttsService).toBe(ttsService)
-      expect(metadata.tts?.[0]?.ttsModel).toBe(model)
-      if (resolveExpectedSpeaker) {
-        const expectedSpeaker = await resolveExpectedSpeaker(model)
-        expect(metadata.tts?.[0]?.speaker).toBe(expectedSpeaker)
-      }
-      expect(metadata.tts?.[0]?.audioFileName).toBe('speech.wav')
+      await assertTtsArtifacts(outputDir, { ttsService, model, resolveExpectedSpeaker })
     }, timeoutMs)
   }
 }

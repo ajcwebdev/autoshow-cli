@@ -441,7 +441,9 @@ bun test test/test-cases/validation/resume-manifests/canonical-manifest-contract
 bun test test/test-cases/validation/resume-manifests/no-legacy-persistence-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-additive-provider-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts
+bun test test/test-cases/validation/resume-manifests/tts-resume-batch-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/tts-resume-canonical-contracts.test.ts
+bun test test/test-cases/validation/resume-manifests/tts-resume-protected-mistral-contracts.test.ts
 bun test test/test-cases/validation/media-generation/tts-explicit-voice-dispatch.test.ts
 bun test test/test-cases/validation/media-generation/tts-current-render-recovery.test.ts
 bun test test/test-cases/validation/media-generation/tts-audio-run-artifacts.test.ts

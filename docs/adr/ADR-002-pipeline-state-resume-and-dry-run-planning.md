@@ -267,4 +267,7 @@ Negative outcomes:
 - Canonical persistence source guard: `test/test-cases/validation/resume-manifests/no-legacy-persistence-contracts.test.ts`
 - Resume provider-surface contracts: `test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts`
 - TTS canonical and legacy-additive resume contracts: `test/test-cases/validation/resume-manifests/tts-resume-canonical-contracts.test.ts`
+- TTS item-scoped and batch resume contracts: `test/test-cases/validation/resume-manifests/tts-resume-batch-contracts.test.ts`
+- TTS protected Mistral reference resume contracts: `test/test-cases/validation/resume-manifests/tts-resume-protected-mistral-contracts.test.ts`
+- Shared TTS resume fixtures for the three suites above: `test/test-cases/validation/resume-manifests/tts-resume-fixtures.ts`
 - Canonical provider/model inventory contracts: `test/test-cases/validation/providers/provider-selection-contracts/selection-inventory-contracts.test.ts`

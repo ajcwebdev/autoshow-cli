@@ -1,57 +1,55 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import type { DocumentMetadata, EpubArtifactFile, ExtractionMetadata, ExtractionOptions, ExtractionResult, HostedOcrRun, PageResult } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import type { DocumentMetadata, EpubArtifactFile, ExtractionMetadata, ExtractionOptions, ExtractionResult } from '~/types'
+import { CLIUsageError } from '~/utils/error-handler'
 import { writeFile } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildPdfChapterArtifacts } from './pdf/ocr-chapters/ocr-chapter-artifacts'
 import {
   resolvePdfChapterDetectionMode,
   shouldAttemptPdfChapterExport,
-  shouldExportEpubChapters
 } from './chapter-export-defaults'
-import { buildEpubTextOutput } from './ebook/epub/export'
-import { runEpubBunInspect } from './ebook/epub/run-epub-bun-inspect'
 import {
   countSelectedOcrEngines,
-  getHostedOcrEngine,
   hasEpubExportFlags,
-  hasHostedOcr,
-  hasOcrFlag
+  hasOcrFlag,
 } from './ocr-engine-selection'
-import {
-  getHostedDirectImageSupportError,
-  normalizeHostedDirectImageInput,
-  runHostedOcr
-} from './hosted-ocr'
-import {
-  extractCbzImages,
-  ocrSingleImage
-} from './image/image-ocr'
-import {
-  buildCombinedText,
-  extractRtfFile,
-  isZipXmlFormat,
-  runZipXmlExtract
-} from './office/native-text-extractors'
+import { buildCombinedText } from './office/native-text-extractors'
 import { buildOcrOutput } from './ocr-result'
 import { hasPreparedMarkdownInput, resolveOcrInputAdapter } from './ocr-input-adapters'
 import {
-  buildHostedUploadMetadata,
-  convertEpubToPdfForOcr,
-  runLocalPdfOcr,
-  runPdfOcr
-} from './pdf/pdf-utils'
-import {
   CHAPTER_EXPORT_FLAGS_IGNORED_WARNING,
-  CSV_OCR_FLAGS_IGNORED_WARNING,
-  EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING,
-  PDF_LENGTH_WITHOUT_CHAPTERS_WARNING
+  PDF_LENGTH_WITHOUT_CHAPTERS_WARNING,
 } from '../step-2-shared/inactive-flag-warnings'
+import {
+  extractCbzFormat,
+  extractCsvFormat,
+  extractEpubNativeFormat,
+  extractEpubOcrFormat,
+  extractHtmlFormat,
+  extractImageFormat,
+  extractOfficeNativeFormat,
+  extractPdfFormat,
+  extractRtfNativeFormat,
+  type FormatExtractionResult,
+} from './ocr-format-extractors'
 
-const allInspectedEpubChaptersAreEmpty = (chapters: Array<{ text: string }>): boolean =>
-  chapters.length > 0 && chapters.every((chapter) => chapter.text.trim().length === 0)
+const writeExtractionTextCheckpoint = async (
+  opts: ExtractionOptions,
+  pages: FormatExtractionResult['pages'],
+  canonicalText: string | undefined,
+  extractionMethod: string
+): Promise<void> => {
+  if (opts.outputFormat !== 'text') {
+    return
+  }
+
+  const text = opts.preparedMarkdown
+    ? opts.preparedMarkdown.trim()
+    : typeof canonicalText === 'string' && canonicalText.trim().length > 0
+      ? canonicalText.trim()
+      : buildCombinedText(pages, extractionMethod !== 'epub-text')
+
+  await writeFile(`${opts.outputDir}/extraction.txt`, text)
+}
 
 export const runOcr = async (
   filePath: string,
@@ -60,55 +58,14 @@ export const runOcr = async (
 ): Promise<{ result: ExtractionResult, step2Metadata: ExtractionMetadata, artifactFiles?: EpubArtifactFile[] }> => {
   const start = Date.now()
 
-  let pages: PageResult[] = []
-  let extractionMethod: string
-  let inputFamily: string | undefined
-  let normalizedFrom: string | undefined = typeof step1Metadata.sourceFormat === 'string'
+  const normalizedFrom: string | undefined = typeof step1Metadata.sourceFormat === 'string'
     && step1Metadata.sourceFormat.length > 0
     && step1Metadata.sourceFormat !== step1Metadata.format
     ? step1Metadata.sourceFormat
     : undefined
-  let conversionChain: string[] | undefined = Array.isArray(step1Metadata.conversionChain) && step1Metadata.conversionChain.length > 0
+  const conversionChain: string[] | undefined = Array.isArray(step1Metadata.conversionChain) && step1Metadata.conversionChain.length > 0
     ? [...step1Metadata.conversionChain]
     : undefined
-  let outputFidelity: string | undefined
-  let canonicalText: string | undefined
-  let reportedTotalPages: number | undefined
-  let ocrService: string | undefined
-  let promptTokens: number | undefined
-  let completionTokens: number | undefined
-  let providerCostCents: number | undefined
-  let providerCostSource: HostedOcrRun['providerCostSource'] | undefined
-  let ocrProviderUsage: HostedOcrRun['providerUsage'] | undefined
-  let pdfChunkPreparation: HostedOcrRun['pdfChunkPreparation'] | undefined
-  let chapterExportSummary: Record<string, unknown> | undefined
-  let pdfChapterDetectionSummary: Record<string, unknown> | undefined
-  let artifactFiles: EpubArtifactFile[] | undefined
-  let requestedReasoningEffort: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  let effectiveReasoningEffort: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-
-  const mergeHostedProviderCost = (run: HostedOcrRun): void => {
-    if (run.requestedReasoningEffort !== undefined) {
-      requestedReasoningEffort = run.requestedReasoningEffort
-    }
-    if (run.effectiveReasoningEffort !== undefined) {
-      effectiveReasoningEffort = run.effectiveReasoningEffort
-    }
-    if (run.pdfChunkPreparation !== undefined) {
-      pdfChunkPreparation = run.pdfChunkPreparation
-    }
-    if (typeof run.providerCostCents !== 'number') {
-      if (run.providerUsage && run.providerUsage.length > 0) {
-        ocrProviderUsage = [...(ocrProviderUsage ?? []), ...run.providerUsage]
-      }
-      return
-    }
-    providerCostCents = (providerCostCents ?? 0) + run.providerCostCents
-    providerCostSource = run.providerCostSource ?? providerCostSource
-    if (run.providerUsage && run.providerUsage.length > 0) {
-      ocrProviderUsage = [...(ocrProviderUsage ?? []), ...run.providerUsage]
-    }
-  }
 
   const ocrEngineCount = countSelectedOcrEngines(opts)
 
@@ -116,23 +73,8 @@ export const runOcr = async (
     throw CLIUsageError('Use at most one OCR provider at a time. Select one with --provider provider[=model].')
   }
 
-  const writeExtractionTextCheckpoint = async (): Promise<void> => {
-    if (opts.outputFormat !== 'text') {
-      return
-    }
-
-    const text = opts.preparedMarkdown
-      ? opts.preparedMarkdown.trim()
-      : typeof canonicalText === 'string' && canonicalText.trim().length > 0
-        ? canonicalText.trim()
-        : buildCombinedText(pages, extractionMethod !== 'epub-text')
-
-    await writeFile(`${opts.outputDir}/extraction.txt`, text)
-  }
-
   const format = step1Metadata.format
   const inputAdapter = resolveOcrInputAdapter(format, opts)
-  inputFamily = inputAdapter.family
   const epubExportFlagsActive = hasEpubExportFlags(opts)
   const pdfChunkOnlyRequested = format === 'pdf' && opts.chapterFiles === false && typeof opts.chapterChunkLimitChars === 'number'
 
@@ -143,241 +85,55 @@ export const runOcr = async (
     l.warn(PDF_LENGTH_WITHOUT_CHAPTERS_WARNING)
   }
 
+  let extracted: FormatExtractionResult
+
   if (inputAdapter.family === 'html') {
-    pages = [{
-      pageNumber: 1,
-      method: 'text',
-      text: opts.preparedMarkdown ?? ''
-    }]
-    extractionMethod = `html+${opts.htmlArticleBackend ?? 'defuddle'}`
-    inputFamily = 'html'
-    outputFidelity = 'markdown'
+    extracted = extractHtmlFormat(opts)
   } else if (inputAdapter.family === 'epub' && !hasOcrFlag(opts)) {
-    l.write('info', 'Extracting EPUB chapter text with Bun ZIP/XML parser')
-    const inspected = await runEpubBunInspect(filePath)
-    if (allInspectedEpubChaptersAreEmpty(inspected.payload.chapters)) {
-      throw ValidationError(
-        'Native EPUB text extraction returned no text for any inspected chapter. The EPUB XHTML may be malformed or unsupported by the native extractor; retry with OCR (for example --provider tesseract).',
-        { stage: 'ocr:epub' }
-      )
-    }
-    const epubTextOutput = buildEpubTextOutput(step1Metadata.slug, inspected.payload.chapters, {
-      chapterFiles: shouldExportEpubChapters(opts.chapterFiles),
-      ...(inspected.payload.metadata.title ? { documentTitle: inspected.payload.metadata.title } : {}),
-      ...(normalizedFrom ? { normalizedFrom } : {}),
-      ...(typeof opts.chapterChunkLimitChars === 'number' ? { chunkLimitChars: opts.chapterChunkLimitChars } : {})
-    })
-
-    pages = epubTextOutput.pages
-    canonicalText = epubTextOutput.text
-    artifactFiles = epubTextOutput.exportPlan?.files
-    chapterExportSummary = epubTextOutput.exportPlan?.summary as Record<string, unknown> | undefined
-
-    extractionMethod = 'epub-text'
-    inputFamily = 'epub'
-    outputFidelity = 'cleaned-epub-text'
+    extracted = await extractEpubNativeFormat(filePath, step1Metadata, opts, normalizedFrom)
   } else if (inputAdapter.family === 'epub' && hasOcrFlag(opts)) {
-    if (epubExportFlagsActive) {
-      l.warn(EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING)
-    }
-    inputFamily = 'epub'
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-epub-ocr-'))
-    try {
-      const { pdfPath, conversionChain: epubConversionChain } = await convertEpubToPdfForOcr(filePath, tempDir, opts.password)
-      const tempMeta = await buildHostedUploadMetadata(pdfPath, step1Metadata, 'pdf', opts.password)
-      if (hasHostedOcr(opts)) {
-        const run = await runHostedOcr(pdfPath, tempMeta, opts)
-        pages = run.pages
-        extractionMethod = `pdf+${run.extractionMethod}`
-        ocrService = run.ocrService
-        canonicalText = run.canonicalText
-        reportedTotalPages = run.totalPages
-        promptTokens = run.promptTokens
-        completionTokens = run.completionTokens
-        mergeHostedProviderCost(run)
-      } else {
-        const run = await runPdfOcr(pdfPath, tempMeta, opts)
-        pages = run.pages
-        extractionMethod = run.extractionMethod
-      }
-      conversionChain = [...(conversionChain ?? []), ...epubConversionChain]
-    } finally {
-      await rm(tempDir, { recursive: true, force: true })
-    }
+    extracted = await extractEpubOcrFormat(filePath, step1Metadata, opts, epubExportFlagsActive, conversionChain)
   } else if (inputAdapter.family === 'office') {
-    inputFamily = 'office'
-    if (hasOcrFlag(opts)) {
-      l.warn(`${format.toUpperCase()} OCR flags are ignored; extracting native ZIP/XML text with Bun`)
-    }
-    if (!isZipXmlFormat(format)) {
-      throw CLIUsageError(`Unsupported ZIP/XML document format: ${format}`)
-    }
-
-    l.write('info', `Extracting ${format.toUpperCase()} with native ZIP/XML parser`)
-    const run = await runZipXmlExtract(filePath, format)
-    pages = run.pages
-    extractionMethod = 'office-native'
+    extracted = await extractOfficeNativeFormat(filePath, format, opts)
   } else if (inputAdapter.family === 'rtf') {
-    inputFamily = 'rtf'
-    if (hasOcrFlag(opts)) {
-      l.warn('RTF OCR flags are ignored; extracting native RTF text with Bun')
-    }
-    l.write('info', 'Extracting RTF with native text parser')
-    pages = await extractRtfFile(filePath)
-    extractionMethod = 'rtf-native'
+    extracted = await extractRtfNativeFormat(filePath, opts)
   } else if (inputAdapter.family === 'csv') {
-    inputFamily = 'csv'
-    if (hasOcrFlag(opts)) {
-      l.warn(CSV_OCR_FLAGS_IGNORED_WARNING)
-    }
-    const text = await Bun.file(filePath).text()
-    pages = [{ pageNumber: 1, method: 'text', text }]
-    extractionMethod = 'csv-raw'
+    extracted = await extractCsvFormat(filePath, opts)
   } else if (inputAdapter.family === 'cbz') {
-    inputFamily = 'cbz'
-    l.write('info', 'Extracting images from CBZ archive')
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-'))
-    try {
-      const images = await extractCbzImages(filePath, tempDir)
-      l.write('info', `Processing ${images.length} images from CBZ`)
-
-      if (hasHostedOcr(opts)) {
-        const hostedEngine = getHostedOcrEngine(opts)
-        if (!hostedEngine) {
-          throw CLIUsageError('Hosted OCR requested without a configured hosted OCR model.')
-        }
-        const imagePages: PageResult[] = []
-        let totalPromptTokens = 0
-        let totalCompletionTokens = 0
-        const hostedNormDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-hosted-'))
-        try {
-          for (let i = 0; i < images.length; i++) {
-            const imgPath = images[i]!
-            const normalized = await normalizeHostedDirectImageInput(
-              imgPath,
-              hostedEngine,
-              hostedNormDir,
-              `cbz-page-${String(i + 1).padStart(4, '0')}`
-            )
-            const tempMeta = await buildHostedUploadMetadata(normalized.filePath, step1Metadata, normalized.format)
-            const run = await runHostedOcr(normalized.filePath, tempMeta, opts)
-            imagePages.push(...run.pages.map(page => ({ ...page, pageNumber: i + 1 })))
-            ocrService = run.ocrService
-            totalPromptTokens += run.promptTokens ?? 0
-            totalCompletionTokens += run.completionTokens ?? 0
-            mergeHostedProviderCost(run)
-          }
-        } finally {
-          await rm(hostedNormDir, { recursive: true, force: true })
-        }
-        pages = imagePages
-        extractionMethod = `cbz+${hostedEngine}`
-        if (totalPromptTokens > 0) promptTokens = totalPromptTokens
-        if (totalCompletionTokens > 0) completionTokens = totalCompletionTokens
-      } else {
-        const ocrNormDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-ocr-'))
-        try {
-          const imagePages: PageResult[] = []
-          for (let i = 0; i < images.length; i++) {
-            const imgPath = images[i]!
-            const result = await ocrSingleImage(imgPath, i + 1, opts, ocrNormDir)
-            imagePages.push(result)
-          }
-          pages = imagePages
-          extractionMethod = 'cbz+tesseract'
-        } finally {
-          await rm(ocrNormDir, { recursive: true, force: true })
-        }
-      }
-    } finally {
-      await rm(tempDir, { recursive: true, force: true })
-    }
+    extracted = await extractCbzFormat(filePath, step1Metadata, opts)
   } else if (inputAdapter.family === 'image') {
-    inputFamily = 'image'
-
-    if (hasHostedOcr(opts)) {
-      const hostedEngine = getHostedOcrEngine(opts)
-      if (!hostedEngine) {
-        throw CLIUsageError('Hosted OCR requested without a configured hosted OCR model.')
-      }
-
-      const hostedNormDir = await mkdtemp(join(tmpdir(), 'autoshow-img-hosted-'))
-      try {
-        const normalized = await normalizeHostedDirectImageInput(filePath, hostedEngine, hostedNormDir, 'input-image')
-        const tempMeta = normalized.filePath === filePath && normalized.format === step1Metadata.format
-          ? step1Metadata
-          : await buildHostedUploadMetadata(normalized.filePath, step1Metadata, normalized.format, opts.password)
-        const run = await runHostedOcr(normalized.filePath, tempMeta, opts)
-        pages = run.pages
-        extractionMethod = `image+${run.extractionMethod}`
-        ocrService = run.ocrService
-        canonicalText = run.canonicalText
-        reportedTotalPages = run.totalPages
-        promptTokens = run.promptTokens
-        completionTokens = run.completionTokens
-        mergeHostedProviderCost(run)
-      } finally {
-        await rm(hostedNormDir, { recursive: true, force: true })
-      }
-    } else {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-img-ocr-'))
-      try {
-        const result = await ocrSingleImage(filePath, 1, opts, tempDir)
-        pages = [result]
-        extractionMethod = 'image+tesseract'
-      } finally {
-        await rm(tempDir, { recursive: true, force: true })
-      }
-    }
+    extracted = await extractImageFormat(filePath, step1Metadata, opts)
   } else {
-    inputFamily = 'pdf'
-
-    if (hasHostedOcr(opts)) {
-      if (format !== 'pdf') {
-        const hostedEngine = getHostedOcrEngine(opts) ?? 'mistral-ocr'
-        throw CLIUsageError(getHostedDirectImageSupportError(hostedEngine))
-      }
-      const run = await runHostedOcr(filePath, step1Metadata, opts)
-      pages = run.pages
-      extractionMethod = run.extractionMethod
-      ocrService = run.ocrService
-      canonicalText = run.canonicalText
-      reportedTotalPages = run.totalPages
-      promptTokens = run.promptTokens
-      completionTokens = run.completionTokens
-      mergeHostedProviderCost(run)
-    } else {
-      const run = await runLocalPdfOcr(filePath, step1Metadata, opts)
-      pages = run.pages
-      extractionMethod = run.extractionMethod
-    }
+    extracted = await extractPdfFormat(filePath, step1Metadata, opts)
   }
 
-  const extractedPdfPageCount = pages.length > 0
-    ? Math.max(...pages.map((page) => page.pageNumber))
+  let artifactFiles = extracted.artifactFiles
+  let chapterExportSummary = extracted.chapterExportSummary
+  let pdfChapterDetectionSummary = extracted.pdfChapterDetectionSummary
+
+  const extractedPdfPageCount = extracted.pages.length > 0
+    ? Math.max(...extracted.pages.map((page) => page.pageNumber))
     : 0
   const resolvedPdfPageCount = Math.max(
     extractedPdfPageCount,
     step1Metadata.pageCount,
-    reportedTotalPages ?? 0
+    extracted.reportedTotalPages ?? 0
   )
   const pdfChapterFilesRequested = format === 'pdf'
     && shouldAttemptPdfChapterExport(opts.chapterFiles, resolvedPdfPageCount)
 
   if (pdfChapterFilesRequested && format === 'pdf') {
-    await writeExtractionTextCheckpoint()
+    await writeExtractionTextCheckpoint(opts, extracted.pages, extracted.canonicalText, extracted.extractionMethod)
     const pdfChapterMode = resolvePdfChapterDetectionMode(opts.chapterFiles, opts.pdfChapterMode)
     l.write('info', `Detecting PDF chapters with ${pdfChapterMode} mode`)
     const pdfChapterOutput = await buildPdfChapterArtifacts({
       filePath,
-      pages,
+      pages: extracted.pages,
       mode: pdfChapterMode,
       ...(typeof step1Metadata.title === 'string' ? { title: step1Metadata.title } : {}),
       ...(typeof step1Metadata.author === 'string' ? { author: step1Metadata.author } : {}),
       ...(typeof opts.password === 'string' ? { password: opts.password } : {}),
-      ...(typeof opts.chapterChunkLimitChars === 'number' ? { chunkLimitChars: opts.chapterChunkLimitChars } : {}),
-      ...(typeof opts.pdfChapterLlmService === 'string' ? { llmService: opts.pdfChapterLlmService } : {}),
-      ...(typeof opts.pdfChapterLlmModel === 'string' ? { llmModel: opts.pdfChapterLlmModel } : {})
+      ...(typeof opts.chapterChunkLimitChars === 'number' ? { chunkLimitChars: opts.chapterChunkLimitChars } : {})
     })
     artifactFiles = pdfChapterOutput.files
     chapterExportSummary = pdfChapterOutput.summary as Record<string, unknown> | undefined
@@ -386,27 +142,27 @@ export const runOcr = async (
 
   return buildOcrOutput({
     start,
-    pages,
-    extractionMethod,
+    pages: extracted.pages,
+    extractionMethod: extracted.extractionMethod,
     step1Metadata,
     opts,
-    inputFamily,
-    normalizedFrom,
-    conversionChain,
-    outputFidelity,
-    canonicalText,
-    reportedTotalPages,
-    ocrService,
-    promptTokens,
-    completionTokens,
-    providerCostCents,
-    providerCostSource,
-    ocrProviderUsage,
-    pdfChunkPreparation,
+    inputFamily: extracted.inputFamily ?? inputAdapter.family,
+    normalizedFrom: extracted.normalizedFrom ?? normalizedFrom,
+    conversionChain: extracted.conversionChain ?? conversionChain,
+    outputFidelity: extracted.outputFidelity,
+    canonicalText: extracted.canonicalText,
+    reportedTotalPages: extracted.reportedTotalPages,
+    ocrService: extracted.ocrService,
+    promptTokens: extracted.promptTokens,
+    completionTokens: extracted.completionTokens,
+    providerCostCents: extracted.providerCostCents,
+    providerCostSource: extracted.providerCostSource,
+    ocrProviderUsage: extracted.ocrProviderUsage,
+    pdfChunkPreparation: extracted.pdfChunkPreparation,
     chapterExportSummary,
     pdfChapterDetectionSummary,
     artifactFiles,
-    requestedReasoningEffort,
-    effectiveReasoningEffort
+    requestedReasoningEffort: extracted.requestedReasoningEffort,
+    effectiveReasoningEffort: extracted.effectiveReasoningEffort,
   })
 }
