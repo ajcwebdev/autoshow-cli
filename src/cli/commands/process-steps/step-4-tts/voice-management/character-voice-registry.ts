@@ -561,6 +561,37 @@ export const approveVoiceRegistration = async (
   return approved
 })
 
+export const resolveRegistrationGeneration = async (
+  charactersRoot: string,
+  registrationId: string,
+  requestedGenerationId?: string
+): Promise<VoiceRegistration> => {
+  const catalog = await loadVoiceRegistrationCatalog(charactersRoot)
+  if (requestedGenerationId) {
+    const registration = catalog.registrations.find(entry => entry.registrationId === registrationId && entry.generationId === requestedGenerationId)
+    if (!registration) throw CLIUsageError('Voice registration generation was not found.')
+    return registration
+  }
+  const matches = catalog.registrations.filter(entry => entry.registrationId === registrationId)
+  if (matches.length === 0) throw CLIUsageError('Voice registration generation was not found.')
+  const current = await loadCurrentVoiceRegistrationIndex(charactersRoot, catalog)
+  const currentGenerationIds = [...new Set(current.selections.filter(entry => entry.registrationId === registrationId).map(entry => entry.generationId))]
+  if (currentGenerationIds.length === 1) {
+    const currentMatch = matches.find(entry => entry.generationId === currentGenerationIds[0])
+    if (currentMatch) return currentMatch
+  }
+  if (currentGenerationIds.length > 1) {
+    throw CLIUsageError(`Voice registration ${registrationId} has multiple matching generations: ${[...currentGenerationIds].sort().join(', ')}. Pass --generation-id.`)
+  }
+  const [sole] = matches
+  if (matches.length === 1 && sole) return sole
+  const successorIds = new Set(matches.flatMap(entry => entry.priorGenerationId ? [entry.priorGenerationId] : []))
+  const tips = matches.filter(entry => !successorIds.has(entry.generationId))
+  const [tip] = tips
+  if (tips.length === 1 && tip) return tip
+  throw CLIUsageError(`Voice registration ${registrationId} has multiple matching generations: ${matches.map(entry => entry.generationId).sort().join(', ')}. Pass --generation-id.`)
+}
+
 export const requireCurrentVoiceRegistration = async (
   charactersRoot: string,
   subjectKey: string,

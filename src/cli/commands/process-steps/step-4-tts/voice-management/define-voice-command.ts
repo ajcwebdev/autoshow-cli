@@ -20,6 +20,7 @@ import {
   loadVoiceAuditionManifestForRegistration,
   loadVoiceRegistrationCatalog,
   recordVoiceAudition,
+  resolveRegistrationGeneration,
   transitionVoiceRegistrationLifecycle,
 } from './character-voice-registry'
 import { assertVoiceConsentAllows, computeConsentRecordId, validateAuditActorRef, validateVoiceConsentRecord } from './voice-management-contracts'
@@ -546,37 +547,8 @@ const handleRevokeConsentAlias = async (ctx: CliCommandContext): Promise<void> =
   await handleRevokeConsent(ctx, parameter(ctx, 'consentRef'))
 }
 
-const ambiguousGenerationError = (registrationId: string, generationIds: readonly string[]): never => {
-  throw CLIUsageError(`Voice registration ${registrationId} has multiple matching generations: ${[...generationIds].sort().join(', ')}. Pass --generation-id.`)
-}
-
-const resolveRegistrationGeneration = async (registrationId: string, requestedGenerationId?: string): Promise<VoiceRegistration> => {
-  const catalog = await loadVoiceRegistrationCatalog(getCharactersRoot())
-  if (requestedGenerationId) {
-    const registration = catalog.registrations.find(entry => entry.registrationId === registrationId && entry.generationId === requestedGenerationId)
-    if (!registration) throw CLIUsageError('Voice registration generation was not found.')
-    return registration
-  }
-  const matches = catalog.registrations.filter(entry => entry.registrationId === registrationId)
-  if (matches.length === 0) throw CLIUsageError('Voice registration generation was not found.')
-  const current = await loadCurrentVoiceRegistrationIndex(getCharactersRoot(), catalog)
-  const currentGenerationIds = [...new Set(current.selections.filter(entry => entry.registrationId === registrationId).map(entry => entry.generationId))]
-  if (currentGenerationIds.length === 1) {
-    const currentMatch = matches.find(entry => entry.generationId === currentGenerationIds[0])
-    if (currentMatch) return currentMatch
-  }
-  if (currentGenerationIds.length > 1) return ambiguousGenerationError(registrationId, currentGenerationIds)
-  const [sole] = matches
-  if (matches.length === 1 && sole) return sole
-  const successorIds = new Set(matches.flatMap(entry => entry.priorGenerationId ? [entry.priorGenerationId] : []))
-  const tips = matches.filter(entry => !successorIds.has(entry.generationId))
-  const [tip] = tips
-  if (tips.length === 1 && tip) return tip
-  return ambiguousGenerationError(registrationId, matches.map(entry => entry.generationId))
-}
-
 const findRegistration = async (registrationId: string, generationId?: string) =>
-  await resolveRegistrationGeneration(registrationId, generationId)
+  await resolveRegistrationGeneration(getCharactersRoot(), registrationId, generationId)
 
 const approveRegistration = async (registrationId: string, generationId: string, actorId: string) => {
   const registration = await findRegistration(registrationId, generationId)

@@ -1,6 +1,6 @@
 # Voice Subcommand Consolidation
 
-Status: proposal only; no CLI surface changes in this pass
+Status: all phases implemented (Phases 1–8 completed: default generation-id resolution, bare voice defaultSubcommand, voice list read consolidation, consent --revoke, retire --reason, design --save, automatic completion / --reconcile, drop --kind professional, and comic reference-voice subcommand tree)
 
 Date: 2026-08-16
 
@@ -294,6 +294,8 @@ Do not invent a second parser. Hidden children are the compatibility layer.
 
 ### Phase 1 — Default generation and bare `voice`
 
+Status: completed
+
 Goal: remove the two highest-friction requirements without deleting a verb.
 
 `audition`, `approve`, `inspect`, `reconcile`, `retire`, `revoke`, and `delete` all call `requiredFlag(ctx, 'generation-id')` and `findRegistration(registrationId, generationId)` in `define-voice-command.ts`. Bare `voice` is forced to help by `parseCommandTreeArgv` when no child token is present.
@@ -312,6 +314,8 @@ Tests: usage cases for omitted `--generation-id` with one generation, with a cur
 Exit: no public verb added or removed. Agents can audition, approve, inspect, retire, and delete a single-generation registration without copying a SHA-256.
 
 ### Phase 2 — Fold reads into `voice list`
+
+Status: completed
 
 Goal: one read command for the local catalog, one registration, and a remote provider catalog.
 
@@ -341,6 +345,8 @@ Exit: public read surface is one verb. Old read argv still works.
 
 ### Phase 3 — Fold `revoke-consent` into `consent --revoke`
 
+Status: completed
+
 Goal: one consent command for grant and revoke.
 
 `consent` currently requires `<subject-key>`. `revoke-consent` requires `<consent-ref>`. Do not guess which is which from string shape.
@@ -357,6 +363,8 @@ Exit: consent is one advertised verb. Deny-by-default grants are unchanged.
 
 ### Phase 4 — Fold `revoke` into `retire --reason`
 
+Status: completed
+
 Goal: one local uncurrent command. Remote delete stays separate.
 
 `handleLifecycle` already branches on `'retire' | 'revoke'`. `retire` with `--reason` should call the revoke transition. `retire` without `--reason` stays the current retire transition. Do not add `--delete`.
@@ -370,6 +378,8 @@ Tests: retire without reason does not set `deletion-required`; retire with reaso
 Exit: local destroy is one verb. Remote destroy is still only `delete`.
 
 ### Phase 5 — Fold `materialize` into `design --save`
+
+Status: completed
 
 Goal: keep the two-step payment class, drop the second verb.
 
@@ -388,6 +398,8 @@ Tests: design without `--save` still only writes candidates; `--save` requires a
 Exit: designed voices still cannot become current without audition and approve. Users no longer need a second verb to save a chosen preview.
 
 ### Phase 6 — Replace `reconcile` with automatic completion plus `--reconcile`
+
+Status: completed
 
 Goal: recovery lives on the command that created the journal, matching TTS `--tts-allow-ambiguous-redispatch`.
 
@@ -410,6 +422,8 @@ Exit: no advertised `reconcile` verb. Ambiguous paid creates stay blocked by def
 
 ### Phase 7 — Drop `--kind professional`
 
+Status: completed
+
 Goal: clone is instant clone. Professional workflow is an error that points at `voice import`.
 
 `--kind` currently defaults to `instant` and accepts `professional`, which rejects `--sample` and prints the import guidance. Fish and Speechify already reject professional.
@@ -425,6 +439,8 @@ Tests: help does not advertise `--kind`; `clone --kind professional` still fails
 Exit: clone has one workflow. Import remains the way to register a professionally approved ID.
 
 ### Phase 8 — Make `comic reference-voice` a real subcommand tree
+
+Status: completed
 
 Goal: same public verbs as `voice`, same per-command flags, no flag wall.
 

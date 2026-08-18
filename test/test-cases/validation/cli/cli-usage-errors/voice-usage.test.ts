@@ -6,6 +6,7 @@ import { configureCharactersRoot } from '~/cli/commands/process-steps/characters
 import {
   appendVoiceRegistration,
   resolveCharacterVoiceRegistryPaths,
+  resolveRegistrationGeneration,
   writeCharacterVoiceBriefCatalog
 } from '~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry'
 import { MANAGED_VOICE_STORE_ROOT } from '~/cli/commands/process-steps/step-4-tts/voice-management/managed-voice-store'
@@ -216,6 +217,9 @@ test('omitted generation-id uses the sole catalog generation or current index an
   })
   expect(JSON.parse(logs.at(-1) ?? '{}').generationId).toBe(first.generationId)
 
+  expect((await resolveRegistrationGeneration(root, first.registrationId)).generationId).toBe(first.generationId)
+  expect((await resolveRegistrationGeneration(root, first.registrationId, first.generationId)).generationId).toBe(first.generationId)
+
   const approved = await writeDraft(root, 'voice-current', {
     registrationId: 'vr_current',
     createdAt: '2026-08-11T00:00:00.000Z',
@@ -234,6 +238,8 @@ test('omitted generation-id uses the sole catalog generation or current index an
   })
   expect(JSON.parse(currentLogs.at(-1) ?? '{}').generationId).toBe(approved.generationId)
   expect(JSON.parse(currentLogs.at(-1) ?? '{}').generationId).not.toBe(successor.generationId)
+  expect((await resolveRegistrationGeneration(root, approved.registrationId)).generationId).toBe(approved.generationId)
+  expect((await resolveRegistrationGeneration(root, approved.registrationId, successor.generationId)).generationId).toBe(successor.generationId)
 
   const tipRoot = await writeDraft(root, 'voice-tip-root', {
     registrationId: 'vr_tip',
@@ -249,6 +255,7 @@ test('omitted generation-id uses the sole catalog generation or current index an
     await parsed.command!.handler(asCtx(parsed))
   })
   expect(JSON.parse(tipLogs.at(-1) ?? '{}').generationId).toBe(tip.generationId)
+  expect((await resolveRegistrationGeneration(root, tipRoot.registrationId)).generationId).toBe(tip.generationId)
 
   const left = await writeDraft(root, 'voice-a', {
     registrationId: 'vr_ambiguous',
@@ -271,6 +278,12 @@ test('omitted generation-id uses the sole catalog generation or current index an
   await rejectVoice(
     ['voice', 'list', 'vr_ambiguous'],
     `Voice registration vr_ambiguous has multiple matching generations: ${[left.generationId, right.generationId].sort().join(', ')}. Pass --generation-id.`
+  )
+  await expect(resolveRegistrationGeneration(root, 'vr_ambiguous')).rejects.toThrow(
+    `Voice registration vr_ambiguous has multiple matching generations: ${[left.generationId, right.generationId].sort().join(', ')}. Pass --generation-id.`
+  )
+  await expect(resolveRegistrationGeneration(root, 'vr_nonexistent')).rejects.toThrow(
+    'Voice registration generation was not found.'
   )
 })
 
