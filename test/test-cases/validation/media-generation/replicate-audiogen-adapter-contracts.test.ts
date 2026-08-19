@@ -102,7 +102,7 @@ const createAudiogenPlan = (prompt: string, options?: Parameters<typeof taskPlan
     licenseUse: AUDIOGEN_NONCOMMERCIAL_LICENSE_USE,
   })
 
-describe('ADR-018 Phase 7 Replicate AudioGen contracts', () => {
+describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
   test('capability fixture pins owner, version, schemas, hardware, license, and community lifecycle', () => {
     const fixture = REPLICATE_AUDIOGEN_SFX_CAPABILITY_FIXTURE
     expect(fixture).toMatchObject({

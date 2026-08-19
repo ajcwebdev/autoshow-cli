@@ -1,14 +1,13 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CanonicalDialogueTurn, ComicDialoguePlan, TtsMasteringProfile, TtsTarget } from '~/types'
+import type { AttemptSlot, AttemptTurn, CanonicalDialogueTurn, ComicDialoguePlan, TtsMasteringProfile, TtsTarget } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { prepareFishDialogueText } from '../tts-services/fish/fish-tts-request'
 import { prepareDeepinfraChatterboxText } from '../tts-services/tts-deepinfra/deepinfra-text-preparation'
-import { PREPARATION_VERSION, type AttemptSlot, type AttemptTurn } from './attempt-shared'
-
+import { PREPARATION_VERSION } from './attempt-shared'
 export const chunkLimit = (target: TtsTarget): number =>
   resolveTtsChunkCharacterLimit(target.service, target.model)
     ?? TTS_CHUNK_CHARACTER_LIMITS[target.service]

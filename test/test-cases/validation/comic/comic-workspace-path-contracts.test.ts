@@ -16,14 +16,9 @@ import {
   getStructuredScriptPath,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
+import type { SnapshotFixtureOptions } from '~/types'
 
 const roots: string[] = []
-
-type SnapshotFixtureOptions = {
-  assetPath?: string | ((canonicalPath: string) => string)
-  registeredSha256?: string
-  schemaVersion?: number
-}
 
 const createSnapshotFixture = async (options: SnapshotFixtureOptions = {}) => {
   const workspace = await mkdtemp(join(tmpdir(), 'autoshow-comic-assets-'))

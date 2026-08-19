@@ -1,9 +1,5 @@
 export type ManagedArtifactToolId = 'mupdf' | 'qpdf'
 
-// Retained as a compatibility alias for the source-build modules introduced in
-// Phase 2. Both source and prebuilt artifacts cover the same two managed tools.
-export type ManagedSourceToolId = ManagedArtifactToolId
-
 export type ManagedArtifactSource = {
   name: string
   version: string
@@ -186,3 +182,9 @@ export type ManagedArtifactValidation =
 
 export type ManagedSourceArtifactValidation = Extract<ManagedArtifactValidation, { healthy: false } | { distribution: 'source' }>
 
+
+export type ManagedSourceRecipe = {
+  binaryRelativePath: string
+  sourceNames: readonly string[]
+  buildFlags: readonly string[]
+}

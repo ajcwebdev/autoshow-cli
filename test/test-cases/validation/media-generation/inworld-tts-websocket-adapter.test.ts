@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import type { InworldWebSocketConnection, InworldWebSocketConnector } from '~/types'
 import {
   buildInworldWebSocketRequests,
   createInworldWebSocketResponseState,
@@ -6,8 +7,6 @@ import {
   reduceInworldWebSocketResponse,
   serializeInworldWebSocketRequests,
   synthesizeInworldWebSocket,
-  type InworldWebSocketConnection,
-  type InworldWebSocketConnector,
 } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-tts-websocket'
 
 describe('Inworld TTS WebSocket adapter', () => {

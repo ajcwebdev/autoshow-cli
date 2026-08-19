@@ -2,20 +2,16 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import type {
+  Deferred,
   HostedOcrSchedulerAdmission,
   HostedOcrSchedulerLaneTelemetry,
   HostedOcrSchedulerSetTimer,
   HostedOcrSchedulerTargetTelemetry,
   HostedOcrSchedulerTelemetry,
   HostedOcrService,
-  HostedOcrThroughputProfile
+  HostedOcrThroughputProfile,
+  SchedulerClock
 } from '~/types'
-
-export type Deferred<T = void> = {
-  promise: Promise<T>
-  resolve: (value: T | PromiseLike<T>) => void
-  reject: (reason?: unknown) => void
-}
 
 export const defer = <T = void>(): Deferred<T> => {
   let resolve!: (value: T | PromiseLike<T>) => void
@@ -38,13 +34,6 @@ export const waitFor = async (
     }
     await sleep(1)
   }
-}
-
-export type SchedulerClock = {
-  now: () => number
-  setTimer: HostedOcrSchedulerSetTimer
-  advance: (durationMs: number) => Promise<void>
-  timerCount: () => number
 }
 
 export const createSchedulerClock = (): SchedulerClock => {

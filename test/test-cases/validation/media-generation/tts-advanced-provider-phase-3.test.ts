@@ -2,11 +2,18 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { CharacterVoiceBrief, ProviderVoiceRef, TtsRequestEvidenceScope, TtsSerializedRequestObservation, TtsTarget, TtsVoiceProvider } from '~/types'
+import type {
+  AdvancedProviderHttpRequest,
+  CharacterVoiceBrief,
+  ProviderVoiceRef,
+  TtsRequestEvidenceScope,
+  TtsSerializedRequestObservation,
+  TtsTarget,
+  TtsVoiceProvider,
+} from '~/types'
 import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { listHumeVoiceIdsForReadiness, listInworldVoiceIdsForReadiness } from '~/cli/commands/process-steps/step-4-tts/tts-targets/execution-preflight'
-import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import {
   createElevenLabsAdvancedProvider,

@@ -3,9 +3,11 @@ import { resolve } from 'node:path'
 import { MODEL_CONFIG_FRAGMENT_PREFIXES, MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type {
   CalibrationConfigPaths,
+  CalibrationGroupRates,
   CalibrationKind,
   CalibrationRecommendation,
   CalibrationReport,
+  CalibrationScan,
   CalibrationStepObservation,
   CalibrationStepShape,
   JsonObject
@@ -370,17 +372,6 @@ const collectCalibrationManifestPaths = async (runDir: string): Promise<string[]
   ])
 
   return [...pipelineManifests, ...metadataManifests]
-}
-
-type CalibrationScan = {
-  observations: CalibrationStepObservation[]
-  runsScanned: number
-  metadataFilesScanned: number
-}
-
-type CalibrationGroupRates = {
-  costRatios: number[]
-  timeRates: number[]
 }
 
 const collectCalibrationObservations = async (rootDir: string): Promise<CalibrationScan> => {

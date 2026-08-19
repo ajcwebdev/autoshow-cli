@@ -6,6 +6,8 @@ import type {
   ComicSourceIdentity,
   GenericTtsDialoguePlan,
   GenericTtsSourceIdentity,
+  JsonArtifactValidator,
+  ProjectionArtifactReferences,
   ProviderBatchInvocationPlan,
   ProviderBatchResult,
   ProviderReadinessResult,
@@ -31,9 +33,6 @@ import {
 } from '../step-4-tts/script-to-audio/contract-validation'
 import { validateComicDialoguePlan, validateComicSourceIdentity } from '../step-8-comic/comic-utils/comic-audio-contracts'
 import { isIsoDateTime, isSha256, isStrictArtifactRelativePath } from './guards'
-import type { ProjectionArtifactReferences } from './projection-artifact-references'
-
-type JsonArtifactValidator = (value: Record<string, unknown>) => void
 
 const validateBranchPlanJson: JsonArtifactValidator = (value) => {
   if (value['schemaVersion'] !== 1) throw CLIUsageError('Provider render branch plan requires schemaVersion 1.')

@@ -9,15 +9,13 @@ import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compu
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
-import type { AggregatedPriceEstimate, PipelineItemRecord, PipelineProviderState, PreparedTtsInput, PreparedTtsRun, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
+import type { AggregatedPriceEstimate, PipelineItemRecord, PipelineProviderState, PreparedTtsInput, PreparedTtsRun, StandaloneTtsCommandOptions, Step4Metadata, TtsExecutionReadinessObservation, TtsOptions, TtsRunSourceContext, TtsTarget } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
-import type { TtsRunSourceContext } from './run-tts'
 import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
-import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { materializeStandaloneMistralReference } from './voice-assets/standalone-mistral-reference'
 import { hasMistralProtectedReferences } from './voice-assets/mistral-protected-reference-binding'
 import { appendCurrentTtsProviderState } from './script-to-audio/current-render-artifacts'
@@ -25,12 +23,6 @@ import { createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingle
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
 import { buildTtsEstimateForInput } from './tts-batch-estimates'
 import { getInputStem } from './tts-batch-plan'
-
-export type StandaloneTtsCommandOptions = TtsOptions & {
-  batchConcurrency: number
-  price: boolean
-  allowOverBudget: boolean
-}
 
 export const getTtsInputKind = async (inputPath: string): Promise<'file' | 'directory'> => {
   try {

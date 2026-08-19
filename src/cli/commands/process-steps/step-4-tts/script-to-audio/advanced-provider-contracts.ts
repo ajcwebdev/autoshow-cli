@@ -1,5 +1,6 @@
 import type {
   AccountCapabilityObservation,
+  AdvancedProviderHttpRequest,
   AnyCapabilityRecord,
   CapabilityDocumentationEvidence,
   CapabilityScope,
@@ -14,15 +15,6 @@ import { hashCanonicalTtsValue } from './contract-identity'
 import { validateAccountCapabilityObservation, validateCapabilityFacetSet } from './contract-validation'
 
 export const ADVANCED_PROVIDER_FIXTURE_CHECKED_AT = '2026-08-11T00:00:00.000Z'
-
-export type AdvancedProviderHttpRequest = <T = unknown>(input: {
-  method: 'GET' | 'POST' | 'DELETE'
-  path: string
-  query?: Readonly<Record<string, string | undefined>> | undefined
-  headers?: Readonly<Record<string, string>> | undefined
-  body?: unknown | undefined
-  signal?: AbortSignal | undefined
-}) => Promise<T>
 
 export const createAdvancedProviderJsonRequest = (input: {
   baseUrl: string

@@ -1,16 +1,6 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
-
-export type DialogueWorkItem<TResult> = {
-  workspaceName: string
-  run: (workspaceDir: string, signal: AbortSignal) => Promise<TResult>
-}
-
-export type DialogueWorkSelectorOptions<TResult> = {
-  concurrency: number
-  workspaceRoot: string
-  work: readonly DialogueWorkItem<TResult>[]
-}
+import type { DialogueWorkItem, DialogueWorkSelectorOptions } from '~/types'
 
 const normalizeConcurrency = (value: number): number =>
   Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1

@@ -5,7 +5,7 @@ import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
-import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, GenerationResumeProviderIdentity, PipelineManifest, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
+import type { AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, GenerationResumePreparation, GenerationResumeProviderIdentity, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
 
 export const buildUpdatedGenerationCostTiming = (
   currentMetadata: Record<string, unknown>,
@@ -124,16 +124,6 @@ const allProvidersSucceeded = (
   getKey: (provider: ProviderIdentity) => string
 ): boolean =>
   providers.every((provider) => successKeys.has(getKey(provider)))
-
-type GenerationResumePreparation<TTarget extends ProviderIdentity, TMetadata> = {
-  manifest: PipelineManifest
-  item: PipelineManifestItem
-  existingEntries: TMetadata[]
-  successKeys: Set<string>
-  selectedTargets: TTarget[]
-  selectedProviders: GenerationResumeProviderIdentity[] | undefined
-  resolved: AdditiveResumeProviderSelection<GenerationResumeProviderIdentity>
-}
 
 async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,

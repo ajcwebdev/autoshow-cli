@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
 import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
 import { splitPdfPages } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
 import { getAnthropicClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-anthropic/anthropic-utils'
@@ -12,7 +12,7 @@ import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
-import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA, HostedOcrEnvelopeSchema, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
 import {
   createAnthropicMessage,
@@ -310,7 +310,7 @@ export const runAnthropicOcr = async (
   model: string,
   options: {
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+    reasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{
   pages: PageResult[]
@@ -318,8 +318,8 @@ export const runAnthropicOcr = async (
   totalPages: number
   promptTokens?: number
   completionTokens?: number
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
   const policy = resolveReasoningPolicy({
     step: 'extract',

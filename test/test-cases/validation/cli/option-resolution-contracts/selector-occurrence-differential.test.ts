@@ -3,16 +3,7 @@ import { parseCommandArgv } from '~/cli/native/native-parser'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { BOOLEAN_PROVIDER_TARGETS, STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS, WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
-import type { CliCommandDefinition } from '~/types'
-
-type SelectorCase = {
-  args: string[]
-  selectorFlag: string
-  target: string
-  expectedValue: string | true
-  normalize: 'generic' | 'write'
-  targets: Record<string, string>
-}
+import type { CliCommandDefinition, SelectorCase } from '~/types'
 
 const selectorCommand = (selectorFlag: string): CliCommandDefinition => ({
   name: 'probe',

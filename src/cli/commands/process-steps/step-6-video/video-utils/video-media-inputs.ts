@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs'
-import type { AudioProbeResult, GeminiInlineMedia, GeminiVideoImageMedia, GrokUrlMedia, VideoMediaKind } from '~/types'
+import type { AudioProbeResult, GeminiInlineMedia, GeminiVideoImageMedia, GrokUrlMedia, VideoMediaKind, VideoMediaSpec } from '~/types'
 import { exec } from '~/utils/cli-utils'
-import type { MediaKindSpec } from '~/utils/media-reference-engine'
 import { createMediaReferenceEngine } from '~/utils/media-reference-engine'
 import { getFfprobeBinary, hasRuntimeTool } from '~/utils/runtime-paths'
 
@@ -22,8 +21,6 @@ const VIDEO_MIME_TYPES = ['video/mp4'] as const
 const AUDIO_MIME_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'] as const
 const VIDEO_MEDIA_DATA_URL_PATTERN = /^data:(image\/(?:jpeg|jpg|png|bmp|webp)|video\/mp4|audio\/(?:mpeg|mp3|wav|x-wav|wave));base64,/i
 const MIME_ALIASES = { 'image/jpg': 'image/jpeg' } as const
-type VideoMediaSpec = MediaKindSpec & { prettyMimeList: string }
-
 const videoMediaSpec = (
   kind: VideoMediaKind,
   allowedMimeTypes: readonly string[],

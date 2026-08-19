@@ -6,6 +6,7 @@ import type {
   VoiceIssuedResource,
   VoiceProvisioningAttempt,
   VoiceProvisioningState,
+  RunCrashSafeProvisioningInput,
 } from '~/types'
 import { CLIUsageError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
@@ -13,23 +14,6 @@ import { withProcessLock } from '~/utils/process-lock'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
 import { validateVoiceProvisioningAttempt } from './voice-management-contracts'
-
-export type VoiceProvisioningProviderResponse = {
-  state: VoiceProvisioningState
-  issuedResources: VoiceIssuedResource[]
-  evidenceHash: string
-}
-
-export type RunCrashSafeProvisioningInput = {
-  journalRoot: string
-  attempt: VoiceProvisioningAttempt
-  mutate: (attempt: VoiceProvisioningAttempt) => Promise<VoiceProvisioningProviderResponse>
-  faultInjection?: {
-    afterPrepared?: (() => void | Promise<void>) | undefined
-    afterRequestSent?: (() => void | Promise<void>) | undefined
-    afterResponseRecorded?: (() => void | Promise<void>) | undefined
-  } | undefined
-}
 
 const SAFE_KEY = /^[a-z0-9][a-z0-9_-]{0,127}$/
 

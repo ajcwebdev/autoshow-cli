@@ -1,27 +1,7 @@
 import { expect } from 'bun:test'
 import { fileExists } from './test-helpers'
 import { readCanonicalRecord } from './manifest-helpers'
-
-type SttModelMatch =
-  | { equals: string, contains?: never }
-  | { equals?: never, contains: string }
-
-type ExpectedProvider = {
-  service: string
-  model: string
-  local: boolean
-  origin: 'default' | 'explicit' | 'all-shortcut'
-}
-
-export type SttExtractRunExpectation = {
-  transcriptMatch: string | RegExp
-  target: ExpectedProvider
-  modelMatch: SttModelMatch
-  expectPrompt: boolean
-  resolvedStep2: boolean
-  providerStates: boolean
-  splitSegmentsDir: string | false
-}
+import type { SttExtractRunExpectation } from '~/types'
 
 export const assertSttExtractRun = async (
   outputDir: string,

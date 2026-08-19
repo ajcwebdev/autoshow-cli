@@ -1,11 +1,4 @@
-import type { ManagedArtifactToolId, ManagedPrebuiltLicense } from '~/types'
-
-export type ManagedToolchainNoticePlanEntry = {
-  source: 'mupdf' | 'qpdf' | 'libjpeg-turbo'
-  sourcePaths: readonly string[]
-  packagePath: string
-  mode: 'copy' | 'concatenate'
-}
+import type { ManagedArtifactToolId, ManagedPrebuiltLicense, ManagedToolchainNoticePlanEntry } from '~/types'
 
 const REVIEWED_AT = '2026-08-13'
 const REPOSITORY_REVIEWER = 'github:ajcwebdev/repository-owner'

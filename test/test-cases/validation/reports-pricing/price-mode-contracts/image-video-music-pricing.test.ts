@@ -11,16 +11,8 @@ import { formatEstimatedCost } from '~/utils/app-logger/formatters'
 import { resolveExtractionProviderModel } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
-import type { ExtractionMetadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
-import {
-  estimatePageMode,
-  estimatePanelMode,
-  estimateQaWork,
-  normalizeFinalImageEstimateRequest,
-  type FinalImageOutputInventory,
-  type FinalImagePageInventory,
-  type FinalImagePanelInventory,
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-estimate'
+import type { ExtractionMetadata, FinalImageOutputInventory, FinalImagePageInventory, FinalImagePanelInventory, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
+import { estimatePageMode, estimatePanelMode, estimateQaWork, normalizeFinalImageEstimateRequest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-estimate'
 import { resolveFinalImageOutputPathParts } from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-inventory'
 
 const buildVideoMetadata = (overrides: Partial<Step6VideoMetadata>): Step6VideoMetadata => ({
@@ -564,7 +556,7 @@ describe('price mode contracts', () => {
       ])
     })
 
-  // ADR-013 replaced MiniMax music-2.6 with music-3.0 and required the retired
+  // The 2026 hosted-model refresh (docs/reports) replaced MiniMax music-2.6 with music-3.0 and required the retired
   // model to keep repricing in historical readers. It has no registry row, so
   // without the retired-rate table `getMusicModelMeta` returns undefined and the
   // four committed `docs/benchmarks/music/2026-05-21_*` runs silently reprice to

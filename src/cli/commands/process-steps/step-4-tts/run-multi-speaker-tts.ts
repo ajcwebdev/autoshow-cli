@@ -1,5 +1,14 @@
 import { rename } from 'node:fs/promises'
-import type { ProtectedAssetRef, Step4Metadata, TtsOptions, TtsRequestEvidenceScope, TtsTarget, TtsTargetInvocation } from '~/types'
+import type {
+  CurrentTtsObservedTurn,
+  MultiSpeakerRunMetadata,
+  ProtectedAssetRef,
+  Step4Metadata,
+  TtsOptions,
+  TtsRequestEvidenceScope,
+  TtsTarget,
+  TtsTargetInvocation,
+} from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { runDialogueWorkSelector } from './dialogue-work-selector'
 import { concatAndConvertToWav } from './tts-utils/audio-utils'
@@ -7,7 +16,6 @@ import { finalizeTtsRun } from './tts-utils/finalize-tts-run'
 import { bindHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './tts-utils/hosted-tts-chunk-scheduler'
 import { TTS_CHUNK_CHARACTER_LIMITS } from './tts-utils/tts-chunking'
 import { resolveGeminiDialogueStrategyForText } from './tts-services/tts-gemini/gemini-tts-config'
-import type { CurrentTtsObservedTurn } from './script-to-audio/current-render-artifacts'
 import { sha256Bytes } from './script-to-audio/contract-identity'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from './voice-assets/mistral-request-reference-policy'
 import {
@@ -30,11 +38,6 @@ const cloneProtectedAssetRef = (asset: ProtectedAssetRef): Readonly<ProtectedAss
   assetId: asset.assetId,
   sha256: asset.sha256
 })
-
-type MultiSpeakerRunMetadata = Step4Metadata & {
-  _ttsObservedTurns: CurrentTtsObservedTurn[]
-  _ttsRenderStrategy: 'native-dialogue' | 'native-utterances' | 'segmented'
-}
 
 const buildObservedVoice = (
   target: TtsTarget,

@@ -30,7 +30,7 @@ export const runKimiModel = async (
     model,
     structuredOpts: updatedOpts,
     config: () => ({
-      apiKey: ensureKimiApiKey('--kimi models'),
+      apiKey: ensureKimiApiKey('--kimi models', 'write:kimi'),
       baseURL: resolveKimiBaseUrl()
     }),
     service: 'kimi',

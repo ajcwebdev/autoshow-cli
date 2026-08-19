@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
-import type { FalImageModel, Step5Metadata } from '~/types'
+import type { FalImageFile, FalImageModel, FalImageOutput, Step5Metadata } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '../../image-utils/image-pricing'
@@ -12,9 +12,6 @@ import { ensureFalImageGenSetup } from './fal-image-gen'
 export const FAL_IMAGE_FORMATS = ['png', 'jpeg', 'webp'] as const
 export const FAL_IMAGE_COUNT_RANGE = [1, 4] as const
 export const FAL_REVE_ASPECT_RATIOS = ['4:1', '3:1', '21:9', '2:1', '17:9', '16:9', '3:2', '4:3', '5:4', '1:1', '4:5', '3:4', '2:3', '9:16', '1:2', '1:3', '1:4', 'auto'] as const
-
-type FalImageFile = { url?: unknown, content_type?: unknown }
-type FalImageOutput = { images?: unknown }
 
 const normalizeFormat = (format: string | undefined): typeof FAL_IMAGE_FORMATS[number] | undefined => {
   if (!format) return undefined

@@ -85,7 +85,7 @@ const fixture = async (root: string, model = 's2.1-pro') => {
   return { structured, structuredRef, dialoguePlan, soundscapePlan, snapshot }
 }
 
-describe('ADR-018 Phase 6E Fish soundscape acceptance', () => {
+describe('ADR-017 Phase 6E Fish soundscape acceptance', () => {
   test('keeps Fish S2 Pro native dialogue separate from ElevenLabs action and ambience routing', async () => {
     const root = await tempDirs.make()
     const { dialoguePlan, soundscapePlan, snapshot } = await fixture(root)

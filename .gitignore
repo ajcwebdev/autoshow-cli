@@ -7,6 +7,7 @@ docs/reports/00-env-vars-report-*.md
 docs/reports/02-clean-deps-bun-report-*.md
 docs/reports/01-deps-report-*.md
 docs/reports/01-deps-report-*.md
+docs/reports/*
 
 .DS_Store
 node_modules/

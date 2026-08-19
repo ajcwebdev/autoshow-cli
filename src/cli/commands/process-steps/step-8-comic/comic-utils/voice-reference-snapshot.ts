@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path'
 import type {
   ApprovedVoiceSnapshotEntry,
   ComicDialoguePlan,
-  TtsProvider,
+  ComicVoiceSnapshotTarget,
   VoiceReferenceManifest,
   VoiceReferenceSnapshotIndex,
 } from '~/types'
@@ -26,8 +26,6 @@ import {
   validateVoiceReferenceManifest,
   validateVoiceReferenceSnapshotIndex,
 } from './comic-audio-contracts'
-
-export type ComicVoiceSnapshotTarget = { provider: TtsProvider, model: string }
 
 const snapshotLockName = (sceneRunDir: string): string =>
   `comic-voice-snapshots-${createHash('sha256').update(resolve(sceneRunDir)).digest('hex').slice(0, 24)}`

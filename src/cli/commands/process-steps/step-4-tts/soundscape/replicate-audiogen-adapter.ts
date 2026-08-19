@@ -8,6 +8,9 @@ import type {
   SoundEffectRenderTask,
   SoundEffectRequestEvidence,
   SoundEffectTarget,
+  ReplicateAudioGenFetchImpl,
+  ReplicateAudioGenPredictionRunner,
+  ReplicateAudioGenSerializedRequest,
 } from '~/types'
 import { CLIUsageError, extractErrorMetadata } from '~/utils/error-handler'
 import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
@@ -164,19 +167,6 @@ export const assertAudioGenDispatchEligible = (fixture: SoundEffectCapabilityFix
   throw CLIUsageError(`Replicate AudioGen fixture ${fixture.capabilityFixtureHash} is ${fixture.dispatchAvailability ?? 'unavailable'} and cannot dispatch new predictions; historical plans remain readable.`)
 }
 
-export type ReplicateAudioGenFetchImpl = (input: string | URL | Request, init?: RequestInit | undefined) => Promise<Response>
-
-export type ReplicateAudioGenPredictionRunner = (input: {
-  apiToken: string
-  baseUrl: string
-  model: string
-  version: string
-  input: Record<string, unknown>
-  operationName: string
-  abortSignal: AbortSignal
-  onCreated?: ((prediction: ReplicatePrediction) => void | Promise<void>) | undefined
-}) => Promise<ReplicatePrediction>
-
 export const resolveReplicateAudioGenTarget = (
   rawModel: string,
   options: { outputFormat?: string | undefined } = {}
@@ -221,22 +211,6 @@ export const validateReplicateAudioGenTask = (task: SoundEffectRenderTask, targe
     throw CLIUsageError(
       `Replicate AudioGen sound-effect duration must be ${constraints.durationSeconds.min}-${constraints.durationSeconds.max} seconds.`
     )
-  }
-}
-
-export type ReplicateAudioGenSerializedRequest = {
-  path: '/v1/predictions'
-  body: {
-    version: string
-    input: {
-      prompt: string
-      duration: number
-      top_k: number
-      top_p: number
-      temperature: number
-      classifier_free_guidance: number
-      output_format: string
-    }
   }
 }
 

@@ -1,16 +1,10 @@
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { GenericTtsDialoguePlan, PipelineProviderState } from '~/types'
+import type { GenericTtsDialoguePlan, PipelineProviderState, TtsDialoguePlanArtifactRef } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
 import { validateGenericTtsDialoguePlan } from './contract-validation'
 import { writeImmutableArtifactFile } from './safe-artifact-store'
-
-export type TtsDialoguePlanArtifactRef = {
-  dialoguePlanId: string
-  path: string
-  sha256: string
-}
 
 const DIALOGUE_PLAN_ID = /^[a-f0-9]{64}$/
 const DIALOGUE_PLAN_DIRECTORY = 'metadata/tts-dialogue-plans'

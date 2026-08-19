@@ -3,13 +3,15 @@ import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type {
   ComicImageGenerationDependencies,
-  ComicPageChunk,
-  ComicPanelSource,
+  ComicPageGroup,
+  ComicPagePanelSource,
   GenerateComicPagesOptions,
   ImageGenerationModel,
   ImagePromptVariation,
-  ImageRunStats,
-  PromptsConfig,
+  PageQaEntry,
+  PageRenderContext,
+  PageRenderResult,
+  PageWorkItem,
   ResolvedReferenceImages,
 } from '~/types'
 import {
@@ -42,46 +44,11 @@ import {
   applyImagePromptVariation,
   getImagePromptVariationLabel,
 } from './prompt-variations'
-import {
-  judgeComicPage,
-  writePageQaReports,
-  type PageQaEntry,
-} from './comic-page-qa'
+import { judgeComicPage, writePageQaReports } from './comic-page-qa'
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 import { generateWithQaRepair } from './panel-qa-pipeline'
-
-type ComicPagePanelSource = ComicPanelSource & { normalizedPrompt: string }
-
-export type ComicPageGroup = ComicPageChunk<ComicPagePanelSource>
-
-export interface PageWorkItem {
-  variation: ImagePromptVariation
-  model: ImageGenerationModel
-  pageChunk: ComicPageGroup
-}
-
-export interface PageRenderContext {
-  sceneSlug: string
-  options: GenerateComicPagesOptions
-  useVariationOutputPaths: boolean
-  useModelSpecificFilenames: boolean
-  prompts?: PromptsConfig | undefined
-  requestImage: NonNullable<ComicImageGenerationDependencies['requestImage']>
-  writeImage: typeof writeGeneratedImage
-  judgePage: NonNullable<ComicImageGenerationDependencies['judgePage']>
-  qaEnabled: boolean
-  judgeModel: string
-  maxRepairs: number
-  nextHostedIndex: () => number
-}
-
-export interface PageRenderResult {
-  stats: ImageRunStats
-  qaEntries: Array<{ directory: string; entry: PageQaEntry }>
-  error?: unknown | undefined
-}
 
 const readComicPagePanelSource = async (
   sceneDirectory: string,

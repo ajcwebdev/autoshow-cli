@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import type { AggregatedPriceEstimate, ExtractRoute, ExtractRouteResumeHandler, OcrExtractionOptions, OcrTarget, PipelineManifest, PipelineManifestChildLink, ResumeHandler, ResumeResult, ResumeTarget, SttExtractionOptions, StepEstimate, SttTarget, UrlArticleTarget, UrlExtractionOptions } from '~/types'
+import type { AggregatedPriceEstimate, ExtractResumeOptions, ExtractRoute, ExtractRouteResumeHandler, OcrExtractionOptions, OcrTarget, PipelineManifest, PipelineManifestChildLink, ResumeHandler, ResumeResult, ResumeTarget, SttExtractionOptions, StepEstimate, SttTarget, UrlArticleTarget, UrlExtractionOptions } from '~/types'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { hasResumableOcrTargetWork, priceOcrTarget, resumeOcrTarget } from './extract/ocr-resume'
@@ -24,8 +24,6 @@ const EMPTY_RESUME_RESULT: ResumeResult = {
   incomplete: 0,
   failed: 0
 }
-
-type ExtractResumeOptions = SttExtractionOptions & OcrExtractionOptions & UrlExtractionOptions
 
 const addResumeResult = (
   totals: ResumeResult,

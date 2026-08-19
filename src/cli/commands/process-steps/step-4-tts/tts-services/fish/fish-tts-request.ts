@@ -1,6 +1,5 @@
-import type { FishTtsModel, NormalizedTiming, PreparedProviderText, TimedToken, TtsTimingIdentity } from '~/types'
+import type { FishGlobalTimelineSegment, FishNativeDialogueBatch, FishNativeDialogueTurn, FishPreparedDialogueTurn, FishTtsModel, NormalizedTiming, PreparedProviderText, TimedToken, TtsTimingIdentity } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import type { FishGlobalTimelineSegment } from '~/utils/fish-client/fish-timestamp-stream'
 
 export {
   buildFishGlobalTimeline,
@@ -9,14 +8,6 @@ export {
   parseFishTimestampStreamEvent,
   reduceFishTimestampStreamEvent,
   splitFishSseFrames,
-} from '~/utils/fish-client/fish-timestamp-stream'
-export type {
-  FishAlignmentSegment,
-  FishGlobalTimelineSegment,
-  FishTimestampAlignment,
-  FishTimestampAlignmentSnapshot,
-  FishTimestampStreamEvent,
-  FishTimestampStreamState,
 } from '~/utils/fish-client/fish-timestamp-stream'
 
 export const FISH_TTS_SERIALIZER_VERSION = 'fish.tts.phase-0-v1'
@@ -28,27 +19,6 @@ export const FISH_VOICE_DESIGN_MODEL = 'voice-design-1'
 
 export const isFishNativeDialogueModel = (model: string | undefined): boolean => model === FISH_S21_PRO_MODEL
 export const isFishTimestampModel = (model: string | undefined): boolean => model === FISH_S21_PRO_MODEL
-
-export type FishNativeDialogueTurn = {
-  turnId: string
-  subjectKey: string
-  speaker: string
-  canonicalText: string
-  voiceId: string
-  delivery?: string | undefined
-}
-
-export type FishPreparedDialogueTurn = FishNativeDialogueTurn & {
-  preparedText: PreparedProviderText
-  speakerIndex: number
-}
-
-export type FishNativeDialogueBatch = {
-  batchIndex: number
-  turns: FishPreparedDialogueTurn[]
-  providerText: string
-  referenceIds: string[]
-}
 
 const FISH_S2_DELIVERY_TAGS = [
   { tag: 'happy', pattern: /\b(?:happy|happily|cheerful|jolly)\b/i },

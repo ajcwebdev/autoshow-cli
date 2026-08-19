@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import modelLinks from '~/cli/commands/setup-and-utilities/links/model-links'
+import type { ProviderSections } from '~/types'
 
 /**
  * These fixtures are DERIVED from the link registry, never hand-mirrored.
@@ -18,8 +19,6 @@ import modelLinks from '~/cli/commands/setup-and-utilities/links/model-links'
  */
 
 export const MODEL_LINKS_DIR = 'src/cli/commands/setup-and-utilities/links/model-links'
-
-type ProviderSections = Record<string, string[]>
 
 const readManifestsFromDisk = (): Map<string, ProviderSections> => {
   const byProvider = new Map<string, ProviderSections>()

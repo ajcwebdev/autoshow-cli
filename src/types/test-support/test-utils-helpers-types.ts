@@ -1,4 +1,4 @@
-import type { AdaptiveConcurrencyConfig, CommandResultBase } from '~/types'
+import type { AdaptiveConcurrencyConfig, CommandResultBase, OutputMetadataSummary } from '~/types'
 
 export type BudgetKeyInput = string | readonly string[]
 
@@ -49,3 +49,19 @@ export type RunCommandAttemptResult = CommandResultBase & {
 }
 
 export type RunCommandAttemptRunner = (input: RunCommandAttemptInput) => Promise<RunCommandAttemptResult>
+
+export type ConsoleMethod = 'log' | 'warn' | 'error' | 'info' | 'debug'
+
+export type TestBuffer = {
+  lines: string[]
+  failed: boolean
+}
+
+export type CallerLocation = { file: string | null, line: number | null, column: number | null }
+
+export type RunCommandArtifacts = {
+  outputDir: string | null
+  absoluteOutputDir: string | null
+  metadataSummary: OutputMetadataSummary | null
+  parsedEstimatedCostCents: number | null
+}

@@ -1,3 +1,4 @@
+import type { MappedReasoningPolicy, NormalizedReasoningEffort, ReasoningCapabilities, ReasoningSupport } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getModelRegistry } from './model-loader/registry'
 
@@ -10,20 +11,6 @@ export const NORMALIZED_REASONING_EFFORTS = [
   'high',
   'max'
 ] as const
-
-export type NormalizedReasoningEffort = typeof NORMALIZED_REASONING_EFFORTS[number]
-export type ReasoningSupport = 'unsupported' | 'optional' | 'required'
-
-export type ReasoningCapabilities = {
-  support: ReasoningSupport
-  allowDisabled?: boolean | undefined
-  supportedEfforts?: NormalizedReasoningEffort[] | undefined
-}
-
-export type MappedReasoningPolicy = {
-  requested: NormalizedReasoningEffort | undefined
-  effective: NormalizedReasoningEffort
-}
 
 export const isNormalizedReasoningEffort = (value: unknown): value is NormalizedReasoningEffort =>
   typeof value === 'string' && (NORMALIZED_REASONING_EFFORTS as readonly string[]).includes(value)

@@ -3,15 +3,15 @@ import { existsSync } from 'node:fs'
 import { link, mkdir, readFile, rename, unlink } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
-  AuditActorRef,
   CharacterVoiceBrief,
   CharacterVoiceBriefCatalog,
   CurrentVoiceRegistrationIndex,
   VoiceAuditionManifest,
-  VoiceConsentRecord,
   VoiceProvisioningState,
   VoiceRegistration,
   VoiceRegistrationCatalog,
+  ApproveVoiceRegistrationInput,
+  CharacterVoiceRegistryPaths,
 } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
@@ -36,26 +36,6 @@ const VOICE_ORIGINS = new Set([
   'imported-custom', 'saved-reference', 'request-reference-audio', 'local-model-voice'
 ])
 const TTS_PROVIDERS = new Set(['elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'])
-
-export type CharacterVoiceRegistryPaths = {
-  charactersRoot: string
-  briefs: string
-  registrations: string
-  current: string
-  referencesRoot: string
-}
-
-export type ApproveVoiceRegistrationInput = {
-  charactersRoot: string
-  registrationId: string
-  generationId: string
-  audition: VoiceAuditionManifest
-  approvedBy: AuditActorRef
-  expectedIndexRevision: number
-  expectedCurrentGenerationId?: string | undefined
-  approvedAt?: string | undefined
-  consent?: VoiceConsentRecord | undefined
-}
 
 const assertSafeKey = (value: string, label: string): void => {
   if (!SAFE_KEY.test(value)) throw CLIUsageError(`${label} must be a safe lowercase key.`)

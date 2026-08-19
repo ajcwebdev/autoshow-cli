@@ -7,20 +7,14 @@ import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/process-
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
-import type { ProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
 import { planStandaloneMistralReference } from '~/cli/commands/process-steps/step-4-tts/voice-assets/standalone-mistral-reference'
 import { runTtsTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
-import type { CanonicalAudioProviderProjection, PipelineProviderState, ProviderReadinessResult, TtsProvider, TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection, HostedFixture, PipelineProviderState, ProtectedVoiceAssetStore, ProviderReadinessResult, TtsProvider, TtsTarget } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
-
-type HostedFixture = {
-  target: TtsTarget
-  calls: { run: number, setup: number, fetch: number }
-}
 
 const hostedFixture = (
   service: Extract<TtsProvider, 'openai' | 'groq'>,

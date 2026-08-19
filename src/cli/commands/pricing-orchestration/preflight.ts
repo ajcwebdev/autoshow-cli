@@ -1,13 +1,8 @@
-import type { CommandPricingOptions, PreflightResult, ProcessCommand } from '~/types'
+import type { CommandPricingOptions, PreflightBudgetOptions, PreflightResult, ProcessCommand } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { buildAggregatedPriceEstimate } from './aggregate-pricing'
-
-type PreflightBudgetOptions = {
-  price: boolean
-  allowOverBudget: boolean
-}
 
 export const evaluatePreflightEstimate = (
   estimate: PreflightResult['estimate'],

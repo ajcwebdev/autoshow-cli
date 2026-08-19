@@ -5,7 +5,7 @@ import {
   runUrlArticleProviderWithStats,
   URL_ARTICLE_PROVIDER_ADAPTERS
 } from './shared'
-import type { UrlRequestOptions } from './shared'
+import type { UrlRequestOptions } from '~/types'
 
 test('URL article provider retry wrapper retries timeout failures and reports attempts', async () => {
   const originalSleep = Bun.sleep

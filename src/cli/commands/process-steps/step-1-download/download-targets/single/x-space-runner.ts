@@ -1,5 +1,5 @@
 import { ensureDirectory } from '~/utils/cli-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, hintsForMissingEnv } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
@@ -16,8 +16,8 @@ const getXBearerToken = (purpose: 'download' | 'extraction' | 'metadata'): strin
   const bearerToken = readEnv('X_BEARER_TOKEN')
   if (!bearerToken) {
     throw CLIUsageError(
-      `X_BEARER_TOKEN environment variable is required for X/Twitter Space ${purpose}. `
-      + 'Create a Bearer Token at https://developer.x.com/en/portal/dashboard'
+      `X_BEARER_TOKEN environment variable is required for X/Twitter Space ${purpose}.`,
+      hintsForMissingEnv('X_BEARER_TOKEN')[0]
     )
   }
   return bearerToken

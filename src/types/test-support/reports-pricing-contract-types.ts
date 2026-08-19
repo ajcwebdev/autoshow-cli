@@ -1,4 +1,4 @@
-import type { JsonObject, ModelRegistry } from '~/types'
+import type { JsonObject, ModelCategory, ModelRegistry } from '~/types'
 
 export type MetricName = 'price' | 'speed' | 'qualityScore'
 
@@ -104,4 +104,17 @@ export type UrlCombinedArtifact<TAggregatedProvider = unknown, TMetricRankingEnt
   weightedRankings: Record<string, Record<string, unknown[]>>
   tiering: Record<string, { tiers: Array<{ count: number }> }>
   notes: string[]
+}
+
+export type ModelIdentitySpec = {
+  category: ModelCategory
+  serviceField: string
+  modelField: string
+}
+
+export type HistoricalIdentity = {
+  category: ModelCategory
+  service: string
+  model: string
+  file: string
 }

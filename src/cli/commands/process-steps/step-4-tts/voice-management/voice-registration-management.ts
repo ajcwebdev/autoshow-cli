@@ -13,14 +13,17 @@ import type {
   VoiceConsentRecord,
   VoiceRegistration,
   VoiceRetentionPolicy,
+  MistralSavedReferencePlan,
+  MistralVoiceManagementRequest,
+  ProtectedVoiceAssetStore,
+  VoiceRegistrationReadiness,
 } from '~/types'
-import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-asset-store'
 import { CLIUsageError } from '~/utils/error-handler'
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
 import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { appendVoiceRegistration, atomicWriteJson, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
 import { assertVoiceConsentAllows, computeVoiceAuditionId, validateVoiceAuditionManifest, validateVoiceConsentRecord, validateVoiceRegistration } from './voice-management-contracts'
-import { createMistralSavedVoice, findMistralSavedVoiceBySlug, inspectMistralSavedVoice, mistralAccountScopeHash, type MistralVoiceManagementRequest } from './mistral-voice-management'
+import { createMistralSavedVoice, findMistralSavedVoiceBySlug, inspectMistralSavedVoice, mistralAccountScopeHash } from './mistral-voice-management'
 import { loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation, runCrashSafeVoiceProvisioning } from './provisioning-journal'
 
 export const DEFAULT_VOICE_RETENTION_POLICY: VoiceRetentionPolicy = {
@@ -263,14 +266,6 @@ export const importExistingVoiceRegistration = async (input: {
   return registration
 }
 
-export type MistralSavedReferencePlan = {
-  registrationId: string
-  attemptId: string
-  slug: string
-  source: ProtectedAssetRef
-  estimatedCostCents: 0
-}
-
 export const planMistralSavedReferenceRegistration = async (input: {
   protectedStore: ProtectedVoiceAssetStore
   subjectKey: string
@@ -496,16 +491,6 @@ export const reconcileMistralSavedReferenceRegistration = async (input: {
     provisioning: attempt.outcome,
     sanitizedProviderMetadata: { provisioningAttemptId: attemptId, reconciliationState: attempt.outcome.state, sourceAssetSha256: attempt.protectedRequestEvidence.sha256 }
   })
-}
-
-export type VoiceRegistrationReadiness = {
-  state: 'ready' | 'blocked' | 'external-action-required'
-  registrationId: string
-  generationId: string
-  checkedAt: string
-  networkAccess: 'none' | 'read-only'
-  evidenceHash: string
-  reason?: string | undefined
 }
 
 export const inspectVoiceRegistrationReadiness = async (input: {

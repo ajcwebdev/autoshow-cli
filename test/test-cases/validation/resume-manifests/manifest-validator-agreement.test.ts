@@ -14,7 +14,6 @@ import {
   collectNestedProjectionArtifactReferences,
   collectProjectionArtifactReferences
 } from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-references'
-import type { ProjectionArtifactReference } from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-references'
 import {
   PROJECTION_ARTIFACT_GRAPH_LINK_PASSES,
   validateProjectionArtifactGraphLinks
@@ -25,7 +24,7 @@ import {
 } from '~/cli/commands/process-steps/pipeline-manifest/projection-artifact-verifier'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { PROCESS_COMMANDS } from '~/types'
-import type { PipelineManifest, PipelineProviderState } from '~/types'
+import type { PipelineManifest, PipelineProviderState, ProjectionArtifactReference } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
 const ARTIFACT_HASHES = {

@@ -1,4 +1,4 @@
-import type { InworldTtsModel, NormalizedTiming, TtsTimingIdentity } from '~/types'
+import type { InworldTtsModel, InworldWebSocketConnection, InworldWebSocketConnector, InworldWebSocketRequestInput, InworldWebSocketResponseState, InworldWebSocketSynthesisResult, JsonObject, TtsTimingIdentity } from '~/types'
 import { normalizeInworldTimestampInfo, resolveInworldTtsApiModelId } from './inworld-tts-request'
 
 export const INWORLD_TTS_WEBSOCKET_URL = 'wss://api.inworld.ai/tts/v1/voice:streamBidirectional'
@@ -9,53 +9,14 @@ const MAX_TIMEOUT_MS = 120_000
 const MAX_RESPONSE_MESSAGES = 10_000
 const MAX_AUDIO_BYTES = 100 * 1024 * 1024
 
-type JsonRecord = Readonly<Record<string, unknown>>
-
-export type InworldWebSocketConnection = Readonly<{
-  send: (message: string) => void | Promise<void>
-  receive: () => Promise<unknown>
-  close: (code?: number, reason?: string) => void | Promise<void>
-}>
-
-export type InworldWebSocketConnector = (input: Readonly<{
-  url: string
-  headers: Readonly<Record<string, string>>
-  signal: AbortSignal
-}>) => Promise<InworldWebSocketConnection>
-
-export type InworldWebSocketRequestInput = Readonly<{
-  text: string
-  voiceId: string
-  model: InworldTtsModel
-  contextId: string
-}>
-
-export type InworldWebSocketResponseState = Readonly<{
-  contextId: string
-  audioChunks: readonly Uint8Array[]
-  timestampInfo: unknown
-  messageCount: number
-  audioBytes: number
-  terminal: boolean
-  terminalKind?: 'flushCompleted' | 'contextClosed' | undefined
-}>
-
-export type InworldWebSocketSynthesisResult = Readonly<{
-  audio: Uint8Array
-  contextId: string
-  requestId: string
-  timestampInfo: unknown
-  timing?: NormalizedTiming<'take-audio-ms'> | undefined
-}>
-
-const record = (value: unknown): JsonRecord | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : undefined
+const record = (value: unknown): Readonly<JsonObject> | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Readonly<JsonObject> : undefined
 const nonempty = (value: string, label: string): string => {
   const result = value.trim()
   if (!result) throw new Error(`Inworld WebSocket ${label} cannot be blank.`)
   return result
 }
 
-export const buildInworldWebSocketRequests = (input: InworldWebSocketRequestInput): readonly JsonRecord[] => {
+export const buildInworldWebSocketRequests = (input: InworldWebSocketRequestInput): readonly Readonly<JsonObject>[] => {
   const text = nonempty(input.text, 'text')
   if (Array.from(text).length > INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH) {
     throw new Error(`Inworld WebSocket text cannot exceed ${INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH} characters.`)
@@ -88,7 +49,7 @@ export const createInworldWebSocketResponseState = (contextId: string): InworldW
   terminal: false,
 })
 
-const parseMessage = (message: unknown): JsonRecord => {
+const parseMessage = (message: unknown): Readonly<JsonObject> => {
   let value = message
   if (message instanceof ArrayBuffer || ArrayBuffer.isView(message)) {
     const bytes = message instanceof ArrayBuffer ? new Uint8Array(message) : new Uint8Array(message.buffer, message.byteOffset, message.byteLength)

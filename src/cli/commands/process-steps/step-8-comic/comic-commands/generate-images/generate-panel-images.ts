@@ -30,41 +30,15 @@ import type {
   ComicImageGenerationDependencies,
   GeneratePanelImagesOptions,
   ImagePromptVariation,
-  ImageRunStats,
-  PromptsConfig,
+  PageQaEntry,
+  PanelRenderContext,
+  PanelRenderResult,
 } from '~/types'
-import {
-  judgeComicPage,
-  writePageQaReports,
-  type PageQaEntry,
-} from './comic-page-qa'
+import { judgeComicPage, writePageQaReports } from './comic-page-qa'
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 import { generateWithQaRepair } from './panel-qa-pipeline'
-
-export interface PanelRenderContext {
-  sceneSlug: string
-  sceneDirectory: string
-  options: GeneratePanelImagesOptions
-  variations: ImagePromptVariation[]
-  useVariationOutputPaths: boolean
-  useModelSpecificFilenames: boolean
-  prompts?: PromptsConfig | undefined
-  requestImage: NonNullable<ComicImageGenerationDependencies['requestImage']>
-  writeImage: typeof writeGeneratedImage
-  judge: NonNullable<ComicImageGenerationDependencies['judgePage']>
-  qaEnabled: boolean
-  judgeModel: string
-  maxRepairs: number
-  nextHostedIndex: () => number
-}
-
-export interface PanelRenderResult {
-  stats: ImageRunStats
-  qaEntries: Array<{ directory: string; entry: PageQaEntry }>
-  error?: unknown | undefined
-}
 
 export const renderSinglePanel = async (
   panelEntry: Dirent,

@@ -2,7 +2,7 @@ import { constants } from 'node:fs'
 import { chmod, link, lstat, mkdir, open, readFile, realpath, rm, unlink } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { ProtectedAssetRef, ProtectedVoiceAssetPolicy, TtsCliReferenceInput, VoiceConsentRevocation } from '~/types'
+import type { MaterializedProtectedVoiceAsset, PlannedProtectedVoiceAsset, ProtectedAssetRef, ProtectedVoiceAssetPolicy, ProtectedVoiceAssetStore, ProtectedVoiceAssetStoreConfig, ReadReferenceInput, ReadyStore, TtsCliReferenceInput, VoiceConsentRevocation } from '~/types'
 import { AppValidationError, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 
@@ -10,53 +10,6 @@ const SAFE_OPAQUE_ID = /^[a-z0-9][a-z0-9_-]{0,127}$/
 const SHA256 = /^[a-f0-9]{64}$/
 const DIRECTORY_MODE = 0o700
 const FILE_MODE = 0o600
-
-export type ProtectedVoiceAssetStoreConfig = {
-  storeId: string
-  root: string
-}
-
-export type PlannedProtectedVoiceAsset = {
-  materialization: 'non-materialized'
-  protectedAsset: ProtectedAssetRef
-  authorizationRef: string
-  byteLength: number
-  speakerKey?: string | undefined
-}
-
-export type MaterializedProtectedVoiceAsset = {
-  materialization: 'materialized'
-  protectedAsset: ProtectedAssetRef
-  authorizationRef: string
-  byteLength: number
-  speakerKey?: string | undefined
-}
-
-export type ProtectedVoiceAssetStore = {
-  root?: string | undefined
-  plan: (input: TtsCliReferenceInput) => Promise<PlannedProtectedVoiceAsset>
-  ingest: (input: TtsCliReferenceInput, expected?: ProtectedAssetRef | undefined) => Promise<MaterializedProtectedVoiceAsset>
-  ingestManaged?: ((input: TtsCliReferenceInput, policy: ProtectedVoiceAssetPolicy, expected?: ProtectedAssetRef | undefined) => Promise<MaterializedProtectedVoiceAsset>) | undefined
-  storeBytes?: ((bytes: Uint8Array, policy: ProtectedVoiceAssetPolicy, expectedSha256?: string | undefined) => Promise<ProtectedAssetRef>) | undefined
-  resolve: (asset: ProtectedAssetRef) => Promise<string>
-  readPolicies?: ((asset: ProtectedAssetRef) => Promise<ProtectedVoiceAssetPolicy[]>) | undefined
-  recordConsentRevocation?: ((asset: ProtectedAssetRef, revocation: VoiceConsentRevocation) => Promise<void>) | undefined
-  readConsentRevocations?: ((asset: ProtectedAssetRef) => Promise<VoiceConsentRevocation[]>) | undefined
-  withWorkspace?: (<T>(attemptId: string, run: (workspace: string) => Promise<T>) => Promise<T>) | undefined
-}
-
-type ReadReferenceInput = {
-  bytes: Uint8Array
-  byteLength: number
-  sha256: string
-}
-
-type ReadyStore = {
-  canonicalStoreRoot: string
-  canonicalAssetsRoot: string
-  canonicalPoliciesRoot: string
-  canonicalWorkRoot: string
-}
 
 const hasErrorCode = (error: unknown, code: string): boolean =>
   typeof error === 'object'

@@ -3,14 +3,7 @@ import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
-
-export type FileFingerprint = {
-  dev: number
-  ino: number
-  mtimeMs: number
-  ctimeMs: number
-  size: number
-}
+import type { FileFingerprint } from '~/types'
 
 export const getFileFingerprint = async (filePath: string): Promise<FileFingerprint | undefined> => {
   try {

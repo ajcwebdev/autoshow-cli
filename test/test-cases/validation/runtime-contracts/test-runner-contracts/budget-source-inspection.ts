@@ -1,34 +1,5 @@
 import ts from 'typescript'
-import type { HelperBudgetKeySpec } from '~/types'
-
-export type BudgetSourceInspection = {
-  keys: string[]
-  issues: string[]
-}
-
-type StringRead =
-  | { kind: 'missing' }
-  | { kind: 'dynamic' }
-  | { kind: 'literal'; value: string }
-
-type ModelsRead = {
-  kind: 'missing' | 'literal' | 'dynamic'
-  values: string[]
-}
-
-type BudgetLiteralRead = {
-  values: string[]
-  dynamic: boolean
-}
-
-type InspectionState = {
-  explicitKeys: string[]
-  propertyKeys: string[]
-  declarationKeys: string[]
-  helperCalls: Map<string, ts.CallExpression[]>
-  issues: string[]
-  generationWrapperCalls: number
-}
+import type { BudgetLiteralRead, BudgetSourceInspection, HelperBudgetKeySpec, InspectionState, ModelsRead, StringRead } from '~/types'
 
 const helperBudgetKeySpecs: HelperBudgetKeySpec[] = [
   { callName: 'defineLLMWriteTest', prefix: 'write', serviceProperty: 'llmService', modelMode: 'strings' },

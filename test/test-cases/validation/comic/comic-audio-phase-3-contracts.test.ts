@@ -45,7 +45,7 @@ const createDummyRun = (): TtsTarget['run'] => async () => ({
   }
 })
 
-describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
+describe('ADR-017 Phase 3 Fish Audio Contracts', () => {
   test('Fish Audio capability fixture declares single-speaker TTS, S2 Pro native dialogue, and voice design', () => {
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'turn-synthesis' && c.adapterSupport === 'implemented')).toBeTrue()
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'native-dialogue' && 'model' in c.scope && c.scope.model === 's2.1-pro' && c.adapterSupport === 'implemented')).toBeTrue()

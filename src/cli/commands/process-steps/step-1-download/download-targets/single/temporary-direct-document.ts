@@ -1,13 +1,5 @@
 import { downloadDocumentUrlToTempFile } from '~/cli/commands/process-steps/step-1-download/document/resolve-document-source'
-
-export type TemporaryDirectDocument = {
-  filePath: string
-  cleanup: () => Promise<void>
-}
-
-export type TemporaryDirectDocumentAcquirer = (
-  url: string
-) => Promise<TemporaryDirectDocument>
+import type { TemporaryDirectDocumentAcquirer } from '~/types'
 
 export const withTemporaryDirectDocument = async <T>(
   url: string,

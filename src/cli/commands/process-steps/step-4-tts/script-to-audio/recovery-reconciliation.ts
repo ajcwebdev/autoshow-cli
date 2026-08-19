@@ -1,7 +1,14 @@
 import { lstat, readdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import type {
+  AttemptSlot,
   CompactTargetRender,
+  CurrentTtsPartialRecovery,
+  CurrentTtsReconciliationBlocker,
+  CurrentTtsRecoveredGenerationSlot,
+  CurrentTtsResumePricePlan,
+  CurrentTtsSafeRedispatch,
+  LoadedRecoveryBatch,
   ObservedProviderRequest,
   PipelineProviderState,
   PlannedCost,
@@ -9,7 +16,11 @@ import type {
   ProviderBatchOutput,
   ProviderBatchResult,
   ProviderRenderPlan,
+  PureCurrentTtsRenderPlanOptions,
+  RecordedOutput,
   RenderAdmissionJournalSnapshot,
+  RetainedBatchCandidate,
+  RetainedJournalEvidence,
   TtsTarget,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -31,14 +42,6 @@ import {
   readVerifiedJson,
 } from './attempt-io'
 import {
-  type AttemptSlot,
-  type CurrentTtsPartialRecovery,
-  type CurrentTtsReconciliationBlocker,
-  type CurrentTtsRecoveredGenerationSlot,
-  type CurrentTtsResumePricePlan,
-  type CurrentTtsSafeRedispatch,
-  type PureCurrentTtsRenderPlanOptions,
-  type RecordedOutput,
   withIdentity,
 } from './attempt-shared'
 import {
@@ -50,7 +53,6 @@ import {
 } from './attempt-planning'
 import { readContainedArtifactFile } from './safe-artifact-store'
 import { resolveStableTtsArtifactDir, resolveTtsOutputLayout } from './tts-output-layout'
-import type { RetainedBatchCandidate } from './recovery-batch-discovery'
 import { discoverBatchCandidates } from './recovery-batch-discovery'
 import {
   collectRetainedJournalEvidence,
@@ -58,15 +60,8 @@ import {
   prepareSelectedSuccess,
   validateRecoveryProjections,
   resolveRetainedPath,
-  type RetainedJournalEvidence,
 } from './recovery-evidence'
 import { assembleCompletedRenderRecovery } from './recovery-finalization'
-
-export type LoadedRecoveryBatch = CurrentTtsRecoveredGenerationSlot & Readonly<{
-  value: Extract<ProviderBatchResult, { provenance: 'provider-dispatch' }>
-  attemptRoot: string
-}>
-
 const resolvedPlanTurn = (plan: ProviderRenderPlan, turnId: string) => {
   for (const node of plan.nodes) {
     if (node.kind === 'turn' && node.turn.turnId === turnId) return node.turn

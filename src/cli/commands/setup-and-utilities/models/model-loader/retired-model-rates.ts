@@ -1,18 +1,4 @@
-import type { ModelRegistry } from '~/types'
-
-export type ModelCategory = keyof ModelRegistry
-
-export type RetiredModelRate<Category extends ModelCategory> = Partial<
-  ModelRegistry[Category][string]['models'][string]
->
-
-type RetiredModelRates = {
-  readonly [Category in ModelCategory]: Readonly<Record<string, RetiredModelRate<Category>>>
-}
-
-type RetiredModelReplacements = {
-  readonly [Category in ModelCategory]: Readonly<Record<string, string>>
-}
+import type { ModelCategory, RetiredModelRate, RetiredModelRates, RetiredModelReplacements } from '~/types'
 
 export const modelRateKey = (service: string, model: string): string => `${service}:${model}`
 

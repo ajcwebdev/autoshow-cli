@@ -1,20 +1,21 @@
 import { lstat } from 'node:fs/promises'
 import type {
+  AttemptContext,
+  AttemptSlot,
+  AttemptTurn,
   ObservedProviderRequest,
   ProviderBatchInvocationPlan,
+  RuntimeRequest,
   TtsRequestEvidenceScope,
   TtsSerializedRequestObservation,
   TtsTargetInvocation,
+  WrittenJson,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { classifyTtsProviderAdmissionError } from './tts-request-evidence'
 import {
-  type AttemptSlot,
-  type AttemptTurn,
-  type RuntimeRequest,
   withIdentity,
-  type WrittenJson,
 } from './attempt-shared'
 import {
   contained,
@@ -24,7 +25,6 @@ import {
   writeJson,
 } from './attempt-io'
 import { sanitizeError } from './attempt-planning'
-import type { AttemptContext } from './attempt-context'
 import {
   advanceJournal,
   ensureJournalStarted,

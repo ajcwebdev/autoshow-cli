@@ -1,6 +1,6 @@
 import { OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
-import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, OpenAIOcrInputContent, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, OpenAIOcrInputContent, PageResult } from '~/types'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
 import { InfraError, InternalError } from '~/utils/error-handler'
@@ -143,7 +143,7 @@ export const runOpenAIOcr = async (
   options: {
     baseUrl?: string | undefined
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+    reasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{
   pages: PageResult[]
@@ -151,8 +151,8 @@ export const runOpenAIOcr = async (
   totalPages: number
   promptTokens?: number
   completionTokens?: number
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
   const policy = resolveReasoningPolicy({
     step: 'extract',

@@ -1,7 +1,14 @@
 import { readFile, readdir, realpath, lstat } from 'node:fs/promises'
 import { resolve, relative, isAbsolute, posix } from 'node:path'
 import { createHash } from 'node:crypto'
-import type { PipelineProviderState } from '~/types'
+import type {
+  CheckedArtifact,
+  PipelineProviderState,
+  ProjectionArtifactReference,
+  ProjectionArtifactReferences,
+  ProjectionTraversalState,
+  ProjectionVerificationRoots
+} from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import {
@@ -15,30 +22,8 @@ import {
   collectProjectionArtifactReferences,
   projectionArtifactReferenceKey
 } from './projection-artifact-references'
-import type {
-  ProjectionArtifactReference,
-  ProjectionArtifactReferences
-} from './projection-artifact-references'
 import { validateProjectionArtifactJson } from './projection-artifact-json-validation'
 import { validateProjectionArtifactGraphLinks } from './projection-artifact-graph-links'
-
-type CheckedArtifact = {
-  sha256: string
-  json?: Record<string, unknown> | undefined
-}
-
-type ProjectionVerificationRoots = {
-  root: string
-  artifactRoot: string
-  canonicalRoot: string
-  canonicalArtifactRoot: string
-}
-
-type ProjectionTraversalState = {
-  checked: Map<string, CheckedArtifact>
-  expanded: Set<string>
-  visitedReferences: Set<string>
-}
 
 export const discoverPreviousAdmissionJournalReference = async (
   artifactRoot: string,

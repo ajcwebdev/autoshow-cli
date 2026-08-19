@@ -7,26 +7,23 @@ import type {
   PipelineProviderState,
   ProviderReadinessResult,
   ResolvedVoiceBinding,
-  SanitizedProviderError
+  SanitizedProviderError,
+  CreateCurrentTtsBlockedReadinessStateOptions,
+  WrittenJson,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import type { TtsExecutionReadinessObservation } from '../tts-targets/execution-preflight'
 import {
   planCurrentTtsReadiness,
-  type CreateCurrentTtsRenderAttemptOptions
 } from './current-render-attempt'
 import {
   canonicalTtsJson,
-  hashCanonicalTtsValue
+  hashCanonicalTtsValue,
 } from './contract-identity'
 import {
   projectCanonicalAudioProviderStatus,
-  validateAccountCapabilityObservation
+  validateAccountCapabilityObservation,
 } from './contract-validation'
 import { writeImmutableArtifactFile } from './safe-artifact-store'
-
-type WrittenJson<T> = { value: T, path: string, sha256: string }
-
 const LOCAL_ACTOR = { namespace: 'local-user' as const, actorId: 'current-cli-user' }
 
 const withIdentity = <T extends Record<string, unknown>, K extends string>(
@@ -92,14 +89,6 @@ const PEER_READINESS_ERROR: SanitizedProviderError = {
   message: 'Another selected TTS target failed execution readiness; all-target synthesis admission was blocked.',
   retryable: false,
   blockedReason: 'dependency-readiness-failed'
-}
-
-export type CreateCurrentTtsBlockedReadinessStateOptions = Omit<
-  CreateCurrentTtsRenderAttemptOptions,
-  'onProviderState'
-> & {
-  readiness: TtsExecutionReadinessObservation
-  peerBlocked: boolean
 }
 
 /**

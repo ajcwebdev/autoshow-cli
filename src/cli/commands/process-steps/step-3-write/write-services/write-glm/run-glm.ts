@@ -30,7 +30,7 @@ export const runGlmModel = async (
     model,
     structuredOpts: updatedOpts,
     config: () => ({
-      apiKey: ensureGlmApiKey('--glm models'),
+      apiKey: ensureGlmApiKey('--glm models', 'write:glm'),
       baseURL: resolveGlmBaseUrl()
     }),
     service: 'glm',

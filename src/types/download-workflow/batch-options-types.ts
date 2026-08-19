@@ -8,5 +8,3 @@ export type BatchRuntimeOptions = {
   bestQuality: boolean
   flatBatch: boolean
 }
-
-export type BatchRuntimeOptionKey = keyof BatchRuntimeOptions

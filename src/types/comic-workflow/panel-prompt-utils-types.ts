@@ -6,3 +6,10 @@ export type PanelPrimaryReferenceInput = {
   entries: Dirent[]
   bundleData: PanelBundleData
 }
+
+export type ResolvedLocationReference = {
+  key: string
+  snapshotId: string
+  specification: string
+  path: string
+}

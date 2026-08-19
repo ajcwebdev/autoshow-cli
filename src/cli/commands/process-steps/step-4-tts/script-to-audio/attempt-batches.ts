@@ -1,16 +1,19 @@
 import type {
+  AttemptContext,
+  AttemptSlot,
+  AttemptTurn,
   CanonicalBatchProgress,
   ProviderBatchOutput,
   ProviderBatchResult,
   SanitizedProviderError,
+  WrittenJson,
 } from '~/types'
 import { CLIUsageError, InternalError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalTtsValue } from './contract-identity'
 import { validateProviderBatchResult } from './contract-validation'
-import { type AttemptSlot, type AttemptTurn, withIdentity, type WrittenJson } from './attempt-shared'
+import { withIdentity } from './attempt-shared'
 import { contained, writeJson } from './attempt-io'
 import { resolveRetainedPath } from './recovery-evidence'
-import type { AttemptContext } from './attempt-context'
 import { requireJournalFile, writeNextJournal } from './attempt-journal'
 
 export const buildBatchProgress = (

@@ -5,13 +5,9 @@ import {
 } from '~/cli/help-colors'
 import { getNativeRenderableCommands } from './builtins'
 import { globalFlagsForCommand } from './global-flag-support'
-import type { CliCommandDefinition, CliFlagDefinition, CliFlagsDefinition, CliParameterDefinition, CliRootDefinition } from '~/types'
+import type { CliCommandDefinition, CliCommandHelpDefinition, CliFlagDefinition, CliFlagsDefinition, CliParameterDefinition, CliRootDefinition } from '~/types'
 
 export const HELP_EXAMPLE_ALIGN_COLUMN_CAP = 100
-
-// Help rendering never needs the handler, so nested subcommands can supply
-// handler-less definitions purely to describe their own help output.
-type CliCommandHelpDefinition = Omit<CliCommandDefinition, 'handler'>
 
 const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/g
 

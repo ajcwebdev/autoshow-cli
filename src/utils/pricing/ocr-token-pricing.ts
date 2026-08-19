@@ -1,12 +1,5 @@
-import type { HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, TokenPricedOcrProvider } from '~/types'
+import type { HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, OcrTokenRateInput, TokenPricedOcrProvider } from '~/types'
 import { computeTokenCost } from './token-pricing'
-
-export type OcrTokenRateInput = {
-  inputCostPer1MCents?: number | undefined
-  outputCostPer1MCents?: number | undefined
-  tokenPricingBands?: Parameters<typeof computeTokenCost>[0]['tokenPricingBands']
-  higherContextPricing?: Parameters<typeof computeTokenCost>[0]['higherContextPricing']
-}
 
 export const computeOcrTokenCost = (
   pricing: OcrTokenRateInput,

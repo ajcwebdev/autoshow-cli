@@ -16,7 +16,7 @@ import {
   runHostedOcrWithPdfChunkFallback,
   tmpdir
 } from './shared'
-import type { HostedOcrRun } from './shared'
+import type { HostedOcrRun } from '~/types'
 
 const kimiIdentity = {
   extractionMethod: 'kimi-ocr' as const,

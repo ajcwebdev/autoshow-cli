@@ -1,31 +1,16 @@
 import { posix } from 'node:path'
 import { createHash } from 'node:crypto'
+import type {
+  ArtifactFileDescriptor,
+  EventReferenceListDescriptor,
+  NestedCollector,
+  ProjectionArtifactReference,
+  ProjectionArtifactReferences,
+  ProjectionShape,
+  RenderCollectorContext
+} from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { isOpaqueProtectedAssetRef, isSha256, isStrictArtifactRelativePath } from './guards'
-
-export type ProjectionArtifactReference = {
-  path: string
-  sha256: string
-  scope?: 'provider-artifact' | 'run-root' | undefined
-  kind: 'audio' | 'strategy-text' | 'source-identity' | 'dialogue-plan' | 'capability-fixture' | 'branch-plan' | 'readiness-result' | 'render-plan' | 'admission-journal' | 'admission-evidence' | 'provider-render-result' | 'audio-run' | 'audio-mix-plan' | 'audio-transform-ledger' | 'final-timeline' | 'batch-invocation-plan' | 'provider-batch-result' | 'provider-timing-evidence' | 'cache-materialization-plan' | 'render-takes' | 'take-selection' | 'continuation-checkpoint' | 'consumed-selection-rebuild' | 'generic-json' | 'compact-render'
-  expectedJsonFields?: Record<string, string | number> | undefined
-  context?: {
-    renderDir?: string | undefined
-    attemptDir?: string | undefined
-    batchResultDir?: string | undefined
-    audioRunDir?: string | undefined
-    branchCandidateId?: string | undefined
-    accountObservationHashes?: string[] | undefined
-    eventSequence?: number | undefined
-    eventJournalSnapshotId?: string | undefined
-    eventResultIdentity?: string | undefined
-  } | undefined
-}
-
-export type ProjectionArtifactReferences = {
-  files: ProjectionArtifactReference[]
-  directories: string[]
-}
 
 export const resolveArtifactRelativePath = (
   baseDir: string | undefined,
@@ -56,17 +41,7 @@ export const createNestedArtifactReference = (
   return { path, sha256, kind, ...(expectedJsonFields ? { expectedJsonFields } : {}), ...(context ? { context } : {}) }
 }
 
-type ArtifactFileDescriptor = Readonly<{
-  pathKey: string
-  shaKey: string
-  kind: ProjectionArtifactReference['kind']
-  expectedJsonFields?: Record<string, string | number> | undefined
-  baseDir?: string | undefined
-  context?: ProjectionArtifactReference['context']
-  scope?: ProjectionArtifactReference['scope']
-}>
-
-class ArtifactReferenceSink {
+export class ArtifactReferenceSink {
   private readonly files: ProjectionArtifactReference[] = []
   private readonly directories: string[] = []
   private readonly fileIdentities = new Set<string>()
@@ -105,20 +80,6 @@ class ArtifactReferenceSink {
     return { files: this.files, directories: this.directories }
   }
 }
-
-type ArchiveProjectionShape = {
-  kind: 'archive'
-  archive: Record<string, unknown>
-}
-
-type ActiveProjectionShape = {
-  kind: 'active'
-  branchHistory: unknown[]
-  readinessAttempts: unknown[]
-  renderHistory: unknown[]
-}
-
-type ProjectionShape = ArchiveProjectionShape | ActiveProjectionShape
 
 const selectProjectionShape = (projection: Record<string, unknown>): ProjectionShape | undefined => {
   const archive = projection['archive']
@@ -184,15 +145,6 @@ const collectReadinessHistory = (
     })) return false
   }
   return true
-}
-
-type RenderCollectorContext = {
-  targetKey: string
-  render: Record<string, unknown>
-  renderPlanId: string
-  renderIdentity: string
-  renderDir: string
-  sink: ArtifactReferenceSink
 }
 
 const collectAdmissionJournal = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
@@ -286,14 +238,6 @@ const collectReadinessAuthorization = (event: Record<string, unknown>, ctx: Rend
     context: { renderDir: ctx.renderDir }
   })
 }
-
-type EventReferenceListDescriptor = Readonly<{
-  key: 'outputRefs' | 'takeSelections' | 'continuationCheckpoints' | 'cacheEvidenceRefs' | 'reportedOutputRefs'
-  kind: ProjectionArtifactReference['kind']
-  renderRelative: boolean
-  includeRenderContext: boolean
-  scope?: ProjectionArtifactReference['scope']
-}>
 
 const EVENT_REFERENCE_LISTS = [
   { key: 'outputRefs', kind: 'audio', renderRelative: false, includeRenderContext: true },
@@ -497,24 +441,6 @@ export const collectProjectionArtifactReferences = (
   if (!collectRenderHistory(shape.renderHistory, targetKey, sink)) return undefined
   return sink.result()
 }
-
-export type NestedCollectorContext = {
-  reference: ProjectionArtifactReference
-  value: Record<string, unknown>
-  renderDir: string | undefined
-  nested: ProjectionArtifactReference[]
-  add: (
-    record: Record<string, unknown>,
-    pathKey: string,
-    shaKey: string,
-    kind: ProjectionArtifactReference['kind'],
-    baseDir: string | undefined,
-    expectedJsonFields?: Record<string, string | number> | undefined,
-    context?: ProjectionArtifactReference['context']
-  ) => boolean
-}
-
-type NestedCollector = (ctx: NestedCollectorContext) => boolean
 
 const collectCompactRenderNested: NestedCollector = (ctx) => {
   const slots = ctx.value['slots']

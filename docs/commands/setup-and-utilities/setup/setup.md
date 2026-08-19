@@ -49,14 +49,17 @@ Notes:
 - Every 30 seconds, any step still running and not already printing its own progress is listed on a single `Still running:` line, so a long source build is distinguishable from a hang without burying the rest of the output.
 - The Setup Step Timings table reports **concurrent wall clock**. Tasks run in parallel and contend, so a step's figure there can be far above what the same step costs alone via `--step`.
 - Every full setup writes a schema-versioned phase artifact under `runtime/setup-performance/`. It records relative build-phase timestamps, compile overlap, task timings, pinned versions, and non-sensitive host facts; use verbose logging to print the detailed phase table.
+- On macOS, source builds of managed tools (mupdf, qpdf) target the host's major OS version by default. Export `MACOSX_DEPLOYMENT_TARGET` before running setup to override the deployment target; invalid values fail the build with an explicit error.
 
 ## Doctor
 
-Check prerequisites, API keys, and configuration without installing anything:
+Check prerequisites, configuration, and which provider API keys are set without installing anything:
 
 ```bash
 bun autoshow setup --doctor
 ```
+
+API-key checks are presence-only: doctor reports whether each managed variable is set (non-empty), not whether the key is valid, and warnings never change the exit code. `.env` handling matches every other command — Bun auto-loads `.env` from the working directory and real exported environment variables win over file values.
 
 Doctor also reports YouTube cookie state separately:
 

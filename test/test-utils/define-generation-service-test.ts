@@ -1,5 +1,5 @@
 import { expect } from 'bun:test'
-import type { MusicServiceModelCase, RunCommandOptions, VideoTestService } from '~/types'
+import type { GenerationServiceModelCase, GenerationServiceOptions, GenerationServiceProfile, ImageGenerationOptions, ImageServiceModelCase, ImageServiceTestOptions, MusicGenerationOptions, MusicServiceModelCase, MusicServiceTestOptions, VideoGenerationOptions, VideoServiceModelCase, VideoServiceTestOptions } from '~/types'
 import { E2E_TEST_TIMEOUT_MS, LONG_E2E_TEST_TIMEOUT_MS } from './budget'
 import { readCanonicalRecord } from './manifest-helpers'
 import {
@@ -10,35 +10,9 @@ import {
 } from './service-test-kit'
 import { fileExists } from './test-helpers'
 
-type GenerationCommand = 'image' | 'video' | 'music'
-type GenerationServiceModelCase = { model: string, extraArgs?: string[] | undefined }
-type GenerationServiceOptions<TModel extends GenerationServiceModelCase> = {
-  models: TModel[]
-  provider: string
-  service: string
-  envVarKey: string
-}
-type GenerationArtifact = { fileName: string, fileSize: number }
-
 const readMetadataPath = (value: unknown, path: string): unknown => path.split('.').reduce<unknown>((current, part) =>
   typeof current === 'object' && current !== null ? (current as Record<string, unknown>)[part] : undefined,
 value)
-
-type GenerationServiceProfile<
-  TModel extends GenerationServiceModelCase,
-  TOptions extends GenerationServiceOptions<TModel>
-> = {
-  command: GenerationCommand
-  outputTitle: string
-  livePrompt: (modelCase: TModel) => string
-  liveTestName: (modelCase: TModel, options: TOptions) => string
-  artifactFileName: (modelCase: TModel, options: TOptions) => string
-  envErrorMessage: (options: TOptions) => string
-  metadataKey: string
-  expectedMetadata: (modelCase: TModel, artifact: GenerationArtifact, options: TOptions) => Record<string, unknown>
-  commandOptions?: ((modelCase: TModel) => RunCommandOptions | undefined) | undefined
-  testTimeoutMs?: ((modelCase: TModel, options: TOptions) => number | undefined) | undefined
-}
 
 export const defineGenerationServiceTest = <
   TModel extends GenerationServiceModelCase,
@@ -78,21 +52,6 @@ export const defineGenerationServiceTest = <
   }
 }
 
-type ImageServiceModelCase = {
-  model: string
-  prompt: string
-  extraArgs?: string[]
-  expectedExtension?: string
-}
-type ImageServiceTestOptions = {
-  models: ImageServiceModelCase[]
-  provider: string
-  imageService: string
-  envVarKey: string
-  imageExtension?: string
-}
-type ImageGenerationOptions = ImageServiceTestOptions & GenerationServiceOptions<ImageServiceModelCase>
-
 const IMAGE_PROFILE: GenerationServiceProfile<ImageServiceModelCase, ImageGenerationOptions> = {
   command: 'image',
   outputTitle: 'image-gen',
@@ -107,17 +66,6 @@ const IMAGE_PROFILE: GenerationServiceProfile<ImageServiceModelCase, ImageGenera
 export const defineImageServiceTest = (options: ImageServiceTestOptions): void => {
   defineGenerationServiceTest({ ...options, service: options.imageService }, IMAGE_PROFILE)
 }
-
-type VideoServiceModelCase = { model: string, extraArgs?: string[], expectedDuration?: number, prompt?: string }
-type VideoServiceTestOptions = {
-  models: VideoServiceModelCase[]
-  provider: string
-  videoService: VideoTestService
-  envVarKey: string
-  envVarDescription: string
-  timeoutMs?: number
-}
-type VideoGenerationOptions = VideoServiceTestOptions & GenerationServiceOptions<VideoServiceModelCase>
 
 const VIDEO_PROFILE: GenerationServiceProfile<VideoServiceModelCase, VideoGenerationOptions> = {
   command: 'video',
@@ -141,14 +89,6 @@ const VIDEO_PROFILE: GenerationServiceProfile<VideoServiceModelCase, VideoGenera
 export const defineVideoServiceTest = (options: VideoServiceTestOptions): void => {
   defineGenerationServiceTest({ ...options, service: options.videoService }, VIDEO_PROFILE)
 }
-
-type MusicServiceTestOptions = {
-  models: MusicServiceModelCase[]
-  provider: string
-  musicService: string
-  envVarKey: string
-}
-type MusicGenerationOptions = MusicServiceTestOptions & GenerationServiceOptions<MusicServiceModelCase>
 
 const MUSIC_PROFILE: GenerationServiceProfile<MusicServiceModelCase, MusicGenerationOptions> = {
   command: 'music',

@@ -1,6 +1,4 @@
-import type { ActualPipelineInputsBase, CostEstimateBase, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
-import type { CostSource } from './pricing-vocabularies'
-import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import type { ActualPipelineInputsBase, CostEstimateBase, CostSource, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, NormalizedReasoningEffort, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
 
 // The token-profile provenance fields carried by every extract estimate/cost surface.
 export type TokenProfileEstimateFields = {
@@ -261,8 +259,6 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
   musicDurationSeconds?: number | undefined
 }
 
-
-export type { CostSource } from './pricing-vocabularies'
 
 export type StepCostEntry = TokenProfileEstimateFields & {
   step: 'stt' | 'extract' | 'llm' | 'tts' | 'image' | 'video' | 'music'

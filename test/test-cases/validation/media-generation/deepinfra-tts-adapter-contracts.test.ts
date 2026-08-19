@@ -8,9 +8,9 @@ import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tt
 import { prepareComicSegmentedProviderTexts } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { validatePreparedProviderText } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
-import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import type { AdvancedProviderHttpRequest } from '~/types'
 
 const CHECKED_AT = '2026-08-14T00:00:00.000Z'
 const protectedSample = { storeId: 'voice_store', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64) }

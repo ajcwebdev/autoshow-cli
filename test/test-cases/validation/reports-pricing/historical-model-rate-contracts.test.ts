@@ -11,22 +11,8 @@ import {
   RETIRED_MODEL_RATES,
   getRetiredModelReplacement
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { ModelCategory } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveTranscriptionModel } from '~/cli/commands/pricing-orchestration/run-step-walk'
-import type { Step2Metadata } from '~/types'
-
-type ModelIdentitySpec = {
-  category: ModelCategory
-  serviceField: string
-  modelField: string
-}
-
-type HistoricalIdentity = {
-  category: ModelCategory
-  service: string
-  model: string
-  file: string
-}
+import type { HistoricalIdentity, ModelCategory, ModelIdentitySpec, Step2Metadata } from '~/types'
 
 const MODEL_IDENTITY_SPECS: readonly ModelIdentitySpec[] = [
   { category: 'stt', serviceField: 'transcriptionService', modelField: 'transcriptionModel' },
@@ -165,7 +151,7 @@ describe('historical model rate contracts', () => {
     }
   })
 
-  test('retired video selectors retain exact rates and ADR-013 replacements', () => {
+  test('retired video selectors retain exact rates and refresh-report replacements', () => {
     expect(getVideoModelMeta('minimax', 'MiniMax-Hailuo-2.3-Fast')).toMatchObject({
       fixedCostByResolutionDurationCents: { '720p': { '6': 19, '10': 32 }, '1080p': { '6': 33 } }
     })
@@ -177,7 +163,7 @@ describe('historical model rate contracts', () => {
     })
   })
 
-  test('retired image selectors retain exact rates and ADR-013 replacements', () => {
+  test('retired image selectors retain exact rates and refresh-report replacements', () => {
     expect(getImageCost('fal', 'microsoft/mai-image-2.5')).toBe(0.21)
     expect(getImageCost('fal', 'microsoft/mai-image-2.5-pro')).toBe(150)
     expect(getImageCost('replicate', 'ideogram-ai/ideogram-v4-turbo')).toBe(3)

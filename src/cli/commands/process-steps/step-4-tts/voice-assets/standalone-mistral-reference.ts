@@ -1,6 +1,5 @@
 import { extname, join } from 'node:path'
-import type { ProtectedVoiceAssetStore } from './protected-voice-asset-store'
-import type { TtsCliReferenceInput, TtsOptions } from '~/types'
+import type { PendingStandaloneMistralReference, PendingStandaloneMistralSpeakerReference, PlannedStandaloneMistralSpeakerReferences, ProtectedVoiceAssetStore, TtsCliReferenceInput, TtsOptions } from '~/types'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { CLIUsageError } from '~/utils/error-handler'
 import { createProtectedVoiceAssetStore } from './protected-voice-asset-store'
@@ -32,26 +31,9 @@ const defaultStore = createProtectedVoiceAssetStore({
   root: MISTRAL_REQUEST_REFERENCE_STORE_ROOT
 })
 
-type PendingStandaloneMistralReference = {
-  sourcePath: string
-  sourceExtension: string
-  authorizationRef: string
-  store: ProtectedVoiceAssetStore
-}
-
 const pendingReferenceByOptions = new WeakMap<TtsOptions, PendingStandaloneMistralReference>()
 
-type PendingStandaloneMistralSpeakerReference = PendingStandaloneMistralReference & {
-  speakerKey: string
-  protectedAsset: Awaited<ReturnType<ProtectedVoiceAssetStore['plan']>>['protectedAsset']
-}
-
 const pendingSpeakerReferencesByOptions = new WeakMap<TtsOptions, readonly PendingStandaloneMistralSpeakerReference[]>()
-
-export type PlannedStandaloneMistralSpeakerReferences = Readonly<{
-  ttsSpeakers: readonly string[]
-  attach: <T extends TtsOptions>(options: T) => T
-}>
 
 export const planStandaloneMistralSpeakerReferences = async (
   speakerMappings: readonly string[] | undefined,

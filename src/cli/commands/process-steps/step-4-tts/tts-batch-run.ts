@@ -8,7 +8,25 @@ import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-met
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { logBatchCompletionTable, logBatchItemStatus } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
 import { collectTextInputFiles } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import type { AggregatedPriceEstimate, CompletedTtsBatchItem, HostedTtsSchedulerTelemetry, PipelineItemRecord, PipelineProviderState, PreparedTtsInput, PreparedTtsRun, Step4Metadata, SuccessfulTtsBatchItem, TtsBatchItemAccumulator, TtsBatchPlanItem, TtsOptions, TtsTarget } from '~/types'
+import type {
+  AggregatedPriceEstimate,
+  CompletedTtsBatchItem,
+  HostedTtsSchedulerTelemetry,
+  PipelineItemRecord,
+  PipelineProviderState,
+  PreparedTtsInput,
+  PreparedTtsRun,
+  StandaloneTtsCommandOptions,
+  Step4Metadata,
+  SuccessfulTtsBatchItem,
+  TtsBatchItemAccumulator,
+  TtsBatchLifecycleCoordinator,
+  TtsBatchPlanItem,
+  TtsDialoguePlanArtifactRef,
+  TtsExecutionReadinessObservation,
+  TtsOptions,
+  TtsTarget,
+} from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -18,18 +36,15 @@ import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-ta
 import { validateTtsRenderInputsForTargets } from './run-tts'
 import { computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
 import { collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
-import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { createHostedTtsBatchCoordinator } from './tts-utils/hosted-tts-chunk-scheduler'
 import { materializeStandaloneMistralReference } from './voice-assets/standalone-mistral-reference'
 import { hasMistralProtectedReferences } from './voice-assets/mistral-protected-reference-binding'
 import { appendCurrentTtsProviderState } from './script-to-audio/current-render-artifacts'
 import { createBatchItemTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
-import type { TtsDialoguePlanArtifactRef } from './script-to-audio/item-dialogue-plan-artifact'
 import { buildTtsEstimateForInput, enforceTtsBatchBudget, mergeActualCostBreakdowns, mergeEstimatedCostBreakdowns, mergeTimingBreakdowns, reportTtsBatchEstimates } from './tts-batch-estimates'
 import { buildTtsBatchSource, createTtsBatchAccumulators, createTtsBatchPlanItems, getInputStem, getTtsBatchAudioFileName } from './tts-batch-plan'
 import { orderedTtsProviderStates, prepareTtsInput, reduceTtsProviderStates, requestedTtsProviders, synthesizePreparedTtsInputForTargets, writeInitialTtsManifest } from './tts-single-run'
-import type { StandaloneTtsCommandOptions } from './tts-single-run'
 
 export const buildTtsBatchInitialRecords = (
   preparedInputs: PreparedTtsInput[],
@@ -132,12 +147,6 @@ export const logHostedTtsSchedulerSummary = (
     ),
     metadata: telemetry
   })
-}
-
-export type TtsBatchLifecycleCoordinator = {
-  beforeDispatch: (itemIndex: number, preparedStates: PipelineProviderState[]) => Promise<void>
-  onProviderState: (itemIndex: number, state: PipelineProviderState) => Promise<void>
-  abortPreparation: (error: unknown) => void
 }
 
 export const createTtsBatchLifecycleCoordinator = (options: {

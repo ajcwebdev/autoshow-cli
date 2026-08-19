@@ -91,7 +91,7 @@ const fixture = async (root: string, providerModel: typeof DEEPINFRA_MODELS[numb
   return { structured, structuredRef, dialoguePlan, soundscapePlan, snapshot }
 }
 
-describe('ADR-018 Phase 4E DeepInfra soundscape acceptance', () => {
+describe('ADR-017 Phase 4E DeepInfra soundscape acceptance', () => {
   test('keeps every DeepInfra dialogue model separate from ElevenLabs action and ambience routing', async () => {
     const root = await tempDirs.make()
     let chatterboxSnapshot: VoiceReferenceManifest | undefined

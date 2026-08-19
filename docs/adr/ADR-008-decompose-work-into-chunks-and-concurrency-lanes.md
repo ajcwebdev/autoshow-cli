@@ -270,7 +270,7 @@ The hosted TTS coordinator (`HostedTtsBatchCoordinatorImpl`) decouples chunk dis
 
 #### Pooled OCR Page Selector
 
-In `--ocr-provider-mode pool` (ADR-016), OCR targets do not process whole documents independently:
+In `--ocr-provider-mode pool` (ADR-015), OCR targets do not process whole documents independently:
 
 - **Shared Page Ledger:** A single source-ordered page queue is maintained per document. Eligible target workers dynamically claim pending pages.
 - **Lane Multiplication vs Sharing:** Independent hosted lanes (e.g., Google and Mistral) multiply page concurrency up to their respective caps, while models sharing a `service:scopeLabel` lane share a single lane limit.
@@ -399,14 +399,14 @@ Verification evidence recorded on 2026-08-14 using `bun run check`, `bun t --pri
 - Related ADR: [ADR-006](ADR-006-unify-error-handling-vocabulary.md) — Unified error handling and retry vocabulary
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — Extraction domain architecture and OCR execution contracts
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Model registry, capabilities, and provider identities
-- Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md) — Multi-speaker script-to-audio contracts and generation slots
-- Related ADR: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — Multi-provider OCR page pool architecture
+- Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — Multi-speaker script-to-audio contracts and generation slots
+- Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — Multi-provider OCR page pool architecture
 - Concurrency defaults: `src/utils/concurrency-defaults.ts`
 - Shared hosted coordinator: `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts`, `src/types/generation-core/hosted-concurrency-types.ts`
 - Price ramp estimator: `src/utils/hosted-concurrency-estimator.ts`
 - Flag definitions and resolution: `src/cli/flags/shared-flags.ts`, `src/cli/flags/tts-flags.ts`, `src/cli/options/option-resolution/concurrency.ts`
 - Batch executor: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`, `batch-executor.ts`
-- Target scheduler and resource gate: `src/cli/commands/process-steps/provider-target-scheduler.ts`, `src/utils/resource-gate.ts` (the write-only `generation-resource-gate.ts` wrapper was removed with write generation in [ADR-021](ADR-021-end-the-write-pipeline-at-step-3.md))
+- Target scheduler and resource gate: `src/cli/commands/process-steps/provider-target-scheduler.ts`, `src/utils/resource-gate.ts` (the write-only `generation-resource-gate.ts` wrapper was removed with write generation in [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md))
 - Provider lane contract: `src/cli/commands/process-steps/provider-lane-contract.ts`, `src/types/generation-core/provider-lane-contract-types.ts`
 - Hosted TTS coordinator: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`, `hosted-tts-retry.ts`
 - Multi-speaker dialogue selector: `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`, `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`

@@ -6,3 +6,5 @@ export type MetadataInputKind =
   | 'url_x_space'
   | 'local_media'
   | 'local_document'
+
+export type UrlInputKind = Extract<MetadataInputKind, `url_${string}`>

@@ -1,7 +1,8 @@
 import type {
+  HostedOcrLaneCapResolution,
   HostedOcrProfileEstimate,
+  HostedOcrRetryContext,
   HostedOcrSchedulerAdmission,
-  HostedOcrSchedulerCapSource,
   HostedOcrSchedulerLaneState,
   HostedOcrSchedulerProfileConfidence,
   HostedOcrSchedulerRetryEvent,
@@ -24,20 +25,6 @@ export const HOSTED_OCR_RETRY_EVENT_LIMIT = 50
 
 const KIMI_PROFILE_HIGH_CAP_THRESHOLD = 13
 const KIMI_PROFILE_HIGH_CAP_MIN_CLEAN_SAMPLES = 3
-
-export type HostedOcrLaneCapResolution = {
-  maxCap: number
-  capSource: HostedOcrSchedulerCapSource
-  sourceConfidence: HostedOcrSchedulerProfileConfidence
-  profileSampleCount?: number | undefined
-  profileRaisedMaxCap?: number | undefined
-  profileDisqualificationReason?: string | undefined
-}
-
-export type HostedOcrRetryContext = {
-  admission?: HostedOcrSchedulerAdmission | undefined
-  targetKey?: string | undefined
-}
 
 const clamp = (min: number, max: number, value: number): number =>
   Math.min(max, Math.max(min, value))

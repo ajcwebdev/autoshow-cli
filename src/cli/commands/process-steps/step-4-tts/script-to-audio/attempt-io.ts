@@ -1,13 +1,11 @@
 import { rename, unlink } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, relative, resolve, sep } from 'node:path'
-import type { CanonicalAudioProviderProjection, ObservedAudioFormat } from '~/types'
+import type { CanonicalAudioProviderProjection, CurrentTtsRecoveredGenerationSlot, ObservedAudioFormat, WrittenJson } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from './safe-artifact-store'
-import type { CurrentTtsRecoveredGenerationSlot, WrittenJson } from './attempt-shared'
-
 export const hasErrorCode = (error: unknown, code: string): boolean =>
   typeof error === 'object'
   && error !== null

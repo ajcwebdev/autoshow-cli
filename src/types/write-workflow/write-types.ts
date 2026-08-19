@@ -1,5 +1,5 @@
 import type * as v from 'valibot'
-import type { JsonObject, LLMModelOptionKey, ProcessingOptions, RateEstimateBase, Step3Metadata } from '~/types'
+import type { JsonObject, LLMModelOptionKey, NormalizedReasoningEffort, ProcessingOptions, RateEstimateBase, Step3Metadata } from '~/types'
 export type LLMOptions = Pick<ProcessingOptions,
   | 'outputDir'
   | 'prompts'
@@ -19,11 +19,6 @@ export type LLMOptions = Pick<ProcessingOptions,
 }
 
 
-export type DownloadInfo = {
-  sourceUrl: string
-  destinationPath: string
-}
-
 export type StructuredStrategy = 'native' | 'schema-guided'
 
 export type StructuredRequestOptions = {
@@ -31,8 +26,8 @@ export type StructuredRequestOptions = {
   schema: JsonObject
   strict: boolean
   strategy: StructuredStrategy
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }
 
 export type StructuredValidationContext = {

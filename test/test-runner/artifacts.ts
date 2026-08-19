@@ -1,6 +1,6 @@
 import { appendFile, mkdir, readdir, readFile, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import type { TestRunArtifacts } from '~/types'
+import type { RunnerLogHandle, TestRunArtifacts } from '~/types'
 import { formatTimestampForDir } from './utils'
 
 const LATEST_LOG_FILE = 'latest.log'
@@ -10,15 +10,6 @@ const RUNNER_LOG_FLUSH_SIZE_BYTES = 64 * 1024
 const COMMAND_LOG_TAIL_BYTES = 256 * 1024
 
 const TEST_OUTPUT_ROOT = resolve(process.cwd(), 'project/test-output')
-
-type RunnerLogWriter = ReturnType<ReturnType<typeof Bun.file>['writer']>
-
-type RunnerLogHandle = {
-  writer: RunnerLogWriter
-  pendingBytes: number
-  closed: boolean
-  flushTimer: ReturnType<typeof setInterval>
-}
 
 const runnerLogHandles = new WeakMap<TestRunArtifacts, RunnerLogHandle>()
 

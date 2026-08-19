@@ -18,7 +18,7 @@ import { runSupadataUrl } from '~/cli/commands/process-steps/step-2-extract/step
 import { runZyteUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/zyte/run-zyte-url'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
-import type { DocumentMetadata, ExtractionOptions, HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions } from '~/types'
+import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunResult } from '~/types'
 import { DEFAULT_URL_REQUEST_TIMEOUT_MS } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
@@ -138,13 +138,4 @@ export {
   URL_ARTICLE_BACKENDS,
   URL_ARTICLE_PROVIDER_ADAPTERS,
   writeFile
-}
-
-export type {
-  DocumentMetadata,
-  ExtractionOptions,
-  HtmlArticleBackend,
-  UrlArticleProviderAdapter,
-  UrlArticleRunResult,
-  UrlRequestOptions
 }

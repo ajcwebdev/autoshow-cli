@@ -1,11 +1,9 @@
-import type { AccountCapabilityObservation } from '~/types'
+import type { AccountCapabilityObservation, GraphLinkContext, ProjectionArtifactReference } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { hashCanonicalTtsValue } from '../step-4-tts/script-to-audio/contract-identity'
 import { validateAccountCapabilityObservation } from '../step-4-tts/script-to-audio/contract-validation'
 import { canonicalManifestJson } from './guards'
 import { resolveArtifactRelativePath } from './projection-artifact-references'
-import type { GraphLinkContext } from './projection-artifact-link-context'
-import type { ProjectionArtifactReference } from './projection-artifact-references'
 
 export const validateCapabilityFixtureLinks = (ctx: GraphLinkContext): boolean => {
   for (const reference of ctx.referencesForKind('capability-fixture')) {

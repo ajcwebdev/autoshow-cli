@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import ts from 'typescript'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import { locationReferenceSketchCommand, type LocationViewQaResult } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command'
+import { locationReferenceSketchCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command'
 import {
   LOCATION_PROMOTION_TRANSACTION_BOUNDARIES,
   promoteLocationRegistrationTransaction,
@@ -14,6 +14,7 @@ import {
 import { getLocationReferencePath, getLocationSketchManifestPath, readLocationReferenceCatalog, readLocationSketchManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 import { estimateLocationReferencePrice } from '~/cli/commands/process-steps/step-8-comic/comic-utils/price-estimate'
 import { l } from '~/utils/app-logger/app-logger'
+import type { LocationViewQaResult } from '~/types'
 
 const roots: string[] = []
 const image = Buffer.from('mock-image')

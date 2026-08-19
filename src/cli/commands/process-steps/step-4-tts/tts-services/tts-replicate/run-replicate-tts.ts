@@ -1,4 +1,4 @@
-import type { HostedTtsChunkScheduler, ReplicateTtsModel, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunReplicateTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -12,17 +12,6 @@ import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retrie
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-
-export type RunReplicateTtsOptions = Readonly<{
-  model: ReplicateTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  speed?: number | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-}>
 
 export const REPLICATE_KOKORO_VERSION = 'f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13'
 export const REPLICATE_KOKORO_MODEL_ID = 'jaaari/kokoro-82m' as const

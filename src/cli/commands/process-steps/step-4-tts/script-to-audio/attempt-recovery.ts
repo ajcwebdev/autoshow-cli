@@ -1,17 +1,16 @@
-import type { PipelineProviderState } from '~/types'
 import type {
   CurrentTtsCompletedRecovery,
   CurrentTtsPartialRecovery,
   CurrentTtsResumePricePlan,
   CurrentTtsSafeRedispatch,
+  PipelineProviderState,
   PureCurrentTtsRenderPlanOptions,
-} from './attempt-shared'
+} from '~/types'
 import {
   planCurrentTtsResumePriceImpl,
   prepareCurrentTtsCompatibleSlotRecoveryImpl,
   prepareCurrentTtsCompletedRecoveryImpl,
 } from './recovery-reconciliation'
-
 export {
   collectRetainedJournalEvidence,
   prepareCompactRenderRecovery,
@@ -22,14 +21,11 @@ export {
   resolveRetainedPath,
   validateRecoveryProjections,
 } from './recovery-evidence'
-export type { RetainedJournalEvidence } from './recovery-evidence'
 export { discoverBatchCandidates } from './recovery-batch-discovery'
-export type { RetainedBatchCandidate } from './recovery-batch-discovery'
 export {
   loadRecoveryBatches,
   reconcileSlotCosts,
 } from './recovery-reconciliation'
-export type { LoadedRecoveryBatch } from './recovery-reconciliation'
 export { assembleCompletedRenderRecovery } from './recovery-finalization'
 
 export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTtsRenderPlanOptions & {

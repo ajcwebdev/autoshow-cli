@@ -1,27 +1,11 @@
 import type {
+  HostedOcrLaneEngineOptions,
   HostedOcrSchedulerAdmission,
   HostedOcrSchedulerLaneState,
-  HostedOcrSchedulerSetTimer,
   HostedOcrSchedulerTargetStats,
   QueuedHostedOcrJob
 } from '~/types'
 import { resolveHostedOcrSuccessRamp } from './hosted-ocr-cap-policy'
-
-export type HostedOcrLaneJobStart = {
-  target: HostedOcrSchedulerTargetStats
-  documentTarget?: HostedOcrSchedulerTargetStats | undefined
-}
-
-export type HostedOcrLaneEngineOptions = {
-  now: () => number
-  setTimer: HostedOcrSchedulerSetTimer
-  sharedHostedPolicy: boolean
-  startJob: (
-    lane: HostedOcrSchedulerLaneState,
-    job: QueuedHostedOcrJob,
-    transition: HostedOcrLaneJobStart
-  ) => void
-}
 
 const laneInvariantError = (
   lane: HostedOcrSchedulerLaneState,

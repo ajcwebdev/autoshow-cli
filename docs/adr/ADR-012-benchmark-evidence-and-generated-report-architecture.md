@@ -6,7 +6,7 @@
 - **Date Created:** 2026-07-16
 - **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
-- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md).
+- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to the 2026 hosted-model refresh reports under `docs/reports/`.
 
 ## Context
 
@@ -127,7 +127,7 @@ It does not apply to:
 
 - Production CLI flags, runtime commands, or public execution APIs (the CLI `benchmark` command was removed).
 - Durable hosted-model registry, lifecycle, and capability policy (governed by [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
-- Dated hosted-model refresh chronology and selector changes (governed by [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)).
+- Dated hosted-model refresh chronology and selector changes (recorded in the 2026 hosted-model refresh reports under `docs/reports/`).
 - Single-run execution manifests, runtime data fetching, or cross-group overall leaderboards.
 
 ### Benchmark evidence lifecycle and paid approval
@@ -135,7 +135,7 @@ It does not apply to:
 Every provider/model refresh follows this evidence order:
 
 1. Refresh dated primary-source documentation through explicit curated selections. Preserve source URLs, refresh metadata, content hashes, token counts, and failed-fetch behavior under [ADR-011](ADR-011-add-refresh-metadata-to-links.md). Do not infer a current model from a moving alias or secondary catalog when primary request/pricing/capability documentation is available.
-2. Update the complete local contract under [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md). Run static checks plus targeted no-network selector, ordering, pricing, provenance, request-builder, response-parser, resume, historical-normalization, CLI help, usage, and option-resolution tests.
+2. Update the complete local contract under [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and the 2026 hosted-model refresh reports under `docs/reports/`. Run static checks plus targeted no-network selector, ordering, pricing, provenance, request-builder, response-parser, resume, historical-normalization, CLI help, usage, and option-resolution tests.
 3. Run the exact no-cost `--price` or `resume --price` command for the intended targets. Price mode must invoke no provider and mutate no manifest or raw artifact under [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 4. If live evidence is materially necessary, obtain immediate explicit approval naming the exact provider command and the reported cost or quota risk. Approval for implementation, another provider, an earlier phase, a failed attempt, or a preflight never authorizes the paid command. A correction or rerun requires fresh approval.
 5. Validate returned identity, provider/model state, source coverage, page/duration counts, attempt/retry data, usage and actual cost, output integrity, and artifact uniqueness. A provider-reported success is not trustworthy when checkpoints, paths, checksums, or normalized outputs prove collision or reuse.
@@ -295,7 +295,7 @@ The focused combined-report contract test checks the exact eight-set registry, w
 
 ### 2026 hosted-model evidence ledger
 
-ADR-013 owns which selectors changed; this section records what was measured, approved, repaired, compacted, and regenerated.
+The 2026 hosted-model refresh reports under `docs/reports/` own which selectors changed; this section records what was measured, approved, repaired, compacted, and regenerated.
 
 #### Write and OCR
 
@@ -339,8 +339,8 @@ ADR-013 owns which selectors changed; this section records what was measured, ap
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR evidence qualification and diagnostics
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — durable model and calibration policy
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — primary-source refresh metadata
-- Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — dated model changes associated with this evidence
-- Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md) — provider-specific TTS implementation phases and remaining advanced-capability gates
+- Related reports: the 2026 hosted-model refresh reports under `docs/reports/` — dated model changes associated with this evidence
+- Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — provider-specific TTS implementation phases and remaining advanced-capability gates
 - `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
 - `.codex/skills/consensus/scripts/shared/combined_report_html.ts`
 - `.codex/skills/consensus/scripts/stt/build_combined_report.ts`

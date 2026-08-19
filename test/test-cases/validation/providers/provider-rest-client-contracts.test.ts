@@ -7,6 +7,7 @@ import { createOpenAIResponse } from '~/utils/openai/openai-client'
 import { runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 import { setHttpCaptureBytesForTests } from '~/utils/bounded-capture'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import type { ClientCase } from '~/types'
 
 setupContractSuiteLifecycle({
   envKeys: [],
@@ -16,14 +17,6 @@ setupContractSuiteLifecycle({
     ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
   }
 })
-
-type ClientCase = {
-  name: string
-  request: () => Promise<unknown>
-  errorName: string
-  appError: boolean
-  bodyPolicy: 'raw-text' | 'parsed'
-}
 
 const clients: ClientCase[] = [
   {

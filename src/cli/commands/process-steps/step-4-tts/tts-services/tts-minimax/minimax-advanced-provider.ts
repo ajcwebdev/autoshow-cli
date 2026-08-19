@@ -1,5 +1,8 @@
 import type {
   AnyCapabilityRecord,
+  JsonObject,
+  MiniMaxAdvancedProviderOptions,
+  MiniMaxVoiceType,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
   ProviderVoiceCloneRequest,
@@ -21,7 +24,6 @@ import {
   buildCapabilityDocumentationEvidence,
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
-  type AdvancedProviderHttpRequest,
 } from '../../script-to-audio/advanced-provider-contracts'
 
 const DOCS = {
@@ -49,23 +51,20 @@ export const MINIMAX_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixtur
 export const MINIMAX_TEMPORARY_VOICE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
 export const MINIMAX_CLONE_SAMPLE_MAX_BYTES = 20 * 1024 * 1024
 
-type JsonRecord = Record<string, unknown>
-type MiniMaxVoiceType = 'voice_cloning' | 'voice_generation'
-
-const record = (value: unknown, label: string): JsonRecord => {
+const record = (value: unknown, label: string): JsonObject => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`MiniMax ${label} response is invalid.`)
-  return value as JsonRecord
+  return value as JsonObject
 }
 const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
 const integer = (value: unknown): number | undefined => typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined
 const strings = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(item => string(item) ?? []) : []
 const array = (value: unknown): unknown[] => Array.isArray(value) ? value : []
 
-const assertBaseResponse = (payload: JsonRecord, label: string): JsonRecord => {
+const assertBaseResponse = (payload: JsonObject, label: string): JsonObject => {
   const baseResponse = payload['base_resp']
   if (!baseResponse || typeof baseResponse !== 'object' || Array.isArray(baseResponse)) return payload
-  const statusCode = (baseResponse as JsonRecord)['status_code']
-  if (statusCode !== undefined && statusCode !== 0) throw CLIUsageError(`MiniMax ${label} failed: ${string((baseResponse as JsonRecord)['status_msg']) ?? `status ${String(statusCode)}`}.`)
+  const statusCode = (baseResponse as JsonObject)['status_code']
+  if (statusCode !== undefined && statusCode !== 0) throw CLIUsageError(`MiniMax ${label} failed: ${string((baseResponse as JsonObject)['status_msg']) ?? `status ${String(statusCode)}`}.`)
   return payload
 }
 
@@ -103,13 +102,6 @@ const mapVoice = (
 const voiceTypeFor = (voice: Extract<ProviderVoiceRef, { kind: 'remote-resource' }>): MiniMaxVoiceType =>
   voice.origin === 'designed' ? 'voice_generation' : 'voice_cloning'
 
-export type MiniMaxAdvancedProviderOptions = {
-  apiKey: string
-  request?: AdvancedProviderHttpRequest | undefined
-  resolveProtectedAsset?: ((asset: ProviderVoiceCloneRequest['protectedSamples'][number]) => Promise<{ bytes: Uint8Array, fileName: string, mediaType: string, durationMs: number }>) | undefined
-  now?: (() => string) | undefined
-}
-
 export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & {
   accountScopeHash: string
 } => {
@@ -117,7 +109,7 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
   const now = options.now ?? (() => new Date().toISOString())
   const accountScopeHash = providerAccountScopeHash('minimax', options.apiKey)
 
-  const getVoices = async (voiceType: 'system' | 'all'): Promise<JsonRecord> => assertBaseResponse(record(await request({ method: 'POST', path: '/v1/get_voice', body: { voice_type: voiceType } }), 'voice catalog'), 'voice catalog')
+  const getVoices = async (voiceType: 'system' | 'all'): Promise<JsonObject> => assertBaseResponse(record(await request({ method: 'POST', path: '/v1/get_voice', body: { voice_type: voiceType } }), 'voice catalog'), 'voice catalog')
   const catalog: VoiceCatalogPort = {
     list: async input => {
       const source = input?.source ?? 'account'
@@ -199,7 +191,7 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
       form.append('purpose', 'voice_clone')
       form.append('file', new Blob([resolved.bytes], { type: resolved.mediaType }), resolved.fileName)
       const uploaded = assertBaseResponse(record(await request({ method: 'POST', path: '/v1/files/upload', body: form }), 'clone sample upload'), 'clone sample upload')
-      const file = uploaded['file'] && typeof uploaded['file'] === 'object' && !Array.isArray(uploaded['file']) ? uploaded['file'] as JsonRecord : uploaded
+      const file = uploaded['file'] && typeof uploaded['file'] === 'object' && !Array.isArray(uploaded['file']) ? uploaded['file'] as JsonObject : uploaded
       const fileId = integer(file['file_id']) ?? integer(file['id'])
       if (fileId === undefined) throw CLIUsageError('MiniMax clone sample upload returned no positive integer file_id.')
       const checkedAt = now()

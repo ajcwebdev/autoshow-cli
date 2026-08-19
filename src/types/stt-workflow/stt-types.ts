@@ -20,16 +20,6 @@ export type TranscribeEngineCapabilities = {
   supportsSpeakerCountHint: boolean
 }
 
-export type EmbeddedJson = {
-  text?: string
-  segments?: Array<{
-    start?: number
-    end?: number
-    text?: string
-    speaker?: string
-  }>
-}
-
 export type RawTranscriptionPayload = {
   text?: unknown
   segments?: unknown

@@ -91,7 +91,7 @@ const fixture = async (root: string) => {
   return { structured, structuredRef, dialoguePlan, soundscapePlan, snapshot }
 }
 
-describe('ADR-018 Phase 5E Replicate Kokoro soundscape acceptance', () => {
+describe('ADR-017 Phase 5E Replicate Kokoro soundscape acceptance', () => {
   test('keeps segmented Kokoro dialogue separate from ElevenLabs action and ambience routing', async () => {
     const root = await tempDirs.make()
     const { dialoguePlan, soundscapePlan, snapshot } = await fixture(root)

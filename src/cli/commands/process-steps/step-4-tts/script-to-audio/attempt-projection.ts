@@ -1,14 +1,15 @@
 import type {
+  AttemptContext,
   AudioRun,
   CanonicalAudioProviderProjection,
   PipelineProviderState,
   ProviderBatchResult,
   ProviderRenderResult,
   SanitizedProviderError,
+  WrittenJson,
 } from '~/types'
-import { LOCAL_ACTOR, type WrittenJson } from './attempt-shared'
+import { LOCAL_ACTOR } from './attempt-shared'
 import { contained } from './attempt-io'
-import type { AttemptContext } from './attempt-context'
 import { requireJournalFile, journalEventFields } from './attempt-journal'
 import { buildBatchProgress } from './attempt-batches'
 

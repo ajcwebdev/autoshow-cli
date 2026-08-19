@@ -1,12 +1,16 @@
 import { join, posix } from 'node:path'
 import type {
+  ArtifactRef,
   AudioRun,
   CanonicalComicItemMetadata,
+  ComicArtifactLineageAudit,
+  ComicArtifactLineageError,
   CompactMix,
   CompactPresentation,
   CompactSfx,
   CompactTargetRender,
   FinalTimeline,
+  LineageVerifier,
   SoundscapePlan,
 } from '~/types'
 import { readManifest } from '../../pipeline-manifest'
@@ -15,25 +19,6 @@ import { readContainedArtifactFile } from '../../step-4-tts/script-to-audio/safe
 import { soundscapeReportedOutputPath } from './comic-soundscape-workflow'
 import { validateComicPresentationPlan, validateResolvedPanelTimeline } from './comic-presentation-plan'
 import { PRESENTATION_ARCHIVE_PATH, validateCompactPresentation } from './comic-presentation-renderer'
-
-export type ComicArtifactLineageError = {
-  code: 'manifest-unreadable' | 'checksum-mismatch' | 'missing-artifact' | 'invalid-json' | 'invalid-identity' | 'missing-binding' | 'missing-presentation' | 'transform-ledger-mismatch'
-  message: string
-  path?: string | undefined
-  targetKey?: string | undefined
-}
-
-export type ComicArtifactLineageAudit = {
-  sceneRunDir: string
-  status: 'passed' | 'failed'
-  verifiedRefCount: number
-  selectedDialogueTargets: string[]
-  selectedSoundscapeTargets: string[]
-  presentationTargets: string[]
-  errors: ComicArtifactLineageError[]
-}
-
-type ArtifactRef = { path: string, sha256: string }
 
 export const soundscapeAudioRunLineageRefs = (run: CompactMix): ArtifactRef[] => [
   { path: run.soundscapePlan.path, sha256: run.soundscapePlan.sha256 },
@@ -52,13 +37,6 @@ const hashedIdentity = (value: Record<string, unknown>, field: string): boolean 
   const base = { ...value }
   delete base[field]
   return typeof identity === 'string' && identity === hashCanonicalTtsValue(base)
-}
-
-interface LineageVerifier {
-  verifyRef: (ref: ArtifactRef, label: string, targetKey?: string) => Promise<Buffer | undefined>
-  verifyJson: <T>(ref: ArtifactRef, label: string, targetKey?: string) => Promise<T | undefined>
-  fail: (error: ComicArtifactLineageError) => void
-  verified: Set<string>
 }
 
 const auditStageAndEnvelopeArtifacts = async (comic: CanonicalComicItemMetadata, verifier: LineageVerifier): Promise<void> => {

@@ -8,7 +8,9 @@ import type {
   ProviderReadinessResult,
   ProviderRenderBranchPlan,
   ProviderRenderPlan,
-  ProviderVoiceRef
+  ProviderTtsResumeSourceContext,
+  ProviderVoiceRef,
+  ResolvedTtsResumeSourceContext,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
@@ -18,28 +20,8 @@ import {
   validateGenericTtsSourceIdentity,
   validateProviderRenderPlanIdentity
 } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
-import type { TtsRunSourceContext } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { resolveUserPath } from '~/utils/runtime-paths'
 import { parseTtsDialoguePlanArtifactRef, readTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-import type { TtsDialoguePlanArtifactRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-
-export type ResolvedTtsResumeSourceContext = TtsRunSourceContext & {
-  retainedPlanIdentities: ReadonlyMap<string,
-    | { kind: 'branch', branchPlanId: string }
-    | { kind: 'render', renderPlanId: string, renderIdentity: string }
-  >
-  dialoguePlanArtifact: TtsDialoguePlanArtifactRef
-}
-
-type ProviderTtsResumeSourceContext = {
-  sourceIdentity: GenericTtsSourceIdentity
-  dialoguePlan: GenericTtsDialoguePlan
-  targetKey: string
-  planIdentity:
-    | { kind: 'branch', branchPlanId: string }
-    | { kind: 'render', renderPlanId: string, renderIdentity: string }
-}
-
 const SOURCE_IDENTITY_FILE = 'source-identity.json'
 const DIALOGUE_PLAN_FILE = 'dialogue-plan.json'
 

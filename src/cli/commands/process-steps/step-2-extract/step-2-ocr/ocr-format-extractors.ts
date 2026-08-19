@@ -3,9 +3,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type {
   DocumentMetadata,
-  EpubArtifactFile,
   ExtractionOptions,
+  FormatExtractionResult,
   HostedOcrRun,
+  NormalizedReasoningEffort,
   PageResult,
 } from '~/types'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
@@ -42,30 +43,6 @@ import {
   CSV_OCR_FLAGS_IGNORED_WARNING,
   EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING,
 } from '../step-2-shared/inactive-flag-warnings'
-import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-
-export interface FormatExtractionResult {
-  pages: PageResult[]
-  extractionMethod: string
-  inputFamily?: string | undefined
-  normalizedFrom?: string | undefined
-  conversionChain?: string[] | undefined
-  outputFidelity?: string | undefined
-  canonicalText?: string | undefined
-  reportedTotalPages?: number | undefined
-  ocrService?: string | undefined
-  promptTokens?: number | undefined
-  completionTokens?: number | undefined
-  providerCostCents?: number | undefined
-  providerCostSource?: HostedOcrRun['providerCostSource'] | undefined
-  ocrProviderUsage?: HostedOcrRun['providerUsage'] | undefined
-  pdfChunkPreparation?: HostedOcrRun['pdfChunkPreparation'] | undefined
-  chapterExportSummary?: Record<string, unknown> | undefined
-  pdfChapterDetectionSummary?: Record<string, unknown> | undefined
-  artifactFiles?: EpubArtifactFile[] | undefined
-  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
-}
 
 export const allInspectedEpubChaptersAreEmpty = (chapters: Array<{ text: string }>): boolean =>
   chapters.length > 0 && chapters.every((chapter) => chapter.text.trim().length === 0)

@@ -1,36 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import type { OcrPoolAttemptUsage, OcrPoolClassifiedFailure, OcrPoolLaneState, OcrPoolLedger, OcrPoolPageAttempt, OcrPoolPageLedgerEntry, OcrPoolProcessedPage, OcrPoolTargetState, OcrTarget, RunOcrPagePoolOptions } from '~/types'
+import type { OcrPoolAttemptUsage, OcrPoolClaim, OcrPoolClassifiedFailure, OcrPoolLaneState, OcrPoolLedger, OcrPoolPageAttempt, OcrPoolPageLedgerEntry, OcrPoolProcessedPage, OcrPoolState, OcrPoolTargetState, OcrTarget, RunOcrPagePoolOptions } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { getOcrTargetKey } from './ocr-run-state'
-
-type AcceptedRunState = {
-  count: number
-  lastAcceptedAtMs: number
-}
-
-export type OcrPoolClaim = {
-  page: OcrPoolPageLedgerEntry
-  attempt: OcrPoolPageAttempt
-  target: OcrTarget
-  targetState: OcrPoolTargetState
-  lane: OcrPoolLaneState
-}
-
-export type OcrPoolState = {
-  ledger: OcrPoolLedger
-  targetByKey: Map<string, OcrTarget>
-  targetStates: Map<string, OcrPoolTargetState>
-  laneStates: Map<string, OcrPoolLaneState>
-  runnableKeys: Set<string>
-  reenabledKeys: Set<string>
-  attemptedThisRun: Map<number, Set<string>>
-  targetCaps: Map<string, number>
-  acceptedThisRun: Map<string, AcceptedRunState>
-  startedAtMs: number
-  now: () => number
-  createClaimId: () => string
-  getAttemptArtifactDir: RunOcrPagePoolOptions['getAttemptArtifactDir']
-}
 
 const invariantError = (message: string): Error =>
   InfraError(`OCR page-pool invariant failed: ${message}`, { stage: 'ocr:page-pool' })

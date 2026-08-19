@@ -1,5 +1,4 @@
-import type { PipelineProviderStatus } from '../provider-core/provider-contract-types'
-import type { TtsProvider } from '../provider-core/provider-types'
+import type { PipelineProviderStatus, TtsProvider } from '~/types'
 
 export type CapabilityMaturity = 'stable' | 'preview' | 'deprecated' | 'not-applicable'
 export type CapabilityChannel = 'api' | 'ui-only' | 'external-import' | 'unsupported'
@@ -973,76 +972,6 @@ export type ProviderContinuationSemanticFingerprint =
       selectedTakeSemanticHash: string
     }
 
-export type CacheSourceProvenanceAttestation = {
-  schemaVersion: 1
-  attestationId: string
-  sourceCanonicalCommitment: {
-    targetKey: string
-    renderPlanId: string
-    renderIdentity: string
-    eventSequence: number
-    eventRecordHash: string
-    batchResultId: string
-    batchResultSha256: string
-  }
-  sourceInvocation: {
-    batchInvocationPlanId: string
-    batchInvocationPlanSha256: string
-    batchId: string
-    generationSlotId: string
-    requestFingerprint: string
-    continuationFingerprint: ProviderContinuationSemanticFingerprint
-    continuationDag:
-      | { kind: 'none' }
-      | {
-          kind: 'checkpoint'
-          predecessorBatchId: string
-          predecessorBatchResultId: string
-          predecessorBatchResultSha256: string
-          selectionId: string
-          selectionSha256: string
-          checkpointId: string
-          checkpointSha256: string
-          selectedTakeId: string
-          selectedTakeAudioSha256: string
-          selectedTakeTimingSha256?: string | undefined
-          providerGenerationIdentityHash: string
-          selectedTakeSemanticHash: string
-          continuationStateHash: string
-        }
-  }
-  sourceAdmission: {
-    journalId: string
-    terminalSnapshotId: string
-    terminalSnapshotSha256: string
-    requestChainProjectionHash: string
-    completedRequestOrdinals: number[]
-  }
-  observedRequestHashes: string[]
-  outputChecksums: string[]
-  timingEvidenceChecksums: string[]
-  capturedAt: string
-}
-
-export type SynthesisCacheEntry = {
-  schemaVersion: 1
-  keyAlgorithmVersion: string
-  kind: 'segmented-turn' | 'native-batch'
-  generationSlotKey: string
-  canonicalInputHash: string
-  bindingIdentityHashes: string[]
-  continuationFingerprint: ProviderContinuationSemanticFingerprint
-  capabilityFixtureHash: string
-  adapterSchemaVersion: string
-  textPreparationVersion: string
-  observedRequestHashes: string[]
-  provenanceAttestation: SynthesisCacheObjectRef
-  sourceBatchResult: { batchResultId: string, object: SynthesisCacheObjectRef }
-  objects: SynthesisCacheObjectRef[]
-  outputChecksums: string[]
-  createdAt: string
-}
-
 export type CacheMaterializationPlan = {
   schemaVersion: 1
   cacheMaterializationPlanId: string
@@ -1055,22 +984,6 @@ export type CacheMaterializationPlan = {
   portableSemanticInputHash: string
   currentExecutionInputHash: string
   cacheEntry: SynthesisCacheObjectRef
-}
-
-export type CurrentCacheProvenanceCopy = {
-  schemaVersion: 1
-  source: SynthesisCacheObjectRef
-  artifactRef: ProviderBatchResultRelativeArtifactPath
-  sha256: string
-}
-
-export type CacheMaterializationEvidence = {
-  materializationPlan: { cacheMaterializationPlanId: string, artifactRef: RenderRelativeArtifactPath, sha256: string }
-  sourceBatchResultId: string
-  cacheEntry: CurrentCacheProvenanceCopy
-  sourceBatchResult: CurrentCacheProvenanceCopy
-  sourceProvenanceAttestation: CurrentCacheProvenanceCopy
-  materializedObjects: Array<{ source: SynthesisCacheObjectRef, artifactRef: ProviderBatchResultRelativeArtifactPath, sha256: string }>
 }
 
 export type ProviderBatchResultBase = {
@@ -1154,21 +1067,6 @@ export type ProviderRenderResult = {
 
 export type AdmissionProofKind = 'acceptance' | 'completion' | 'rejection' | 'ambiguity' | 'not-admitted'
 
-export type SanitizedAdmissionEvidenceFields = Record<string, string | number | boolean | null>
-
-export type SanitizedAdmissionEvidence<Kind extends AdmissionProofKind = AdmissionProofKind> = {
-  schemaVersion: 1
-  evidenceHash: string
-  journalId: string
-  invocationId: string
-  provider: TtsProvider
-  requestOrdinal: number
-  requestFingerprint: string
-  evidenceKind: Kind
-  observedAt: string
-  fields: SanitizedAdmissionEvidenceFields
-}
-
 export type AdmissionProofRef<Kind extends AdmissionProofKind> = {
   journalId: string
   invocationId: string
@@ -1188,26 +1086,6 @@ export type ProviderRequestAdmissionTransition =
   | { sequence: number, state: 'provider-rejected', at: string, evidence: AdmissionProofRef<'rejection'> }
   | { sequence: number, state: 'ambiguous', at: string, evidence?: AdmissionProofRef<'ambiguity'> | undefined }
   | { sequence: number, state: 'confirmed-not-admitted', at: string, method: 'local-before-dispatch' | 'provider-idempotency-query' | 'provider-request-lookup', evidence: AdmissionProofRef<'not-admitted'> }
-
-export type ConsumedSelectionRebuildAuthorization = {
-  schemaVersion: 1
-  authorizationId: string
-  renderPlanId: string
-  renderIdentity: string
-  baseResultIdentity: string
-  expectedActiveEventSequence: number
-  expectedSelectedBatchResultId: string
-  replacementSelectedBatchResultId: string
-  batchResultSetHash: string
-  expectedSelectionId: string
-  replacementSelectionId: string
-  invalidatedBatchIds: string[]
-  authorizedPotentialDispatchSlots: Array<{ batchId: string, generationSlotId: string }>
-  additionalPlannedCost: PlannedCost
-  retryAllowance: PlannedCost
-  authorizedBy: AuditActorRef
-  authorizedAt: string
-}
 
 export type ConsumedSelectionRebuildJournalBinding = {
   authorizationId: string
@@ -1401,62 +1279,6 @@ export type CanonicalAudioProviderProjection = {
     | { sequence: number, action: 'rollback-active' | 'select-success', renderIdentity: string, eventSequence: number, resultIdentity: string, audioRunId: string, actor: AuditActorRef, at: string }
     | { sequence: number, action: 'activate-policy-skip', skipId: string, actor: AuditActorRef, at: string }
   >
-}
-
-export type ProviderTimingEvidenceArtifact = {
-  schemaVersion: 1
-  timingEvidenceId: string
-  provider: TtsProvider
-  model: string
-  providerIndexUnit?: PreparedProviderText['providerIndexUnit'] | undefined
-  providerTimeUnit: string
-  payload: Record<string, string | number | boolean | null | Array<string | number>>
-}
-
-export type RenderTakesArtifact = {
-  schemaVersion: 1
-  renderTakesId: string
-  renderPlanId: string
-  renderIdentity: string
-  generationSlots: Array<{ batchId: string, generationSlotId: string, batchResult: ProviderBatchResultRef }>
-}
-
-export type TakeSelection = {
-  schemaVersion: 1
-  selectionId: string
-  renderPlanId: string
-  renderIdentity: string
-  batchId: string
-  batchResults: [ProviderBatchResultRef, ...ProviderBatchResultRef[]]
-} & (
-  | { state: 'unselected' }
-  | {
-      state: 'selected'
-      selectedBatchResultId: string
-      selectedTakeId: string
-      policy: 'sole-take' | 'manual' | 'first-generated' | 'explicit-id'
-      selectedBy: AuditActorRef
-      selectedAt: string
-      supersedesSelectionId: string
-    }
-)
-
-export type ContinuationCheckpoint = {
-  schemaVersion: 1
-  checkpointId: string
-  renderPlanId: string
-  renderIdentity: string
-  batchResult: ProviderBatchResultRef
-  selection: { selectionId: string, path: string, sha256: string }
-  provider: TtsProvider
-  model: string
-  providerVersion: string
-  batchId: string
-  selectedTakeId: string
-  continuationState:
-    | { kind: 'provider-generation-id', value: string }
-    | { kind: 'protected-token', asset: ProtectedAssetRef }
-  createdAt: string
 }
 
 export type RenderAudioSourceBinding =

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
-import type { CharacterCatalogEntry, CharacterKey, CharacterSketchView } from '~/types'
+import type { CharacterCatalogEntry, CharacterKey, CharacterSketchManifest, CharacterSketchRegistration, CharacterSketchView } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -10,7 +10,7 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 export const CHARACTER_SKETCH_VIEWS = ['front', 'three-quarter', 'profile'] as const
 export const CHARACTER_SKETCH_MANIFEST_FILENAME = 'character-sketches.json'
 
-const CharacterSketchRegistrationSchema = v.strictObject({
+export const CharacterSketchRegistrationSchema = v.strictObject({
   characterKey: v.pipe(v.string(), v.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)),
   generationId: v.pipe(v.string(), v.minLength(1)),
   origin: v.picklist(['generated', 'revision', 'legacy-import']),
@@ -23,13 +23,10 @@ const CharacterSketchRegistrationSchema = v.strictObject({
   priorGenerationId: v.optional(v.string()),
 })
 
-const CharacterSketchManifestSchema = v.strictObject({
+export const CharacterSketchManifestSchema = v.strictObject({
   schemaVersion: v.literal(1),
   sketches: v.array(CharacterSketchRegistrationSchema),
 })
-
-export type CharacterSketchRegistration = v.InferOutput<typeof CharacterSketchRegistrationSchema>
-export type CharacterSketchManifest = v.InferOutput<typeof CharacterSketchManifestSchema>
 
 export const checksumFile = async (path: string): Promise<string> => {
   const hash = createHash('sha256')

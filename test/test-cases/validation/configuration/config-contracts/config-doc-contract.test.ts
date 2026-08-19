@@ -12,15 +12,9 @@ import {
   WRITE_LLM_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { AutoshowConfigSchema } from '~/types'
-import type { ModelRegistry } from '~/types'
+import type { ModelBinding, ModelRegistry } from '~/types'
 
 const configDocPath = resolve(import.meta.dir, '../../../../../docs/commands/setup-and-utilities/config-command/config.md')
-
-type ModelBinding = {
-  configPath: readonly string[]
-  registryStep: keyof ModelRegistry
-  service: string
-}
 
 const bindingsForTargets = (
   registryStep: keyof ModelRegistry,

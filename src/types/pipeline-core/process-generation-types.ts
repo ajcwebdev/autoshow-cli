@@ -1,4 +1,3 @@
-import * as v from 'valibot'
 import type { CanonicalAudioProviderProjection, ImageProvider, MusicProvider, ProviderRenderStrategy, TtsProvider, VideoProvider } from '~/types'
 
 type GenerationProviderCostSource = 'provider_usage' | 'provider_quote' | 'registry_fallback'
@@ -33,12 +32,6 @@ export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
   ttsAudio?: CanonicalAudioProviderProjection | undefined
   comicAudio?: CanonicalAudioProviderProjection | undefined
 }
-
-export const TtsScriptOutputSchema = v.object({
-  sampleRate: v.number(),
-  chunkCount: v.number(),
-  durationSeconds: v.number()
-})
 
 export type Step5Metadata = {
   imageService: ImageProvider

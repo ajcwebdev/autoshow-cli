@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { RunHostedOcrPdfChunkFallbackOptions } from '~/types'
+import type { HostedOcrRun, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import {
   basePdfMetadata,
   hostedRun,
@@ -14,7 +14,6 @@ import {
   runHostedOcrWithPdfChunkFallback,
   stitchHostedOcrChunkRuns
 } from './shared'
-import type { HostedOcrRun } from './shared'
 
 const withLocalTestDir = async <T>(prefix: string, run: (dir: string) => Promise<T>): Promise<T> => {
   const dir = join(process.cwd(), '.test-work', `${prefix}-${crypto.randomUUID()}`)

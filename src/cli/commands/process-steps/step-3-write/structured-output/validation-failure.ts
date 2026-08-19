@@ -1,7 +1,4 @@
-export type StructuredValidationFailureEnvelope = {
-  _raw: string
-  _validationError: string
-}
+import type { StructuredValidationFailureEnvelope } from '~/types'
 
 export const buildStructuredValidationFailureEnvelope = (
   rawResponse: string,

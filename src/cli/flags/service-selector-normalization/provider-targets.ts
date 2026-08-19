@@ -1,3 +1,5 @@
+import type { GenerationPricingProviders, GenerationSelectionDescriptor, GenerationSelectionFields } from '~/types'
+
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
   elevenlabs: 'elevenlabs-tts',
   minimax: 'minimax-tts',
@@ -41,28 +43,6 @@ export const STANDALONE_MUSIC_PROVIDER_TARGETS = {
   minimax: 'minimax-music',
   gemini: 'gemini-music'
 } as const satisfies Record<string, string>
-
-type GenerationSelectionField = {
-  readonly modelsKey: string
-  readonly modelKey: string
-}
-
-type GenerationSelectionFields<TProviderTargets extends Readonly<Record<string, string>>> = {
-  readonly [Service in keyof TProviderTargets]: GenerationSelectionField
-}
-
-type GenerationSelectionDescriptor = {
-  readonly providerTargets: Readonly<Record<string, string>>
-  readonly selections: Readonly<Record<string, GenerationSelectionField>>
-}
-
-type GenerationPricingProviders<TDescriptor extends GenerationSelectionDescriptor> = Array<{
-  [Service in keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]: {
-    service: Service
-    modelsKey: TDescriptor['selections'][Service]['modelsKey']
-    modelKey: TDescriptor['selections'][Service]['modelKey']
-  }
-}[keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]>
 
 const defineGenerationSelectionDescriptor = <
   const TProviderTargets extends Readonly<Record<string, string>>,

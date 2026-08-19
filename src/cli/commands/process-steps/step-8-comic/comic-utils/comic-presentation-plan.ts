@@ -6,41 +6,30 @@ import type {
   ComicPresentationPlan,
   ComicPresentationSoundBinding,
   ComicPresentationTimelineEvent,
+  ComicDialogueTurn,
+  PanelSpeech,
+  PresentationSoundSource,
   ResolvedPanelTimeline,
   ScenePromptData,
+  SpeechTextMatch,
   StructuredScriptData,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
 
-type PanelSpeech = {
-  panelNumber: number
-  speechOrdinal: number
-  speaker: ScenePromptData['panels'][number]['speech'][number]['speaker']
-  line: string
-}
-
-export type PresentationSoundSource = {
-  cue: AuthoredSoundscapeCue
-  originalRangeMs: { start: number, end: number }
-  sourceAudio: { path: string, sha256: string, durationMs: number }
-}
-
 const exactText = (value: string): string => value.normalize('NFKC').replace(/\s+/gu, ' ').trim()
 const exactLabel = (value: string): string => exactText(value).toUpperCase()
 
 const flattenDialogueTurns = (plan: ComicDialoguePlan) => plan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
-type DialogueTurn = ReturnType<typeof flattenDialogueTurns>[number]
-type SpeechTextMatch = 'exact' | 'exact-after-source-cue-elision'
 
 const cueText = (value: string): string => exactText(value).replace(/^\(\s*|\s*\)$/gu, '')
 
-const exactSourceCueTexts = (turn: DialogueTurn): Set<string> => new Set([
+const exactSourceCueTexts = (turn: ComicDialogueTurn): Set<string> => new Set([
   ...(turn.delivery?.description.split(',') ?? []),
   ...(turn.timingCues?.map(cue => cue.sourceSpan.text) ?? []),
 ].map(cueText).filter(Boolean))
 
-const elideExactSourceCues = (turn: DialogueTurn, value: string): string | undefined => {
+const elideExactSourceCues = (turn: ComicDialogueTurn, value: string): string | undefined => {
   const parentheticals = [...value.matchAll(/\(([^()]*)\)/gu)]
   if (parentheticals.length === 0) return undefined
   const sourceCues = exactSourceCueTexts(turn)
@@ -48,7 +37,7 @@ const elideExactSourceCues = (turn: DialogueTurn, value: string): string | undef
   return exactText(value.replace(/\s*\([^()]*\)\s*/gu, ' ').replace(/\s+([,.;:!?…])/gu, '$1'))
 }
 
-const speechTextMatch = (turn: DialogueTurn, speech: PanelSpeech): SpeechTextMatch | undefined => {
+const speechTextMatch = (turn: ComicDialogueTurn, speech: PanelSpeech): SpeechTextMatch | undefined => {
   const canonical = exactText(turn.canonicalText)
   if (canonical === exactText(speech.line)) return 'exact'
   return canonical === elideExactSourceCues(turn, speech.line) ? 'exact-after-source-cue-elision' : undefined
@@ -60,16 +49,16 @@ const panelSpeechLabel = (speech: PanelSpeech['speaker']): string => {
   return 'NARRATOR'
 }
 
-const speakerMatches = (turn: DialogueTurn, speech: PanelSpeech['speaker']): boolean => {
+const speakerMatches = (turn: ComicDialogueTurn, speech: PanelSpeech['speaker']): boolean => {
   if (speech.kind === 'character') return turn.subjectKey === speech.characterKey || exactLabel(turn.originalSpeakerLabel) === exactLabel(speech.characterKey)
   if (speech.kind === 'voice') return exactLabel(turn.originalSpeakerLabel) === exactLabel(speech.label) || turn.subjectKey === `voice:${speech.label}`
   return turn.subjectKey === 'role:narrator' || ['NARRATOR', 'CAPTION'].includes(exactLabel(turn.originalSpeakerLabel))
 }
 
-const speechMatches = (turn: DialogueTurn, speech: PanelSpeech): boolean =>
+const speechMatches = (turn: ComicDialogueTurn, speech: PanelSpeech): boolean =>
   speakerMatches(turn, speech.speaker) && speechTextMatch(turn, speech) !== undefined
 
-const describeTurn = (turn: DialogueTurn): string =>
+const describeTurn = (turn: ComicDialogueTurn): string =>
   `${turn.turnId} (${turn.originalSpeakerLabel}: ${exactText(turn.canonicalText)})`
 
 export const reconcilePresentationDialogue = (input: {

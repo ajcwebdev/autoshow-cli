@@ -1,7 +1,6 @@
+import type { ImageReferenceCapabilities } from '~/types'
 import { getModelRegistry } from './model-loader/registry'
 import { CLIUsageError } from '~/utils/error-handler'
-
-export type ImageReferenceCapabilities = Readonly<{ supported: boolean; maxInputs: number }>
 
 export const getImageReferenceCapabilities = (model: string): ImageReferenceCapabilities => {
   for (const service of Object.values(getModelRegistry().image)) {

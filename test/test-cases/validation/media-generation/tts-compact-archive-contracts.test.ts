@@ -92,7 +92,7 @@ const sfxPlan = (prompt: string): SoundscapePlan => {
   }
 }
 
-describe('ADR-014 compact archive contracts', () => {
+describe('ADR-013 compact archive contracts', () => {
   test('layout helper never writes or resumes through the retired audio/providers tree', () => {
     const targetKey = canonicalTargetKey('comic-audio', 'openai', MODEL, 'hosted-api')
     const comic = resolveTtsOutputLayout('audio/providers', targetKey, 'f'.repeat(64))

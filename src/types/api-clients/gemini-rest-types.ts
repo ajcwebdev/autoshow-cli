@@ -110,3 +110,8 @@ export type GeminiVideoReferenceImage = {
   image: GeminiInlineMedia
   referenceType: 'asset'
 }
+
+export type GeminiFetchOptions = {
+  url: string
+  init: RequestInit
+}

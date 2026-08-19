@@ -1,8 +1,9 @@
 import type {
   AnyCapabilityRecord,
+  ElevenLabsAdvancedProviderOptions,
+  JsonObject,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
-  ProviderVoiceCloneRequest,
   ProviderVoiceDesignResult,
   ProviderVoiceInspection,
   ProviderVoiceRef,
@@ -19,7 +20,6 @@ import {
   buildCapabilityDocumentationEvidence,
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
-  type AdvancedProviderHttpRequest,
 } from '../../script-to-audio/advanced-provider-contracts'
 
 const DOCS = {
@@ -55,10 +55,9 @@ const capabilityRecords = [
 export const ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 export const ELEVENLABS_DEFAULT_VOICE_EXPIRY = '2026-12-31T23:59:59.999Z'
 
-type JsonRecord = Record<string, unknown>
-const record = (value: unknown, label: string): JsonRecord => {
+const record = (value: unknown, label: string): JsonObject => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`ElevenLabs ${label} response is invalid.`)
-  return value as JsonRecord
+  return value as JsonObject
 }
 const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
 const stringArray = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(item => string(item) ?? []) : []
@@ -76,12 +75,12 @@ const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): 
   const name = string(voice['name'])
   if (!resourceId || !name) throw CLIUsageError('ElevenLabs voice response omits voice_id or name.')
   const category = string(voice['category'])
-  const sharing = voice['sharing'] && typeof voice['sharing'] === 'object' && !Array.isArray(voice['sharing']) ? voice['sharing'] as JsonRecord : undefined
+  const sharing = voice['sharing'] && typeof voice['sharing'] === 'object' && !Array.isArray(voice['sharing']) ? voice['sharing'] as JsonObject : undefined
   const expiresAt = unixExpiry(sharing?.['disable_at_unix'])
     ?? (category === 'premade' && voice['is_legacy'] === true ? ELEVENLABS_DEFAULT_VOICE_EXPIRY : undefined)
-  const fineTuning = voice['fine_tuning'] && typeof voice['fine_tuning'] === 'object' && !Array.isArray(voice['fine_tuning']) ? voice['fine_tuning'] as JsonRecord : undefined
+  const fineTuning = voice['fine_tuning'] && typeof voice['fine_tuning'] === 'object' && !Array.isArray(voice['fine_tuning']) ? voice['fine_tuning'] as JsonObject : undefined
   const fineState = fineTuning?.['state'] && typeof fineTuning['state'] === 'object' && !Array.isArray(fineTuning['state'])
-    ? Object.values(fineTuning['state'] as JsonRecord).map(item => string(item)).filter(Boolean)
+    ? Object.values(fineTuning['state'] as JsonObject).map(item => string(item)).filter(Boolean)
     : []
   const requiresVerification = fineState.some(state => state === 'not_verified' || state === 'not_started')
   const origin = source === 'shared-library'
@@ -115,13 +114,6 @@ const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): 
       defaultVoiceExpiryRecognized: ELEVENLABS_DEFAULT_VOICE_EXPIRY,
     }
   }
-}
-
-export type ElevenLabsAdvancedProviderOptions = {
-  apiKey: string
-  request?: AdvancedProviderHttpRequest | undefined
-  resolveProtectedAsset?: ((asset: ProviderVoiceCloneRequest['protectedSamples'][number]) => Promise<{ bytes: Uint8Array, fileName: string, mediaType: string }>) | undefined
-  now?: (() => string) | undefined
 }
 
 export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & {

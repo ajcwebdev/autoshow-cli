@@ -2,18 +2,16 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type { CanonicalComicItemMetadata, CanonicalDialogueTurn, CharacterCatalogService, ComicDialoguePlan, ComicPresentationPanelInput, PipelineManifest, ScenePromptData, SoundscapePlan, StructuredScriptData } from '~/types'
+import type { CanonicalComicItemMetadata, CanonicalDialogueTurn, CharacterCatalogService, ComicDialoguePlan, ComicPresentationPanelInput, CompatibleComicSceneRun, LocationReferenceCatalog, PipelineManifest, ScenePromptData, SoundscapePlan, StructuredScriptData } from '~/types'
 import {
   reconcilePresentationDialogue,
   reconcilePresentationSoundEffects,
   resolveComicPanelTimeline,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-plan'
 import { assertPresentationSoundEffectResult, loadCanonicalPresentationPanels, loadPresentationAudio, preparePresentationVisualInputs, resolvePresentationVisualInputs, selectPresentationAudioBinding } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-inputs'
-import type { CompatibleComicSceneRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run'
 import { createLocalSilentDialogueRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-soundscape-workflow'
 import { createStructuredScriptArtifactRef } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
-import type { LocationReferenceCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 import { updateComicPresentationManifest, writeInitialComicStructureManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { canonicalTtsJson } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'

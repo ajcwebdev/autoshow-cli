@@ -18,8 +18,9 @@ import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import type {
   AdaptiveCommandAttemptRecord,
   AdaptiveConcurrencyConfig,
+  CallerLocation,
   CommandResultBase,
-  OutputMetadataSummary,
+  RunCommandArtifacts,
   RunCommandAttemptResult,
   RunCommandOptions,
   RunCommandResult
@@ -441,15 +442,6 @@ const runCommandWithOptionalAdaptiveConcurrency = async (
   }
 
   return { exitCode, stdout, stderr, adaptiveRecords }
-}
-
-type CallerLocation = { file: string | null, line: number | null, column: number | null }
-
-type RunCommandArtifacts = {
-  outputDir: string | null
-  absoluteOutputDir: string | null
-  metadataSummary: OutputMetadataSummary | null
-  parsedEstimatedCostCents: number | null
 }
 
 // Production reads config from flags, not env. Translate the harness's output-root

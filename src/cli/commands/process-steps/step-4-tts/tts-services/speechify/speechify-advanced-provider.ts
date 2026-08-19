@@ -1,11 +1,13 @@
 import type {
   AnyCapabilityRecord,
+  JsonObject,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
   ProviderVoiceCloneRequest,
   ProviderVoiceInspection,
   ProviderVoiceMutationResult,
   ProviderVoiceRef,
+  SpeechifyAdvancedProviderOptions,
   TtsVoiceProvider,
   VoiceCatalogPort,
   VoiceClonePort,
@@ -18,7 +20,6 @@ import {
   buildCapabilityDocumentationEvidence,
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
-  type AdvancedProviderHttpRequest,
 } from '../../script-to-audio/advanced-provider-contracts'
 
 const DOCS = {
@@ -45,10 +46,9 @@ const capabilityRecords = [
 export const SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 export const SPEECHIFY_CLONE_SAMPLE_MAX_BYTES = 5 * 1024 * 1024
 
-type JsonRecord = Record<string, unknown>
-const record = (value: unknown, label: string): JsonRecord => {
+const record = (value: unknown, label: string): JsonObject => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`Speechify ${label} response is invalid.`)
-  return value as JsonRecord
+  return value as JsonObject
 }
 const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
 
@@ -59,7 +59,7 @@ const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   if (!resourceId || !name) throw CLIUsageError('Speechify voice response omits id or display_name.')
   const type = string(voice['type'])
   const models = Array.isArray(voice['models']) ? voice['models'] : []
-  const modelIds = models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) ? string((value as JsonRecord)['name']) ?? [] : [])
+  const modelIds = models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) ? string((value as JsonObject)['name']) ?? [] : [])
   const tags = Array.isArray(voice['tags']) ? voice['tags'].flatMap(value => string(value) ?? []) : []
   return {
     provider: 'speechify', resourceId, name,
@@ -74,21 +74,6 @@ const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
     state: 'available',
     sanitizedMetadata: { ...(type ? { type } : {}), ...(tags.length > 0 ? { tags } : {}) }
   }
-}
-
-export type SpeechifyCloneConsent = {
-  fullName: string
-  email: string
-  locale?: string | undefined
-  gender?: 'male' | 'female' | 'not_specified' | undefined
-}
-
-export type SpeechifyAdvancedProviderOptions = {
-  apiKey: string
-  request?: AdvancedProviderHttpRequest | undefined
-  resolveProtectedAsset?: ((asset: ProviderVoiceCloneRequest['protectedSamples'][number]) => Promise<{ bytes: Uint8Array, fileName: string, mediaType: string, durationMs: number }>) | undefined
-  resolveProtectedConsent?: ((consentRecordRef: string) => Promise<SpeechifyCloneConsent>) | undefined
-  now?: (() => string) | undefined
 }
 
 export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'clone' | 'lifecycle'> & {

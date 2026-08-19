@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, rename, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
-import type { CharacterSketchCommandOptions, CharacterSketchView, ImageGenerationQuality, ImageGenerationSize } from '~/types'
+import type { CharacterSketchCommandDependencies, CharacterSketchCommandOptions, CharacterSketchView, ImageGenerationQuality, ImageGenerationSize } from '~/types'
 import { comicLog, err, formatCompactCost, formatDuration, suppressSharedPipelineLogs } from '../../comic-utils/comic-logger'
 import {
   CHARACTER_SKETCH_VIEWS,
@@ -55,13 +55,6 @@ const buildPrompt = (
     ? 'Requirements:\n- Use a plain white or warm-white background with no setting.\n- Preserve the specified anatomy, proportions, clothing silhouette, palette, and distinctive features consistently across views.\n- Show the full character clearly in frame.\n- Do not add labels, captions, borders, inset images, extra figures, or alternate views.'
     : 'Requirements:\n- Output black-and-white outline art only.\n- Use a plain white background.\n- Preserve identity, proportions, clothing silhouette, and distinctive features.\n- Show the full character clearly in frame.',
 ].filter(Boolean).join('\n\n')
-
-export type CharacterSketchCommandDependencies = {
-  requestImage?: typeof createImage
-  writeImage?: typeof writeGeneratedImage
-  composeSheet?: typeof combineCharacterSketchSheet
-  createGenerationId?: () => string
-}
 
 export const characterSketchCommand = async (
   options: CharacterSketchCommandOptions = {},

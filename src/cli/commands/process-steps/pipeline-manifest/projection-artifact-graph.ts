@@ -31,7 +31,6 @@ export {
   PROJECTION_ARTIFACT_GRAPH_LINK_PASSES,
   validateProjectionArtifactGraphLinks
 } from './projection-artifact-graph-links'
-export type { GraphLinkContext } from './projection-artifact-link-context'
 
 export const verifyManifestProjectionArtifacts = async (
   rootDir: string,

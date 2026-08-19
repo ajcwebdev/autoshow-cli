@@ -1,8 +1,7 @@
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_VIDEO_MS_PER_SECOND } from './defaults'
 import { getModelRegistry } from './registry'
 import { getRetiredModelRate } from './retired-model-rates'
-import type { DurationBilledEstimation, VideoModelMeta } from '~/types'
-import type { RetiredModelRate } from './retired-model-rates'
+import type { DurationBilledEstimation, RetiredModelRate, VideoModelMeta } from '~/types'
 
 export const getVideoModelMeta = (
   service: string,

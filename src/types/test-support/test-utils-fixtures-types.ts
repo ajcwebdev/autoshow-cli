@@ -1,3 +1,5 @@
+import type { ExtractRoute, ProcessCommand, RunCommandOptions } from '~/types'
+
 export type MockWavOptions = {
   sampleRate?: number | undefined
   channels?: number | undefined
@@ -39,3 +41,89 @@ export type MusicServiceModelCase = {
 export type TtsExtraArgs = readonly string[] | ((model: string) => readonly string[] | Promise<readonly string[]>)
 
 export type VideoTestService = 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+
+export type GenerationCommand = 'image' | 'video' | 'music'
+
+export type GenerationServiceModelCase = { model: string, extraArgs?: string[] | undefined }
+
+export type GenerationServiceOptions<TModel extends GenerationServiceModelCase> = {
+  models: TModel[]
+  provider: string
+  service: string
+  envVarKey: string
+}
+
+export type GenerationArtifact = { fileName: string, fileSize: number }
+
+export type GenerationServiceProfile<
+  TModel extends GenerationServiceModelCase,
+  TOptions extends GenerationServiceOptions<TModel>
+> = {
+  command: GenerationCommand
+  outputTitle: string
+  livePrompt: (modelCase: TModel) => string
+  liveTestName: (modelCase: TModel, options: TOptions) => string
+  artifactFileName: (modelCase: TModel, options: TOptions) => string
+  envErrorMessage: (options: TOptions) => string
+  metadataKey: string
+  expectedMetadata: (modelCase: TModel, artifact: GenerationArtifact, options: TOptions) => Record<string, unknown>
+  commandOptions?: ((modelCase: TModel) => RunCommandOptions | undefined) | undefined
+  testTimeoutMs?: ((modelCase: TModel, options: TOptions) => number | undefined) | undefined
+}
+
+export type ImageServiceModelCase = {
+  model: string
+  prompt: string
+  extraArgs?: string[]
+  expectedExtension?: string
+}
+
+export type ImageServiceTestOptions = {
+  models: ImageServiceModelCase[]
+  provider: string
+  imageService: string
+  envVarKey: string
+  imageExtension?: string
+}
+
+export type ImageGenerationOptions = ImageServiceTestOptions & GenerationServiceOptions<ImageServiceModelCase>
+
+export type VideoServiceModelCase = { model: string, extraArgs?: string[], expectedDuration?: number, prompt?: string }
+
+export type VideoServiceTestOptions = {
+  models: VideoServiceModelCase[]
+  provider: string
+  videoService: VideoTestService
+  envVarKey: string
+  envVarDescription: string
+  timeoutMs?: number
+}
+
+export type VideoGenerationOptions = VideoServiceTestOptions & GenerationServiceOptions<VideoServiceModelCase>
+
+export type MusicServiceTestOptions = {
+  models: MusicServiceModelCase[]
+  provider: string
+  musicService: string
+  envVarKey: string
+}
+
+export type MusicGenerationOptions = MusicServiceTestOptions & GenerationServiceOptions<MusicServiceModelCase>
+
+export type MultiProviderManifestFixtureProvider = {
+  dir: string
+  provider: string
+  model: string
+  status?: 'succeeded' | 'missing' | 'failed' | 'skipped'
+  processingTime?: number
+  cost?: number
+  result: Record<string, unknown>
+}
+
+export type MultiProviderManifestFixtureOptions = {
+  command: ProcessCommand
+  extractRoute?: ExtractRoute | undefined
+  metadata?: Record<string, unknown>
+  providerMetadata?: Record<string, unknown>
+  providers: readonly MultiProviderManifestFixtureProvider[]
+}

@@ -8,43 +8,9 @@ import { checksumFile } from '../comic-commands/process-scenes/character-utils'
 import { loadCharacterCatalog } from './character-reference-config'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
 import { getLocationReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
+import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshot, LocationReferenceSnapshotManifest, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView } from '~/types'
 
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
-export type LocationView = typeof LOCATION_VIEWS[number]
-
-export type LocationReferenceEntry = {
-  key: string
-  name: string
-  aliases?: string[]
-  referenceDirectory?: string
-  referenceFilename?: string
-  specification: string
-  sourceScripts: string[]
-}
-
-export type LocationReferenceCatalog = {
-  schemaVersion: 1
-  styleImage: string
-  locations: LocationReferenceEntry[]
-}
-
-export type LocationSketchViewRegistration = {
-  view: LocationView
-  generationId: string
-  image: string
-  imageSha256: string
-  model: string
-  createdAt: string
-  priorGenerationId?: string
-}
-
-export type LocationSketchRegistration = {
-  locationKey: string
-  specificationSha256: string
-  views: LocationSketchViewRegistration[]
-}
-
-export type LocationSketchManifest = { schemaVersion: 2; sketches: LocationSketchRegistration[] }
 
 export const LOCATION_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
@@ -190,13 +156,6 @@ export const getLocationViewPath = (key: string, view: LocationView, referenceDi
 export const resolveRegisteredLocationImagePath = (image: string): string => resolveLocationAssetPath(image, 'Registered location image')
 export const specificationHash = (specification: string): string => createHash('sha256').update(specification).digest('hex')
 
-export type CurrentLocationReference = {
-  entry: LocationReferenceEntry
-  registration: LocationSketchRegistration
-  views: Array<LocationSketchViewRegistration & { imagePath: string }>
-  sheetPath: string
-}
-
 export const requireCurrentLocationReference = async (rawLocation: string): Promise<CurrentLocationReference> => {
   const catalog = await readLocationReferenceCatalog()
   const entry = resolveLocationCatalogEntry(rawLocation, catalog)
@@ -214,18 +173,7 @@ export const requireCurrentLocationReference = async (rawLocation: string): Prom
   return { entry, registration, views, sheetPath: views[0]!.imagePath }
 }
 
-export type LocationReferenceSnapshot = {
-  schemaVersion: 2
-  snapshotId: string
-  locationKey: string
-  specification: string
-  sourceScripts: string[]
-  sourceViews: Array<{ view: LocationView; generationId: string; imageSha256: string }>
-  sheet: { path: string; sha256: string }
-}
-
 export const getLocationReferenceSnapshotsPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), LOCATION_SNAPSHOTS_FILENAME)
-export type LocationReferenceSnapshotManifest = { schemaVersion: 2; snapshots: LocationReferenceSnapshot[] }
 
 const snapshotCurrentLocationReference = async (runDirectory: string, current: CurrentLocationReference): Promise<LocationReferenceSnapshot> => {
   const snapshotId = `${Date.now()}-${randomUUID().slice(0, 12)}`

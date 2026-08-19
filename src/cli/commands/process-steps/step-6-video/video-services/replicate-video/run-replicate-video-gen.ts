@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises'
-import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
+import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoGenOptions, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateReplicateCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
@@ -23,25 +23,6 @@ import { ensureReplicateSetup, getReplicateBaseUrl } from '~/cli/commands/proces
 import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 
 const MAX_SEEDANCE_REFERENCE_DURATION_SECONDS = 15
-
-type ReplicateVideoGenOptions = {
-  model: ReplicateVideoModel
-  mode?: VideoMode | undefined
-  durationSeconds?: number | undefined
-  resolution?: string | undefined
-  aspectRatio?: string | undefined
-  inputImage?: string | undefined
-  lastFrameImage?: string | undefined
-  referenceImages?: string[] | undefined
-  inputVideo?: string | undefined
-  referenceVideos?: string[] | undefined
-  referenceAudios?: string[] | undefined
-  negativePrompt?: string | undefined
-  generateAudio?: boolean | undefined
-  seed?: number | undefined
-  multiPrompt?: string | undefined
-  multiClip?: boolean | undefined
-}
 
 const hasText = (value: string | undefined): value is string =>
   typeof value === 'string' && value.trim().length > 0

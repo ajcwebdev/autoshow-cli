@@ -1,7 +1,7 @@
 import { AppError } from '~/utils/error-handler'
 import { buildCaptureMetadata, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
-import type { BoundedCaptureResult } from '~/types'
+import type { BoundedCaptureResult, ProviderRestClientProfile } from '~/types'
 
 export const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, '')
 
@@ -65,27 +65,6 @@ export const normalizeFetchAbortError = (error: unknown): unknown => {
   }
 
   return error
-}
-
-type ProviderRestRequest = {
-  url: string
-  init: RequestInit
-}
-
-type ProviderRestErrorContext<TOptions> = {
-  options: TOptions
-  response: Response
-  captured: BoundedCaptureResult
-  rawText: string
-  parsedBody: unknown
-}
-
-type ProviderRestClientProfile<TOptions, TError extends Error> = {
-  buildRequest: (options: TOptions) => ProviderRestRequest
-  errorMessagePrefix: (options: TOptions) => string
-  formatErrorMessage?: ((context: ProviderRestErrorContext<TOptions> & { errorMessagePrefix: string }) => string) | undefined
-  createError: (context: ProviderRestErrorContext<TOptions> & { message: string }) => TError
-  diagnostics?: 'raw-and-parsed' | 'parsed-body' | 'factory' | undefined
 }
 
 export const createProviderRestClient = <TOptions, TError extends Error>(

@@ -1,33 +1,13 @@
-import type { ExpandedScriptBlock, SoundscapeAnchor, StructuredScriptSourceSegment, StructuredSoundscape } from '~/types'
+import type { AmbientRangeBound, DirectiveControls, DirectiveKind, ExpandedScriptBlock, LocatedDirective, SoundscapeAnchor, StructuredScriptSourceSegment, StructuredSoundscape } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { stripEmphasisWrapper } from './markdown-blocks'
-
-type DirectiveKind = 'action-sfx' | 'vocal-reaction' | 'ambience'
-
-type AmbientRangeBound = 'scene-start' | 'scene-end' | 'previous-line-end' | 'next-line-start'
-
-type LocatedDirective = {
-  kind: DirectiveKind
-  prompt: string
-  required: boolean
-  durationSeconds?: number | undefined
-  gainDb?: number | undefined
-  pan?: number | undefined
-  rangeFrom?: AmbientRangeBound | undefined
-  rangeTo?: AmbientRangeBound | undefined
-  startUtf16: number
-  endUtf16: number
-  inline: boolean
-}
 
 const LABEL_KIND: Readonly<Record<string, DirectiveKind>> = {
   SFX: 'action-sfx',
   'VOCAL SFX': 'vocal-reaction',
   AMBIENCE: 'ambience',
 }
-
-type DirectiveControls = Pick<LocatedDirective, 'durationSeconds' | 'gainDb' | 'pan' | 'rangeFrom' | 'rangeTo'>
 
 const AMBIENT_RANGE_BOUNDS = new Set<AmbientRangeBound>(['scene-start', 'scene-end', 'previous-line-end', 'next-line-start'])
 

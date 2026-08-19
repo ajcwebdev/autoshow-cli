@@ -11,12 +11,11 @@ import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestrati
 import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { CLIUsageError } from '~/utils/error-handler'
 import { readRetainedTtsResolvedVoices, resolveTtsResumeSourceContext } from './tts-resume-source-context'
-import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ProtectedAssetRef, ProviderVoiceRef, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
+import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ProtectedAssetRef, ProtectedVoiceAssetStore, ProviderVoiceRef, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { existsSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { resolveUserPath } from '~/utils/runtime-paths'
 import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
-import type { ProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
 import {
   MISTRAL_REQUEST_REFERENCE_STORE_ID,

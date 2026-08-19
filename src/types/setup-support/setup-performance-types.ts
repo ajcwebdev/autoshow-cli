@@ -68,3 +68,13 @@ export type FinishedSetupPerformanceRun = {
   artifact: SetupPerformanceArtifact
   artifactPath: string
 }
+
+export type ActiveSetupPerformanceRun = {
+  runId: string
+  startedAt: Date
+  startedMonotonicMs: number
+  topology: string
+  dependencyVersions: Record<string, string>
+  artifactDirectory: string
+  phases: SetupPerformancePhaseRecord[]
+}

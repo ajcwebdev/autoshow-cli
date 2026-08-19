@@ -133,3 +133,8 @@ export type HostedConcurrencyRequestOptions = Readonly<{
   admission: HostedConcurrencyAdmission
   classifyPressure?: ((error: unknown) => ProviderLanePressureFeedback | undefined) | undefined
 }>
+
+export type ComicHostedScheduling = {
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+  concurrency: number
+}

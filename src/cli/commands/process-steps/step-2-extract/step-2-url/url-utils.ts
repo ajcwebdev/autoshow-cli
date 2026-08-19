@@ -1,7 +1,7 @@
 import { stat } from 'node:fs/promises'
 import { basename, resolve as pathResolve } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError } from '~/utils/retries'
 import { readEnv } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
@@ -292,12 +292,6 @@ export const finalizeUrlArticleResult = async (
     ...(scraped.web.author ? { author: scraped.web.author } : {})
   }
 }
-
-type UrlArticleScrapeRunner = (
-  source: string,
-  options?: UrlRequestOptions,
-  baseUrl?: string
-) => Promise<{ markdown: string, web: WebArticleMetadata }>
 
 export const createUrlArticleRun = (
   backend: HtmlArticleBackend,

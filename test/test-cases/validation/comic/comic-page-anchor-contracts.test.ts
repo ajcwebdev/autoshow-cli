@@ -15,8 +15,7 @@ import {
   parseComicPageQaResult,
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
-import type { ComicImageRequestInput, PanelBundleData } from '~/types'
-import type { PageQaEntry } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa'
+import type { ComicImageRequestInput, PageQaEntry, PanelBundleData } from '~/types'
 
 const temporaryDirectories: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')

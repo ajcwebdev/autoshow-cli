@@ -7,18 +7,8 @@ import type {
   HostedOcrSchedulerTargetStats,
   HostedOcrSchedulerTargetTelemetry,
   HostedOcrSchedulerTelemetry,
-  OcrConcurrencyMode
+  HostedOcrTelemetryRoot
 } from '~/types'
-
-export type HostedOcrTelemetryRoot = {
-  lifetime: 'document' | 'run'
-  mode: OcrConcurrencyMode
-  fixedCap?: number | undefined
-  documentPages: number
-  documentCount: number
-  sharedHostedPolicy: boolean
-  hostedConcurrency?: HostedConcurrencyTelemetry | undefined
-}
 
 const roundMetric = (value: number): number => {
   const rounded = Math.round(value * 1000) / 1000

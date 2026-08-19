@@ -1,4 +1,4 @@
-import type { AccountCapabilityState, SanitizedProviderError, TtsProvider, TtsTarget } from '~/types'
+import type { TtsExecutionReadinessObservation, TtsProvider, TtsTarget } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { readEnv } from '~/utils/validate/env-utils'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
@@ -23,13 +23,6 @@ const HOSTED_TTS_CREDENTIALS = {
   replicate: { env: 'REPLICATE_API_TOKEN', label: 'Replicate TTS' },
   fal: { env: 'FAL_API_KEY', label: 'fal.ai TTS' }
 } as const satisfies Record<TtsProvider, { env: string, label: string }>
-
-export type TtsExecutionReadinessObservation = Readonly<{
-  targetKey: string
-  accountState: AccountCapabilityState
-  status: 'ready' | 'blocked'
-  error?: SanitizedProviderError | undefined
-}>
 
 /**
  * A blocked pre-ingest observation stays authoritative because protected capabilities were not

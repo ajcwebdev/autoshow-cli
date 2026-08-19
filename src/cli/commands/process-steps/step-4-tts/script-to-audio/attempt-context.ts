@@ -3,19 +3,17 @@ import { randomUUID } from 'node:crypto'
 import type {
   AccountCapabilityObservation,
   CanonicalAudioProviderProjection,
-  PipelineProviderState,
-  PlannedCost,
   ProviderBatchResult,
   ProviderReadinessResult,
-  ProviderRenderBranchPlan,
-  ProviderRenderPlan,
-  ProviderRenderResult,
   RenderAdmissionJournalSnapshot,
+  AttemptContext,
+  AttemptSlot,
+  CreateCurrentTtsRenderAttemptOptions,
+  CurrentTtsRecoveredGenerationSlot,
+  ReadinessAuthorization,
+  WrittenJson,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import {
-  reserveInvocationAttemptDirectory,
-} from './safe-artifact-store'
 import {
   computePaidSpeechSlotHash,
   hashCanonicalTtsValue,
@@ -27,17 +25,10 @@ import {
 import {
   resolveStableTtsArtifactDir,
   resolveTtsOutputLayout,
-  type TtsOutputLayout,
 } from './tts-output-layout'
 import {
-  type AttemptSlot,
-  type CreateCurrentTtsRenderAttemptOptions,
-  type CurrentTtsRecoveredGenerationSlot,
   LOCAL_ACTOR,
-  type RecordedOutput,
-  type RuntimeRequest,
   withIdentity,
-  type WrittenJson,
 } from './attempt-shared'
 import {
   contained,
@@ -48,84 +39,10 @@ import {
 import {
   bindingIdentityHash,
   buildPureCurrentTtsRenderPlan,
-  type PureCurrentTtsRenderPlan,
   requestedOutput,
   stateForProjection,
   sumCosts,
 } from './attempt-planning'
-
-export type ClosedProviderAttempt = {
-  resultFile?: WrittenJson<ProviderRenderResult> | undefined
-  batchResultFiles: Array<WrittenJson<ProviderBatchResult>>
-}
-
-export type ReadinessAuthorization = {
-  readinessAttemptSequence: number
-  branchPlanId: string
-  branchCandidateId: string
-  readinessResultRef: string
-  readinessResultHash: string
-  accountObservationHashes: string[]
-}
-
-export type AttemptContext = {
-  options: CreateCurrentTtsRenderAttemptOptions
-  purePlan: PureCurrentTtsRenderPlan
-  now: () => string
-  artifactRoot: string
-  compactArchive: boolean
-  layout: TtsOutputLayout
-  targetRelativeDir: string
-  archiveRelativeDir: string
-  targetDir: string
-  renderRoot: string
-  branchRoot: string
-  attemptsRoot: string
-  attemptRoot: string
-  journalRelativePath: string
-  paidSpeechSlotHash: (slot: AttemptSlot) => string
-  recoveredBySlot: Map<string, CurrentTtsRecoveredGenerationSlot>
-  unresolvedSlots: AttemptSlot[]
-  localCompositionOnly: boolean
-  requestedSlotLimit: number | undefined
-  attemptSlots: AttemptSlot[]
-  attemptSlotIds: Set<string>
-  unresolvedBatchIds: string[]
-  unresolvedPlannedCost: PlannedCost
-  cumulativePlannedCost: PlannedCost
-  priorAttemptCount: number
-  attemptNumber: number
-  invocationId: string
-  branchFile: WrittenJson<ProviderRenderBranchPlan>
-  renderPlanFile: WrittenJson<ProviderRenderPlan>
-  capabilityObservation: AccountCapabilityObservation
-  readinessResult: ProviderReadinessResult
-  readinessFile: WrittenJson<ProviderReadinessResult>
-  readinessAuthorization: ReadinessAuthorization
-  journalId: string
-  // Mutable state
-  journal: RenderAdmissionJournalSnapshot
-  journalSequence: number
-  journalFile: WrittenJson<RenderAdmissionJournalSnapshot> | undefined
-  attemptReservation: Awaited<ReturnType<typeof reserveInvocationAttemptDirectory>> | undefined
-  events: CanonicalAudioProviderProjection['renderHistory'][number]['events']
-  pointerEvents: CanonicalAudioProviderProjection['pointerEvents']
-  currentProjection: CanonicalAudioProviderProjection
-  preparedState: PipelineProviderState
-  mutation: Promise<void>
-  runtimeRequests: RuntimeRequest[]
-  outputsBySlot: Map<string, RecordedOutput[]>
-  recoveredBatchFiles: Array<WrittenJson<ProviderBatchResult>>
-  promotedBatchFiles: Map<string, WrittenJson<ProviderBatchResult>>
-  closedProviderAttempt: ClosedProviderAttempt | undefined
-  terminalState: PipelineProviderState | undefined
-  executionSelection?: readonly {
-    generationSlotId: string
-    turnId: string
-    providerSegmentIndex: number
-  }[] | undefined
-}
-
 export const createAttemptContext = async (
   options: CreateCurrentTtsRenderAttemptOptions
 ): Promise<AttemptContext> => {

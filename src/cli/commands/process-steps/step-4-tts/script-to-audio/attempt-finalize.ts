@@ -1,13 +1,18 @@
 import { mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import type {
+  AttemptContext,
   CanonicalAudioProviderProjection,
+  ClosedProviderAttempt,
+  CurrentTtsRenderArtifacts,
   PipelineProviderState,
   ProviderBatchResult,
   ProviderBatchResultRef,
   ProviderRenderResult,
   ProviderRenderStrategy,
   SanitizedProviderError,
+  SuccessPublicationInput,
+  WrittenJson,
 } from '~/types'
 import { AppUsageError, CLIUsageError, InternalError } from '~/utils/error-handler'
 import { concatAndConvertToWav } from '../tts-utils/audio-utils'
@@ -17,7 +22,7 @@ import {
 } from './safe-artifact-store'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderRenderResult } from './contract-validation'
-import { LOCAL_ACTOR, type WrittenJson } from './attempt-shared'
+import { LOCAL_ACTOR } from './attempt-shared'
 import {
   contained,
   copyCreateOnly,
@@ -37,7 +42,6 @@ import {
   assembleComicSegmentedAudio,
 } from './comic-segmented-audio'
 import { resolveRetainedPath } from './recovery-evidence'
-import type { AttemptContext, ClosedProviderAttempt } from './attempt-context'
 import {
   journalEventFields,
   requireJournalFile,
@@ -53,7 +57,6 @@ import {
   buildBatchProgress,
   promoteBatchResult,
 } from './attempt-batches'
-import type { CurrentTtsRenderArtifacts } from './current-render-artifacts'
 import {
   buildAudioMixPlan,
   buildCompactRender,
@@ -67,9 +70,7 @@ import {
 import {
   publishCompactCompletion,
   publishExpandedCompletion,
-  type SuccessPublicationInput,
 } from './attempt-success-publication'
-
 export const closeLocalComposition = async (
   ctx: AttemptContext
 ): Promise<ClosedProviderAttempt> => {

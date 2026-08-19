@@ -13,3 +13,8 @@ export type ExtractSelectorInputRoutes = {
   document: boolean
   article?: boolean | undefined
 }
+
+export type FlagOccurrenceReplacement = {
+  occurrence: CliFlagOccurrence
+  update: 'append' | 'set'
+}

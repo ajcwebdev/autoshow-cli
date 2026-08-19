@@ -1,5 +1,5 @@
 import { basename } from 'node:path'
-import type { GeminiContent, GeminiFile, GeminiGenerateContentResponse, GeminiGeneratedVideo, GeminiInlineMedia, GeminiPart, GeminiVideo, GeminiVideoImageMedia, GeminiVideoOperation, GeminiVideoReferenceImage } from '~/types'
+import type { GeminiContent, GeminiFetchOptions, GeminiFile, GeminiGenerateContentResponse, GeminiGeneratedVideo, GeminiInlineMedia, GeminiPart, GeminiVideo, GeminiVideoImageMedia, GeminiVideoOperation, GeminiVideoReferenceImage } from '~/types'
 import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
@@ -52,11 +52,6 @@ const formatGeminiErrorMessage = (body: unknown, status: number): string => {
     return `Gemini API request failed with status ${status}: ${sanitizeLogText(body)}`
   }
   return `Gemini API request failed with status ${status}`
-}
-
-type GeminiFetchOptions = {
-  url: string
-  init: RequestInit
 }
 
 const requestGemini = createProviderRestClient<GeminiFetchOptions, GeminiRestError>({

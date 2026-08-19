@@ -1,5 +1,5 @@
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
-import type { BuildOptsDefaults, CliFlagOccurrence, ResolvedFlagContext, TtsOptionResolutionAuthority } from '~/types'
+import type { BuildOptsDefaults, BuildOptsResolutionContext, CliFlagOccurrence, ResolvedFlagContext } from '~/types'
 import {
   parseHostedConcurrencyMode,
   readBooleanFlag,
@@ -24,11 +24,6 @@ import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps
 export { collectRepeatableModelFlagOccurrences, REPEATABLE_MODEL_FLAGS, normalizeModelFlagOccurrences } from './model-flag-selection'
 
 const emptyYtDlpPassthroughArgs = (): string[] | undefined => undefined
-
-type BuildOptsResolutionContext = Readonly<{
-  flagOccurrences?: readonly CliFlagOccurrence[] | undefined
-  ttsOptionResolutionAuthority?: TtsOptionResolutionAuthority | undefined
-}>
 
 const isBuildOptsResolutionContext = (
   value: readonly CliFlagOccurrence[] | BuildOptsResolutionContext

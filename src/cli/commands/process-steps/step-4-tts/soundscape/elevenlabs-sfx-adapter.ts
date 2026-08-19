@@ -1,4 +1,4 @@
-import type { SoundEffectCapabilityFixture, SoundEffectGenerationResponse, SoundEffectRenderTask, SoundEffectRequestEvidence, SoundEffectTarget } from '~/types'
+import type { ElevenLabsSoundEffectHttpRequest, SoundEffectCapabilityFixture, SoundEffectGenerationResponse, SoundEffectRenderTask, SoundEffectRequestEvidence, SoundEffectTarget } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { resolveReplicateAudioGenTarget } from './replicate-audiogen-adapter'
@@ -41,15 +41,6 @@ export const ELEVENLABS_SFX_CAPABILITY_FIXTURE: SoundEffectCapabilityFixture = {
   ...fixtureBase,
   capabilityFixtureHash: hashCanonicalTtsValue(fixtureBase),
 }
-
-export type ElevenLabsSoundEffectHttpRequest = (input: {
-  method: 'POST'
-  path: '/v1/sound-generation'
-  query: { output_format: string }
-  headers: Record<string, string>
-  body: Record<string, unknown>
-  cancellation: AbortSignal
-}) => Promise<{ status: number, headers?: Headers | Record<string, string> | undefined, body: Uint8Array }>
 
 const header = (headers: Headers | Record<string, string> | undefined, name: string): string | undefined => {
   if (!headers) return undefined

@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import type { QpdfSourceBuildLayout } from '~/types'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { InfraError } from '~/utils/error-handler'
 
@@ -27,15 +28,6 @@ export const QPDF_SOURCE_BUILD_FLAGS = [
   '-DINSTALL_MANUAL=OFF',
   '-DINSTALL_EXAMPLES=OFF'
 ] as const
-
-export type QpdfSourceBuildLayout = {
-  qpdfSourceDir: string
-  libjpegTurboSourceDir: string
-  qpdfCmakeBuildDir: string
-  libjpegTurboCmakeBuildDir: string
-  libjpegTurboInstallDir: string
-  builtQpdfPath: string
-}
 
 export const resolveQpdfSourceBuildLayout = (buildRoot: string): QpdfSourceBuildLayout => ({
   qpdfSourceDir: join(buildRoot, 'sources/qpdf'),

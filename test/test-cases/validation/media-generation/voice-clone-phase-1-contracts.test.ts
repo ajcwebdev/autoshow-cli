@@ -10,7 +10,7 @@ const protectedSample = { storeId: 'voice_store', assetId: `sha256_${'a'.repeat(
 const consentRef = `protected-consent:v1:voice_store:sha256_${'f'.repeat(64)}:${'f'.repeat(64)}`
 const brief: CharacterVoiceBrief = { subjectKey: 'hero', profileKey: 'default', mannerisms: [], prohibitedCaricatures: [], pronunciations: [], allowedOrigins: ['instant-clone', 'professional-clone'] }
 
-describe('ADR-018 Phase 1 shared voice clone workflow', () => {
+describe('ADR-017 Phase 1 shared voice clone workflow', () => {
   test('plans without writes and provisions an ElevenLabs instant clone through one durable mutation', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-voice-clone-phase1-'))
     try {

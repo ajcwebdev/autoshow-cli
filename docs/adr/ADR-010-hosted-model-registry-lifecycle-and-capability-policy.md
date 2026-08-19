@@ -6,7 +6,7 @@
 - **Date Created:** 2026-07-13
 - **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
-- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md); paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
+- **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to the 2026 hosted-model refresh reports under `docs/reports/`; paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Context
 
@@ -72,7 +72,7 @@ This applies to:
 It does not apply to:
 
 - Local inference template controls.
-- Dated refresh chronology (governed by [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)).
+- Dated refresh chronology (recorded in the 2026 hosted-model refresh reports under `docs/reports/`).
 - Benchmark evidence and calibration records (governed by [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)).
 
 ### Concrete selector identity and eligibility
@@ -140,7 +140,7 @@ Write and OCR manifests, estimates, result diagnostics, resume identity, and hos
 
 ### Adjacent authorities
 
-Refresh chronology belongs to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md); benchmark and report evidence to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md); curated primary-source links and `.refresh.json` metadata to [ADR-011](ADR-011-add-refresh-metadata-to-links.md); lane scheduling to [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md); extract execution to [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); and resume and price dry-run behavior to [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
+Refresh chronology belongs to the 2026 hosted-model refresh reports under `docs/reports/`; benchmark and report evidence to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md); curated primary-source links and `.refresh.json` metadata to [ADR-011](ADR-011-add-refresh-metadata-to-links.md); lane scheduling to [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md); extract execution to [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); and resume and price dry-run behavior to [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
 ## Rationale
 
@@ -245,9 +245,9 @@ The policy is implemented across the model registries and loaders under `src/cli
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — extract execution and OCR calibration rules
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — curated documentation acquisition
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md) — benchmark evidence and generated reports
-- Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — dated hosted-model refresh ledger
-- Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md) — character voice and multi-speaker architecture
-- Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape and multi-track pipeline
+- Related reports: the 2026 hosted-model refresh reports under `docs/reports/` — dated hosted-model refresh history
+- Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — character voice and multi-speaker architecture
+- Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — soundscape and multi-track pipeline
 - `docs/commands/process-steps/step-3-write/write-text.md`
 - `src/cli/commands/setup-and-utilities/models/`
 - `src/cli/commands/setup-and-utilities/models/model-loader/model-lifecycle.ts`

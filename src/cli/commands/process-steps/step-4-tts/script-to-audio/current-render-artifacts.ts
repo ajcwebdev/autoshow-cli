@@ -1,43 +1,11 @@
 import type {
   CanonicalAudioProviderProjection,
   PipelineProviderState,
-  ProtectedAssetRef,
-  ProviderRenderStrategy,
   Step4Metadata,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson } from './contract-identity'
 import { projectCanonicalAudioProviderStatus } from './contract-validation'
-
-export type CurrentTtsObservedVoice = {
-  kind: 'provider-id' | 'reference-asset' | 'local-model-voice'
-  value?: string | undefined
-  valueHash: string
-  protectedAsset?: ProtectedAssetRef | undefined
-  authorizationRef?: string | undefined
-}
-
-export type CurrentTtsObservedTurn = {
-  turnId: string
-  sourceIndex: number
-  speaker: string
-  text: string
-  voice: CurrentTtsObservedVoice
-  outputPath?: string | undefined
-}
-
-export type CurrentTtsRenderArtifacts = {
-  artifactDir: string
-  operation: 'tts-synthesis' | 'comic-audio'
-  targetKey: string
-  transport: string
-  renderIdentity: string
-  resultIdentity: string
-  audioRunId: string
-  strategy: ProviderRenderStrategy
-  projection: CanonicalAudioProviderProjection
-}
-
 const rebaseArtifactPath = (prefix: string, path: string): string =>
   path === '.' ? prefix : `${prefix}/${path}`
 

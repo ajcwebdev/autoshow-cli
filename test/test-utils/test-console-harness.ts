@@ -1,12 +1,7 @@
 import { mock } from 'bun:test'
 import * as bunTest from 'bun:test'
 import { AsyncLocalStorage } from 'node:async_hooks'
-
-type ConsoleMethod = 'log' | 'warn' | 'error' | 'info' | 'debug'
-type TestBuffer = {
-  lines: string[]
-  failed: boolean
-}
+import type { ConsoleMethod, TestBuffer } from '~/types'
 
 const harnessFlag = Symbol.for('autoshow.testConsoleHarness')
 const installed = globalThis as typeof globalThis & { [harnessFlag]?: true }

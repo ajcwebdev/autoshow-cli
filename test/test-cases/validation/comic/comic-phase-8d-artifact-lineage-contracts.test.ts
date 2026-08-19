@@ -3,8 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdtemp, mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { CharacterCatalogService, ComicPresentationPlan, CompactPresentation, ResolvedPanelTimeline } from '~/types'
-import type { LocationReferenceCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
+import type { CharacterCatalogService, ComicPresentationPlan, CompactPresentation, LocationReferenceCatalog, ResolvedPanelTimeline } from '~/types'
 import { auditComicSceneArtifactLineage, soundscapeAudioRunLineageRefs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-artifact-lineage-audit'
 import { createStructuredScriptArtifactRef, computeSceneRunIdentity } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
@@ -153,7 +152,7 @@ const buildSoundscapeScene = async (root: string) => {
   return { structured, structuredRef, sceneRunIdentity, dialoguePlan, dialogueRef, firstDialogue, secondDialogue, first, selectedSoundscapeRuns, firstDialogueMedia: dialogueMedia(firstDialogue), secondDialogueMedia: dialogueMedia(secondDialogue) }
 }
 
-describe('ADR-018 Phase 8D artifact lineage audit', () => {
+describe('ADR-017 Phase 8D artifact lineage audit', () => {
   test('passes a two-target soundscape matrix and fails stale or missing presentation lineage', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-phase-8d-lineage-'))
     try {

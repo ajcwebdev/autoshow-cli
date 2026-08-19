@@ -1,3 +1,4 @@
+import type { LifecycleRegistryService } from '~/types'
 import * as v from 'valibot'
 
 const SttEstimationSchema = v.object({
@@ -54,14 +55,6 @@ export const ModelLifecycleSchema = v.pipe(
     'Active models cannot declare retirement data or opt out of automatic selection.'
   )
 )
-
-type LifecycleRegistryService = {
-  models: Record<string, {
-    lifecycle?: {
-      replacementModel?: string | undefined
-    } | undefined
-  }>
-}
 
 const isMovingLatestAlias = (model: string): boolean =>
   /(?:^|[-_/])latest(?:$|[-_/])/i.test(model)

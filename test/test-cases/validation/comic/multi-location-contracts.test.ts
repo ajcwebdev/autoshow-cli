@@ -4,16 +4,11 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import {
-  createLocationReferenceSnapshots,
-  normalizeLocationKey,
-  resolveLocationCatalogEntry,
-  type LocationReferenceCatalog,
-} from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
+import { createLocationReferenceSnapshots, normalizeLocationKey, resolveLocationCatalogEntry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 import { resolveLocationReferencesAcrossPanels } from '~/cli/commands/process-steps/step-8-comic/comic-utils/panel-prompt-utils'
 import { validateSceneSourceSegmentCoverage } from '~/cli/commands/process-steps/step-8-comic/comic-utils/source-coverage-utils'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
-import type { CharacterCatalogService, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
+import type { CharacterCatalogService, LocationReferenceCatalog, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
 
 const roots: string[] = []
 const emptyCharacterCatalog = {

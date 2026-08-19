@@ -4,9 +4,12 @@ import type {
   AudioRun,
   CanonicalAudioProviderProjection,
   CompactTargetRender,
+  CurrentTtsCompletedRecovery,
   PipelineProviderState,
   ProviderRenderResult,
+  PureCurrentTtsRenderPlanOptions,
   RenderAdmissionJournalSnapshot,
+  RetainedJournalEvidence,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import {
@@ -20,23 +23,11 @@ import {
   validateRenderAdmissionJournalSnapshot,
 } from './contract-validation'
 import { contained, publishReportedOutput, readObservedAudio, readVerifiedJson } from './attempt-io'
-import type {
-  CurrentTtsCompletedRecovery,
-  PureCurrentTtsRenderPlanOptions,
-} from './attempt-shared'
 import {
   buildPureCurrentTtsRenderPlan,
   readAudioMetadataProjection,
   readAudioProjection,
 } from './attempt-planning'
-
-export type RetainedJournalEvidence = {
-  value: RenderAdmissionJournalSnapshot
-  path: string
-  sha256: string
-  attemptRoot: string
-}
-
 export const resolveRetainedPath = (baseDir: string, artifactRef: string, label: string): string => {
   const base = resolve(baseDir)
   const path = resolve(base, artifactRef)

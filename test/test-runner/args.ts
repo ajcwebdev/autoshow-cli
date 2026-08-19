@@ -1,5 +1,5 @@
 import { availableParallelism } from 'node:os'
-import type { RunnerArgs } from '~/types'
+import type { RunnerArgDestination, RunnerArgs, RunnerControlResult, RunnerParseState } from '~/types'
 import { VALIDATION_TEST_TIMEOUT_MS } from '../test-utils/timeouts'
 
 export const DEFAULT_TEST_RUNNER_CONCURRENCY = Math.max(1, availableParallelism())
@@ -18,21 +18,6 @@ const unsupportedConcurrencyMessage =
   'Error: --concurrency is not a Bun test runner flag. Use --max-concurrency=<n> for per-file test concurrency and --parallel=<n> for file-level worker parallelism.'
 const missingBudgetMessage =
   'Error: --budget requires a whole-number value in hundredths of a cent (for example: --budget 100 for 1 cent)'
-
-interface RunnerParseState {
-  priceMode: boolean
-  budgetHundredthCents: number | undefined
-  preserveTestOutput: boolean
-  adaptiveConcurrency: boolean
-  passthroughArgs: string[]
-  pathFilters: string[]
-}
-
-type RunnerControlResult =
-  | { kind: 'consumed'; nextIndex: number }
-  | { kind: 'unhandled' }
-
-type RunnerArgDestination = 'pathFilters' | 'passthroughArgs'
 
 const hasMaxConcurrencyFlag = (args: string[]): boolean =>
   args.some(arg => arg === BUN_TEST_MAX_CONCURRENCY_FLAG || arg.startsWith(`${BUN_TEST_MAX_CONCURRENCY_FLAG}=`))

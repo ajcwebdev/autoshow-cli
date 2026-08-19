@@ -19,6 +19,7 @@ export const resolveHappyScribePriceNotes = async (
 ): Promise<string[]> => {
   const notes = [GENERIC_ESTIMATE_NOTE]
   if (!readEnv('HAPPYSCRIBE_API_KEY')) {
+    notes.push('HAPPYSCRIBE_API_KEY is not set; organization-scoped pricing checks were skipped.')
     return notes
   }
 

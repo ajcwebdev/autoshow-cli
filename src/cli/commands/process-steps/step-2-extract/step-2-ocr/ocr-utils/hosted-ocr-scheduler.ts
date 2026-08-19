@@ -11,6 +11,9 @@ import type {
   HostedOcrSchedulerRunControls,
   HostedOcrSchedulerTelemetry,
   HostedOcrService,
+  HostedOcrLaneJobStart,
+  HostedOcrRetryContext,
+  HostedOcrTelemetryRoot,
   OcrConcurrencyMode,
   ProviderLaneIdentity,
   QueuedHostedOcrJob
@@ -35,17 +38,12 @@ import {
   resolveHostedOcrRetryEvents,
   resolveHostedOcrRetryPause,
   resolveKimiHostedOcrProfileAfterPressure,
-  shouldBackoffHostedOcrError,
-  type HostedOcrRetryContext
+  shouldBackoffHostedOcrError
 } from './hosted-ocr-cap-policy'
-import {
-  HostedOcrLaneEngine,
-  type HostedOcrLaneJobStart
-} from './hosted-ocr-lane-engine'
+import { HostedOcrLaneEngine } from './hosted-ocr-lane-engine'
 import {
   projectHostedOcrDocumentTelemetry,
-  projectHostedOcrRunTelemetry,
-  type HostedOcrTelemetryRoot
+  projectHostedOcrRunTelemetry
 } from './hosted-ocr-telemetry'
 
 export {

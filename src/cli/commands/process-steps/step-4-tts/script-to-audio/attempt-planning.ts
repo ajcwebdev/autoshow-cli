@@ -1,23 +1,30 @@
 import type {
   AnyCapabilityRecord,
+  AttemptSlot,
+  AttemptTurn,
   CanonicalAudioProviderProjection,
   CanonicalDialogueTurn,
+  CapabilityFixture,
   ComicDialoguePlan,
-  ComicSourceIdentity,
+  CreateCurrentTtsRenderAttemptOptions,
   FalTtsModel,
   GenericTtsDialoguePlan,
-  GenericTtsSourceIdentity,
   PipelineProviderState,
   PlannedCost,
+  PlannedInputs,
   ProtectedAssetRef,
-  ProviderRenderPlan,
   ProviderRenderBranchCandidate,
   ProviderRenderBranchPlan,
+  ProviderRenderPlan,
   ProviderRenderStrategy,
+  PureCurrentTtsReadinessPlan,
+  PureCurrentTtsRenderPlan,
+  PureCurrentTtsRenderPlanOptions,
   ResolvedVoiceBinding,
   SanitizedProviderError,
   TtsTarget,
   TtsTargetInvocation,
+  TtsTargetSelection,
   TypedProviderRequestSettings,
   TypedProviderSynthesisSettings,
 } from '~/types'
@@ -72,15 +79,9 @@ import {
   validateProviderRenderPlanIdentity,
 } from './contract-validation'
 import {
-  type AttemptSlot,
-  type AttemptTurn,
-  type CapabilityFixture,
   CAPABILITY_CHECKED_AT,
   CAPABILITY_SOURCE_REFS,
-  type CreateCurrentTtsRenderAttemptOptions,
   EPOCH,
-  type PureCurrentTtsReadinessPlan,
-  type PureCurrentTtsRenderPlanOptions,
   REQUESTED_OUTPUT,
   SCHEMA_VERSION,
   withIdentity,
@@ -90,7 +91,6 @@ import {
   prepareSegmentedTurnText,
   segmentedSlotGroup,
 } from './comic-segmented-audio'
-
 export const typedSettings = (
   target: TtsTarget,
   effectiveControls: Readonly<Record<string, unknown>>,
@@ -111,8 +111,6 @@ export const requestSettings = (settings: TypedProviderSynthesisSettings): Typed
   settingsSchema: settings.settingsSchema.replace('.tts.', '.tts.request.'),
   values: { ...settings.values }
 })
-
-export type TtsTargetSelection = ReturnType<typeof createTtsTargetSelection>
 
 export const resolveEffectiveInvocationControls = (
   target: TtsTarget,
@@ -466,22 +464,12 @@ export const defaultVoiceValue = (target: TtsTarget): string => {
   }
 }
 
-export type PlannedInputs = {
-  sourceIdentity: GenericTtsSourceIdentity | ComicSourceIdentity
-  dialoguePlan: GenericTtsDialoguePlan | ComicDialoguePlan
-  turns: AttemptTurn[]
-  batches: ProviderRenderPlan['batches']
-  slots: AttemptSlot[]
-  strategy: ProviderRenderStrategy
-  normalizedText: string
-}
-
 const resolveComicTurns = (
   options: CreateCurrentTtsRenderAttemptOptions,
   context: NonNullable<CreateCurrentTtsRenderAttemptOptions['comicContext']>,
   canonicalTurns: ReturnType<typeof flattenPlanTurns>,
   normalizedTurnControls: ReturnType<typeof normalizeTtsTurnControls>,
-  selection: ReturnType<typeof createTtsTargetSelection>,
+  selection: TtsTargetSelection,
   entriesById: Map<string, (typeof context.voiceSnapshot.entries)[number]>
 ): AttemptTurn[] => {
   return canonicalTurns.map((canonical, sourceIndex) => {
@@ -646,7 +634,7 @@ const resolveGenericTurns = (
   capabilityFixtureHash: string,
   registry: ReturnType<typeof parseSpeakerVoiceMappings> | undefined,
   normalizedTurnControls: ReturnType<typeof normalizeTtsTurnControls>,
-  selection: ReturnType<typeof createTtsTargetSelection>
+  selection: TtsTargetSelection
 ): AttemptTurn[] => {
   const canonicalTurns = flattenPlanTurns(dialoguePlan)
   return canonicalTurns.map((canonical, sourceIndex) => {
@@ -806,32 +794,6 @@ export const sumCosts = (costs: readonly PlannedCost[]): PlannedCost => {
   const amounts = new Map<string, number>()
   for (const cost of costs) for (const entry of cost.amounts) amounts.set(entry.currency, (amounts.get(entry.currency) ?? 0) + entry.amount)
   return { amounts: [...amounts].sort(([left], [right]) => left.localeCompare(right)).map(([currency, amount]) => ({ currency, amount })) }
-}
-
-export type PureCurrentTtsRenderPlan = {
-  operation: 'tts-synthesis' | 'comic-audio'
-  transport: string
-  targetKey: string
-  capability: CapabilityFixture
-  capabilityFixtureHash: string
-  capabilityScopeHash: string
-  planned: PlannedInputs
-  voiceContextKey: string
-  outputProfileHash: string
-  synthesisSettingsHash: string
-  plannedRenderCost: PlannedCost
-  branchCandidate: ProviderRenderBranchCandidate
-  branchPlan: ProviderRenderBranchPlan
-  strategyArtifacts: {
-    sourceIdentity: { identityHash: string, path: string, sha256: string }
-    dialoguePlan: { dialoguePlanId: string, path: string, sha256: string }
-    normalizedDialogue: { path: string, sha256: string }
-    turns: Array<{ turnId: string, path: string, sha256: string }>
-    generationSlots: Array<{ generationSlotId: string, path: string, sha256: string }>
-  }
-  renderPlanId: string
-  renderIdentity: string
-  renderPlan: ProviderRenderPlan
 }
 
 export const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions): PureCurrentTtsRenderPlan => {

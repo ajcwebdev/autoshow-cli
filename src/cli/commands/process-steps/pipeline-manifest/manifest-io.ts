@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import type {
   ExtractRoute,
   InputFamily,
+  ManifestProviderSelector,
   PipelineItemRecord,
   PipelineManifest,
   PipelineManifestChildLink,
@@ -467,15 +468,6 @@ export const readSinglePipelineItemRecord = async (
     return undefined
   }
   return derivePipelineItemRecord(rootDir, item)
-}
-
-type ManifestProviderSelector = {
-  service: string
-  model?: string | null | undefined
-  operation?: string | undefined
-  targetKey?: string | undefined
-  transport?: string | undefined
-  artifactDir?: string | undefined
 }
 
 const matchesManifestProvider = (

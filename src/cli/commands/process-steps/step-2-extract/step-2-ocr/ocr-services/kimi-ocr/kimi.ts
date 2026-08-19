@@ -13,9 +13,11 @@ export const resolveKimiBaseUrl = (): string =>
 export const acceptsKimiThinkingField = (model: string): boolean =>
   !/^kimi-k3(?:[.-]|$)/i.test(model)
 
-export const ensureKimiApiKey = (serviceName: string): string =>
-  requireApiKey('KIMI_API_KEY', 'ocr:kimi', serviceName)
+// The stage comes from the call site: write and OCR callers share this helper,
+// and a hardcoded stage made write failures report `ocr:kimi`.
+export const ensureKimiApiKey = (serviceName: string, stage: string): string =>
+  requireApiKey('KIMI_API_KEY', stage, serviceName)
 
 export const ensureKimiOcrSetup = async (): Promise<void> => {
-  ensureKimiApiKey('Kimi OCR')
+  ensureKimiApiKey('Kimi OCR', 'ocr:kimi')
 }

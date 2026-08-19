@@ -1,13 +1,13 @@
 import type {
-BatchItem,
-BatchSource,
-ExtractRoute,
-InputFamily,
-PlannedBatchInput,
-ResolvedBatch,
-ResolvedStep2Execution
-} from '../cli-surface/cli-dir-types'
-import type { PipelineItemRecord } from '../download-workflow/step-1-download-download-types'
+  BatchItem,
+  BatchSource,
+  ExtractRoute,
+  InputFamily,
+  PipelineItemRecord,
+  PlannedBatchInput,
+  ResolvedBatch,
+  ResolvedStep2Execution
+} from '~/types'
 
 export type MetadataScalar = string | number | boolean | null
 

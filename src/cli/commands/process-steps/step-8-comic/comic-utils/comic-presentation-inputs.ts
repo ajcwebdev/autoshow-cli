@@ -3,15 +3,18 @@ import { basename, dirname, join, posix, resolve } from 'node:path'
 import * as v from 'valibot'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import type {
+  ArtifactRef,
   AudioRun,
   ComicPresentationAmbienceInput,
   ComicPresentationPanelInput,
   CompactMix,
-  CompactMixTimelineSummary,
   CompactSfx,
   CompactTargetRender,
+  CompatibleComicSceneRun,
   FinalTimeline,
-  ObservedAudioFormat,
+  LoadedPresentationAudio,
+  PresentationSoundSource,
+  PresentationVisualInputs,
   ScenePromptData,
   SoundscapePlan,
   StructuredScriptData,
@@ -23,37 +26,7 @@ import { inspectSoundscapeAudio } from '../../step-4-tts/soundscape/soundscape-a
 import { validateSoundscapePlan } from '../../step-4-tts/soundscape/soundscape-planner'
 import { ScenePromptDataSchema } from '../schemas/schemas'
 import { validateComicDialoguePlan } from './comic-audio-contracts'
-import type { PresentationSoundSource } from './comic-presentation-plan'
-import type { CompatibleComicSceneRun } from './compatible-scene-run'
 import { validateSceneSourceSegmentCoverage } from './source-coverage-utils'
-
-type ArtifactRef = { path: string, sha256: string }
-
-export type PresentationVisualInputs = {
-  scene: ScenePromptData
-  sceneRef: ArtifactRef
-  panels: ComicPresentationPanelInput[]
-  sourceDir: string
-  imported: boolean
-}
-
-export type LoadedPresentationAudio = {
-  kind: 'dialogue' | 'soundscape'
-  targetKey: string
-  provider: string
-  model: string
-  dialogueBinding: NonNullable<CompatibleComicSceneRun['comicMetadata']['audio']['selectedAudioRuns']>[number]
-  dialogueAudioRun: AudioRun
-  dialogueTimeline: FinalTimeline
-  dialogueAudio: { path: string, sha256: string, format: ObservedAudioFormat, durationMs: number }
-  soundscapeBinding?: NonNullable<CompatibleComicSceneRun['comicMetadata']['audio']['selectedSoundscapeRuns']>[number] | undefined
-  soundscapeAudioRun?: CompactMix | undefined
-  soundscapePlan?: SoundscapePlan | undefined
-  soundscapeTimeline?: CompactMixTimelineSummary | undefined
-  renderResult?: CompactSfx | undefined
-  sounds: PresentationSoundSource[]
-  ambience: ComicPresentationAmbienceInput[]
-}
 
 const verifiedJson = async <T>(rootDir: string, ref: ArtifactRef, label: string): Promise<T> => {
   const stored = await readContainedArtifactFile(rootDir, ref.path)

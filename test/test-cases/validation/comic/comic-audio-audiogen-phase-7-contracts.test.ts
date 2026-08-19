@@ -69,7 +69,7 @@ const fixture = async (root: string) => {
   return { structured, structuredRef, dialoguePlan, soundscapePlan }
 }
 
-describe('ADR-018 Phase 7E Replicate AudioGen soundscape acceptance', () => {
+describe('ADR-017 Phase 7E Replicate AudioGen soundscape acceptance', () => {
   test('keeps AudioGen opt-in, license-gated, and exclusive of ElevenLabs fallback', async () => {
     const root = await tempDirs.make()
     const { soundscapePlan } = await fixture(root)

@@ -1,10 +1,10 @@
 import { readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
-import type { MetadataTopLevelTargetInfo } from '~/types'
+import type { BatchListCacheEntry, FileFingerprint, MetadataTopLevelTargetInfo } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
-import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry, type FileFingerprint } from '~/utils/file-fingerprint-cache'
+import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
 import { hasSupportedExtension, isLikelyUrl, isRawXSpaceId } from './metadata-input-classifier'
 
 const URL_LIST_EXTENSIONS = ['.md', '.txt']
@@ -45,11 +45,6 @@ const parseListEntry = (line: string): string => {
 
 const BATCH_LIST_CACHE_FILE = join(tmpdir(), 'autoshow-batch-list-cache.json')
 const BATCH_LIST_CACHE_LOCK = 'batch-list-cache'
-
-type BatchListCacheEntry = {
-  items: string[]
-  fingerprint: FileFingerprint
-}
 
 const getCachedBatchListItems = async (filePath: string): Promise<string[] | undefined> => {
   const cache = await readJsonCacheMap<BatchListCacheEntry>(BATCH_LIST_CACHE_FILE)

@@ -2,45 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { extname } from 'node:path'
 import ts from 'typescript'
-
-export type AnalysisScope = 'src' | 'test'
-
-export interface FileMetric {
-  path: string
-  loc: number
-}
-
-export interface CallableMetric {
-  path: string
-  line: number
-  endLine: number
-  loc: number
-  name: string
-  cyclomatic: number
-  cognitive: number
-  cognitiveSeverity: number
-  halsteadVolume: number
-  maintainabilityIndex: number
-}
-
-export interface ScopeAnalysis {
-  scope: AnalysisScope
-  trackedFiles: number
-  textFiles: number
-  physicalLines: number
-  executableFiles: number
-  callables: number
-  parseDiagnostics: number
-  files: FileMetric[]
-  callableMetrics: CallableMetric[]
-  rankings: {
-    largestFiles: FileMetric[]
-    longestCallables: CallableMetric[]
-    worstCyclomatic: CallableMetric[]
-    worstCognitive: CallableMetric[]
-    worstMaintainability: CallableMetric[]
-  }
-}
+import type { AnalysisScope, CallableMetric, FileMetric, ScopeAnalysis } from '~/types'
 
 const EXECUTABLE_EXTENSIONS = new Set([
   '.cjs',

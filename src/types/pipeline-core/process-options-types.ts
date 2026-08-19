@@ -1,6 +1,4 @@
-import type { ResolvedLLMModelOptions } from '../download-workflow/model-option-llm-defaults-types'
-import type { SttRuntimeOptions } from '../download-workflow/stt-options-types'
-import type { Step2SelectionOriginOptions } from './step-2-shared-types'
+import type { NormalizedReasoningEffort, ResolvedLLMModelOptions, Step2SelectionOriginOptions, SttRuntimeOptions } from '~/types'
 
 export type ProcessingSource =
   | { url: string, filePath?: never }
@@ -31,7 +29,7 @@ type ProcessingWriteOptions = {
   renderedOutDir: string | undefined
   trackList: string | undefined
   promptMd: boolean
-  reasoningEffort: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  reasoningEffort: NormalizedReasoningEffort | undefined
 }
 
 export type ProcessingOptions = ProcessingSource

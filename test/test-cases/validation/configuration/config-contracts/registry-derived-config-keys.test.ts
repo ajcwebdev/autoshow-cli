@@ -5,7 +5,7 @@ import {
   getStep2ProviderConfigPathEntries,
   getStep2ProviderEntries
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import { AutoshowConfigSchema } from '~/types/index'
+import { AutoshowConfigSchema } from '~/types'
 import type { Step2Command } from '~/types'
 import { writeTempConfig } from './shared'
 

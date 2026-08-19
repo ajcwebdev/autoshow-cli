@@ -53,7 +53,7 @@ export const runKimiOcr = createChatImageOcrRunner({
   prompt: buildOcrPrompt(),
   errorMessagePrefix: 'Kimi OCR request failed',
   getConfig: () => ({
-    apiKey: ensureKimiApiKey('Kimi OCR'),
+    apiKey: ensureKimiApiKey('Kimi OCR', 'ocr:kimi'),
     baseURL: resolveKimiBaseUrl()
   }),
   buildBody: ({ model, messages, reasoningPolicy }) => ({

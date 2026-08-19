@@ -4,3 +4,8 @@ export type ConcurrentSetupTask = {
   label: string
   run: () => Promise<void>
 }
+
+export type ReclaimableWhisperCoremlArtifact = {
+  path: string
+  bytes: number
+}

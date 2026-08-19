@@ -1,38 +1,23 @@
 import { mkdir } from 'node:fs/promises'
 import type {
   CharacterVoiceBrief,
-  PlannedCost,
   ProviderVoiceRef,
   TtsOptions,
   TtsTarget,
-  VoiceAuditionCategory,
   VoiceAuditionItem,
   VoiceAuditionManifest,
   VoiceConsentRecord,
   VoiceRegistration,
+  CanonicalVoiceAuditionPassage,
+  CanonicalVoiceAuditionPlan,
+  ProtectedVoiceAssetStore,
 } from '~/types'
-import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-asset-store'
 import { CLIUsageError } from '~/utils/error-handler'
 import { collectTtsTargets } from '../tts-targets'
 import { estimateTtsTargetCosts } from '../tts-utils/tts-pricing'
 import { computeVoiceAuditionId, assertVoiceConsentAllows, validateVoiceAuditionManifest } from './voice-management-contracts'
 import { hashCharacterVoiceBrief } from './character-voice-registry'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
-
-export type CanonicalVoiceAuditionPassage = {
-  itemId: string
-  category: VoiceAuditionCategory
-  text: string
-  delivery?: string | undefined
-}
-
-export type CanonicalVoiceAuditionPlan = {
-  passages: CanonicalVoiceAuditionPassage[]
-  takeCount: number
-  characterCount: number
-  estimatedCostCents: number
-  plannedCost: PlannedCost
-}
 
 const COMPARISON_PASSAGE = 'Morning light crossed the quiet station while a distant bell marked the hour.'
 const NEUTRAL_PASSAGE = 'This is my voice: clear, steady, and ready to tell the story.'

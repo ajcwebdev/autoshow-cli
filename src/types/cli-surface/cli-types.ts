@@ -1,4 +1,4 @@
-import type { BatchRuntimeOptions, HostedConcurrencyCoordinator, HostedConcurrencyMode, HostedTtsChunkScheduler, HtmlArticleBackend, ImageRuntimeOptions, MusicRuntimeOptions, OcrRuntimeOptions, OcrSelectionOptions, ResolvedLLMModelOptions, ResourceGate, SttRuntimeOptions, SttSelectionOptions, TtsRuntimeOptions, VideoRuntimeOptions } from '~/types'
+import type { BatchRuntimeOptions, HostedConcurrencyCoordinator, HostedConcurrencyMode, HostedTtsChunkScheduler, HtmlArticleBackend, ImageRuntimeOptions, MusicRuntimeOptions, NormalizedReasoningEffort, OcrRuntimeOptions, OcrSelectionOptions, ResolvedLLMModelOptions, ResourceGate, SttRuntimeOptions, SttSelectionOptions, TtsRuntimeOptions, VideoRuntimeOptions } from '~/types'
 
 export const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music', 'comic'] as const
 
@@ -27,7 +27,7 @@ export type HostedConcurrencyRuntimeOptions = {
 export type LlmRuntimeOptions = ResolvedLLMModelOptions & HostedConcurrencyRuntimeOptions & {
   llmProviderConcurrency: number
   llmLocalConcurrency: number
-  reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  reasoningEffort?: NormalizedReasoningEffort | undefined
 }
 
 type GenerationSchedulingOptions = HostedConcurrencyRuntimeOptions & {

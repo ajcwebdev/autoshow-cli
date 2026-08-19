@@ -7,13 +7,11 @@ import { isExtractCommand } from '~/cli/commands/process-steps/process-command-k
 import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/batch'
-import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, HostedConcurrencyRuntimeOptions, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand, SingleTargetCommandOptions } from '~/types'
+import type { BatchCommandOptions, BatchExecutionPlan, BatchProcessResult, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand } from '~/types'
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
-
-type BatchCommandOptions = SingleTargetCommandOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & HostedConcurrencyRuntimeOptions
 
 function assertExtractCommandOptions (
   opts: BatchCommandOptions

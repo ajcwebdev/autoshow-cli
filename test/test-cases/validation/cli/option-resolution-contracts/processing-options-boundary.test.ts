@@ -4,12 +4,10 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { buildProcessingOptions } from '~/cli/commands/process-steps/step-1-download/download-targets/single/media-runner'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
-import type { ProcessingOptions, ProcessingSource } from '~/types'
+import type { MatrixCase, ProcessingOptions, ProcessingSource, ResolvedFlagOptions } from '~/types'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
-
-type ResolvedOptions = ReturnType<typeof buildOptsFromFlags>
 
 const sourceKeys = new Set(['url', 'filePath'])
 const defaultResolvedOptions = buildOptsFromFlags(false, {})
@@ -22,7 +20,7 @@ const positiveProcessingKeys = Object.keys(buildProcessingOptions(
 const expectComposedValueParity = (
   source: ProcessingSource,
   outputDir: string,
-  resolvedOptions: ResolvedOptions,
+  resolvedOptions: ResolvedFlagOptions,
   actual: ProcessingOptions
 ): void => {
   const actualRecord = actual as Record<string, unknown>
@@ -42,12 +40,6 @@ const expectComposedValueParity = (
     const expected = key in llmRecord ? llmRecord[key] : resolvedRecord[key]
     expect(actualRecord[key], `composed value for ${key}`).toEqual(expected)
   }
-}
-
-type MatrixCase = {
-  label: string
-  flags: Record<string, unknown>
-  explicitFlags?: Set<string>
 }
 
 const MATRIX: MatrixCase[] = [

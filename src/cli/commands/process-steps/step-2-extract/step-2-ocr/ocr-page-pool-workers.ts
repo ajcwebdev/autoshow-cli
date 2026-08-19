@@ -1,18 +1,8 @@
 import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provider-target-scheduler'
-import type { IndexedOcrTarget, OcrPoolLedger, OcrTarget, RunOcrPagePoolOptions } from '~/types'
+import type { IndexedOcrTarget, OcrPoolClaim, OcrPoolLedger, OcrPoolState, OcrPoolWorkerOptions, OcrTarget, WorkerTarget } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { getOcrTargetKey } from './ocr-run-state'
-import { claimOcrPoolPage, commitAcceptedOcrPoolResult, markOcrPoolTerminalPages, recordOcrPoolClaimFailure, rejectStaleOcrPoolResult, snapshotOcrPoolLedger, type OcrPoolClaim, type OcrPoolState } from './ocr-page-pool-state'
-
-type WorkerTarget = {
-  index: number
-  target: OcrTarget
-}
-
-type OcrPoolWorkerOptions = Pick<
-  RunOcrPagePoolOptions,
-  'requestedTargets' | 'targetsToRun' | 'providerConcurrency' | 'localConcurrency' | 'getTargetConcurrency' | 'processPage' | 'classifyFailure' | 'onCheckpoint'
->
+import { claimOcrPoolPage, commitAcceptedOcrPoolResult, markOcrPoolTerminalPages, recordOcrPoolClaimFailure, rejectStaleOcrPoolResult, snapshotOcrPoolLedger } from './ocr-page-pool-state'
 
 const normalizePositiveInt = (value: number): number =>
   Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1

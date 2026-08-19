@@ -40,3 +40,14 @@ export type CalibrationReport = {
 export type CalibrationStepShape = ProviderIdentityBase & {
   kind: CalibrationKind
 }
+
+export type CalibrationScan = {
+  observations: CalibrationStepObservation[]
+  runsScanned: number
+  metadataFilesScanned: number
+}
+
+export type CalibrationGroupRates = {
+  costRatios: number[]
+  timeRates: number[]
+}

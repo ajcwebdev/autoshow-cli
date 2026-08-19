@@ -1,4 +1,4 @@
-import type { PipelineManifest, PipelineProviderState } from '~/types'
+import type { AudioProjectionValidationContext, PipelineManifest, PipelineProviderState } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import {
@@ -29,19 +29,6 @@ export const resolveRenderEvent = (
   const events = render['events'] as unknown[]
   const eventMatches = events.filter((event) => isRecord(event) && event['sequence'] === eventSequence)
   return eventMatches.length === 1 ? eventMatches[0] as Record<string, unknown> : undefined
-}
-
-type AudioProjectionValidationContext = {
-  projection: Record<string, unknown>
-  targetKey: string
-  branchHistory: unknown[]
-  readinessAttempts: unknown[]
-  renderHistory: unknown[]
-  pointerEvents: unknown[]
-  createOnlyPaths: Set<string>
-  branchIds: Set<string>
-  renderIds: Set<string>
-  addCreateOnlyPath: (value: unknown) => boolean
 }
 
 const createAudioProjectionValidationContext = (

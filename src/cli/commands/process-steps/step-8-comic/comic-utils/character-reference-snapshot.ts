@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { copyFile, mkdir, rename } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
-import type { CharacterCatalogService, CharacterKey } from '~/types'
+import type { CharacterCatalogService, CharacterKey, CharacterReferenceManifest } from '~/types'
 import { checksumFile, requireCurrentCharacterSketch } from '../comic-commands/process-scenes/character-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
@@ -20,7 +20,6 @@ const SnapshotCharacterSchema = v.strictObject({
 export const CharacterReferenceManifestSchema = v.strictObject({
   schemaVersion: v.literal(2), snapshotId: v.string(), catalogHash: v.string(), createdAt: v.string(), characters: v.array(SnapshotCharacterSchema),
 })
-export type CharacterReferenceManifest = v.InferOutput<typeof CharacterReferenceManifestSchema>
 
 export const getCharacterReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'character-references.json')
 

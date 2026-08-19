@@ -1,43 +1,7 @@
 import { existsSync } from 'node:fs'
 import { basename, extname } from 'node:path'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
-
-type MediaReferencePolicy =
-  | { mode: 'strict' }
-  | { mode: 'lenient', contentTypePrefix: string, fallbackMimeType: string }
-
-export interface MediaKindSpec {
-  allowedMimeTypes: readonly string[]
-  mimeByExtension: Readonly<Record<string, string>>
-  mimeAliases: Readonly<Record<string, string>>
-  dataUrlPattern: RegExp
-  policy: MediaReferencePolicy
-  accept: string
-  defaultFileName: (mimeType: string) => string
-  errors: {
-    download: (status: number, url: string) => string
-    unsupportedLocal: (value: string) => string
-    unsupportedUrl: (url: string) => string
-    unsupportedDataUrl: () => string
-  }
-  downloadError: {
-    stage: string
-  }
-}
-
-export interface MediaReferenceBytes {
-  bytes: Uint8Array
-  mimeType: string
-  fileName: string
-}
-
-interface ReferenceValidationOptions {
-  allowedMimeTypes?: readonly string[] | undefined
-  maxInputs?: number | undefined
-  maxInputsError?: ((maxInputs: number) => string) | undefined
-  missingFileError: (value: string) => string
-  unsupportedMimeError: (value: string) => string
-}
+import type { MediaKindSpec, MediaReferenceBytes, ReferenceValidationOptions } from '~/types'
 
 const isHttpUrl = (value: string): boolean => {
   try {

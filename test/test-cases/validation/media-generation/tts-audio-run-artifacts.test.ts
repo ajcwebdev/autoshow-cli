@@ -6,14 +6,13 @@ import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-
 import { hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { AudioMixPlan, AudioRun, AudioTransformLedger, FinalTimeline, TtsTarget } from '~/types'
+import type { AudioMixPlan, AudioRun, AudioTransformLedger, FinalTimeline, ProviderBatchResult, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { createFileTtsSourceIdentity, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { buildNormalizedTiming } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/attempt-success-builders'
-import type { ProviderBatchResult } from '~/types'
 
 describe('TTS Phase 0 audio-run artifacts', () => {
   test('native timing is normalized onto one final-audio clock without losing token provenance', () => {
@@ -130,12 +129,12 @@ describe('TTS Phase 0 audio-run artifacts', () => {
   })
 
   test('file source identity stores the canonical project locator and hashes exact bytes', async () => {
-    const inputPath = join(process.cwd(), 'docs/adr/ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md')
+    const inputPath = join(process.cwd(), 'docs/adr/ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md')
     const bytes = await readFile(inputPath)
     const identity = await createFileTtsSourceIdentity(inputPath, bytes)
     expect(identity.sourceLocator).toEqual({
       kind: 'file',
-      canonicalPath: 'docs/adr/ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md'
+      canonicalPath: 'docs/adr/ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md'
     })
     expect(identity.contentSha256).toBe(sha256Bytes(bytes))
 

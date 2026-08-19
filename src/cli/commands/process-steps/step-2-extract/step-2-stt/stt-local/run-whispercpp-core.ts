@@ -1,5 +1,5 @@
 import { mkdir, rm } from 'node:fs/promises'
-import type { Step2Metadata, TranscriptionResult } from '~/types'
+import type { Step2Metadata, TranscriptionResult, WhisperCppProvider, WhisperCppTranscribeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { countTokens, formatTranscriptText } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
@@ -13,31 +13,6 @@ import { InfraError } from '~/utils/error-handler'
 
 const WHISPER_JSON_WAIT_TIMEOUT_MS = 3000
 const WHISPER_JSON_WAIT_POLL_MS = 100
-
-export type WhisperCppTranscribeOptions = {
-  model: string
-  segmentOffsetMinutes: number
-  segmentNumber?: number | undefined
-  totalSegments?: number | undefined
-  audioDurationSeconds?: number | undefined
-  segmentStartSeconds?: number | undefined
-  segmentDurationSeconds?: number | undefined
-  totalDurationSeconds?: number | undefined
-  preserveJson?: boolean | undefined
-}
-
-export type WhisperCppInvocation = {
-  command: string
-  args: string[]
-  modelDescriptor: string
-}
-
-export type WhisperCppProvider = {
-  name: 'whisper' | 'whisperfile'
-  label: string
-  tempPrefix: string
-  resolveInvocation: (modelName: string, baseArgs: string[]) => Promise<WhisperCppInvocation>
-}
 
 const waitForWhisperJson = async (jsonFile: string, providerName: string): Promise<boolean> => {
   try {

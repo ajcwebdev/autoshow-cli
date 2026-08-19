@@ -1,6 +1,6 @@
+import type { AggregateBatchLinks, GraphLinkContext, PlannedSlot } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { canonicalManifestJson } from './guards'
-import type { GraphLinkContext } from './projection-artifact-link-context'
 
 export const validateProviderBatchResultLinks = (ctx: GraphLinkContext): boolean => {
   for (const reference of ctx.referencesForKind('provider-batch-result')) {
@@ -12,17 +12,6 @@ export const validateProviderBatchResultLinks = (ctx: GraphLinkContext): boolean
     ctx.batchResults.set(batchResultId, { reference, value })
   }
   return true
-}
-
-type PlannedSlot = {
-  batchId: string
-  generationSlotId: string
-  orderedTurnIds: string[]
-}
-
-type AggregateBatchLinks = {
-  pairs: string[]
-  batches: Array<Record<string, unknown>>
 }
 
 const collectPlannedTurnIds = (nodes: readonly unknown[]): string[] =>

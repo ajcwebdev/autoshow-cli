@@ -1,4 +1,3 @@
-import type { ParsedCommandMetric, ParsedJunitCase, TestRunArtifacts } from '~/types'
 import {
   buildMetricContext,
   buildTestContext,
@@ -7,11 +6,15 @@ import {
   normalizeValue
 } from './context'
 import type {
+  JunitIndexes,
   MatchProvenance,
   MetricContext,
   MetricMatchResult,
+  ParsedCommandMetric,
+  ParsedJunitCase,
   ReportTestContext,
-  ServiceModelPair
+  ServiceModelPair,
+  TestRunArtifacts
 } from '~/types'
 
 const metricModelMatches = (modelHints: Set<string>, metricPairs: ServiceModelPair[]): boolean => {
@@ -145,12 +148,6 @@ const addHeuristicMatches = async (
   }
 
   return unmatchedMetrics.filter((_metric, index) => !usedMetrics.has(index))
-}
-
-type JunitIndexes = {
-  byFileAndName: Map<string, Map<string, ParsedJunitCase>>
-  byName: Map<string, ParsedJunitCase[]>
-  byFileLine: Map<string, ParsedJunitCase[]>
 }
 
 const fileLineKey = (file: string, line: number): string => `${file}::${line}`

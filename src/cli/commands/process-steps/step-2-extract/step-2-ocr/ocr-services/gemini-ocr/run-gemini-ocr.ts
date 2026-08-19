@@ -1,6 +1,6 @@
 import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, PageResult, RetryDecision } from '~/types'
+import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
@@ -248,7 +248,7 @@ export const runGeminiOcr = async (
     ocrPreparationCache?: import('~/types').OcrPreparationCache | undefined
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
     documentPageNumber?: number | undefined
-    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+    reasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{
   pages: PageResult[]
@@ -257,8 +257,8 @@ export const runGeminiOcr = async (
   promptTokens?: number
   completionTokens?: number
   providerUsage?: HostedOcrRun['providerUsage']
-  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
-  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
   const policy = resolveReasoningPolicy({
     step: 'extract',

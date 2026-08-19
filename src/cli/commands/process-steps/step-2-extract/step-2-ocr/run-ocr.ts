@@ -1,4 +1,4 @@
-import type { DocumentMetadata, EpubArtifactFile, ExtractionMetadata, ExtractionOptions, ExtractionResult } from '~/types'
+import type { DocumentMetadata, EpubArtifactFile, ExtractionMetadata, ExtractionOptions, ExtractionResult, FormatExtractionResult } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { writeFile } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
@@ -29,7 +29,6 @@ import {
   extractOfficeNativeFormat,
   extractPdfFormat,
   extractRtfNativeFormat,
-  type FormatExtractionResult,
 } from './ocr-format-extractors'
 
 const writeExtractionTextCheckpoint = async (

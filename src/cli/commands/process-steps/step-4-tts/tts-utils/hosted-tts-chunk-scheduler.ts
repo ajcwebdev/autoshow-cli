@@ -1,4 +1,6 @@
 import type {
+  HostedConcurrencyAdmissionToken,
+  HostedConcurrencyCoordinator,
   HostedTtsBatchCoordinator,
   HostedTtsChunkAdmissionToken,
   HostedTtsChunkJob,
@@ -18,7 +20,6 @@ import type {
 import { DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from '~/cli/commands/process-steps/provider-lane-contract'
 import { createHostedConcurrencyCoordinator, recoverHostedConcurrencyRequest } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
-import type { HostedConcurrencyAdmissionToken, HostedConcurrencyCoordinator } from '~/types'
 
 const DEFAULT_RATE_LIMIT_PAUSE_MS = 2_000
 export const HOSTED_TTS_DEFAULT_SCOPE_LABEL = DEFAULT_PROVIDER_LANE_SCOPE_LABEL

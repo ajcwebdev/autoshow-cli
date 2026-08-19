@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import type { PriceCommandSpec } from '~/types'
+import type { BudgetPreflightCacheFile, PriceCommandSpec } from '~/types'
 import { MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader/paths'
 import { EMPTY_PRICE_CONFIG_PATH } from './price-command-config'
 
@@ -22,15 +22,6 @@ const PRICING_SOURCE_FILES = [
   'src/cli/commands/pricing-orchestration/supadata-pricing.ts',
   EMPTY_PRICE_CONFIG_PATH
 ] as const
-
-type BudgetPreflightCacheFile = {
-  version: number
-  fingerprint: string
-  entries: Array<{
-    argvKey: string
-    costCents: number
-  }>
-}
 
 const sha256 = (value: string | Uint8Array): string =>
   createHash('sha256').update(value).digest('hex')

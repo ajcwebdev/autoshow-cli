@@ -1,7 +1,7 @@
 import type {
   AnyCapabilityRecord,
+  CreateFishAdvancedProviderOptions,
   ProviderVoiceCatalogEntry,
-  ProviderVoiceCloneRequest,
   ProviderVoiceDesignRequest,
   ProviderVoiceDesignResult,
   ProviderVoiceInspection,
@@ -47,14 +47,6 @@ const capabilityRecords = [
 ] as const satisfies readonly AnyCapabilityRecord[]
 
 export const FISH_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
-
-export type CreateFishAdvancedProviderOptions = Readonly<{
-  apiKey: string
-  baseUrl?: string | undefined
-  fetchImpl?: typeof fetch | undefined
-  resolveProtectedAsset?: ((asset: ProviderVoiceCloneRequest['protectedSamples'][number]) => Promise<{ bytes: Uint8Array, fileName: string, mediaType: string }>) | undefined
-  now?: (() => string) | undefined
-}>
 
 export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
   const apiKey = options.apiKey.trim()

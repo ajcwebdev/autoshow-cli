@@ -230,9 +230,3 @@ export {
   tmpdir,
   writeFile
 }
-
-export type {
-  EpubChapter,
-  EpubContentReader,
-  ExtractionOptions
-}

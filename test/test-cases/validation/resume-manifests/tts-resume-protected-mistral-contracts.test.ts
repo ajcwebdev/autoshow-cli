@@ -6,12 +6,11 @@ import { resolveStoredTtsTargetsForResume, ttsResumeConfig } from '~/cli/command
 import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import type { PipelineProviderState, TtsOptions, TtsTarget } from '~/types'
+import type { PipelineProviderState, ProtectedVoiceAssetStore, TtsOptions, TtsTarget } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
-import type { ProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { canonicalFileInput, findRecoverableCompletedState, materializeFailedProviderState, resumeTarget } from './tts-resume-fixtures'
 

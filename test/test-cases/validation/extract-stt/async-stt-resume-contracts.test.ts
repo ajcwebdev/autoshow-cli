@@ -6,7 +6,7 @@ import { runHappyScribeStt } from '~/cli/commands/process-steps/step-2-extract/s
 import { runSonioxStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/soniox/run-soniox-stt'
 import { ASYNC_STT_PROGRESS_METADATA_KEY, createSttProviderProgressLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-provider-progress'
 import { writeSttResultArtifact } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-result-artifacts'
-import type { AsyncSttLifecycleOptions, PipelineProviderStatus, Step2Metadata, Step2RuntimeMetadata, SttTarget } from '~/types'
+import type { MatrixOptions, MatrixStatus, PipelineProviderStatus, Step2Metadata, Step2RuntimeMetadata, SttTarget } from '~/types'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
@@ -243,16 +243,6 @@ describe('async STT resume contracts', () => {
       }
     } } })
   })
-
-    type MatrixStatus = {
-      state: 'queued' | 'completed'
-    }
-
-    type MatrixTranscript = {
-      text: string
-    }
-
-    type MatrixOptions = AsyncSttLifecycleOptions<MatrixStatus, MatrixTranscript, string>
 
     const createMatrixOptions = (
       overrides: Partial<MatrixOptions> = {}

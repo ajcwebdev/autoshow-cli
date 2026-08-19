@@ -18,9 +18,9 @@ import type {
   PdfChunkPreparationSummary,
   PdfChunkSplitLogMode,
   PdfChunkSplitResult,
-  PdfChunkSplitTool
+  PdfChunkSplitTool,
+  RunHostedOcrPdfChunkFallbackOptions
 } from '~/types'
-import type { RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { classifyOcrProviderFailure } from '../ocr-run-state'

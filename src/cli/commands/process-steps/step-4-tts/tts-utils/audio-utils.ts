@@ -1,9 +1,8 @@
 import { resolve } from 'node:path'
-import type { HostedTtsChunkAdmissionToken, RunTtsChunksOptions } from '~/types'
+import type { HostedTtsChunkAdmissionToken, RunTtsChunksOptions, TtsMasteringProfile } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
-import type { TtsMasteringProfile } from '~/types'
 import { createHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
 
 export const splitTextIntoChunks = (text: string, maxChars: number): string[] => {

@@ -15,7 +15,7 @@ import { hasResumableOcrTargetWork, priceOcrTarget } from '~/cli/commands/setup-
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
 import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
-import type { OcrTarget, PipelineItemRecord, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import type { OcrTarget, PipelineItemRecord, ProviderBatchResumeConfig, ProviderIdentity, ResolvedFlagOptions, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import { readCanonicalManifest, readCanonicalRecord, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -26,9 +26,7 @@ const FAKE_MODEL_FIELDS = {
   gemini: ['geminiImageModels', 'geminiImageModel']
 } as const
 
-type ResolvedOptions = ReturnType<typeof buildOptsFromFlags>
-
-const collectFakeTargetsFromOptions = (opts: ResolvedOptions): ProviderIdentity[] => {
+const collectFakeTargetsFromOptions = (opts: ResolvedFlagOptions): ProviderIdentity[] => {
   const valuesByField = opts as Record<string, unknown>
   return Object.entries(FAKE_MODEL_FIELDS).flatMap(([service, [modelsField, modelField]]) => {
     const models = valuesByField[modelsField] ?? valuesByField[modelField]
@@ -49,7 +47,7 @@ const fakeResumeConfig = (
   modelFields: FAKE_MODEL_FIELDS,
   getSuccessKey: (entry: ResumeFakeMetadata) =>
     getGenerationTargetKey(entry.service, entry.model),
-  collectTargets: (opts: ResolvedOptions) =>
+  collectTargets: (opts: ResolvedFlagOptions) =>
     selectedTargets.length > 0 ? selectedTargets : collectFakeTargetsFromOptions(opts),
   runMissingTargets: async (targets: ProviderIdentity[]) => {
     ranTargets.push(...targets)
@@ -247,7 +245,7 @@ describe('additive resume provider selection', () => {
       )).resolves.toBe(true)
       const singleResult = await runProviderResumePass(
         singleTarget,
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         fakeProviderResumeConfig(singleRanTargets)
       )
       const singleRecord = await readCanonicalRecord(singleDir)
@@ -307,7 +305,7 @@ describe('additive resume provider selection', () => {
       }
       const batchResult = await runProviderResumePass(
         batchTarget,
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         fakeProviderResumeConfig(batchRanTargets)
       )
       const batchManifest = await readCanonicalManifest(batchDir)
@@ -337,7 +335,7 @@ describe('additive resume provider selection', () => {
         scope: 'batch',
         dir,
         manifestPath
-      }, {} as ResolvedOptions, fakeProviderResumeConfig(ranTargets))).rejects.toThrow(
+      }, {} as ResolvedFlagOptions, fakeProviderResumeConfig(ranTargets))).rejects.toThrow(
         `Invalid canonical manifest at ${manifestPath}`
       )
       expect(ranTargets).toEqual([])
@@ -355,14 +353,14 @@ describe('additive resume provider selection', () => {
       await expect(hasResumableGenerationWork(
         fakeTarget(dir),
         fakeResumeConfig([], ranTargets),
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         new Set()
       )).resolves.toBe(true)
 
       await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([], ranTargets),
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         new Set()
       )
 
@@ -420,11 +418,11 @@ describe('additive resume provider selection', () => {
       )).resolves.toBe(false)
       await expect(priceSttTarget(
         incompleteTarget,
-        { youtubeCaptions: false } as ResolvedOptions
+        { youtubeCaptions: false } as ResolvedFlagOptions
       )).rejects.toThrow('Stored STT target assemblyai/universal-3-pro is incomplete')
       await expect(priceSttTarget(
         incompleteTarget,
-        { youtubeCaptions: false } as ResolvedOptions
+        { youtubeCaptions: false } as ResolvedFlagOptions
       )).rejects.toThrow('Start a new target with an active assemblyai model.')
     })
   })
@@ -577,7 +575,7 @@ describe('additive resume provider selection', () => {
       await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([gemini], ranTargets),
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         new Set(['fake-provider'])
       )
 
@@ -601,7 +599,7 @@ describe('additive resume provider selection', () => {
           runMissingTargets: async () => {
             throw new Error('runner should not be called')
           },
-          buildEstimates: (opts: ResolvedOptions) => {
+          buildEstimates: (opts: ResolvedFlagOptions) => {
             const targets = collectFakeTargetsFromOptions(opts)
             pricedTargets.push(...targets)
             return [{
@@ -613,7 +611,7 @@ describe('additive resume provider selection', () => {
               }]
           }
         },
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         new Set()
       )
 
@@ -631,14 +629,14 @@ describe('additive resume provider selection', () => {
       await expect(hasResumableGenerationWork(
         fakeTarget(dir),
         fakeResumeConfig([openai], ranTargets),
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         new Set(['fake-provider'])
       )).resolves.toBe(false)
 
       await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([openai], ranTargets),
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         new Set(['fake-provider'])
       )
 
@@ -656,7 +654,7 @@ describe('additive resume provider selection', () => {
       const result = await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([openai], ranTargets),
-        {} as ResolvedOptions,
+        {} as ResolvedFlagOptions,
         new Set(['fake-provider'])
       )
 
@@ -791,7 +789,7 @@ describe('additive resume provider selection', () => {
         scope: 'single',
         dir,
         manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
-      }, {} as ResolvedOptions)
+      }, {} as ResolvedFlagOptions)
 
       expect(estimate.steps.map((step) => `${step.provider}/${step.model}`)).toEqual(['whisper/tiny'])
     })

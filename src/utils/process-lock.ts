@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
-import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
+import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 
@@ -134,11 +134,6 @@ const getProcessLockAgeMs = async (
   } catch {
     return null
   }
-}
-
-type ProcessLockDirIdentity = {
-  dev: number
-  ino: number
 }
 
 const getProcessLockDirIdentity = async (lockDir: string): Promise<ProcessLockDirIdentity | null> => {

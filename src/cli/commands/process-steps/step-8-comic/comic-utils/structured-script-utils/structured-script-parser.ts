@@ -1,18 +1,16 @@
 import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
 import { StructuredScriptDataSchema } from '../../schemas/schemas'
-import type { CharacterCatalogService, CharacterKey, ComicSourceIdentity, ExpandedScriptBlock, StructuredScriptBeat, StructuredScriptData } from '~/types'
+import type { BoldLabelClassification, CharacterCatalogService, CharacterKey, ClassifiedStructuredScriptBlock, ComicSourceIdentity, ExpandedScriptBlock, SoundDirectiveClassification, StructuredScriptBeat, StructuredScriptBeatInput, StructuredScriptData, StructuredScriptEnvelope, StructuredScriptParserOptions, StructuredScriptParserState, StructuredSourceSpan } from '~/types'
 import { loadCharacterCatalog, normalizeCharacterLookup } from '../character-reference-config'
 import { getCharactersFromMentions, isUncataloguedSpokenSpeakerLabel, uniqueCharacters } from './character-detection'
 import { buildSourceSegmentsFromBeats } from './source-segments'
 import { buildBeat, expandScriptBlocks, extractInlineTimingDelivery, extractLeadingDelivery, extractLocationSlugline, extractSingleBoldLine, isCaptionSpeakerLabel, isPanelNoteBlock, isParentheticalBlock, isTimingOnlyDirection, isTransitionText, looksLikeLabeledActionFragment, normalizeBlockText, normalizeLineEndings, parseHeading, parseLocation, parseMetadataEntry, resolveFallbackSceneLocation, splitIntoBlocks, stripEmphasisWrapper, stripInlineStageDirections, trimPanelNote, trimParenthetical } from './markdown-blocks'
 import { ValidationError } from '~/utils/error-handler'
-import { readLocationReferenceCatalogSync, resolveLocationCatalogEntry, type LocationReferenceCatalog } from '../location-reference'
+import { readLocationReferenceCatalogSync, resolveLocationCatalogEntry } from '../location-reference'
 import { hashCanonicalTtsValue, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 import { buildStructuredSoundscape, parseSoundscapeBlockDirective, stripInlineSoundscapeDirectives } from './soundscape-directives'
-
-type StructuredSourceSpan = StructuredScriptBeat['sourceSpans'][number]
 
 const scalarOffset = (value: string, utf16Offset: number): number => [...value.slice(0, utf16Offset)].length
 
@@ -107,80 +105,6 @@ const fallbackSourceIdentity = (content: string, scriptPath: string): ComicSourc
   const base = { schemaVersion: 1 as const, canonicalPath, scriptSlug: basename(scriptPath, '.md'), contentSha256: sha256Bytes(content) }
   return { ...base, identityHash: hashCanonicalTtsValue(base) }
 }
-
-interface StructuredScriptParserOptions {
-  locationCatalog?: LocationReferenceCatalog
-  characterCatalog?: CharacterCatalogService
-  sourceIdentity?: ComicSourceIdentity
-}
-
-interface StructuredScriptEnvelope {
-  content: string
-  scriptPath: string
-  scriptFile: string
-  documentHeading: ReturnType<typeof parseHeading>
-  sceneHeading: ReturnType<typeof parseHeading>
-  metadata: StructuredScriptData['document']['metadata']
-  locationRaw: string
-  locationCatalog: LocationReferenceCatalog
-  characterCatalog: CharacterCatalogService
-  blocks: ExpandedScriptBlock[]
-  providedSourceIdentity: ComicSourceIdentity | undefined
-}
-
-interface StructuredScriptParserState {
-  envelope: StructuredScriptEnvelope
-  activeLocation: StructuredScriptData['scene']['location']
-  beats: StructuredScriptBeat[]
-  allCharacters: CharacterKey[]
-  characterNameSet: Set<CharacterKey>
-  activeSpeakerLabel: string | null
-  activeSpeakerCharacters: CharacterKey[]
-  pendingDelivery: string | null
-  pendingCaptionLabel: string | null
-  hasDialogueInCurrentTurn: boolean
-  continueDialogueAfterDirection: boolean
-  pendingSoundDirectivePrompt: boolean
-}
-
-type StructuredScriptMention = StructuredScriptBeat['rawMentions'][number]
-type StructuredScriptBeatInput = Omit<StructuredScriptBeat, 'index' | 'location' | 'sourceSpans'>
-type SoundDirectiveClassification = {
-  kind: 'sound-directive'
-  waitsForPrompt: boolean
-} | {
-  kind: 'sound-directive-prompt'
-}
-type BoldLabelClassification = {
-  kind: 'bold-label'
-  label: string
-  role: 'location'
-} | {
-  kind: 'bold-label'
-  label: string
-  role: 'transition' | 'direction'
-  mentions: StructuredScriptMention[]
-  characters: CharacterKey[]
-} | {
-  kind: 'bold-label'
-  label: string
-  role: 'speaker'
-  characters: CharacterKey[]
-} | {
-  kind: 'bold-label'
-  label: string
-  role: 'uncatalogued-speaker' | 'caption'
-}
-type TextBlockClassification = {
-  kind: 'location-transition' | 'caption' | 'labelled-action-fragment' | 'dialogue' | 'direction'
-  text: string
-}
-type ClassifiedStructuredScriptBlock =
-  | SoundDirectiveClassification
-  | BoldLabelClassification
-  | { kind: 'panel-note'; block: string }
-  | { kind: 'parenthetical'; block: string }
-  | TextBlockClassification
 
 const parseStructuredScriptEnvelope = (
   content: string,

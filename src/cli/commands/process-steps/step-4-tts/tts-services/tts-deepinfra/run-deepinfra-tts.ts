@@ -1,4 +1,4 @@
-import type { DeepinfraTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunDeepinfraTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -17,18 +17,6 @@ import {
   resolveDeepinfraTtsRequestControls,
   resolveDeepinfraTtsVoiceField,
 } from './deepinfra-tts-request'
-
-export type RunDeepinfraTtsOptions = Readonly<{
-  model: DeepinfraTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  promptInstructions?: string | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-  allowAmbiguousRedispatch?: boolean | undefined
-}>
 
 export const DEEPINFRA_TTS_RETRY_POLICY = {
   maxAttempts: 8,

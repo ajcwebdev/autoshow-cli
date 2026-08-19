@@ -5,6 +5,7 @@ import type {
   ComicAudioPacingProfile,
   ComicAudioRolePolicy,
   ComicAudioSoundscapeTimingPolicy,
+  ResolvedComicAudioInvocation,
   TtsOptions,
 } from '~/types'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
@@ -97,28 +98,6 @@ export const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions 
   replicateTtsVoice: undefined,
   falTtsVoice: undefined,
 })
-
-export interface ResolvedComicAudioInvocation {
-  profileKey: string
-  mode: ComicAudioMode
-  deliveryPolicy: ComicAudioDeliveryPolicy
-  pacingProfile: ComicAudioPacingProfile
-  soundscapeTimingPolicy: ComicAudioSoundscapeTimingPolicy
-  rolePolicies: ComicAudioRolePolicy[]
-  sampleRate: number
-  channels: 1 | 2
-  codec: 'pcm_s16le' | 'pcm_s24le'
-  price: boolean
-  allowAmbiguousRedispatch: boolean
-  maxGenerationSlots: number | undefined
-  sfxSelector: string | undefined
-  sfxLicenseUseClassification: ReturnType<typeof parseSoundEffectLicenseUseClassification>
-  sfxConcurrency: number
-  presentationRequested: boolean
-  baseOptions: TtsOptions
-  compatible: Awaited<ReturnType<typeof resolveCompatibleComicSceneRun>>
-  dialoguePlan: ReturnType<typeof createComicDialoguePlan>
-}
 
 export const resolveComicAudioInvocation = async (ctx: CliCommandContext, scriptPath: string): Promise<ResolvedComicAudioInvocation> => {
   const flags = ctx.flags as Record<string, unknown>

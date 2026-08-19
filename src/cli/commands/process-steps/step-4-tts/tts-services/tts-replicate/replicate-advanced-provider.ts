@@ -1,4 +1,4 @@
-import type { AnyCapabilityRecord, TtsVoiceProvider } from '~/types'
+import type { AnyCapabilityRecord, CreateReplicateAdvancedProviderOptions, TtsVoiceProvider } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import {
   buildAdvancedCapabilityFixture,
@@ -23,8 +23,6 @@ const capabilityRecords = [
 ] as const satisfies readonly AnyCapabilityRecord[]
 
 export const REPLICATE_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
-
-export type CreateReplicateAdvancedProviderOptions = Readonly<{ apiKey: string }>
 
 export const createReplicateAdvancedProvider = (
   options: CreateReplicateAdvancedProviderOptions

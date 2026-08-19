@@ -49,7 +49,7 @@ const pcm24Metrics = async (path: string, rangeMs?: { start: number, end: number
   return { peak, rms: count === 0 ? 0 : Math.sqrt(squareSum / count) }
 }
 
-describe('ADR-018 deterministic four-bus mixer', () => {
+describe('ADR-017 deterministic four-bus mixer', () => {
   test('writes semantic stems, loops and ducks ambience, limits the master, and remains checksum deterministic', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-soundscape-mixer-'))
     try {

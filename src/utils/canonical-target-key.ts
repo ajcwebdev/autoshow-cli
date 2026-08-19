@@ -1,11 +1,5 @@
 import { createHash } from 'node:crypto'
-
-export type CanonicalProviderOperation =
-  | 'tts-synthesis'
-  | 'comic-structure'
-  | 'comic-image'
-  | 'comic-audio'
-  | (string & {})
+import type { CanonicalProviderOperation } from '~/types'
 
 const safeKeyPart = (value: string): string => {
   const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')

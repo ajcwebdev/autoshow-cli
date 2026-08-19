@@ -4,20 +4,17 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runDialogueWorkSelector } from '~/cli/commands/process-steps/step-4-tts/dialogue-work-selector'
 import { runMultiSpeakerTts } from '~/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts'
-import type { TtsOptions, TtsTarget } from '~/types'
+import type { Deferred, TtsOptions, TtsTarget } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
-
-type Deferred = {
-  promise: Promise<void>
-  resolve: () => void
-}
 
 const createDeferred = (): Deferred => {
   let resolve = (): void => undefined
-  const promise = new Promise<void>((done) => {
+  let reject = (_reason?: unknown): void => undefined
+  const promise = new Promise<void>((done, fail) => {
     resolve = done
+    reject = fail
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
 
 const waitFor = async (condition: () => boolean): Promise<void> => {

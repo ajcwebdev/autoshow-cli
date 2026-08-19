@@ -3,15 +3,13 @@ import { copyFile, mkdir, rename } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
-import type { PanelPrimaryReferenceInput } from '~/types'
+import type { DesignReferenceSnapshotManifest, PanelPrimaryReferenceInput, ResolvedDesignReference, SceneDesignReference } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getDesignReferencesDirectory, getSceneAssetsDirectory, getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const DesignReferenceSnapshotItemSchema = v.strictObject({ key: v.string(), usage: v.string(), sourcePath: v.string(), path: v.string(), sha256: v.string() })
 export const DesignReferenceSnapshotManifestSchema = v.strictObject({ schemaVersion: v.literal(1), snapshotId: v.string(), createdAt: v.string(), designs: v.array(DesignReferenceSnapshotItemSchema) })
-export type DesignReferenceSnapshotManifest = v.InferOutput<typeof DesignReferenceSnapshotManifestSchema>
-type SceneDesignReference = { key: string; sourcePath: string; usage: string }
 
 export const getDesignReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'design-references.json')
 
@@ -55,8 +53,6 @@ export const createDesignReferenceSnapshot = async (runDirectory: string, refere
   await atomicWriteJson(getDesignReferenceManifestPath(runDirectory), manifest)
   return manifest
 }
-
-export type ResolvedDesignReference = { key: string; usage: string; path: string }
 
 export const resolveDesignReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedDesignReference[] => {
   const requested = panels.flatMap(input => input.bundleData.panels.flatMap(panel => panel.designReferenceKeys ?? []))

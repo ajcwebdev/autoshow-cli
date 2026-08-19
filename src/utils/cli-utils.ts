@@ -4,7 +4,6 @@ import type { ExecOptions, ExecResult } from '~/types'
 import { readBoundedTextStream } from '~/utils/bounded-capture'
 import * as l from './app-logger/app-logger'
 
-let envFileLoaded = false
 const DEFAULT_LINE_BUFFER_CHARS = 64 * 1024
 
 const readStreamText = async (
@@ -216,36 +215,6 @@ export const pick = <T extends object, K extends keyof T>(obj: T, keys: readonly
     result[key] = obj[key]
   }
   return result
-}
-
-export const loadEnvFile = async (): Promise<void> => {
-  try {
-    if (envFileLoaded) {
-      return
-    }
-    const envPath = '.env'
-    const exists = await fileExists(envPath)
-    if (!exists) {
-      return
-    }
-    const content = await Bun.file(envPath).text()
-    const lines = content.split('\n')
-    lines.forEach(line => {
-      const trimmedLine = line.trim()
-      if (trimmedLine && !trimmedLine.startsWith('#')) {
-        const [key, ...valueParts] = trimmedLine.split('=')
-        if (!key || valueParts.length === 0) {
-          l.warn(`Skipping malformed .env line: ${trimmedLine.slice(0, 40)}${trimmedLine.length > 40 ? '...' : ''}`)
-          return
-        }
-        const value = valueParts.join('=').replace(/^["']|["']$/g, '')
-        process.env[key.trim()] = value.trim()
-      }
-    })
-    envFileLoaded = true
-  } catch (error) {
-    l.error(`Failed to load .env file`, error)
-  }
 }
 
 export const ensureDirectory = async (dirPath: string): Promise<void> => {

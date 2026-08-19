@@ -1,6 +1,8 @@
 import type {
   AnyCapabilityRecord,
-  DeepinfraTtsModel,
+  CreateDeepinfraAdvancedProviderOptions,
+  DeepinfraDesignSynthesis,
+  JsonObject,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
   ProviderVoiceCloneRequest,
@@ -22,7 +24,6 @@ import {
   buildCapabilityDocumentationEvidence,
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
-  type AdvancedProviderHttpRequest,
 } from '../../script-to-audio/advanced-provider-contracts'
 import {
   buildDeepinfraTtsRequestBody,
@@ -56,10 +57,9 @@ const capabilityRecords = [
 
 export const DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
-type JsonRecord = Record<string, unknown>
-const record = (value: unknown, label: string): JsonRecord => {
+const record = (value: unknown, label: string): JsonObject => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`DeepInfra ${label} response is invalid.`)
-  return value as JsonRecord
+  return value as JsonObject
 }
 const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
 
@@ -85,20 +85,6 @@ export const mapDeepinfraVoice = (value: unknown): ProviderVoiceCatalogEntry => 
     }
   }
 }
-
-export type DeepinfraDesignSynthesis = (input: {
-  model: DeepinfraTtsModel
-  body: Readonly<Record<string, unknown>>
-  signal?: AbortSignal | undefined
-}) => Promise<Uint8Array>
-
-export type CreateDeepinfraAdvancedProviderOptions = Readonly<{
-  apiKey: string
-  request?: AdvancedProviderHttpRequest | undefined
-  synthesizeDesign?: DeepinfraDesignSynthesis | undefined
-  resolveProtectedAsset?: ((asset: ProviderVoiceCloneRequest['protectedSamples'][number]) => Promise<{ bytes: Uint8Array, fileName: string, mediaType: string }>) | undefined
-  now?: (() => string) | undefined
-}>
 
 const defaultDesignSynthesis = (apiKey: string): DeepinfraDesignSynthesis => async ({ model, body, signal }) => {
   const res = await fetch(`https://api.deepinfra.com/v1/inference/${model}`, {

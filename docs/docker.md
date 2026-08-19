@@ -115,6 +115,8 @@ docker run --rm \
 
 Do not bake `.env` into the image. The default `.dockerignore` excludes it.
 
+The image sets `NODE_ENV=production`. Project code never reads it, but Bun's env loader does: with it set, Bun also auto-loads `/app/.env.production` if one is mounted. Mounting `/app/.env` is the supported path; treat `.env.production` auto-loading as a Bun side effect, not a project interface. In every case real environment variables (`-e`, `--env-file`) win over values from an auto-loaded file.
+
 ## Runtime Cache
 
 The local-lite tools are baked into the image. A `runtime/` mount is optional and mainly useful if later commands fetch project-local assets:

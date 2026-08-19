@@ -20,7 +20,7 @@ import {
   validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
 import type {
-  CliCommandContext,
+  ComicParsedArgs,
   ParsedDraftCommandArgs,
   ParsedGenerateBaseArgs,
   ParsedGenerateImagesArgs,
@@ -30,8 +30,6 @@ import type {
   ParsedLlmModel,
   ParsedReferenceSketchArgs,
 } from '~/types'
-
-type ComicParsedArgs = Pick<CliCommandContext, 'flags' | 'parameters' | 'rawParsed'>
 
 // Comic's default text model. Validated against the central LLM registry at parse time.
 export const DEFAULT_LLM_MODEL = 'gpt-5.6-sol'

@@ -1,4 +1,4 @@
-import type { HostedTtsChunkScheduler, InworldTtsModel, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunInworldTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -9,17 +9,6 @@ import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, r
 import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, normalizeInworldTimestampInfo } from './inworld-tts-request'
-
-export type RunInworldTtsOptions = Readonly<{
-  model: InworldTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  steeringPrompt?: string | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-}>
 
 export const parseInworldMarkups = (text: string): { sanitizedText: string, markups: string[] } => {
   const markups = [...text.matchAll(/\[([^\]\r\n]+)\]/g)].map(match => match[1] as string)

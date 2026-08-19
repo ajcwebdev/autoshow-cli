@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, ObservedAudioFormat, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
+import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
@@ -23,58 +23,6 @@ const CACHE_ROOT = join(RUNTIME_DIR, 'synthesis-cache', 'v1')
 export const SOUND_EFFECT_ARCHIVE_PATH = 'audio/sound-effects/sfx.json'
 export const soundEffectSourcePath = (requestIdentity: string): string => `audio/sound-effects/sources/${requestIdentity}.audio`
 export const soundEffectWorkingRoot = (renderPlanId: string): string => `audio/sound-effects/${renderPlanId}`
-
-type CacheEntry = {
-  schemaVersion: 1
-  cacheNamespace: 'shared-synthesis-v1'
-  modality: 'sound-effect'
-  requestIdentity: string
-  targetKey: string
-  capabilityFixtureHash: string
-  serializerVersion: string
-  audio: { path: 'audio.bin', sha256: string, format: ObservedAudioFormat, durationMs: number }
-  requestEvidence: SoundEffectGenerationResponse['requestEvidence']
-  createdAt: string
-}
-
-type SoundEffectAdmissionStarted = {
-  schemaVersion: 1
-  eventId: string
-  state: 'dispatch-started'
-  renderPlanId: string
-  requestIdentity: string
-  requestOrdinal: number
-  targetKey: string
-  createdAt: string
-}
-
-type SoundEffectAdmissionTerminal = {
-  schemaVersion: 1
-  eventId: string
-  state: 'provider-succeeded' | 'rejected' | 'ambiguous'
-  renderPlanId: string
-  requestIdentity: string
-  requestOrdinal: number
-  targetKey: string
-  response?: {
-    audio: { path: string, sha256: string }
-    evidence: { path: string, sha256: string }
-  } | undefined
-  sanitizedReason?: string | undefined
-  createdAt: string
-}
-
-type PersistedSoundEffectResponse = {
-  schemaVersion: 1
-  responsePackageId: string
-  requestIdentity: string
-  requestOrdinal: number
-  audioSha256: string
-  contentType: string
-  providerRequestId?: string | undefined
-  observedCharacterCost?: number | undefined
-  requestEvidence: SoundEffectGenerationResponse['requestEvidence']
-}
 
 const admissionRoot = (plan: SoundEffectRenderPlan, task: SoundEffectRenderTask): string => `audio/sound-effects/${plan.renderPlanId}/admissions/${task.requestIdentity}`
 const admissionOrdinal = (value: number): string => String(value).padStart(4, '0')
@@ -415,8 +363,6 @@ const compactSucceededSoundEffectRender = async (rootDir: string, plan: SoundEff
   await removeContainedDirectory(rootDir, soundEffectWorkingRoot(plan.renderPlanId))
   return { compact, ref: { path: written.relativePath, sha256: written.sha256 } }
 }
-
-export type SoundEffectAdapter = { generate(task: SoundEffectRenderTask, target: SoundEffectTarget, requestOrdinal: number, cancellation: AbortSignal): Promise<SoundEffectGenerationResponse> }
 
 export const executeSoundEffectRenderPlan = async (input: {
   rootDir: string

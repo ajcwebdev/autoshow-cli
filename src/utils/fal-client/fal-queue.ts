@@ -2,15 +2,7 @@ import { FAL_QUEUE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { InfraError } from '~/utils/error-handler'
 import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-
-export type FalQueueStatus = {
-  status: string
-  request_id: string
-  response_url?: string | undefined
-  status_url?: string | undefined
-  cancel_url?: string | undefined
-  queue_position?: number | undefined
-}
+import type { FalQueueStatus } from '~/types'
 
 const headersFor = (apiKey: string): Record<string, string> => ({
   Authorization: `Key ${apiKey}`,

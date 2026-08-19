@@ -1,4 +1,3 @@
-import type { ParsedCommandMetric, ParsedJunitCase, TestRunArtifacts } from '~/types'
 import { normalizeRepoPath } from '../utils'
 import {
   buildMetricContext,
@@ -12,37 +11,16 @@ import { matchMetricsToTests } from './matching'
 import { buildBudgetRunFields } from './run-metadata'
 import type {
   BudgetPreflightSummary,
+  LinkedMetricSummarizer,
+  LinkedMetricSummary,
+  LinkedMetricTotals,
   MatchProvenance,
   MetricMatchResult,
-  ReportHistoricalLookup
+  ParsedCommandMetric,
+  ParsedJunitCase,
+  ReportHistoricalLookup,
+  TestRunArtifacts
 } from '~/types'
-
-export type LinkedMetricSummary = {
-  source: 'runCommand' | 'none'
-  matchedBy: MatchProvenance | null
-  commandDurationMs: number | null
-  estimatedCostCents: number | null
-  actualCostCents: number | null
-  estimatedProcessingTimeMs: number | null
-  actualProcessingTimeMs: number | null
-  notes: string[]
-}
-
-type LinkedMetricTotals = Pick<
-  LinkedMetricSummary,
-  | 'commandDurationMs'
-  | 'estimatedCostCents'
-  | 'actualCostCents'
-  | 'estimatedProcessingTimeMs'
-  | 'actualProcessingTimeMs'
->
-
-type LinkedMetricSummarizer = (
-  linked: ParsedCommandMetric[],
-  historical: ReportHistoricalLookup,
-  testId: string,
-  matchedBy: MatchProvenance | null
-) => LinkedMetricSummary
 
 const earliestMetricStartIso = (metrics: ParsedCommandMetric[]): string | null => {
   let earliest: number | null = null

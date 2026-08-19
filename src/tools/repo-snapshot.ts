@@ -4,6 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import type { TreeNode } from '~/types'
 import { countReferenceTokens } from '~/utils/reference-tokenizer'
 import * as l from '~/utils/app-logger/app-logger'
 
@@ -83,11 +84,6 @@ const listCandidatePaths = (): string[] => {
     { cwd: PROJECT_ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
   )
   return [...new Set(output.split('\n').filter(Boolean))]
-}
-
-type TreeNode = {
-  dirs: Map<string, TreeNode>
-  files: string[]
 }
 
 const newTreeNode = (): TreeNode => ({ dirs: new Map(), files: [] })

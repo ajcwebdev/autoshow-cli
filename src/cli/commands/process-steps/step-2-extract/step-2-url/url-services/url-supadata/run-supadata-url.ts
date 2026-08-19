@@ -1,9 +1,8 @@
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
-import { readEnv } from '~/utils/validate/env-utils'
 import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, isRecord, normalizeMarkdown } from '../../url-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey } from '../../url-utils'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const parseSupadataResponse = (
   payload: unknown,
@@ -52,21 +51,13 @@ const runSupadataScrape = async (
   options?: UrlRequestOptions,
   baseUrl: string = SUPADATA_DEFAULT_BASE_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = readEnv('SUPADATA_API_KEY')
-
-  if (!apiKey) {
-    throw InternalError(
-      'SUPADATA_API_KEY is required for --url-provider supadata. ' +
-      'Set SUPADATA_API_KEY or use a different URL backend.',
-      { stage: 'url:supadata', hints: hintsForMissingEnv('SUPADATA_API_KEY') }
-    )
-  }
+  const apiKey = requireHostedUrlProviderApiKey('SUPADATA_API_KEY', 'supadata', 'url:supadata', baseUrl === SUPADATA_DEFAULT_BASE_URL)
 
   const scrapeUrl = `${baseUrl.replace(/\/$/, '')}/web/scrape?url=${encodeURIComponent(source)}`
 
   const payload = await fetchUrlProviderJson('Supadata', 'scrape', scrapeUrl, {
     method: 'GET',
-    headers: { 'x-api-key': apiKey }
+    headers: { ...(apiKey ? { 'x-api-key': apiKey } : {}) }
   }, options, ['message', 'details', 'error'], isSupadataPlanLimitExhausted)
   return parseSupadataResponse(payload, source)
 }

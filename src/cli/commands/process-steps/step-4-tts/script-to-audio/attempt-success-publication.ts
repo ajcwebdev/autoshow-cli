@@ -1,47 +1,18 @@
 import { readdir, unlink } from 'node:fs/promises'
 import type {
-  AudioMixPlan,
   AudioRun,
-  AudioTransformLedger,
-  CompactAudioArchiveSlot,
-  CompactTargetRender,
-  FinalTimeline,
-  ProviderBatchResult,
-  ProviderRenderResult,
+  CurrentTtsRenderArtifacts,
+  SuccessPublicationInput,
 } from '~/types'
 import { removeContainedDirectory } from './safe-artifact-store'
-import type { AttemptContext } from './attempt-context'
 import { contained, hasErrorCode, writeJson, writeJsonReplace } from './attempt-io'
 import { stateForProjection } from './attempt-planning'
 import { appendTerminalProjection, publish } from './attempt-projection'
-import type { WrittenJson } from './attempt-shared'
 import {
   buildAudioRun,
   buildCompactArchive,
   buildCompactTerminalProjection,
-  type FinalAudioObservation,
 } from './attempt-success-builders'
-import type { CurrentTtsRenderArtifacts } from './current-render-artifacts'
-
-export type SuccessPublicationInput = {
-  ctx: AttemptContext
-  resultFile: WrittenJson<ProviderRenderResult>
-  batchResultFiles: Array<WrittenJson<ProviderBatchResult>>
-  audioRunRoot: string
-  finalPath: string
-  finalAudio: FinalAudioObservation
-  finalAudioSha256: string
-  reportedOutputPath: string
-  reportedOutputSha256: string
-  mixPlan: AudioMixPlan
-  mixPlanFile: WrittenJson<AudioMixPlan>
-  ledger: AudioTransformLedger
-  ledgerFile: WrittenJson<AudioTransformLedger>
-  timeline: FinalTimeline
-  compactSlots: CompactAudioArchiveSlot[]
-  compactRender: CompactTargetRender
-}
-
 const currentArtifacts = (
   input: SuccessPublicationInput,
   audioRun: AudioRun,

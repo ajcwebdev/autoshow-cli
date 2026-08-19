@@ -1,40 +1,8 @@
-import type { DocumentMetadata, ExtractionOptions, HostedOcrImageResult, HostedOcrSchedulerRetryPressureHandler, OpenAIChatCompletionResponse, OpenAIRestConfig, PageResult } from '~/types'
+import type { ChatImageOcrBodyInput, ChatImageOcrOptions, ChatImageOcrProfile, DocumentMetadata, HostedOcrImageResult, HostedOcrSchedulerRetryPressureHandler, MappedReasoningPolicy, NormalizedReasoningEffort, OpenAIRestConfig, PageResult } from '~/types'
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 import { withOcrPageRequestRetry } from './ocr-retry'
 import { assertHostedOcrImageWithinLimits, buildHostedOcrImageResult, readHostedOcrImageDataUrl } from './hosted-ocr-utils'
-import { resolveReasoningPolicy, type MappedReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-
-type ChatImageOcrBodyInput = {
-  model: string
-  messages: Array<{
-    role: 'user'
-    content: Array<
-      | { type: 'text', text: string }
-      | { type: 'image_url', image_url: { url: string } }
-    >
-  }>
-  reasoningPolicy: MappedReasoningPolicy
-}
-
-type ChatImageOcrProfile<TExtractionMethod extends string> = {
-  extractionMethod: TExtractionMethod
-  service: string
-  providerLabel: string
-  maxImageBytes: number
-  imageLimitLabel: string
-  supportedMimeTypes: Partial<Record<DocumentMetadata['format'], string>>
-  prompt: string
-  errorMessagePrefix: string
-  getConfig: (baseUrl?: string) => OpenAIRestConfig
-  buildBody: (input: ChatImageOcrBodyInput) => Record<string, unknown>
-  checkResponse?: ((response: OpenAIChatCompletionResponse, rawText: string, pageLabel: string) => void) | undefined
-}
-
-type ChatImageOcrOptions = Pick<ExtractionOptions, 'dpi' | 'password' | 'outputDir' | 'ocrPreparationCache' | 'ocrConcurrency' | 'ocrConcurrencyMode' | 'hostedOcrScheduler'> & {
-  onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-  documentPageNumber?: number | undefined
-  reasoningEffort?: NormalizedReasoningEffort | undefined
-}
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 export const createChatImageOcrRunner = <TExtractionMethod extends string>(
   profile: ChatImageOcrProfile<TExtractionMethod>

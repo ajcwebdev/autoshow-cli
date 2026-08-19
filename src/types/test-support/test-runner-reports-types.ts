@@ -44,3 +44,36 @@ export type BudgetPreflightSummary = {
     selectedCostCents: number
   }[]
 }
+
+export type JunitIndexes = {
+  byFileAndName: Map<string, Map<string, ParsedJunitCase>>
+  byName: Map<string, ParsedJunitCase[]>
+  byFileLine: Map<string, ParsedJunitCase[]>
+}
+
+export type LinkedMetricSummary = {
+  source: 'runCommand' | 'none'
+  matchedBy: MatchProvenance | null
+  commandDurationMs: number | null
+  estimatedCostCents: number | null
+  actualCostCents: number | null
+  estimatedProcessingTimeMs: number | null
+  actualProcessingTimeMs: number | null
+  notes: string[]
+}
+
+export type LinkedMetricTotals = Pick<
+  LinkedMetricSummary,
+  | 'commandDurationMs'
+  | 'estimatedCostCents'
+  | 'actualCostCents'
+  | 'estimatedProcessingTimeMs'
+  | 'actualProcessingTimeMs'
+>
+
+export type LinkedMetricSummarizer = (
+  linked: ParsedCommandMetric[],
+  historical: ReportHistoricalLookup,
+  testId: string,
+  matchedBy: MatchProvenance | null
+) => LinkedMetricSummary

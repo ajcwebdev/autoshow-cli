@@ -1,4 +1,4 @@
-import type { OcrConcurrencyMode, OcrProviderMode, OutputFormat, ResolvedLLMModelOptions } from '~/types'
+import type { NormalizedReasoningEffort, OcrConcurrencyMode, OcrProviderMode, OutputFormat, ResolvedLLMModelOptions } from '~/types'
 
 export type OcrRuntimeOptions = {
   ocrConcurrency: number | undefined
@@ -36,7 +36,7 @@ export type OcrRuntimeOptions = {
   chapterFiles: boolean | undefined
   chapterChunkLimitChars: number | undefined
   pdfChapterMode: 'local' | 'auto' | 'llm'
-  reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  reasoningEffort?: NormalizedReasoningEffort | undefined
 }
 
 export type OcrExtractionOptions = OcrRuntimeOptions & {

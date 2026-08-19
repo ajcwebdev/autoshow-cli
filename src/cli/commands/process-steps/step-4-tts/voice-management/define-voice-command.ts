@@ -1,4 +1,4 @@
-import type { CliCommandContext, CliCommandDefinition, TtsProvider, TtsVoiceProvider, VoiceConsentAction, VoiceConsentRecord, VoiceRegistration } from '~/types'
+import type { CliCommandContext, CliCommandDefinition, CloneProviderName, DesignProviderName, ManagedAdvancedProvider, TtsProvider, VoiceConsentAction, VoiceConsentRecord, VoiceProviderName, VoiceRegistration } from '~/types'
 import { join } from 'node:path'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { boolFlag, strFlag, strListFlag } from '~/cli/flags/flag-utils'
@@ -36,7 +36,7 @@ import { FISH_VOICE_DESIGN_MODEL } from '../tts-services/fish/fish-tts-request'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
 
-const VOICE_PROVIDERS = ['elevenlabs', 'inworld', 'fish', 'cartesia', 'speechify'] as const
+const VOICE_PROVIDERS = ['elevenlabs', 'inworld', 'fish', 'cartesia', 'speechify'] as const satisfies readonly VoiceProviderName[]
 const CONSENT_ACTIONS: VoiceConsentAction[] = ['upload', 'new-synthesis', 'cache-reuse', 'resume', 'export', 'retention', 'deletion']
 const VOICE_ORIGINS = ['provider-stock', 'designed', 'remixed', 'instant-clone', 'professional-clone', 'imported-custom', 'saved-reference'] as const
 const PROFILE_DEFAULT = 'default'
@@ -49,12 +49,8 @@ const VOICE_SYNTHESIS_MODELS = {
 } as const
 const SPEECHIFY_CLONE_GENDERS = ['male', 'female', 'not_specified'] as const
 
-const DESIGN_PROVIDERS = ['elevenlabs', 'fish', 'inworld'] as const
-const CLONE_PROVIDERS = ['elevenlabs', 'inworld', 'fish', 'cartesia', 'speechify'] as const
-type VoiceProviderName = typeof VOICE_PROVIDERS[number]
-type DesignProviderName = typeof DESIGN_PROVIDERS[number]
-type CloneProviderName = typeof CLONE_PROVIDERS[number]
-type ManagedAdvancedProvider = Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string }
+const DESIGN_PROVIDERS = ['elevenlabs', 'fish', 'inworld'] as const satisfies readonly DesignProviderName[]
+const CLONE_PROVIDERS = ['elevenlabs', 'inworld', 'fish', 'cartesia', 'speechify'] as const satisfies readonly CloneProviderName[]
 
 const isVoiceProvider = (provider: TtsProvider): provider is VoiceProviderName => VOICE_PROVIDERS.includes(provider as VoiceProviderName)
 const isDesignProvider = (provider: TtsProvider): provider is DesignProviderName => DESIGN_PROVIDERS.includes(provider as DesignProviderName)

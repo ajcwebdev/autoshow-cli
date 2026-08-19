@@ -1,4 +1,4 @@
-import type { AudioRun, ComicDialoguePlan, ComicSourceIdentity, NormalizedTiming, ObservedAudioFormat, StructuredScriptArtifactRef } from '~/types'
+import type { ComicDialoguePlan, ComicSourceIdentity, NormalizedTiming, ObservedAudioFormat, StructuredScriptArtifactRef } from '~/types'
 
 export type SoundscapeCueKind = 'vocal-reaction' | 'action-sfx'
 export type SoundscapeBus = 'dialogue' | 'vocal-reaction' | 'action-sfx' | 'ambience'
@@ -296,23 +296,6 @@ export type SoundscapeStemRef = {
   sha256: string
   format: ObservedAudioFormat
   durationMs: number
-}
-
-export type SoundscapeAudioRun = {
-  schemaVersion: 1
-  audioRunId: string
-  dialogueAudioRun: { audioRunId: AudioRun['audioRunId'], path: string, sha256: string }
-  soundscapePlan: { soundscapePlanId: string, path: string, sha256: string }
-  soundEffectRenderPlan?: { renderPlanId: string, path: string, sha256: string } | undefined
-  soundEffectRenderResult?: { resultId: string, path: string, sha256: string } | undefined
-  resolvedTimeline: { timelineId: string, path: string, sha256: string }
-  mixProfileHash: string
-  mixIdentity: string
-  transformLedger: { path: string, sha256: string }
-  transforms: SoundscapeTransform[]
-  stems: SoundscapeStemRef[]
-  master: { path: string, sha256: string, format: ObservedAudioFormat, durationMs: number }
-  createdAt: string
 }
 
 export type CompactSfxEntry = {

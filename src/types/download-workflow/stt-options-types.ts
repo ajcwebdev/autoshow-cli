@@ -1,5 +1,4 @@
-import type { BatchRuntimeOptions } from './batch-options-types'
-import type { HostedConcurrencyRuntimeOptions } from '../cli-surface/cli-types'
+import type { BatchRuntimeOptions, HostedConcurrencyRuntimeOptions } from '~/types'
 
 export type SttRuntimeOptions = {
   whisperModels: string[] | undefined

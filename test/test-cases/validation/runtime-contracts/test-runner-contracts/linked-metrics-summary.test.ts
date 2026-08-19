@@ -1,13 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import type {
+  LinkedMetricSummary,
   MatchProvenance,
   ParsedCommandMetric,
   ReportHistoricalLookup
 } from '~/types'
-import {
-  summarizeLinkedMetrics,
-  type LinkedMetricSummary
-} from '../../../../test-runner/reports/test-report'
+import { summarizeLinkedMetrics } from '../../../../test-runner/reports/test-report'
 
 const metric = (overrides: Partial<ParsedCommandMetric> = {}): ParsedCommandMetric => ({
   source: 'runCommand',

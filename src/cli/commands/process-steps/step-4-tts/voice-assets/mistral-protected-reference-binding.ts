@@ -1,42 +1,11 @@
-import type { ProtectedAssetRef, TtsOptions } from '~/types'
+import type {
+  MaterializedMistralProtectedReferenceBinding,
+  MistralProtectedReferenceBinding,
+  MistralProtectedSpeakerReferenceBinding,
+  PlannedMistralProtectedSpeakerReference,
+  TtsOptions,
+} from '~/types'
 import { InternalError } from '~/utils/error-handler'
-
-export type PlannedMistralProtectedReferenceBinding = Readonly<{
-  materialization: 'non-materialized'
-  protectedAsset: ProtectedAssetRef
-  sourceExtension: string
-}>
-
-export type MaterializedMistralProtectedReferenceBinding = Readonly<{
-  materialization: 'materialized'
-  protectedAsset: ProtectedAssetRef
-  sourceExtension: string
-  resolve: () => Promise<string>
-}>
-
-export type MistralProtectedReferenceBinding =
-  | PlannedMistralProtectedReferenceBinding
-  | MaterializedMistralProtectedReferenceBinding
-
-export type PlannedMistralProtectedSpeakerReference = Readonly<{
-  speakerKey: string
-  protectedAsset: ProtectedAssetRef
-  sourceExtension: string
-}>
-
-export type MaterializedMistralProtectedSpeakerReference = PlannedMistralProtectedSpeakerReference & Readonly<{
-  resolve: () => Promise<string>
-}>
-
-export type MistralProtectedSpeakerReferenceBinding =
-  | Readonly<{
-      materialization: 'non-materialized'
-      entries: readonly PlannedMistralProtectedSpeakerReference[]
-    }>
-  | Readonly<{
-      materialization: 'materialized'
-      entries: readonly MaterializedMistralProtectedSpeakerReference[]
-    }>
 
 // Protected references are execution-only capabilities, not runtime options. A WeakMap keeps the
 // resolver out of logs/artifacts and deliberately binds it to one exact, sanitized options object:

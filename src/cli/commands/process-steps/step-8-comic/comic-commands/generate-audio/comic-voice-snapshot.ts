@@ -1,8 +1,8 @@
-import type { VoiceReferenceManifest } from '~/types'
+import type { ComicVoiceSnapshotTarget, ResolvedVoiceSnapshot, VoiceReferenceManifest } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { resolveCharacterVoiceRegistryPaths } from '../../../step-4-tts/voice-management/character-voice-registry'
-import { buildVoiceReferenceManifest, loadVoiceReferenceManifest, type ComicVoiceSnapshotTarget } from '../../comic-utils/voice-reference-snapshot'
+import { buildVoiceReferenceManifest, loadVoiceReferenceManifest } from '../../comic-utils/voice-reference-snapshot'
 import type { createComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
 import type { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 import { flattenTurns } from './comic-audio-invocation'
@@ -22,11 +22,6 @@ export const assertVoiceSnapshotCoversSelectedTargets = (input: {
   }))
   const snapshotBindings = new Set(input.snapshot.entries.map((entry: { provider: string, providerModel: string, profileKey: string, subjectKey: string }) => `${entry.provider}\0${entry.providerModel}\0${entry.profileKey}\0${entry.subjectKey}`))
   if ([...selectedTargets].some(key => !snapshotTargets.has(key)) || completeSnapshotBindings.size !== input.snapshot.entries.length || snapshotBindings.size !== input.snapshot.entries.length || [...completeSnapshotBindings].some(key => !snapshotBindings.has(key)) || [...selectedBindings].some(key => !snapshotBindings.has(key))) throw CLIUsageError('Retained scene snapshot is not a complete immutable superset of the selected provider/model/profile/subject bindings; start a new canonical scene run for a recast.')
-}
-
-export interface ResolvedVoiceSnapshot {
-  snapshot: VoiceReferenceManifest
-  retainedSnapshot: Awaited<ReturnType<typeof loadVoiceReferenceManifest>> | undefined
 }
 
 export const resolveComicVoiceSnapshot = async (input: {

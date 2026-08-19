@@ -6,6 +6,8 @@ import type {
   ComicPresentationPlan,
   ComicPresentationRun,
   CompactPresentation,
+  DialogueSlice,
+  FfmpegCommand,
   ObservedAudioFormat,
   ResolvedPanelTimeline,
 } from '~/types'
@@ -19,15 +21,6 @@ import { hardlinkContainedArtifact, readContainedArtifactFile, removeContainedDi
 export const PRESENTATION_ARCHIVE_PATH = 'presentation/presentation.json'
 export const PRESENTATION_FINAL_WAV = 'presentation/final/slideshow.wav'
 export const PRESENTATION_FINAL_MP4 = 'presentation/final/slideshow.mp4'
-
-type FfmpegCommand = { tool: 'ffmpeg', args: string[] }
-
-type DialogueSlice = {
-  panelNumber: number
-  turnIds: string[]
-  sourceRangeMs: { start: number, end: number }
-  finalRangeMs: { start: number, end: number }
-}
 
 const seconds = (milliseconds: number): string => (milliseconds / 1000).toFixed(6)
 

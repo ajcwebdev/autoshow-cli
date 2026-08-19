@@ -20,7 +20,8 @@ import type {
   ManagedPrebuiltPayloadManifest,
   ManagedPrebuiltReleaseManifest,
   ManagedSourceArtifactManifest,
-  ManagedSourceArtifactValidation
+  ManagedSourceArtifactValidation,
+  ManagedSourceRecipe
 } from '~/types'
 import { pathExists } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { mupdfToolDir, qpdfToolDir } from '~/utils/runtime-paths'
@@ -183,12 +184,6 @@ export const ManagedArtifactManifestSchema = v.union([
   ManagedSourceArtifactManifestSchema,
   ManagedPrebuiltArtifactManifestSchema
 ])
-
-type ManagedSourceRecipe = {
-  binaryRelativePath: string
-  sourceNames: readonly string[]
-  buildFlags: readonly string[]
-}
 
 const SOURCE_RECIPES: Record<ManagedArtifactToolId, ManagedSourceRecipe> = {
   mupdf: {

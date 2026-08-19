@@ -2,7 +2,7 @@ import type { Dirent } from 'node:fs'
 import { existsSync, readFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
-import type { ImageGenerationModel } from '~/types'
+import type { FinalImageEstimateRequest, FinalImageInventory, FinalImageOutputInventory, FinalImagePageInventory, FinalImagePanelInventory, ImageGenerationModel, PanelDirectoryInventory } from '~/types'
 import {
   chunkComicGridPanels,
   chunkComicPagePanels,
@@ -26,18 +26,6 @@ import {
   getPageComicImagePath,
   getPanelComicImagePath,
 } from './scene-utils'
-import type {
-  FinalImageEstimateRequest,
-  FinalImageInventory,
-  FinalImageOutputInventory,
-  FinalImagePageInventory,
-  FinalImagePanelInventory,
-} from './final-image-price-estimate'
-
-type PanelDirectoryInventory = {
-  directoryName: string
-  panelNumber: number
-}
 
 const readPricePanelInput = async (
   panelPromptsDir: string,

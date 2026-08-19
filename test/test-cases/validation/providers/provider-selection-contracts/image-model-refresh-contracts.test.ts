@@ -42,7 +42,7 @@ describe('image model refresh contracts', () => {
     expect(SUPPORTED_GROK_IMAGE_MODELS).toEqual(['grok-imagine-image-quality'])
   })
 
-  test('retired selectors fail with ADR-013 replacement guidance', () => {
+  test('retired selectors fail with refresh-report replacement guidance', () => {
     expect(() => validateGrokImageModel('grok-imagine-image')).toThrow('Use "grok-imagine-image-2.0" instead')
     expect(() => validateFalImageModel('microsoft/mai-image-2.5-pro')).toThrow('Use "alibaba/qwen-image-3" instead')
     expect(() => validateReplicateImageModel('ideogram-ai/ideogram-v4-quality')).toThrow('Use "bytedance/seedream-5-lite" instead')

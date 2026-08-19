@@ -44,8 +44,7 @@ import {
   isStep2BooleanProviderSelected
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { REPEATABLE_MODEL_FLAGS } from '~/cli/flags/service-selector-normalization/repeatable-model-flags'
-import type { RepeatableModelFlag } from '~/cli/flags/service-selector-normalization/repeatable-model-flags'
-import type { AllShortcutFlag, CliFlagOccurrence, FlagOccurrenceValue, Step2ProviderSelectionOrigin } from '~/types'
+import type { AllShortcutFlag, CliFlagOccurrence, FlagOccurrenceValue, RepeatableModelFlag, Step2ProviderSelectionOrigin } from '~/types'
 import { readBooleanFlag } from './flag-readers'
 
 export { REPEATABLE_MODEL_FLAGS }

@@ -159,7 +159,7 @@ The refresh metadata tests cover first refresh, unchanged second refresh, token-
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
-- Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)
+- Related reports: the 2026 hosted-model refresh reports under `docs/reports/`
 - `docs/commands/setup-and-utilities/links/links.md`
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts`
 - `src/cli/commands/setup-and-utilities/links/model-links/`

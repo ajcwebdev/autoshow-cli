@@ -1,5 +1,4 @@
-import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, TokenPricedOcrProvider } from '~/types'
-import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, NormalizedReasoningEffort, TokenPricedOcrProvider } from '~/types'
 
 export type HostedOcrTokenReasoningPolicy = NormalizedReasoningEffort | 'unspecified'
 

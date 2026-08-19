@@ -8,7 +8,7 @@ import {
   WRITE_OCR_PROVIDER_TARGETS,
   WRITE_STT_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import type { AdaptiveProviderFlagValue, AdaptiveProviderGroup, AdaptiveProviderGroupKind } from '~/types'
+import type { AdaptiveProviderFlagValue, AdaptiveProviderGroup, AdaptiveProviderGroupKind, SimpleMediaCommand } from '~/types'
 
 const LOCAL_STT_PROVIDERS = ['whisper', 'whisperfile'] as const satisfies readonly (keyof typeof WRITE_STT_PROVIDER_TARGETS)[]
 const LOCAL_OCR_PROVIDERS = ['tesseract'] as const satisfies readonly (keyof typeof WRITE_OCR_PROVIDER_TARGETS)[]
@@ -326,9 +326,7 @@ const SIMPLE_MEDIA_COMMANDS = {
   image: { kind: 'image', remoteSet: IMAGE_REMOTE_SET, providers: IMAGE_REMOTE_PROVIDERS },
   video: { kind: 'video', remoteSet: VIDEO_REMOTE_SET, providers: VIDEO_REMOTE_PROVIDERS },
   music: { kind: 'music', remoteSet: MUSIC_REMOTE_SET, providers: MUSIC_REMOTE_PROVIDERS },
-} as const satisfies Record<string, { kind: AdaptiveProviderGroupKind, remoteSet: Set<string>, providers: readonly string[] }>
-
-type SimpleMediaCommand = keyof typeof SIMPLE_MEDIA_COMMANDS
+} as const satisfies Record<SimpleMediaCommand, { kind: AdaptiveProviderGroupKind, remoteSet: Set<string>, providers: readonly string[] }>
 
 const isSimpleMediaCommand = (command: string): command is SimpleMediaCommand =>
   Object.hasOwn(SIMPLE_MEDIA_COMMANDS, command)

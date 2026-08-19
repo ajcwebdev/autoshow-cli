@@ -1,4 +1,4 @@
-import type { ComicTtsRenderContext, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PipelineProviderState, SanitizedProviderError, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
+import type { PipelineProviderState, SanitizedProviderError, Step4Metadata, TtsExecutionReadinessObservation, TtsOptions, TtsRunSourceContext, TtsTarget, WorkingTtsMetadata, WorkingTtsResult } from '~/types'
 import { sanitizeModelName, runTargets } from '~/cli/commands/process-steps/target-runner'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import {
@@ -8,13 +8,11 @@ import {
   validateTtsTargetsForExecution,
   validateTtsInput,
 } from './tts-targets'
-import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested } from './dialogue-normalizer'
 import { runMultiSpeakerTts } from './run-multi-speaker-tts'
 import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
-import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
 import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
 
@@ -60,15 +58,6 @@ const describeFailedTtsRecovery = async (options: {
   }
 }
 
-type WorkingTtsMetadata = Step4Metadata & {
-  _ttsObservedTurns?: CurrentTtsObservedTurn[] | undefined
-  _ttsRenderStrategy?: 'native-dialogue' | 'native-utterances' | 'segmented' | undefined
-}
-
-type WorkingTtsResult = Step4Metadata & {
-  _renderArtifacts?: CurrentTtsRenderArtifacts | undefined
-}
-
 const selectBoundedExecutionOptions = (
   options: TtsOptions,
   selection: readonly { turnId: string, providerSegmentIndex: number }[] | undefined
@@ -101,20 +90,6 @@ const selectBoundedExecutionOptions = (
     ...(selectedTurnControls ? { ttsTurnControls: selectedTurnControls } : {}),
     ttsChunkConcurrency: 1
   }
-}
-
-export type TtsRunSourceContext = {
-  sourceIdentity?: GenericTtsSourceIdentity | undefined
-  dialoguePlan?: GenericTtsDialoguePlan | undefined
-  comicContext?: ComicTtsRenderContext | undefined
-  artifactOutputDir?: string | undefined
-  artifactRoot?: string | undefined
-  retainedProviderStates?: PipelineProviderState[] | undefined
-  recoveryRootDir?: string | undefined
-  executionReadiness?: readonly TtsExecutionReadinessObservation[] | undefined
-  resolveReportedOutput?: ((target: TtsTarget, defaultFileName: string) => { path: string, fileName: string }) | undefined
-  beforeDispatch?: ((preparedStates: PipelineProviderState[]) => Promise<void>) | undefined
-  onProviderState?: ((state: PipelineProviderState) => Promise<void>) | undefined
 }
 
 const resolveTtsExecutionReadiness = (

@@ -15,7 +15,7 @@ import {
   URL_ARTICLE_PROVIDER_ADAPTERS,
   writeFile
 } from './shared'
-import type { HtmlArticleBackend, UrlRequestOptions } from './shared'
+import type { HtmlArticleBackend, UrlRequestOptions } from '~/types'
 import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 test('--all-providers URL orchestrator writes provider artifacts and one canonical manifest', async () => {

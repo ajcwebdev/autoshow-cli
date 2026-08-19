@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { validateData } from '~/utils/validate/validation'
+import type { MinimaxBaseResponse, MinimaxCreateResponse, MinimaxFetchJsonOptions, MinimaxQueryResponse } from '~/types'
 
 export const MinimaxBaseRespSchema = v.object({
   status_code: v.optional(v.number(), undefined),
@@ -34,24 +35,6 @@ const MinimaxRetrieveFileResponseSchema = v.object({
   }),
   base_resp: v.optional(MinimaxBaseRespSchema, undefined)
 })
-
-export type MinimaxCreateResponse = v.InferOutput<typeof MinimaxCreateResponseSchema>
-export type MinimaxQueryResponse = v.InferOutput<typeof MinimaxQueryResponseSchema>
-
-type MinimaxBaseResponse = {
-  base_resp?: v.InferOutput<typeof MinimaxBaseRespSchema> | undefined
-}
-
-type MinimaxFetchJsonOptions<TSchema extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>> = {
-  init?: RequestInit | undefined
-  schema: TSchema
-  responseContext: string
-  baseRespContext: string
-  stage: string
-  httpErrorMessage: string
-  decorateError?: ((response: Response) => Error | Promise<Error>) | undefined
-  execute?: ((request: (signal?: AbortSignal) => Promise<Response>) => Promise<Response>) | undefined
-}
 
 export const minimaxJsonRequestInit = (
   apiKey: string,

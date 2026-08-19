@@ -14,7 +14,7 @@ import { musicCommand } from '~/cli/commands/process-steps/step-7-music/define-m
 import { comicCommand } from '~/cli/commands/process-steps/step-8-comic/define-comic-command'
 import { voiceCommand } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
-import type { CliCommandDefinition, CliFlagDefinition } from '~/types'
+import type { CliCommandDefinition, CliFlagDefinition, DocumentedFlag, FlagTableRows, ScannerState } from '~/types'
 
 const docsRoot = resolve(import.meta.dir, '../../../../docs/commands')
 const configDoc = 'setup-and-utilities/config-command/config.md'
@@ -51,23 +51,6 @@ const commandByDoc = {
   'setup-and-utilities/resume/resume.md': resumeCommand,
   'setup-and-utilities/setup/setup.md': setupCommand
 } as const satisfies Record<string, CliCommandDefinition>
-
-type DocumentedFlag = {
-  heading: string | undefined
-  line: number
-  name: string
-}
-
-type ScannerState = {
-  currentLine: number
-  currentH2: string | undefined
-  inFence: boolean
-}
-
-type FlagTableRows = {
-  flags: DocumentedFlag[]
-  nextLine: number
-}
 
 const tableCells = (line: string): string[] =>
   line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim())

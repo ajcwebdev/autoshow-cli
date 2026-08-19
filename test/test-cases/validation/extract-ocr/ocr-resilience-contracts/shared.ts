@@ -173,11 +173,3 @@ export {
   withOcrPageRequestRetry,
   writeOcrProviderError
 }
-
-export type {
-  DocumentMetadata,
-  HostedOcrRun,
-  LogSinkEvent,
-  OcrPreparationCache,
-  PageResult
-}

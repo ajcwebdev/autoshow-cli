@@ -10,11 +10,7 @@ import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metada
 import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { STT_MODEL_KEYS } from '~/cli/options/option-resolution/stt-options'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, BatchRuntimeOptions, DownloadAudioOptions, DownloadRuntimeOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
-
-type DownloadMediaRuntimeOptions = Pick<BatchRuntimeOptions, 'keepOriginalMedia' | 'bestQuality' | 'flatBatch'>
-  & DownloadRuntimeOptions
-  & Pick<SharedPipelineOptions, 'outputRootDir'>
+import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, DownloadMediaRuntimeOptions, DownloadRuntimeOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
 
 export const buildProcessingOptions = (
   source: ProcessingSource,

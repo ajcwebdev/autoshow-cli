@@ -1,4 +1,4 @@
-import type { ComicDialoguePlan, FinalTimeline, ResolvedSoundscapeAnchorResolution, ResolvedSoundscapeTimeline, SoundEffectRenderResult, SoundscapeAnchor, SoundscapePlan } from '~/types'
+import type { AnchorRole, ComicDialoguePlan, FinalTimeline, ResolvedSoundscapeAnchorResolution, ResolvedSoundscapeTimeline, SoundEffectRenderResult, SoundscapeAnchor, SoundscapePlan } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 
@@ -6,8 +6,6 @@ const sourceTurnIds = (dialoguePlan: ComicDialoguePlan, sourceSegmentId: string)
   const turns = node.kind === 'turn' ? [node.turn] : node.turns
   return turns.filter(turn => turn.sourceSegmentId === sourceSegmentId).map(turn => turn.turnId)
 })
-
-type AnchorRole = ResolvedSoundscapeAnchorResolution['anchorRole']
 
 const resolvedAnchor = (
   positionMs: number,

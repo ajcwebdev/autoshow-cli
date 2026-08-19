@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { basename, isAbsolute, resolve } from 'node:path'
-import type { ParsedCommandMetric, ParsedJunitCase, TestRunArtifacts } from '~/types'
-import type { MetricContext, ReportTestContext, ServiceModelPair } from '~/types'
+import type { MetricContext, ParsedCommandMetric, ParsedJunitCase, ReportTestContext, ServiceModelPair, TestRunArtifacts } from '~/types'
 import { readString } from '../utils'
 
 const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])

@@ -4,7 +4,7 @@ import { getNativeRenderableCommands } from '~/cli/native/builtins'
 import { renderCommandHelp, renderRootHelp } from '~/cli/native/help-renderer'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import { stripAnsi } from '~/utils/terminal-colors'
-import type { CliCommandDefinition, CliFlagsDefinition } from '~/types'
+import type { CliCommandDefinition, CliFlagsDefinition, HelpResult } from '~/types'
 
 export const helpEnv = { NO_COLOR: '1' }
 export const removedSetupCommand = ['so', 'ck'].join('')
@@ -57,8 +57,6 @@ export const visibleFlagNames = (flags: CliFlagsDefinition | undefined): string[
     .filter(([, definition]) => definition.help?.hidden !== true)
     .map(([name]) => name)
     .sort()
-
-export type HelpResult = { exitCode: number, stdout: string, stderr: string }
 
 const findHelpCommand = (name: string) =>
   helpSurfaces.find((command) => command.name === name)

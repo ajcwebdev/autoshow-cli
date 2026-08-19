@@ -1,4 +1,5 @@
 import type {
+  ClassState,
   HostedConcurrencyAdmission,
   HostedConcurrencyAdmissionToken,
   HostedConcurrencyClassTelemetry,
@@ -12,9 +13,13 @@ import type {
   HostedConcurrencyRampTransition,
   HostedConcurrencyTelemetry,
   HostedConcurrencyWorkClass,
+  LaneState,
   ProviderLaneCompletionStatus,
   ProviderLaneIdentity,
-  ProviderLanePressureFeedback
+  ProviderLanePressureFeedback,
+  RecoveryState,
+  TokenState,
+  Waiter
 } from '~/types'
 import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from './provider-lane-contract'
 import { AppError, extractErrorMetadata } from '~/utils/error-handler'
@@ -25,66 +30,6 @@ export const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
 
 const RATE_LIMIT_BACKOFF_MS = [2_000, 4_000, 8_000, 16_000, 30_000] as const
 const EVENT_HISTORY_LIMIT = 100
-
-type ClassState = {
-  configuredLimit: number
-  active: number
-  activePeak: number
-}
-
-type RecoveryState = {
-  firstPressureAtMs: number
-  pressureAttempt: number
-}
-
-type Waiter = {
-  admission: HostedConcurrencyAdmission
-  lane: LaneState
-  classState: ClassState
-  queuedAtMs: number
-  recoveryKey: string
-  resolve: (token: HostedConcurrencyAdmissionToken) => void
-  reject: (error: unknown) => void
-  abortListener?: (() => void) | undefined
-}
-
-type TokenState = {
-  lane: LaneState
-  classState: ClassState
-  recoveryKey: string
-  released: boolean
-  pressureReported: boolean
-  recoveryRetryApproved: boolean
-  recoveryFailureRecorded: boolean
-}
-
-type LaneState = {
-  lane: ProviderLaneIdentity
-  configuredLimit: number
-  currentLimit: number
-  active: number
-  activePeak: number
-  queuedPeak: number
-  admitted: number
-  completed: number
-  failed: number
-  canceled: number
-  waiters: Waiter[]
-  classes: Map<HostedConcurrencyWorkClass, ClassState>
-  rampTransitions: HostedConcurrencyRampTransition[]
-  pressureEvents: HostedConcurrencyPressureEvent[]
-  recovering: boolean
-  recoveryProbeActive: boolean
-  rampingAfterRecovery: boolean
-  pauseUntilMs: number
-  pauseStartedAtMs?: number | undefined
-  pauseDurationMs: number
-  recoveryProbes: number
-  recoveryFailures: number
-  nextRampAtMs?: number | undefined
-  wakeTimer?: ReturnType<typeof setTimeout> | undefined
-  wakeAtMs?: number | undefined
-}
 
 const normalizeLimit = (value: number): number =>
   Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type {
+  LogSinkEvent,
   PdfChunkLocalTools,
   PdfChunkSplitResult,
   RunHostedOcrPdfChunkFallbackOptions
@@ -15,7 +16,6 @@ import {
   rm,
   runHostedOcrWithPdfChunkFallback
 } from './shared'
-import type { LogSinkEvent } from './shared'
 
 const withLocalTestDir = async <T>(prefix: string, run: (dir: string) => Promise<T>): Promise<T> => {
   const dir = join(process.cwd(), '.test-work', `${prefix}-${crypto.randomUUID()}`)

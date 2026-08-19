@@ -3,8 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdtemp, mkdir, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { CharacterCatalogService } from '~/types'
-import type { LocationReferenceCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
+import type { CharacterCatalogService, LocationReferenceCatalog } from '~/types'
 import { createStructuredScriptArtifactRef, computeSceneRunIdentity } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
 import { updateComicAudioManifest, writeInitialComicStructureManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest'
@@ -28,7 +27,7 @@ const locations: LocationReferenceCatalog = {
   locations: [{ key: 'hangar', name: 'Hangar', aliases: [], specification: 'Hangar.', sourceScripts: [] }],
 }
 
-describe('ADR-018 canonical soundscape artifact workflow', () => {
+describe('ADR-017 canonical soundscape artifact workflow', () => {
   test('reuses one mocked ElevenLabs generation result across dialogue targets and resumes without redispatch', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-soundscape-artifacts-'))
     try {

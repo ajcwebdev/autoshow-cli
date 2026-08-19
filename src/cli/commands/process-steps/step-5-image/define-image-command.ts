@@ -18,13 +18,7 @@ import { buildImageEstimates } from '~/cli/commands/pricing-orchestration/aggreg
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
-import type { CliFlagOccurrence, ImageRuntimeOptions, ResourceGate } from '~/types'
-
-type StandaloneImageCommandOptions = ImageRuntimeOptions & {
-  generationResourceGate?: ResourceGate | undefined
-  price: boolean
-  allowOverBudget: boolean
-}
+import type { CliFlagOccurrence, StandaloneImageCommandOptions } from '~/types'
 
 const runImageCommand = async (
   prompt: string,

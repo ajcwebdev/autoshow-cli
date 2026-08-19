@@ -1,10 +1,9 @@
 import { posix } from 'node:path'
-import type { RenderAdmissionJournalSnapshot } from '~/types'
+import type { GraphLinkContext, RenderAdmissionJournalSnapshot } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { hashCanonicalTtsValue } from '../step-4-tts/script-to-audio/contract-identity'
 import { validateRenderAdmissionJournalSnapshot } from '../step-4-tts/script-to-audio/contract-validation'
 import { canonicalManifestJson } from './guards'
-import type { GraphLinkContext } from './projection-artifact-link-context'
 
 export const validateAdmissionJournalLinks = (ctx: GraphLinkContext): boolean => {
   const attemptDirectories = new Map<string, string>()

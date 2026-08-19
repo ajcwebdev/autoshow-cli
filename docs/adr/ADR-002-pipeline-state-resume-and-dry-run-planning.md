@@ -6,7 +6,7 @@
 - **Date Created:** 2026-06-12
 - **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
-- **Supersession:** Owns batch work planning, canonical pipeline persistence, canonical selection-to-resume parity, pooled OCR page state, the narrow completed-legacy-TTS additive bridge, and resume price preflight. Source identity, classification, normalization, and discovery caches are owned by [ADR-001](ADR-001-source-ingestion-and-normalization.md); URL and OCR execution and artifacts by [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); pooled work selection by [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md); general diagnostic rendering by [ADR-006](ADR-006-unify-error-handling-vocabulary.md).
+- **Supersession:** Owns batch work planning, canonical pipeline persistence, canonical selection-to-resume parity, pooled OCR page state, the narrow completed-legacy-TTS additive bridge, and resume price preflight. Source identity, classification, normalization, and discovery caches are owned by [ADR-001](ADR-001-source-ingestion-and-normalization.md); URL and OCR execution and artifacts by [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); pooled work selection by [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md); general diagnostic rendering by [ADR-006](ADR-006-unify-error-handling-vocabulary.md).
 
 ## Context
 
@@ -258,7 +258,7 @@ Negative outcomes:
 - Extract execution and artifact contracts: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Hosted model registry and capability policy: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Benchmark evidence and report architecture: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
-- Pooled OCR work distribution: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
+- Pooled OCR work distribution: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 - Canonical persistence boundary: `src/cli/commands/process-steps/pipeline-manifest.ts`
 - Resume routing and dispatch: `src/cli/commands/setup-and-utilities/resume/`
 - Resume flags: `src/cli/flags/resume-flags.ts`

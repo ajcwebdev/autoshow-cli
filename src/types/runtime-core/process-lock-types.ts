@@ -35,3 +35,8 @@ export type ProcessLockOwnerReadResult = {
   ownerPath: string
   parseError?: string | undefined
 }
+
+export type ProcessLockDirIdentity = {
+  dev: number
+  ino: number
+}

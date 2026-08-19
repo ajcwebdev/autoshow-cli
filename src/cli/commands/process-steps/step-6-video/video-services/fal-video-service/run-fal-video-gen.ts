@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
-import type { FalVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
+import type { FalVideoModel, FalVideoOutput, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '../../video-utils/video-pricing'
@@ -13,8 +13,6 @@ export const FAL_H3_RESOLUTIONS = ['768p', '2k'] as const
 export const FAL_H3_ASPECT_RATIOS = ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'] as const
 export const FAL_PIXVERSE_RESOLUTIONS = ['360p', '540p', '720p', '1080p'] as const
 export const FAL_PIXVERSE_ASPECT_RATIOS = ['16:9', '4:3', '1:1', '3:4', '9:16', '2:3', '3:2', '21:9'] as const
-
-type FalVideoOutput = { video?: { url?: unknown } }
 
 export const normalizeFalVideoDuration = (model: FalVideoModel, value: number | undefined): number => {
   const duration = value ?? 5

@@ -1,5 +1,4 @@
-import type { CompatStructuredResponse, LLMTarget, ResolvedStructuredSchema, StructuredRequestOptions, StructuredValidationContext } from '~/types'
-import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import type { CompatStructuredResponse, LLMTarget, NormalizedReasoningEffort, ResolvedStructuredSchema, StructuredRequestOptions, StructuredValidationContext } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { buildStructuredInstructionSuffix } from './schema-resolver'

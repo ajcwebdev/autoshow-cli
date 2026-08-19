@@ -1,5 +1,5 @@
 import { extname } from 'node:path'
-import type { DetectResult, InputFamily, MetadataInputKind, UrlRuntimeOptions } from '~/types'
+import type { DetectResult, InputFamily, UrlInputKind, UrlRuntimeOptions } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import { resolveConvertibleEbookFormatFromExtension } from '../formats/metadata-convertible-ebooks'
 import { detectDocumentFormat } from '../formats/metadata-detect-format'
@@ -30,8 +30,6 @@ const HTML_MIME_HINTS = ['text/html', 'application/xhtml+xml'] as const
 const PROBE_TIMEOUT_MS = 5000
 const URL_PROBE_USER_AGENT = 'Mozilla/5.0 (compatible; autoshow-cli/0.1; +https://github.com/ajcwebdev/autoshow-cli)'
 const RAW_X_SPACE_ID_PATTERN = /^[A-Za-z0-9]{1,13}$/
-
-export type UrlInputKind = Extract<MetadataInputKind, `url_${string}`>
 
 export const isLikelyUrl = (input: string): boolean => {
   try {

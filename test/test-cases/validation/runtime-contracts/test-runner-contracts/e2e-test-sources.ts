@@ -1,7 +1,4 @@
-export type E2eTestSource = {
-  file: string
-  source: string
-}
+import type { E2eTestSource } from '~/types'
 
 let cachedE2eTestSources: Promise<E2eTestSource[]> | undefined
 

@@ -10,7 +10,7 @@ import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/se
 import { setupCalibreDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
-import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
+import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, ReclaimableWhisperCoremlArtifact, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { l as globalLogger, isJsonResultActive } from '~/utils/app-logger/app-logger'
 import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
@@ -315,11 +315,6 @@ const walkDirectorySize = async (root: string): Promise<number> => {
 }
 
 const directorySize = async (root: string): Promise<number> => await walkDirectorySize(root)
-
-type ReclaimableWhisperCoremlArtifact = {
-  path: string
-  bytes: number
-}
 
 export const collectReclaimableWhisperCoremlArtifacts = async (options: {
   coremlEnvDir?: string

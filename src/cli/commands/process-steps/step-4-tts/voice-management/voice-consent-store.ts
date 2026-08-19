@@ -1,5 +1,4 @@
-import type { AuditActorRef, ProtectedAssetRef, ProtectedVoiceAssetPolicy, VoiceConsentRecord, VoiceConsentRevocation } from '~/types'
-import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-asset-store'
+import type { AuditActorRef, ProtectedAssetRef, ProtectedVoiceAssetPolicy, ProtectedVoiceAssetStore, VoiceConsentRecord, VoiceConsentRevocation } from '~/types'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalRecordWithout } from '../script-to-audio/contract-identity'
 import { validateAuditActorRef, validateVoiceConsentRecord } from './voice-management-contracts'

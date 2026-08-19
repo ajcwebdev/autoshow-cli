@@ -1,28 +1,33 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, posix } from 'node:path'
-import type { AudioRun, CompactMix, CompactSfx, CompactTargetRender, FinalTimeline, HostedConcurrencyCoordinator, PipelineProviderState, SoundEffectLicenseUse, SoundEffectLicenseUseClassification, SoundEffectRenderPlan, SoundscapePlan } from '~/types'
+import type {
+  AudioRun,
+  CompactMix,
+  CompactSfx,
+  CompactTargetRender,
+  DialogueAudioRunBinding,
+  FinalTimeline,
+  HostedConcurrencyCoordinator,
+  PipelineProviderState,
+  SoundEffectAdapter,
+  SoundEffectLicenseUse,
+  SoundEffectLicenseUseClassification,
+  SoundEffectRenderPlan,
+  SoundscapePlan,
+} from '~/types'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hardlinkContainedArtifact, readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '../../step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import { assertAudioGenDispatchEligible, assertAudioGenLicenseEligible, createReplicateAudioGenAdapter, createSoundEffectLicenseUse } from '../../step-4-tts/soundscape/replicate-audiogen-adapter'
 import { createStabilitySoundEffectAdapter } from '../../step-4-tts/soundscape/stability-stable-audio-adapter'
-import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadCompactSfx, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, type SoundEffectAdapter, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
+import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadCompactSfx, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, writeSoundEffectRenderPlan } from '../../step-4-tts/soundscape/sound-effect-execution'
 import { mixSoundscape } from '../../step-4-tts/soundscape/soundscape-mixer'
 import { resolveSoundscapeTimeline } from '../../step-4-tts/soundscape/soundscape-timeline'
 import { writeSoundscapePlan } from '../../step-4-tts/soundscape/soundscape-planner'
 import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
 import { createSilenceWav } from '../../step-4-tts/tts-utils/audio-utils'
-
-export type DialogueAudioRunBinding = {
-  targetKey: string
-  renderIdentity: string
-  audioRunId: string
-  audioRunRef: string
-  audioRunSha256: string
-  reportedOutputPath: string
-}
 
 export const soundscapeReportedOutputPath = (targetKey: string): string => `audio/final/${targetKey}.soundscape.wav`
 
@@ -167,18 +172,21 @@ export const planComicSoundscapePrice = async (input: {
   return { renderPlan, summary: `soundscape ${renderPlan.target.provider}/${renderPlan.target.model}: ${estimate.unresolvedTaskCount} unresolved, ${estimate.cachedTaskCount} cache, ${estimate.resumedTaskCount} resume, ${amount} ${estimate.currency}` }
 }
 
+const requireSoundscapeProviderApiKey = (provider: string): string =>
+  provider === 'replicate'
+    ? requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation')
+    : provider === 'stability'
+      ? requireApiKey('STABILITY_API_KEY', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation')
+      : requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation')
+
 export const assertComicSoundscapeExecutionReady = async (rootDir: string, renderPlan: SoundEffectRenderPlan): Promise<void> => {
   const estimate = await planSoundEffectResumePrice(rootDir, renderPlan)
   if (estimate.unresolvedTaskCount > 0) {
     if (renderPlan.target.provider === 'replicate') {
       assertAudioGenDispatchEligible(renderPlan.target.capabilityFixture)
       assertAudioGenLicenseEligible(renderPlan.licenseUse, renderPlan.target.capabilityFixture)
-      requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation')
-    } else if (renderPlan.target.provider === 'stability') {
-      requireApiKey('STABILITY_API_KEY', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation')
-    } else {
-      requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation')
     }
+    requireSoundscapeProviderApiKey(renderPlan.target.provider)
   }
 }
 
@@ -214,10 +222,10 @@ export const runComicSoundscape = async (input: {
     const estimate = await planSoundEffectResumePrice(input.rootDir, input.renderPlan)
     const liveAdapter = input.adapter ?? (estimate.unresolvedTaskCount > 0
       ? (input.renderPlan.target.provider === 'replicate'
-          ? createReplicateAudioGenAdapter({ apiToken: requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation') })
+          ? createReplicateAudioGenAdapter({ apiToken: requireSoundscapeProviderApiKey('replicate') })
           : input.renderPlan.target.provider === 'stability'
-            ? createStabilitySoundEffectAdapter({ apiKey: requireApiKey('STABILITY_API_KEY', 'comic:soundscape', 'Stability Stable Audio 3 sound-effect generation') })
-            : createElevenLabsSoundEffectAdapter({ apiKey: requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation') }))
+            ? createStabilitySoundEffectAdapter({ apiKey: requireSoundscapeProviderApiKey('stability') })
+            : createElevenLabsSoundEffectAdapter({ apiKey: requireSoundscapeProviderApiKey(input.renderPlan.target.provider) }))
       : { generate: async (): Promise<never> => { throw CLIUsageError('Verified sound-effect resume planning unexpectedly attempted provider dispatch.') } })
     const executed = await executeSoundEffectRenderPlan({ rootDir: input.rootDir, plan: input.renderPlan, adapter: liveAdapter, concurrency: input.concurrency, cancellation: input.cancellation, hostedConcurrencyCoordinator: input.hostedConcurrencyCoordinator })
     renderResult = executed.result

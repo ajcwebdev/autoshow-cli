@@ -1,4 +1,4 @@
-import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types/index'
+import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import {

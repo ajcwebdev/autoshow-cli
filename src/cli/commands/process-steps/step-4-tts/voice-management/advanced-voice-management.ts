@@ -11,9 +11,9 @@ import type {
   VoiceConsentRecord,
   VoiceProvisioningAttempt,
   VoiceRegistration,
+  ProtectedVoiceAssetStore,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-asset-store'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { appendVoiceRegistration, hashCharacterVoiceBrief } from './character-voice-registry'
 import { buildReadyVoiceRegistrationDraft } from './voice-registration-management'

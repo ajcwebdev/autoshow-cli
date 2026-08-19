@@ -7,6 +7,13 @@ import type {
   ProviderBatchResultRef,
   ProviderRenderResult,
   RenderAdmissionJournalSnapshot,
+  AggregateProviderResult,
+  CurrentTtsCompletedRecovery,
+  CurrentTtsReconciliationBlocker,
+  LoadedRecoveryBatch,
+  PureCurrentTtsRenderPlanOptions,
+  RecoveryFinalizationInput,
+  RetainedJournalEvidence,
 } from '~/types'
 import { CLIUsageError, InternalError } from '~/utils/error-handler'
 import { concatAndConvertToWav } from '../tts-utils/audio-utils'
@@ -22,10 +29,7 @@ import {
   writeJsonCreateOnly,
 } from './attempt-io'
 import {
-  type CurrentTtsCompletedRecovery,
-  type CurrentTtsReconciliationBlocker,
   LOCAL_ACTOR,
-  type PureCurrentTtsRenderPlanOptions,
   withIdentity,
 } from './attempt-shared'
 import {
@@ -44,34 +48,7 @@ import {
 } from './attempt-success-builders'
 import {
   resolveRetainedPath,
-  type RetainedJournalEvidence,
 } from './recovery-evidence'
-import type { LoadedRecoveryBatch } from './recovery-reconciliation'
-
-type AggregateProviderResult = {
-  value: ProviderRenderResult
-  path: string
-  sha256: string
-  journalEvidence: RetainedJournalEvidence
-}
-
-type RecoveryFinalizationInput = {
-  options: PureCurrentTtsRenderPlanOptions & {
-    rootDir: string
-    state: PipelineProviderState
-    onProviderState?: ((state: PipelineProviderState) => Promise<void>) | undefined
-  }
-  pure: ReturnType<typeof buildPureCurrentTtsRenderPlan>
-  resultProjection: CanonicalAudioProviderProjection
-  retainedRender: CanonicalAudioProviderProjection['renderHistory'][number]
-  renderRoot: string
-  providerRoot: string
-  terminalJournalEvidence: RetainedJournalEvidence
-  loadedBatches: LoadedRecoveryBatch[]
-  retainedCumulativePlannedCost: PlannedCost
-  reconciliationBlockers: CurrentTtsReconciliationBlocker[]
-  aggregate?: AggregateProviderResult | undefined
-}
 
 const findAggregateProviderResult = async (
   options: { rootDir: string },

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { mkdir, open, rename, rm, stat } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import type { DownloadFlowId, DownloadRequest, PartialDownloadMetadata } from '~/types'
+import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdog, PartialDownloadMetadata } from '~/types'
 import { extractTarGzBuffer } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
 import { InfraError } from '~/utils/error-handler'
@@ -28,11 +28,6 @@ const TOTAL_TIMEOUT_MS_BY_FLOW: Record<DownloadFlowId, number> = {
   'whisper-model': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisperfile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisper-source': DEFAULT_TOTAL_TIMEOUT_MS
-}
-
-type DownloadTimeouts = {
-  stallTimeoutMs: number
-  totalTimeoutMs: number
 }
 
 export const resolveDownloadTimeouts = (req: DownloadRequest): DownloadTimeouts => {
@@ -106,13 +101,6 @@ const resolveResumeOffset = async (req: DownloadRequest): Promise<number> => {
     return 0
   }
   return size
-}
-
-type DownloadWatchdog = {
-  signal: AbortSignal
-  progress: () => void
-  stop: () => void
-  timeoutMessage: () => string | undefined
 }
 
 const createDownloadWatchdog = (timeouts: DownloadTimeouts): DownloadWatchdog => {

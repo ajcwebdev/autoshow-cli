@@ -11,10 +11,9 @@ import {
   writeManifest
 } from '~/cli/commands/process-steps/pipeline-manifest'
 import { PROCESS_COMMANDS } from '~/types'
-import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState } from '~/types'
+import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState, TtsTarget } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import type { TtsTarget } from '~/types'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { appendCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'

@@ -131,12 +131,6 @@ export type VoiceProvisioningAttempt = {
   compareAndSwapVersion: number
 }
 
-export type VoiceProvisioningResult = VoiceProvisioningState & {
-  attemptId: string
-  idempotencyKey?: string | undefined
-  checkedAt: string
-}
-
 export type VoiceCandidate = {
   schemaVersion: 1
   candidateId: string
@@ -258,39 +252,4 @@ export type CurrentVoiceRegistrationIndex = {
   schemaVersion: 2
   revision: number
   selections: CurrentVoiceRegistrationSelection[]
-}
-
-export type VoiceManagementAction =
-  | 'create-candidate'
-  | 'materialize-candidate'
-  | 'import'
-  | 'audition'
-  | 'approve'
-  | 'inspect'
-  | 'reconcile'
-  | 'retire'
-  | 'revoke'
-  | 'delete'
-
-export type VoiceManagementRuntimeOptions = {
-  action: VoiceManagementAction
-  provider: TtsProvider
-  providerModel: string
-  subjectKey: string
-  profileKey: string
-  charactersRoot: string
-  registrationId?: string | undefined
-  candidateId?: string | undefined
-  existingVoiceId?: string | undefined
-  desiredResourceName?: string | undefined
-  referenceAudioPath?: string | undefined
-  consentRecordRef?: string | undefined
-  provenanceRef?: string | undefined
-  authorizationRef?: string | undefined
-  maxCandidates: number
-  maxTakes: number
-  maxCents?: number | undefined
-  approve: boolean
-  actor: AuditActorRef
-  price: boolean
 }

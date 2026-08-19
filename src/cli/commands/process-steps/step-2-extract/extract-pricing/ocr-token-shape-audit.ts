@@ -3,22 +3,12 @@ import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/
 import { readManifest, resolveManifestRelativePath } from '~/cli/commands/process-steps/pipeline-manifest'
 import { readHostedOcrTokenUsageProfiles, resolveHostedOcrModeFromExtractionMethod, resolveHostedOcrTokenPageCountBand } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { isTokenPricedOcrProvider } from '~/types'
-import type { AuditOcrTokenShapesOptions, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageProfile, OcrTokenShapeAuditBucket, OcrTokenShapeAuditMetric, OcrTokenShapeAuditReport, PipelineManifestItem, TokenPricedOcrProvider } from '~/types'
+import type { AuditOcrTokenShapesOptions, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageProfile, OcrTokenShapeAuditBucket, OcrTokenShapeAuditMetric, OcrTokenShapeAuditReport, PipelineManifestItem, TokenPricedOcrProvider, TokenShapeSample } from '~/types'
 import { selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 import { isRecord } from '~/utils/rest-client'
 
 const MINIMUM_HEALTHY_SAMPLES = 3
 const PROMOTION_ERROR_THRESHOLD = 20
-
-type TokenShapeSample = {
-  provider: TokenPricedOcrProvider
-  model: string
-  ocrMode: string
-  pageCountBand: string
-  effectiveReasoningEffort: HostedOcrTokenReasoningPolicy
-  promptTokensPerPage: number
-  completionTokensPerPage: number
-}
 
 const defaultTarget = (provider: TokenPricedOcrProvider, model: string): boolean =>
   provider === 'kimi' || (provider === 'gemini' && model.toLowerCase().includes('pro'))

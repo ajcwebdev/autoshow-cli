@@ -1,4 +1,4 @@
-import type { LogFormat, LogLevel } from '~/types'
+import type { CliCommandContext, CliCommandDefinition, CliRootDefinition, LogFormat, LogLevel } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { LOG_FORMAT_CHOICES, LOG_LEVEL_CHOICES, reconfigureLogger, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
@@ -12,7 +12,6 @@ import { renderCommandHelp, renderRootHelp } from './help-renderer'
 import { NativeUnknownFlagError } from './native-errors'
 import { cookieFlagNameFromSpelling, commandAcceptsGlobalFlag, unsupportedCookieFlagError, unsupportedGlobalFlagError } from './global-flag-support'
 import { getUnknownFlagSpellings } from './unknown-flag-spellings'
-import type { CliCommandContext, CliCommandDefinition, CliRootDefinition } from '~/types'
 
 const formatVersion = (version: string): string =>
   version.startsWith('v') ? version : `v${version}`

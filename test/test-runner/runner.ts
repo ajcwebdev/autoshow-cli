@@ -3,7 +3,10 @@ import { resolve } from 'node:path'
 import type {
   BudgetPreflightResult,
   BudgetPreflightSummary,
+  BudgetPreflightVariant,
+  ExecutedBudgetPreflightVariant,
   ExecutedPriceCommand,
+  HeadBudgetResult,
   PriceCommandObservation,
   PriceCommandResult,
   PriceCommandSpec,
@@ -434,17 +437,6 @@ const runPriceSuite = async (
   }
 }
 
-type BudgetPreflightVariant = {
-  entry: PriceCommandSpec
-  groupIndex: number
-  variantIndex: number
-}
-
-type ExecutedBudgetPreflightVariant = BudgetPreflightVariant & {
-  executed: ExecutedPriceCommand
-  observation: PriceCommandObservation
-}
-
 // Splits variants against the preflight cache. A cached cost is replayed as a synthetic
 // zero-duration success so evaluation downstream cannot tell a hit from a fresh run.
 const partitionBudgetCacheHits = (
@@ -607,12 +599,6 @@ const runBudgetPreflight = async (
     skipKeys: budgetSummary.skipKeys,
     evaluatedKeys: groupedCommands.map(group => group.key),
   }
-}
-
-type HeadBudgetResult = {
-  summary: BudgetPreflightSummary | undefined
-  skipKeys: string[]
-  evaluatedKeys: string[]
 }
 
 const EMPTY_BUDGET_HEAD: HeadBudgetResult = {

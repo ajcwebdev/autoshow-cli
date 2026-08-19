@@ -1,43 +1,11 @@
 import { basename } from 'node:path'
-import type { ProviderVoiceRef, SanitizedProviderVoiceMetadata } from '~/types'
+import type { MistralSavedVoiceCreateInput, MistralSavedVoiceObservation, MistralVoiceManagementRequest, ProviderVoiceRef, SanitizedProviderVoiceMetadata } from '~/types'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue, sha256Bytes } from '../script-to-audio/contract-identity'
-
-export type MistralVoiceManagementRequest = <T = unknown>(options: {
-  apiKey: string
-  baseURL?: string | undefined
-  path: string
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | undefined
-  body?: unknown
-  timeoutMs?: number | undefined
-  errorMessagePrefix: string
-}) => Promise<T>
-
-export type MistralSavedVoiceCreateInput = {
-  apiKey: string
-  protectedSamplePath: string
-  name: string
-  slug: string
-  languages?: string[] | undefined
-  gender?: string | undefined
-  age?: number | undefined
-  tags?: string[] | undefined
-  retentionNoticeDays?: number | undefined
-  baseURL?: string | undefined
-  request?: MistralVoiceManagementRequest | undefined
-}
-
-export type MistralSavedVoiceObservation = {
-  providerVoice: Extract<ProviderVoiceRef, { kind: 'remote-resource' }>
-  accountScopeHash: string
-  sanitizedMetadata: SanitizedProviderVoiceMetadata
-  sanitizedResponseHash: string
-  observedAt: string
-}
 
 const readRequiredString = (value: Record<string, unknown>, key: string): string => {
   const field = value[key]

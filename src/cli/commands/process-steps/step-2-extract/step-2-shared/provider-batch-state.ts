@@ -1,8 +1,4 @@
-import type { ProviderCompletionStatus } from '~/types'
-
-type ProviderIdentityLike = { service: string, model: string }
-
-export type ProviderStateLike = ProviderIdentityLike & { status: 'running' | 'succeeded' | 'missing' | 'failed' | 'skipped' }
+import type { ProviderCompletionStatus, ProviderIdentityLike, ProviderStateLike } from '~/types'
 
 const getProviderKey = (provider: ProviderIdentityLike): string =>
   `${provider.service}:${provider.model}`

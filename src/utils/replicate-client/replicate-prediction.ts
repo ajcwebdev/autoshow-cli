@@ -4,7 +4,7 @@ import { AppProviderError, InfraError, ValidationError } from '~/utils/error-han
 import { createProviderRestClient, isRecord, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, classifyPaidCreateRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import type { BoundedCaptureResult, ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
+import type { BoundedCaptureResult, ReplicateFetchOptions, ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
 
 const REPLICATE_SYNC_WAIT_SECONDS = 60
 const REPLICATE_POLL_INTERVAL_MS = 5_000
@@ -56,14 +56,6 @@ class ReplicateRestError extends AppProviderError {
     this.retryClass = retryClass
     this.retryable = isRetryableStatus(response.status)
   }
-}
-
-type ReplicateFetchOptions = {
-  url: string
-  apiToken: string
-  init: RequestInit
-  stage: string
-  retryClass: RetryClass
 }
 
 const replicateFetch = createProviderRestClient<ReplicateFetchOptions, ReplicateRestError>({

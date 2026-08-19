@@ -1,7 +1,7 @@
-import { AutoshowConfigSchema } from '~/types/index'
+import { AutoshowConfigSchema } from '~/types'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-import type { AutoshowConfig } from '~/types/index'
+import type { AutoshowConfig } from '~/types'
 import { resolveStandaloneMistralTtsCliReferenceInput } from '~/cli/options/option-resolution/tts-options'
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>

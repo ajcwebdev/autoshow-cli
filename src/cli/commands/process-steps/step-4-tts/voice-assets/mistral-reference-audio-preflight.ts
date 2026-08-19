@@ -2,15 +2,7 @@ import { resolve } from 'node:path'
 
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { CLIUsageError } from '~/utils/error-handler'
-
-type ProbeResult = Readonly<{ exitCode: number, stdout: string, stderr: string }>
-
-export type MistralReferenceAudioProbeRunner = (
-  command: string,
-  args: readonly string[]
-) => Promise<ProbeResult>
-
-export type MistralReferenceAudioProbeStatus = 'ready' | 'runtime-unavailable'
+import type { MistralReferenceAudioProbeRunner, MistralReferenceAudioProbeStatus } from '~/types'
 
 const runReadOnlyProbe: MistralReferenceAudioProbeRunner = async (command, args) => {
   try {

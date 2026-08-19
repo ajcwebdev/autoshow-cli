@@ -1,24 +1,13 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { join, resolve } from 'node:path'
-import type { CompactMix, CompactMixTimelineSummary, ObservedAudioFormat, ResolvedSoundscapeTimeline, SoundEffectRenderPlan, SoundEffectRenderResult, SoundscapeBus, SoundscapePlan, SoundscapeStemRef, SoundscapeTransform } from '~/types'
+import type { CompactMix, CompactMixTimelineSummary, ObservedAudioFormat, ResolvedSoundscapeTimeline, SoundEffectRenderPlan, SoundEffectRenderResult, SoundscapeBus, SoundscapePlan, SoundscapeStemRef, SoundscapeTransform, SourcePlacement } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
 import { inspectSoundscapeAudio } from './soundscape-audio'
-
-type SourcePlacement = {
-  cueId: string
-  inputPath: string
-  sourceDurationMs: number
-  startMs: number
-  endMs: number
-  gainDb: number
-  pan: number
-  loopIterations: number
-}
 
 const runFfmpeg = async (args: string[], label: string, cancellation?: AbortSignal): Promise<void> => {
   cancellation?.throwIfAborted()

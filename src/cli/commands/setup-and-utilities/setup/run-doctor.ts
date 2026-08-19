@@ -4,8 +4,7 @@ import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shar
 import { inspectYtDlpAuthState } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 import { readDefuddleCliReadiness } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
-import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult } from '~/types'
-import { loadEnvFile } from '~/utils/cli-utils'
+import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { getHostedProviderConfiguredPaths, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
@@ -23,7 +22,6 @@ import {
   tessdataHocrConfigPath,
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
-import type { RuntimeToolId } from '~/types'
 import { validateManagedArtifact } from './setup-download/managed-artifact'
 
 const hasPath = async (path: string): Promise<boolean> => {
@@ -540,7 +538,6 @@ const logDoctorSection = (section: DoctorSection): void => {
 }
 
 export const runDoctor = async (): Promise<void> => {
-  await loadEnvFile()
   const report = await collectDoctorReport()
 
   for (const section of report.sections) {

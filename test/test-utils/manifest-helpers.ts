@@ -9,7 +9,7 @@ import {
   writeManifest,
   writePipelineItemRecords
 } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { ExtractRoute, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
+import type { ExtractRoute, MultiProviderManifestFixtureOptions, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -143,24 +143,6 @@ export const writeProviderResultFixture = async (
 ): Promise<void> => {
   await mkdir(pathOrDir, { recursive: true })
   await Bun.write(resolveProviderResultPath(pathOrDir), `${JSON.stringify(result, null, 2)}\n`)
-}
-
-export type MultiProviderManifestFixtureProvider = {
-  dir: string
-  provider: string
-  model: string
-  status?: 'succeeded' | 'missing' | 'failed' | 'skipped'
-  processingTime?: number
-  cost?: number
-  result: Record<string, unknown>
-}
-
-export type MultiProviderManifestFixtureOptions = {
-  command: ProcessCommand
-  extractRoute?: ExtractRoute | undefined
-  metadata?: Record<string, unknown>
-  providerMetadata?: Record<string, unknown>
-  providers: readonly MultiProviderManifestFixtureProvider[]
 }
 
 export const writeMultiProviderManifestFixture = async (

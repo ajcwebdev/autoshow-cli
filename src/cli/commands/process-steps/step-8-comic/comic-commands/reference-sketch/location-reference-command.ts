@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import * as v from 'valibot'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
-import type { ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, ReferenceSketchCommandOptions } from '~/types'
+import type { ImageGenerationQuality, ImageGenerationSize, LocationReferenceCommandDependencies, LocationReferenceContext, LocationReferenceEntry, LocationReferencePreparation, LocationView, LocationViewGeneration, LocationViewQaReport, LocationViewQaResult, ReferenceSketchCommandOptions, ResolvedLocationReferenceRequest } from '~/types'
 import { createImage } from '../../comic-image-services/comic-image-targets'
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
 import { checksumFile } from '../process-scenes/character-utils'
@@ -16,52 +16,8 @@ import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handle
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import {
-  atomicWriteJson,
-  getLocationsRoot,
-  LOCATION_KEY_PATTERN,
-  LOCATION_VIEWS,
-  normalizeLocationKey,
-  readLocationReferenceCatalog,
-  readLocationSketchManifest,
-  requireCurrentLocationReference,
-  resolveRegisteredLocationImagePath,
-  type LocationReferenceCatalog,
-  type LocationReferenceEntry,
-  type LocationSketchManifest,
-  type LocationSketchRegistration,
-  type LocationSketchViewRegistration,
-  type LocationView,
-} from '../../comic-utils/location-reference'
-import {
-  promoteLocationRegistrationTransaction,
-  type LocationPromotionTransactionBoundary,
-  type LocationPromotionTransactionRecord,
-} from './location-reference-transaction'
-
-export type LocationViewQaResult = {
-  pass: boolean
-  stableFeaturesMatch: boolean
-  crossViewGeometryMatch: boolean
-  requestedAngleMatch: boolean
-  materiallyDistinctFromExistingViews: boolean
-  houseStyleMatch: boolean
-  noPeople: boolean
-  noCopiedStyleContent: boolean
-  failedChecks: string[]
-  editInstructions: string
-  summary: string
-}
-
-export type LocationReferenceCommandDependencies = {
-  aggregateSpecification?: (input: { key: string; scripts: Array<{ path: string; content: string }>; model: string }) => Promise<{ name: string; specification: string }>
-  requestImage?: typeof createImage
-  writeImage?: typeof writeGeneratedImage
-  promoteImage?: (stagedPath: string, targetPath: string) => Promise<void>
-  judgeView?: (input: { imagePath: string; view: LocationView; specification: string; existingViewPaths: string[]; styleReference: string; model: string }) => Promise<LocationViewQaResult>
-  generationId?: () => string
-  injectPromotionFault?: (boundary: LocationPromotionTransactionBoundary, transaction: Readonly<LocationPromotionTransactionRecord>) => void | Promise<void>
-}
+import { atomicWriteJson, getLocationsRoot, LOCATION_KEY_PATTERN, LOCATION_VIEWS, normalizeLocationKey, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference, resolveRegisteredLocationImagePath } from '../../comic-utils/location-reference'
+import { promoteLocationRegistrationTransaction } from './location-reference-transaction'
 
 const CAMERA_CONTRACTS: Record<LocationView, string> = {
   establishing: 'Use a standing eye-level wide three-quarter establishing camera that clearly explains the location layout, depth, major fixed anchors, and traversable space. Keep the camera at adult standing height; never use aerial, isometric, overhead, bird\'s-eye, or plan views.',
@@ -133,52 +89,6 @@ const validateQaResult = (value: LocationViewQaResult): LocationViewQaResult => 
 }
 
 const uniquePaths = (paths: Array<string | undefined>): string[] => Array.from(new Set(paths.filter((path): path is string => !!path)))
-
-export type ResolvedLocationReferenceRequest = {
-  key: string
-  view: LocationView
-  model: ImageGenerationModel
-  size: ImageGenerationSize
-  quality: ImageGenerationQuality
-  revise: boolean
-  notes?: string
-  qaEnabled: boolean
-  maxRepairs: number
-  aggregationModel: LlmModel
-  qaModel: LlmModel
-  concurrency: number
-  hostedConcurrencyCoordinator?: ReferenceSketchCommandOptions['hostedConcurrencyCoordinator']
-}
-
-type ExistingLocationView = LocationSketchViewRegistration & { imagePath: string }
-
-export type LocationReferenceContext = {
-  kind: 'ready'
-  catalog: LocationReferenceCatalog
-  manifest: LocationSketchManifest
-  entry: LocationReferenceEntry
-  prior?: LocationSketchRegistration
-  priorTarget?: LocationSketchViewRegistration
-  stylePath: string
-  otherExisting: ExistingLocationView[]
-  freshReferences: string[]
-}
-
-export type LocationReferencePreparation = { kind: 'noop' } | LocationReferenceContext
-
-type LocationViewQaReport = {
-  view: LocationView
-  attempt: number
-  retryMode: 'fresh' | 'edit'
-  result?: LocationViewQaResult
-  error?: string
-}
-
-export type LocationViewGeneration = {
-  generationId: string
-  attemptsRoot: string
-  stagedImagePath: string
-}
 
 export const resolveLocationReferenceRequest = (options: ReferenceSketchCommandOptions): ResolvedLocationReferenceRequest => {
   if (!options.location || !LOCATION_KEY_PATTERN.test(options.location)) throw CLIUsageError('--location must be a lowercase kebab-case key')

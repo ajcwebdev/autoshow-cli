@@ -18,7 +18,7 @@ const runGlmReader = async (
   options?: UrlRequestOptions,
   baseUrl?: string
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = ensureGlmApiKey('GLM Reader')
+  const apiKey = ensureGlmApiKey('GLM Reader', 'url:glm-reader')
   const timeoutMs = getUrlRequestTimeoutMs(options)
   const requestOptions = { ...options, timeoutMs }
   const response = await withUrlProviderTimeout('GLM Reader', requestOptions, async (signal) =>

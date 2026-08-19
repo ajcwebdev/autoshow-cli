@@ -1,4 +1,4 @@
-import type { SttDiarizationFlagOptions, SttSelectionOptions, SttStepEstimate, SttTarget } from '~/types'
+import type { SttEstimateOptions, SttStepEstimate, SttTarget } from '~/types'
 import { resolveSttInputDurationSeconds } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-duration'
 import { collectSttTargetsForSource, sttSourceFromInput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import {
@@ -12,11 +12,6 @@ import { estimateSupadataCost } from '~/cli/commands/pricing-orchestration/supad
 import { estimateScrapeCreatorsCost } from '~/utils/pricing/scrapecreators-pricing'
 
 const EXACT_COST_MULTIPLIER = 1
-
-type SttEstimateOptions = SttSelectionOptions & SttDiarizationFlagOptions & {
-  youtubeCaptions?: boolean | undefined
-  happyscribeOrganizationId?: string | undefined
-}
 
 const buildCloudSttEstimate = async (
   provider: string,

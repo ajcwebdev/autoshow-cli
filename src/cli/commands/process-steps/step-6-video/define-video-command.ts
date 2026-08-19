@@ -21,15 +21,9 @@ import { buildVideoEstimates } from '~/cli/commands/pricing-orchestration/aggreg
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
-import type { ResourceGate, VideoProvider, VideoRuntimeOptions, VideoTarget } from '~/types'
+import type { StandaloneVideoCommandOptions, VideoProvider, VideoRuntimeOptions, VideoTarget } from '~/types'
 import { VIDEO_PRICING_PROVIDERS } from './video-utils/video-pricing'
 import { optionsForService } from '~/utils/pricing/model-selection'
-
-type StandaloneVideoCommandOptions = VideoRuntimeOptions & {
-  generationResourceGate?: ResourceGate | undefined
-  price: boolean
-  allowOverBudget: boolean
-}
 
 const VIDEO_POSITIONAL_IMAGE_CONFLICT_FLAGS = [
   ['video-input-image', '--input-image'],

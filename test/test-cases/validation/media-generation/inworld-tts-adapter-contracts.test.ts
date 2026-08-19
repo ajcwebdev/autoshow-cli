@@ -3,8 +3,8 @@ import { collectInworldTtsTargets } from '~/cli/commands/process-steps/step-4-tt
 import { parseInworldMarkups, runInworldTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/run-inworld-tts'
 import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-advanced-provider'
 import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tts/tts-targets/tts-target-selection'
-import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, resolveInworldTtsApiModelId } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-tts-request'
+import type { AdvancedProviderHttpRequest } from '~/types'
 
 describe('Inworld AI Phase 3 Contracts', () => {
   test('collects Inworld TTS targets with correct provider and model', () => {

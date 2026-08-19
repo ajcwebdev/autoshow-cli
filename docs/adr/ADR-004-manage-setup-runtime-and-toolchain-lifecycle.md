@@ -6,7 +6,7 @@
 - **Date Created:** 2026-06-12
 - **Date Updated:** 2026-08-17
 - **Verification Status:** Passed
-- **Supersession:** Docker distribution is governed separately by [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for host setup reliability and toolchain lifecycle.
+- **Supersession:** Docker distribution is governed separately by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for host setup reliability and toolchain lifecycle.
 
 ## Context
 
@@ -126,7 +126,7 @@ This does not apply to:
 
 - External host build prerequisites (Xcode command line tools, `cmake`, compilers).
 - Linux host package management (`apt`).
-- Docker container distribution (governed by [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md)).
+- Docker container distribution (governed by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)).
 - Hosted provider credential validation (which requires explicit opt-in execution).
 
 ## Rationale
@@ -203,7 +203,7 @@ bun test test/test-cases/validation/setup/
 ## References
 
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
-- Docker image distribution: [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md)
+- Docker image distribution: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
 - Error and retry vocabulary: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
 - Ingestion and ebook normalization policy: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Local OCR engine selection: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)

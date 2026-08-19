@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import type { MockFetchCall, TtsOptions, TtsProvider, TtsTarget, TtsTargetInvocation, TtsTargetInvocationControls } from '~/types'
+import type { TtsOptions, TtsTarget, TtsTargetInvocation, TtsTargetInvocationControls, TtsVoiceMatrixEnvKey, VoiceMatrixCase } from '~/types'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
@@ -19,25 +19,12 @@ const MATRIX_ENV_KEYS = [
   'MINIMAX_API_KEY',
   'DEEPGRAM_API_KEY',
   'GEMINI_API_KEY'
-] as const
+] as const satisfies readonly TtsVoiceMatrixEnvKey[]
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: MATRIX_ENV_KEYS,
   tempPrefix: 'autoshow-tts-explicit-voice-'
 })
-
-type VoiceMatrixCase = {
-  provider: TtsProvider
-  envKey: typeof MATRIX_ENV_KEYS[number]
-  flags: Record<string, unknown>
-  capturedVoice: string
-  invocationVoices: readonly [string, string, string]
-  invocationControls: readonly [TtsTargetInvocationControls, TtsTargetInvocationControls, TtsTargetInvocationControls]
-  respond: (call: MockFetchCall) => Response
-  isSynthesisRequest?: ((call: MockFetchCall) => boolean) | undefined
-  readSerializedVoice: (call: MockFetchCall) => string | undefined
-  readSerializedControl: (call: MockFetchCall) => unknown
-}
 
 const audioBytes = createMockWavBytes()
 const audioBase64 = createMockWavBase64()

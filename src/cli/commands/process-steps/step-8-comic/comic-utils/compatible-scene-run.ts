@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import * as v from 'valibot'
-import type { CanonicalComicItemMetadata, ComicSourceIdentity, PipelineManifest, StructuredScriptData } from '~/types'
+import type { CanonicalComicItemMetadata, ComicSourceIdentity, CompatibleComicSceneRun } from '~/types'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { getPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
@@ -14,15 +14,6 @@ import { parseScriptMarkdownToStructuredData } from './structured-script-utils/s
 import { writeInitialComicStructureManifest } from './comic-manifest'
 
 const RUN_DIRECTORY_PREFIX = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}_/
-
-export type CompatibleComicSceneRun = {
-  sceneRunDir: string
-  manifest: PipelineManifest
-  sourceIdentity: ComicSourceIdentity
-  structuredScript: StructuredScriptData
-  structuredScriptBytes: Uint8Array
-  comicMetadata: CanonicalComicItemMetadata
-}
 
 const initializeWorkspaceDir = async (
   sceneRunDir: string,

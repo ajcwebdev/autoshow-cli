@@ -1,6 +1,9 @@
 import type {
+  AsyncSttLifecycleOptions,
   BunImageEncoder,
+  HostedOcrSchedulerSetTimer,
   MetricName,
+  ModelRegistry,
   ProviderIdentity,
   ProviderIdentityBase,
   ProviderResumeEntry,
@@ -52,3 +55,53 @@ export type SetupTarEntry =
   | { type: 'directory', path: string, mode?: number }
   | { type: 'file', path: string, content: string, mode?: number }
   | { type: 'symlink', path: string, linkName: string, mode?: number }
+
+export type SnapshotFixtureOptions = {
+  assetPath?: string | ((canonicalPath: string) => string)
+  registeredSha256?: string
+  schemaVersion?: number
+}
+
+export type ModelBinding = {
+  configPath: readonly string[]
+  registryStep: keyof ModelRegistry
+  service: string
+}
+
+export type ProviderSections = Record<string, string[]>
+
+export type Deferred<T = void> = {
+  promise: Promise<T>
+  resolve: (value: T | PromiseLike<T>) => void
+  reject: (reason?: unknown) => void
+}
+
+export type SchedulerClock = {
+  now: () => number
+  setTimer: HostedOcrSchedulerSetTimer
+  advance: (durationMs: number) => Promise<void>
+  timerCount: () => number
+}
+
+export type MatrixStatus = {
+  state: 'queued' | 'completed'
+}
+
+export type MatrixTranscript = {
+  text: string
+}
+
+export type MatrixOptions = AsyncSttLifecycleOptions<MatrixStatus, MatrixTranscript, string>
+
+export type ClientCase = {
+  name: string
+  request: () => Promise<unknown>
+  errorName: string
+  appError: boolean
+  bodyPolicy: 'raw-text' | 'parsed'
+}
+
+export type E2eTestSource = {
+  file: string
+  source: string
+}

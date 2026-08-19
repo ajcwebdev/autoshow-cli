@@ -21,13 +21,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { fileExists } from '~/utils/cli-utils'
 import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import type { CliFlagOccurrence, MusicRuntimeOptions, ResourceGate } from '~/types'
-
-type StandaloneMusicCommandOptions = MusicRuntimeOptions & {
-  generationResourceGate?: ResourceGate | undefined
-  price: boolean
-  allowOverBudget: boolean
-}
+import type { CliFlagOccurrence, StandaloneMusicCommandOptions } from '~/types'
 
 const HOSTED_MUSIC_FLAGS = [
   'all-providers',

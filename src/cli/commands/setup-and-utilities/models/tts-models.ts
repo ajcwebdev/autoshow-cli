@@ -7,7 +7,7 @@ import {
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
+import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
   'eleven_v3'
@@ -242,11 +242,6 @@ export const SUPPORTED_OPENAI_TTS_MODELS = [
 export const OPENAI_DEFAULT_TTS_VOICE = 'alloy'
 
 export const SUPPORTED_OPENAI_TTS_VOICES = getOpenAITtsVoices()
-
-export type OpenAITtsVoiceSelection = Readonly<
-  | { kind: 'built-in', voiceId: string, requestVoice: string }
-  | { kind: 'custom', voiceId: string, requestVoice: Readonly<{ id: string }> }
->
 
 const validateActiveOpenAITtsModel = createModelValidator<OpenAITtsModel>(SUPPORTED_OPENAI_TTS_MODELS, 'openai-tts')
 export const validateOpenAITtsModel = (model: string): OpenAITtsModel => {

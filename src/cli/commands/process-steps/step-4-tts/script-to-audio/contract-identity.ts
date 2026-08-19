@@ -1,12 +1,8 @@
 import { createHash } from 'node:crypto'
 import { isAbsolute, posix } from 'node:path'
-import type { ProviderRenderStrategy } from '~/types'
+import type { ArtifactPathScope, CanonicalValue, ProviderRenderStrategy } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 export { canonicalTargetKey } from '~/utils/canonical-target-key'
-export type { CanonicalProviderOperation as AudioProviderOperation } from '~/utils/canonical-target-key'
-
-type CanonicalPrimitive = string | number | boolean | null
-export type CanonicalValue = CanonicalPrimitive | CanonicalValue[] | { [key: string]: CanonicalValue }
 
 const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') {
@@ -138,8 +134,6 @@ export const computeLegacySingleRenderIdentity = (input: {
 })}`
 
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
-
-export type ArtifactPathScope = 'render' | 'attempt' | 'batch-result' | 'audio-run'
 
 export const assertSafeArtifactRelativePath = (
   value: string,

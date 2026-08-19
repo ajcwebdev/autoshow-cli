@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import { cpus, release } from 'node:os'
 import { join } from 'node:path'
 import type {
+  ActiveSetupPerformanceRun,
   BeginSetupPerformanceRunOptions,
   FinishSetupPerformanceRunOptions,
   FinishedSetupPerformanceRun,
@@ -12,16 +13,6 @@ import type {
   SetupPerformancePhaseRecord
 } from '~/types'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
-
-type ActiveSetupPerformanceRun = {
-  runId: string
-  startedAt: Date
-  startedMonotonicMs: number
-  topology: string
-  dependencyVersions: Record<string, string>
-  artifactDirectory: string
-  phases: SetupPerformancePhaseRecord[]
-}
 
 let activeRun: ActiveSetupPerformanceRun | undefined
 let runSequence = 0

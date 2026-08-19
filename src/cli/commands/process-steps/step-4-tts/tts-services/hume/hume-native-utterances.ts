@@ -1,5 +1,9 @@
 import type {
   HostedTtsChunkScheduler,
+  HumeGenerationResponse,
+  HumeNativeUtteranceBatch,
+  HumeNativeUtteranceTurn,
+  JsonObject,
   HumeTtsModel,
   NormalizedTiming,
   Step4Metadata,
@@ -18,23 +22,6 @@ import { providerMilliseconds } from '../../script-to-audio/advanced-provider-co
 
 export const HUME_NATIVE_UTTERANCE_MAX_CHARACTERS = 5000
 export const HUME_NATIVE_MAX_TAKES = 5
-
-export type HumeNativeUtteranceTurn = {
-  turnId: string
-  subjectKey: string
-  speaker: string
-  canonicalText: string
-  voiceId: string
-  speed?: number | undefined
-  trailingSilence?: number | undefined
-  delivery?: string | undefined
-}
-
-export type HumeNativeUtteranceBatch = {
-  batchIndex: number
-  turns: HumeNativeUtteranceTurn[]
-  providerText: string
-}
 
 export const planHumeNativeUtteranceBatches = (
   turns: readonly HumeNativeUtteranceTurn[],
@@ -62,11 +49,10 @@ export const planHumeNativeUtteranceBatches = (
   return batches
 }
 
-type JsonRecord = Record<string, unknown>
-const record = (value: unknown): JsonRecord | undefined => value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : undefined
-const flattenSnippets = (value: unknown): JsonRecord[] => {
+const record = (value: unknown): JsonObject | undefined => value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : undefined
+const flattenSnippets = (value: unknown): JsonObject[] => {
   if (!Array.isArray(value)) return []
-  const snippets: JsonRecord[] = []
+  const snippets: JsonObject[] = []
   for (const item of value) {
     if (Array.isArray(item)) snippets.push(...flattenSnippets(item))
     else {
@@ -75,13 +61,6 @@ const flattenSnippets = (value: unknown): JsonRecord[] => {
     }
   }
   return snippets
-}
-
-export type HumeGenerationResponse = {
-  audio?: unknown
-  duration?: unknown
-  generation_id?: unknown
-  snippets?: unknown
 }
 
 const timestampTokens = (input: {

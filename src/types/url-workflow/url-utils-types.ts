@@ -33,3 +33,10 @@ export type LocalHtmlReadResult = {
   fileSize: number
   localFileUrl: string
 }
+
+export type UrlArticleScrapeRunner = (
+  source: string,
+  options?: UrlRequestOptions,
+  baseUrl?: string
+) => Promise<{ markdown: string, web: WebArticleMetadata }>
+

@@ -7,7 +7,7 @@ import { runFirecrawlUrl } from '~/cli/commands/process-steps/step-2-extract/ste
 import { defineCliCommand } from '~/cli/native/native-types'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
-import type { CliCommandContext, CliFlagsDefinition, CliParseResult, FetchFn, FetchUrlResult, LinksChangeStatus, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode, ModelLinksData, RunLinksOptions } from '~/types'
+import type { CliFlagsDefinition, FetchFn, FetchUrlResult, LinksChangeStatus, LinksParsedCommand, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode, ModelLinksData, RunLinksOptions } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import * as l from '~/utils/app-logger/app-logger'
@@ -158,8 +158,6 @@ const linksFlags = {
   },
   ...linksProviderFlags
 } as const satisfies CliFlagsDefinition
-
-type LinksParsedCommand = Pick<CliCommandContext, 'argv' | 'flags' | 'rawParsed'> | CliParseResult
 
 export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
   const serviceSelections = new Map<string, string[]>()

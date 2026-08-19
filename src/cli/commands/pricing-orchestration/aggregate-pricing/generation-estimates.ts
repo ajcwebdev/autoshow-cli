@@ -1,4 +1,4 @@
-import type { EstimateImageCostOptions, EstimateMusicCostOptions, EstimateVideoCostOptions, ImageStepEstimate, MusicStepEstimate, VideoRuntimeOptions, VideoStepEstimate } from '~/types'
+import type { EstimateImageCostOptions, EstimateMusicCostOptions, ImageStepEstimate, MusicStepEstimate, VideoEstimateOptions, VideoStepEstimate } from '~/types'
 import { estimateImageCosts, IMAGE_PRICING_MODEL_KEYS, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCosts, VIDEO_PRICING_MODEL_KEYS, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { estimateMusicCosts, MUSIC_PRICING_MODEL_KEYS, MUSIC_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
@@ -32,11 +32,6 @@ export const buildImageEstimates = (opts: EstimateImageCostOptions): ImageStepEs
     }
   })
 }
-
-type VideoEstimateOptions = EstimateVideoCostOptions & Partial<Pick<
-  VideoRuntimeOptions,
-  'videoInputImage' | 'videoReferenceImages' | 'videoInputVideo' | 'videoReferenceVideos'
->>
 
 const countGrokInputImages = (opts: VideoEstimateOptions): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)

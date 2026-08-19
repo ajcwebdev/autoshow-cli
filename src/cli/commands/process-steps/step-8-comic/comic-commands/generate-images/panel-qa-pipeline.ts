@@ -1,72 +1,16 @@
 import { copyFile, mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type {
-  ComicImageGenerationDependencies,
-  GenerateComicPagesOptions,
-  GeneratePanelImagesOptions,
-  ImageGenerationModel,
-  ImageGenerationQuality,
-  ImageGenerationSize,
-  PanelBundleData,
+  GenerateWithQaRepairInput,
+  GenerateWithQaRepairResult,
+  PageQaEntry,
+  PageQaRequest,
+  QaRepairCostEntry,
 } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
-import {
-  advancePageQaRepairStagnation,
-  applyPageQaRepairPolicy,
-  createPageQaRepairStagnationState,
-  readReusablePageQaEntry,
-  type PageQaEntry,
-  type PageQaRequest,
-} from './comic-page-qa'
+import { advancePageQaRepairStagnation, applyPageQaRepairPolicy, createPageQaRepairStagnationState, readReusablePageQaEntry } from './comic-page-qa'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
-import type { writeGeneratedImage } from '../../comic-image-services/image-writer'
-
-export interface QaRepairCostEntry {
-  model: ImageGenerationModel
-  quality?: ImageGenerationQuality | undefined
-  size?: ImageGenerationSize | undefined
-}
-
-export interface GenerateWithQaRepairInput {
-  kind: 'panel' | 'page'
-  itemNumber: number
-  outputPath: string
-  canonicalExists: boolean
-  outputExists: boolean
-  force: boolean
-  model: ImageGenerationModel
-  promptForVariation: string
-  referenceImages: string[]
-  bundleData: PanelBundleData
-  resolvedReferences: {
-    primaryCharacterRefs?: string[] | undefined
-    secondaryRefs?: string[] | undefined
-    designReferences?: Array<{ path: string; key?: string; referenceIndex?: number; usage?: string }> | undefined
-    characterReferences?: Array<{ key: string; referenceIndex?: number; description: string }> | undefined
-    locationReferences?: Array<{ key: string; referenceIndex?: number; specification: string }> | undefined
-  }
-  sceneSlug: string
-  options: GeneratePanelImagesOptions | GenerateComicPagesOptions
-  requestImage: NonNullable<ComicImageGenerationDependencies['requestImage']>
-  writeImage: typeof writeGeneratedImage
-  judge: NonNullable<ComicImageGenerationDependencies['judgePage']>
-  qaEnabled: boolean
-  judgeModel: string
-  maxRepairs: number
-  nextHostedIndex: () => number
-}
-
-export interface GenerateWithQaRepairResult {
-  status: 'skipped' | 'generated'
-  qaEntry: PageQaEntry | undefined
-  imagesGenerated: number
-  totalDurationMs: number
-  totalInputTokens: number
-  totalOutputTokens: number
-  totalCostUsd: number
-  costEntries: QaRepairCostEntry[]
-}
 
 export const generateWithQaRepair = async (
   input: GenerateWithQaRepairInput

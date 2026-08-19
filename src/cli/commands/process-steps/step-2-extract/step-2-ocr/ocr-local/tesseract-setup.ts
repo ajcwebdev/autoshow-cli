@@ -56,7 +56,9 @@ const ensureEnglishLanguageData = async (): Promise<void> => {
   }
 
   l.warn('Could not find eng.traineddata in tessdata path')
-  l.write('info', 'Set TESSDATA_PREFIX if your language files are in a custom directory')
+  // The CLI sets TESSDATA_PREFIX itself when spawning tesseract and never reads
+  // it back, so pointing users at the env var would be a dead end.
+  l.write('info', `Add eng.traineddata to ${resolveTessdataPrefix()} (the CLI points tesseract at this directory)`)
 }
 
 export const setupTesseractOcr = async (): Promise<void> => {

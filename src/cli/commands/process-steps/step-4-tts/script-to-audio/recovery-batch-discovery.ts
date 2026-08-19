@@ -3,6 +3,8 @@ import { relative, resolve, sep } from 'node:path'
 import type {
   CanonicalAudioProviderProjection,
   ProviderBatchResult,
+  RetainedBatchCandidate,
+  RetainedJournalEvidence,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson } from './contract-identity'
@@ -12,18 +14,7 @@ import { readContainedArtifactFile } from './safe-artifact-store'
 import { buildPureCurrentTtsRenderPlan } from './attempt-planning'
 import {
   resolveRetainedPath,
-  type RetainedJournalEvidence,
 } from './recovery-evidence'
-
-export type RetainedBatchCandidate = {
-  batchId: string
-  generationSlotId: string
-  batchResultId: string
-  path: string
-  sha256: string
-  attemptRoot: string
-}
-
 const addBatchCandidate = (
   candidates: Map<string, RetainedBatchCandidate>,
   candidate: RetainedBatchCandidate

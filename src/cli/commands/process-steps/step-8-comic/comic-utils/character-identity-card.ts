@@ -3,25 +3,9 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import type { CharacterReferenceManifest } from './character-reference-snapshot'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getCharacterReferencesDirectory } from './project-paths'
-
-export type CharacterIdentityReference = {
-  key: string
-  name: string
-  description: string
-  referenceIndex: number
-  path: string
-}
-
-type IdentityCardMetadata = {
-  schemaVersion: 1
-  characterKey: string
-  sourceHash: string
-  width: 1536
-  height: 1024
-}
+import type { CharacterIdentityReference, CharacterReferenceManifest, IdentityCardMetadata } from '~/types'
 
 const hashFile = (path: string): string => createHash('sha256').update(readFileSync(path)).digest('hex')
 const GLYPHS: Record<string, string[]> = {

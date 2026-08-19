@@ -163,22 +163,3 @@ export type ComicAudioRolePolicy = {
   speakerLabel: string
   subjectKey: string
 }
-
-export type ComicGenerateAudioOptions = {
-  scriptPath: string
-  sceneSlug: string
-  outputDir?: string | undefined
-  profileKey: string
-  mode: ComicAudioMode
-  deliveryPolicy: ComicAudioDeliveryPolicy
-  pacingProfile: ComicAudioPacingProfile
-  soundscapeTimingPolicy: ComicAudioSoundscapeTimingPolicy
-  rolePolicies: ComicAudioRolePolicy[]
-  sampleRate: number
-  channels: 1 | 2
-  codec: 'pcm_s16le' | 'pcm_s24le'
-  price: boolean
-  sfxProvider?: string | undefined
-  sfxLicenseUse?: string | undefined
-  sfxConcurrency?: number | undefined
-}

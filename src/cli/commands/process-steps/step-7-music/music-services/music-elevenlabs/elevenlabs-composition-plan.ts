@@ -1,4 +1,4 @@
-import type { ElevenLabsCompositionChunk, ElevenLabsCompositionPlan } from '~/types'
+import type { ElevenLabsCompositionChunk, ElevenLabsCompositionPlan, LyricsSection } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 
 export const ELEVENLABS_PLAN_MAX_CHUNKS = 30
@@ -11,11 +11,6 @@ export const ELEVENLABS_MAX_STYLES = 50
 const SECTION_HEADER_PATTERN = /^\[?\s*((?:pre[- ]?chorus|chorus|verse|bridge|intro|outro|hook|refrain|interlude|breakdown|drop|voiceover)(?:\s*\d+)?)\s*\]?[:.]?$/i
 
 const NEGATIVE_STYLES_PATTERN = /^negative(?:\s+styles)?\s*:\s*(.+)$/i
-
-type LyricsSection = {
-  label: string
-  lines: string[]
-}
 
 const titleCaseLabel = (label: string): string =>
   label

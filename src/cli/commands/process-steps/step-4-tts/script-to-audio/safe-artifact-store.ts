@@ -2,6 +2,7 @@ import { constants } from 'node:fs'
 import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir, unlink } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import type { ContainedArtifactFile, ImmutableArtifactFile, ReservedInvocationAttemptDirectory, SafeArtifactDirectory } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
 const DIRECTORY_MODE = 0o700
@@ -9,32 +10,6 @@ const FILE_MODE = 0o600
 const SAFE_INVOCATION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
 const CLAIM_OWNER_FILE = /^owner-([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.lock$/
-
-export type SafeArtifactDirectory = Readonly<{
-  path: string
-  relativePath: string
-}>
-
-export type ImmutableArtifactFile = Readonly<{
-  path: string
-  relativePath: string
-  sha256: string
-  created: boolean
-}>
-
-export type ContainedArtifactFile = Readonly<{
-  path: string
-  relativePath: string
-  bytes: Buffer
-  sha256: string
-}>
-
-export type ReservedInvocationAttemptDirectory = SafeArtifactDirectory & Readonly<{
-  attempt: number
-  invocationId: string
-  claimRelativePath: string
-  release: () => Promise<void>
-}>
 
 export class ArtifactReservationConflictError extends Error {
   readonly code = 'ARTIFACT_RESERVATION_CONFLICT'

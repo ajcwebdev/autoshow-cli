@@ -1,5 +1,8 @@
 import type {
   AnyCapabilityRecord,
+  HumeAdvancedProviderOptions,
+  HumeVoiceCatalogEnvelope,
+  JsonObject,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
   ProviderVoiceDesignResult,
@@ -20,7 +23,6 @@ import {
   buildCapabilityDocumentationEvidence,
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
-  type AdvancedProviderHttpRequest,
 } from '../../script-to-audio/advanced-provider-contracts'
 
 const DOCS = {
@@ -51,18 +53,11 @@ const capabilityRecords = [
 
 export const HUME_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
-type JsonRecord = Record<string, unknown>
-const record = (value: unknown, label: string): JsonRecord => {
+const record = (value: unknown, label: string): JsonObject => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`Hume ${label} response is invalid.`)
-  return value as JsonRecord
+  return value as JsonObject
 }
 const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
-export type HumeVoiceCatalogEnvelope = Readonly<{
-  voices: unknown[]
-  pageNumber: number
-  totalPages: number
-}>
-
 export const parseHumeVoiceCatalogEnvelope = (payload: unknown): HumeVoiceCatalogEnvelope => {
   if (Array.isArray(payload)) return { voices: payload, pageNumber: 0, totalPages: 1 }
   const response = record(payload, 'voice catalog')
@@ -103,12 +98,6 @@ export const resolveUniqueHumeVoiceName = (
   const matching = entries.filter(entry => entry.name === normalized)
   if (matching.length !== 1) throw CLIUsageError(`Hume voice name ${normalized} must resolve to exactly one stable provider ID.`)
   return matching[0] as ProviderVoiceCatalogEntry
-}
-
-export type HumeAdvancedProviderOptions = {
-  apiKey: string
-  request?: AdvancedProviderHttpRequest | undefined
-  now?: (() => string) | undefined
 }
 
 export const validateHumeContinuation = (continuation: ResolvedContinuationInput, version: '1' | '2'): void => {

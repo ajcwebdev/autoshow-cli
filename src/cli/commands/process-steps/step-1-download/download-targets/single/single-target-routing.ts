@@ -5,136 +5,38 @@ import {
   isDocumentByExtension,
   isHtmlDocumentPath,
   isLikelyUrl,
-  isRawXSpaceId,
-  type UrlInputKind
+  isRawXSpaceId
 } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import type {
   DownloadCommandOptions,
+  DownloadMatrixEntry,
+  DownloadSingleTargetRoute,
+  DownloadSingleTargetIntent,
   ExtractCommandOptions,
-  InputFamily,
+  ExtractMatrixEntry,
+  ExtractSingleTargetRoute,
+  ExtractSingleTargetIntent,
   MetadataCommandOptions,
+  MetadataMatrixEntry,
+  MetadataSingleTargetRoute,
+  MetadataSingleTargetIntent,
   ProcessCommand,
+  RoutingFailure,
+  SingleTargetAction,
+  SingleTargetClassifiedInput,
   SingleTargetCommandOptions,
-  WriteRuntimeOptions
+  SingleTargetInputCategory,
+  SingleTargetIntent,
+  SingleTargetRoute,
+  WriteMatrixEntry,
+  WriteRuntimeOptions,
+  WriteSingleTargetRoute,
+  WriteSingleTargetIntent
 } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import { throwUnrecognizedExtractInput } from './single-target-errors'
-
-export type MetadataSingleTargetIntent = {
-  command: 'metadata'
-  opts: MetadataCommandOptions
-}
-
-export type DownloadSingleTargetIntent = {
-  command: 'download'
-  opts: DownloadCommandOptions
-}
-
-export type ExtractSingleTargetIntent = {
-  command: 'extract'
-  opts: ExtractCommandOptions
-}
-
-export type WriteSingleTargetIntent = {
-  command: 'write'
-  opts: WriteRuntimeOptions
-}
-
-export type SingleTargetIntent =
-  | MetadataSingleTargetIntent
-  | DownloadSingleTargetIntent
-  | ExtractSingleTargetIntent
-  | WriteSingleTargetIntent
-
-export type SingleTargetClassifiedInput =
-  | { kind: 'url', subtype: UrlInputKind }
-  | { kind: 'local', family: Exclude<InputFamily, 'x_space'> }
-  | { kind: 'x_space_identifier' }
-  | { kind: 'missing' }
-
-export type SingleTargetInputCategory =
-  | UrlInputKind
-  | 'local_html_article'
-  | 'local_document'
-  | 'local_media'
-  | 'local_unsupported'
-  | 'x_space_identifier'
-  | 'missing'
-
-export type MetadataSingleTargetAction =
-  | 'x-space'
-  | 'temporary-document'
-  | 'article'
-  | 'document'
-  | 'media'
-
-export type DownloadSingleTargetAction =
-  | 'x-space'
-  | 'temporary-document'
-  | 'article'
-  | 'document'
-  | 'media'
-
-export type ExtractSingleTargetAction =
-  | 'x-space'
-  | 'temporary-document'
-  | 'article'
-  | 'document'
-  | 'media'
-
-export type WriteSingleTargetAction =
-  | 'text'
-  | 'x-space'
-  | 'temporary-document'
-  | 'article'
-  | 'document'
-  | 'media'
-
-type SingleTargetAction =
-  | MetadataSingleTargetAction
-  | DownloadSingleTargetAction
-  | ExtractSingleTargetAction
-  | WriteSingleTargetAction
-
-export type MetadataSingleTargetRoute = {
-  command: 'metadata'
-  action: MetadataSingleTargetAction
-}
-
-export type DownloadSingleTargetRoute = {
-  command: 'download'
-  action: DownloadSingleTargetAction
-}
-
-export type ExtractSingleTargetRoute = {
-  command: 'extract'
-  action: ExtractSingleTargetAction
-}
-
-export type WriteSingleTargetRoute = {
-  command: 'write'
-  action: WriteSingleTargetAction
-}
-
-export type SingleTargetRoute =
-  | MetadataSingleTargetRoute
-  | DownloadSingleTargetRoute
-  | ExtractSingleTargetRoute
-  | WriteSingleTargetRoute
-
-type RoutingFailure =
-  | 'missing'
-  | 'unrecognized-extract'
-  | 'download-passthrough'
-  | 'text-url'
-  | 'text-path'
-
-type MetadataMatrixEntry = MetadataSingleTargetAction | RoutingFailure
-type DownloadMatrixEntry = DownloadSingleTargetAction | RoutingFailure
-type ExtractMatrixEntry = ExtractSingleTargetAction | RoutingFailure
-type WriteMatrixEntry = WriteSingleTargetAction | RoutingFailure
 
 const METADATA_ROUTES = {
   url_streaming: 'media',

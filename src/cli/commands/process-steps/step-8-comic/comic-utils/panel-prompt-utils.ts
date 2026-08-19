@@ -3,11 +3,11 @@ import type { Dirent } from 'node:fs'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as v from 'valibot'
-import type { ComicPanelSource, PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
+import type { ComicPanelSource, ImageGenerationModel, LocationReferenceSnapshotManifest, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
 import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
-import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS, type LocationReferenceSnapshotManifest } from './location-reference'
+import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
@@ -71,13 +71,6 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
 
 export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
   resolvePrimaryCharacterReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
-
-export type ResolvedLocationReference = {
-  key: string
-  snapshotId: string
-  specification: string
-  path: string
-}
 
 export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })

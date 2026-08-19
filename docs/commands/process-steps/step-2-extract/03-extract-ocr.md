@@ -56,8 +56,8 @@ Hosted OCR engines are selected by provider. Calibre `ebook-convert` remains ava
 | GLM       | `GLM_API_KEY`       |
 | Kimi      | `KIMI_API_KEY`      |
 | DeepInfra | `DEEPINFRA_API_KEY` |
-| Replicate | `REPLICATE_API_KEY` |
-| fal.ai    | `FAL_KEY`           |
+| Replicate | `REPLICATE_API_TOKEN` |
+| fal.ai    | `FAL_API_KEY`         |
 
 ## OCR Routing
 

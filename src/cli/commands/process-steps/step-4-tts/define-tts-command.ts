@@ -13,7 +13,7 @@ import { assertDialogueFormatIsUsable } from './dialogue-normalizer'
 import { collectTtsTargets } from './tts-targets'
 import { planStandaloneMistralReference, planStandaloneMistralSpeakerReferences } from './voice-assets/standalone-mistral-reference'
 import { getTtsInputKind, runSingleTtsInput } from './tts-single-run'
-import type { StandaloneTtsCommandOptions } from './tts-single-run'
+import type { StandaloneTtsCommandOptions } from '~/types'
 import { runTtsDirectoryBatch } from './tts-batch-run'
 
 export { getTtsBatchAudioFileName, moveTtsBatchAudioFiles, buildTtsBatchSource } from './tts-batch-plan'

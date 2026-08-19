@@ -4,6 +4,8 @@ import type {
   SoundEffectRenderTask,
   SoundEffectRequestEvidence,
   SoundEffectTarget,
+  StabilitySoundEffectHttpRequest,
+  StabilitySoundEffectSerializedRequest,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
@@ -90,15 +92,6 @@ export const validateStabilitySoundEffectTask = (task: SoundEffectRenderTask, ta
   }
 }
 
-export type StabilitySoundEffectSerializedRequest = {
-  path: typeof STABILITY_STABLE_AUDIO_ENDPOINT
-  body: {
-    prompt: string
-    duration: number
-    output_format: string
-  }
-}
-
 export const serializeStabilitySoundEffectRequest = (
   task: SoundEffectRenderTask,
   target: SoundEffectTarget
@@ -113,14 +106,6 @@ export const serializeStabilitySoundEffectRequest = (
     },
   }
 }
-
-export type StabilitySoundEffectHttpRequest = (input: {
-  method: 'POST'
-  path: typeof STABILITY_STABLE_AUDIO_ENDPOINT
-  headers: Record<string, string>
-  body: FormData
-  cancellation: AbortSignal
-}) => Promise<{ status: number, headers?: Headers | Record<string, string> | undefined, body: Uint8Array }>
 
 const defaultRequest = (apiKey: string): StabilitySoundEffectHttpRequest => async (input) => {
   const response = await fetch(`${STABILITY_API_BASE_URL}${input.path}`, {

@@ -6,7 +6,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { isCostSource } from '~/types'
+import { isCostSource, isTokenPricedOcrProvider } from '~/types'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
 import {
   computeSttCost,
@@ -24,7 +24,6 @@ import {
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import {
-  isTokenPricedOcrProvider,
   resolveActualExtractCostEntry,
   zeroCostSource
 } from './provider-family-resolvers'

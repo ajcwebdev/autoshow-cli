@@ -1,6 +1,6 @@
 import { mkdir, readdir, writeFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
-import type { CaptionCue, LyricsRenderSummary, OverlaySegment, OverlayTextLayout } from '~/types'
+import type { AssStyle, AssTheme, CaptionCue, LyricsRenderSummary, LyricsVideoOverlaySource, OverlaySegment, OverlayTextLayout } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
@@ -47,33 +47,6 @@ const assTime = (seconds: number): string => {
   const minutes = totalMinutes % 60
   const hours = Math.floor(totalMinutes / 60)
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`
-}
-
-type AssStyle = {
-  name: string
-  fontSize: number
-  primaryColor: string
-  bold: boolean
-  outline: number
-  shadow: number
-  alignment: number
-}
-
-export type AssTheme = {
-  horizontalMarginRatio: number
-  verticalMarginRatio: number
-  styles: (height: number) => AssStyle[]
-  title: { style: string, layer: number, yRatio: number }
-  cue: {
-    activeStyle: string
-    contextStyle: string
-    activeLayer: number
-    previousLayer: number
-    nextLayer: number
-    centerYRatio: number
-    lineSpacingRatio: number
-    colorActiveBySpeaker?: boolean | undefined
-  }
 }
 
 export const LYRICS_ASS_THEME: AssTheme = {
@@ -310,10 +283,6 @@ export const buildImageBackgroundFilter = (options: {
     ',vignette=PI/3.5',
     '[bg]'
   ].join('')
-
-type LyricsVideoOverlaySource =
-  | { kind: 'ass', path: string }
-  | { kind: 'frames', path: string }
 
 export const buildLyricsVideoFfmpegArgs = (options: {
   audioPath: string

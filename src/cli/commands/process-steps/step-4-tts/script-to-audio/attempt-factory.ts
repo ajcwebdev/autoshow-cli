@@ -1,7 +1,3 @@
-import type {
-  CreateCurrentTtsRenderAttemptOptions,
-  CurrentTtsRenderAttempt,
-} from './attempt-shared'
 import { createAttemptContext } from './attempt-context'
 import { scopeFor } from './attempt-evidence'
 import {
@@ -9,6 +5,7 @@ import {
   finalizeFailure,
   finalizeSuccess,
 } from './attempt-finalize'
+import type { CreateCurrentTtsRenderAttemptOptions, CurrentTtsRenderAttempt } from '~/types'
 
 export const createCurrentTtsRenderAttempt = async (
   options: CreateCurrentTtsRenderAttemptOptions

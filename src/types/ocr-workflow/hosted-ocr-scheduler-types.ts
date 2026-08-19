@@ -1,11 +1,9 @@
-import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, HostedConcurrencyTelemetry, ProviderCompletionStatus, ProviderLaneIdentity, ProviderLanePressureFeedback } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, HostedConcurrencyTelemetry, HostedOcrService, ProviderCompletionStatus, ProviderLaneIdentity, ProviderLanePressureFeedback } from '~/types'
 
 export type HostedOcrProfileStore<TVersion extends number, TProfile> = {
   version: TVersion
   profiles: TProfile[]
 }
-
-import type { HostedOcrService } from './hosted-ocr-types'
 
 export type OcrConcurrencyMode = 'auto' | 'fixed'
 

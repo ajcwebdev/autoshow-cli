@@ -1,8 +1,9 @@
 import type {
   AnyCapabilityRecord,
+  CreateInworldAdvancedProviderOptions,
+  JsonObject,
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
-  ProviderVoiceCloneRequest,
   ProviderVoiceDesignResult,
   ProviderVoiceInspection,
   ProviderVoiceMutationResult,
@@ -20,7 +21,6 @@ import {
   buildCapabilityDocumentationEvidence,
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
-  type AdvancedProviderHttpRequest,
 } from '../../script-to-audio/advanced-provider-contracts'
 
 const DOCS = {
@@ -49,10 +49,9 @@ const capabilityRecords = [
 
 export const INWORLD_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
-type JsonRecord = Record<string, unknown>
-const record = (value: unknown, label: string): JsonRecord => {
+const record = (value: unknown, label: string): JsonObject => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`Inworld ${label} response is invalid.`)
-  return value as JsonRecord
+  return value as JsonObject
 }
 const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
 
@@ -89,13 +88,6 @@ export const mapInworldVoice = (value: unknown): ProviderVoiceCatalogEntry => {
     }
   }
 }
-
-export type CreateInworldAdvancedProviderOptions = Readonly<{
-  apiKey: string
-  request?: AdvancedProviderHttpRequest | undefined
-  resolveProtectedAsset?: ((asset: ProviderVoiceCloneRequest['protectedSamples'][number]) => Promise<{ bytes: Uint8Array, fileName: string, mediaType: string, transcription?: string | undefined }>) | undefined
-  now?: (() => string) | undefined
-}>
 
 export const createInworldAdvancedProvider = (
   options: CreateInworldAdvancedProviderOptions

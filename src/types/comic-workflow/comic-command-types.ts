@@ -1,5 +1,5 @@
 import type { Dirent } from 'node:fs'
-import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, StructuredScriptData } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, StructuredScriptData } from '~/types'
 
 type ComicHostedConcurrencyOptions = {
   concurrencyMode?: HostedConcurrencyMode | undefined
@@ -156,7 +156,7 @@ export type ComicImageRequestInput = {
 export type ComicImageGenerationDependencies = {
   requestImage?: (input: ComicImageRequestInput) => Promise<GeneratedImageResponse>
   writeImage?: (outputPath: string, imageBase64: string, mimeType?: string) => Promise<void>
-  judgePage?: (input: import('~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa').PageQaRequest) => Promise<import('~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa').PageQaEntry>
+  judgePage?: (input: PageQaRequest) => Promise<PageQaEntry>
 }
 
 export type ComicPageChunk<T> = {

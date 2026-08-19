@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import type {
+  ComicAudioFinalizeResult,
   CompactMix,
   Step4Metadata,
   TtsOptions,
@@ -22,15 +23,6 @@ import {
 } from '../../comic-utils/comic-soundscape-workflow'
 import type { runTtsForTargets } from '../../../step-4-tts/run-tts'
 import { providerStageStatus, stageArtifactRefs } from './comic-audio-staging'
-
-export interface ComicAudioFinalizeResult {
-  checkpoints: Array<{
-    entry: NonNullable<Awaited<ReturnType<typeof runTtsForTargets>>['metadata'][number]>
-    checkpoint: NonNullable<NonNullable<Awaited<ReturnType<typeof runTtsForTargets>>['metadata'][number]>['generationCheckpoint']>
-  }>
-  finalStageStatus: 'full' | 'incomplete' | 'failed' | 'skipped'
-  soundscapeRequiredFailure: boolean
-}
 
 export const finalizeComicAudioOutputs = async (input: {
   compatible: Awaited<ReturnType<typeof resolveCompatibleComicSceneRun>>

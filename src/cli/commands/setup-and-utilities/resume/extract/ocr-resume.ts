@@ -11,17 +11,16 @@ import {
   parseStoredRequestedTargets
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
 import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { AggregatedPriceEstimate, OcrExtractionOptions, OcrResumePassContext, OcrTarget, PipelineItemRecord, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, Step1SourceRef, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, NormalizedReasoningEffort, OcrExtractionOptions, OcrPoolLedger, OcrProviderMode, OcrResumePassContext, OcrTarget, PipelineItemRecord, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, Step1SourceRef, WebArticleMetadata } from '~/types'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
 import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
-import { isNormalizedReasoningEffort, resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
 import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { getOcrTargetKey } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
 import { parseStoredOcrPoolLedger } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch'
-import type { OcrProviderMode, OcrPoolLedger } from '~/types'
 
 const storedOcrProviderMode = (record: Record<string, unknown>): OcrProviderMode =>
   record['ocrProviderMode'] === 'pool' ? 'pool' : 'fanout'

@@ -1,4 +1,4 @@
-import type { ProjectionArtifactReference } from './projection-artifact-references'
+import type { ProjectionArtifactReference } from '~/types'
 import { createGraphLinkContext } from './projection-artifact-link-context'
 import {
   validateBranchPlanLinks,

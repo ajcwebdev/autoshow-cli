@@ -1,4 +1,5 @@
 import type { FalTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateFalTtsModel, validateFalTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runFalTts } from './run-fal-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
@@ -21,7 +22,7 @@ export const collectFalTtsTargets = (
         const controls = resolveTtsTargetInvocationControls('fal', invocation, {})
         return await runFalTts(text, outputDir, {
           model,
-          apiKey: process.env['FAL_API_KEY'] ?? '',
+          apiKey: requireApiKey('FAL_API_KEY', 'tts:fal', 'fal.ai TTS'),
           voiceId: invocationVoiceId ?? voiceId,
           abortSignal: invocation?.signal,
           chunkConcurrency: opts.ttsChunkConcurrency,

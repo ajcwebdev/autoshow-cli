@@ -4,12 +4,21 @@ import { runTextWrite } from '~/cli/commands/process-steps/step-3-write/run-text
 import { ValidationError } from '~/utils/error-handler'
 import type {
   AggregatedPriceEstimate,
-  BatchChildRunContext,
   BatchItem,
   BatchItemProcessResult,
+  DownloadSingleTargetAction,
+  DownloadSingleTargetIntent,
+  ExtractSingleTargetAction,
+  ExtractSingleTargetIntent,
+  MetadataSingleTargetAction,
+  MetadataSingleTargetIntent,
   ProcessCommand,
+  SingleTargetClassifiedInput,
   SingleTargetCommandOptions,
-  SttBatchCoordinator
+  SingleTargetExecutionContext,
+  SingleTargetRunOptions,
+  WriteSingleTargetAction,
+  WriteSingleTargetIntent
 } from '~/types'
 import { processDownloadMedia, processMediaSingle, processMetadataMedia } from './media-runner'
 import {
@@ -30,33 +39,9 @@ import {
 import {
   classifySingleTargetInput,
   normalizeSingleTargetIntent,
-  resolveSingleTargetRoute,
-  type DownloadSingleTargetAction,
-  type DownloadSingleTargetIntent,
-  type ExtractSingleTargetAction,
-  type ExtractSingleTargetIntent,
-  type MetadataSingleTargetAction,
-  type MetadataSingleTargetIntent,
-  type SingleTargetClassifiedInput,
-  type WriteSingleTargetAction,
-  type WriteSingleTargetIntent
+  resolveSingleTargetRoute
 } from './single-target-routing'
 import { withTemporaryDirectDocument } from './temporary-direct-document'
-
-type SingleTargetRunOptions = {
-  sttBatchCoordinator?: SttBatchCoordinator | undefined
-  mistralSttPassController?: import('~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller').MistralSttPassController | undefined
-  batchChildContext?: BatchChildRunContext | undefined
-}
-
-type SingleTargetExecutionContext = {
-  item: string
-  baseDir: string
-  input: SingleTargetClassifiedInput
-  preflightEstimate?: AggregatedPriceEstimate | undefined
-  runOptions?: SingleTargetRunOptions | undefined
-  batchItem?: BatchItem | undefined
-}
 
 const sourceRefForInput = (
   input: SingleTargetClassifiedInput,

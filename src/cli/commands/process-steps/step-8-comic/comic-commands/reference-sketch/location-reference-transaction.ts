@@ -3,21 +3,8 @@ import { mkdir, rename, rm } from 'node:fs/promises'
 import { dirname, relative } from 'node:path'
 import { InfraError } from '~/utils/error-handler'
 import { checksumFile } from '../process-scenes/character-utils'
-import {
-  getLocationReferencePath,
-  getLocationsRoot,
-  getLocationSketchManifestPath,
-  getLocationViewPath,
-  LOCATION_VIEWS,
-  resolveRegisteredLocationImagePath,
-  specificationHash,
-  type LocationReferenceCatalog,
-  type LocationReferenceEntry,
-  type LocationSketchManifest,
-  type LocationSketchRegistration,
-  type LocationSketchViewRegistration,
-  type LocationView,
-} from '../../comic-utils/location-reference'
+import { getLocationReferencePath, getLocationsRoot, getLocationSketchManifestPath, getLocationViewPath, LOCATION_VIEWS, resolveRegisteredLocationImagePath, specificationHash } from '../../comic-utils/location-reference'
+import type { LocationPromotionFileRecord, LocationPromotionTransactionBoundary, LocationPromotionTransactionRecord, LocationReferenceCatalog, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, PromoteLocationRegistrationInput } from '~/types'
 
 export const LOCATION_PROMOTION_TRANSACTION_BOUNDARIES = [
   'prepared',
@@ -28,42 +15,6 @@ export const LOCATION_PROMOTION_TRANSACTION_BOUNDARIES = [
   'manifest-backed-up',
   'manifest-promoted',
 ] as const
-
-export type LocationPromotionTransactionBoundary = typeof LOCATION_PROMOTION_TRANSACTION_BOUNDARIES[number]
-
-export type LocationPromotionFileRecord = {
-  path: string
-  backupPath: string
-  existed: boolean
-  backupCreated: boolean
-  promoted: boolean
-}
-
-export type LocationPromotionTransactionRecord = {
-  id: string
-  stagedImagePath: string
-  attemptsRoot: string
-  priorImage?: LocationPromotionFileRecord
-  image: LocationPromotionFileRecord
-  catalog: LocationPromotionFileRecord & { temporaryPath: string }
-  manifest: LocationPromotionFileRecord & { temporaryPath: string }
-}
-
-export type PromoteLocationRegistrationInput = {
-  key: string
-  view: LocationView
-  model: string
-  entry: LocationReferenceEntry
-  catalog: LocationReferenceCatalog
-  manifest: LocationSketchManifest
-  prior?: LocationSketchRegistration
-  priorTarget?: LocationSketchViewRegistration
-  generationId: string
-  attemptsRoot: string
-  stagedImagePath: string
-  promoteImage?: (stagedPath: string, targetPath: string) => Promise<void>
-  injectFault?: (boundary: LocationPromotionTransactionBoundary, transaction: Readonly<LocationPromotionTransactionRecord>) => void | Promise<void>
-}
 
 const fileRecord = async (path: string, transactionId: string): Promise<LocationPromotionFileRecord> => ({
   path,

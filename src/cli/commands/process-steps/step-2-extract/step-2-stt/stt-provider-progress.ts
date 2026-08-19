@@ -1,14 +1,8 @@
-import type { AsyncSttLifecycleHooks, JsonObject, SttTarget } from '~/types'
+import type { AsyncSttLifecycleHooks, JsonObject, SttProviderProgressSelector } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { readSingleManifestProviderState, updateSingleManifestProviderState } from '../../pipeline-manifest'
 
 export const ASYNC_STT_PROGRESS_METADATA_KEY = 'asyncSttProgress'
-
-type SttProviderProgressSelector = {
-  rootDir: string
-  artifactDir: string
-  target: Pick<SttTarget, 'service' | 'model'>
-}
 
 const toProviderSelector = ({ artifactDir, target }: SttProviderProgressSelector) => ({
   service: target.service,

@@ -1,4 +1,4 @@
-import type { FalTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { RunFalTtsOptions, Step4Metadata } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -17,18 +17,6 @@ import {
   resolveFalTtsDefaultVoice,
   resolveFalTtsVoiceField,
 } from './fal-tts-request'
-
-export type RunFalTtsOptions = Readonly<{
-  model: FalTtsModel
-  apiKey: string
-  voiceId?: string | undefined
-  voiceInstruction?: string | undefined
-  abortSignal?: AbortSignal | undefined
-  chunkConcurrency?: number | undefined
-  chunkScheduler?: HostedTtsChunkScheduler | undefined
-  requestEvidence?: TtsRequestEvidenceScope | undefined
-  runQueue?: typeof runFalQueue | undefined
-}>
 
 export const runFalTts = async (
   text: string,

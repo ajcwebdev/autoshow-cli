@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type {
   PipelineProviderState,
+  StagedComicAudioArtifacts,
   StructuredScriptArtifactRef,
   VoiceReferenceManifest,
 } from '~/types'
@@ -137,14 +138,6 @@ export const executeZeroTurnsWithSoundscape = async (input: {
     providers: [soundscape.providerState],
   })
   if (soundscape.providerState.status !== 'succeeded') throw CLIUsageError('Comic soundscape failed one or more required cues; generated artifacts were retained but no master was published.')
-}
-
-export interface StagedComicAudioArtifacts {
-  dialogueRef: { path: string, sha256: string }
-  soundscapePlanRef: { path: string, sha256: string }
-  snapshotRef: { path: string, sha256: string }
-  baseArtifacts: Array<{ path: string, sha256: string }>
-  audioMetadata: Record<string, unknown>
 }
 
 export const stageComicAudioArtifacts = async (input: {

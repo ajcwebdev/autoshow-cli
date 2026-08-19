@@ -1,5 +1,5 @@
 import { extname } from 'node:path'
-import type { PageResult } from '~/types'
+import type { FalFlorenceOcrOutput, FalGotOcrOutput, PageResult } from '~/types'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
 import { ValidationError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
@@ -11,9 +11,6 @@ const imageMimeType = (filePath: string): string => {
   if (extension === '.webp') return 'image/webp'
   return 'application/octet-stream'
 }
-
-type FalGotOcrOutput = { outputs?: unknown }
-type FalFlorenceOcrOutput = { results?: unknown }
 
 export const runFalOcr = async (
   filePath: string,

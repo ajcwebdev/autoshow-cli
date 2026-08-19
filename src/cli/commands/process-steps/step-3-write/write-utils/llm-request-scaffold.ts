@@ -1,25 +1,9 @@
 import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
-import type { LlmApiCallResult, RetryClassifier, RetryPolicy, Step3Metadata, StructuredRequestOptions } from '~/types'
+import type { ExecuteLlmRequestSpec, LlmApiCallResult, Step3Metadata, StructuredRequestOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { ValidationError } from '~/utils/error-handler'
 import { withRetry } from '~/utils/retries'
 import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
-
-export type LlmRequestSignalFactory = () => AbortSignal
-
-export type ExecuteLlmRequestSpec<TPrepared = undefined> = {
-  service: Step3Metadata['llmService']
-  providerLabel: string
-  operationName: string
-  emptyResponseStage: string
-  classifier: RetryClassifier
-  policy?: Partial<RetryPolicy> | undefined
-  prepare?: (() => TPrepared) | undefined
-  execute: (
-    createSignal: LlmRequestSignalFactory,
-    prepared: TPrepared
-  ) => Promise<LlmApiCallResult>
-}
 
 const createCombinedSignal = (signal?: AbortSignal): AbortSignal => {
   const timeoutSignal = AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)

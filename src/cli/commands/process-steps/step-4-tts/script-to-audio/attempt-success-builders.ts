@@ -9,36 +9,24 @@ import type {
   CompactTargetRender,
   FinalTimeline,
   NormalizedTiming,
-  ObservedAudioFormat,
-  ProviderBatchResult,
   ProviderRenderResult,
   ProviderRenderStrategy,
   RequestedAudioFormat,
   RenderAudioSourceBinding,
+  AttemptSlot,
+  AttemptTurn,
+  BatchResultFile,
+  FinalAudioObservation,
+  FinalTimelineLayout,
   TimedToken,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from './contract-identity'
-import { LOCAL_ACTOR, type AttemptSlot, type AttemptTurn, type WrittenJson } from './attempt-shared'
+import { LOCAL_ACTOR } from './attempt-shared'
 import {
   comicTimelineLayout,
   localVoiceEffectFilter,
 } from './comic-segmented-audio'
-
-export type FinalAudioObservation = {
-  bytes: Buffer
-  format: ObservedAudioFormat
-  durationMs: number
-}
-
-export type FinalTimelineLayout = {
-  turns: Array<{ turnId: string, subjectKey: string, startMs: number, endMs: number }>
-  overlaps: Array<{ groupId: string, start: number, end: number }>
-  pauses: Array<{ start: number, end: number, parameters: unknown }>
-}
-
-type BatchResultFile = WrittenJson<ProviderBatchResult>
-
 export const buildSpeechSources = (
   result: ProviderRenderResult
 ): RenderAudioSourceBinding[] => result.outputs.map((output) => ({

@@ -8,11 +8,8 @@ import { isLikelyInputListFile } from '~/cli/commands/process-steps/step-0-metad
 import { planProcessTargetBatchExecution, resolveProcessTargetPlan } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-process-target-plan'
 import { classifyInputFamily, classifyUrlInput } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
-import {
-  resolveSingleTargetRouteDecision,
-  type SingleTargetInputCategory,
-  type SingleTargetRoute
-} from '~/cli/commands/process-steps/step-1-download/download-targets/single/single-target-routing'
+import { resolveSingleTargetRouteDecision } from '~/cli/commands/process-steps/step-1-download/download-targets/single/single-target-routing'
+import type { SingleTargetInputCategory, SingleTargetRoute } from '~/types'
 import { withTemporaryDirectDocument } from '~/cli/commands/process-steps/step-1-download/download-targets/single/temporary-direct-document'
 import { resolveXSpaceDownloadTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/single/x-space-runner'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'

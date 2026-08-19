@@ -1,6 +1,6 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import type { FallbackAuditState, HostedOcrIdentity, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
+import type { FallbackAuditState, HostedOcrIdentity, HostedOcrPageCacheValidation, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, ParsedHostedOcrPageCache, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
@@ -23,19 +23,6 @@ import {
 } from './pdf-chunk-fallback-paths'
 import { summarizeFallbackAudit } from './pdf-chunk-fallback-audit'
 import { isHostedOcrRun } from './hosted-ocr-utils'
-
-type HostedOcrPageCacheValidation = {
-  pageNumber?: number | undefined
-  totalPages?: number | undefined
-  sourceFile?: string | undefined
-  identity?: HostedOcrIdentity | undefined
-}
-
-export type ParsedHostedOcrPageCache = {
-  pageNumber: number
-  totalPages: number
-  run: HostedOcrRun
-}
 
 const matchesCacheIdentity = (
   run: HostedOcrRun,

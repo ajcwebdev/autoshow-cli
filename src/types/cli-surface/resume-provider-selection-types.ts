@@ -5,3 +5,5 @@ export type AdditiveResumeProviderSelection<TProvider extends ProviderIdentity> 
   providersToRun: TProvider[]
   skippedSuccessfulProviders: TProvider[]
 }
+
+export type ResumeProviderKey = (provider: ProviderIdentity) => string

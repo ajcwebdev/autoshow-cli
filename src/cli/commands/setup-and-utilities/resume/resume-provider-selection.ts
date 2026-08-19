@@ -1,6 +1,4 @@
-import type { AdditiveResumeProviderSelection, ProviderIdentity } from '~/types'
-
-type ResumeProviderKey = (provider: ProviderIdentity) => string
+import type { AdditiveResumeProviderSelection, ProviderIdentity, ResumeProviderKey } from '~/types'
 
 export const getResumeProviderKey = (
   provider: ProviderIdentity

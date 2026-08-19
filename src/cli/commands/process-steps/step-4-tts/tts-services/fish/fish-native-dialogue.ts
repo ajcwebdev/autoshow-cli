@@ -1,4 +1,4 @@
-import type { HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { FishNativeDialogueTurn, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { createFishClient } from '~/utils/fish-client/fish-client'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
@@ -11,7 +11,6 @@ import {
   isFishNativeDialogueModel,
   normalizeFishNativeDialogueTiming,
   planFishNativeDialogueBatches,
-  type FishNativeDialogueTurn,
 } from './fish-tts-request'
 
 export const runFishNativeDialogue = async (

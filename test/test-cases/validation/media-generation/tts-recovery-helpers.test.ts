@@ -10,17 +10,13 @@ import {
   buildPureCurrentTtsRenderPlan,
 } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import type {
+  CompatibleSignature,
+  CompletedSignature,
   PipelineProviderState,
+  PriceSignature,
   Step4Metadata,
-  TtsTarget,
+  TtsTarget
 } from '~/types'
-import type {
-  CurrentTtsCompletedRecovery,
-  CurrentTtsPartialRecovery,
-  CurrentTtsResumePricePlan,
-  CurrentTtsSafeRedispatch,
-  PureCurrentTtsRenderPlanOptions,
-} from '~/cli/commands/process-steps/step-4-tts/script-to-audio/attempt-shared'
 
 const createMockTarget = (service = 'openai', model = 'gpt-4o-mini-tts-2025-12-15'): TtsTarget => ({
   service: service as TtsTarget['service'],
@@ -51,24 +47,6 @@ describe('TTS recovery helper modules', () => {
       'resolveRetainedPath',
       'validateRecoveryProjections',
     ])
-    type CompletedSignature = (options: PureCurrentTtsRenderPlanOptions & {
-      rootDir: string
-      state: PipelineProviderState
-      onProviderState?: ((state: PipelineProviderState) => Promise<void>) | undefined
-      reconciliationMode?: 'enforce' | 'report' | undefined
-    }) => Promise<CurrentTtsCompletedRecovery | CurrentTtsPartialRecovery | CurrentTtsSafeRedispatch | undefined>
-    type CompatibleSignature = (options: PureCurrentTtsRenderPlanOptions & {
-      rootDir: string
-      outputDir: string
-      artifactRoot?: string | undefined
-      state: PipelineProviderState
-      materialize?: boolean | undefined
-      reconciliationMode?: 'enforce' | 'report' | undefined
-    }) => Promise<CurrentTtsPartialRecovery | CurrentTtsSafeRedispatch | undefined>
-    type PriceSignature = (options: PureCurrentTtsRenderPlanOptions & {
-      rootDir: string
-      state?: PipelineProviderState | undefined
-    }) => Promise<CurrentTtsResumePricePlan>
     const completed: CompletedSignature = recoveryFacade.prepareCurrentTtsCompletedRecovery
     const compatible: CompatibleSignature = recoveryFacade.prepareCurrentTtsCompatibleSlotRecovery
     const price: PriceSignature = recoveryFacade.planCurrentTtsResumePrice

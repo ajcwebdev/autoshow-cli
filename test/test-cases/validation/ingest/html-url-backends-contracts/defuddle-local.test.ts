@@ -16,7 +16,7 @@ import {
   writeFile,
   writeFakeDefuddleBin
 } from './shared'
-import type { DocumentMetadata, ExtractionOptions } from './shared'
+import type { DocumentMetadata, ExtractionOptions } from '~/types'
 
 const pathExists = async (path: string): Promise<boolean> => {
   try {
