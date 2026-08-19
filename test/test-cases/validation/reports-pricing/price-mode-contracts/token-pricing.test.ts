@@ -217,6 +217,40 @@ describe('price mode contracts', () => {
       })
     })
 
+  test('Grok 4.6 LLM pricing uses published short and long context bands', () => {
+      const rates = getLlmCost('grok', 'grok-4.6')
+      const entry = getModelRegistry().llm['grok']?.models['grok-4.6']
+      if (!rates || !entry) {
+        throw new Error('Missing Grok 4.6 LLM pricing')
+      }
+
+      expect(computeTokenCost(rates, 200_000, 1000)).toMatchObject({
+        pricingBand: 'standard-up-to-200k',
+        inputCostPer1MCents: 200,
+        outputCostPer1MCents: 600,
+        totalCost: 40.6
+      })
+      expect(computeTokenCost(rates, 200_001, 1000)).toMatchObject({
+        pricingBand: 'standard-over-200k',
+        inputCostPer1MCents: 400,
+        outputCostPer1MCents: 1200
+      })
+      expect(computeTokenCost(rates, 200_001, 1000).totalCost).toBeCloseTo(81.2004)
+      expect(entry).toMatchObject({
+        pricingCheckedAt: '2026-08-18',
+        inputCostPer1MCents: 200,
+        cachedInputCostPer1MCents: 50,
+        outputCostPer1MCents: 600,
+        estimation: {
+          msPer1KTokens: 11318,
+          costMultiplier: 1
+        }
+      })
+      expect(entry.tokenPricingBands?.[1]).toMatchObject({
+        cachedInputCostPer1MCents: 100
+      })
+    })
+
   test('Grok 4.5 OCR pricing uses published short and long context bands', () => {
       const rates = getExtractPricing('grok', 'grok-4.5')
       const entry = getModelRegistry().extract['grok']?.models['grok-4.5']
@@ -487,6 +521,10 @@ describe('price mode contracts', () => {
     })
 
   test('current Gemini, Claude, and Kimi additions use published flat rates without context bands', () => {
+      expect(getLlmCost('gemini', 'gemini-3.7-flash')).toMatchObject({
+        inputCostPer1MCents: 150,
+        outputCostPer1MCents: 750
+      })
       expect(getLlmCost('gemini', 'gemini-3.6-flash')).toMatchObject({
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750
@@ -524,6 +562,7 @@ describe('price mode contracts', () => {
       })
 
       for (const [service, model] of [
+        ['gemini', 'gemini-3.7-flash'],
         ['gemini', 'gemini-3.6-flash'],
         ['gemini', 'gemini-3.5-flash'],
         ['gemini', 'gemini-3.5-flash-lite'],

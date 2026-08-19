@@ -38,6 +38,7 @@ import type {
 import { pngSignature, redDotPng } from '../../../test-utils/media-fixtures'
 
 const comicSourceRoot = 'src/cli/commands/process-steps/step-8-comic'
+const structuredScriptFixtureRoot = 'test/test-cases/validation/comic/fixtures/structured-script-parser'
 const testLocationCatalog = {
   schemaVersion: 1 as const,
   styleImage: 'style.png',
@@ -68,6 +69,13 @@ const testCharacterCatalog = {
 } as unknown as CharacterCatalogService
 const parseScriptMarkdownToStructuredData = (content: string, path: string) =>
   parseStructuredScript(content, path, { locationCatalog: testLocationCatalog, characterCatalog: testCharacterCatalog })
+const fixtureSourceIdentity = (name: string) => ({
+  schemaVersion: 1 as const,
+  canonicalPath: `input/${name}.md`,
+  scriptSlug: name,
+  contentSha256: '0'.repeat(64),
+  identityHash: '1'.repeat(64),
+})
 const testLocation = { key: 'cargo-bay', raw: 'INT. CARGO BAY - MORNING', type: 'INT', place: 'CARGO BAY - MORNING' }
 
 const getBunImageCodec = (): new (source: Uint8Array) => ComicBunImageCodec => {
@@ -136,6 +144,34 @@ const buildSceneData = (sourceSegmentIds: string[]): ScenePromptData => ({
 })
 
 describe('comic source coverage contracts', () => {
+  test('structured parser preserves exact handler precedence output', async () => {
+    const source = await Bun.file(join(structuredScriptFixtureRoot, 'handler-precedence.md')).text()
+    const expected = JSON.parse(await Bun.file(join(structuredScriptFixtureRoot, 'handler-precedence.expected.json')).text())
+
+    const structured = parseStructuredScript(source, 'input/handler-precedence.md', {
+      sourceIdentity: fixtureSourceIdentity('handler-precedence'),
+      locationCatalog: testLocationCatalog,
+      characterCatalog: testCharacterCatalog,
+    })
+
+    expect(structured).toEqual(expected)
+    expect(() => validateStructuredScriptSourceSpans(structured, source)).not.toThrow()
+  })
+
+  test('structured parser preserves exact Unicode scalar boundaries', async () => {
+    const source = await Bun.file(join(structuredScriptFixtureRoot, 'unicode-boundaries.md')).text()
+    const expected = JSON.parse(await Bun.file(join(structuredScriptFixtureRoot, 'unicode-boundaries.expected.json')).text())
+
+    const structured = parseStructuredScript(source, 'input/unicode-boundaries.md', {
+      sourceIdentity: fixtureSourceIdentity('unicode-boundaries'),
+      locationCatalog: testLocationCatalog,
+      characterCatalog: testCharacterCatalog,
+    })
+
+    expect(structured).toEqual(expected)
+    expect(() => validateStructuredScriptSourceSpans(structured, source)).not.toThrow()
+  })
+
   test('comic source does not import OpenAI or Gemini SDK packages', async () => {
     const files = await collectTypeScriptFiles(comicSourceRoot)
 

@@ -8,9 +8,10 @@ let colorOverride: 'force' | 'disable' | undefined
 
 // Set by the global --color / --no-color flags. Takes precedence over the
 // FORCE_COLOR / NO_COLOR environment conventions, which remain honored for
-// CI / cross-tool composition when no flag is passed.
-export const configureColor = (mode: 'force' | 'disable'): void => {
-  colorOverride = mode
+// CI / cross-tool composition when no flag is passed. 'auto' clears the
+// override and returns to environment detection.
+export const configureColor = (mode: 'force' | 'disable' | 'auto'): void => {
+  colorOverride = mode === 'auto' ? undefined : mode
 }
 
 const isForceColorEnabled = (): boolean => {

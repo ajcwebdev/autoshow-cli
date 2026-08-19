@@ -1,6 +1,6 @@
 # Docker
 
-AutoShow ships a Debian slim local-lite Docker image recipe for users who want the CLI and common local tools without host setup. Pre-built multi-architecture images (`linux/amd64`, `linux/arm64`) are published to GitHub Container Registry (GHCR) on release tags.
+AutoShow ships a Debian slim local-lite Docker image recipe for users who want the CLI and common local tools without host setup. Pre-built multi-architecture images (`linux/amd64`, `linux/arm64`) are published to GitHub Container Registry (GHCR) on every push to `main`, tagged `latest` and by full commit SHA, by a workflow of plain `git`/`docker` commands (no third-party GitHub Actions) that keeps its Buildx layer cache in a GHCR `:buildcache` registry image.
 
 The image uses `oven/bun:1.3.14-slim` and installs:
 

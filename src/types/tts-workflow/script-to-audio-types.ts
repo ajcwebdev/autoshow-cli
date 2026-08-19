@@ -1363,7 +1363,7 @@ export type CompactTargetRender = {
   snapshotId?: string | undefined
   strategy: ProviderRenderStrategy
   format: ObservedAudioFormat
-  cost: PlannedAndObservedCost
+  cost: ProviderRenderCostSummary
   slots: CompactAudioArchiveSlot[]
   outputs: {
     final: { path: string, sha256: string, durationMs: number }

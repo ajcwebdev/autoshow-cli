@@ -56,238 +56,446 @@ export const createNestedArtifactReference = (
   return { path, sha256, kind, ...(expectedJsonFields ? { expectedJsonFields } : {}), ...(context ? { context } : {}) }
 }
 
+type ArtifactFileDescriptor = Readonly<{
+  pathKey: string
+  shaKey: string
+  kind: ProjectionArtifactReference['kind']
+  expectedJsonFields?: Record<string, string | number> | undefined
+  baseDir?: string | undefined
+  context?: ProjectionArtifactReference['context']
+  scope?: ProjectionArtifactReference['scope']
+}>
+
+class ArtifactReferenceSink {
+  private readonly files: ProjectionArtifactReference[] = []
+  private readonly directories: string[] = []
+  private readonly fileIdentities = new Set<string>()
+  private readonly directoryPaths = new Set<string>()
+
+  addFile(record: Record<string, unknown>, descriptor: ArtifactFileDescriptor): boolean {
+    const path = resolveArtifactRelativePath(descriptor.baseDir, record[descriptor.pathKey])
+    const sha256 = record[descriptor.shaKey]
+    if (!path || !isSha256(sha256)) return false
+    const reference: ProjectionArtifactReference = {
+      path,
+      sha256,
+      scope: descriptor.scope ?? 'provider-artifact',
+      kind: descriptor.kind,
+      ...(descriptor.expectedJsonFields ? { expectedJsonFields: descriptor.expectedJsonFields } : {}),
+      ...(descriptor.context ? { context: descriptor.context } : {})
+    }
+    const identity = JSON.stringify(reference)
+    if (!this.fileIdentities.has(identity)) {
+      this.fileIdentities.add(identity)
+      this.files.push(reference)
+    }
+    return true
+  }
+
+  addDirectory(path: unknown): boolean {
+    if (!isStrictArtifactRelativePath(path)) return false
+    if (!this.directoryPaths.has(path)) {
+      this.directoryPaths.add(path)
+      this.directories.push(path)
+    }
+    return true
+  }
+
+  result(): ProjectionArtifactReferences {
+    return { files: this.files, directories: this.directories }
+  }
+}
+
+type ArchiveProjectionShape = {
+  kind: 'archive'
+  archive: Record<string, unknown>
+}
+
+type ActiveProjectionShape = {
+  kind: 'active'
+  branchHistory: unknown[]
+  readinessAttempts: unknown[]
+  renderHistory: unknown[]
+}
+
+type ProjectionShape = ArchiveProjectionShape | ActiveProjectionShape
+
+const selectProjectionShape = (projection: Record<string, unknown>): ProjectionShape | undefined => {
+  const archive = projection['archive']
+  if (isRecord(archive) && isRecord(projection['selectedSuccess']) && projection['activeWork'] === undefined) {
+    return { kind: 'archive', archive }
+  }
+  const branchHistory = projection['branchHistory']
+  const readinessAttempts = projection['readinessAttempts']
+  const renderHistory = projection['renderHistory']
+  if (!Array.isArray(branchHistory) || !Array.isArray(readinessAttempts) || !Array.isArray(renderHistory)) return undefined
+  return { kind: 'active', branchHistory, readinessAttempts, renderHistory }
+}
+
+const collectArchiveProjection = (
+  archive: Record<string, unknown>,
+  targetKey: string,
+  sink: ArtifactReferenceSink
+): boolean => {
+  const renderRef = archive['renderRef']
+  const timelineRef = archive['timelineRef']
+  const finalRef = archive['finalRef']
+  if (!isRecord(renderRef) || !isRecord(timelineRef) || !isRecord(finalRef)) return false
+  if (!sink.addFile(renderRef, {
+    pathKey: 'path',
+    shaKey: 'sha256',
+    kind: 'compact-render',
+    expectedJsonFields: { targetKey },
+    scope: 'run-root'
+  })) return false
+  if (!sink.addFile(timelineRef, { pathKey: 'path', shaKey: 'sha256', kind: 'final-timeline', scope: 'run-root' })) return false
+  return sink.addFile(finalRef, { pathKey: 'path', shaKey: 'sha256', kind: 'audio', scope: 'run-root' })
+}
+
+const collectBranchHistory = (
+  branches: readonly unknown[],
+  targetKey: string,
+  sink: ArtifactReferenceSink
+): boolean => {
+  for (const branch of branches) {
+    if (!isRecord(branch) || typeof branch['branchPlanId'] !== 'string') return false
+    if (!sink.addFile(branch, {
+      pathKey: 'branchPlanRef',
+      shaKey: 'branchPlanSha256',
+      kind: 'branch-plan',
+      expectedJsonFields: { branchPlanId: branch['branchPlanId'], targetKey }
+    })) return false
+  }
+  return true
+}
+
+const collectReadinessHistory = (
+  attempts: readonly unknown[],
+  targetKey: string,
+  sink: ArtifactReferenceSink
+): boolean => {
+  for (const readiness of attempts) {
+    if (!isRecord(readiness)) return false
+    if (!sink.addFile(readiness, {
+      pathKey: 'readinessResultRef',
+      shaKey: 'readinessResultHash',
+      kind: 'readiness-result',
+      expectedJsonFields: { branchPlanId: readiness['branchPlanId'] as string, targetKey }
+    })) return false
+  }
+  return true
+}
+
+type RenderCollectorContext = {
+  targetKey: string
+  render: Record<string, unknown>
+  renderPlanId: string
+  renderIdentity: string
+  renderDir: string
+  sink: ArtifactReferenceSink
+}
+
+const collectAdmissionJournal = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  if (event['admissionJournalRef'] === undefined) return true
+  if (typeof event['admissionJournalSnapshotId'] !== 'string') return false
+  return ctx.sink.addFile(event, {
+    pathKey: 'admissionJournalRef',
+    shaKey: 'admissionJournalSha256',
+    kind: 'admission-journal',
+    expectedJsonFields: {
+      snapshotId: event['admissionJournalSnapshotId'],
+      renderPlanId: ctx.renderPlanId,
+      renderIdentity: ctx.renderIdentity
+    },
+    context: {
+      renderDir: ctx.renderDir,
+      eventSequence: event['sequence'] as number,
+      eventResultIdentity: event['providerRenderResultIdentity'] as string | undefined
+    }
+  })
+}
+
+const collectProviderRenderResult = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  if (event['providerRenderResultRef'] === undefined) return true
+  if (typeof event['providerRenderResultIdentity'] !== 'string') return false
+  return ctx.sink.addFile(event, {
+    pathKey: 'providerRenderResultRef',
+    shaKey: 'providerRenderResultSha256',
+    kind: 'provider-render-result',
+    expectedJsonFields: {
+      resultIdentity: event['providerRenderResultIdentity'],
+      renderPlanId: ctx.renderPlanId,
+      renderIdentity: ctx.renderIdentity
+    },
+    context: {
+      renderDir: ctx.renderDir,
+      eventSequence: event['sequence'] as number,
+      eventJournalSnapshotId: event['admissionJournalSnapshotId'] as string | undefined
+    }
+  })
+}
+
+const collectAudioRun = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  if (event['audioRunRef'] === undefined) return true
+  if (typeof event['audioRunId'] !== 'string') return false
+  return ctx.sink.addFile(event, {
+    pathKey: 'audioRunRef',
+    shaKey: 'audioRunSha256',
+    kind: 'audio-run',
+    expectedJsonFields: {
+      audioRunId: event['audioRunId'],
+      targetKey: ctx.targetKey,
+      renderPlanId: ctx.renderPlanId,
+      renderIdentity: ctx.renderIdentity
+    },
+    context: {
+      renderDir: ctx.renderDir,
+      eventSequence: event['sequence'] as number,
+      eventJournalSnapshotId: event['admissionJournalSnapshotId'] as string | undefined,
+      eventResultIdentity: event['providerRenderResultIdentity'] as string | undefined
+    }
+  })
+}
+
+const collectReadinessAuthorization = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  const authorization = event['readinessAuthorization']
+  if (authorization === undefined) return true
+  if (!isRecord(authorization)) return false
+  if (!ctx.sink.addFile(authorization, {
+    pathKey: 'readinessResultRef',
+    shaKey: 'readinessResultHash',
+    kind: 'readiness-result',
+    expectedJsonFields: { branchPlanId: authorization['branchPlanId'] as string, targetKey: ctx.targetKey },
+    context: {
+      renderDir: ctx.renderDir,
+      branchCandidateId: authorization['branchCandidateId'] as string,
+      accountObservationHashes: authorization['accountObservationHashes'] as string[]
+    }
+  })) return false
+  return ctx.sink.addFile(ctx.render, {
+    pathKey: 'renderPlanRef',
+    shaKey: 'renderPlanSha256',
+    kind: 'render-plan',
+    expectedJsonFields: {
+      renderPlanId: ctx.renderPlanId,
+      renderIdentity: ctx.renderIdentity,
+      targetKey: ctx.targetKey,
+      branchPlanId: authorization['branchPlanId'] as string,
+      branchCandidateId: authorization['branchCandidateId'] as string
+    },
+    context: { renderDir: ctx.renderDir }
+  })
+}
+
+type EventReferenceListDescriptor = Readonly<{
+  key: 'outputRefs' | 'takeSelections' | 'continuationCheckpoints' | 'cacheEvidenceRefs' | 'reportedOutputRefs'
+  kind: ProjectionArtifactReference['kind']
+  renderRelative: boolean
+  includeRenderContext: boolean
+  scope?: ProjectionArtifactReference['scope']
+}>
+
+const EVENT_REFERENCE_LISTS = [
+  { key: 'outputRefs', kind: 'audio', renderRelative: false, includeRenderContext: true },
+  { key: 'takeSelections', kind: 'take-selection', renderRelative: true, includeRenderContext: true },
+  { key: 'continuationCheckpoints', kind: 'continuation-checkpoint', renderRelative: true, includeRenderContext: true },
+  { key: 'cacheEvidenceRefs', kind: 'generic-json', renderRelative: true, includeRenderContext: true },
+  { key: 'reportedOutputRefs', kind: 'audio', renderRelative: false, includeRenderContext: false, scope: 'run-root' }
+] as const satisfies readonly EventReferenceListDescriptor[]
+
+const collectEventReferenceList = (
+  event: Record<string, unknown>,
+  descriptor: EventReferenceListDescriptor,
+  ctx: RenderCollectorContext
+): boolean => {
+  const list = event[descriptor.key]
+  if (list === undefined) return true
+  if (!Array.isArray(list)) return false
+  for (const entry of list) {
+    if (!isRecord(entry)) return false
+    if (!ctx.sink.addFile(entry, {
+      pathKey: 'path',
+      shaKey: 'sha256',
+      kind: descriptor.kind,
+      baseDir: descriptor.renderRelative ? ctx.renderDir : undefined,
+      context: descriptor.includeRenderContext ? { renderDir: ctx.renderDir } : undefined,
+      scope: descriptor.scope
+    })) return false
+  }
+  return true
+}
+
+const collectGenericEventLists = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  for (const descriptor of EVENT_REFERENCE_LISTS) {
+    if (!collectEventReferenceList(event, descriptor, ctx)) return false
+  }
+  return true
+}
+
+const collectConsumedSelectionRebuild = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  const rebuild = event['consumedSelectionRebuild']
+  if (rebuild === undefined) return true
+  if (!isRecord(rebuild)) return false
+  return ctx.sink.addFile(rebuild, {
+    pathKey: 'path',
+    shaKey: 'sha256',
+    kind: 'consumed-selection-rebuild',
+    expectedJsonFields: typeof rebuild['authorizationId'] === 'string' ? { authorizationId: rebuild['authorizationId'] } : undefined,
+    baseDir: ctx.renderDir,
+    context: { renderDir: ctx.renderDir }
+  })
+}
+
+const collectProviderDispatch = (slot: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  const plan = slot['batchInvocationPlan']
+  const result = slot['batchResult']
+  if (!isRecord(plan)) return false
+  if (!ctx.sink.addFile(plan, {
+    pathKey: 'path',
+    shaKey: 'sha256',
+    kind: 'batch-invocation-plan',
+    expectedJsonFields: typeof plan['batchInvocationPlanId'] === 'string' ? { batchInvocationPlanId: plan['batchInvocationPlanId'] } : undefined,
+    baseDir: ctx.renderDir,
+    context: { renderDir: ctx.renderDir }
+  })) return false
+  if (result === undefined) return true
+  if (!isRecord(result)) return false
+  return ctx.sink.addFile(result, {
+    pathKey: 'path',
+    shaKey: 'sha256',
+    kind: 'provider-batch-result',
+    expectedJsonFields: typeof result['batchResultId'] === 'string' ? { batchResultId: result['batchResultId'] } : undefined,
+    baseDir: ctx.renderDir,
+    context: { renderDir: ctx.renderDir }
+  })
+}
+
+const collectSlotReuse = (slot: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  const result = slot['batchResult']
+  if (typeof slot['slotHash'] !== 'string' || !slot['slotHash'] || !isRecord(result)) return false
+  return ctx.sink.addFile(result, {
+    pathKey: 'path',
+    shaKey: 'sha256',
+    kind: 'provider-batch-result',
+    context: { renderDir: ctx.renderDir },
+    scope: 'run-root'
+  })
+}
+
+const collectGenerationSlots = (slots: readonly unknown[], ctx: RenderCollectorContext): boolean => {
+  for (const slot of slots) {
+    if (!isRecord(slot)) return false
+    if (slot['source'] === 'provider-dispatch') {
+      if (!collectProviderDispatch(slot, ctx)) return false
+    } else if (slot['source'] === 'slot-reuse') {
+      if (!collectSlotReuse(slot, ctx)) return false
+    } else {
+      return false
+    }
+  }
+  return true
+}
+
+const BATCH_SELECTIONS = [
+  { key: 'currentTakeSelection', kind: 'take-selection' },
+  { key: 'continuationCheckpoint', kind: 'continuation-checkpoint' }
+] as const satisfies readonly Readonly<{
+  key: 'currentTakeSelection' | 'continuationCheckpoint'
+  kind: ProjectionArtifactReference['kind']
+}>[]
+
+const collectBatchSelections = (batch: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  for (const descriptor of BATCH_SELECTIONS) {
+    const selection = batch[descriptor.key]
+    if (selection === undefined) continue
+    if (!isRecord(selection)) return false
+    if (!ctx.sink.addFile(selection, {
+      pathKey: 'path',
+      shaKey: 'sha256',
+      kind: descriptor.kind,
+      baseDir: ctx.renderDir,
+      context: { renderDir: ctx.renderDir }
+    })) return false
+  }
+  return true
+}
+
+const collectBatchProgress = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  const progress = event['batchProgress']
+  if (progress === undefined) return true
+  if (!Array.isArray(progress)) return false
+  for (const batch of progress) {
+    if (!isRecord(batch) || !Array.isArray(batch['generationSlots'])) return false
+    if (!collectGenerationSlots(batch['generationSlots'], ctx)) return false
+    if (!collectBatchSelections(batch, ctx)) return false
+  }
+  return true
+}
+
+const collectRenderEvent = (event: Record<string, unknown>, ctx: RenderCollectorContext): boolean => {
+  if (!collectAdmissionJournal(event, ctx)) return false
+  if (!collectProviderRenderResult(event, ctx)) return false
+  if (!collectAudioRun(event, ctx)) return false
+  if (!collectReadinessAuthorization(event, ctx)) return false
+  if (!collectGenericEventLists(event, ctx)) return false
+  if (!collectConsumedSelectionRebuild(event, ctx)) return false
+  return collectBatchProgress(event, ctx)
+}
+
+const collectRenderEvents = (events: readonly unknown[], ctx: RenderCollectorContext): boolean => {
+  for (const event of events) {
+    if (!isRecord(event) || !collectRenderEvent(event, ctx)) return false
+  }
+  return true
+}
+
+const collectRenderRecord = (
+  rawRender: unknown,
+  targetKey: string,
+  sink: ArtifactReferenceSink
+): boolean => {
+  if (!isRecord(rawRender)) return false
+  const renderPlanId = rawRender['renderPlanId']
+  const renderIdentity = rawRender['renderIdentity']
+  const renderDir = rawRender['renderDir']
+  const events = rawRender['events']
+  if (typeof renderPlanId !== 'string' || typeof renderIdentity !== 'string' || !Array.isArray(events)) return false
+  if (!sink.addFile(rawRender, {
+    pathKey: 'renderPlanRef',
+    shaKey: 'renderPlanSha256',
+    kind: 'render-plan',
+    expectedJsonFields: { renderPlanId, renderIdentity, targetKey },
+    context: { renderDir: renderDir as string }
+  })) return false
+  if (!sink.addDirectory(renderDir)) return false
+  return collectRenderEvents(events, { targetKey, render: rawRender, renderPlanId, renderIdentity, renderDir: renderDir as string, sink })
+}
+
+const collectRenderHistory = (
+  renders: readonly unknown[],
+  targetKey: string,
+  sink: ArtifactReferenceSink
+): boolean => {
+  for (const render of renders) {
+    if (!collectRenderRecord(render, targetKey, sink)) return false
+  }
+  return true
+}
+
 export const collectProjectionArtifactReferences = (
   projection: Record<string, unknown>,
   targetKey: string
 ): ProjectionArtifactReferences | undefined => {
-  const files: ProjectionArtifactReferences['files'] = []
-  const directories: string[] = []
-  const addFile = (
-    record: Record<string, unknown>,
-    pathKey: string,
-    shaKey: string,
-    kind: ProjectionArtifactReference['kind'],
-    expectedJsonFields?: Record<string, string | number> | undefined,
-    baseDir?: string | undefined,
-    context?: ProjectionArtifactReference['context'],
-    scope: ProjectionArtifactReference['scope'] = 'provider-artifact'
-  ): boolean => {
-    const path = resolveArtifactRelativePath(baseDir, record[pathKey])
-    const sha256 = record[shaKey]
-    if (!path || !isSha256(sha256)) return false
-    files.push({ path, sha256, scope, kind, ...(expectedJsonFields ? { expectedJsonFields } : {}), ...(context ? { context } : {}) })
-    return true
+  const shape = selectProjectionShape(projection)
+  if (!shape) return undefined
+  const sink = new ArtifactReferenceSink()
+  if (shape.kind === 'archive') {
+    return collectArchiveProjection(shape.archive, targetKey, sink) ? sink.result() : undefined
   }
-
-  const archive = projection['archive']
-  if (isRecord(archive) && isRecord(projection['selectedSuccess']) && projection['activeWork'] === undefined) {
-    if (
-      !isRecord(archive['renderRef'])
-      || !addFile(archive['renderRef'], 'path', 'sha256', 'compact-render', { targetKey }, undefined, undefined, 'run-root')
-      || !isRecord(archive['timelineRef'])
-      || !addFile(archive['timelineRef'], 'path', 'sha256', 'final-timeline', undefined, undefined, undefined, 'run-root')
-      || !isRecord(archive['finalRef'])
-      || !addFile(archive['finalRef'], 'path', 'sha256', 'audio', undefined, undefined, undefined, 'run-root')
-    ) return undefined
-    return { files, directories }
-  }
-
-  for (const branch of projection['branchHistory'] as unknown[]) {
-    if (
-      !isRecord(branch)
-      || typeof branch['branchPlanId'] !== 'string'
-      || !addFile(branch, 'branchPlanRef', 'branchPlanSha256', 'branch-plan', { branchPlanId: branch['branchPlanId'], targetKey })
-    ) return undefined
-  }
-  for (const readiness of projection['readinessAttempts'] as unknown[]) {
-    if (!isRecord(readiness) || !addFile(readiness, 'readinessResultRef', 'readinessResultHash', 'readiness-result', {
-      branchPlanId: readiness['branchPlanId'] as string,
-      targetKey
-    })) return undefined
-  }
-  for (const rawRender of projection['renderHistory'] as unknown[]) {
-    if (
-      !isRecord(rawRender)
-      || typeof rawRender['renderPlanId'] !== 'string'
-      || typeof rawRender['renderIdentity'] !== 'string'
-      || !addFile(rawRender, 'renderPlanRef', 'renderPlanSha256', 'render-plan', {
-        renderPlanId: rawRender['renderPlanId'],
-        renderIdentity: rawRender['renderIdentity'],
-        targetKey
-      }, undefined, { renderDir: rawRender['renderDir'] as string })
-      || !isStrictArtifactRelativePath(rawRender['renderDir'])
-    ) {
-      return undefined
-    }
-    directories.push(rawRender['renderDir'])
-    for (const rawEvent of rawRender['events'] as unknown[]) {
-      if (!isRecord(rawEvent)) return undefined
-      const event = rawEvent
-      if (
-        event['admissionJournalRef'] !== undefined
-        && (
-          typeof event['admissionJournalSnapshotId'] !== 'string'
-          || !addFile(event, 'admissionJournalRef', 'admissionJournalSha256', 'admission-journal', {
-            snapshotId: event['admissionJournalSnapshotId'],
-            renderPlanId: rawRender['renderPlanId'] as string,
-            renderIdentity: rawRender['renderIdentity'] as string
-          }, undefined, {
-            renderDir: rawRender['renderDir'] as string,
-            eventSequence: event['sequence'] as number,
-            eventResultIdentity: event['providerRenderResultIdentity'] as string | undefined
-          })
-        )
-      ) return undefined
-      if (
-        event['providerRenderResultRef'] !== undefined
-        && (
-          typeof event['providerRenderResultIdentity'] !== 'string'
-          || !addFile(event, 'providerRenderResultRef', 'providerRenderResultSha256', 'provider-render-result', {
-            resultIdentity: event['providerRenderResultIdentity'],
-            renderPlanId: rawRender['renderPlanId'] as string,
-            renderIdentity: rawRender['renderIdentity'] as string
-          }, undefined, {
-            renderDir: rawRender['renderDir'] as string,
-            eventSequence: event['sequence'] as number,
-            eventJournalSnapshotId: event['admissionJournalSnapshotId'] as string | undefined
-          })
-        )
-      ) return undefined
-      if (
-        event['audioRunRef'] !== undefined
-        && (
-          typeof event['audioRunId'] !== 'string'
-          || !addFile(event, 'audioRunRef', 'audioRunSha256', 'audio-run', {
-            audioRunId: event['audioRunId'],
-            targetKey,
-            renderPlanId: rawRender['renderPlanId'] as string,
-            renderIdentity: rawRender['renderIdentity'] as string
-          }, undefined, {
-            renderDir: rawRender['renderDir'] as string,
-            eventSequence: event['sequence'] as number,
-            eventJournalSnapshotId: event['admissionJournalSnapshotId'] as string | undefined,
-            eventResultIdentity: event['providerRenderResultIdentity'] as string | undefined
-          })
-        )
-      ) return undefined
-      const readinessAuthorization = event['readinessAuthorization']
-      if (readinessAuthorization !== undefined) {
-        if (!isRecord(readinessAuthorization) || !addFile(readinessAuthorization, 'readinessResultRef', 'readinessResultHash', 'readiness-result', {
-          branchPlanId: readinessAuthorization['branchPlanId'] as string,
-          targetKey
-        }, undefined, {
-          renderDir: rawRender['renderDir'] as string,
-          branchCandidateId: readinessAuthorization['branchCandidateId'] as string,
-          accountObservationHashes: readinessAuthorization['accountObservationHashes'] as string[]
-        }) || !addFile(rawRender, 'renderPlanRef', 'renderPlanSha256', 'render-plan', {
-          renderPlanId: rawRender['renderPlanId'] as string,
-          renderIdentity: rawRender['renderIdentity'] as string,
-          targetKey,
-          branchPlanId: readinessAuthorization['branchPlanId'] as string,
-          branchCandidateId: readinessAuthorization['branchCandidateId'] as string
-        }, undefined, { renderDir: rawRender['renderDir'] as string })) return undefined
-      }
-      for (const listKey of ['outputRefs', 'takeSelections', 'continuationCheckpoints', 'cacheEvidenceRefs'] as const) {
-        const list = event[listKey]
-        if (list !== undefined) {
-          if (!Array.isArray(list)) return undefined
-          for (const entry of list) {
-            const kind = listKey === 'outputRefs'
-              ? 'audio'
-              : listKey === 'takeSelections'
-                ? 'take-selection'
-                : listKey === 'continuationCheckpoints'
-                  ? 'continuation-checkpoint'
-                  : 'generic-json'
-            if (
-              !isRecord(entry)
-              || !addFile(
-                entry,
-                'path',
-                'sha256',
-                kind,
-                undefined,
-                listKey === 'outputRefs' ? undefined : rawRender['renderDir'] as string,
-                { renderDir: rawRender['renderDir'] as string }
-              )
-            ) return undefined
-          }
-        }
-      }
-      const reportedOutputRefs = event['reportedOutputRefs']
-      if (reportedOutputRefs !== undefined) {
-        if (!Array.isArray(reportedOutputRefs)) return undefined
-        for (const entry of reportedOutputRefs) {
-          if (!isRecord(entry) || !addFile(entry, 'path', 'sha256', 'audio', undefined, undefined, undefined, 'run-root')) return undefined
-        }
-      }
-      const rebuild = event['consumedSelectionRebuild']
-      if (rebuild !== undefined && (!isRecord(rebuild) || !addFile(
-        rebuild,
-        'path',
-        'sha256',
-        'consumed-selection-rebuild',
-        typeof rebuild['authorizationId'] === 'string' ? { authorizationId: rebuild['authorizationId'] } : undefined,
-        rawRender['renderDir'] as string,
-        { renderDir: rawRender['renderDir'] as string }
-      ))) return undefined
-      const batchProgress = event['batchProgress']
-      if (batchProgress !== undefined) {
-        if (!Array.isArray(batchProgress)) return undefined
-        for (const batch of batchProgress) {
-          if (!isRecord(batch) || !Array.isArray(batch['generationSlots'])) return undefined
-          for (const slot of batch['generationSlots']) {
-            if (!isRecord(slot)) return undefined
-            if (slot['source'] === 'provider-dispatch') {
-              const plan = slot['batchInvocationPlan']
-              const result = slot['batchResult']
-              if (!isRecord(plan) || !addFile(
-                plan,
-                'path',
-                'sha256',
-                'batch-invocation-plan',
-                typeof plan['batchInvocationPlanId'] === 'string' ? { batchInvocationPlanId: plan['batchInvocationPlanId'] } : undefined,
-                rawRender['renderDir'] as string,
-                { renderDir: rawRender['renderDir'] as string }
-              )) return undefined
-              if (result !== undefined && (!isRecord(result) || !addFile(
-                result,
-                'path',
-                'sha256',
-                'provider-batch-result',
-                typeof result['batchResultId'] === 'string' ? { batchResultId: result['batchResultId'] } : undefined,
-                rawRender['renderDir'] as string,
-                { renderDir: rawRender['renderDir'] as string }
-              ))) return undefined
-            } else if (slot['source'] === 'slot-reuse') {
-              const result = slot['batchResult']
-              if (
-                typeof slot['slotHash'] !== 'string'
-                || !slot['slotHash']
-                || !isRecord(result)
-                || !addFile(result, 'path', 'sha256', 'provider-batch-result', undefined, undefined, { renderDir: rawRender['renderDir'] as string }, 'run-root')
-              ) return undefined
-            } else {
-              return undefined
-            }
-          }
-          for (const selectionKey of ['currentTakeSelection', 'continuationCheckpoint'] as const) {
-            const selection = batch[selectionKey]
-            if (selection !== undefined && (!isRecord(selection) || !addFile(
-              selection,
-              'path',
-              'sha256',
-              selectionKey === 'currentTakeSelection' ? 'take-selection' : 'continuation-checkpoint',
-              undefined,
-              rawRender['renderDir'] as string,
-              { renderDir: rawRender['renderDir'] as string }
-            ))) return undefined
-          }
-        }
-      }
-    }
-  }
-  return { files, directories }
+  if (!collectBranchHistory(shape.branchHistory, targetKey, sink)) return undefined
+  if (!collectReadinessHistory(shape.readinessAttempts, targetKey, sink)) return undefined
+  if (!collectRenderHistory(shape.renderHistory, targetKey, sink)) return undefined
+  return sink.result()
 }
 
 export type NestedCollectorContext = {

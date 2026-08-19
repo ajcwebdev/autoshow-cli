@@ -55,9 +55,10 @@ const renderObject = (input: Record<string, unknown>, headingLevel: 2 | 3): stri
 
 const STANDARD_SONG_SECTIONS = ['verse1', 'chorus', 'verse2', 'bridge', 'finalChorus'] as const
 const RAP_SONG_SECTIONS = ['verse1', 'chorus1', 'verse2', 'chorus2', 'verse3', 'chorus3'] as const
-const RAP_SONG_LONG_SECTIONS = ['verse1', 'chorus1', 'verse2', 'chorus2', 'verse3', 'bridge', 'chorus3'] as const
+const RAP_SONG_LONG_SECTIONS = ['intro', 'verse1', 'chorus1', 'verse2', 'chorus2', 'verse3', 'bridge', 'chorus3'] as const
 
 const SECTION_LABELS: Record<string, string> = {
+  intro: 'Intro',
   verse1: 'Verse 1',
   verse2: 'Verse 2',
   verse3: 'Verse 3',

@@ -188,8 +188,7 @@ const hasExtractedSource = async (buildDir: string, sha256: string): Promise<boo
 const downloadSource = async (
   name: string,
   buildDir: string,
-  flowId: DownloadFlowId,
-  mode: 'tar-gz' | 'tar-xz'
+  flowId: DownloadFlowId
 ): Promise<void> => {
   const { url, sha256 } = await readDependencyUrlAndSha256(name)
   // A build that fails after extraction used to re-download the tarball on every
@@ -204,7 +203,7 @@ const downloadSource = async (
       sha256,
       destination: buildDir,
       flowId,
-      mode,
+      mode: 'tar-gz',
       stripComponents: 1
     })
     await Bun.write(sourceStampPath(buildDir), `${sha256}\n`)
@@ -234,7 +233,7 @@ const lameStaticLibPath = join(lameToolDir, 'lib/libmp3lame.a')
 
 export const installManagedLameMacos = async (): Promise<void> => {
   if (await pathExists(lameStaticLibPath)) return
-  await downloadSource('lame', lameBuildDir, 'lame-source', 'tar-gz')
+  await downloadSource('lame', lameBuildDir, 'lame-source')
   await recreateDir(lameToolDir)
   await recordSetupPerformancePhase('lame', 'configure-generate', async () => {
     await runInherit('./configure', [
@@ -270,13 +269,14 @@ export const hasManagedFfmpegBuild = async (): Promise<boolean> => {
 export const installManagedFfmpegMacos = async (): Promise<void> => {
   if (await hasManagedFfmpegBuild()) return
   await installManagedLameMacos()
-  await downloadSource('ffmpeg', ffmpegBuildDir, 'ffmpeg-source', 'tar-xz')
+  await downloadSource('ffmpeg', ffmpegBuildDir, 'ffmpeg-source')
   await recreateDir(ffmpegToolDir)
   await recordSetupPerformancePhase('ffmpeg', 'configure-generate', async () => {
     await runInherit('./configure', [
       `--prefix=${ffmpegToolDir}`,
       '--disable-doc',
       '--disable-debug',
+      '--disable-ffplay',
       '--enable-libmp3lame',
       `--extra-cflags=-I${join(lameToolDir, 'include')}`,
       `--extra-ldflags=-L${join(lameToolDir, 'lib')}`
@@ -308,7 +308,7 @@ export const installManagedMupdfMacos = async (): Promise<void> => {
     await createSymlinkShim(mutoolInstalledBinaryPath, mutoolManagedBinaryPath)
     return
   }
-  await downloadSource('mupdf', mupdfBuildDir, 'mupdf-source', 'tar-gz')
+  await downloadSource('mupdf', mupdfBuildDir, 'mupdf-source')
   const deploymentTarget = await resolveSourceDeploymentTarget()
   const jobs = resolveSetupSourceBuildParallelJobs()
   await recordSetupPerformancePhase('mupdf', 'compile-link', async () => {
@@ -398,7 +398,7 @@ export const ensureManagedTessdataSupportFiles = async (): Promise<void> => {
 
 export const installManagedTesseractMacos = async (): Promise<void> => {
   if (!await hasManagedLeptonicaBuild()) {
-    await downloadSource('leptonica', leptonicaBuildDir, 'leptonica-source', 'tar-gz')
+    await downloadSource('leptonica', leptonicaBuildDir, 'leptonica-source')
     await recreateDir(leptonicaToolDir)
     const leptonicaCmakeBuildDir = join(leptonicaBuildDir, 'build')
     await recordSetupPerformancePhase('leptonica', 'configure-generate', async () => {
@@ -426,7 +426,7 @@ export const installManagedTesseractMacos = async (): Promise<void> => {
   }
 
   if (!await pathExists(tesseractInstalledBinaryPath)) {
-    await downloadSource('tesseract', tesseractBuildDir, 'tesseract-source', 'tar-gz')
+    await downloadSource('tesseract', tesseractBuildDir, 'tesseract-source')
     await recreateDir(tesseractToolDir)
     const tesseractCmakeBuildDir = join(tesseractBuildDir, 'build')
     await recordSetupPerformancePhase('tesseract', 'configure-generate', async () => {
@@ -469,8 +469,8 @@ export const installManagedQpdfMacos = async (): Promise<void> => {
   const existingSourceInstallHealthy = await hasValidManagedSourcePayload('qpdf')
   if (!existingSourceInstallHealthy) {
     const layout = resolveQpdfSourceBuildLayout(qpdfBuildDir)
-    await downloadSource('libjpeg-turbo', layout.libjpegTurboSourceDir, 'libjpeg-turbo-source', 'tar-gz')
-    await downloadSource('qpdf', layout.qpdfSourceDir, 'qpdf-source', 'tar-gz')
+    await downloadSource('libjpeg-turbo', layout.libjpegTurboSourceDir, 'libjpeg-turbo-source')
+    await downloadSource('qpdf', layout.qpdfSourceDir, 'qpdf-source')
     await recreateDir(layout.libjpegTurboCmakeBuildDir)
     await recreateDir(layout.libjpegTurboInstallDir)
     const deploymentTarget = await resolveSourceDeploymentTarget()

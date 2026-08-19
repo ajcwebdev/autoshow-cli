@@ -1,56 +1,319 @@
 import { processStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/process-stt'
 import { processUrlArticle } from '~/cli/commands/process-steps/step-2-extract/step-2-url/process-url'
-import { downloadDocumentUrlToTempFile } from '~/cli/commands/process-steps/step-1-download/document/resolve-document-source'
-import { detectDocumentFormat } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-detect-format'
 import { runTextWrite } from '~/cli/commands/process-steps/step-3-write/run-text-write'
-import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import { fileExists } from '~/utils/cli-utils'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadCommandOptions, ExtractCommandOptions, MetadataCommandOptions, ProcessCommand, SingleTargetCommandOptions, SttBatchCoordinator, WriteRuntimeOptions } from '~/types'
-import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
-import { classifyInputFamily, classifyUrlInput, isDocumentByExtension, isHtmlDocumentPath, isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
-import { throwUnrecognizedExtractInput, throwUnsupportedProcessInput } from './single-target-errors'
+import { ValidationError } from '~/utils/error-handler'
+import type {
+  AggregatedPriceEstimate,
+  BatchChildRunContext,
+  BatchItem,
+  BatchItemProcessResult,
+  ProcessCommand,
+  SingleTargetCommandOptions,
+  SttBatchCoordinator
+} from '~/types'
 import { processDownloadMedia, processMediaSingle, processMetadataMedia } from './media-runner'
-import { prepareArticleDocument, processDownloadDocument, processDownloadPreparedDocument, processMetadataDocument, processMetadataPreparedDocument, processOcrSingle } from './document-runner'
+import {
+  prepareArticleDocument,
+  processDownloadDocument,
+  processDownloadPreparedDocument,
+  processMetadataDocument,
+  processMetadataPreparedDocument,
+  processOcrSingle
+} from './document-runner'
 import { runDocumentWrite, runExtractedDocumentWrite } from './document-write'
-import { processMetadataXSpace, processXSpace, resolveXSpaceDownloadTarget, runXSpaceWrite } from './x-space-runner'
+import {
+  processMetadataXSpace,
+  processXSpace,
+  resolveXSpaceDownloadTarget,
+  runXSpaceWrite
+} from './x-space-runner'
+import {
+  classifySingleTargetInput,
+  normalizeSingleTargetIntent,
+  resolveSingleTargetRoute,
+  type DownloadSingleTargetAction,
+  type DownloadSingleTargetIntent,
+  type ExtractSingleTargetAction,
+  type ExtractSingleTargetIntent,
+  type MetadataSingleTargetAction,
+  type MetadataSingleTargetIntent,
+  type SingleTargetClassifiedInput,
+  type WriteSingleTargetAction,
+  type WriteSingleTargetIntent
+} from './single-target-routing'
+import { withTemporaryDirectDocument } from './temporary-direct-document'
 
-const hasYtDlpPassthroughArgs = (opts: DownloadCommandOptions): boolean =>
-  (opts.ytDlpPassthroughArgs?.length ?? 0) > 0
-
-const throwUnsupportedDownloadPassthroughInput = (item: string): never => {
-  throw CLIUsageError(`yt-dlp passthrough args (--) are only supported for media URL downloads. Got: ${item}`)
+type SingleTargetRunOptions = {
+  sttBatchCoordinator?: SttBatchCoordinator | undefined
+  mistralSttPassController?: import('~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller').MistralSttPassController | undefined
+  batchChildContext?: BatchChildRunContext | undefined
 }
 
-function assertMetadataOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is MetadataCommandOptions {
-  if (!('markdown' in opts) || !('save' in opts)) {
-    throw ValidationError('Metadata command options are incomplete')
+type SingleTargetExecutionContext = {
+  item: string
+  baseDir: string
+  input: SingleTargetClassifiedInput
+  preflightEstimate?: AggregatedPriceEstimate | undefined
+  runOptions?: SingleTargetRunOptions | undefined
+  batchItem?: BatchItem | undefined
+}
+
+const sourceRefForInput = (
+  input: SingleTargetClassifiedInput,
+  item: string
+): { url: string } | { filePath: string } => {
+  if (input.kind === 'url') {
+    return { url: item }
+  }
+  if (input.kind === 'local') {
+    return { filePath: item }
+  }
+  throw ValidationError(`Single-target route requires a URL or local source: ${item}`)
+}
+
+const processSttRoute = async (
+  intent: ExtractSingleTargetIntent,
+  context: SingleTargetExecutionContext
+): Promise<BatchItemProcessResult> => ({
+  outputDir: await processStt(
+    sourceRefForInput(context.input, context.item),
+    context.baseDir,
+    intent.opts,
+    context.preflightEstimate,
+    {
+      ...(context.runOptions?.sttBatchCoordinator
+        ? { batchCoordinator: context.runOptions.sttBatchCoordinator }
+        : {}),
+      ...(context.runOptions?.mistralSttPassController
+        ? { mistralPassController: context.runOptions.mistralSttPassController }
+        : {}),
+      ...(context.runOptions?.batchChildContext
+        ? { batchChildContext: context.runOptions.batchChildContext }
+        : {})
+    }
+  )
+})
+
+const handleMetadataRoute = async (
+  intent: MetadataSingleTargetIntent,
+  action: MetadataSingleTargetAction,
+  context: SingleTargetExecutionContext
+): Promise<BatchItemProcessResult> => {
+  const batchChildContext = context.runOptions?.batchChildContext
+  switch (action) {
+    case 'x-space':
+      return await processMetadataXSpace(context.item, context.baseDir, intent.opts, batchChildContext)
+    case 'temporary-document':
+      return await withTemporaryDirectDocument(
+        context.item,
+        async (filePath) =>
+          await processMetadataDocument(
+            filePath,
+            intent.opts,
+            context.baseDir,
+            intent.opts.password,
+            { url: context.item },
+            batchChildContext
+          )
+      )
+    case 'article':
+      return await processMetadataPreparedDocument(
+        await prepareArticleDocument(context.item, context.baseDir, intent.opts, batchChildContext),
+        intent.opts
+      )
+    case 'document':
+      return await processMetadataDocument(
+        context.item,
+        intent.opts,
+        context.baseDir,
+        intent.opts.password,
+        undefined,
+        batchChildContext
+      )
+    case 'media':
+      return await processMetadataMedia(
+        context.item,
+        intent.opts,
+        context.baseDir,
+        context.batchItem,
+        batchChildContext
+      )
   }
 }
 
-function assertDownloadOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is DownloadCommandOptions {
-  if (!('keepOriginalMedia' in opts) || !('ytDlpPassthroughArgs' in opts)) {
-    throw ValidationError('Download command options are incomplete')
+const handleDownloadRoute = async (
+  intent: DownloadSingleTargetIntent,
+  action: DownloadSingleTargetAction,
+  context: SingleTargetExecutionContext
+): Promise<BatchItemProcessResult> => {
+  const batchChildContext = context.runOptions?.batchChildContext
+  switch (action) {
+    case 'x-space':
+      return await processDownloadMedia(
+        await resolveXSpaceDownloadTarget(context.item),
+        context.baseDir,
+        intent.opts,
+        context.batchItem,
+        batchChildContext
+      )
+    case 'temporary-document':
+      return await withTemporaryDirectDocument(
+        context.item,
+        async (filePath) =>
+          await processDownloadDocument(
+            filePath,
+            context.baseDir,
+            intent.opts,
+            { url: context.item },
+            batchChildContext
+          )
+      )
+    case 'article':
+      return await processDownloadPreparedDocument(
+        await prepareArticleDocument(context.item, context.baseDir, intent.opts, batchChildContext)
+      )
+    case 'document':
+      return await processDownloadDocument(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        undefined,
+        batchChildContext
+      )
+    case 'media':
+      return await processDownloadMedia(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        context.batchItem,
+        batchChildContext
+      )
   }
 }
 
-function assertWriteOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is WriteRuntimeOptions {
-  if (!('llmProviderConcurrency' in opts) || !('skipLLM' in opts)) {
-    throw ValidationError('Write command options are incomplete')
+const handleExtractRoute = async (
+  intent: ExtractSingleTargetIntent,
+  action: ExtractSingleTargetAction,
+  context: SingleTargetExecutionContext
+): Promise<BatchItemProcessResult> => {
+  const batchChildContext = context.runOptions?.batchChildContext
+  switch (action) {
+    case 'x-space':
+      return await processXSpace(context.item, context.baseDir, intent.opts, batchChildContext)
+    case 'temporary-document':
+      return await withTemporaryDirectDocument(
+        context.item,
+        async (filePath) =>
+          await processOcrSingle(
+            filePath,
+            context.baseDir,
+            intent.opts,
+            { url: context.item },
+            undefined,
+            context.preflightEstimate,
+            batchChildContext
+          )
+      )
+    case 'article':
+      return {
+        outputDir: (
+          await processUrlArticle(
+            context.item,
+            context.baseDir,
+            intent.opts,
+            context.preflightEstimate,
+            batchChildContext
+          )
+        ).outputDir
+      }
+    case 'document':
+      return await processOcrSingle(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        undefined,
+        undefined,
+        context.preflightEstimate,
+        batchChildContext
+      )
+    case 'media':
+      return await processSttRoute(intent, context)
   }
 }
 
-function assertExtractOrWriteOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is ExtractCommandOptions | WriteRuntimeOptions {
-  if (!('whisperModel' in opts) || !('sttProviderConcurrency' in opts)) {
-    throw ValidationError('Extract/write command options are incomplete')
+const handleWriteRoute = async (
+  intent: WriteSingleTargetIntent,
+  action: WriteSingleTargetAction,
+  context: SingleTargetExecutionContext
+): Promise<BatchItemProcessResult | void> => {
+  const batchChildContext = context.runOptions?.batchChildContext
+  switch (action) {
+    case 'text':
+      return await runTextWrite(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        context.preflightEstimate,
+        batchChildContext
+      )
+    case 'x-space':
+      return await runXSpaceWrite(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        context.preflightEstimate,
+        batchChildContext
+      )
+    case 'temporary-document':
+      return await withTemporaryDirectDocument(
+        context.item,
+        async (filePath) =>
+          await runDocumentWrite(
+            filePath,
+            context.baseDir,
+            intent.opts,
+            { url: context.item },
+            undefined,
+            context.preflightEstimate,
+            batchChildContext
+          )
+      )
+    case 'article': {
+      const extraction = await processUrlArticle(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        context.preflightEstimate,
+        batchChildContext
+      )
+      return await runExtractedDocumentWrite({
+        target: context.item,
+        opts: intent.opts,
+        extraction,
+        sourceRef: sourceRefForInput(context.input, context.item),
+        ...(context.preflightEstimate ? { preflightEstimate: context.preflightEstimate } : {})
+      })
+    }
+    case 'document':
+      return await runDocumentWrite(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        undefined,
+        undefined,
+        context.preflightEstimate,
+        batchChildContext
+      )
+    case 'media': {
+      const result = await processMediaSingle(
+        context.item,
+        context.baseDir,
+        intent.opts,
+        context.preflightEstimate,
+        batchChildContext
+      )
+      return { outputDir: result.outputDir }
+    }
   }
 }
 
@@ -60,257 +323,39 @@ export const processSingleTarget = async (
   baseDir: string,
   opts: SingleTargetCommandOptions,
   preflightEstimate?: AggregatedPriceEstimate,
-  runOptions?: {
-    sttBatchCoordinator?: SttBatchCoordinator | undefined
-    mistralSttPassController?: import('~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller').MistralSttPassController | undefined
-    batchChildContext?: BatchChildRunContext | undefined
-  },
+  runOptions?: SingleTargetRunOptions,
   batchItem?: BatchItem
 ): Promise<BatchItemProcessResult | void> => {
-  const batchChildContext = runOptions?.batchChildContext
-  baseDir = baseDir && baseDir.trim().length > 0 ? baseDir : opts.outputRootDir
-
-  if (command === 'metadata') {
-    assertMetadataOptions(opts)
-    if (isLikelyUrl(item)) {
-      const kind = await classifyUrlInput(item, opts)
-      if (kind === 'url_x_space') {
-        return await processMetadataXSpace(item, baseDir, opts, batchChildContext)
-      }
-      if (kind === 'url_direct_document') {
-        const downloaded = await downloadDocumentUrlToTempFile(item)
-        try {
-          return await processMetadataDocument(downloaded.filePath, opts, baseDir, opts.password, { url: item }, batchChildContext)
-        } finally {
-          await downloaded.cleanup()
-        }
-      }
-      if (kind === 'url_html_article') {
-        const prepared = await prepareArticleDocument(item, baseDir, opts, batchChildContext)
-        return await processMetadataPreparedDocument(prepared, opts)
-      }
-      return await processMetadataMedia(item, opts, baseDir, batchItem, batchChildContext)
-    }
-
-    const exists = await fileExists(item)
-    if (!exists) {
-      const { extractSpaceIdsFromText } = await import('~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/x-spaces/input')
-      if (extractSpaceIdsFromText(item).includes(item.trim())) {
-        return await processMetadataXSpace(item, baseDir, opts, batchChildContext)
-      }
-      throw CLIUsageError(`Input does not exist: ${item}. Run: bun autoshow help metadata`)
-    }
-
-    if (isHtmlDocumentPath(item)) {
-      const prepared = await prepareArticleDocument(item, baseDir, opts, batchChildContext)
-      return await processMetadataPreparedDocument(prepared, opts)
-    }
-
-    const isDocExt = isDocumentByExtension(item)
-    const detected = isDocExt ? await detectDocumentFormat(item) : null
-    if (isDocExt || detected !== null) {
-      return await processMetadataDocument(item, opts, baseDir, opts.password, undefined, batchChildContext)
-    } else {
-      return await processMetadataMedia(item, opts, baseDir, batchItem, batchChildContext)
-    }
+  const effectiveBaseDir = baseDir && baseDir.trim().length > 0 ? baseDir : opts.outputRootDir
+  const intent = normalizeSingleTargetIntent(command, opts)
+  const input = await classifySingleTargetInput(item, intent)
+  const context: SingleTargetExecutionContext = {
+    item,
+    baseDir: effectiveBaseDir,
+    input,
+    ...(preflightEstimate ? { preflightEstimate } : {}),
+    ...(runOptions ? { runOptions } : {}),
+    ...(batchItem ? { batchItem } : {})
   }
 
-  if (command === 'download') {
-    assertDownloadOptions(opts)
-    if (isLikelyUrl(item)) {
-      const kind = await classifyUrlInput(item, opts)
-      if (hasYtDlpPassthroughArgs(opts) && kind !== 'url_direct_media' && kind !== 'url_streaming' && kind !== 'url_x_space') {
-        throwUnsupportedDownloadPassthroughInput(item)
-      }
-      if (kind === 'url_x_space') {
-        const downloadTarget = await resolveXSpaceDownloadTarget(item)
-        return await processDownloadMedia(downloadTarget, baseDir, opts, batchItem, batchChildContext)
-      }
-      if (kind === 'url_direct_document') {
-        const downloaded = await downloadDocumentUrlToTempFile(item)
-        try {
-          return await processDownloadDocument(downloaded.filePath, baseDir, opts, { url: item }, batchChildContext)
-        } finally {
-          await downloaded.cleanup()
-        }
-      }
-      if (kind === 'url_html_article') {
-        const prepared = await prepareArticleDocument(item, baseDir, opts, batchChildContext)
-        return await processDownloadPreparedDocument(prepared)
-      }
-      return await processDownloadMedia(item, baseDir, opts, batchItem, batchChildContext)
+  switch (intent.command) {
+    case 'metadata': {
+      const route = resolveSingleTargetRoute(intent, input, item)
+      return await handleMetadataRoute(intent, route.action, context)
     }
-
-    const exists = await fileExists(item)
-    if (!exists) {
-      const { extractSpaceIdsFromText } = await import('~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/x-spaces/input')
-      if (extractSpaceIdsFromText(item).includes(item.trim())) {
-        const downloadTarget = await resolveXSpaceDownloadTarget(item)
-        return await processDownloadMedia(downloadTarget, baseDir, opts, batchItem, batchChildContext)
-      }
-      throw CLIUsageError(`Input does not exist: ${item}. Run: bun autoshow help download`)
+    case 'download': {
+      const route = resolveSingleTargetRoute(intent, input, item)
+      return await handleDownloadRoute(intent, route.action, context)
     }
-    if (hasYtDlpPassthroughArgs(opts)) {
-      throwUnsupportedDownloadPassthroughInput(item)
+    case 'extract': {
+      const route = resolveSingleTargetRoute(intent, input, item)
+      return await handleExtractRoute(intent, route.action, context)
     }
-
-    if (isHtmlDocumentPath(item)) {
-      const prepared = await prepareArticleDocument(item, baseDir, opts, batchChildContext)
-      return await processDownloadPreparedDocument(prepared)
-    }
-
-    const isDocExt = isDocumentByExtension(item)
-    const detected = isDocExt ? await detectDocumentFormat(item) : null
-    if (isDocExt || detected !== null) {
-      return await processDownloadDocument(item, baseDir, opts, undefined, batchChildContext)
-    } else {
-      return await processDownloadMedia(item, baseDir, opts, batchItem, batchChildContext)
+    case 'write': {
+      const route = resolveSingleTargetRoute(intent, input, item)
+      return await handleWriteRoute(intent, route.action, context)
     }
   }
-
-  assertExtractOrWriteOptions(opts)
-
-  if (command === 'write') {
-    assertWriteOptions(opts)
-    if (opts.textInput) {
-      if (isLikelyUrl(item)) {
-        throw CLIUsageError('write --text-input only accepts local .md or .txt files or directories')
-      }
-
-      if (!isTextInputPath(item)) {
-        throw CLIUsageError(`write --text-input only accepts .md or .txt files. Got: ${item}`)
-      }
-
-      return await runTextWrite(item, baseDir, opts, preflightEstimate, batchChildContext)
-    }
-  }
-
-  if (isLikelyUrl(item)) {
-    const kind = await classifyUrlInput(item, opts)
-
-    if (kind === 'url_x_space') {
-      if (isExtractCommand(command)) {
-        return await processXSpace(item, baseDir, opts, batchChildContext)
-      }
-      if (command === 'write') {
-        assertWriteOptions(opts)
-        return await runXSpaceWrite(item, baseDir, opts, preflightEstimate, batchChildContext)
-      }
-      throwUnsupportedProcessInput(command, item, 'x_space')
-    }
-
-    if (kind === 'url_direct_document') {
-      const downloaded = await downloadDocumentUrlToTempFile(item)
-      try {
-        if (isExtractCommand(command)) {
-          return await processOcrSingle(downloaded.filePath, baseDir, opts, { url: item }, undefined, preflightEstimate, batchChildContext)
-        }
-        assertWriteOptions(opts)
-        return await runDocumentWrite(downloaded.filePath, baseDir, opts, { url: item }, undefined, preflightEstimate, batchChildContext)
-      } finally {
-        await downloaded.cleanup()
-      }
-    }
-
-    if (kind === 'url_html_article') {
-      if (isExtractCommand(command)) {
-        return {
-          outputDir: (await processUrlArticle(item, baseDir, opts, preflightEstimate, batchChildContext)).outputDir
-        }
-      }
-      const extraction = await processUrlArticle(item, baseDir, opts, preflightEstimate, batchChildContext)
-      assertWriteOptions(opts)
-      return await runExtractedDocumentWrite({
-        target: item,
-        opts,
-        extraction,
-        sourceRef: { url: item },
-        ...(preflightEstimate ? { preflightEstimate } : {})
-      })
-    }
-
-    if (isExtractCommand(command)) {
-      return {
-        outputDir: await processStt({ url: item }, baseDir, opts, preflightEstimate, {
-          ...(runOptions?.sttBatchCoordinator ? { batchCoordinator: runOptions.sttBatchCoordinator } : {}),
-          ...(runOptions?.mistralSttPassController ? { mistralPassController: runOptions.mistralSttPassController } : {}),
-          ...(batchChildContext ? { batchChildContext } : {})
-        })
-      }
-    }
-
-    assertWriteOptions(opts)
-    const result = await processMediaSingle(item, baseDir, opts, preflightEstimate, batchChildContext)
-    return { outputDir: result.outputDir }
-  }
-
-  const exists = await fileExists(item)
-
-  if (!exists) {
-    const { extractSpaceIdsFromText } = await import('~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/x-spaces/input')
-    if (extractSpaceIdsFromText(item).includes(item.trim())) {
-      if (isExtractCommand(command)) {
-        return await processXSpace(item, baseDir, opts, batchChildContext)
-      }
-      if (command === 'write') {
-        assertWriteOptions(opts)
-        return await runXSpaceWrite(item, baseDir, opts, preflightEstimate, batchChildContext)
-      }
-    }
-    throw CLIUsageError(`Input does not exist: ${item}. Run: bun autoshow help ${command}`)
-  }
-
-  if (isHtmlDocumentPath(item)) {
-    if (isExtractCommand(command)) {
-      return {
-        outputDir: (await processUrlArticle(item, baseDir, opts, preflightEstimate, batchChildContext)).outputDir
-      }
-    }
-
-    if (command === 'write') {
-      const extraction = await processUrlArticle(item, baseDir, opts, preflightEstimate, batchChildContext)
-      assertWriteOptions(opts)
-      return await runExtractedDocumentWrite({
-        target: item,
-        opts,
-        extraction,
-        sourceRef: { filePath: item },
-        ...(preflightEstimate ? { preflightEstimate } : {})
-      })
-    }
-  }
-
-  const family = await classifyInputFamily(item, opts)
-
-  if (isExtractCommand(command) && family === 'document') {
-    if (family !== 'document') {
-      throwUnsupportedProcessInput(command, item, family)
-    }
-    return await processOcrSingle(item, baseDir, opts, undefined, undefined, preflightEstimate, batchChildContext)
-  }
-
-  if (command === 'write' && family === 'document') {
-    assertWriteOptions(opts)
-    return await runDocumentWrite(item, baseDir, opts, undefined, undefined, preflightEstimate, batchChildContext)
-  }
-
-  if (isExtractCommand(command)) {
-    if (family === 'media') {
-      return {
-        outputDir: await processStt({ filePath: item }, baseDir, opts, preflightEstimate, {
-          ...(runOptions?.sttBatchCoordinator ? { batchCoordinator: runOptions.sttBatchCoordinator } : {}),
-          ...(runOptions?.mistralSttPassController ? { mistralPassController: runOptions.mistralSttPassController } : {}),
-          ...(batchChildContext ? { batchChildContext } : {})
-        })
-      }
-    }
-
-    throwUnrecognizedExtractInput(item)
-  }
-
-  assertWriteOptions(opts)
-  const result = await processMediaSingle(item, baseDir, opts, preflightEstimate, batchChildContext)
-  return { outputDir: result.outputDir }
 }
 
 export const handleSingleTarget = async (

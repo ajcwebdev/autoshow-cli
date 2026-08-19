@@ -33,16 +33,15 @@ Use full setup on a clean machine when you want local download, OCR, STT, or wri
 
 A full `bun autoshow setup` downloads several gigabytes and builds a number of tools from source. Budget roughly **10 GB free** and expect 5-10 minutes on a fast connection. A re-run with everything already installed takes a few seconds.
 
-Setup writes to four places, not just the repo:
+Setup writes outside the repo checkout as well:
 
-| Location                        | Holds                                               | Approx. size |
-| ------------------------------- | --------------------------------------------------- | ------------ |
-| `runtime/`                      | Managed binaries, Python envs, and local STT models | ~7 GiB       |
-| `~/.cache/uv` (macOS and Linux) | uv's shared Python package cache                    | ~2.5 GB      |
+| Location   | Holds                                      | Approx. size |
+| ---------- | ------------------------------------------ | ------------ |
+| `runtime/` | Managed binaries and local STT models      | ~3 GiB       |
 
 Notes:
 
-- The Setup Summary prints the current `runtime/` size under the `disk` row, in the same units as `du -h`.
+- The Setup Summary prints the current `runtime/` size under the `disk` row.
 - Installs created before the Whisper CoreML pipeline was retired may retain `runtime/bin/whisper-coreml-env` and encoder directories under `runtime/models/whisper`. Full setup reports those legacy artifacts and their sizes as safe to delete.
 - `runtime/build` holds only transient source trees. Each installer removes its own tree on success, and a full setup prunes whatever is left over.
 - Downloads stream to a `<file>.part` alongside the destination and resume from there, so an interrupted transfer does not restart from zero. Large assets abort only after **60 seconds with no bytes received**, not after a fixed total transfer time, so a slow connection does not by itself cause a failure.
@@ -79,15 +78,12 @@ The same precedence rules apply everywhere in the CLI:
 The `setup` command currently supports:
 
 ```text
-uv | yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | all | transcription | write | tts | image | video | music
+yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | all | transcription | write | tts | image | video | music
 ```
 
 Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`.
 
 ```bash
-# Shared foundation for managed local tools
-bun autoshow setup --step uv
-
 # Step 1 download: yt-dlp for media inputs
 bun autoshow setup --step yt-dlp
 

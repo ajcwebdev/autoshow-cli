@@ -218,6 +218,24 @@
           "supportedEfforts": ["low", "medium", "high"]
         }
       },
+      "gemini-3.7-flash": {
+        "description": "Gemini 3.7 Flash — latest balanced Gemini model",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-08-18",
+        "pricingCurrency": "USD",
+        "pricingTier": "Gemini API paid Standard",
+        "pricingNotes": "Google lists Gemini 3.7 Flash Standard pricing at $1.50/1M input tokens and $7.50/1M output tokens effective 2027-01-01, with introductory pricing of $0.75/1M input tokens and $3.75/1M output tokens through 2026-12-31 and no published context tiers. AutoShow conservatively records the standard rates, so estimates overstate cost during the introductory window. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
+        "inputCostPer1MCents": 150,
+        "outputCostPer1MCents": 750,
+        "estimation": {
+          "costMultiplier": 0.8395,
+          "msPer1KTokens": 2537
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["low", "medium", "high"]
+        }
+      },
       "gemini-3.6-flash": {
         "description": "Gemini 3.6 Flash — current balanced Gemini model",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -479,6 +497,41 @@
             "minInputTokens": 200001,
             "inputCostPer1MCents": 400,
             "cachedInputCostPer1MCents": 60,
+            "outputCostPer1MCents": 1200
+          }
+        ],
+        "estimation": {
+          "msPer1KTokens": 11318,
+          "costMultiplier": 1
+        },
+        "reasoning": {
+          "support": "required",
+          "supportedEfforts": ["low", "medium", "high"]
+        }
+      },
+      "grok-4.6": {
+        "description": "Grok 4.6 — flagship model with a 500K context window",
+        "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
+        "pricingCheckedAt": "2026-08-18",
+        "pricingCurrency": "USD",
+        "pricingTier": "xAI public Chat API token pricing",
+        "pricingNotes": "xAI lists Grok 4.6 standard pricing at $2.00/1M input tokens, $0.50/1M cached input tokens, and $6.00/1M output tokens for requests with up to 200K input tokens. Requests above 200K input tokens cost $4.00/1M input tokens, $1.00/1M cached input tokens, and $12.00/1M output tokens. AutoShow uses uncached standard rates for estimates and switches bands from estimated or observed input tokens. Batch discounts, cached-input discounts, regional differences, enterprise pricing, taxes, and provider credits are ignored.",
+        "inputCostPer1MCents": 200,
+        "cachedInputCostPer1MCents": 50,
+        "outputCostPer1MCents": 600,
+        "tokenPricingBands": [
+          {
+            "label": "standard-up-to-200k",
+            "maxInputTokens": 200000,
+            "inputCostPer1MCents": 200,
+            "cachedInputCostPer1MCents": 50,
+            "outputCostPer1MCents": 600
+          },
+          {
+            "label": "standard-over-200k",
+            "minInputTokens": 200001,
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 100,
             "outputCostPer1MCents": 1200
           }
         ],

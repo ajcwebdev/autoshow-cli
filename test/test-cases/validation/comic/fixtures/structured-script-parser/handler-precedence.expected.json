@@ -1,0 +1,541 @@
+{
+  "schemaVersion": 5,
+  "scriptSlug": "handler-precedence",
+  "sourceFile": "input/handler-precedence.md",
+  "sourceIdentity": {
+    "schemaVersion": 1,
+    "canonicalPath": "input/handler-precedence.md",
+    "scriptSlug": "handler-precedence",
+    "contentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "identityHash": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "document": {
+    "heading": "Episode Eight",
+    "title": "Episode Eight",
+    "metadata": [
+      {
+        "label": "Series",
+        "value": "AutoShow",
+        "raw": "Series: AutoShow"
+      }
+    ]
+  },
+  "scene": {
+    "heading": "Scene: \"Precedence\"",
+    "section": "Scene",
+    "title": "Precedence",
+    "location": {
+      "key": "cargo-bay",
+      "raw": "INT. CARGO BAY - NIGHT",
+      "type": "INT",
+      "place": "CARGO BAY - NIGHT"
+    },
+    "soundscape": {
+      "cues": [
+        {
+          "cueId": "8cd4d269828c04c328150f0e96788d663f5559b53f9cc0da9cefc9fda96a65ce",
+          "kind": "action-sfx",
+          "prompt": "console chirp",
+          "required": true,
+          "anchor": {
+            "kind": "source-text-offset",
+            "sourceSegmentId": "beat-0001",
+            "textOffset": 5,
+            "indexUnit": "unicode-scalar-value",
+            "offsetMs": 0
+          },
+          "sourceSpan": {
+            "kind": "sound-effect",
+            "start": 164,
+            "end": 186,
+            "indexUnit": "unicode-scalar-value",
+            "text": "[[SFX: console chirp]]"
+          }
+        }
+      ],
+      "ambientBeds": [
+        {
+          "cueId": "4b80dee2749c151098ebd9797df2f80a6a6592bcec1b9d86632a0869bb424665",
+          "kind": "ambience",
+          "prompt": "low reactor hum",
+          "required": false,
+          "range": {
+            "kind": "full-scene"
+          },
+          "sourceSpan": {
+            "kind": "sound-effect",
+            "start": 91,
+            "end": 130,
+            "indexUnit": "unicode-scalar-value",
+            "text": "**AMBIENCE:**\n\nOPTIONAL low reactor hum"
+          }
+        }
+      ]
+    }
+  },
+  "characterKeys": [
+    "captain",
+    "engineer"
+  ],
+  "beats": [
+    {
+      "index": 1,
+      "type": "dialogue",
+      "text": "Ready now.",
+      "characterKeys": [
+        "captain"
+      ],
+      "rawMentions": [],
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "delivery": "quietly",
+      "sourceSpans": [
+        {
+          "kind": "delivery",
+          "start": 147,
+          "end": 154,
+          "indexUnit": "unicode-scalar-value",
+          "text": "quietly"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 158,
+          "end": 163,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Ready"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 187,
+          "end": 191,
+          "indexUnit": "unicode-scalar-value",
+          "text": "now."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 2,
+      "type": "direction",
+      "text": "checks the gauge",
+      "characterKeys": [
+        "captain"
+      ],
+      "rawMentions": [],
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 194,
+          "end": 210,
+          "indexUnit": "unicode-scalar-value",
+          "text": "checks the gauge"
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 3,
+      "type": "dialogue",
+      "text": "Still ready.",
+      "characterKeys": [
+        "captain"
+      ],
+      "rawMentions": [],
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 213,
+          "end": 225,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Still ready."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 4,
+      "type": "narration",
+      "text": "Three cycles later.",
+      "characterKeys": [],
+      "rawMentions": [],
+      "speakerLabel": "CAPTION",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 240,
+          "end": 259,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Three cycles later."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 5,
+      "type": "direction",
+      "text": "walks toward the hatch.",
+      "characterKeys": [
+        "engineer"
+      ],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 274,
+          "end": 297,
+          "indexUnit": "unicode-scalar-value",
+          "text": "walks toward the hatch."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 6,
+      "type": "panel-note",
+      "text": "Panel widens on ENGINEER.",
+      "characterKeys": [
+        "engineer"
+      ],
+      "rawMentions": [
+        {
+          "raw": "ENGINEER",
+          "characterKeys": [
+            "engineer"
+          ]
+        }
+      ],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 300,
+          "end": 325,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Panel widens on ENGINEER."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 7,
+      "type": "transition",
+      "text": "EXT. CLEARING - DAWN",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "scene-boundary",
+          "start": 328,
+          "end": 348,
+          "indexUnit": "unicode-scalar-value",
+          "text": "EXT. CLEARING - DAWN"
+        }
+      ],
+      "location": {
+        "key": "clearing",
+        "raw": "EXT. CLEARING - DAWN",
+        "type": "EXT",
+        "place": "CLEARING - DAWN"
+      }
+    },
+    {
+      "index": 8,
+      "type": "transition",
+      "text": "CUT TO:",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "scene-boundary",
+          "start": 352,
+          "end": 359,
+          "indexUnit": "unicode-scalar-value",
+          "text": "CUT TO:"
+        }
+      ],
+      "location": {
+        "key": "clearing",
+        "raw": "EXT. CLEARING - DAWN",
+        "type": "EXT",
+        "place": "CLEARING - DAWN"
+      }
+    },
+    {
+      "index": 9,
+      "type": "direction",
+      "text": "Stars wheel overhead.",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 363,
+          "end": 384,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Stars wheel overhead."
+        }
+      ],
+      "location": {
+        "key": "clearing",
+        "raw": "EXT. CLEARING - DAWN",
+        "type": "EXT",
+        "place": "CLEARING - DAWN"
+      }
+    }
+  ],
+  "sourceSegments": [
+    {
+      "id": "beat-0001",
+      "type": "dialogue",
+      "text": "Ready now.",
+      "rawMarkdown": "**CAPTAIN**\n(quietly)\nReady now.",
+      "beatIndex": 1,
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "delivery": "quietly",
+      "sourceSpans": [
+        {
+          "kind": "delivery",
+          "start": 147,
+          "end": 154,
+          "indexUnit": "unicode-scalar-value",
+          "text": "quietly"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 158,
+          "end": 163,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Ready"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 187,
+          "end": 191,
+          "indexUnit": "unicode-scalar-value",
+          "text": "now."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0002",
+      "type": "direction",
+      "text": "checks the gauge",
+      "rawMarkdown": "checks the gauge",
+      "beatIndex": 2,
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 194,
+          "end": 210,
+          "indexUnit": "unicode-scalar-value",
+          "text": "checks the gauge"
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0003",
+      "type": "dialogue",
+      "text": "Still ready.",
+      "rawMarkdown": "**CAPTAIN**\nStill ready.",
+      "beatIndex": 3,
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 213,
+          "end": 225,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Still ready."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0004",
+      "type": "narration",
+      "text": "Three cycles later.",
+      "rawMarkdown": "Three cycles later.",
+      "beatIndex": 4,
+      "speakerLabel": "CAPTION",
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 240,
+          "end": 259,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Three cycles later."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0005",
+      "type": "direction",
+      "text": "walks toward the hatch.",
+      "rawMarkdown": "walks toward the hatch.",
+      "beatIndex": 5,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 274,
+          "end": 297,
+          "indexUnit": "unicode-scalar-value",
+          "text": "walks toward the hatch."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0006",
+      "type": "panel-note",
+      "text": "Panel widens on ENGINEER.",
+      "rawMarkdown": "[Panel widens on ENGINEER.]",
+      "beatIndex": 6,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 300,
+          "end": 325,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Panel widens on ENGINEER."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0007",
+      "type": "transition",
+      "text": "EXT. CLEARING - DAWN",
+      "rawMarkdown": "EXT. CLEARING - DAWN",
+      "beatIndex": 7,
+      "sourceSpans": [
+        {
+          "kind": "scene-boundary",
+          "start": 328,
+          "end": 348,
+          "indexUnit": "unicode-scalar-value",
+          "text": "EXT. CLEARING - DAWN"
+        }
+      ],
+      "location": {
+        "key": "clearing",
+        "raw": "EXT. CLEARING - DAWN",
+        "type": "EXT",
+        "place": "CLEARING - DAWN"
+      }
+    },
+    {
+      "id": "beat-0008",
+      "type": "transition",
+      "text": "CUT TO:",
+      "rawMarkdown": "CUT TO:",
+      "beatIndex": 8,
+      "sourceSpans": [
+        {
+          "kind": "scene-boundary",
+          "start": 352,
+          "end": 359,
+          "indexUnit": "unicode-scalar-value",
+          "text": "CUT TO:"
+        }
+      ],
+      "location": {
+        "key": "clearing",
+        "raw": "EXT. CLEARING - DAWN",
+        "type": "EXT",
+        "place": "CLEARING - DAWN"
+      }
+    },
+    {
+      "id": "beat-0009",
+      "type": "direction",
+      "text": "Stars wheel overhead.",
+      "rawMarkdown": "Stars wheel overhead.",
+      "beatIndex": 9,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 363,
+          "end": 384,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Stars wheel overhead."
+        }
+      ],
+      "location": {
+        "key": "clearing",
+        "raw": "EXT. CLEARING - DAWN",
+        "type": "EXT",
+        "place": "CLEARING - DAWN"
+      }
+    }
+  ]
+}

@@ -88,6 +88,8 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 | `--concurrency-mode <ramp\|immediate>`                              | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--prompt <name...>`                                                | Select prompt presets                                                                                                                                                             |
 | `--text-input`                                                      | Treat local `.md` / `.txt` files and directories as raw source text                                                                                                               |
+
+Without `--text-input`, `write` inspects a `.md` / `.txt` target to decide how to treat it: when at least half of its non-empty, non-`#` lines resolve to URLs, X Space ids, or existing local file paths it runs as a newline-delimited batch input list, and otherwise it runs as raw source text automatically. Pass `--text-input` to force text mode for a file the detection would treat as a list.
 | `--prompt-file <file>`                                              | Prepend instructions from a local text file before named prompt presets                                                                                                           |
 | `--rendered-text`                                                   | Save rendered step-3 markdown output inside the run directory                                                                                                                     |
 | `--rendered-out-dir <dir>`                                          | Also write rendered step-3 markdown files to this directory                                                                                                                       |
@@ -151,7 +153,7 @@ Passing `--llm anthropic` defaults to `claude-haiku-4-5`. Claude Opus 5 estimate
 | Option   | Value                                                                                     |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Selector | `--llm gemini[=<model>]`                                                                  |
-| Models   | `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| Models   | `gemini-3.1-pro-preview`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | Default  | Passing `--llm gemini` uses `gemini-3.5-flash-lite`                                       |
 
 ```bash
@@ -159,7 +161,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=g
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
 ```
 
-Passing `--llm gemini` defaults to `gemini-3.5-flash-lite`. Gemini models use flat Standard rates: Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Gemini 3.1 Pro Preview uses `$2.00 / 1M input` and `$12.00 / 1M output` up to 200K tokens, and `$4.00 / 1M input` and `$18.00 / 1M output` above 200K.
+Passing `--llm gemini` defaults to `gemini-3.5-flash-lite`. Gemini models use flat Standard rates: Gemini 3.7 Flash and Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Gemini 3.7 Flash estimates conservatively use the standard rates effective 2027-01-01, overstating cost during the introductory `$0.75 / $3.75` window through 2026-12-31. Gemini 3.1 Pro Preview uses `$2.00 / 1M input` and `$12.00 / 1M output` up to 200K tokens, and `$4.00 / 1M input` and `$18.00 / 1M output` above 200K.
 
 ### Groq
 
@@ -193,7 +195,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm minimax=
 | Option   | Value                                |
 | -------- | ------------------------------------ |
 | Selector | `--llm grok[=<model>]`               |
-| Models   | `grok-4.3`, `grok-4.5`               |
+| Models   | `grok-4.3`, `grok-4.5`, `grok-4.6`   |
 | Default  | Passing `--llm grok` uses `grok-4.3` |
 
 ```bash
@@ -201,7 +203,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=gro
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.5
 ```
 
-Passing `--llm grok` defaults to `grok-4.3`. Grok 4.5 price estimates use standard rates: `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
+Passing `--llm grok` defaults to `grok-4.3`. Grok 4.5 and Grok 4.6 price estimates use standard rates: `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
 
 ### Z.AI GLM
 
@@ -324,6 +326,7 @@ Prompt names are assembled at runtime from JSON files discovered recursively und
 - `popSong`
 - `rockSong`
 - `rapSong`
+- `rapSongChapter`
 - `rapSongLong`
 
 ### Creative Writing

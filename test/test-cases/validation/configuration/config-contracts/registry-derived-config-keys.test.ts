@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { loadConfig } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { loadConfig } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
+import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import {
   getStep2ProviderConfigPathEntries,
   getStep2ProviderEntries

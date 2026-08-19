@@ -77,8 +77,8 @@ test('links refresh writes first sidecar metadata while normal links runs omit i
   expect(metadata.sidecarPath).toBe(sidecarPath)
   expect(metadata.tokenizer).toEqual({
     name: 'o200k_base',
-    packageName: 'tiktoken',
-    packageVersion: '1.0.22'
+    implementation: 'in-repository-bpe',
+    rankDataSha256: '3a005bb166d080a740fda2b6764aa501ea0c016b6de2c39d789c684832b1943a'
   })
   expect(metadata.totals.linkCount).toBe(1)
   expect(metadata.totals.successfulCount).toBe(1)

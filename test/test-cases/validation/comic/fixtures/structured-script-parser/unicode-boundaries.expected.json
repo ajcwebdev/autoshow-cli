@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 5,
+  "scriptSlug": "unicode-boundaries",
+  "sourceFile": "input/unicode-boundaries.md",
+  "sourceIdentity": {
+    "schemaVersion": 1,
+    "canonicalPath": "input/unicode-boundaries.md",
+    "scriptSlug": "unicode-boundaries",
+    "contentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "identityHash": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "document": {
+    "heading": "Épisode 🚀",
+    "title": "Épisode 🚀",
+    "metadata": []
+  },
+  "scene": {
+    "heading": "Scene: \"Unicode\"",
+    "section": "Scene",
+    "title": "Unicode",
+    "location": {
+      "key": "cargo-bay",
+      "raw": "INT. CARGO BAY - NIGHT",
+      "type": "INT",
+      "place": "CARGO BAY - NIGHT"
+    },
+    "soundscape": {
+      "cues": [
+        {
+          "cueId": "d37e51d0028be82c329502d5537447e905580c7a9632db2405ede7caff0bf6aa",
+          "kind": "action-sfx",
+          "prompt": "chime ✨",
+          "required": true,
+          "anchor": {
+            "kind": "source-text-offset",
+            "sourceSegmentId": "beat-0002",
+            "textOffset": 12,
+            "indexUnit": "unicode-scalar-value",
+            "offsetMs": 0
+          },
+          "sourceSpan": {
+            "kind": "sound-effect",
+            "start": 127,
+            "end": 143,
+            "indexUnit": "unicode-scalar-value",
+            "text": "[[SFX: chime ✨]]"
+          }
+        }
+      ],
+      "ambientBeds": []
+    }
+  },
+  "characterKeys": [
+    "captain"
+  ],
+  "beats": [
+    {
+      "index": 1,
+      "type": "direction",
+      "text": "😀 The display wakes.",
+      "characterKeys": [],
+      "rawMentions": [],
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 62,
+          "end": 82,
+          "indexUnit": "unicode-scalar-value",
+          "text": "😀 The display wakes."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "index": 2,
+      "type": "dialogue",
+      "text": "Café 🚀 ready now.",
+      "characterKeys": [
+        "captain"
+      ],
+      "rawMentions": [],
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "delivery": "très calm 🫡",
+      "sourceSpans": [
+        {
+          "kind": "delivery",
+          "start": 99,
+          "end": 110,
+          "indexUnit": "unicode-scalar-value",
+          "text": "très calm 🫡"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 114,
+          "end": 126,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Café 🚀 ready"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 144,
+          "end": 148,
+          "indexUnit": "unicode-scalar-value",
+          "text": "now."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    }
+  ],
+  "sourceSegments": [
+    {
+      "id": "beat-0001",
+      "type": "direction",
+      "text": "😀 The display wakes.",
+      "rawMarkdown": "😀 The display wakes.",
+      "beatIndex": 1,
+      "sourceSpans": [
+        {
+          "kind": "spoken-text",
+          "start": 62,
+          "end": 82,
+          "indexUnit": "unicode-scalar-value",
+          "text": "😀 The display wakes."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    },
+    {
+      "id": "beat-0002",
+      "type": "dialogue",
+      "text": "Café 🚀 ready now.",
+      "rawMarkdown": "**CAPTAIN**\n(très calm 🫡)\nCafé 🚀 ready now.",
+      "beatIndex": 2,
+      "speakerKey": "captain",
+      "speakerLabel": "CAPTAIN",
+      "delivery": "très calm 🫡",
+      "sourceSpans": [
+        {
+          "kind": "delivery",
+          "start": 99,
+          "end": 110,
+          "indexUnit": "unicode-scalar-value",
+          "text": "très calm 🫡"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 114,
+          "end": 126,
+          "indexUnit": "unicode-scalar-value",
+          "text": "Café 🚀 ready"
+        },
+        {
+          "kind": "spoken-text",
+          "start": 144,
+          "end": 148,
+          "indexUnit": "unicode-scalar-value",
+          "text": "now."
+        }
+      ],
+      "location": {
+        "key": "cargo-bay",
+        "raw": "INT. CARGO BAY - NIGHT",
+        "type": "INT",
+        "place": "CARGO BAY - NIGHT"
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { isRecord } from '~/utils/rest-client'
-import type { AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPollLoopOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
+import type { AsyncSttActiveJobContext, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
@@ -338,32 +338,46 @@ export const deleteSttRemoteResource = async (options: {
   }
 }
 
-export const runAsyncSttJobLifecycle = async <TStatus, TTranscript, TUpload = unknown>(
-  options: AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload>
-): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const metrics = createAsyncSttLifecycleMetrics(options.runMode)
-  let runtime = await readPersistedAsyncSttRuntime(options.lifecycle, {
-    transcriptionService: options.providerService,
-    transcriptionModel: options.modelName
-  }, options.segment?.segmentNumber)
-  let jobId = runtime?.remoteJobId
-  let lastKnownJobStatus: TStatus | undefined
-  let resumedExistingJob = false
-  let metadata: Step2Metadata | undefined
-  let uploadedAsset: Awaited<ReturnType<NonNullable<typeof options.uploadAsset>>> | undefined
+const createAsyncSttLifecycleCleanupState = <TStatus, TUpload>(): AsyncSttLifecycleCleanupState<TStatus, TUpload> => {
+  const state: AsyncSttLifecycleCleanupSnapshot<TStatus, TUpload> = {}
 
-  const segmentNumber = options.segment?.segmentNumber
-  const totalSegments = options.segment?.totalSegments
-  if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, {
-      provider: options.providerLogLabel,
-      action: 'started',
-      segmentNumber,
-      totalSegments,
-      model: options.modelName
-    })
+  return {
+    snapshot: () => state,
+    setRuntime: (runtime) => { state.runtime = runtime },
+    setJob: (jobId, status) => {
+      state.jobId = jobId
+      state.lastKnownStatus = status
+    },
+    setLastKnownStatus: (status) => { state.lastKnownStatus = status },
+    setUploadedAsset: (uploadedAsset) => { state.uploadedAsset = uploadedAsset },
+    setMetadata: (metadata) => { state.metadata = metadata }
   }
+}
 
+const buildAsyncSttRuntime = <TUpload>(
+  mode: Step2RuntimeMetadata['mode'],
+  stage: Step2RuntimeMetadata['stage'],
+  jobId: string,
+  runtime: Step2RuntimeMetadata | undefined,
+  uploadedAsset: AsyncSttUploadAssetResult<TUpload> | undefined,
+  timestamps: Pick<Step2RuntimeMetadata, 'createCompletedAt' | 'lastPollAt' | 'completedAt'>
+): Step2RuntimeMetadata => ({
+  ...(runtime ?? { mode, stage, remoteJobId: jobId }),
+  mode,
+  stage,
+  remoteJobId: jobId,
+  ...((runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId) ? { remoteAssetId: runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId } : {}),
+  ...((runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
+  ...(timestamps.createCompletedAt ? { createCompletedAt: timestamps.createCompletedAt } : {}),
+  ...(timestamps.lastPollAt ? { lastPollAt: timestamps.lastPollAt } : {}),
+  ...(timestamps.completedAt ? { completedAt: timestamps.completedAt } : {})
+})
+
+const createAsyncSttLifecycleContext = <TStatus, TTranscript, TUpload>(
+  options: AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload>
+): AsyncSttLifecycleContext<TStatus, TTranscript, TUpload> => {
+  const metrics = createAsyncSttLifecycleMetrics(options.runMode)
+  const cleanupState = createAsyncSttLifecycleCleanupState<TStatus, TUpload>()
   const buildTimingMetadata = (remoteProcessingMs = 0): Step2Metadata['timings'] =>
     buildStep2TimingMetadata({
       uploadMs: metrics.uploadMs,
@@ -379,227 +393,359 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript, TUpload = un
       rateLimitCount: metrics.rateLimitCount,
       backfillCount: metrics.backfillCount
     })
-
-  const buildProgressMetadata = (nextRuntime: Step2RuntimeMetadata): Step2Metadata => ({
+  const buildProgressMetadata = (runtime: Step2RuntimeMetadata): Step2Metadata => ({
     transcriptionService: options.providerService,
     transcriptionModel: options.modelName,
     processingTime: Date.now() - options.startTime,
     tokenCount: 0,
-    ...options.extendProgressMetadata?.(nextRuntime),
+    ...options.extendProgressMetadata?.(runtime),
     timings: buildTimingMetadata() ?? {},
-    runtime: nextRuntime
+    runtime
   })
 
-  const persistProgressMetadata = createAsyncSttProgressMetadataPersister(
-    options.lifecycle,
-    options.segment?.segmentNumber,
-    buildProgressMetadata,
-    (nextRuntime) => { runtime = nextRuntime }
+  return {
+    options,
+    metrics,
+    cleanupState,
+    persistProgressMetadata: createAsyncSttProgressMetadataPersister(
+      options.lifecycle,
+      options.segment?.segmentNumber,
+      buildProgressMetadata,
+      cleanupState.setRuntime
+    ),
+    notifyJobReady: createAsyncSttJobReadyNotifier(options.lifecycle?.onJobReady),
+    buildTimingMetadata
+  }
+}
+
+const createFreshAsyncSttJob = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>
+): Promise<AsyncSttActiveJobContext<TStatus, TTranscript, TUpload>> => {
+  const { cleanupState, metrics, notifyJobReady, options, persistProgressMetadata } = context
+  let uploadedAsset: AsyncSttUploadAssetResult<TUpload> | undefined
+
+  if (options.uploadAsset) {
+    const uploadStartedAt = Date.now()
+    uploadedAsset = await options.uploadAsset(metrics)
+    metrics.uploadMs += Date.now() - uploadStartedAt
+    cleanupState.setUploadedAsset(uploadedAsset)
+  }
+
+  const createStartedAt = Date.now()
+  const createResponse = await options.createJob(metrics, uploadedAsset)
+  metrics.createMs += Date.now() - createStartedAt
+  metrics.createCount += 1
+  cleanupState.setJob(createResponse.jobId, createResponse.status)
+
+  const runtime = buildAsyncSttRuntime(
+    'fresh',
+    'polling',
+    createResponse.jobId,
+    undefined,
+    uploadedAsset,
+    { createCompletedAt: new Date().toISOString() }
   )
-  const notifyJobReady = createAsyncSttJobReadyNotifier(options.lifecycle?.onJobReady)
+  await persistProgressMetadata(runtime)
+  await notifyJobReady(runtime)
+
+  return {
+    ...context,
+    activeJob: {
+      jobId: createResponse.jobId,
+      resumedExistingJob: false,
+      ...(createResponse.status === undefined ? {} : { initialStatus: createResponse.status })
+    },
+    runtime,
+    ...(uploadedAsset ? { uploadedAsset } : {})
+  }
+}
+
+const resumeAsyncSttJob = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>,
+  persistedRuntime: Step2RuntimeMetadata
+): Promise<AsyncSttActiveJobContext<TStatus, TTranscript, TUpload>> => {
+  const runtime: Step2RuntimeMetadata = {
+    ...persistedRuntime,
+    mode: 'resumed',
+    stage: 'polling'
+  }
+  context.cleanupState.setJob(runtime.remoteJobId, undefined)
+  await context.persistProgressMetadata(runtime)
+  await context.notifyJobReady(runtime)
+
+  return {
+    ...context,
+    activeJob: {
+      jobId: runtime.remoteJobId,
+      resumedExistingJob: true
+    },
+    runtime
+  }
+}
+
+export const resumeOrCreateAsyncSttJob = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>
+): Promise<AsyncSttActiveJobContext<TStatus, TTranscript, TUpload>> => {
+  const { options } = context
+  const persistedRuntime = await readPersistedAsyncSttRuntime(options.lifecycle, {
+    transcriptionService: options.providerService,
+    transcriptionModel: options.modelName
+  }, options.segment?.segmentNumber)
+  const segmentNumber = options.segment?.segmentNumber
+  const totalSegments = options.segment?.totalSegments
+  if (segmentNumber && totalSegments) {
+    logSttSegmentLifecycle(l, {
+      provider: options.providerLogLabel,
+      action: 'started',
+      segmentNumber,
+      totalSegments,
+      model: options.modelName
+    })
+  }
+  const activeContext = persistedRuntime && (persistedRuntime.stage === 'created' || persistedRuntime.stage === 'polling')
+    ? await resumeAsyncSttJob(context, persistedRuntime)
+    : await createFreshAsyncSttJob(context)
+  const { activeJob } = activeContext
+
+  if (!activeJob.jobId) {
+    const jobNoun = options.jobNoun ?? 'job'
+    throw InternalError(`${options.providerDisplayName} ${jobNoun} creation did not produce a ${jobNoun} id`, {
+      stage: options.guardStage ?? 'stt:async'
+    })
+  }
+
+  logSttAsyncJobLifecycle(l, {
+    provider: `${options.providerLogLabel}/${options.modelName}`,
+    action: activeJob.resumedExistingJob ? 'resumed' : 'created',
+    remoteId: activeJob.jobId,
+    state: 'polling'
+  })
+  return activeContext
+}
+
+export const pollAndPersistAsyncSttJob = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttActiveJobContext<TStatus, TTranscript, TUpload>
+): Promise<AsyncSttPolledJobContext<TStatus, TTranscript, TUpload>> => {
+  const { activeJob, cleanupState, metrics, options, persistProgressMetadata, uploadedAsset } = context
+  let runtime = context.runtime
+  const pollResult = await pollAsyncSttJobUntilComplete({
+    jobId: activeJob.jobId,
+    initialPollIntervalMs: options.initialPollIntervalMs,
+    maxPollIntervalMs: options.maxPollIntervalMs,
+    audioDurationSeconds: options.audioDurationSeconds,
+    pollMode: activeJob.resumedExistingJob ? 'resume-probe' : 'fresh',
+    buildDeadlineError: options.buildDeadlineError,
+    buildResumeProbeError: options.buildResumeProbeError,
+    poll: async () => {
+      const pollStartedAt = Date.now()
+      const result = await options.pollJob(activeJob.jobId, metrics)
+      metrics.pollMs += Date.now() - pollStartedAt
+      return result
+    },
+    isComplete: options.isComplete,
+    isFailed: options.isFailed,
+    onProgress: async (status) => {
+      cleanupState.setLastKnownStatus(status)
+      runtime = buildAsyncSttRuntime(
+        runtime.mode,
+        'polling',
+        activeJob.jobId,
+        runtime,
+        uploadedAsset,
+        {
+          createCompletedAt: runtime.createCompletedAt,
+          lastPollAt: new Date().toISOString()
+        }
+      )
+      await persistProgressMetadata(runtime)
+    },
+    withPollSlot: options.lifecycle?.withPollSlot
+  })
+  metrics.pollSleepMs += pollResult.pollSleepMs
+  metrics.pollCount += pollResult.pollCount
+
+  return {
+    ...context,
+    runtime,
+    finalStatus: pollResult.status,
+    completedRuntime: buildAsyncSttRuntime(
+      runtime.mode,
+      'completed',
+      activeJob.jobId,
+      runtime,
+      uploadedAsset,
+      {
+        createCompletedAt: runtime.createCompletedAt,
+        lastPollAt: runtime.lastPollAt,
+        completedAt: new Date().toISOString()
+      }
+    )
+  }
+}
+
+export const constructAsyncSttResult = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttPolledJobContext<TStatus, TTranscript, TUpload>
+): Promise<AsyncSttCompletedJobContext<TStatus, TTranscript, TUpload>> => {
+  const { activeJob, completedRuntime, metrics, options } = context
+  const transcriptStartedAt = Date.now()
+  const transcript = await options.getTranscript(activeJob.jobId, metrics, context.finalStatus)
+  metrics.transcriptMs += Date.now() - transcriptStartedAt
+
+  if (options.persistCompletedProgress) {
+    await context.persistProgressMetadata(completedRuntime)
+  }
+
+  const processingTime = Date.now() - options.startTime
+  const remoteProcessingMs = Math.max(0, processingTime - metrics.uploadMs - metrics.createMs - metrics.pollMs - metrics.transcriptMs)
+  const built = await options.buildResult({
+    transcript,
+    runtime: completedRuntime,
+    processingTime,
+    timings: context.buildTimingMetadata(remoteProcessingMs)
+  })
+  context.cleanupState.setMetadata(built.metadata)
+
+  const segmentNumber = options.segment?.segmentNumber
+  const totalSegments = options.segment?.totalSegments
+  if (segmentNumber && totalSegments) {
+    logSttSegmentLifecycle(l, {
+      provider: options.providerLogLabel,
+      action: 'completed',
+      segmentNumber,
+      totalSegments,
+      model: options.modelName,
+      processingTimeMs: processingTime
+    })
+  }
+
+  return { ...context, built }
+}
+
+const buildAsyncSttCleanupRuntime = <TStatus, TUpload>(
+  snapshot: Readonly<AsyncSttLifecycleCleanupSnapshot<TStatus, TUpload>>,
+  shouldDeleteRemoteResources: boolean,
+  remoteJobDeleted: boolean | undefined,
+  remoteAssetDeleted: boolean | undefined
+): Step2RuntimeMetadata | undefined => {
+  const { jobId, runtime } = snapshot
+  if (!runtime || !jobId) {
+    return undefined
+  }
+  const assetId = runtime.remoteAssetId ?? snapshot.uploadedAsset?.remoteAssetId
+
+  return {
+    ...runtime,
+    stage: shouldDeleteRemoteResources ? 'cleanup-complete' : runtime.stage,
+    remoteJobId: jobId,
+    ...(shouldDeleteRemoteResources ? { cleanupCompletedAt: new Date().toISOString() } : {}),
+    cleanup: {
+      ...(runtime.cleanup ?? {}),
+      ...(shouldDeleteRemoteResources && remoteJobDeleted !== undefined ? { remoteJobDeleted } : {}),
+      ...(shouldDeleteRemoteResources && assetId && remoteAssetDeleted !== undefined ? { remoteAssetDeleted } : {})
+    }
+  }
+}
+
+const applyAsyncSttCleanupMetadata = <TStatus, TUpload>(
+  snapshot: Readonly<AsyncSttLifecycleCleanupSnapshot<TStatus, TUpload>>,
+  cleanupMs: number,
+  remoteJobDeleted: boolean | undefined,
+  remoteAssetDeleted: boolean | undefined
+): void => {
+  const { jobId, metadata, runtime, uploadedAsset } = snapshot
+  if (!metadata) {
+    return
+  }
+  const assetId = runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId
+  const processingTime = metadata.processingTime
+  metadata.timings = {
+    ...(metadata.timings ?? {}),
+    ...(cleanupMs > 0 ? { cleanupMs } : {}),
+    remoteProcessingMs: Math.max(0, processingTime
+      - ((metadata.timings?.createMs ?? 0)
+      + (metadata.timings?.uploadMs ?? 0)
+      + (metadata.timings?.pollMs ?? 0)
+      + (metadata.timings?.transcriptMs ?? 0)
+      + cleanupMs))
+  }
+  metadata.runtime = {
+    ...(metadata.runtime ?? {
+      mode: runtime?.mode ?? 'fresh',
+      stage: 'cleanup-complete',
+      remoteJobId: jobId ?? ''
+    }),
+    mode: metadata.runtime?.mode ?? runtime?.mode ?? 'fresh',
+    stage: 'cleanup-complete',
+    remoteJobId: metadata.runtime?.remoteJobId ?? jobId ?? '',
+    ...((metadata.runtime?.remoteAssetId ?? assetId) ? { remoteAssetId: metadata.runtime?.remoteAssetId ?? assetId } : {}),
+    ...((metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
+    ...(metadata.runtime?.createCompletedAt ? { createCompletedAt: metadata.runtime.createCompletedAt } : {}),
+    ...(metadata.runtime?.lastPollAt ? { lastPollAt: metadata.runtime.lastPollAt } : {}),
+    ...(metadata.runtime?.completedAt ? { completedAt: metadata.runtime.completedAt } : {}),
+    cleanupCompletedAt: new Date().toISOString(),
+    cleanup: {
+      ...(metadata.runtime?.cleanup ?? {}),
+      ...(remoteJobDeleted !== undefined ? { remoteJobDeleted } : {}),
+      ...(assetId && remoteAssetDeleted !== undefined ? { remoteAssetDeleted } : {})
+    }
+  }
+}
+
+export const finalizeAsyncSttCleanup = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>
+): Promise<void> => {
+  const { cleanup } = context.options
+  if (!cleanup) {
+    return
+  }
+
+  const cleanupStartedAt = Date.now()
+  const snapshot = context.cleanupState.snapshot()
+  const { jobId, metadata, runtime, uploadedAsset } = snapshot
+  const shouldDeleteRemoteResources = jobId !== undefined && cleanup.shouldDelete({
+    metadata,
+    lastKnownStatus: snapshot.lastKnownStatus,
+    runtime
+  })
+  const assetId = runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId
+  let remoteJobDeleted: boolean | undefined
+  let remoteAssetDeleted: boolean | undefined
+  if (shouldDeleteRemoteResources && jobId && cleanup.deleteJob) {
+    remoteJobDeleted = await cleanup.deleteJob(jobId)
+  }
+  if (shouldDeleteRemoteResources && assetId && cleanup.deleteAsset) {
+    remoteAssetDeleted = await cleanup.deleteAsset(assetId)
+  }
+  const cleanupMs = Date.now() - cleanupStartedAt
+
+  if (metadata && shouldDeleteRemoteResources) {
+    applyAsyncSttCleanupMetadata(snapshot, cleanupMs, remoteJobDeleted, remoteAssetDeleted)
+    return
+  }
+
+  if (!metadata) {
+    const cleanupRuntime = buildAsyncSttCleanupRuntime(
+      snapshot,
+      shouldDeleteRemoteResources,
+      remoteJobDeleted,
+      remoteAssetDeleted
+    )
+    if (cleanupRuntime) {
+      await context.persistProgressMetadata(cleanupRuntime)
+    }
+  }
+}
+
+export const runAsyncSttJobLifecycle = async <TStatus, TTranscript, TUpload = unknown>(
+  options: AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload>
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  const context = createAsyncSttLifecycleContext(options)
 
   try {
-    if (runtime && (runtime.stage === 'created' || runtime.stage === 'polling')) {
-      resumedExistingJob = true
-      runtime = {
-        ...runtime,
-        mode: 'resumed',
-        stage: 'polling'
-      }
-      jobId = runtime.remoteJobId
-      await persistProgressMetadata(runtime)
-      await notifyJobReady(runtime)
-    } else {
-      if (options.uploadAsset) {
-        const uploadStartedAt = Date.now()
-        uploadedAsset = await options.uploadAsset(metrics)
-        metrics.uploadMs += Date.now() - uploadStartedAt
-      }
-
-      const createStartedAt = Date.now()
-      const createResponse = await options.createJob(metrics, uploadedAsset)
-      metrics.createMs += Date.now() - createStartedAt
-      metrics.createCount += 1
-
-      jobId = createResponse.jobId
-      lastKnownJobStatus = createResponse.status
-      const createdRuntime: Step2RuntimeMetadata = {
-        mode: 'fresh',
-        stage: 'polling',
-        remoteJobId: jobId,
-        ...(uploadedAsset?.remoteAssetId ? { remoteAssetId: uploadedAsset.remoteAssetId } : {}),
-        ...(uploadedAsset?.remoteAssetUrl ? { remoteAssetUrl: uploadedAsset.remoteAssetUrl } : {}),
-        createCompletedAt: new Date().toISOString()
-      }
-      await persistProgressMetadata(createdRuntime)
-      await notifyJobReady(createdRuntime)
-    }
-
-    if (!jobId) {
-      const jobNoun = options.jobNoun ?? 'job'
-      throw InternalError(`${options.providerDisplayName} ${jobNoun} creation did not produce a ${jobNoun} id`, {
-        stage: options.guardStage ?? 'stt:async'
-      })
-    }
-
-    const activeJobId = jobId
-    logSttAsyncJobLifecycle(l, {
-      provider: `${options.providerLogLabel}/${options.modelName}`,
-      action: resumedExistingJob ? 'resumed' : 'created',
-      remoteId: activeJobId,
-      state: 'polling'
-    })
-
-    const pollResult = await pollAsyncSttJobUntilComplete({
-      jobId: activeJobId,
-      initialPollIntervalMs: options.initialPollIntervalMs,
-      maxPollIntervalMs: options.maxPollIntervalMs,
-      audioDurationSeconds: options.audioDurationSeconds,
-      pollMode: resumedExistingJob ? 'resume-probe' : 'fresh',
-      buildDeadlineError: options.buildDeadlineError,
-      buildResumeProbeError: options.buildResumeProbeError,
-      poll: async () => {
-        const pollStartedAt = Date.now()
-        const result = await options.pollJob(activeJobId, metrics)
-        metrics.pollMs += Date.now() - pollStartedAt
-        return result
-      },
-      isComplete: options.isComplete,
-      isFailed: options.isFailed,
-      onProgress: async (status) => {
-        lastKnownJobStatus = status
-        await persistProgressMetadata({
-          ...(runtime ?? {
-            mode: 'fresh',
-            stage: 'polling',
-            remoteJobId: activeJobId
-          }),
-          mode: runtime?.mode ?? 'fresh',
-          stage: 'polling',
-          remoteJobId: activeJobId,
-          ...((runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId) ? { remoteAssetId: runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId } : {}),
-          ...((runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
-          ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
-          lastPollAt: new Date().toISOString()
-        })
-      },
-      withPollSlot: options.lifecycle?.withPollSlot
-    })
-
-    metrics.pollSleepMs += pollResult.pollSleepMs
-    metrics.pollCount += pollResult.pollCount
-
-    const completedRuntime: Step2RuntimeMetadata = {
-      ...(runtime ?? {
-        mode: 'fresh',
-        stage: 'completed',
-        remoteJobId: activeJobId
-      }),
-      mode: runtime?.mode ?? 'fresh',
-      stage: 'completed',
-      remoteJobId: activeJobId,
-      ...((runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId) ? { remoteAssetId: runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId } : {}),
-      ...((runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
-      ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
-      ...(runtime?.lastPollAt ? { lastPollAt: runtime.lastPollAt } : {}),
-      completedAt: new Date().toISOString()
-    }
-
-    const transcriptStartedAt = Date.now()
-    const transcript = await options.getTranscript(activeJobId, metrics, pollResult.status)
-    metrics.transcriptMs += Date.now() - transcriptStartedAt
-
-    if (options.persistCompletedProgress) {
-      await persistProgressMetadata(completedRuntime)
-    }
-
-    const processingTime = Date.now() - options.startTime
-    const remoteProcessingMs = Math.max(0, processingTime - metrics.uploadMs - metrics.createMs - metrics.pollMs - metrics.transcriptMs)
-    const timings = buildTimingMetadata(remoteProcessingMs)
-    const built = await options.buildResult({
-      transcript,
-      runtime: completedRuntime,
-      processingTime,
-      timings
-    })
-    metadata = built.metadata
-
-    if (segmentNumber && totalSegments) {
-      logSttSegmentLifecycle(l, {
-        provider: options.providerLogLabel,
-        action: 'completed',
-        segmentNumber,
-        totalSegments,
-        model: options.modelName,
-        processingTimeMs: processingTime
-      })
-    }
-
-    return built
+    const activeJob = await resumeOrCreateAsyncSttJob(context)
+    const polledJob = await pollAndPersistAsyncSttJob(activeJob)
+    return (await constructAsyncSttResult(polledJob)).built
   } finally {
-    if (options.cleanup) {
-      const cleanupStartedAt = Date.now()
-      const shouldDeleteRemoteResources = jobId !== undefined && options.cleanup.shouldDelete({
-        metadata,
-        lastKnownStatus: lastKnownJobStatus,
-        runtime
-      })
-      const assetId = runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId
-      const remoteJobDeleted = shouldDeleteRemoteResources && jobId && options.cleanup.deleteJob
-        ? await options.cleanup.deleteJob(jobId)
-        : false
-      const remoteAssetDeleted = shouldDeleteRemoteResources && assetId && options.cleanup.deleteAsset
-        ? await options.cleanup.deleteAsset(assetId)
-        : false
-      const cleanupMs = Date.now() - cleanupStartedAt
-
-      if (metadata && shouldDeleteRemoteResources) {
-        const processingTime = metadata.processingTime
-        metadata.timings = {
-          ...(metadata.timings ?? {}),
-          ...(cleanupMs > 0 ? { cleanupMs } : {}),
-          remoteProcessingMs: Math.max(0, processingTime
-            - ((metadata.timings?.createMs ?? 0)
-            + (metadata.timings?.uploadMs ?? 0)
-            + (metadata.timings?.pollMs ?? 0)
-            + (metadata.timings?.transcriptMs ?? 0)
-            + cleanupMs))
-        }
-        metadata.runtime = {
-          ...(metadata.runtime ?? {
-            mode: runtime?.mode ?? 'fresh',
-            stage: 'cleanup-complete',
-            remoteJobId: jobId ?? ''
-          }),
-          mode: metadata.runtime?.mode ?? runtime?.mode ?? 'fresh',
-          stage: 'cleanup-complete',
-          remoteJobId: metadata.runtime?.remoteJobId ?? jobId ?? '',
-          ...((metadata.runtime?.remoteAssetId ?? assetId) ? { remoteAssetId: metadata.runtime?.remoteAssetId ?? assetId } : {}),
-          ...((metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
-          ...(metadata.runtime?.createCompletedAt ? { createCompletedAt: metadata.runtime.createCompletedAt } : {}),
-          ...(metadata.runtime?.lastPollAt ? { lastPollAt: metadata.runtime.lastPollAt } : {}),
-          ...(metadata.runtime?.completedAt ? { completedAt: metadata.runtime.completedAt } : {}),
-          cleanupCompletedAt: new Date().toISOString(),
-          cleanup: {
-            ...(metadata.runtime?.cleanup ?? {}),
-            ...(jobId && options.cleanup.deleteJob ? { remoteJobDeleted } : {}),
-            ...(assetId && options.cleanup.deleteAsset ? { remoteAssetDeleted } : {})
-          }
-        }
-      } else if (!metadata && runtime && jobId) {
-        const cleanupRuntime: Step2RuntimeMetadata = {
-          ...runtime,
-          stage: shouldDeleteRemoteResources ? 'cleanup-complete' : runtime.stage,
-          remoteJobId: jobId,
-          ...(shouldDeleteRemoteResources ? { cleanupCompletedAt: new Date().toISOString() } : {}),
-          cleanup: {
-            ...(runtime.cleanup ?? {}),
-            ...(shouldDeleteRemoteResources && options.cleanup.deleteJob ? { remoteJobDeleted } : {}),
-            ...(shouldDeleteRemoteResources && assetId && options.cleanup.deleteAsset ? { remoteAssetDeleted } : {})
-          }
-        }
-        await persistProgressMetadata(cleanupRuntime)
-      }
-    }
+    await finalizeAsyncSttCleanup(context)
   }
 }

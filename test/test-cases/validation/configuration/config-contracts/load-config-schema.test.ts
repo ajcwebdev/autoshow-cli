@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { loadConfig } from '~/cli/commands/setup-and-utilities/config/config-loader'
+import { loadConfig } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
 import { writeTempConfig } from './shared'
 
 describe('config load schema contracts', () => {

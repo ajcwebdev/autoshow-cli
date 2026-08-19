@@ -64,11 +64,12 @@ describe('option resolution contracts', () => {
       expect(() => validateTogetherModel('zai-org/GLM-5.1')).toThrow(`Invalid model "zai-org/GLM-5.1" for --llm together[=model]. ${expectedAllowed}`)
     })
 
-  test('Grok write model validator accepts Grok 4.5 and rejects aliases', () => {
-      const expectedAllowed = 'Allowed values: grok-4.3, grok-4.5'
+  test('Grok write model validator accepts Grok 4.5 and 4.6 and rejects aliases', () => {
+      const expectedAllowed = 'Allowed values: grok-4.3, grok-4.5, grok-4.6'
 
       expect(validateGrokModel('grok-4.3')).toBe('grok-4.3')
       expect(validateGrokModel('grok-4.5')).toBe('grok-4.5')
+      expect(validateGrokModel('grok-4.6')).toBe('grok-4.6')
       expect(() => validateGrokModel('grok-4.5-latest')).toThrow(`Invalid model "grok-4.5-latest" for --llm grok[=model]. ${expectedAllowed}`)
       expect(() => validateGrokModel('grok-build-latest')).toThrow(`Invalid model "grok-build-latest" for --llm grok[=model]. ${expectedAllowed}`)
     })
@@ -441,10 +442,10 @@ describe('option resolution contracts', () => {
       expect(opts.openaiModels).not.toContain('gpt-5.6')
       expect(opts.anthropicModels).toEqual(['claude-fable-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-haiku-4-5', 'claude-opus-5'])
       expect(opts.anthropicModels).not.toContain('claude-mythos-5')
-      expect(opts.geminiModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'])
+      expect(opts.geminiModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'])
       expect(opts.geminiModels).not.toContain('gemini-3.1-flash-lite')
       expect(opts.geminiModels).not.toContain('gemini-3-flash-preview')
-      expect(opts.grokModels).toEqual(['grok-4.3', 'grok-4.5'])
+      expect(opts.grokModels).toEqual(['grok-4.3', 'grok-4.5', 'grok-4.6'])
       expect(opts.glmModels).toEqual(['glm-5.1'])
       expect(opts.kimiModels).toEqual(['kimi-k2.6', 'kimi-k3'])
       expect(opts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])

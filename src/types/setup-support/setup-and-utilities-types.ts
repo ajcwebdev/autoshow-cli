@@ -141,7 +141,7 @@ export type SetupToolStatus = {
 // Order is the order shown by `bun autoshow setup --help`; every id must have a case in
 // executeStepOnce, and the exhaustiveness check there fails if one is missing.
 export const SETUP_STEP_IDS = [
-  'uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
+  'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
   'calibre', 'all',
   'transcription', 'write', 'tts', 'image', 'video', 'music'
 ] as const

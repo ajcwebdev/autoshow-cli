@@ -280,7 +280,7 @@ Change status is one of:
 - `changed`: either the SHA-256 hash or token count changed
 - `failed`: the current fetch failed; previous successful hash/token/timestamp metadata is preserved when available
 
-Token counts are reference-tokenizer estimates using `tiktoken` with `o200k_base`. They are intended for stable local comparison and rough context sizing, not as exact billable token counts for every provider or model.
+Token counts are reference-tokenizer estimates using the in-repository `o200k_base` BPE encoder (vendored rank data, exact parity with `tiktoken`'s `encode_ordinary`, pinned by golden-vector tests). They are intended for stable local comparison and rough context sizing, not as exact billable token counts for every provider or model.
 
 ## Flags
 

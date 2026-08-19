@@ -3,14 +3,13 @@ import { join } from 'node:path'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { inspectYtDlpAuthState } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 import { readDefuddleCliReadiness } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
-import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
+import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
 import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult } from '~/types'
 import { loadEnvFile } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { getHostedProviderConfiguredPaths, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
 import { defaultWhisperModel, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
-import { resolveUvCommand } from './setup-download/managed-uv'
 import {
   ebookConvertManagedBinaryPath,
   englishTrainedDataPath,
@@ -66,7 +65,6 @@ const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes
   directoryHasFiles: directoryHasAnyFiles,
   run: async (command, args) => await runCapture(command, args, { allowFailure: true }),
   resolveYtDlpBinaryInfo,
-  resolveUvCommand,
   readDefuddleCliReadiness,
   resolveConfigPath,
   loadConfig,
@@ -178,16 +176,6 @@ const checkRuntimeToolVersion = async (
   })
 }
 
-const checkUv = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  const resolved = await probes.resolveUvCommand()
-  return resolved
-    ? check('OK', 'uv', resolved)
-    : check('MISSING', 'uv', 'not found', {
-      severity: 'warn',
-      nextStep: 'bun autoshow setup --step uv'
-    })
-}
-
 const formatRunIssue = (result: RunResult): string => {
   const details = result.stderr.trim() || result.stdout.trim() || `exit code ${result.exitCode}`
   return details.length > 300 ? `${details.slice(0, 300)}...` : details
@@ -275,7 +263,6 @@ const checkMusicRenderer = async (probes: DoctorProbes): Promise<DoctorCheck> =>
 const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
   title: 'System/build tools',
   checks: [
-    await checkUv(probes),
     checkCommand(probes, 'cmake', 'cmake', { nextStep: 'install cmake with your system package manager' }),
     await checkMusicRenderer(probes)
   ]

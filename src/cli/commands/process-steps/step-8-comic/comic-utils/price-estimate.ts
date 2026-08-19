@@ -1,27 +1,19 @@
 import { existsSync } from 'node:fs'
 import { readFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
 import * as v from 'valibot'
-import type { CharacterSketchCommandOptions, ComicPriceModelRow, DraftScenesCommandOptions, GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, ScenePanelCount, SceneSketchCount, StructureScriptsCommandOptions } from '~/types'
+import type { CharacterSketchCommandOptions, ComicPriceModelRow, DraftScenesCommandOptions, GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, SceneSketchCount, StructureScriptsCommandOptions } from '~/types'
 import {
 COMIC_GRID_PANEL_SIZE,
 DEFAULT_SKETCH_PANELS_PER_IMAGE,
 DEFAULT_FINAL_PANELS_PER_IMAGE,
-chunkComicGridPanels,
-chunkComicPagePanels,
-getComicGridCapacity,
 panelSelectionToSketchRange,
-selectComicPanels,
 validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
-import { PAGE_QA_REPORT_SCHEMA_VERSION } from '../comic-commands/generate-images/comic-page-qa'
-import {
-getImagePromptVariationLabel,
-} from '../comic-commands/generate-images/prompt-variations'
 import {
 resolveSketchChunks,
 } from '../comic-commands/generate-sketches/generate-scene-sketches'
+import { getImagePromptVariationLabel } from '../comic-commands/generate-images/prompt-variations'
 import {
 CHARACTER_SKETCH_VIEWS,
 requireCurrentCharacterSketch,
@@ -39,13 +31,7 @@ import { validateReferenceImageCount } from './reference-capabilities'
 import { LOCATION_VIEWS, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference } from './location-reference'
 import {
 PANEL_DIRECTORY_PATTERN,
-applyReferenceImageLimits,
-extractPanelBundleData,
 getPanelNumberFromName,
-getPromptBundleFilename,
-resolvePrimaryCharacterReferencesAcrossPanels,
-resolveLocationReferencesAcrossPanels,
-resolveDesignReferencesAcrossPanels,
 } from './panel-prompt-utils'
 import {
 getDraftPromptPath,
@@ -53,10 +39,21 @@ getPanelPromptsDirectory,
 getSceneJsonPath,
 } from './project-paths'
 import {
-getPageComicImagePath,
-getPanelComicImagePath,
 getSketchComicImagePath,
 } from './scene-utils'
+import {
+estimateFinalImagePricing,
+estimatePageMode,
+estimatePanelMode,
+estimateQaWork,
+normalizeFinalImageEstimateRequest,
+type FinalImageEstimateResult,
+type ImagePricingEstimate,
+} from './final-image-price-estimate'
+import {
+loadFinalImageEstimateInventory,
+validatePriceReferenceGroup,
+} from './final-image-price-inventory'
 
 const ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL = 800
 
@@ -115,62 +112,6 @@ const estimatePanelPromptsPrice = (): void => {
   l(`${bold('Comic')} - Price Estimate: draft-scenes --only panel-prompts`)
   l(`${cyan('='.repeat(50))}\n`)
   l('  The panel-prompt stage makes no LLM or image generation API calls.')
-  l('')
-}
-
-const printGridCompositeEstimate = (
-  sceneSlug: string,
-  selectedPanelNumbers: number[],
-  options: {
-    grid: NonNullable<GenerateImagesCommandOptions['grid']>
-    models: ImageGenerationModel[]
-    variations: ImagePromptVariation[]
-    useVariationOutputPaths: boolean
-    useModelSpecificFilenames: boolean
-    force: boolean
-  }
-): void => {
-  const gridChunks = chunkComicGridPanels(
-    selectedPanelNumbers.map(panelNumber => ({ panelNumber })),
-    options.grid,
-  )
-  const capacity = getComicGridCapacity(options.grid)
-  let skipped = 0
-
-  if (!options.force) {
-    for (const gridChunk of gridChunks) {
-      for (const variation of options.variations) {
-        for (const model of options.models) {
-          const outputPath = getPageComicImagePath(
-            sceneSlug,
-            gridChunk.pageNumber,
-            gridChunk.panelNumbers,
-            options.useVariationOutputPaths ? model : options.useModelSpecificFilenames ? model : undefined,
-            options.useVariationOutputPaths ? variation : undefined
-          )
-          if (existsSync(outputPath)) {
-            skipped++
-          }
-        }
-      }
-    }
-  }
-
-  const totalCompositeOutputs = (
-    gridChunks.length *
-    options.variations.length *
-    options.models.length
-  ) - skipped
-  const skipNote = skipped > 0 ? ` (${skipped} skipped -- already exist)` : ''
-
-  l('  Grid pages:')
-  l(
-    `    ${sceneSlug.padEnd(40, ' ')}  ` +
-    `${totalCompositeOutputs} composite${totalCompositeOutputs !== 1 ? 's' : ''} ` +
-    `(${options.grid.columns}x${options.grid.rows}, ${capacity} cells)${skipNote}`
-  )
-  l('')
-  l.dim('  Grid pages are local ImageMagick composites and add no API cost.')
   l('')
 }
 
@@ -301,33 +242,6 @@ const printImageEstimateTable = (
   }
 }
 
-const printImageEstimateTableByModel = (
-  models: ImageGenerationModel[],
-  quality: ImageGenerationQuality,
-  size: ImageGenerationSize,
-  outputsByModel: ReadonlyMap<ImageGenerationModel, number>,
-  outputLabel: string,
-): void => {
-  let grandTotal = 0
-  let hasNullCost = false
-
-  for (const model of models) {
-    const outputs = outputsByModel.get(model) ?? 0
-    const pricePerImage = estimateImageOutputCost(model, quality, size)
-    const subtotal = pricePerImage === null ? null : pricePerImage * outputs
-    const qualityLabel = isGeminiImageModel(model) ? 'ignored' : quality
-    l(
-      `    ${model} (${qualityLabel}): ${outputs} ${outputLabel}${outputs === 1 ? '' : 's'} x ` +
-      `${pricePerImage === null ? 'n/a' : formatCost(pricePerImage)} = ${subtotal === null ? 'n/a' : formatCost(subtotal)}`
-    )
-    if (subtotal === null) hasNullCost = true
-    else grandTotal += subtotal
-  }
-
-  l(`    Subtotal: ~${formatCost(grandTotal)}${hasNullCost ? ' + n/a' : ''}`)
-  l('')
-}
-
 export const estimateCharacterSketchPrice = async (
   options: CharacterSketchCommandOptions
 ): Promise<void> => {
@@ -400,275 +314,208 @@ export const estimateLocationReferencePrice = async (
   l.dim('  Dry run: no provider calls and no files written.')
 }
 
-const readPricePanelInput = async (panelPromptsDir: string, panelNumber: number) => {
-  const panelDirectory = join(panelPromptsDir, `panel-${String(panelNumber).padStart(2, '0')}`)
-  const entries = await readdir(panelDirectory, { withFileTypes: true })
-  const promptFilename = getPromptBundleFilename(panelDirectory, entries)
-  const bundleData = extractPanelBundleData(await Bun.file(join(panelDirectory, promptFilename)).text())
-  return { panelDirectory, entries, bundleData }
-}
-
-const validatePriceReferenceGroup = async (panelPromptsDir: string, panelNumbers: number[], models: ImageGenerationModel[]): Promise<number> => {
-  const panels = await Promise.all(panelNumbers.map(number => readPricePanelInput(panelPromptsDir, number)))
-  const primary = resolvePrimaryCharacterReferencesAcrossPanels(panels, { composeDerived: false })
-  const locations = resolveLocationReferencesAcrossPanels(panels)
-  const designs = resolveDesignReferencesAcrossPanels(panels)
-  const locationPlaceholders = locations.map((_, index) => `__location-${index + 1}__`)
-  const designPlaceholders = designs.map((_, index) => `__design-${index + 1}__`)
-  for (const model of models) {
-    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
-  }
-  return primary.primaryCharacterRefs.length + locations.length + designs.length
-}
-
-const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptions): Promise<void> => {
-  const { sceneSlug } = options
-  const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
-  const size: ImageGenerationSize = options.size ?? COMIC_GRID_PANEL_SIZE
-  const quality: ImageGenerationQuality = options.quality ?? 'high'
-  const force = options.force ?? false
-  const panelsPerImage = options.panelsPerImage ?? DEFAULT_FINAL_PANELS_PER_IMAGE
-  const useGridMode = options.grid !== undefined
-  const usePageMode = !useGridMode && panelsPerImage > 1
-  const useModelSpecificFilenames = models.length > 1
-  const variations: ImagePromptVariation[] = options.variations ?? ['canonical']
-  const useVariationOutputPaths = options.variations !== undefined
-  validateImageSizeForModels(size, models)
-  validateComicGridOptions(options.grid, {
-    target: 'images',
-    size,
-    panelsPerImage,
-  })
-
-  l(`${bold('Comic')} - Price Estimate: generate-images${useGridMode ? ' (grid mode)' : usePageMode ? ' (page mode)' : ''}`)
+const printFinalImageHeader = (result: FinalImageEstimateResult): void => {
+  const { request } = result
+  const modeLabel = request.mode === 'grid' ? ' (grid mode)' : request.mode === 'page' ? ' (page mode)' : ''
+  l(`${bold('Comic')} - Price Estimate: generate-images${modeLabel}`)
   l(`${cyan('='.repeat(50))}\n`)
-  l(`  Models:  ${models.join(', ')}`)
-  if (options.variations !== undefined) {
-    l(`  Variations: ${options.variations.map(getImagePromptVariationLabel).join(', ')}`)
+  l(`  Models:  ${request.models.join(', ')}`)
+  if (request.variationsSpecified) {
+    l(`  Variations: ${request.variations.map(getImagePromptVariationLabel).join(', ')}`)
   }
-  l(`  Size:    ${size}  Quality: ${quality}`)
-  if (usePageMode) {
-    l(`  Panels per image: ${panelsPerImage}`)
-  }
-  if (options.grid) {
-    l(`  Grid:    ${options.grid.columns}x${options.grid.rows} local composites from individual panels`)
+  l(`  Size:    ${request.size}  Quality: ${request.quality}`)
+  if (request.mode === 'page') l(`  Panels per image: ${request.panelsPerImage}`)
+  if (request.mode === 'grid') {
+    l(`  Grid:    ${request.grid.columns}x${request.grid.rows} local composites from individual panels`)
   }
   l('')
+}
 
-  const panelPromptsDir = getPanelPromptsDirectory(sceneSlug)
+const printImagePricingEstimate = (pricing: ImagePricingEstimate): void => {
+  const modelWidth = pricing.rows.reduce((width, row) => Math.max(width, row.modelLabel.length), 0)
+  const outputs = pricing.rows[0]?.outputs ?? 0
+  const headerOutputs = `x ${outputs} ${pricing.outputLabel}${outputs !== 1 ? 's' : ''}`
+  l(`  ${''.padEnd(modelWidth + 2)}  ${'per image'.padEnd(12)}  ${headerOutputs.padEnd(14)}  subtotal`)
 
-  if (!existsSync(panelPromptsDir)) {
-    l('  No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.')
-    return
+  for (const row of pricing.rows) {
+    const perImage = row.pricePerImage === null ? 'n/a' : formatCost(row.pricePerImage)
+    const subtotal = row.subtotal === null ? 'n/a' : formatCost(row.subtotal)
+    l(`  ${row.modelLabel.padEnd(modelWidth + 2)}  ${perImage.padEnd(12)}               ${subtotal}`)
   }
 
-  const entries = await readdir(panelPromptsDir, { withFileTypes: true })
-  const panelNumbers = entries
-    .filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name))
-    .map(entry => getPanelNumberFromName(entry.name))
-    .filter((panelNumber): panelNumber is number => panelNumber !== null)
-    .sort((left, right) => left - right)
-
-  if (panelNumbers.length === 0) {
-    l('  No panel prompt bundles found.')
-    return
+  l('')
+  l(pricing.hasUnknown
+    ? `  Total: ~${formatCost(pricing.knownTotal)} + n/a (some models have no per-image estimate)`
+    : `  Total: ~${formatCost(pricing.knownTotal)}`)
+  l('')
+  l.dim('  Per-image output cost only. Token-based input costs are not estimated.')
+  if (pricing.rows.some(row => isGeminiImageModel(row.model))) {
+    l.dim('  Gemini costs use estimated1KImage (~$0.067/image) -- actual token costs vary.')
   }
+}
 
-  if (usePageMode) {
-    const selectedPanels = selectComicPanels(
-      panelNumbers.map(panelNumber => ({ panelNumber })),
-      options.panels ?? 'all',
-      undefined,
-      sceneSlug,
-    )
-    const pageChunks = chunkComicPagePanels(selectedPanels, panelsPerImage)
+const printPagePricingEstimate = (pricing: ImagePricingEstimate): void => {
+  for (const row of pricing.rows) {
+    const perImage = row.pricePerImage === null ? 'n/a' : formatCost(row.pricePerImage)
+    const subtotal = row.subtotal === null ? 'n/a' : formatCost(row.subtotal)
+    l(`    ${row.modelLabel}: ${row.outputs} page${row.outputs === 1 ? '' : 's'} x ${perImage} = ${subtotal}`)
+  }
+  l(`    Subtotal: ~${formatCost(pricing.knownTotal)}${pricing.hasUnknown ? ' + n/a' : ''}`)
+  l('')
+}
+
+const printPageQaEstimate = (
+  result: Extract<FinalImageEstimateResult, { status: 'ready' }>,
+): void => {
+  const qa = result.qaWork
+  if (qa?.mode !== 'page') return
+
+  l('  Page QA judge calls:')
+  const reuseNote = qa.reusedReports > 0 ? ` (${qa.reusedReports} reused reports)` : ''
+  l(`    Initial judge calls (${qa.judgeModel}): ${qa.initialJudgeCalls}${reuseNote}`)
+  l(`    Maximum additional image edits: ${qa.maximumAdditionalImageEdits}`)
+  l(`    Maximum additional judge calls: ${qa.maximumAdditionalJudgeCalls}`)
+  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair)
+  l(`    Heuristic judge tokens: ${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output = ~${formatCost(result.pricing.judgeCost ?? 0)}`)
+  l.dim('    Judge cost is separate from image-generation cost; actual vision token usage may vary.')
+  l('')
+}
+
+const printPanelQaEstimate = (
+  result: Extract<FinalImageEstimateResult, { status: 'ready' }>,
+): void => {
+  const qa = result.qaWork
+  if (qa?.mode !== 'panel') return
+
+  l(`  Initial judge calls (${qa.judgeModel}): ${qa.initialJudgeCalls}`)
+  l(`  Maximum additional image edits: ${qa.maximumAdditionalImageEdits}`)
+  l(`  Maximum additional judge calls: ${qa.maximumAdditionalJudgeCalls}`)
+  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair)
+  l(`  Maximum total judge calls: ${qa.maximumTotalJudgeCalls}`)
+  l(`  Maximum heuristic judge tokens: ${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output = ~${formatCost(result.pricing.judgeCost ?? 0)}`)
+  if (result.pricing.maximumModeledCost === null) {
+    l(`  Maximum modeled cost: n/a image output pricing + ~${formatCost(result.pricing.judgeCost ?? 0)} heuristic QA`)
+  } else {
+    l(`  Maximum modeled cost (image outputs + heuristic QA): ~${formatCost(result.pricing.maximumModeledCost)}`)
+  }
+  l.dim('  Image input tokens and actual vision-token usage are not modeled, so provider charges may vary.')
+}
+
+const printGridEstimate = (
+  result: Extract<FinalImageEstimateResult, { status: 'ready' }>,
+): void => {
+  const grid = result.modeEstimate.mode === 'grid' ? result.modeEstimate.grid : null
+  if (!grid) return
+  const skipNote = grid.skipped > 0 ? ` (${grid.skipped} skipped -- already exist)` : ''
+
+  l('  Grid pages:')
+  l(
+    `    ${result.request.sceneSlug.padEnd(40, ' ')}  ` +
+    `${grid.totalOutputs} composite${grid.totalOutputs !== 1 ? 's' : ''} ` +
+    `(${grid.columns}x${grid.rows}, ${grid.capacity} cells)${skipNote}`
+  )
+  l('')
+  l.dim('  Grid pages are local ImageMagick composites and add no API cost.')
+  l('')
+}
+
+const printReadyFinalImageEstimate = (
+  result: Extract<FinalImageEstimateResult, { status: 'ready' }>,
+): void => {
+  if (
+    result.request.mode === 'page'
+    && result.inventory.mode === 'page'
+    && result.modeEstimate.mode === 'page'
+  ) {
     l('  Reference preflight: canonical character references followed by distinct immutable location references in first-panel order')
-    for (const pageChunk of pageChunks) {
-      const count = await validatePriceReferenceGroup(panelPromptsDir, pageChunk.panelNumbers, models)
-      if ((options.qa ?? true) && (options.maxRepairs ?? 2) > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, count + 1, `QA edits for page ${pageChunk.pageNumber}`)
-      l(`  Reference preflight page ${pageChunk.pageNumber}: ${count} required`)
+    for (const page of result.inventory.pages) {
+      l(`  Reference preflight page ${page.pageNumber}: ${page.referenceCount} required`)
     }
-
-    const pageOutputsByModel = new Map<ImageGenerationModel, number>()
-    let skippedPages = 0
-    for (const model of models) {
-      let pageOutputs = 0
-      for (const variation of variations) {
-        for (const pageChunk of pageChunks) {
-          const outputPath = getPageComicImagePath(
-              sceneSlug,
-              pageChunk.pageNumber,
-              pageChunk.panelNumbers,
-              useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-              useVariationOutputPaths ? variation : undefined
-            )
-          if (!force && existsSync(outputPath)) skippedPages++
-          else pageOutputs++
-        }
-      }
-      pageOutputsByModel.set(model, pageOutputs)
-    }
-
-    const totalPages = Array.from(pageOutputsByModel.values()).reduce((sum, count) => sum + count, 0)
-
     l('  Pages:')
-    const skipNote = skippedPages > 0 ? ` (${skippedPages} skipped -- already exist)` : ''
-    l(`    ${sceneSlug.padEnd(40, ' ')}  ${totalPages} page${totalPages !== 1 ? 's' : ''}${skipNote}`)
+    const skipNote = result.modeEstimate.skipped > 0 ? ` (${result.modeEstimate.skipped} skipped -- already exist)` : ''
+    l(`    ${result.request.sceneSlug.padEnd(40, ' ')}  ${result.modeEstimate.totalOutputs} page${result.modeEstimate.totalOutputs !== 1 ? 's' : ''}${skipNote}`)
     l('')
-
-    if (totalPages === 0) {
+    if (result.modeEstimate.totalOutputs === 0) {
       l('  All page images already exist. Nothing to generate.')
       return
     }
-
-    printImageEstimateTableByModel(models, quality, size, pageOutputsByModel, 'page')
+    printPagePricingEstimate(result.pricing.primary)
     l.dim('  Grouped pages use canonical character references followed by each distinct immutable location reference.')
-    if (options.qa ?? true) {
-      const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
-      const maxRepairs = options.maxRepairs ?? 2
-      let judgeCalls = 0
-      let reusedReports = 0
-      for (const model of models) for (const variation of variations) for (const pageChunk of pageChunks) {
-        const outputPath = getPageComicImagePath(
-          sceneSlug, pageChunk.pageNumber, pageChunk.panelNumbers,
-          useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-          useVariationOutputPaths ? variation : undefined,
-        )
-        const reportPath = join(dirname(outputPath), 'page-qa-report.json')
-        let reusable = false
-        if (!force && existsSync(reportPath)) {
-          try {
-            const report = JSON.parse(readFileSync(reportPath, 'utf8')) as { schemaVersion?: number; pages?: Array<{ outputFile?: string; judgeModel?: string }> }
-            reusable = report.schemaVersion === PAGE_QA_REPORT_SCHEMA_VERSION && report.pages?.some(entry => entry.outputFile === basename(outputPath) && entry.judgeModel === judgeModel) === true
-          } catch {}
-        }
-        if (reusable) reusedReports++
-        else judgeCalls++
-      }
-      const estimatedInputTokens = judgeCalls * 5000
-      const estimatedOutputTokens = judgeCalls * 1200
-      const judgeCost = estimateLlmCostFromRegistry(judgeModel, estimatedInputTokens, estimatedOutputTokens)
-      l('  Page QA judge calls:')
-      l(`    Initial judge calls (${judgeModel}): ${judgeCalls}${reusedReports > 0 ? ` (${reusedReports} reused reports)` : ''}`)
-      l(`    Maximum additional image edits: ${judgeCalls * maxRepairs}`)
-      l(`    Maximum additional judge calls: ${judgeCalls * maxRepairs}`)
-      if (judgeCalls * maxRepairs > 0) printImageEstimateTable([DEFAULT_IMAGE_MODEL], quality, size, judgeCalls * maxRepairs, 'maximum repair')
-      l(`    Heuristic judge tokens: ${estimatedInputTokens.toLocaleString()} input + ${estimatedOutputTokens.toLocaleString()} output = ~${formatCost(judgeCost)}`)
-      l.dim('    Judge cost is separate from image-generation cost; actual vision token usage may vary.')
-      l('')
-    }
+    printPageQaEstimate(result)
     return
   }
 
-  const panelDirs = entries
-    .filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name))
-    .map(entry => entry.name)
-    .sort()
-
-  let panelList = panelDirs
-  let selectedPanelNumbers = panelDirs
-    .map(name => getPanelNumberFromName(name))
-    .filter((panelNumber): panelNumber is number => panelNumber !== null)
-  if (options.panels !== undefined) {
-    const availablePanelNumbers = panelDirs
-      .map(name => getPanelNumberFromName(name))
-      .filter((panelNumber): panelNumber is number => panelNumber !== null)
-    const selected = selectComicPanels(
-      availablePanelNumbers.map(panelNumber => ({ panelNumber, name: `panel-${String(panelNumber).padStart(2, '0')}` })),
-      options.panels,
-      undefined,
-      sceneSlug,
-    )
-    panelList = selected.map(s => s.name)
-    selectedPanelNumbers = selected.map(s => s.panelNumber)
+  if (result.inventory.mode === 'page' || result.modeEstimate.mode === 'page') return
+  for (const panel of result.inventory.panels) {
+    l(`  Reference preflight panel ${panel.panelNumber}: ${panel.referenceCount} required`)
   }
-
-  for (const panelNumber of selectedPanelNumbers) {
-    const count = await validatePriceReferenceGroup(panelPromptsDir, [panelNumber], models)
-    if ((options.qa ?? true) && (options.maxRepairs ?? 2) > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, count + 1, `QA edits for panel ${panelNumber}`)
-    l(`  Reference preflight panel ${panelNumber}: ${count} required`)
-  }
-
-  let skipped = 0
-  if (!force) {
-    for (const panelDir of panelList) {
-      const match = panelDir.match(PANEL_DIRECTORY_PATTERN)
-      if (!match?.[1]) continue
-      const panelNumber = Number(match[1])
-      for (const variation of variations) {
-        const allExist = models.every(model => {
-          const outputPath = getPanelComicImagePath(
-            sceneSlug,
-            panelNumber,
-            useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-            useVariationOutputPaths ? variation : undefined
-          )
-          return existsSync(outputPath)
-        })
-        if (allExist) skipped++
-      }
-    }
-  }
-
-  const totalPanels = (panelList.length * variations.length) - skipped
-  const scenePanelCount: ScenePanelCount = { panels: totalPanels, skipped }
-
   l('  Panels:')
-  const skipNote = scenePanelCount.skipped > 0 ? ` (${scenePanelCount.skipped} skipped -- already exist)` : ''
-  l(`    ${sceneSlug.padEnd(40, ' ')}  ${scenePanelCount.panels} panel${scenePanelCount.panels !== 1 ? 's' : ''}${skipNote}`)
+  const skipNote = result.modeEstimate.skipped > 0 ? ` (${result.modeEstimate.skipped} skipped -- already exist)` : ''
+  l(`    ${result.request.sceneSlug.padEnd(40, ' ')}  ${result.modeEstimate.totalOutputs} panel${result.modeEstimate.totalOutputs !== 1 ? 's' : ''}${skipNote}`)
   l('')
-
-  if (totalPanels === 0) {
+  if (result.modeEstimate.totalOutputs === 0) {
     l('  All panels already exist. Nothing to generate.')
-    if (options.grid) {
-      printGridCompositeEstimate(sceneSlug, selectedPanelNumbers, {
-        grid: options.grid,
-        models,
-        variations,
-        useVariationOutputPaths,
-        useModelSpecificFilenames,
-        force,
-      })
-    }
+    printGridEstimate(result)
+    return
+  }
+  printImagePricingEstimate(result.pricing.primary)
+  l(`  Initial image calls: ${result.modeEstimate.totalOutputs}`)
+  printPanelQaEstimate(result)
+  printGridEstimate(result)
+}
+
+const printFinalImageEstimate = (result: FinalImageEstimateResult): void => {
+  printFinalImageHeader(result)
+  if (result.status !== 'ready') {
+    l(result.status === 'missing-prompts'
+      ? '  No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.'
+      : '  No panel prompt bundles found.')
+    return
+  }
+  printReadyFinalImageEstimate(result)
+}
+
+const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptions): Promise<void> => {
+  const request = normalizeFinalImageEstimateRequest(options)
+  validateImageSizeForModels(request.size, request.models)
+  validateComicGridOptions(request.mode === 'grid' ? request.grid : undefined, {
+    target: 'images',
+    size: request.size,
+    panelsPerImage: request.mode === 'page' || request.mode === 'grid'
+      ? request.panelsPerImage
+      : DEFAULT_FINAL_PANELS_PER_IMAGE,
+  })
+
+  const loaded = await loadFinalImageEstimateInventory(request)
+  if (loaded.status !== 'ready') {
+    printFinalImageEstimate({ status: loaded.status, request })
     return
   }
 
-  printImageEstimateTable(models, quality, size, totalPanels, 'panel')
-  l(`  Initial image calls: ${totalPanels}`)
-  if (options.qa ?? true) {
-    const maxRepairs = options.maxRepairs ?? 2
-    const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
-    l(`  Initial judge calls (${judgeModel}): ${totalPanels}`)
-    l(`  Maximum additional image edits: ${totalPanels * maxRepairs}`)
-    l(`  Maximum additional judge calls: ${totalPanels * maxRepairs}`)
-    if (totalPanels * maxRepairs > 0) printImageEstimateTable([DEFAULT_IMAGE_MODEL], quality, size, totalPanels * maxRepairs, 'maximum repair')
-    const initialImageCost = models.reduce((sum, model) => {
-      const price = estimateImageOutputCost(model, quality, size)
-      return price === null ? Number.NaN : sum + price * totalPanels
-    }, 0)
-    const repairImagePrice = estimateImageOutputCost(DEFAULT_IMAGE_MODEL, quality, size)
-    const maximumImageCost = repairImagePrice === null ? Number.NaN : initialImageCost + repairImagePrice * totalPanels * maxRepairs
-    const maximumJudgeCalls = totalPanels * (1 + maxRepairs)
-    const estimatedInputTokens = maximumJudgeCalls * 5000
-    const estimatedOutputTokens = maximumJudgeCalls * 1200
-    const maximumJudgeCost = estimateLlmCostFromRegistry(judgeModel, estimatedInputTokens, estimatedOutputTokens)
-    l(`  Maximum total judge calls: ${maximumJudgeCalls}`)
-    l(`  Maximum heuristic judge tokens: ${estimatedInputTokens.toLocaleString()} input + ${estimatedOutputTokens.toLocaleString()} output = ~${formatCost(maximumJudgeCost)}`)
-    if (Number.isFinite(maximumImageCost)) {
-      l(`  Maximum modeled cost (image outputs + heuristic QA): ~${formatCost(maximumImageCost + maximumJudgeCost)}`)
-    } else {
-      l(`  Maximum modeled cost: n/a image output pricing + ~${formatCost(maximumJudgeCost)} heuristic QA`)
-    }
-    l.dim('  Image input tokens and actual vision-token usage are not modeled, so provider charges may vary.')
+  if (request.mode === 'page' && loaded.inventory.mode === 'page') {
+    const modeEstimate = estimatePageMode(request, loaded.inventory)
+    const qaWork = estimateQaWork(request, modeEstimate, loaded.inventory)
+    printFinalImageEstimate({
+      status: 'ready',
+      request,
+      inventory: loaded.inventory,
+      modeEstimate,
+      qaWork,
+      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork),
+    })
+    return
   }
-  if (options.grid) {
-    printGridCompositeEstimate(sceneSlug, selectedPanelNumbers, {
-      grid: options.grid,
-      models,
-      variations,
-      useVariationOutputPaths,
-      useModelSpecificFilenames,
-      force,
+
+  if (request.mode !== 'page' && loaded.inventory.mode !== 'page') {
+    const modeEstimate = estimatePanelMode(request, loaded.inventory)
+    const qaWork = estimateQaWork(request, modeEstimate, loaded.inventory)
+    printFinalImageEstimate({
+      status: 'ready',
+      request,
+      inventory: loaded.inventory,
+      modeEstimate,
+      qaWork,
+      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork),
     })
   }
 }

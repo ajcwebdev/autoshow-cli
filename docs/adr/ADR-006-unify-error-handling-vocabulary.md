@@ -274,7 +274,7 @@ Run default verification (`bun run check`) and local, no-cost contract validatio
 ```bash
 bun run check
 bun test test/test-cases/validation/cli/cli-usage-errors.test.ts
-bun test test/test-cases/validation/runtime/retry-error-contracts.test.ts
+bun test test/test-cases/validation/runtime-contracts/retry-error-contracts.test.ts
 bun test test/test-cases/validation/media-generation/tts-current-render-recovery.test.ts
 ```
 

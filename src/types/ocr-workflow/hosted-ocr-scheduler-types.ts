@@ -154,15 +154,25 @@ export type HostedOcrSchedulerOptions = {
   profilePath?: string | undefined
   concurrencyMode?: HostedConcurrencyMode | undefined
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+  now?: (() => number) | undefined
+  setTimer?: HostedOcrSchedulerSetTimer | undefined
 }
 
-export type QueuedHostedOcrJob<T = unknown> = {
+export type HostedOcrSchedulerTimer = ReturnType<typeof setTimeout> | number
+
+export type HostedOcrSchedulerSetTimer = (
+  callback: () => void,
+  delayMs: number
+) => HostedOcrSchedulerTimer
+
+export type QueuedHostedOcrJob = {
   admission: Required<Pick<HostedOcrSchedulerAdmission, 'service' | 'model'>> & HostedOcrSchedulerAdmission
   targetKey: string
   documentKey?: string | undefined
   pageCount: number
-  task: (controls: HostedOcrSchedulerRunControls) => Promise<T>
-  resolve: (value: T) => void
+  execute: (
+    controls: HostedOcrSchedulerRunControls
+  ) => Promise<() => void>
   reject: (error: unknown) => void
 }
 
@@ -209,5 +219,5 @@ export type HostedOcrSchedulerLaneState = {
   queues: Map<string, QueuedHostedOcrJob[]>
   targets: Map<string, HostedOcrSchedulerTargetStats>
   documentTargets: Map<string, Map<string, HostedOcrSchedulerTargetStats>>
-  pumpTimer?: ReturnType<typeof setTimeout> | undefined
+  pumpTimer?: HostedOcrSchedulerTimer | undefined
 }

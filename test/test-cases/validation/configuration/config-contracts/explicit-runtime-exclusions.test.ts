@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildConfigPatchFromFlags, FLAG_TO_CONFIG_PATH, RUNTIME_ONLY_FLAGS } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { buildConfigPatchFromFlags, FLAG_TO_CONFIG_PATH, RUNTIME_ONLY_FLAGS } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 describe('config explicit flag and runtime exclusion contracts', () => {
   test('runtime-only options are excluded from saved config patches', () => {

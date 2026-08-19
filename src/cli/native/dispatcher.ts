@@ -4,7 +4,7 @@ import { LOG_FORMAT_CHOICES, LOG_LEVEL_CHOICES, reconfigureLogger, runWithLogCon
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { configurePinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/config/config-auth'
+import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/config-command/config-auth'
 import { configureBinDir } from '~/utils/runtime-paths'
 import { configureColor } from '~/utils/terminal-colors'
 import { parseNativeCli } from './native-parser'

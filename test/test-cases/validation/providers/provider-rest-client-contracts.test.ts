@@ -162,6 +162,21 @@ describe('provider REST client differential contracts', () => {
     expect(replicateCalls).toHaveLength(1)
   })
 
+  // Bun's fetch kills any request after 300s of socket silence unless timeout: false is
+  // passed — an AbortSignal alone does not suppress it (oven-sh/bun#16682) — so every
+  // provider request must carry the opt-out or long non-streaming calls die at 5 minutes.
+  test('every provider client disables Bun\'s default fetch idle timeout', async () => {
+    for (const client of clients) {
+      let capturedInit: Parameters<typeof fetch>[1]
+      installMockFetch((_call, _input, init) => {
+        capturedInit = init
+        return new Response(JSON.stringify({ error: { code: 400, message: 'init capture' } }), { status: 400 })
+      })
+      await captureError(client)
+      expect((capturedInit as { timeout?: unknown } | undefined)?.timeout).toBe(false)
+    }
+  })
+
   test('Gemini keeps its established successful-response JSON validation message', async () => {
     installMockFetch(() => new Response('not JSON', { status: 200 }))
     const error = await captureError(clients[4] as ClientCase)

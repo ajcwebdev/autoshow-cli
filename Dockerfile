@@ -8,11 +8,22 @@ COPY package.json bun.lock* bunfig.toml ./
 
 RUN bun install --frozen-lockfile --production
 
-FROM ${BUN_BASE_IMAGE} AS runtime
+FROM ${BUN_BASE_IMAGE} AS fetch
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG YT_DLP_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp
 ARG YT_DLP_SHA256=e5d57466682cfa9d61e9cf7c8a4f09b00f4a62af37d3bbdc4bcffdf63615feac
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl; \
+    curl -fsSL "${YT_DLP_URL}" -o /usr/local/bin/yt-dlp; \
+    printf '%s  %s\n' "${YT_DLP_SHA256}" /usr/local/bin/yt-dlp | sha256sum -c -; \
+    chmod 0755 /usr/local/bin/yt-dlp
+
+FROM ${BUN_BASE_IMAGE} AS runtime
+
+ARG DEBIAN_FRONTEND=noninteractive
 
 LABEL org.opencontainers.image.title="autoshow-cli"
 LABEL org.opencontainers.image.description="Bun-native AutoShow CLI with Debian slim local-lite tools"
@@ -27,16 +38,12 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       calibre \
-      curl \
       ffmpeg \
       mupdf-tools \
       python3 \
       qpdf \
       tesseract-ocr \
       tesseract-ocr-eng; \
-    curl -fsSL "${YT_DLP_URL}" -o /usr/local/bin/yt-dlp; \
-    printf '%s  %s\n' "${YT_DLP_SHA256}" /usr/local/bin/yt-dlp | sha256sum -c -; \
-    chmod 0755 /usr/local/bin/yt-dlp; \
     printf '%s\n' \
       '#!/bin/sh' \
       'SYSTEM_TESSDATA="${AUTOSHOW_SYSTEM_TESSDATA_PREFIX:-/usr/share/tesseract-ocr/5/tessdata}"' \
@@ -49,6 +56,8 @@ RUN set -eux; \
       > /usr/local/bin/tesseract; \
     chmod 0755 /usr/local/bin/tesseract; \
     rm -rf /var/lib/apt/lists/* /root/.cache/* /tmp/*
+
+COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp
 
 WORKDIR /app
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 const expectConfigPatchRoundTrip = (
   flags: Record<string, unknown>,

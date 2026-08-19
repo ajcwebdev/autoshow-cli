@@ -523,7 +523,7 @@ test('resume rejects positional outputs after the separator', async () => {
 })
 
 test('setup focused model downloads cannot be combined with targeted steps', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--models', 'base', '--step', 'uv'])
+  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--models', 'base', '--step', 'defuddle'])
 
   expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('--models cannot be combined with --step')

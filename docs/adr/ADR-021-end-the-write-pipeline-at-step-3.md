@@ -111,7 +111,7 @@ bun test test/test-cases/validation/cli/doc-command-flags-contract.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 bun test test/test-cases/validation/providers/provider-selection-contracts/generic-selector-normalization.test.ts
-bun test test/test-cases/validation/runtime/adaptive-concurrency-contracts.test.ts
+bun test test/test-cases/validation/runtime-contracts/adaptive-concurrency-contracts.test.ts
 bun test test/test-cases/validation/content-output/show-note-contracts.test.ts
 bun test test/test-cases/validation/reports-pricing/price-mode-contracts/
 ```

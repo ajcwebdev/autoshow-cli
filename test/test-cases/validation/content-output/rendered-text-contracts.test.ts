@@ -76,6 +76,32 @@ test('song lyric renderer assembles sections with headers', () => {
   )
 })
 
+test('song lyric renderer assembles extended rap sections from intro through final chorus', () => {
+  const rendered = renderToPlainText({
+    title: 'Track One',
+    intro: ['Intro line one', 'Intro line two'],
+    verse1: ['Verse one line'],
+    chorus1: ['Hook line'],
+    verse2: ['Verse two line'],
+    chorus2: ['Hook line again'],
+    verse3: ['Verse three line'],
+    bridge: ['Bridge line'],
+    chorus3: ['Final hook']
+  }, ['rapSongChapter'])
+
+  expect(rendered).toBe(
+    '# Track One\n\n' +
+    'Intro\n\nIntro line one\nIntro line two\n\n' +
+    'Verse 1\n\nVerse one line\n\n' +
+    'Chorus\n\nHook line\n\n' +
+    'Verse 2\n\nVerse two line\n\n' +
+    'Chorus\n\nHook line again\n\n' +
+    'Verse 3\n\nVerse three line\n\n' +
+    'Bridge\n\nBridge line\n\n' +
+    'Chorus\n\nFinal hook'
+  )
+})
+
 test('structured validation failures render as marked diagnostics with fenced raw output', () => {
   const rendered = renderToPlainText(buildStructuredValidationFailureEnvelope(
     'not json\n```\nstill raw',

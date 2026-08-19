@@ -8,7 +8,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { SetupStepId } from '~/types'
 
-const VALID_SETUP_STEPS: SetupStepId[] = ['uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
+const VALID_SETUP_STEPS: SetupStepId[] = ['yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'calibre', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
 const FOCUSED_SETUP_CONFLICT_FLAGS = [
   'models',
   'doctor',

@@ -1,19 +1,109 @@
 import { describe, expect, test } from 'bun:test'
 import { mkdir, readFile, symlink, unlink } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
-import { sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
+import { hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import type { TtsTarget } from '~/types'
+import type { AudioMixPlan, AudioRun, AudioTransformLedger, FinalTimeline, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { createFileTtsSourceIdentity, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { buildNormalizedTiming } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/attempt-success-builders'
+import type { ProviderBatchResult } from '~/types'
 
 describe('TTS Phase 0 audio-run artifacts', () => {
+  test('native timing is normalized onto one final-audio clock without losing token provenance', () => {
+    const batchResult = (
+      index: number,
+      provenance: 'provider-native' | 'provider-alignment'
+    ): { value: ProviderBatchResult, path: string, sha256: string } => ({
+      value: {
+        schemaVersion: 1,
+        batchResultId: `batch-result-${index}`,
+        renderPlanId: 'render-plan',
+        renderIdentity: 'render',
+        batchId: `batch-${index}`,
+        generationSlotId: `slot-${index}`,
+        status: 'succeeded',
+        requestedTurnIds: [`turn-${index}`],
+        outputs: [{
+          outputId: `output-${index}`,
+          artifactRef: `output-${index}.wav`,
+          sha256: `output-hash-${index}`,
+          format: { codec: 'pcm_s16le', container: 'wav', sampleRate: 16000, channels: 1 },
+          durationMs: 100,
+        }],
+        generatedBatch: {
+          source: 'provider-dispatch',
+          batchId: `batch-${index}`,
+          generationSlotId: `slot-${index}`,
+          batchInvocationPlanId: `invocation-plan-${index}`,
+          observedRequestOrdinals: [],
+          takes: [{
+            takeId: `take-${index}`,
+            generationSlotId: `slot-${index}`,
+            audio: {
+              artifactRef: `output-${index}.wav`,
+              outputId: `output-${index}`,
+              sha256: `output-hash-${index}`,
+              format: { codec: 'pcm_s16le', container: 'wav', sampleRate: 16000, channels: 1 },
+            },
+            durationMs: 100,
+            timing: {
+              availability: 'timed',
+              clock: 'take-audio-ms',
+              provenance,
+              turns: [{ turnId: `turn-${index}`, subjectKey: `speaker-${index}`, startMs: 0, endMs: 100 }],
+              words: [{ turnId: `turn-${index}`, subjectKey: `speaker-${index}`, text: `word-${index}`, startMs: 10, endMs: 90 }],
+            },
+            warnings: [],
+          }],
+          batchCost: { planned: { amounts: [] }, observed: [] },
+          costEvidence: [],
+          generatedAt: '1970-01-01T00:00:00.000Z',
+        },
+        turnOutcomes: [{ turnId: `turn-${index}`, status: 'succeeded', outputIds: [`output-${index}`] }],
+        createdResources: [],
+        cost: { planned: { amounts: [] }, observed: [] },
+        provenance: 'provider-dispatch',
+        invocationId: `invocation-${index}`,
+        attempt: 1,
+        batchInvocationPlan: { batchInvocationPlanId: `invocation-plan-${index}`, artifactRef: 'plan.json', sha256: `plan-hash-${index}` },
+        admissionBasis: { journalId: 'journal', snapshotId: 'snapshot', artifactRef: 'journal.json', sha256: `journal-hash-${index}` },
+        observedRequests: [],
+        retryAttempts: [],
+      },
+      path: `batch-${index}.json`,
+      sha256: `batch-hash-${index}`,
+    })
+    const timing = buildNormalizedTiming({
+      strategy: 'native-dialogue',
+      turns: [],
+      batchResultFiles: [
+        batchResult(1, 'provider-native'),
+        batchResult(2, 'provider-alignment'),
+      ],
+      assembledTurns: [],
+    })
+    expect(timing).toMatchObject({
+      availability: 'timed',
+      clock: 'final-audio-ms',
+      provenance: 'provider-alignment',
+      turns: [
+        { turnId: 'turn-1', startMs: 0, endMs: 100 },
+        { turnId: 'turn-2', startMs: 100, endMs: 200 },
+      ],
+      words: [
+        { text: 'word-1', startMs: 10, endMs: 90 },
+        { text: 'word-2', startMs: 110, endMs: 190 },
+      ],
+    })
+  })
+
   test('file source identity converges path spellings and separates path or byte drift', async () => {
     await withTempDir('autoshow-tts-source-identity-', async (dir) => {
       const firstDir = join(dir, 'first')
@@ -131,6 +221,37 @@ describe('TTS Phase 0 audio-run artifacts', () => {
       const compactRender = await Bun.file(renderPath).json() as { slots: Array<{ slotHash: string, sha256: string }> }
       const slotPath = join(dir, 'slots', `${compactRender.slots[0]?.slotHash}.wav`)
       expect(await Bun.file(slotPath).exists()).toBe(true)
+
+      const successEvent = metadata?.ttsAudio?.renderHistory[0]?.events.at(-1)
+      if (!metadata?.artifactDir || !successEvent?.audioRunRef) throw new Error('Missing expanded TTS audio-run evidence')
+      const audioRunPath = join(dir, metadata.artifactDir, successEvent.audioRunRef)
+      const audioRun = await Bun.file(audioRunPath).json() as AudioRun
+      const { audioRunId, ...audioRunBase } = audioRun
+      expect(audioRunId).toBe(hashCanonicalTtsValue(audioRunBase))
+
+      const audioRunRoot = dirname(audioRunPath)
+      const mixPlan = await Bun.file(join(audioRunRoot, audioRun.mixPlan.path)).json() as AudioMixPlan
+      const { mixPlanId, ...mixPlanBase } = mixPlan
+      expect(mixPlanId).toBe(hashCanonicalTtsValue(mixPlanBase))
+      expect(mixPlan.sources).toHaveLength(1)
+      expect(mixPlan.operations).toHaveLength(1)
+      expect(mixPlan.operations[0]?.kind).toBe('single-source')
+
+      const ledger = await Bun.file(join(audioRunRoot, audioRun.transformLedger.path)).json() as AudioTransformLedger
+      const { transformLedgerId, ...ledgerBase } = ledger
+      expect(transformLedgerId).toBe(hashCanonicalTtsValue(ledgerBase))
+      expect(ledger.operations.map((operation) => operation.kind)).toEqual(['transcode'])
+
+      const timeline = await Bun.file(join(audioRunRoot, audioRun.finalTimeline.path)).json() as FinalTimeline
+      const { timelineId, ...timelineBase } = timeline
+      expect(timelineId).toBe(hashCanonicalTtsValue(timelineBase))
+      expect(timeline.timing).toMatchObject({
+        availability: 'timed',
+        clock: 'final-audio-ms',
+        provenance: 'assembled-segments',
+        turns: [{ turnId: dialoguePlan.nodes[0]?.kind === 'turn' ? dialoguePlan.nodes[0].turn.turnId : '', startMs: 0 }],
+      })
+      expect(timeline.speechSources).toEqual(mixPlan.sources)
 
       const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(dir, dialoguePlan)
       const providerState = bindTtsDialoguePlanArtifact(

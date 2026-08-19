@@ -14,7 +14,6 @@ import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOption
 import * as l from '~/utils/app-logger/app-logger'
 import { l as globalLogger, isJsonResultActive } from '~/utils/app-logger/app-logger'
 import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
-import { withRetry } from '~/utils/retries'
 import { isCompactSetupMode, setCompactSetupMode } from '~/utils/setup-output-mode'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import {
@@ -45,7 +44,6 @@ import {
 } from '~/utils/runtime-paths'
 import { listPinnedDependencies } from './dependency-metadata'
 import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
-import { installManagedUv, managedUvxPath, resolveUvCommand } from './setup-download/managed-uv'
 import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-performance'
 
 const RUNTIME = RUNTIME_DIR
@@ -190,25 +188,6 @@ export const runInherit = async (command: string, args: string[] = [], options: 
   return exitCode
 }
 
-export const requireUvCommand = async (): Promise<string> => {
-  const command = await resolveUvCommand()
-  if (command) return command
-  throw InfraError('uv is not available. Run `bun autoshow setup --step uv` to install AutoShow managed uv.', {
-    stage: 'setup:uv',
-    hints: ['Run `bun autoshow setup --step uv` to install AutoShow managed uv']
-  })
-}
-
-export const runUvCapture = async (args: string[] = [], options: RunOptions = {}): Promise<RunResult> => {
-  const command = await requireUvCommand()
-  return await runCapture(command, args, options)
-}
-
-export const runUvInherit = async (args: string[] = [], options: RunOptions = {}): Promise<number> => {
-  const command = await requireUvCommand()
-  return await runInherit(command, args, options)
-}
-
 export const commandExists = (command: string): boolean => {
   const resolved = Bun.which(command)
   return typeof resolved === 'string' && resolved.length > 0
@@ -228,25 +207,6 @@ export const detectArchitecture = (): string => {
   if (process.arch === 'x64') return 'x86_64'
   if (process.arch === 'arm64') return 'arm64'
   return process.arch
-}
-
-export const setupUv = async (): Promise<void> => {
-  const pathUv = Bun.which('uv')
-  if (pathUv) {
-    return
-  }
-  const managedUv = await resolveUvCommand()
-  if (managedUv && await pathExists(managedUvxPath)) {
-    return
-  }
-  logSetupToolStatus(l, { tool: 'uv', status: 'installing' })
-  await withRetry(
-    { retryClass: 'setup_download', operationName: 'uv-release' },
-    async () => {
-      await installManagedUv()
-    }
-  )
-  logSetupToolStatus(l, { tool: 'uv', status: 'installed' })
 }
 
 export const defaultWhisperModel = 'tiny'
@@ -354,17 +314,7 @@ const walkDirectorySize = async (root: string): Promise<number> => {
   return total
 }
 
-// `runtime/` holds ~77k files, and stat-ing each one cost a noticeable share of
-// a warm run. `du` does the same walk in C; the JS walk stays as the fallback
-// for hosts without it.
-const directorySize = async (root: string): Promise<number> => {
-  const result = await runCapture('du', ['-sk', root], { allowFailure: true })
-  if (result.exitCode === 0) {
-    const kilobytes = Number.parseInt(result.stdout.trim().split(/\s+/)[0] ?? '', 10)
-    if (Number.isFinite(kilobytes)) return kilobytes * 1024
-  }
-  return await walkDirectorySize(root)
-}
+const directorySize = async (root: string): Promise<number> => await walkDirectorySize(root)
 
 type ReclaimableWhisperCoremlArtifact = {
   path: string
@@ -421,11 +371,8 @@ const logReclaimableWhisperCoremlArtifacts = async (): Promise<void> => {
 // runtime/build only ever holds transient source and object trees. Individual
 // installers now drop their own tree on success, but an install that predates
 // that, or one whose guard short-circuits, leaves the tree behind forever.
-// `du -sk` charges an empty directory for its own inode — 8 KiB on APFS — so
-// the previous `before === 0` guard never fired and every run reported a table
-// for reclaiming nothing. The `walkDirectorySize` fallback sums file sizes only
-// and would return 0 for that same tree, so the two size functions disagree on
-// exactly the case that matters; a threshold is the fix, not a tighter zero.
+// The threshold keeps trivial leftovers (empty scaffolding, stray manifests)
+// from producing a reclaim table that reports nothing worth reclaiming.
 const RECLAIMED_BUILD_TREE_MIN_BYTES = 10 * 1024 * 1024
 
 export const shouldReportReclaimedBuildTrees = (bytes: number): boolean =>
@@ -705,7 +652,7 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
     case 'yt-dlp': return [ytDlpManagedBinaryPath, ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegBuildDir, ffmpegToolDir, lameBuildDir, lameToolDir]
     case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir]
     case 'tts': return []
-    case 'uv': case 'transcription': case 'write': case 'image': case 'video': return []
+    case 'transcription': case 'write': case 'image': case 'video': return []
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }
 }
@@ -726,7 +673,6 @@ const applyRunOptions = async (step: SetupStepId, options?: { forceRedownload?: 
 const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
   switch (step) {
     case 'all': return await runCompleteSetup()
-    case 'uv': await setupUv(); return true
     case 'yt-dlp': await setupYtDependencies(); return true
     case 'whisper-binary': await setupWhisper(); return true
     case 'whisper-model': await downloadWhisperModel(defaultWhisperModel); return true

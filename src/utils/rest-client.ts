@@ -95,7 +95,12 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
     const request = profile.buildRequest(options)
 
     try {
-      const response = await fetch(request.url, request.init)
+      // Bun's fetch aborts after 300s of socket silence even when the caller passes its
+      // own AbortSignal (oven-sh/bun#16682). Non-streaming provider calls can legitimately
+      // stay silent longer (e.g. LLM reasoning), so disable Bun's idle timer and let each
+      // caller's AbortSignal own the deadline.
+      const init: RequestInit & { timeout: false } = { ...request.init, timeout: false }
+      const response = await fetch(request.url, init)
       if (response.ok) {
         return response
       }

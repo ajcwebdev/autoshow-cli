@@ -150,6 +150,49 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
   }
 }
 
+// Distinguishes a batch input list from prose content in a .md/.txt target: the file
+// counts as a list only when at least half of its candidate lines resolve to URLs,
+// digit-bearing X Space ids, or existing local paths. Bare words also satisfy the loose
+// raw X Space id pattern, so the digit requirement keeps single-word prose lines from
+// counting as list entries. Empty and unreadable files stay on the list path so its
+// existing usage errors surface.
+export const isLikelyInputListFile = async (filePath: string): Promise<boolean> => {
+  try {
+    const baseDir = dirname(filePath)
+    const text = await Bun.file(filePath).text()
+    const lines = text
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .filter(s => !s.startsWith('#'))
+
+    if (lines.length === 0) {
+      return true
+    }
+
+    let valid = 0
+    for (const line of lines) {
+      const entry = parseListEntry(line)
+      if (!entry) {
+        continue
+      }
+
+      if (isLikelyUrl(entry) || (isRawXSpaceId(entry) && /\d/.test(entry))) {
+        valid++
+        continue
+      }
+
+      if (await fileExists(resolve(baseDir, entry)) || await fileExists(entry)) {
+        valid++
+      }
+    }
+
+    return valid * 2 >= lines.length
+  } catch {
+    return true
+  }
+}
+
 const isDirectoryPath = async (path: string): Promise<boolean> => {
   const result = await Bun.$`test -d ${path}`.quiet().nothrow()
   return result.exitCode === 0

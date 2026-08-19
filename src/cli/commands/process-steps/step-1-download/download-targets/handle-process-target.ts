@@ -1,18 +1,19 @@
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { isHtmlArticleTarget, isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
-import { classifyTopLevelTarget } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection'
+import { classifyTopLevelTarget, isLikelyInputListFile } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection'
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { planProcessTargetBatchExecution, resolveProcessTargetPlan } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-process-target-plan'
 import { hasConfiguredOcrProviderSelection, HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/inactive-flag-warnings'
 import { readPromptFileText, resolveWriteTextProjectDefaults } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { hasExtractGenericSelectorOccurrences, normalizeExtractGenericSelectorFlags, stripExtractGenericSelectorFlags, stripExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
 import type { AggregatedPriceEstimate, CliRawParsed, ExtractSelectorInputRoutes, ProcessCommand, ProcessPlanningOptions, ResolvedProcessTargetDoubleDash } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { fileExists } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { runPreflight } from '~/cli/commands/pricing-orchestration/preflight'
@@ -27,6 +28,19 @@ const isDownloadCommand = (command: ProcessCommand): boolean => command === 'dow
 
 const buildPassthroughUnsupportedMessage = (): string =>
   'yt-dlp passthrough (--) is only supported for the "download" command'
+
+const shouldTreatWriteTargetAsTextInput = async (target: string): Promise<boolean> => {
+  if (isLikelyUrl(target)) {
+    return false
+  }
+
+  const topLevel = await classifyTopLevelTarget(target)
+  if (topLevel.kind !== 'input_list') {
+    return false
+  }
+
+  return !(await isLikelyInputListFile(target))
+}
 
 export const resolveProcessTargetDoubleDash = (
   command: ProcessCommand,
@@ -216,6 +230,12 @@ export const handleProcessTarget = async (
   const writeProjectDefaults = command === 'write'
     ? await resolveWriteTextProjectDefaults(resolvedTarget, opts, explicitFlags)
     : undefined
+  const writeAutoTextInput = command === 'write' && !writeProjectDefaults && !opts.textInput
+    ? await shouldTreatWriteTargetAsTextInput(resolvedTarget)
+    : false
+  if (writeAutoTextInput) {
+    l.write('info', `Detected prose content in ${resolvedTarget}; running write in text-input mode. Use one URL or file path per line for batch mode.`)
+  }
   const effectiveOpts = writeProjectDefaults
     ? {
         ...opts,
@@ -224,7 +244,9 @@ export const handleProcessTarget = async (
         renderedOutDir: writeProjectDefaults.renderedOutDir,
         trackList: writeProjectDefaults.trackList
       }
-    : opts
+    : writeAutoTextInput
+      ? { ...opts, textInput: true }
+      : opts
 
   if (writeProjectDefaults && !explicitFlags.has('prompt-file')) {
     await readPromptFileText(writeProjectDefaults.promptFile).catch(() => {
@@ -241,6 +263,16 @@ export const handleProcessTarget = async (
 
   if (singleRouting?.family === 'unsupported') {
     throw CLIUsageError(buildUnsupportedExtractInputMessage(resolvedTarget))
+  }
+
+  // Preflight and --price otherwise estimate nonexistent local targets from generic
+  // heuristics; fail here with the same error the single-target runner throws at
+  // execution time, keeping its X Space raw-id escape hatch.
+  if (plan.kind === 'single' && !isLikelyUrl(plan.target) && !(await fileExists(plan.target))) {
+    const { extractSpaceIdsFromText } = await import('~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/x-spaces/input')
+    if (!extractSpaceIdsFromText(plan.target).includes(plan.target.trim())) {
+      throw CLIUsageError(`Input does not exist: ${plan.target}. Run: bun autoshow help ${command}`)
+    }
   }
 
   const batchPlan = await planProcessTargetBatchExecution(plan, command, effectiveOpts, resolvedTarget)

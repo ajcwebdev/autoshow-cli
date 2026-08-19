@@ -254,7 +254,7 @@ This section lists every ADR with unfinished work: pending or reopened implement
 
 - **ADR:** [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)
 - **Priority:** Medium
-- **Next step:** Implement the 2026-08-16 P1 write/OCR additions `gemini-3.7-flash` and `grok-4.6`, then the remaining recommended selectors after adapter and pricing confirmation.
+- **Next step:** With the 2026-08-18 write additions of `gemini-3.7-flash` and `grok-4.6` implemented, complete their P1 extract (OCR) registrations, then the remaining recommended selectors after adapter and pricing confirmation.
 
 **ADR 3: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)**
 

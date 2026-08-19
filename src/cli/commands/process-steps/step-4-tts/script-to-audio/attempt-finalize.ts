@@ -1,10 +1,7 @@
-import { mkdir, readdir, unlink } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import type {
-  AudioRun,
   CanonicalAudioProviderProjection,
-  CompactAudioArchive,
-  CompactTargetRender,
   PipelineProviderState,
   ProviderBatchResult,
   ProviderBatchResultRef,
@@ -12,12 +9,11 @@ import type {
   ProviderRenderStrategy,
   SanitizedProviderError,
 } from '~/types'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { AppUsageError, CLIUsageError, InternalError } from '~/utils/error-handler'
 import { concatAndConvertToWav } from '../tts-utils/audio-utils'
 import {
   hardlinkContainedArtifact,
   readContainedArtifactFile,
-  removeContainedDirectory,
 } from './safe-artifact-store'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderRenderResult } from './contract-validation'
@@ -25,11 +21,11 @@ import { LOCAL_ACTOR, type WrittenJson } from './attempt-shared'
 import {
   contained,
   copyCreateOnly,
+  hasErrorCode,
   publishReportedOutput,
   readObservedAudio,
   writeJson,
   writeJsonCreateOnly,
-  writeJsonReplace,
 } from './attempt-io'
 import {
   requestedOutput,
@@ -39,10 +35,8 @@ import {
 } from './attempt-planning'
 import {
   assembleComicSegmentedAudio,
-  comicTimelineLayout,
-  localVoiceEffectFilter,
 } from './comic-segmented-audio'
-import { resolveRetainedPath } from './attempt-recovery'
+import { resolveRetainedPath } from './recovery-evidence'
 import type { AttemptContext, ClosedProviderAttempt } from './attempt-context'
 import {
   journalEventFields,
@@ -60,6 +54,21 @@ import {
   promoteBatchResult,
 } from './attempt-batches'
 import type { CurrentTtsRenderArtifacts } from './current-render-artifacts'
+import {
+  buildAudioMixPlan,
+  buildCompactRender,
+  buildCompactSlots,
+  buildFinalTimeline,
+  buildFinalTimelineLayout,
+  buildNormalizedTiming,
+  buildSpeechSources,
+  buildTransformLedger,
+} from './attempt-success-builders'
+import {
+  publishCompactCompletion,
+  publishExpandedCompletion,
+  type SuccessPublicationInput,
+} from './attempt-success-publication'
 
 export const closeLocalComposition = async (
   ctx: AttemptContext
@@ -322,40 +331,68 @@ const assembleMasteredAudio = async (
   return await concatAndConvertToWav([audioPath], masteringDir, `${options.target.service}-mastering`, undefined, masteringProfile)
 }
 
-export const finalizeSuccess = async (
+const publishReportedAudio = async (
   ctx: AttemptContext,
-  audioPath: string,
+  masteredPath: string,
   reportedOutputPath: string
-): Promise<CurrentTtsRenderArtifacts> => {
-  const {
-    options,
-    purePlan,
-    renderRoot,
-    targetDir,
-    targetRelativeDir,
-    archiveRelativeDir,
-    layout,
-    compactArchive,
-    attemptRoot,
-    recoveredBySlot,
-    paidSpeechSlotHash,
-  } = ctx
+): Promise<string> => {
+  const { outputDir } = ctx.options
+  if (resolve(masteredPath) === resolve(reportedOutputPath)) {
+    return sha256Bytes((await readContainedArtifactFile(
+      outputDir,
+      contained(outputDir, reportedOutputPath)
+    )).bytes)
+  }
+  try {
+    const file = await hardlinkContainedArtifact(
+      outputDir,
+      contained(outputDir, masteredPath),
+      contained(outputDir, reportedOutputPath)
+    )
+    return file.sha256
+  } catch (error) {
+    const mayCopy = error instanceof AppUsageError
+      || ['EXDEV', 'EPERM', 'EACCES', 'ENOTSUP', 'EOPNOTSUPP', 'ENOSYS']
+        .some((code) => hasErrorCode(error, code))
+    if (!mayCopy) throw error
+    return await publishReportedOutput(
+      outputDir,
+      masteredPath,
+      reportedOutputPath,
+      ctx.currentProjection
+    )
+  }
+}
+
+const requireSuccessPreconditions = (ctx: AttemptContext): void => {
   if (ctx.terminalState) throw CLIUsageError('TTS render attempt was already finalized.')
   if (ctx.requestedSlotLimit !== undefined && !ctx.localCompositionOnly) {
     throw CLIUsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
   }
   if (
     (!ctx.localCompositionOnly && ctx.runtimeRequests.length === 0)
-    || purePlan.planned.slots.some((slot) => !recoveredBySlot.has(slot.generationSlotId) && !(ctx.outputsBySlot.get(slot.generationSlotId)?.length))
+    || ctx.purePlan.planned.slots.some((slot) =>
+      !ctx.recoveredBySlot.has(slot.generationSlotId)
+      && !(ctx.outputsBySlot.get(slot.generationSlotId)?.length))
   ) {
     throw CLIUsageError('TTS target returned success without serializer-observed or verified recovered output for every planned generation slot.')
   }
+}
+
+export const finalizeSuccess = async (
+  ctx: AttemptContext,
+  audioPath: string,
+  reportedOutputPath: string
+): Promise<CurrentTtsRenderArtifacts> => {
+  requireSuccessPreconditions(ctx)
+  const { options, purePlan, renderRoot, attemptRoot, paidSpeechSlotHash } = ctx
   const { resultFile, batchResultFiles } = ctx.localCompositionOnly
     ? await closeLocalComposition(ctx)
     : await closeProviderAttempt(ctx)
   if (!resultFile || resultFile.value.status !== 'succeeded') {
     throw CLIUsageError('TTS provider attempt did not close as a complete success.')
   }
+
   const audioRunRoot = `${renderRoot}/results/${resultFile.value.resultIdentity}/audio-run`
   const finalPath = `${audioRunRoot}/final.wav`
   const masteringDir = ctx.localCompositionOnly ? `${dirname(resultFile.path)}/mastering` : `${attemptRoot}/mastering`
@@ -363,359 +400,81 @@ export const finalizeSuccess = async (
   const masteredPath = await assembleMasteredAudio(ctx, batchResultFiles, audioPath, masteringDir)
   await copyCreateOnly(options.outputDir, masteredPath, finalPath)
   const finalAudio = await readObservedAudio(options.outputDir, finalPath)
-  const speechSources = resultFile.value.outputs.map((output) => ({
-    kind: 'provider-output' as const,
-    sourceId: output.outputId,
-    resultIdentity: resultFile.value.resultIdentity,
-    batchResultId: output.batchResultId,
-    outputId: output.outputId,
-    artifactRef: output.artifactRef,
-    sha256: output.sha256,
-  }))
-  const assemblyParametersHash = hashCanonicalTtsValue({
-    sourceIds: speechSources.map((source) => source.sourceId),
+  const finalAudioSha256 = sha256Bytes(finalAudio.bytes)
+  const speechSources = buildSpeechSources(resultFile.value)
+  const mixPlan = buildAudioMixPlan({
+    renderIdentity: purePlan.renderIdentity,
+    outputProfileHash: purePlan.outputProfileHash,
     strategy: purePlan.planned.strategy,
     requestedOutput: requestedOutput(options),
     dialogueNodes: purePlan.planned.dialoguePlan.nodes,
-  })
-  const mixPlanBase = {
-    schemaVersion: 1 as const,
-    renderIdentity: purePlan.renderIdentity,
-    outputProfileHash: purePlan.outputProfileHash,
+    comicSegmented: Boolean(options.comicContext) && purePlan.planned.strategy === 'segmented',
     sources: speechSources,
-    operations: [{
-      kind: options.comicContext && purePlan.planned.strategy === 'segmented'
-        ? 'dialogue-node-assembly'
-        : speechSources.length > 1 ? 'ordered-concat' : 'single-source',
-      parametersHash: assemblyParametersHash,
-    }],
     createdAt: ctx.now(),
-  }
-  const mixPlan = {
-    ...mixPlanBase,
-    mixPlanId: hashCanonicalTtsValue(mixPlanBase),
-  }
+  })
   const mixPlanFile = await writeJson(options.outputDir, `${audioRunRoot}/mix-plan.json`, mixPlan)
-  const transcodeParametersHash = hashCanonicalTtsValue({ ...requestedOutput(options), orderedConcat: speechSources.length > 1 })
-  const transformOperation = {
-    operationId: hashCanonicalTtsValue({ kind: 'transcode', transcodeParametersHash, finalDurationMs: finalAudio.durationMs }),
-    kind: 'transcode' as const,
-    finalRangeMs: { start: 0, end: finalAudio.durationMs },
-    parametersHash: transcodeParametersHash,
-  }
-  const turnDuration = (turnId: string): number => {
-    return batchResultFiles
-      .filter((file) => file.value.requestedTurnIds.length === 1 && file.value.requestedTurnIds[0] === turnId)
-      .flatMap((file) => file.value.outputs)
-      .reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
-  }
-  const timingSegmentDuration = (turnId: string, segmentIndex: number): number => {
-    const slotIds = new Set(purePlan.planned.slots.filter((slot) => slot.turnIds.length === 1 && slot.turnIds[0] === turnId && (slot.timingSegmentIndex ?? 0) === segmentIndex).map((slot) => slot.generationSlotId))
-    return batchResultFiles.filter((file) => slotIds.has(file.value.generationSlotId)).flatMap((file) => file.value.outputs).reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
-  }
-  const timelineLayout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration, timingSegmentDuration) : undefined
-  let genericTimelineCursorMs = 0
-  const assembledTurns = timelineLayout?.turns ?? purePlan.planned.turns.map((turn) => {
-    const startMs = genericTimelineCursorMs
-    genericTimelineCursorMs += turnDuration(turn.canonical.turnId)
-    return { turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, startMs, endMs: genericTimelineCursorMs }
+  const timelineLayout = buildFinalTimelineLayout({
+    turns: purePlan.planned.turns,
+    slots: purePlan.planned.slots,
+    batchResultFiles,
+    comicDialoguePlan: options.comicContext?.dialoguePlan,
   })
-  const effectOperations = assembledTurns.flatMap((assembled) => {
-    const turn = purePlan.planned.turns.find((candidate) => candidate.canonical.turnId === assembled.turnId)?.canonical
-    if (!turn?.effect || !localVoiceEffectFilter(turn)) return []
-    const parametersHash = hashCanonicalTtsValue(turn.effect)
-    return [{ operationId: hashCanonicalTtsValue({ kind: 'effect', turnId: assembled.turnId, parametersHash, finalRangeMs: { start: assembled.startMs, end: assembled.endMs } }), kind: 'effect' as const, finalRangeMs: { start: assembled.startMs, end: assembled.endMs }, parametersHash }]
-  })
-  const overlapOperations = (timelineLayout?.overlaps ?? []).map((overlap) => {
-    const parametersHash = hashCanonicalTtsValue({ groupId: overlap.groupId })
-    return { operationId: hashCanonicalTtsValue({ kind: 'overlap', groupId: overlap.groupId, parametersHash, finalRangeMs: { start: overlap.start, end: overlap.end } }), kind: 'overlap' as const, finalRangeMs: { start: overlap.start, end: overlap.end }, parametersHash }
-  })
-  const pauseOperations = (timelineLayout?.pauses ?? []).map((pause) => {
-    const parametersHash = hashCanonicalTtsValue(pause.parameters)
-    return { operationId: hashCanonicalTtsValue({ kind: 'pause', parametersHash, finalRangeMs: { start: pause.start, end: pause.end } }), kind: 'pause' as const, finalRangeMs: { start: pause.start, end: pause.end }, parametersHash }
-  })
-  const ledgerBase = { schemaVersion: 1 as const, renderIdentity: purePlan.renderIdentity, operations: [transformOperation, ...effectOperations, ...overlapOperations, ...pauseOperations] }
-  const ledger = {
-    ...ledgerBase,
-    transformLedgerId: hashCanonicalTtsValue(ledgerBase),
-  }
-  const ledgerFile = await writeJson(options.outputDir, `${audioRunRoot}/transform-ledger.json`, ledger)
-  const hasAssembledTurnTiming = purePlan.planned.strategy === 'segmented' && assembledTurns.every((turn) => turn.endMs > turn.startMs)
-  let nativeCursorMs = 0
-  const nativeTimingParts = batchResultFiles.map((file) => {
-    const take = file.value.generatedBatch?.takes[0]
-    const timing = take?.timing
-    const offsetMs = nativeCursorMs
-    nativeCursorMs += take?.durationMs ?? file.value.outputs[0]?.durationMs ?? 0
-    if (!timing || timing.availability !== 'timed') return undefined
-    const shiftToken = (token: NonNullable<typeof timing.words>[number]) => ({ ...token, startMs: token.startMs + offsetMs, endMs: token.endMs + offsetMs })
-    return {
-      provenance: timing.provenance,
-      turns: timing.turns.map((turn) => ({ ...turn, startMs: turn.startMs + offsetMs, endMs: turn.endMs + offsetMs })),
-      words: timing.words?.map(shiftToken) ?? [],
-      phonemes: timing.phonemes?.map(shiftToken) ?? [],
-      characters: timing.characters?.map(shiftToken) ?? [],
-    }
-  })
-  const hasNativeTiming = purePlan.planned.strategy !== 'segmented' && nativeTimingParts.length > 0 && nativeTimingParts.every((part) => part !== undefined)
-  const nativeTiming = hasNativeTiming
-    ? {
-        availability: 'timed' as const,
-        clock: 'final-audio-ms' as const,
-        provenance: nativeTimingParts.some((part) => part?.provenance === 'provider-alignment') ? 'provider-alignment' as const : 'provider-native' as const,
-        turns: nativeTimingParts.flatMap((part) => part?.turns ?? []),
-        ...(nativeTimingParts.some((part) => (part?.words.length ?? 0) > 0) ? { words: nativeTimingParts.flatMap((part) => part?.words ?? []) } : {}),
-        ...(nativeTimingParts.some((part) => (part?.phonemes.length ?? 0) > 0) ? { phonemes: nativeTimingParts.flatMap((part) => part?.phonemes ?? []) } : {}),
-        ...(nativeTimingParts.some((part) => (part?.characters.length ?? 0) > 0) ? { characters: nativeTimingParts.flatMap((part) => part?.characters ?? []) } : {}),
-      }
-    : undefined
-  const timelineBase = {
-    schemaVersion: 1 as const,
+  const ledger = buildTransformLedger({
     renderIdentity: purePlan.renderIdentity,
-    timing: nativeTiming ?? (hasAssembledTurnTiming
-      ? { availability: 'timed' as const, clock: 'final-audio-ms' as const, provenance: 'assembled-segments' as const, turns: assembledTurns }
-      : { availability: 'unavailable' as const, clock: 'final-audio-ms' as const, provenance: 'unavailable' as const, turns: purePlan.planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey })), reason: 'Native/provider timing was not exposed at exact turn boundaries.' }),
-    speechSources,
-    transformLedgerRef: { path: contained(audioRunRoot, ledgerFile.path), sha256: ledgerFile.sha256 },
-  }
-  const timeline = {
-    ...timelineBase,
-    timelineId: hashCanonicalTtsValue(timelineBase),
-  }
-  const reportedOutputSha256 = resolve(masteredPath) === resolve(reportedOutputPath)
-    ? sha256Bytes((await readContainedArtifactFile(options.outputDir, contained(options.outputDir, reportedOutputPath))).bytes)
-    : await hardlinkContainedArtifact(options.outputDir, contained(options.outputDir, masteredPath), contained(options.outputDir, reportedOutputPath))
-      .then((file) => file.sha256)
-      .catch(async () => await publishReportedOutput(options.outputDir, masteredPath, reportedOutputPath, ctx.currentProjection))
-
-  if (!compactArchive || ctx.localCompositionOnly || options.comicContext) {
-    const timelineFile = await writeJson(options.outputDir, `${audioRunRoot}/final-timeline.json`, timeline)
-    const audioRunBase = {
-      schemaVersion: 1 as const,
-      targetKey: purePlan.targetKey,
-      renderPlanId: purePlan.renderPlanId,
-      renderIdentity: purePlan.renderIdentity,
-      providerResult: { resultIdentity: resultFile.value.resultIdentity, path: contained(renderRoot, resultFile.path), sha256: resultFile.sha256 },
-      takeSelections: [],
-      continuationCheckpoints: [],
-      mixPlan: { mixPlanId: mixPlan.mixPlanId, path: contained(audioRunRoot, mixPlanFile.path), sha256: mixPlanFile.sha256 },
-      transformLedger: { transformLedgerId: ledger.transformLedgerId, path: contained(audioRunRoot, ledgerFile.path), sha256: ledgerFile.sha256 },
-      finalTimeline: { timelineId: timeline.timelineId, path: contained(audioRunRoot, timelineFile.path), sha256: timelineFile.sha256 },
-      finalOutputs: [{ path: contained(audioRunRoot, finalPath), sha256: sha256Bytes(finalAudio.bytes), format: finalAudio.format, durationMs: finalAudio.durationMs }],
-      createdAt: ctx.now(),
-    }
-    const audioRun = {
-      ...audioRunBase,
-      audioRunId: hashCanonicalTtsValue(audioRunBase),
-    } as AudioRun
-    const audioRunFile = await writeJson(options.outputDir, `${audioRunRoot}/audio-run.json`, audioRun)
-    const archiveTimelineFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveTimelinePath}`, timeline)
-    const compactSlots = purePlan.planned.slots.map((slot) => {
-      const file = batchResultFiles.find((entry) => entry.value.generationSlotId === slot.generationSlotId)
-      const output = file?.value.outputs[0]
-      if (!output) throw CLIUsageError(`Compact TTS render is missing paid output for ${slot.generationSlotId}.`)
-      return {
-        slotHash: paidSpeechSlotHash(slot),
-        turnIds: [...slot.turnIds],
-        sha256: output.sha256,
-        durationMs: output.durationMs ?? 0,
-        voiceHash: hashCanonicalTtsValue(slot.turnIds.map((turnId) => purePlan.planned.turns.find((turn) => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
-      }
-    })
-    const compactRenderBase = {
-      schemaVersion: 1 as const,
-      targetKey: purePlan.targetKey,
-      renderIdentity: purePlan.renderIdentity,
-      renderPlanId: purePlan.renderPlanId,
-      dialoguePlanId: purePlan.planned.dialoguePlan.dialoguePlanId,
-      ...(options.comicContext ? { snapshotId: options.comicContext.voiceSnapshot.snapshotId } : {}),
-      strategy: purePlan.planned.strategy,
-      format: finalAudio.format,
-      cost: resultFile.value.cost,
-      slots: compactSlots,
-      outputs: {
-        final: {
-          path: contained(options.outputDir, reportedOutputPath),
-          sha256: sha256Bytes(finalAudio.bytes),
-          durationMs: finalAudio.durationMs,
-        },
-      },
-      retryErrorSummary: {
-        requestCount: resultFile.value.observedRequests.length,
-        retryCount: resultFile.value.retryAttempts.length,
-        failedSlotCount: 0,
-      },
-    }
-    const compactRender = {
-      ...compactRenderBase,
-      renderId: hashCanonicalTtsValue(compactRenderBase),
-    } as unknown as CompactTargetRender
-    const compactRenderFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveRenderPath}`, compactRender)
-    ctx.currentProjection = appendTerminalProjection(ctx, 'succeeded', {
-      result: resultFile,
-      audioRun: audioRunFile,
-      batchResultFiles,
-      outputRefs: [{ path: contained(targetDir, finalPath), sha256: sha256Bytes(finalAudio.bytes) }],
-      reportedOutputRefs: [{ path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256 }],
-    })
-    ctx.currentProjection.archive = {
-      schemaVersion: 1,
-      renderRef: { path: layout.archiveRenderPath, sha256: compactRenderFile.sha256 },
-      timelineRef: { path: layout.archiveTimelinePath, sha256: archiveTimelineFile.sha256 },
-      finalRef: { path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256 },
-      slotCount: compactSlots.length,
-    }
-    if (!ctx.localCompositionOnly && !options.comicContext) {
-      const { activeWork: _activeWork, ...rest } = ctx.currentProjection
-      ctx.currentProjection = rest
-    }
-    const usedSlotReuse = [...recoveredBySlot.values()].some((entry) => entry.value.provenance === 'slot-reuse')
-    if (usedSlotReuse && !ctx.localCompositionOnly) {
-      ctx.currentProjection = {
-        selectedSuccess: ctx.currentProjection.selectedSuccess,
-        archive: ctx.currentProjection.archive,
-        branchHistory: [],
-        readinessAttempts: [],
-        renderHistory: [],
-        pointerEvents: [{
-          sequence: 1,
-          action: 'select-success',
-          renderIdentity: purePlan.renderIdentity,
-          eventSequence: 1,
-          resultIdentity: resultFile.value.resultIdentity,
-          audioRunId: audioRun.audioRunId,
-          actor: LOCAL_ACTOR,
-          at: ctx.now(),
-        }],
-      }
-    }
-    ctx.terminalState = stateForProjection(options.target, purePlan.targetKey, purePlan.transport, usedSlotReuse && !ctx.localCompositionOnly ? archiveRelativeDir : targetRelativeDir, ctx.currentProjection)
-    await publish(ctx, ctx.terminalState)
-    return {
-      artifactDir: targetRelativeDir,
-      operation: purePlan.operation,
-      targetKey: purePlan.targetKey,
-      transport: purePlan.transport,
-      renderIdentity: purePlan.renderIdentity,
-      resultIdentity: resultFile.value.resultIdentity,
-      audioRunId: audioRun.audioRunId,
-      strategy: purePlan.planned.strategy,
-      projection: ctx.currentProjection,
-    }
-  }
-
-  const timelineFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveTimelinePath}`, timeline)
-  const compactSlots = purePlan.planned.slots.map((slot) => {
-    const file = batchResultFiles.find((entry) => entry.value.generationSlotId === slot.generationSlotId)
-    const output = file?.value.outputs[0]
-    if (!output) throw CLIUsageError(`Compact TTS render is missing paid output for ${slot.generationSlotId}.`)
-    return {
-      slotHash: paidSpeechSlotHash(slot),
-      turnIds: [...slot.turnIds],
-      sha256: output.sha256,
-      durationMs: output.durationMs ?? 0,
-      voiceHash: hashCanonicalTtsValue(slot.turnIds.map((turnId) => purePlan.planned.turns.find((turn) => turn.canonical.turnId === turnId)?.voice.valueHash ?? '')),
-    }
+    requestedOutput: requestedOutput(options),
+    sources: speechSources,
+    finalDurationMs: finalAudio.durationMs,
+    turns: purePlan.planned.turns,
+    timelineLayout,
   })
-  const compactRenderBase = {
-    schemaVersion: 1 as const,
+  const ledgerFile = await writeJson(options.outputDir, `${audioRunRoot}/transform-ledger.json`, ledger)
+  const timing = buildNormalizedTiming({
+    strategy: purePlan.planned.strategy,
+    turns: purePlan.planned.turns,
+    batchResultFiles,
+    assembledTurns: timelineLayout.turns,
+  })
+  const timeline = buildFinalTimeline({
+    renderIdentity: purePlan.renderIdentity,
+    timing,
+    speechSources,
+    transformLedgerRef: {
+      path: contained(audioRunRoot, ledgerFile.path),
+      sha256: ledgerFile.sha256,
+    },
+  })
+  const reportedOutputSha256 = await publishReportedAudio(
+    ctx,
+    masteredPath,
+    reportedOutputPath
+  )
+  const compactSlots = buildCompactSlots({
+    slots: purePlan.planned.slots,
+    turns: purePlan.planned.turns,
+    batchResultFiles,
+    paidSpeechSlotHash,
+  })
+  const compactRender = buildCompactRender({
     targetKey: purePlan.targetKey,
     renderIdentity: purePlan.renderIdentity,
     renderPlanId: purePlan.renderPlanId,
     dialoguePlanId: purePlan.planned.dialoguePlan.dialoguePlanId,
+    snapshotId: options.comicContext?.voiceSnapshot.snapshotId,
     strategy: purePlan.planned.strategy,
-    format: finalAudio.format,
-    cost: resultFile.value.cost,
+    finalAudio,
+    result: resultFile.value,
     slots: compactSlots,
-    outputs: {
-      final: {
-        path: contained(options.outputDir, reportedOutputPath),
-        sha256: sha256Bytes(finalAudio.bytes),
-        durationMs: finalAudio.durationMs,
-      },
-    },
-    retryErrorSummary: {
-      requestCount: resultFile.value.observedRequests.length,
-      retryCount: resultFile.value.retryAttempts.length,
-      failedSlotCount: 0,
-    },
+    reportedOutputRef: contained(options.outputDir, reportedOutputPath),
+    finalAudioSha256,
+  })
+  const publication: SuccessPublicationInput = {
+    ctx, resultFile, batchResultFiles, audioRunRoot, finalPath, finalAudio,
+    finalAudioSha256, reportedOutputPath, reportedOutputSha256,
+    mixPlan, mixPlanFile, ledger, ledgerFile, timeline, compactSlots, compactRender,
   }
-  const compactRender = {
-    ...compactRenderBase,
-    renderId: hashCanonicalTtsValue(compactRenderBase),
-  } as unknown as CompactTargetRender
-  const compactRenderFile = await writeJsonReplace(options.outputDir, `${options.outputDir}/${layout.archiveRenderPath}`, compactRender)
-  const archive: CompactAudioArchive = {
-    schemaVersion: 1,
-    renderRef: { path: layout.archiveRenderPath, sha256: compactRenderFile.sha256 },
-    timelineRef: { path: layout.archiveTimelinePath, sha256: timelineFile.sha256 },
-    finalRef: { path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256 },
-    slotCount: compactSlots.length,
-  }
-  const audioRunBase = {
-    schemaVersion: 1 as const,
-    targetKey: purePlan.targetKey,
-    renderPlanId: purePlan.renderPlanId,
-    renderIdentity: purePlan.renderIdentity,
-    providerResult: { resultIdentity: resultFile.value.resultIdentity, path: layout.archiveRenderPath, sha256: compactRenderFile.sha256 },
-    takeSelections: [],
-    continuationCheckpoints: [],
-    mixPlan: { mixPlanId: mixPlan.mixPlanId, path: contained(audioRunRoot, mixPlanFile.path), sha256: mixPlanFile.sha256 },
-    transformLedger: { transformLedgerId: ledger.transformLedgerId, path: contained(audioRunRoot, ledgerFile.path), sha256: ledgerFile.sha256 },
-    finalTimeline: { timelineId: timeline.timelineId, path: layout.archiveTimelinePath, sha256: timelineFile.sha256 },
-    finalOutputs: [{ path: contained(options.outputDir, reportedOutputPath), sha256: reportedOutputSha256, format: finalAudio.format, durationMs: finalAudio.durationMs }],
-    createdAt: ctx.now(),
-  }
-  const audioRun = {
-    ...audioRunBase,
-    audioRunId: hashCanonicalTtsValue(audioRunBase),
-  } as AudioRun
-  const referencedSlotHashes = new Set(compactSlots.map((slot) => slot.slotHash))
-  ctx.currentProjection = {
-    selectedSuccess: {
-      renderIdentity: purePlan.renderIdentity,
-      eventSequence: 1,
-      resultIdentity: resultFile.value.resultIdentity,
-      audioRunId: audioRun.audioRunId,
-    },
-    archive,
-    branchHistory: [],
-    readinessAttempts: [],
-    renderHistory: [],
-    pointerEvents: [{
-      sequence: 1,
-      action: 'select-success',
-      renderIdentity: purePlan.renderIdentity,
-      eventSequence: 1,
-      resultIdentity: resultFile.value.resultIdentity,
-      audioRunId: audioRun.audioRunId,
-      actor: LOCAL_ACTOR,
-      at: ctx.now(),
-    }],
-  }
-  ctx.terminalState = stateForProjection(options.target, purePlan.targetKey, purePlan.transport, archiveRelativeDir, ctx.currentProjection)
-  await publish(ctx, ctx.terminalState)
-  await removeContainedDirectory(options.outputDir, layout.workDir)
-  await removeContainedDirectory(options.outputDir, targetRelativeDir)
-  await removeContainedDirectory(options.outputDir, ctx.artifactRoot)
-  const slotEntries = await readdir(`${options.outputDir}/${layout.slotsDir}`).catch(() => [])
-  await Promise.all(slotEntries.map(async (name) => {
-    const slotHash = name.replace(/\.wav$/, '')
-    if (name.endsWith('.wav') && !referencedSlotHashes.has(slotHash)) {
-      await unlink(`${options.outputDir}/${layout.slotsDir}/${name}`).catch(() => undefined)
-    }
-  }))
-  return {
-    artifactDir: archiveRelativeDir,
-    operation: purePlan.operation,
-    targetKey: purePlan.targetKey,
-    transport: purePlan.transport,
-    renderIdentity: purePlan.renderIdentity,
-    resultIdentity: resultFile.value.resultIdentity,
-    audioRunId: audioRun.audioRunId,
-    strategy: purePlan.planned.strategy,
-    projection: ctx.currentProjection,
-  }
+  return !ctx.compactArchive || ctx.localCompositionOnly || Boolean(options.comicContext)
+    ? await publishExpandedCompletion(publication)
+    : await publishCompactCompletion(publication)
 }
 
 export const finalizeCheckpoint = async (ctx: AttemptContext): Promise<{

@@ -18,6 +18,7 @@ export const SUPPORTED_GROQ_MODELS = [
 
 export const SUPPORTED_GEMINI_MODELS = [
   'gemini-3.1-pro-preview',
+  'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
   'gemini-3.5-flash-lite',
@@ -38,7 +39,8 @@ export const SUPPORTED_MINIMAX_MODELS = [
 
 export const SUPPORTED_GROK_MODELS = [
   'grok-4.3',
-  'grok-4.5'
+  'grok-4.5',
+  'grok-4.6'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GLM_MODELS = [

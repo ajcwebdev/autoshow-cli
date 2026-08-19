@@ -96,6 +96,7 @@ export type StructuredPresetName =
   | 'standardSongLyrics'
   | 'rapSongLyrics'
   | 'rapSongLongLyrics'
+  | 'rapSongChapterLyrics'
   | 'poetryCollection'
   | 'screenplay'
   | 'shortStory'

@@ -17,6 +17,33 @@ import type {
   ReportHistoricalLookup
 } from '~/types'
 
+export type LinkedMetricSummary = {
+  source: 'runCommand' | 'none'
+  matchedBy: MatchProvenance | null
+  commandDurationMs: number | null
+  estimatedCostCents: number | null
+  actualCostCents: number | null
+  estimatedProcessingTimeMs: number | null
+  actualProcessingTimeMs: number | null
+  notes: string[]
+}
+
+type LinkedMetricTotals = Pick<
+  LinkedMetricSummary,
+  | 'commandDurationMs'
+  | 'estimatedCostCents'
+  | 'actualCostCents'
+  | 'estimatedProcessingTimeMs'
+  | 'actualProcessingTimeMs'
+>
+
+type LinkedMetricSummarizer = (
+  linked: ParsedCommandMetric[],
+  historical: ReportHistoricalLookup,
+  testId: string,
+  matchedBy: MatchProvenance | null
+) => LinkedMetricSummary
+
 const earliestMetricStartIso = (metrics: ParsedCommandMetric[]): string | null => {
   let earliest: number | null = null
 
@@ -34,64 +61,68 @@ const earliestMetricStartIso = (metrics: ParsedCommandMetric[]): string | null =
   return earliest === null ? null : new Date(earliest).toISOString()
 }
 
-const summarizeLinkedMetrics = (
+const sumPresentMetric = (
   linked: ParsedCommandMetric[],
-  historical: ReportHistoricalLookup,
-  testId: string,
-  matchedBy: MatchProvenance | null
-): Record<string, unknown> => {
-  const hasMetrics = linked.length > 0
-  const commandDurationMs = hasMetrics
-    ? linked.reduce((sum, value) => sum + value.durationMs, 0)
-    : null
-  const estimatedCostCents = hasMetrics
-    ? linked.reduce<number | null>((sum, value) => {
-        if (value.estimatedCostCents === null) return sum
-        return (sum ?? 0) + value.estimatedCostCents
-      }, null)
-    : null
-  const actualCostCents = hasMetrics
-    ? linked.reduce<number | null>((sum, value) => {
-        if (value.actualCostCents === null) return sum
-        return (sum ?? 0) + value.actualCostCents
-      }, null)
-    : null
-  const estimatedProcessingTimeMs = hasMetrics
-    ? linked.reduce<number | null>((sum, value) => {
-        if (value.estimatedProcessingTimeMs === null) return sum
-        return (sum ?? 0) + value.estimatedProcessingTimeMs
-      }, null)
-    : null
-  const actualProcessingTimeMs = hasMetrics
-    ? linked.reduce<number | null>((sum, value) => {
-        if (value.actualProcessingTimeMs === null) return sum
-        return (sum ?? 0) + value.actualProcessingTimeMs
-      }, null)
-    : null
+  select: (metric: ParsedCommandMetric) => number | null
+): number | null => {
+  let total: number | null = null
+  for (const metric of linked) {
+    const value = select(metric)
+    if (value !== null) total = (total ?? 0) + value
+  }
+  return total
+}
 
+const calculateLinkedMetricTotals = (linked: ParsedCommandMetric[]): LinkedMetricTotals => ({
+  commandDurationMs: linked.length > 0
+    ? linked.reduce((sum, metric) => sum + metric.durationMs, 0)
+    : null,
+  estimatedCostCents: sumPresentMetric(linked, metric => metric.estimatedCostCents),
+  actualCostCents: sumPresentMetric(linked, metric => metric.actualCostCents),
+  estimatedProcessingTimeMs: sumPresentMetric(linked, metric => metric.estimatedProcessingTimeMs),
+  actualProcessingTimeMs: sumPresentMetric(linked, metric => metric.actualProcessingTimeMs),
+})
+
+const resolveEstimatedProcessingTime = (
+  current: number | null,
+  historical: ReportHistoricalLookup,
+  testId: string
+): { value: number | null; usedHistorical: boolean } => ({
+  value: current ?? historical.processingTimeById.get(testId) ?? null,
+  usedHistorical: current === null && historical.processingTimeById.has(testId),
+})
+
+const buildMetricMatchNotes = (
+  metricCount: number,
+  matchedBy: MatchProvenance | null,
+  usedHistoricalProcessingTime: boolean
+): string[] => {
   const notes: string[] = []
-  if (hasMetrics && matchedBy === 'group-order') {
+  if (metricCount > 0 && matchedBy === 'group-order') {
     notes.push('metric matched by group-order (positional, less reliable)')
   }
-  if (hasMetrics && matchedBy === 'heuristic') {
+  if (metricCount > 0 && matchedBy === 'heuristic') {
     notes.push('metric matched heuristically by provider/model/time')
   }
-  if (hasMetrics && linked.length > 1) {
+  if (metricCount > 1) {
     notes.push('multiple metrics collapsed onto this test')
   }
-  if (estimatedProcessingTimeMs === null && historical.processingTimeById.has(testId)) {
+  if (usedHistoricalProcessingTime) {
     notes.push('estimated processing time fell back to prior successful run')
   }
+  return notes
+}
+
+export const summarizeLinkedMetrics: LinkedMetricSummarizer = (linked, historical, testId, matchedBy) => {
+  const totals = calculateLinkedMetricTotals(linked)
+  const processingTime = resolveEstimatedProcessingTime(totals.estimatedProcessingTimeMs, historical, testId)
 
   return {
-    source: hasMetrics ? 'runCommand' : 'none',
+    ...totals,
+    source: linked.length > 0 ? 'runCommand' : 'none',
     matchedBy,
-    commandDurationMs,
-    estimatedCostCents,
-    actualCostCents,
-    estimatedProcessingTimeMs: estimatedProcessingTimeMs ?? historical.processingTimeById.get(testId) ?? null,
-    actualProcessingTimeMs,
-    notes,
+    estimatedProcessingTimeMs: processingTime.value,
+    notes: buildMetricMatchNotes(linked.length, matchedBy, processingTime.usedHistorical),
   }
 }
 
@@ -102,7 +133,7 @@ const buildCondensedE2EReport = async (
     name: string
     status: string
     durationMs: number
-    metrics: Record<string, unknown>
+    metrics: LinkedMetricSummary
   }>,
   matched: MetricMatchResult,
   artifacts: TestRunArtifacts,
@@ -114,7 +145,7 @@ const buildCondensedE2EReport = async (
 
   const reportableTests = tests.filter(test => {
     return isE2ETestFile(test.file)
-      && test.metrics['source'] === 'runCommand'
+      && test.metrics.source === 'runCommand'
       && !isControlE2ETest(test.name)
   })
 
@@ -147,10 +178,10 @@ const buildCondensedE2EReport = async (
       runAt: earliestMetricStartIso(linked),
       estimatedDurationMs: historical.durationById.get(test.id) ?? null,
       actualDurationMs: test.durationMs,
-      estimatedProcessingTimeMs: test.metrics['estimatedProcessingTimeMs'] ?? null,
-      actualProcessingTimeMs: test.metrics['actualProcessingTimeMs'] ?? null,
-      estimatedCostCents: test.metrics['estimatedCostCents'] ?? null,
-      actualCostCents: test.metrics['actualCostCents'] ?? null,
+      estimatedProcessingTimeMs: test.metrics.estimatedProcessingTimeMs,
+      actualProcessingTimeMs: test.metrics.actualProcessingTimeMs,
+      estimatedCostCents: test.metrics.estimatedCostCents,
+      actualCostCents: test.metrics.actualCostCents,
     }
   }))
 
@@ -238,10 +269,10 @@ export const buildTestReportData = async (
       passed,
       failed,
       skipped,
-      cliMetricEligiblePassedCount: tests.filter(test => test.status === 'passed' && test.metrics['source'] === 'runCommand').length,
+      cliMetricEligiblePassedCount: tests.filter(test => test.status === 'passed' && test.metrics.source === 'runCommand').length,
       matchedMetricCount,
       unmatchedMetricCount,
-      passedWithoutMetricsCount: tests.filter(test => test.status === 'passed' && test.metrics['source'] === 'none').length,
+      passedWithoutMetricsCount: tests.filter(test => test.status === 'passed' && test.metrics.source === 'none').length,
     },
     tests,
     failures,

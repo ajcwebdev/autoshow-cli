@@ -23,7 +23,6 @@ const depsJsonPath = join(PROJECT_ROOT, 'config/deps.json')
 
 const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
   'whisper.cpp': { tag: 'v1.7.4' },
-  uv: { version: '0.11.14' },
   'yt-dlp': {
     version: '2026.06.09',
     url: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp_macos',
@@ -33,8 +32,8 @@ const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
   },
   ffmpeg: {
     version: '8.1.1',
-    url: 'https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.xz',
-    sha256: 'b6863adde98898f42602017462871b5f6333e65aec803fdd7a6308639c52edf3'
+    url: 'https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.gz',
+    sha256: '1b856f26a07082b6879f3e5300d81e8c7ce3b410ade5898b14382d90c2904634'
   },
   lame: {
     version: '3.100',

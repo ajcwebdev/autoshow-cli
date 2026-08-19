@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-16
+- **Date Updated:** 2026-08-18
 - **Verification Status:** Passed
 - **Supersession:** Consolidates per-modality 2026 refresh records into one dated ledger. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
@@ -566,6 +566,23 @@ Excluded from this refresh under ADR-010:
 
 - **Selector:** Embeddings, computer-use, deep-research, Antigravity, robotics, and retired GPT/o-series / Sora 2 slugs
 - **Why excluded:** Outside implemented AutoShow command lifecycles or already shut down.
+
+### 2026-08-18 Grok 4.6 and Gemini 3.7 Flash write additions
+
+Implements the two P1 write recommendations from the 2026-08-16 text-catalog gap audit. Both additions cover the write registry only; the audit's extract (OCR) recommendations for these selectors remain open.
+
+#### xAI Grok
+
+- Added `grok-4.6` to write alongside retained `grok-4.3` and `grok-4.5`; write expansion orders 4.3, 4.5, 4.6 and the bare `--llm grok` default stays `grok-4.3`.
+- Set Grok 4.6 price bands to `$2/$0.50/$6` per 1M input/cached-input/output tokens (<=200K input) and `$4/$1.00/$12` (>200K input), checked 2026-08-18 against the xAI model page. Estimates use uncached rates.
+- Reasoning mirrors Grok 4.5: required with low/medium/high efforts. Latency and token heuristics reuse the Grok 4.5 baseline and stay provisional until an approved ADR-012 calibration promotes them.
+- xAI removed the `.md` mirrors under `docs.x.ai/developers/models/`; the model-links dump keeps the working `https://docs.x.ai/developers/grok-4-6.md` reference.
+
+#### Google Gemini
+
+- Added `gemini-3.7-flash` to write alongside the retained Gemini selectors; expansion orders it after `gemini-3.1-pro-preview` and before `gemini-3.6-flash`, and the bare `--llm gemini` default stays `gemini-3.5-flash-lite`.
+- Recorded conservative Standard rates of `$1.50/$7.50` per 1M input/output tokens effective 2027-01-01 rather than the introductory `$0.75/$3.75` window through 2026-12-31, so estimates overstate cost until year-end.
+- Reasoning is optional with low/medium/high efforts only: the model page documents that `minimal` returns an error, unlike Gemini 3.6/3.5 Flash. Latency and token heuristics reuse the Gemini 3.6 Flash baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
 ### 2026-08-16 image, video, and music refresh
 

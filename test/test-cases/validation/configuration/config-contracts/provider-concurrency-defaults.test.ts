@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 describe('config provider and concurrency default contracts', () => {
   test('hosted concurrency mode persists globally and explicit flags override config', () => {

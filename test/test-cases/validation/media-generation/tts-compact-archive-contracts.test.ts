@@ -12,7 +12,7 @@ import { SOUND_EFFECT_ARCHIVE_PATH, createSoundEffectRenderPlan, executeSoundEff
 import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
 import { PRESENTATION_ARCHIVE_PATH, loadCompactPresentation } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-renderer'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
-import type { SoundscapePlan, TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection, CompactTargetRender, FinalTimeline, SoundscapePlan, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
@@ -116,15 +116,39 @@ describe('ADR-014 compact archive contracts', () => {
       const firstCalls: number[] = []
       const target = createFixtureTarget(firstCalls)
       const targetKey = target.targetKey as string
+      const publicationBoundaries: Array<{ archiveReady: boolean }> = []
       const first = await runTtsForTargets(sourceText, dir, {}, [target], {
         sourceIdentity,
         dialoguePlan,
         artifactRoot: 'audio/providers',
         resolveReportedOutput: () => ({ path: join(dir, 'audio', 'final', `${targetKey}.wav`), fileName: `audio/final/${targetKey}.wav` }),
+        onProviderState: async (state) => {
+          if (state.status !== 'succeeded') return
+          const projection = state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+          const archive = projection?.archive
+          publicationBoundaries.push({
+            archiveReady: Boolean(
+              archive
+              && await Bun.file(join(dir, archive.renderRef.path)).exists()
+              && await Bun.file(join(dir, archive.timelineRef.path)).exists()
+              && await Bun.file(join(dir, archive.finalRef.path)).exists()
+            ),
+          })
+        },
       })
       const archive = first.metadata[0]?.ttsAudio?.archive
       if (!archive) throw new Error('Missing compact TTS archive')
-      const compactRender = await Bun.file(join(dir, archive.renderRef.path)).json() as { slots: Array<{ slotHash: string }> }
+      const compactRender = await Bun.file(join(dir, archive.renderRef.path)).json() as CompactTargetRender
+      const { renderId, ...compactRenderBase } = compactRender
+      expect(renderId).toBe(hashCanonicalTtsValue(compactRenderBase))
+      expect(compactRender.cost).toEqual({
+        currentComposition: { planned: expect.any(Object), observed: [] },
+        closingAttempt: { planned: expect.any(Object), observed: [] },
+        cumulativeRenderHistory: { planned: expect.any(Object), observed: [] },
+      })
+      const timeline = await Bun.file(join(dir, archive.timelineRef.path)).json() as FinalTimeline
+      const { timelineId, ...timelineBase } = timeline
+      expect(timelineId).toBe(hashCanonicalTtsValue(timelineBase))
       const slotHash = compactRender.slots[0]?.slotHash
       if (!slotHash) throw new Error('Missing compact slot hash')
       const names = await relativeNames(dir)
@@ -137,6 +161,7 @@ describe('ADR-014 compact archive contracts', () => {
       expect(names.some(name => name.startsWith(`audio/work/${targetKey}/`))).toBe(false)
       expect(first.metadata[0]?.ttsAudio?.activeWork).toBeUndefined()
       expect(archive.slotCount).toBe(1)
+      expect(publicationBoundaries).toEqual([{ archiveReady: true }])
 
       const retained = buildCurrentTtsProviderState(first.metadata[0]!)
       const price = await planCurrentTtsResumePrice({

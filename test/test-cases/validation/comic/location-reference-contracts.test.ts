@@ -1,10 +1,16 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
+import ts from 'typescript'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { locationReferenceSketchCommand, type LocationViewQaResult } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command'
+import {
+  LOCATION_PROMOTION_TRANSACTION_BOUNDARIES,
+  promoteLocationRegistrationTransaction,
+} from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-transaction'
 import { getLocationReferencePath, getLocationSketchManifestPath, readLocationReferenceCatalog, readLocationSketchManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 import { estimateLocationReferencePrice } from '~/cli/commands/process-steps/step-8-comic/comic-utils/price-estimate'
 import { l } from '~/utils/app-logger/app-logger'
@@ -52,6 +58,41 @@ afterEach(async () => {
 })
 
 describe('canonical location reference registration', () => {
+  test('keeps validate, prepare, generate, and promote phases explicit with rollback outside generation', () => {
+    const commandPath = resolve(process.cwd(), 'src/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command.ts')
+    const transactionPath = resolve(process.cwd(), 'src/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-transaction.ts')
+    const declarations = (path: string): Map<string, ts.Expression> => {
+      const sourceFile = ts.createSourceFile(path, readFileSync(path, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+      const found = new Map<string, ts.Expression>()
+      const visit = (node: ts.Node): void => {
+        if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) found.set(node.name.text, node.initializer)
+        ts.forEachChild(node, visit)
+      }
+      visit(sourceFile)
+      return found
+    }
+    const commandDeclarations = declarations(commandPath)
+    const coordinator = commandDeclarations.get('locationReferenceSketchCommand')!
+    const coordinatorText = coordinator.getText()
+    const phaseCalls = [
+      'resolveLocationReferenceRequest(',
+      'loadLocationReferenceContext(',
+      'runLocationViewGeneration(',
+      'promoteLocationRegistrationTransaction(',
+    ].map(call => coordinatorText.indexOf(call))
+    expect(phaseCalls.every(index => index >= 0)).toBe(true)
+    expect(phaseCalls).toEqual([...phaseCalls].sort((left, right) => left - right))
+    expect(commandDeclarations.get('runLocationViewGeneration')?.getText()).not.toContain('rollback')
+    let coordinatorTryCount = 0
+    const countTryStatements = (node: ts.Node): void => {
+      if (ts.isTryStatement(node)) coordinatorTryCount++
+      ts.forEachChild(node, countTryStatements)
+    }
+    countTryStatements(coordinator)
+    expect(coordinatorTryCount).toBe(0)
+    expect(declarations(transactionPath).get('promoteLocationRegistrationTransaction')?.getText()).toContain('rollbackLocationRegistrationTransaction')
+  })
+
   test('derives a missing location catalog style reference from the configured character catalog', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-location-default-style-'))
     roots.push(root)
@@ -80,7 +121,13 @@ describe('canonical location reference registration', () => {
     expect(manifest.schemaVersion).toBe(2)
     expect(manifest.sketches[0].views.map((view: { view: string }) => view.view)).toEqual(['establishing'])
     expect(manifest.sketches[0].views[0].image).toBe('cargo-bay--reference.png')
-    expect(await Bun.file(join(locations, 'cargo-bay--reference.png')).exists()).toBe(true)
+    expect(Buffer.from(await Bun.file(join(locations, 'cargo-bay--reference.png')).arrayBuffer())).toEqual(image)
+    expect((await readLocationReferenceCatalog()).locations).toEqual([{
+      key: 'cargo-bay',
+      name: 'Cargo Bay',
+      specification: 'Fixed wall rails opposite a loading door.',
+      sourceScripts: ['scripts/02-script/01-cargo.md', 'scripts/02-script/02-cargo.md'],
+    }])
     expect(await Bun.file(join(locations, '.attempts', 'cargo-bay', 'establishing-generation')).exists()).toBe(false)
   })
 
@@ -168,6 +215,23 @@ describe('canonical location reference registration', () => {
     expect(await Bun.file(join(locations, 'single-episode', '02-cargo-bay--reference.png')).exists()).toBe(true)
   })
 
+  test('rejects a view before generation when its canonical references exceed the model limit', async () => {
+    const { locations } = await fixture()
+    const specification = 'Fixed loading door.'
+    const canonical = join(locations, 'cargo-bay--reference.png')
+    await Bun.write(canonical, image)
+    await Bun.write(getLocationReferencePath(), JSON.stringify({ schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
+    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
+    let imageCalls = 0
+    await expect(locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', imageModels: ['reve/2.1'], qa: false }, {
+      requestImage: async () => {
+        imageCalls++
+        return { mode: 'generate', result: { imageBase64: image.toString('base64') } }
+      },
+    })).rejects.toThrow('requires 2 reference images, but reve/2.1 supports 1')
+    expect(imageCalls).toBe(0)
+  })
+
   test('rejects schema-version-1 sheet registrations', async () => {
     const { locations } = await fixture()
     const specification = 'Fixed loading door.'
@@ -195,6 +259,49 @@ describe('canonical location reference registration', () => {
     expect(Buffer.from(await Bun.file(canonical).arrayBuffer())).toEqual(oldImage)
     expect(JSON.parse(await Bun.file(getLocationSketchManifestPath()).text())).toEqual(manifest)
     expect(await Bun.file(join(locations, '.attempts', 'cargo-bay', 'rollback', 'establishing-attempt-0.png')).exists()).toBe(true)
+  })
+
+  test('restores exact image, catalog, and manifest bytes after every promotion transaction boundary fault', async () => {
+    for (const faultBoundary of LOCATION_PROMOTION_TRANSACTION_BOUNDARIES) {
+      const { locations } = await fixture()
+      const specification = 'Fixed loading door.'
+      const canonical = join(locations, 'cargo-bay--reference.png')
+      const attemptsRoot = join(locations, '.attempts', 'cargo-bay', `fault-${faultBoundary}`)
+      const stagedImagePath = join(attemptsRoot, 'establishing-attempt-0.png')
+      const oldImage = Buffer.from(`old-canonical-${faultBoundary}`)
+      const catalog = { schemaVersion: 1 as const, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }
+      const manifest = { schemaVersion: 2 as const, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing' as const, generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }
+      const catalogBytes = `${JSON.stringify(catalog)}\n`
+      const manifestBytes = `${JSON.stringify(manifest)}\n`
+      await mkdir(attemptsRoot, { recursive: true })
+      await Bun.write(canonical, oldImage)
+      await Bun.write(stagedImagePath, image)
+      await Bun.write(getLocationReferencePath(), catalogBytes)
+      await Bun.write(getLocationSketchManifestPath(), manifestBytes)
+
+      await expect(promoteLocationRegistrationTransaction({
+        key: 'cargo-bay',
+        view: 'establishing',
+        model: 'fixture',
+        entry: catalog.locations[0]!,
+        catalog,
+        manifest,
+        prior: manifest.sketches[0]!,
+        priorTarget: manifest.sketches[0]!.views[0]!,
+        generationId: `fault-${faultBoundary}`,
+        attemptsRoot,
+        stagedImagePath,
+        injectFault: boundary => {
+          if (boundary === faultBoundary) throw new Error(`fault:${faultBoundary}`)
+        },
+      })).rejects.toThrow('prior registration was restored')
+
+      expect(Buffer.from(await Bun.file(canonical).arrayBuffer())).toEqual(oldImage)
+      expect(await Bun.file(getLocationReferencePath()).text()).toBe(catalogBytes)
+      expect(await Bun.file(getLocationSketchManifestPath()).text()).toBe(manifestBytes)
+      expect(Buffer.from(await Bun.file(stagedImagePath).arrayBuffer())).toEqual(image)
+      expect((await Array.fromAsync(new Bun.Glob('**/*.{backup,tmp}-*').scan({ cwd: locations, onlyFiles: true }))).sort()).toEqual([])
+    }
   })
 
   test('revises a canonical view when the configured characters root is relative to the working directory', async () => {

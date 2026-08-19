@@ -38,13 +38,6 @@ const maybeCopyWhisperDylibs = async (buildSrcDir: string): Promise<void> => {
   for (const dylib of dylibs) {
     await copyFile(`${buildSrcDir}/${dylib}`, `${whisperLibDir}/${dylib}`)
   }
-
-  await runCapture('install_name_tool', ['-add_rpath', whisperLibDir, whisperBinaryPath], { allowFailure: true })
-  await runCapture(
-    'install_name_tool',
-    ['-change', '@rpath/libwhisper.1.dylib', `${whisperLibDir}/libwhisper.1.dylib`, whisperBinaryPath],
-    { allowFailure: true }
-  )
 }
 
 const verifyWhisperBinary = async (): Promise<void> => {

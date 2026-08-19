@@ -11,7 +11,7 @@ export const PANEL_FILENAME_PADDING = 2
 
 export const loadPromptsConfig = async (): Promise<PromptsConfig> => {
   try {
-    return await parseJsonFile(join(PROJECT_ROOT, 'src', 'cli', 'commands', 'process-steps', 'step-8-comic', 'config', 'prompts.json'), PromptsConfigSchema)
+    return await parseJsonFile(join(PROJECT_ROOT, 'src', 'cli', 'commands', 'process-steps', 'step-8-comic', 'comic-prompts', 'prompts.json'), PromptsConfigSchema)
   } catch (error) {
     err('Failed to load prompts:', error instanceof Error ? error.message : String(error))
     throw InternalError('Failed to load prompts configuration', { stage: 'comic:scene-utils', ...(error instanceof Error ? { cause: error } : {}) })

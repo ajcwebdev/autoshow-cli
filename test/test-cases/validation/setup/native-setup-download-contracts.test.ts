@@ -9,7 +9,6 @@ import {
   setSetupDownloadConcurrency
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/download-admission'
 import { buildGithubArchiveUrl, buildGithubCommitArchiveUrl } from '~/cli/commands/setup-and-utilities/setup/setup-download/github-archives'
-import { resolveUvAssetName, resolveUvCommandFromCandidates, resolveUvDownloadUrl } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-uv'
 import { buildManagedQpdfWrapperScript } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
 import {
   buildLibjpegTurboCmakeArguments,
@@ -563,28 +562,6 @@ describe('managed macOS qpdf setup', () => {
     expect(refreshIndexes.some(index => index > darwinInstallIndex && index < linuxInstallIndex)).toBe(true)
     expect(refreshIndexes.some(index => index > linuxInstallIndex)).toBe(true)
     expect(installSource).not.toContain("if (hasRuntimeTool('qpdf'))")
-  })
-})
-
-describe('managed uv resolution', () => {
-  test('maps supported platforms to uv release assets', () => {
-    expect(resolveUvAssetName('darwin', 'arm64')).toBe('uv-aarch64-apple-darwin.tar.gz')
-    expect(resolveUvAssetName('darwin', 'x64')).toBe('uv-x86_64-apple-darwin.tar.gz')
-    expect(resolveUvAssetName('linux', 'arm64')).toBe('uv-aarch64-unknown-linux-gnu.tar.gz')
-    expect(resolveUvAssetName('linux', 'x64')).toBe('uv-x86_64-unknown-linux-gnu.tar.gz')
-    expect(resolveUvDownloadUrl('0.11.14', 'uv-x86_64-apple-darwin.tar.gz')).toBe(
-      'https://github.com/astral-sh/uv/releases/download/0.11.14/uv-x86_64-apple-darwin.tar.gz'
-    )
-  })
-
-  test('prefers PATH uv before managed uv and falls back to managed uv', async () => {
-    const dir = await makeTempDir()
-    const managed = join(dir, 'uv')
-    await Bun.write(managed, 'fake uv')
-    await chmod(managed, 0o755)
-
-    expect(await resolveUvCommandFromCandidates('/path/uv', managed)).toBe('/path/uv')
-    expect(await resolveUvCommandFromCandidates(null, managed)).toBe(managed)
   })
 })
 

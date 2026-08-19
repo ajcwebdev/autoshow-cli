@@ -115,7 +115,7 @@ Implemented in `test/test-utils/test-console-harness.ts`, `bunfig.toml`, and `te
 
 ```bash
 bun run check
-bun test test/test-cases/validation/runtime/test-runner-contracts/
+bun test test/test-cases/validation/runtime-contracts/test-runner-contracts/
 bun test test/test-cases/validation/providers/tts-provider-contracts/openai-grok-groq.test.ts
 ```
 

@@ -4,8 +4,7 @@ import { dirname } from 'node:path'
 import type { DownloadFlowId, DownloadRequest, PartialDownloadMetadata } from '~/types'
 import { extractTarGzBuffer } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
-import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 
 // Downloads abort on inactivity, not on elapsed transfer time: a flat total
@@ -16,19 +15,16 @@ const DEFAULT_TOTAL_TIMEOUT_MS = 15 * 60_000
 const LARGE_ASSET_TOTAL_TIMEOUT_MS = 60 * 60_000
 
 const TOTAL_TIMEOUT_MS_BY_FLOW: Record<DownloadFlowId, number> = {
-  'uv-release': DEFAULT_TOTAL_TIMEOUT_MS,
   'yt-dlp-binary': DEFAULT_TOTAL_TIMEOUT_MS,
   'ffmpeg-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'lame-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'mupdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
-  'mupdf-prebuilt': DEFAULT_TOTAL_TIMEOUT_MS,
   'calibre-dmg': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'leptonica-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'tesseract-source': DEFAULT_TOTAL_TIMEOUT_MS,
   tessdata: DEFAULT_TOTAL_TIMEOUT_MS,
   'libjpeg-turbo-source': DEFAULT_TOTAL_TIMEOUT_MS,
   'qpdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
-  'qpdf-prebuilt': DEFAULT_TOTAL_TIMEOUT_MS,
   'whisper-model': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisperfile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisper-source': DEFAULT_TOTAL_TIMEOUT_MS
@@ -236,33 +232,14 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
 
 const extractDownloadedArchive = async (
   archivePath: string,
-  req: DownloadRequest,
-  mode: 'tar-gz' | 'tar-xz' | 'zip'
+  req: DownloadRequest
 ): Promise<void> => {
   await mkdir(req.destination, { recursive: true })
-
-  if (mode === 'tar-gz') {
-    const buffer = await Bun.file(archivePath).arrayBuffer()
-    await extractTarGzBuffer(buffer, {
-      destination: req.destination,
-      ...(req.stripComponents !== undefined ? { stripComponents: req.stripComponents } : {})
-    })
-    return
-  }
-
-  if (mode === 'tar-xz') {
-    const args = ['-xJf', archivePath, '-C', req.destination]
-    if (req.stripComponents !== undefined) {
-      args.push(`--strip-components=${req.stripComponents}`)
-    }
-    await runCapture('tar', args)
-    return
-  }
-
-  if (req.stripComponents !== undefined && req.stripComponents > 0) {
-    throw InternalError('zip extraction does not support stripComponents', { stage: 'setup:download' })
-  }
-  await runCapture('unzip', ['-q', archivePath, '-d', req.destination])
+  const buffer = await Bun.file(archivePath).arrayBuffer()
+  await extractTarGzBuffer(buffer, {
+    destination: req.destination,
+    ...(req.stripComponents !== undefined ? { stripComponents: req.stripComponents } : {})
+  })
 }
 
 export const downloadFile = async (req: DownloadRequest): Promise<void> => {
@@ -300,7 +277,7 @@ export const downloadFile = async (req: DownloadRequest): Promise<void> => {
     await rename(partPath, req.destination)
     await rm(partMetadataPath(req.destination), { force: true })
   } else {
-    await extractDownloadedArchive(partPath, req, mode)
+    await extractDownloadedArchive(partPath, req)
     await discardPartialDownload(req.destination)
   }
 }

@@ -1,6 +1,13 @@
+docs/links
+!docs/links/.gitkeep
 docs/templates
-docs/reports
-albums
+docs/todo
+
+docs/reports/00-env-vars-report-*.md
+docs/reports/02-clean-deps-bun-report-*.md
+docs/reports/01-deps-report-*.md
+docs/reports/01-deps-report-*.md
+
 .DS_Store
 node_modules/
 *.env
@@ -8,31 +15,17 @@ node_modules/
 **/*/__pycache__
 output/
 Library/
-runtime/
-runtime/auth/
-!test/test-cases/validation/runtime/
-!test/test-cases/validation/runtime/**
-test-output
+runtime/*
 project/test-output
-new-llm-*.md
-TODO.md
-project/links
-project/plans
-config
-**/*.wav
-
-.projects/cache
-.projects/vault
 .env.local
 
-todo
 **/*.webp
 **/*.png
 **/*.jpg
 **/*.jpeg
 **/*.mp3
 **/*.mp4
-uss-acampo
+**/*.wav
 
 # input/ ships a small set of example fixtures and nothing else; everything else under it is
 # personal media. Git will not re-include a file whose parent directory is excluded, so the

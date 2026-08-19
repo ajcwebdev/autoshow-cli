@@ -31,6 +31,8 @@ const PROBE_TIMEOUT_MS = 5000
 const URL_PROBE_USER_AGENT = 'Mozilla/5.0 (compatible; autoshow-cli/0.1; +https://github.com/ajcwebdev/autoshow-cli)'
 const RAW_X_SPACE_ID_PATTERN = /^[A-Za-z0-9]{1,13}$/
 
+export type UrlInputKind = Extract<MetadataInputKind, `url_${string}`>
+
 export const isLikelyUrl = (input: string): boolean => {
   try {
     const parsed = new URL(input)
@@ -183,7 +185,7 @@ export const isHtmlDocumentPath = (path: string): boolean =>
 export const classifyUrlInput = async (
   url: string,
   opts?: Pick<UrlRuntimeOptions, 'urlBackendExplicit'>
-): Promise<MetadataInputKind> => {
+): Promise<UrlInputKind> => {
   if (isDocumentUrl(url)) {
     return hasHtmlExtension(new URL(url).pathname) ? 'url_html_article' : 'url_direct_document'
   }
@@ -277,6 +279,12 @@ export const classifyInputFamily = async (
     return 'unsupported'
   }
 
+  return await classifyExistingLocalInputFamily(target)
+}
+
+export const classifyExistingLocalInputFamily = async (
+  target: string
+): Promise<Exclude<InputFamily, 'x_space'>> => {
   if (isHtmlDocumentPath(target)) {
     return 'html_article'
   }

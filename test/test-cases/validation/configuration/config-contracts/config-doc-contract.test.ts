@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { resolve } from 'node:path'
 import * as v from 'valibot'
-import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { getStep2ProviderEntries } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import {
@@ -14,7 +14,7 @@ import {
 import { AutoshowConfigSchema } from '~/types'
 import type { ModelRegistry } from '~/types'
 
-const configDocPath = resolve(import.meta.dir, '../../../../../docs/commands/setup-and-utilities/config/config.md')
+const configDocPath = resolve(import.meta.dir, '../../../../../docs/commands/setup-and-utilities/config-command/config.md')
 
 type ModelBinding = {
   configPath: readonly string[]

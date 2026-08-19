@@ -1,7 +1,7 @@
 import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
 import { StructuredScriptDataSchema } from '../../schemas/schemas'
-import type { CharacterCatalogService, CharacterKey, ComicSourceIdentity, StructuredScriptBeat, StructuredScriptData } from '~/types'
+import type { CharacterCatalogService, CharacterKey, ComicSourceIdentity, ExpandedScriptBlock, StructuredScriptBeat, StructuredScriptData } from '~/types'
 import { loadCharacterCatalog, normalizeCharacterLookup } from '../character-reference-config'
 import { getCharactersFromMentions, isUncataloguedSpokenSpeakerLabel, uniqueCharacters } from './character-detection'
 import { buildSourceSegmentsFromBeats } from './source-segments'
@@ -108,11 +108,85 @@ const fallbackSourceIdentity = (content: string, scriptPath: string): ComicSourc
   return { ...base, identityHash: hashCanonicalTtsValue(base) }
 }
 
-export const parseScriptMarkdownToStructuredData = (
+interface StructuredScriptParserOptions {
+  locationCatalog?: LocationReferenceCatalog
+  characterCatalog?: CharacterCatalogService
+  sourceIdentity?: ComicSourceIdentity
+}
+
+interface StructuredScriptEnvelope {
+  content: string
+  scriptPath: string
+  scriptFile: string
+  documentHeading: ReturnType<typeof parseHeading>
+  sceneHeading: ReturnType<typeof parseHeading>
+  metadata: StructuredScriptData['document']['metadata']
+  locationRaw: string
+  locationCatalog: LocationReferenceCatalog
+  characterCatalog: CharacterCatalogService
+  blocks: ExpandedScriptBlock[]
+  providedSourceIdentity: ComicSourceIdentity | undefined
+}
+
+interface StructuredScriptParserState {
+  envelope: StructuredScriptEnvelope
+  activeLocation: StructuredScriptData['scene']['location']
+  beats: StructuredScriptBeat[]
+  allCharacters: CharacterKey[]
+  characterNameSet: Set<CharacterKey>
+  activeSpeakerLabel: string | null
+  activeSpeakerCharacters: CharacterKey[]
+  pendingDelivery: string | null
+  pendingCaptionLabel: string | null
+  hasDialogueInCurrentTurn: boolean
+  continueDialogueAfterDirection: boolean
+  pendingSoundDirectivePrompt: boolean
+}
+
+type StructuredScriptMention = StructuredScriptBeat['rawMentions'][number]
+type StructuredScriptBeatInput = Omit<StructuredScriptBeat, 'index' | 'location' | 'sourceSpans'>
+type SoundDirectiveClassification = {
+  kind: 'sound-directive'
+  waitsForPrompt: boolean
+} | {
+  kind: 'sound-directive-prompt'
+}
+type BoldLabelClassification = {
+  kind: 'bold-label'
+  label: string
+  role: 'location'
+} | {
+  kind: 'bold-label'
+  label: string
+  role: 'transition' | 'direction'
+  mentions: StructuredScriptMention[]
+  characters: CharacterKey[]
+} | {
+  kind: 'bold-label'
+  label: string
+  role: 'speaker'
+  characters: CharacterKey[]
+} | {
+  kind: 'bold-label'
+  label: string
+  role: 'uncatalogued-speaker' | 'caption'
+}
+type TextBlockClassification = {
+  kind: 'location-transition' | 'caption' | 'labelled-action-fragment' | 'dialogue' | 'direction'
+  text: string
+}
+type ClassifiedStructuredScriptBlock =
+  | SoundDirectiveClassification
+  | BoldLabelClassification
+  | { kind: 'panel-note'; block: string }
+  | { kind: 'parenthetical'; block: string }
+  | TextBlockClassification
+
+const parseStructuredScriptEnvelope = (
   content: string,
   scriptPath: string,
-  options: { locationCatalog?: LocationReferenceCatalog; characterCatalog?: CharacterCatalogService; sourceIdentity?: ComicSourceIdentity } = {},
-): StructuredScriptData => {
+  options: StructuredScriptParserOptions = {},
+): StructuredScriptEnvelope => {
   const scriptFile = basename(scriptPath)
   const normalized = normalizeLineEndings(content).trim()
   const lines = normalized.split('\n')
@@ -154,315 +228,397 @@ export const parseScriptMarkdownToStructuredData = (
     : resolveFallbackSceneLocation(metadata, sceneHeading.title)
   const locationCatalog = options.locationCatalog ?? readLocationReferenceCatalogSync()
   const characterCatalog = options.characterCatalog ?? loadCharacterCatalog()
-  const detectCharacterMentions = (text: string) => characterCatalog.detectMentions(text)
-  const detectSpeakerLabelCharacters = (label: string): CharacterKey[] => {
-    const direct = characterCatalog.resolve(label)
-    if (direct) return [...direct]
-    const parts = normalizeCharacterLookup(label).split(/\s*(?:,|&|\bAND\b)\s*/i).filter(Boolean)
-    if (parts.length < 2) return []
-    const keys: CharacterKey[] = []
-    for (const part of parts) {
-      const resolved = characterCatalog.resolve(part)
-      if (!resolved) return []
-      keys.push(...resolved)
-    }
-    return uniqueCharacters(keys)
-  }
-  const resolveLocation = (raw: string) => {
-    const slugline = extractLocationSlugline(raw) ?? raw
-    const entry = resolveLocationCatalogEntry(slugline, locationCatalog)
-    return parseLocation(raw, entry.key)
-  }
-  let activeLocation = resolveLocation(locationRaw)
   const body = lines
     .slice(hasSceneLocalLocation ? bodyStartIndex + 1 : bodyStartIndex)
     .join('\n')
     .trim()
   const blocks = expandScriptBlocks(splitIntoBlocks(body))
-  const beats: StructuredScriptBeat[] = []
-  const allCharacters: CharacterKey[] = []
-
-  let activeSpeakerLabel: string | null = null
-  let activeSpeakerCharacters: CharacterKey[] = []
-  let pendingDelivery: string | null = null
-  let pendingCaptionLabel: string | null = null
-  let hasDialogueInCurrentTurn = false
-  let continueDialogueAfterDirection = false
-  let pendingSoundDirectivePrompt = false
-
-  const resetSpeakerTurn = (): void => {
-    activeSpeakerLabel = null
-    activeSpeakerCharacters = []
-    pendingDelivery = null
-    hasDialogueInCurrentTurn = false
-    continueDialogueAfterDirection = false
+  return {
+    content,
+    scriptPath,
+    scriptFile,
+    documentHeading,
+    sceneHeading,
+    metadata,
+    locationRaw,
+    locationCatalog,
+    characterCatalog,
+    blocks,
+    providedSourceIdentity: options.sourceIdentity,
   }
+}
 
-  const nextBeatIndex = (): number => beats.length + 1
-  const appendBeat = (options: Omit<StructuredScriptBeat, 'index' | 'location' | 'sourceSpans'>): void => {
-    beats.push(buildBeat(nextBeatIndex(), { ...options, sourceSpans: [], location: activeLocation }))
+const resolveStructuredLocation = (
+  raw: string,
+  envelope: StructuredScriptEnvelope,
+): StructuredScriptData['scene']['location'] => {
+  const slugline = extractLocationSlugline(raw) ?? raw
+  const entry = resolveLocationCatalogEntry(slugline, envelope.locationCatalog)
+  return parseLocation(raw, entry.key)
+}
+
+const detectStructuredSpeakerCharacters = (
+  label: string,
+  characterCatalog: CharacterCatalogService,
+): CharacterKey[] => {
+  const direct = characterCatalog.resolve(label)
+  if (direct) return [...direct]
+  const parts = normalizeCharacterLookup(label).split(/\s*(?:,|&|\bAND\b)\s*/i).filter(Boolean)
+  if (parts.length < 2) return []
+  const keys: CharacterKey[] = []
+  for (const part of parts) {
+    const resolved = characterCatalog.resolve(part)
+    if (!resolved) return []
+    keys.push(...resolved)
   }
+  return uniqueCharacters(keys)
+}
 
-  const characterNameSet = new Set(characterCatalog.characterKeys)
-  const registerCharacters = (characterKeys: CharacterKey[]): void => {
-    for (const character of characterKeys) {
-      if (!characterNameSet.has(character)) {
-        continue
-      }
+const createStructuredScriptParserState = (
+  envelope: StructuredScriptEnvelope,
+): StructuredScriptParserState => ({
+  envelope,
+  activeLocation: resolveStructuredLocation(envelope.locationRaw, envelope),
+  beats: [],
+  allCharacters: [],
+  characterNameSet: new Set(envelope.characterCatalog.characterKeys),
+  activeSpeakerLabel: null,
+  activeSpeakerCharacters: [],
+  pendingDelivery: null,
+  pendingCaptionLabel: null,
+  hasDialogueInCurrentTurn: false,
+  continueDialogueAfterDirection: false,
+  pendingSoundDirectivePrompt: false,
+})
 
-      allCharacters.push(character)
-    }
+const resetSpeakerTurn = (state: StructuredScriptParserState): void => {
+  state.activeSpeakerLabel = null
+  state.activeSpeakerCharacters = []
+  state.pendingDelivery = null
+  state.hasDialogueInCurrentTurn = false
+  state.continueDialogueAfterDirection = false
+}
+
+const appendStructuredBeat = (
+  state: StructuredScriptParserState,
+  options: StructuredScriptBeatInput,
+): void => {
+  state.beats.push(buildBeat(state.beats.length + 1, {
+    ...options,
+    sourceSpans: [],
+    location: state.activeLocation,
+  }))
+}
+
+const registerStructuredCharacters = (
+  state: StructuredScriptParserState,
+  characterKeys: CharacterKey[],
+): void => {
+  for (const character of characterKeys) {
+    if (state.characterNameSet.has(character)) state.allCharacters.push(character)
   }
+}
 
-  for (const blockInfo of blocks) {
-    const block = blockInfo.text
-    const soundDirective = parseSoundscapeBlockDirective(block)
-    if (soundDirective) {
-      pendingSoundDirectivePrompt = soundDirective.prompt === undefined
-      resetSpeakerTurn()
-      continue
-    }
-    if (pendingSoundDirectivePrompt) {
-      pendingSoundDirectivePrompt = false
-      resetSpeakerTurn()
-      continue
-    }
-    const boldLine = extractSingleBoldLine(block)
-    if (boldLine) {
-      if (extractLocationSlugline(boldLine)) {
-        activeLocation = resolveLocation(boldLine)
-        appendBeat({ type: 'transition', text: boldLine, characterKeys: [], rawMentions: [] })
-        resetSpeakerTurn()
-        continue
-      }
-      const mentions = detectCharacterMentions(boldLine)
-      const characters = getCharactersFromMentions(mentions)
-      const speakerCharacters = detectSpeakerLabelCharacters(boldLine)
+const classifyBoldLabel = (
+  state: StructuredScriptParserState,
+  label: string,
+): BoldLabelClassification => {
+  if (extractLocationSlugline(label)) return { kind: 'bold-label', label, role: 'location' }
+  const mentions = state.envelope.characterCatalog.detectMentions(label)
+  const characters = getCharactersFromMentions(mentions)
+  const speakerCharacters = detectStructuredSpeakerCharacters(label, state.envelope.characterCatalog)
+  if (isTransitionText(label)) return { kind: 'bold-label', label, role: 'transition', mentions, characters }
+  if (speakerCharacters.length > 0) return { kind: 'bold-label', label, role: 'speaker', characters: speakerCharacters }
+  if (isUncataloguedSpokenSpeakerLabel(label)) return { kind: 'bold-label', label, role: 'uncatalogued-speaker' }
+  if (isCaptionSpeakerLabel(label)) return { kind: 'bold-label', label, role: 'caption' }
+  return { kind: 'bold-label', label, role: 'direction', mentions, characters }
+}
 
-      if (isTransitionText(boldLine)) {
-        appendBeat({
-          type: 'transition',
-          text: boldLine,
-          characterKeys: characters,
-          rawMentions: mentions,
-        })
-        registerCharacters(characters)
-        resetSpeakerTurn()
-        continue
-      }
+const classifyStructuredScriptBlock = (
+  state: StructuredScriptParserState,
+  blockInfo: ExpandedScriptBlock,
+): ClassifiedStructuredScriptBlock => {
+  const block = blockInfo.text
+  const soundDirective = parseSoundscapeBlockDirective(block)
+  if (soundDirective) return { kind: 'sound-directive', waitsForPrompt: soundDirective.prompt === undefined }
+  if (state.pendingSoundDirectivePrompt) return { kind: 'sound-directive-prompt' }
+  const boldLine = extractSingleBoldLine(block)
+  if (boldLine) return classifyBoldLabel(state, boldLine)
+  if (isPanelNoteBlock(block)) return { kind: 'panel-note', block }
+  if (isParentheticalBlock(block)) return { kind: 'parenthetical', block }
+  const text = stripEmphasisWrapper(normalizeBlockText(block))
+  if (extractLocationSlugline(text)) return { kind: 'location-transition', text }
+  if (state.pendingCaptionLabel) return { kind: 'caption', text }
+  if (
+    state.activeSpeakerLabel
+    && blockInfo.followsBoldLabelInSameBlock
+    && !state.hasDialogueInCurrentTurn
+    && !state.pendingDelivery
+    && looksLikeLabeledActionFragment(text)
+  ) {
+    return { kind: 'labelled-action-fragment', text }
+  }
+  if (state.activeSpeakerLabel && (!state.hasDialogueInCurrentTurn || state.continueDialogueAfterDirection)) {
+    return { kind: 'dialogue', text }
+  }
+  return { kind: 'direction', text }
+}
 
-      if (speakerCharacters.length > 0) {
-        activeSpeakerLabel = boldLine
-        activeSpeakerCharacters = speakerCharacters
-        pendingDelivery = null
-        hasDialogueInCurrentTurn = false
-        continueDialogueAfterDirection = false
-        continue
-      }
+const handleSoundDirective = (
+  state: StructuredScriptParserState,
+  classification: SoundDirectiveClassification,
+): void => {
+  state.pendingSoundDirectivePrompt = classification.kind === 'sound-directive'
+    ? classification.waitsForPrompt
+    : false
+  resetSpeakerTurn(state)
+}
 
-      if (isUncataloguedSpokenSpeakerLabel(boldLine)) {
-        activeSpeakerLabel = boldLine
-        activeSpeakerCharacters = []
-        pendingDelivery = null
-        hasDialogueInCurrentTurn = false
-        continueDialogueAfterDirection = false
-        continue
-      }
+const handleLocationTransition = (
+  state: StructuredScriptParserState,
+  text: string,
+): void => {
+  state.activeLocation = resolveStructuredLocation(text, state.envelope)
+  appendStructuredBeat(state, { type: 'transition', text, characterKeys: [], rawMentions: [] })
+  resetSpeakerTurn(state)
+}
 
-      if (isCaptionSpeakerLabel(boldLine)) {
-        resetSpeakerTurn()
-        pendingCaptionLabel = boldLine.trim().toUpperCase()
-        continue
-      }
-
-      appendBeat({
-        type: 'direction',
-        text: boldLine,
-        characterKeys: characters,
-        rawMentions: mentions,
-      })
-      registerCharacters(characters)
-      resetSpeakerTurn()
-      continue
-    }
-
-    if (isPanelNoteBlock(block)) {
-      const text = trimPanelNote(block)
-      const mentions = detectCharacterMentions(text)
-      const characters = getCharactersFromMentions(mentions)
-      appendBeat({
-        type: 'panel-note',
-        text,
-        characterKeys: characters,
-        rawMentions: mentions,
-      })
-      registerCharacters(characters)
-      resetSpeakerTurn()
-      continue
-    }
-
-    if (isParentheticalBlock(block)) {
-      const text = trimParenthetical(block)
-      const mentions = detectCharacterMentions(text)
-      const characters = uniqueCharacters([
-        ...activeSpeakerCharacters,
-        ...getCharactersFromMentions(mentions),
-      ])
-
-      if (activeSpeakerLabel && !hasDialogueInCurrentTurn && !pendingDelivery) {
-        pendingDelivery = text
-        continue
-      }
-
-      appendBeat({
-        type: 'direction',
-        text,
-        characterKeys: characters,
-        rawMentions: mentions,
-        ...(activeSpeakerCharacters.length === 1 ? { speakerKey: activeSpeakerCharacters[0] } : {}),
-        ...(activeSpeakerCharacters.length > 1 ? { speakerKeys: activeSpeakerCharacters } : {}),
-        ...(activeSpeakerLabel ? { speakerLabel: activeSpeakerLabel } : {}),
-      })
-      registerCharacters(characters)
-
-      if (activeSpeakerLabel) {
-        continueDialogueAfterDirection = true
-      } else {
-        resetSpeakerTurn()
-      }
-
-      continue
-    }
-
-    const text = stripEmphasisWrapper(normalizeBlockText(block))
-
-    if (extractLocationSlugline(text)) {
-      activeLocation = resolveLocation(text)
-      appendBeat({ type: 'transition', text, characterKeys: [], rawMentions: [] })
-      resetSpeakerTurn()
-      continue
-    }
-
-    if (pendingCaptionLabel) {
-      const captionLabel = pendingCaptionLabel
-      const mentions = detectCharacterMentions(text)
-      const characters = getCharactersFromMentions(mentions)
-
-      appendBeat({
-        type: 'narration',
-        text,
-        characterKeys: characters,
-        rawMentions: mentions,
-        speakerLabel: captionLabel,
-      })
-      registerCharacters(characters)
-      pendingCaptionLabel = null
-      resetSpeakerTurn()
-      continue
-    }
-
-    if (
-      activeSpeakerLabel
-      && blockInfo.followsBoldLabelInSameBlock
-      && !hasDialogueInCurrentTurn
-      && !pendingDelivery
-      && looksLikeLabeledActionFragment(text)
-    ) {
-      const mentions = detectCharacterMentions(text)
-      const characters = uniqueCharacters([
-        ...activeSpeakerCharacters,
-        ...getCharactersFromMentions(mentions),
-      ])
-
-      appendBeat({
-        type: 'direction',
-        text,
-        characterKeys: characters,
-        rawMentions: mentions,
-      })
-      registerCharacters(characters)
-      resetSpeakerTurn()
-      continue
-    }
-
-    if (activeSpeakerLabel && (!hasDialogueInCurrentTurn || continueDialogueAfterDirection)) {
-      const dialogue = extractLeadingDelivery(text)
-      const spokenText = stripInlineSoundscapeDirectives(stripInlineStageDirections(dialogue.text))
-      const mentions = detectCharacterMentions(spokenText)
-      const mentionedCharacters = getCharactersFromMentions(mentions)
-      const deliveryParts = [pendingDelivery, dialogue.delivery, ...extractInlineTimingDelivery(dialogue.text)]
-        .flatMap(value => value?.split(',') ?? [])
-        .map(value => value.trim())
-        .filter(value => value && !isTimingOnlyDirection(value))
-        .filter((value, index, all) => all.indexOf(value) === index)
-      // Timing notation is pacing, not an acting note, and must not reach speech tone.
-      const delivery = deliveryParts.length > 0 ? deliveryParts.join(', ') : undefined
-      const characters = uniqueCharacters([
-        ...activeSpeakerCharacters,
-        ...mentionedCharacters,
-      ])
-
-      appendBeat({
-        type: 'dialogue',
-        text: spokenText,
-        characterKeys: characters,
-        rawMentions: mentions,
-        ...(activeSpeakerCharacters.length === 1 ? { speakerKey: activeSpeakerCharacters[0] } : {}),
-        ...(activeSpeakerLabel ? { speakerLabel: activeSpeakerLabel } : {}),
-        ...(delivery ? { delivery } : {}),
-      })
-      registerCharacters(characters)
-      hasDialogueInCurrentTurn = true
-      pendingDelivery = null
-      continueDialogueAfterDirection = false
-      continue
-    }
-
-    const directionText = stripInlineSoundscapeDirectives(text)
-    const mentions = detectCharacterMentions(directionText)
-    const mentionedCharacters = getCharactersFromMentions(mentions)
-    // Authored action blocks are staging for the artist, never lettered text. Only
-    // an explicit caption label above the block produces a lettered narration beat.
-    const type = isTransitionText(directionText) ? 'transition' : 'direction'
-    appendBeat({
-      type,
-      text: directionText,
-      characterKeys: mentionedCharacters,
-      rawMentions: mentions,
+const handleBoldLabel = (
+  state: StructuredScriptParserState,
+  classification: BoldLabelClassification,
+): void => {
+  if (classification.role === 'location') {
+    handleLocationTransition(state, classification.label)
+    return
+  }
+  if (classification.role === 'transition' || classification.role === 'direction') {
+    appendStructuredBeat(state, {
+      type: classification.role,
+      text: classification.label,
+      characterKeys: classification.characters,
+      rawMentions: classification.mentions,
     })
-    registerCharacters(mentionedCharacters)
-    resetSpeakerTurn()
+    registerStructuredCharacters(state, classification.characters)
+    resetSpeakerTurn(state)
+    return
   }
+  if (classification.role === 'caption') {
+    resetSpeakerTurn(state)
+    state.pendingCaptionLabel = classification.label.trim().toUpperCase()
+    return
+  }
+  state.activeSpeakerLabel = classification.label
+  state.activeSpeakerCharacters = classification.role === 'speaker' ? classification.characters : []
+  state.pendingDelivery = null
+  state.hasDialogueInCurrentTurn = false
+  state.continueDialogueAfterDirection = false
+}
 
-  const normalizedBeats = attachSourceSpans(content, beats.map((beat, index) => ({
+const handlePanelNote = (
+  state: StructuredScriptParserState,
+  block: string,
+): void => {
+  const text = trimPanelNote(block)
+  const mentions = state.envelope.characterCatalog.detectMentions(text)
+  const characters = getCharactersFromMentions(mentions)
+  appendStructuredBeat(state, { type: 'panel-note', text, characterKeys: characters, rawMentions: mentions })
+  registerStructuredCharacters(state, characters)
+  resetSpeakerTurn(state)
+}
+
+const handleParenthetical = (
+  state: StructuredScriptParserState,
+  block: string,
+): void => {
+  const text = trimParenthetical(block)
+  const mentions = state.envelope.characterCatalog.detectMentions(text)
+  const characters = uniqueCharacters([
+    ...state.activeSpeakerCharacters,
+    ...getCharactersFromMentions(mentions),
+  ])
+  if (state.activeSpeakerLabel && !state.hasDialogueInCurrentTurn && !state.pendingDelivery) {
+    state.pendingDelivery = text
+    return
+  }
+  appendStructuredBeat(state, {
+    type: 'direction',
+    text,
+    characterKeys: characters,
+    rawMentions: mentions,
+    ...(state.activeSpeakerCharacters.length === 1 ? { speakerKey: state.activeSpeakerCharacters[0] } : {}),
+    ...(state.activeSpeakerCharacters.length > 1 ? { speakerKeys: state.activeSpeakerCharacters } : {}),
+    ...(state.activeSpeakerLabel ? { speakerLabel: state.activeSpeakerLabel } : {}),
+  })
+  registerStructuredCharacters(state, characters)
+  if (state.activeSpeakerLabel) state.continueDialogueAfterDirection = true
+  else resetSpeakerTurn(state)
+}
+
+const handleCaption = (
+  state: StructuredScriptParserState,
+  text: string,
+): void => {
+  const captionLabel = state.pendingCaptionLabel!
+  const mentions = state.envelope.characterCatalog.detectMentions(text)
+  const characters = getCharactersFromMentions(mentions)
+  appendStructuredBeat(state, {
+    type: 'narration',
+    text,
+    characterKeys: characters,
+    rawMentions: mentions,
+    speakerLabel: captionLabel,
+  })
+  registerStructuredCharacters(state, characters)
+  state.pendingCaptionLabel = null
+  resetSpeakerTurn(state)
+}
+
+const handleLabelledActionFragment = (
+  state: StructuredScriptParserState,
+  text: string,
+): void => {
+  const mentions = state.envelope.characterCatalog.detectMentions(text)
+  const characters = uniqueCharacters([
+    ...state.activeSpeakerCharacters,
+    ...getCharactersFromMentions(mentions),
+  ])
+  appendStructuredBeat(state, { type: 'direction', text, characterKeys: characters, rawMentions: mentions })
+  registerStructuredCharacters(state, characters)
+  resetSpeakerTurn(state)
+}
+
+const dialogueDelivery = (
+  state: StructuredScriptParserState,
+  dialogue: ReturnType<typeof extractLeadingDelivery>,
+): string | undefined => {
+  const parts = [state.pendingDelivery, dialogue.delivery, ...extractInlineTimingDelivery(dialogue.text)]
+    .flatMap(value => value?.split(',') ?? [])
+    .map(value => value.trim())
+    .filter(value => value && !isTimingOnlyDirection(value))
+    .filter((value, index, all) => all.indexOf(value) === index)
+  return parts.length > 0 ? parts.join(', ') : undefined
+}
+
+const handleDialogue = (
+  state: StructuredScriptParserState,
+  text: string,
+): void => {
+  const dialogue = extractLeadingDelivery(text)
+  const spokenText = stripInlineSoundscapeDirectives(stripInlineStageDirections(dialogue.text))
+  const mentions = state.envelope.characterCatalog.detectMentions(spokenText)
+  const characters = uniqueCharacters([
+    ...state.activeSpeakerCharacters,
+    ...getCharactersFromMentions(mentions),
+  ])
+  const delivery = dialogueDelivery(state, dialogue)
+  appendStructuredBeat(state, {
+    type: 'dialogue',
+    text: spokenText,
+    characterKeys: characters,
+    rawMentions: mentions,
+    ...(state.activeSpeakerCharacters.length === 1 ? { speakerKey: state.activeSpeakerCharacters[0] } : {}),
+    ...(state.activeSpeakerLabel ? { speakerLabel: state.activeSpeakerLabel } : {}),
+    ...(delivery ? { delivery } : {}),
+  })
+  registerStructuredCharacters(state, characters)
+  state.hasDialogueInCurrentTurn = true
+  state.pendingDelivery = null
+  state.continueDialogueAfterDirection = false
+}
+
+const handleDirection = (
+  state: StructuredScriptParserState,
+  text: string,
+): void => {
+  const directionText = stripInlineSoundscapeDirectives(text)
+  const mentions = state.envelope.characterCatalog.detectMentions(directionText)
+  const characters = getCharactersFromMentions(mentions)
+  appendStructuredBeat(state, {
+    type: isTransitionText(directionText) ? 'transition' : 'direction',
+    text: directionText,
+    characterKeys: characters,
+    rawMentions: mentions,
+  })
+  registerStructuredCharacters(state, characters)
+  resetSpeakerTurn(state)
+}
+
+const dispatchStructuredScriptBlock = (
+  state: StructuredScriptParserState,
+  classification: ClassifiedStructuredScriptBlock,
+): void => {
+  switch (classification.kind) {
+    case 'sound-directive':
+    case 'sound-directive-prompt':
+      return handleSoundDirective(state, classification)
+    case 'bold-label':
+      return handleBoldLabel(state, classification)
+    case 'panel-note':
+      return handlePanelNote(state, classification.block)
+    case 'parenthetical':
+      return handleParenthetical(state, classification.block)
+    case 'location-transition':
+      return handleLocationTransition(state, classification.text)
+    case 'caption':
+      return handleCaption(state, classification.text)
+    case 'labelled-action-fragment':
+      return handleLabelledActionFragment(state, classification.text)
+    case 'dialogue':
+      return handleDialogue(state, classification.text)
+    case 'direction':
+      return handleDirection(state, classification.text)
+  }
+}
+
+const finalizeStructuredScript = (
+  state: StructuredScriptParserState,
+): StructuredScriptData => {
+  const { envelope } = state
+  const normalizedBeats = attachSourceSpans(envelope.content, state.beats.map((beat, index) => ({
     ...beat,
     index: index + 1,
   })))
-
-  const sourceIdentity = options.sourceIdentity ?? fallbackSourceIdentity(content, scriptPath)
+  const sourceIdentity = envelope.providedSourceIdentity ?? fallbackSourceIdentity(envelope.content, envelope.scriptPath)
   const sourceSegments = buildSourceSegmentsFromBeats(normalizedBeats)
-  const soundscape = buildStructuredSoundscape({ exactSource: content, expandedBlocks: blocks, sourceSegments, sourceIdentityHash: sourceIdentity.identityHash })
+  const soundscape = buildStructuredSoundscape({
+    exactSource: envelope.content,
+    expandedBlocks: envelope.blocks,
+    sourceSegments,
+    sourceIdentityHash: sourceIdentity.identityHash,
+  })
 
   return v.parse(StructuredScriptDataSchema, {
     schemaVersion: 5,
-    scriptSlug: basename(scriptFile, '.md'),
+    scriptSlug: basename(envelope.scriptFile, '.md'),
     sourceFile: sourceIdentity.canonicalPath,
     sourceIdentity,
     document: {
-      heading: documentHeading.heading,
-      ...(documentHeading.label ? { label: documentHeading.label } : {}),
-      title: documentHeading.title,
-      metadata,
+      heading: envelope.documentHeading.heading,
+      ...(envelope.documentHeading.label ? { label: envelope.documentHeading.label } : {}),
+      title: envelope.documentHeading.title,
+      metadata: envelope.metadata,
     },
     scene: {
-      heading: sceneHeading.heading,
-      ...(sceneHeading.label ? { section: sceneHeading.label } : {}),
-      title: sceneHeading.title,
-      location: resolveLocation(locationRaw),
+      heading: envelope.sceneHeading.heading,
+      ...(envelope.sceneHeading.label ? { section: envelope.sceneHeading.label } : {}),
+      title: envelope.sceneHeading.title,
+      location: resolveStructuredLocation(envelope.locationRaw, envelope),
       soundscape,
     },
-    characterKeys: uniqueCharacters(allCharacters),
+    characterKeys: uniqueCharacters(state.allCharacters),
     beats: normalizedBeats,
     sourceSegments,
   })
+}
+
+export const parseScriptMarkdownToStructuredData = (
+  content: string,
+  scriptPath: string,
+  options: StructuredScriptParserOptions = {},
+): StructuredScriptData => {
+  const state = createStructuredScriptParserState(parseStructuredScriptEnvelope(content, scriptPath, options))
+  for (const blockInfo of state.envelope.blocks) {
+    dispatchStructuredScriptBlock(state, classifyStructuredScriptBlock(state, blockInfo))
+  }
+  return finalizeStructuredScript(state)
 }

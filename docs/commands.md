@@ -275,7 +275,7 @@ bun as links --help
 - `music`: [music](./commands/process-steps/step-7-music/text-to-music-services.md)
 - `comic`: [comic](./commands/process-steps/step-8-comic/00-comic-overview.md)
 - `resume`: [resume](./commands/setup-and-utilities/resume/resume.md)
-- `config`: [config](./commands/setup-and-utilities/config/config.md)
+- `config`: [config](./commands/setup-and-utilities/config-command/config.md)
 - `links`: [links](./commands/setup-and-utilities/links/links.md)
 
 ## Selection Guide

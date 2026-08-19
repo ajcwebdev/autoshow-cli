@@ -24,7 +24,6 @@ export type DoctorProbes = {
   directoryHasFiles: (path: string) => Promise<boolean>
   run: (command: string, args: string[]) => Promise<RunResult>
   resolveYtDlpBinaryInfo: () => ResolvedYtDlpBinary | undefined
-  resolveUvCommand: () => Promise<string | undefined>
   readDefuddleCliReadiness: () => Promise<CheckResult>
   resolveConfigPath: () => Promise<string>
   loadConfig: (path: string) => Promise<AutoshowConfig>

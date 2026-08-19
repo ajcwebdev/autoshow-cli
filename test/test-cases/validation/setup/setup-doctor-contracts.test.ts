@@ -39,7 +39,6 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
     return okRun('ok')
   },
   resolveYtDlpBinaryInfo: () => ({ path: '/runtime/bin/yt-dlp', source: 'managed' }),
-  resolveUvCommand: async () => '/usr/bin/uv',
   readDefuddleCliReadiness: async () => ({ label: 'defuddle', ok: true, detail: 'defuddle 0.17.0' }),
   resolveConfigPath: async () => '/tmp/autoshow.json',
   loadConfig: async () => ({}),

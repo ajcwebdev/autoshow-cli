@@ -294,7 +294,7 @@ bun autoshow setup --models base
 
 ### config
 
-[`config`](./commands/setup-and-utilities/config/config.md) inspects, resets, or persists selected defaults in `config/autoshow.json`.
+[`config`](./commands/setup-and-utilities/config-command/config.md) inspects, resets, or persists selected defaults in `config/autoshow.json`.
 
 - Persisted defaults include:
   - provider/model and prompt defaults

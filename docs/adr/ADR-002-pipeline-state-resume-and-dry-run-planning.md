@@ -262,7 +262,7 @@ Negative outcomes:
 - Canonical persistence boundary: `src/cli/commands/process-steps/pipeline-manifest.ts`
 - Resume routing and dispatch: `src/cli/commands/setup-and-utilities/resume/`
 - Resume flags: `src/cli/flags/resume-flags.ts`
-- Configuration fallback: `src/cli/commands/setup-and-utilities/config/config-merge.ts`
+- Configuration fallback: `src/cli/commands/setup-and-utilities/config-command/config-merge.ts`
 - Aggregate pricing: `src/cli/commands/pricing-orchestration/aggregate-pricing.ts`
 - Canonical persistence source guard: `test/test-cases/validation/resume-manifests/no-legacy-persistence-contracts.test.ts`
 - Resume provider-surface contracts: `test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts`

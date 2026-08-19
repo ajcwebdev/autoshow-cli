@@ -9,7 +9,7 @@ import { canonicalTtsJson, hashCanonicalTtsValue } from './contract-identity'
 import { validateProviderBatchResult } from './contract-validation'
 import { type AttemptSlot, type AttemptTurn, withIdentity, type WrittenJson } from './attempt-shared'
 import { contained, writeJson } from './attempt-io'
-import { resolveRetainedPath } from './attempt-recovery'
+import { resolveRetainedPath } from './recovery-evidence'
 import type { AttemptContext } from './attempt-context'
 import { requireJournalFile, writeNextJournal } from './attempt-journal'
 
