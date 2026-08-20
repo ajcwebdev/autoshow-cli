@@ -7,7 +7,8 @@ import {
   parseSupadataJobStatus,
   readJsonOrText
 } from './supadata-response-parsers'
-import { buildSupadataUrl, toSupadataHttpError } from './supadata-utils'
+import { toSupadataHttpError } from './supadata-utils'
+import { resolveRestPath } from '~/utils/rest-client'
 
 const REQUEST_TIMEOUT_MS = 70_000
 const POLL_REQUEST_TIMEOUT_MS = 60_000
@@ -30,7 +31,7 @@ export const fetchSupadataTranscript = async (
     },
     async (signal) => {
       input.metrics?.onRequest?.()
-      const requestUrl = new URL(buildSupadataUrl(input.baseURL, '/transcript'))
+      const requestUrl = new URL(resolveRestPath(input.baseURL, '/transcript'))
       requestUrl.searchParams.set('url', input.sourceUrl)
       requestUrl.searchParams.set('text', 'false')
       requestUrl.searchParams.set('mode', input.modelName)
@@ -96,7 +97,7 @@ export const pollSupadataTranscriptJob = async (
     },
     async (signal) => {
       input.metrics?.onRequest?.()
-      const response = await fetch(buildSupadataUrl(input.baseURL, `/transcript/${input.jobId}`), {
+      const response = await fetch(resolveRestPath(input.baseURL, `/transcript/${input.jobId}`), {
         method: 'GET',
         headers: {
           'x-api-key': input.apiKey

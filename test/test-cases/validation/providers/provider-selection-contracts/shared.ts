@@ -1,12 +1,12 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { makeTempDirSync } from '../../../../test-utils/temp-dirs'
 
 export const withTempImageFixture = <T>(
   prefix: string,
   run: (imagePath: string, tempDir: string) => T
 ): T => {
-  const tempDir = mkdtempSync(join(tmpdir(), prefix))
+  const tempDir = makeTempDirSync(prefix)
   const imagePath = join(tempDir, 'reference.png')
   writeFileSync(imagePath, new Uint8Array([1, 2, 3]))
 
@@ -21,7 +21,7 @@ export const withTempImageFixtures = <T>(
   prefix: string,
   run: (paths: { firstRef: string, secondRef: string }, tempDir: string) => T
 ): T => {
-  const tempDir = mkdtempSync(join(tmpdir(), prefix))
+  const tempDir = makeTempDirSync(prefix)
   const firstRef = join(tempDir, 'first.png')
   const secondRef = join(tempDir, 'second.webp')
   writeFileSync(firstRef, new Uint8Array([1, 2, 3]))

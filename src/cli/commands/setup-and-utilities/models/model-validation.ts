@@ -1,4 +1,6 @@
+import type { ModelCategory } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
   STANDALONE_MUSIC_PROVIDER_TARGETS,
@@ -91,6 +93,30 @@ export const throwRetiredModelSelection = (
   throw CLIUsageError(
     `Model "${model}" is retired for ${formatModelSelector(flag)}. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`
   )
+}
+
+/**
+ * A model validator that redirects retired identities before validating against the active
+ * list. Twelve validators across the model modules had hand-copied this wrapper, and
+ * `image-models.ts` had instead hardcoded its own literal comparisons; routing every one
+ * through the retirement registry means adding a retired model to
+ * `RETIRED_MODEL_REPLACEMENTS` is all a provider refresh has to do.
+ */
+export const createRetiringModelValidator = <T extends string>(
+  category: ModelCategory,
+  service: string,
+  supported: readonly T[],
+  flag: string,
+  extraMessage?: string
+) => {
+  const validateActive = createModelValidator<T>(supported, flag, extraMessage)
+  return (model: string): T => {
+    const replacement = getRetiredModelReplacement(category, service, model)
+    if (replacement !== undefined) {
+      return throwRetiredModelSelection(model, flag, replacement)
+    }
+    return validateActive(model)
+  }
 }
 
 export const buildModelDescription = (label: string, models: readonly string[]): string =>

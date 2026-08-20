@@ -1,5 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { estimateFirecrawlScrapeCost } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
@@ -20,6 +19,7 @@ import {
   expectedOcrProcessingMs,
   missingHostedOcrProfilePath
 } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 describe('price mode contracts', () => {
   test('URL article extract estimates use Firecrawl and glm-reader page rates without fetching', () => {
@@ -140,7 +140,7 @@ describe('price mode contracts', () => {
   })
 
   test('hosted OCR aggregate pricing rejects invalid PDFs instead of estimating one page', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-price-invalid-'))
+      const tempDir = await makeTempDir('autoshow-ocr-price-invalid-')
       const invalidPdf = join(tempDir, 'invalid.pdf')
 
       await writeFile(invalidPdf, 'not a real PDF\n')

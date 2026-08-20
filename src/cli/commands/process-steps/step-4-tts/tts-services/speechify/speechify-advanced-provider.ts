@@ -21,6 +21,7 @@ import {
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
+import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 
 const DOCS = {
   catalog: 'https://docs.speechify.ai/build/api-reference/v1/voices/get',
@@ -46,29 +47,25 @@ const capabilityRecords = [
 export const SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 export const SPEECHIFY_CLONE_SAMPLE_MAX_BYTES = 5 * 1024 * 1024
 
-const record = (value: unknown, label: string): JsonObject => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`Speechify ${label} response is invalid.`)
-  return value as JsonObject
-}
-const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
+const record = createProviderRecordReader('Speechify')
 
 const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
-  const resourceId = string(voice['id'])
-  const name = string(voice['display_name']) ?? string(voice['name'])
+  const resourceId = trimmedString(voice['id'])
+  const name = trimmedString(voice['display_name']) ?? trimmedString(voice['name'])
   if (!resourceId || !name) throw CLIUsageError('Speechify voice response omits id or display_name.')
-  const type = string(voice['type'])
+  const type = trimmedString(voice['type'])
   const models = Array.isArray(voice['models']) ? voice['models'] : []
-  const modelIds = models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) ? string((value as JsonObject)['name']) ?? [] : [])
-  const tags = Array.isArray(voice['tags']) ? voice['tags'].flatMap(value => string(value) ?? []) : []
+  const modelIds = models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) ? trimmedString((value as JsonObject)['name']) ?? [] : [])
+  const tags = Array.isArray(voice['tags']) ? voice['tags'].flatMap(value => trimmedString(value) ?? []) : []
   return {
     provider: 'speechify', resourceId, name,
     source: type === 'personal' ? 'account' : 'provider-library',
     origin: type === 'personal' ? 'instant-clone' : 'provider-stock',
-    ...(string(voice['preview_audio']) ? { previewUrl: string(voice['preview_audio']) } : {}),
+    ...(trimmedString(voice['preview_audio']) ? { previewUrl: trimmedString(voice['preview_audio']) } : {}),
     labels: Object.fromEntries([
-      ['gender', string(voice['gender'])],
-      ['locale', string(voice['locale'])],
+      ['gender', trimmedString(voice['gender'])],
+      ['locale', trimmedString(voice['locale'])],
     ].flatMap(([key, item]) => item ? [[key as string, item]] : [])),
     modelIds,
     state: 'available',
@@ -89,7 +86,7 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
       if (source === 'shared-library') throw CLIUsageError('Speechify exposes shared and personal voice types, not a shared-owner library namespace.')
       const payload = record(await request({ method: 'GET', path: '/v1/voices', query: { cursor: input?.cursor, limit: '100', type: source === 'account' ? 'personal' : 'shared' } }), 'voice catalog')
       const entries = Array.isArray(payload['voices']) ? payload['voices'].map(mapVoice) : []
-      const nextCursor = payload['has_more'] === true ? string(payload['next_cursor']) : undefined
+      const nextCursor = payload['has_more'] === true ? trimmedString(payload['next_cursor']) : undefined
       const page: ProviderVoiceCatalogPage = { schemaVersion: 1, provider: 'speechify', entries, ...(nextCursor ? { nextCursor } : {}), checkedAt: now() }
       return page
     }

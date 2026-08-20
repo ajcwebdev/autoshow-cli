@@ -21,6 +21,7 @@ import {
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
+import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 
 const DOCS = {
   voices: 'https://elevenlabs.io/docs/api-reference/voices/search',
@@ -55,12 +56,8 @@ const capabilityRecords = [
 export const ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 export const ELEVENLABS_DEFAULT_VOICE_EXPIRY = '2026-12-31T23:59:59.999Z'
 
-const record = (value: unknown, label: string): JsonObject => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`ElevenLabs ${label} response is invalid.`)
-  return value as JsonObject
-}
-const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
-const stringArray = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(item => string(item) ?? []) : []
+const record = createProviderRecordReader('ElevenLabs')
+const stringArray = (value: unknown): string[] => Array.isArray(value) ? value.flatMap(item => trimmedString(item) ?? []) : []
 const labels = (value: unknown): Record<string, string> => value && typeof value === 'object' && !Array.isArray(value)
   ? Object.fromEntries(Object.entries(value).flatMap(([key, item]) => typeof item === 'string' ? [[key, item]] : []))
   : {}
@@ -71,16 +68,16 @@ const unixExpiry = (value: unknown): string | undefined => typeof value === 'num
 
 const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
-  const resourceId = string(voice['voice_id']) ?? string(voice['id'])
-  const name = string(voice['name'])
+  const resourceId = trimmedString(voice['voice_id']) ?? trimmedString(voice['id'])
+  const name = trimmedString(voice['name'])
   if (!resourceId || !name) throw CLIUsageError('ElevenLabs voice response omits voice_id or name.')
-  const category = string(voice['category'])
+  const category = trimmedString(voice['category'])
   const sharing = voice['sharing'] && typeof voice['sharing'] === 'object' && !Array.isArray(voice['sharing']) ? voice['sharing'] as JsonObject : undefined
   const expiresAt = unixExpiry(sharing?.['disable_at_unix'])
     ?? (category === 'premade' && voice['is_legacy'] === true ? ELEVENLABS_DEFAULT_VOICE_EXPIRY : undefined)
   const fineTuning = voice['fine_tuning'] && typeof voice['fine_tuning'] === 'object' && !Array.isArray(voice['fine_tuning']) ? voice['fine_tuning'] as JsonObject : undefined
   const fineState = fineTuning?.['state'] && typeof fineTuning['state'] === 'object' && !Array.isArray(fineTuning['state'])
-    ? Object.values(fineTuning['state'] as JsonObject).map(item => string(item)).filter(Boolean)
+    ? Object.values(fineTuning['state'] as JsonObject).map(item => trimmedString(item)).filter(Boolean)
     : []
   const requiresVerification = fineState.some(state => state === 'not_verified' || state === 'not_started')
   const origin = source === 'shared-library'
@@ -98,8 +95,8 @@ const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): 
     name,
     source,
     origin,
-    ...(string(voice['preview_url']) ? { previewUrl: string(voice['preview_url']) } : {}),
-    ...(string(voice['description']) ? { description: string(voice['description']) } : {}),
+    ...(trimmedString(voice['preview_url']) ? { previewUrl: trimmedString(voice['preview_url']) } : {}),
+    ...(trimmedString(voice['description']) ? { description: trimmedString(voice['description']) } : {}),
     labels: labels(voice['labels']),
     modelIds: stringArray(voice['high_quality_base_model_ids']),
     state: expiresAt && Date.parse(expiresAt) <= Date.now()
@@ -108,7 +105,7 @@ const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): 
     ...(expiresAt ? { expiresAt } : {}),
     sanitizedMetadata: {
       ...(category ? { category } : {}),
-      ...(string(voice['public_owner_id']) ? { publicOwnerId: string(voice['public_owner_id']) as string } : {}),
+      ...(trimmedString(voice['public_owner_id']) ? { publicOwnerId: trimmedString(voice['public_owner_id']) as string } : {}),
       ...(typeof voice['is_owner'] === 'boolean' ? { isOwner: voice['is_owner'] } : {}),
       ...(typeof sharing?.['notice_period'] === 'number' ? { noticePeriodDays: sharing['notice_period'] } : {}),
       defaultVoiceExpiryRecognized: ELEVENLABS_DEFAULT_VOICE_EXPIRY,
@@ -130,7 +127,7 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
         ? { method: 'GET', path: '/v1/shared-voices', query: { page_size: '100', ...(input?.cursor ? { last_sort_id: input.cursor } : {}) } }
         : { method: 'GET', path: '/v2/voices', query: { next_page_token: input?.cursor, page_size: '100', include_total_count: 'false' } }), 'catalog')
       const voices = Array.isArray(response['voices']) ? response['voices'] : []
-      const nextCursor = string(response['next_page_token']) ?? (response['has_more'] === true ? string(response['last_sort_id']) : undefined)
+      const nextCursor = trimmedString(response['next_page_token']) ?? (response['has_more'] === true ? trimmedString(response['last_sort_id']) : undefined)
       const page: ProviderVoiceCatalogPage = {
         schemaVersion: 1,
         provider: 'elevenlabs',
@@ -168,16 +165,16 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
         creationModel: designRequest.creationModel,
         previews: previews.map((value) => {
           const preview = record(value, 'voice preview')
-          const providerCandidateId = string(preview['generated_voice_id'])
-          const audioBase64 = string(preview['audio_base_64'])
+          const providerCandidateId = trimmedString(preview['generated_voice_id'])
+          const audioBase64 = trimmedString(preview['audio_base_64'])
           if (!providerCandidateId || !audioBase64) throw CLIUsageError('ElevenLabs voice preview omits generated voice ID or audio.')
           return {
             providerCandidateId,
             audioBase64,
-            mediaType: string(preview['media_type']) ?? 'audio/mpeg',
+            mediaType: trimmedString(preview['media_type']) ?? 'audio/mpeg',
             ...(typeof preview['duration_secs'] === 'number' ? { durationMs: Math.round(preview['duration_secs'] * 1000) } : {}),
             sanitizedMetadata: {
-              ...(string(preview['language']) ? { language: string(preview['language']) as string } : {}),
+              ...(trimmedString(preview['language']) ? { language: trimmedString(preview['language']) as string } : {}),
               expiryState: 'not-exposed'
             }
           }
@@ -194,7 +191,7 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
         voice_description: 'AutoShow materialized voice candidate',
         generated_voice_id: materializeRequest.providerCandidateId
       } }), 'voice materialization')
-      const resourceId = string(response['voice_id'])
+      const resourceId = trimmedString(response['voice_id'])
       if (!resourceId) throw CLIUsageError('ElevenLabs materialization returned no voice_id.')
       const derivedFrom = materializeRequest.sourceVoice
         ? {
@@ -229,8 +226,8 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
         form.append('files', new Blob([resolved.bytes], { type: resolved.mediaType }), resolved.fileName)
       }
       const response = record(await request({ method: 'POST', path: '/v1/voices/add', body: form }), 'instant clone')
-      const resourceId = string(response['voice_id'])
-      const providerOperationId = string(response['request_id'])
+      const resourceId = trimmedString(response['voice_id'])
+      const providerOperationId = trimmedString(response['request_id'])
       if (!resourceId) {
         if (!providerOperationId) throw CLIUsageError('ElevenLabs Instant Voice Clone returned neither voice_id nor a pending operation ID.')
         return { schemaVersion: 1, provider: 'elevenlabs', state: 'pending', providerOperationId, sanitizedMetadata: { cloneKind: 'instant', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }

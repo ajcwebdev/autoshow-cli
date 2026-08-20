@@ -2,14 +2,15 @@ import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAs
 import { logSttDiarizationConfig } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { AsyncSttLifecycleMetrics, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { AsyncSttLifecycleMetrics, HostedAsyncSttRunOptions, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
-import { InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { InternalError, ValidationError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import * as v from 'valibot'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
+import { attachSttStageErrorContext } from '../../stt-error-context'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
 const MAX_POLL_INTERVAL_MS = 10000
@@ -32,17 +33,6 @@ const formatSpeaker = (speaker: string | undefined): string | undefined => {
   return `speaker-${speaker}`
 }
 
-const attachAssemblyAiErrorContext = (
-  error: unknown,
-  stage: string,
-  retryClass: RetryClass
-): never => {
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as SttStageHttpError).stage = stage
-  ;(source as SttStageHttpError).retryClass = retryClass
-  throw source
-}
-
 const uploadAssemblyAiAudio = async (
   apiKey: string,
   audioPath: string,
@@ -57,7 +47,7 @@ const uploadAssemblyAiAudio = async (
     schema: v.unknown(),
     schemaLabel: 'AssemblyAI upload response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    attachError: attachAssemblyAiErrorContext,
+    attachError: attachSttStageErrorContext,
     doFetch: (signal) => fetch(`${ASSEMBLYAI_DEFAULT_BASE_URL}/v2/upload`, {
       method: 'POST',
       headers: {
@@ -94,7 +84,7 @@ const createAssemblyAiTranscript = async (
     schema: v.unknown(),
     schemaLabel: 'AssemblyAI transcript creation response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    attachError: attachAssemblyAiErrorContext,
+    attachError: attachSttStageErrorContext,
     doFetch: (signal) => fetch(`${ASSEMBLYAI_DEFAULT_BASE_URL}/v2/transcript`, {
       method: 'POST',
       headers: {
@@ -129,7 +119,7 @@ const pollAssemblyAiTranscript = async (
     schema: AssemblyAiTranscriptResponseSchema,
     schemaLabel: 'AssemblyAI transcript response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    attachError: attachAssemblyAiErrorContext,
+    attachError: attachSttStageErrorContext,
     doFetch: (signal) => fetch(`${ASSEMBLYAI_DEFAULT_BASE_URL}/v2/transcript/${transcriptId}`, {
       method: 'GET',
       headers: { 'authorization': apiKey },

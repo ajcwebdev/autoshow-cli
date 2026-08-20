@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
   isBunImagePngNormalizableFormat,
@@ -12,6 +11,7 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/hosted-ocr'
 import type { HostedExtractOcrEngine, OcrBunImageCodec } from '~/types'
 import { pngSignature, redDotPng } from '../../../test-utils/media-fixtures'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const whiteBmp = new Uint8Array([
   0x42, 0x4d, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -49,7 +49,7 @@ const writeImageFixture = async (
 
 describe('OCR Bun.Image normalization contracts', () => {
   test('Bun.Image helper normalizes BMP, GIF, and WebP inputs to PNG', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-bun-normalize-'))
+    const dir = await makeTempDir('autoshow-ocr-bun-normalize-')
     const Image = getBunImageCodec()
     const fixtures = [
       { name: 'source.bmp', bytes: whiteBmp },
@@ -135,7 +135,7 @@ describe('OCR Bun.Image normalization contracts', () => {
   })
 
   test('hosted OCR Bun.Image normalization writes PNG for provider-specific image gaps', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-hosted-ocr-bun-normalize-'))
+    const dir = await makeTempDir('autoshow-hosted-ocr-bun-normalize-')
     const Image = getBunImageCodec()
     const fixtures: Array<{ engine: HostedExtractOcrEngine; name: string; bytes: Uint8Array }> = [
       { engine: 'anthropic-ocr', name: 'anthropic.bmp', bytes: whiteBmp },

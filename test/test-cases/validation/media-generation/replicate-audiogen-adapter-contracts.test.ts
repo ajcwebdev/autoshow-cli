@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { ProviderError } from '~/utils/error-handler'
 import { randomUUID } from 'node:crypto'
-import { mkdtemp, readdir, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { readdir, rm } from 'node:fs/promises'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 import { resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
@@ -30,6 +28,7 @@ import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '~/cli/commands/process-ste
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import type { SoundEffectRenderTask, SoundscapePlan } from '~/types'
 import { isAppError, normalizeExitCode } from '~/utils/error-handler'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const POLL_URL = 'https://api.replicate.com/v1/predictions/prediction-audiogen'
 const CANCEL_URL = 'https://api.replicate.com/v1/predictions/prediction-audiogen/cancel'
@@ -168,7 +167,7 @@ describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
   })
 
   test('static license and price planning distinguish supported, prohibited, unknown, and missing use without writes', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-audiogen-price-'))
+    const root = await makeTempDir('autoshow-audiogen-price-')
     try {
       const target = audiogenTarget()
       expect(() => createSoundEffectRenderPlan({ plan: taskPlan('needs-license', { durationSeconds: 3 }), target })).toThrow(/requires explicit --sfx-license-use noncommercial/)

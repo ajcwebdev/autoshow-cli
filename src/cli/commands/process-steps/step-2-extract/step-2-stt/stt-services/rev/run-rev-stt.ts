@@ -17,14 +17,12 @@ import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, delet
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getRevBaseUrl } from './rev'
 import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveRestPath } from '~/utils/rest-client'
 
 const INITIAL_POLL_INTERVAL_MS = 2000
 const MAX_POLL_INTERVAL_MS = 10000
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
-
-const buildRevUrl = (baseURL: string, path: string): string =>
-  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
 
 const buildCreateForm = (
   audioPath: string,
@@ -65,7 +63,7 @@ const getTranscript = async (
   schema: RevTranscriptResponseSchema,
   schemaLabel: 'Rev transcript response',
   metrics,
-  doFetch: (signal) => fetch(buildRevUrl(baseURL, `/jobs/${jobId}/transcript`), {
+  doFetch: (signal) => fetch(resolveRestPath(baseURL, `/jobs/${jobId}/transcript`), {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -80,7 +78,7 @@ const deleteJob = async (
   accessToken: string,
   jobId: string
 ): Promise<boolean> => await deleteSttRemoteResource({
-  url: buildRevUrl(baseURL, `/jobs/${jobId}`),
+  url: resolveRestPath(baseURL, `/jobs/${jobId}`),
   apiKey: accessToken,
   provider: 'rev',
   artifact: 'job',
@@ -180,7 +178,7 @@ const createRevJob = async (
     schema: RevJobSchema,
     schemaLabel: 'Rev create job response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    doFetch: (signal) => fetch(buildRevUrl(baseURL, '/jobs'), {
+    doFetch: (signal) => fetch(resolveRestPath(baseURL, '/jobs'), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`
@@ -208,7 +206,7 @@ const pollRevJob = async (
     schema: RevJobSchema,
     schemaLabel: 'Rev job status response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    doFetch: (signal) => fetch(buildRevUrl(baseURL, `/jobs/${jobId}`), {
+    doFetch: (signal) => fetch(resolveRestPath(baseURL, `/jobs/${jobId}`), {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${accessToken}`

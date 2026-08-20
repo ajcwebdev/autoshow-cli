@@ -1,8 +1,6 @@
 import type { ProviderTargetFailure, ProviderTargetSchedulerEntry, ProviderTargetSchedulerResult, RunProviderTargetSchedulerOptions, TargetPoolKind } from '~/types'
 import { runHostedConcurrencyRequest } from './hosted-concurrency-coordinator'
-
-const normalizeConcurrency = (value: number): number =>
-  Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
+import { normalizePositiveInt } from '~/utils/value-helpers'
 
 const compareExecutionPriority = <TTarget>(
   left: ProviderTargetSchedulerEntry<TTarget>,
@@ -29,7 +27,7 @@ const runPool = async <TTarget, TResult>(
   }
 
   const orderedEntries = entries.slice().sort(compareExecutionPriority)
-  const normalizedConcurrency = normalizeConcurrency(concurrency)
+  const normalizedConcurrency = normalizePositiveInt(concurrency)
   let next = 0
 
   const runWorker = async (): Promise<void> => {

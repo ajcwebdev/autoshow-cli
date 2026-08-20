@@ -8,6 +8,7 @@ import { isTokenPricedOcrProvider } from '~/types'
 import type { ExtractionMetadata, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, HostedOcrTokenUsageProfileStore, PartialExtractionMetadata, PersistHostedOcrProfilesOptions, TokenPricedOcrProvider } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
 import { projectHostedOcrTokenUsageEstimate, selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
+import { roundMetric } from '~/utils/value-helpers'
 
 const TOKEN_PROFILE_STORE_VERSION = 2
 const MAX_TOKEN_PROFILE_ENTRIES = 500
@@ -42,11 +43,6 @@ export const resolveHostedOcrModeFromExtractionMethod = (
   if (normalizedInputFamily === 'pdf' || normalizedInputFamily === 'image' || normalizedInputFamily === 'cbz') return normalizedInputFamily
   if (!extractionMethod) return 'unknown'
   return 'direct'
-}
-
-const roundMetric = (value: number): number => {
-  const rounded = Math.round(value * 1000) / 1000
-  return Object.is(rounded, -0) ? 0 : rounded
 }
 
 const REASONING_POLICIES = new Set<HostedOcrTokenReasoningPolicy>([

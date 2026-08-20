@@ -1,4 +1,4 @@
-import { readdir, stat } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { inspectYtDlpAuthState } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
@@ -23,15 +23,7 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 import { validateManagedArtifact } from './setup-download/managed-artifact'
-
-const hasPath = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
+import { pathExists } from '~/utils/filesystem'
 
 const listNames = async (path: string): Promise<string[]> => {
   try {
@@ -58,7 +50,7 @@ const directoryHasAnyFiles = async (root: string): Promise<boolean> => {
 const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes => ({
   env: process.env as Record<string, string | undefined>,
   which: (command) => Bun.which(command) ?? undefined,
-  pathExists: hasPath,
+  pathExists: pathExists,
   listDirectory: listNames,
   directoryHasFiles: directoryHasAnyFiles,
   run: async (command, args) => await runCapture(command, args, { allowFailure: true }),

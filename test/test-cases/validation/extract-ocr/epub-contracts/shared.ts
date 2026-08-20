@@ -1,5 +1,4 @@
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { chmod, mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import {
   prepareDocumentMetadata,
@@ -13,6 +12,7 @@ import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { EpubChapter, EpubContentReader, ExtractionOptions } from '~/types'
 import { withEnv } from '../../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 export const createReader = (files: Record<string, string>): EpubContentReader => ({
   adapterLabel: 'test',
@@ -51,7 +51,7 @@ export const EXAMPLE_EPUB_PATH = resolve('input/examples/document/1-epub.epub')
 export const withFakeEbookConvert = async <T>(
   fn: (root: string) => Promise<T>
 ): Promise<T> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-fake-ebook-convert-'))
+  const root = await makeTempDir('autoshow-fake-ebook-convert-')
   const binDir = join(root, 'bin')
   await mkdir(binDir, { recursive: true })
   const fakeConvertPath = join(binDir, 'ebook-convert')
@@ -214,13 +214,11 @@ export {
   inspectEpubWithReader,
   join,
   mkdir,
-  mkdtemp,
   prepareDocumentMetadata,
   resolve,
   resolveEbookConvertCommand,
   resolveOcrStep2ExecutionFromFormat,
   rm,
   runOcr,
-  tmpdir,
   writeFile
 }

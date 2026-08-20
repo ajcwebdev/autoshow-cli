@@ -17,6 +17,7 @@ import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { LINKS_FETCH_TIMEOUT_MS } from '~/utils/timeouts'
 import modelLinks from './model-links'
+import { formatErrorMessage } from '~/utils/value-helpers'
 
 const data = modelLinks as ModelLinksData
 const LINKS_OUTPUT_DIR = pathToFileURL(`${resolve(PROJECT_ROOT, 'project/links')}/`)
@@ -26,8 +27,6 @@ const isHtmlContentType = (contentType: string): boolean =>
   HTML_MIME_HINTS.some((hint) => contentType.includes(hint))
 const looksLikeHtmlDocument = (content: string): boolean =>
   /^(?:<!doctype html\b|<html\b|<head\b|<body\b)/i.test(content.trimStart())
-const formatErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
 const isRemoteUrlToken = (arg: string): boolean => /^(?:blob:)?https?:\/\//i.test(arg)
 const isLinksInputFileArg = (arg: string): boolean =>
   !isRemoteUrlToken(arg) && /\.(?:md|txt)$/i.test(arg)

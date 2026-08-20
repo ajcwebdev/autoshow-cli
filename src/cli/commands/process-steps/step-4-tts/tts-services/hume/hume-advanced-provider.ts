@@ -1,21 +1,4 @@
-import type {
-  AnyCapabilityRecord,
-  HumeAdvancedProviderOptions,
-  HumeVoiceCatalogEnvelope,
-  JsonObject,
-  ProviderVoiceCatalogEntry,
-  ProviderVoiceCatalogPage,
-  ProviderVoiceDesignResult,
-  ProviderVoiceInspection,
-  ProviderVoiceMutationResult,
-  ProviderVoiceRef,
-  ResolvedContinuationInput,
-  TtsVoiceProvider,
-  VoiceCatalogPort,
-  VoiceClonePort,
-  VoiceDesignPort,
-  VoiceLifecyclePort,
-} from '~/types'
+import type { AnyCapabilityRecord, HumeAdvancedProviderOptions, HumeVoiceCatalogEnvelope, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceDesignResult, ProviderVoiceInspection, ProviderVoiceMutationResult, ProviderVoiceRef, ResolvedContinuationInput, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort, VoiceLifecyclePort } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import {
@@ -24,6 +7,7 @@ import {
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
+import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 
 const DOCS = {
   overview: 'https://dev.hume.ai/docs/text-to-speech-tts/overview',
@@ -53,11 +37,7 @@ const capabilityRecords = [
 
 export const HUME_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
-const record = (value: unknown, label: string): JsonObject => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`Hume ${label} response is invalid.`)
-  return value as JsonObject
-}
-const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
+const record = createProviderRecordReader('Hume')
 export const parseHumeVoiceCatalogEnvelope = (payload: unknown): HumeVoiceCatalogEnvelope => {
   if (Array.isArray(payload)) return { voices: payload, pageNumber: 0, totalPages: 1 }
   const response = record(payload, 'voice catalog')
@@ -76,9 +56,9 @@ export const parseHumeVoiceCatalogEnvelope = (payload: unknown): HumeVoiceCatalo
 
 const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
-  const resourceId = string(voice['id'])
-  const name = string(voice['name'])
-  const provider = string(voice['provider'])
+  const resourceId = trimmedString(voice['id'])
+  const name = trimmedString(voice['name'])
+  const provider = trimmedString(voice['provider'])
   if (!resourceId || !name || (provider !== 'HUME_AI' && provider !== 'CUSTOM_VOICE')) throw CLIUsageError('Hume voice response omits a stable id, name, or recognized provider.')
   return {
     provider: 'hume', resourceId, name,
@@ -158,8 +138,8 @@ export const createHumeAdvancedProvider = (options: HumeAdvancedProviderOptions)
         schemaVersion: 1, provider: 'hume', operation: 'design', creationModel: 'octave-1',
         previews: generations.map(value => {
           const generation = record(value, 'voice design generation')
-          const providerCandidateId = string(generation['generation_id'])
-          const audioBase64 = string(generation['audio'])
+          const providerCandidateId = trimmedString(generation['generation_id'])
+          const audioBase64 = trimmedString(generation['audio'])
           if (!providerCandidateId || !audioBase64) throw CLIUsageError('Hume design generation omits generation_id or audio.')
           return {
             providerCandidateId, audioBase64, mediaType: 'audio/mpeg',
@@ -174,7 +154,7 @@ export const createHumeAdvancedProvider = (options: HumeAdvancedProviderOptions)
     materializeCandidate: async materializeRequest => {
       if (!materializeRequest.providerCandidateId.trim() || !materializeRequest.desiredName.trim()) throw CLIUsageError('Hume materialization requires the selected generation ID and desired name.')
       const response = record(await request({ method: 'POST', path: '/v0/tts/voices', body: { generation_id: materializeRequest.providerCandidateId, name: materializeRequest.desiredName } }), 'voice materialization')
-      const resourceId = string(response['id'])
+      const resourceId = trimmedString(response['id'])
       if (!resourceId) throw CLIUsageError('Hume voice materialization returned no stable ID.')
       const providerVoice: ProviderVoiceRef = {
         kind: 'remote-resource', provider: 'hume', resourceId, namespace: 'account', accountScopeHash,

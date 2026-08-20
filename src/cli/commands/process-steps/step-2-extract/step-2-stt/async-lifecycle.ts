@@ -5,8 +5,6 @@ import * as l from '~/utils/app-logger/app-logger'
 import { AppError, extractErrorMetadata, InfraError, InternalError, isRetryExhaustedError, ProviderError } from '~/utils/error-handler'
 import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
 import { buildStep2TimingMetadata } from './stt-timing-metadata'
-
-
 const DEFAULT_POLL_DEADLINE_MS = 10 * 60 * 1000
 const MAX_POLL_DEADLINE_MS = 30 * 60 * 1000
 const POLL_DEADLINE_AUDIO_MULTIPLIER_MS = 250
@@ -227,11 +225,6 @@ const createAsyncSttLifecycleMetrics = (
   rateLimitCount: 0,
   backfillCount: runMode === 'backfill' ? 1 : 0
 })
-
-export const getAsyncSttErrorStatus = (error: unknown): number | undefined =>
-  error && typeof error === 'object' && 'status' in error && typeof (error as { status?: unknown }).status === 'number'
-    ? (error as { status: number }).status
-    : undefined
 
 export const attachAsyncSttErrorContext = <TError extends Error & { stage?: string, retryClass?: RetryClass }>(
   error: unknown,

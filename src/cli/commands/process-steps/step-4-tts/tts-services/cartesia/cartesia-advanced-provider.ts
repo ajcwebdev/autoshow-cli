@@ -1,18 +1,4 @@
-import type {
-  AnyCapabilityRecord,
-  CartesiaAdvancedProviderOptions,
-  JsonObject,
-  ProviderVoiceCatalogEntry,
-  ProviderVoiceCatalogPage,
-  ProviderVoiceCloneRequest,
-  ProviderVoiceInspection,
-  ProviderVoiceMutationResult,
-  ProviderVoiceRef,
-  TtsVoiceProvider,
-  VoiceCatalogPort,
-  VoiceClonePort,
-  VoiceLifecyclePort,
-} from '~/types'
+import type { AnyCapabilityRecord, CartesiaAdvancedProviderOptions, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceCloneRequest, ProviderVoiceInspection, ProviderVoiceMutationResult, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceLifecyclePort } from '~/types'
 import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { CLIUsageError } from '~/utils/error-handler'
 import {
@@ -21,6 +7,7 @@ import {
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
+import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 
 export const CARTESIA_API_VERSION = '2026-03-01'
 
@@ -47,34 +34,30 @@ const capabilityRecords = [
 
 export const CARTESIA_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
-const record = (value: unknown, label: string): JsonObject => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`Cartesia ${label} response is invalid.`)
-  return value as JsonObject
-}
-const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
+const record = createProviderRecordReader('Cartesia')
 
 const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
-  const resourceId = string(voice['id'])
-  const name = string(voice['name'])
+  const resourceId = trimmedString(voice['id'])
+  const name = trimmedString(voice['name'])
   if (!resourceId || !name) throw CLIUsageError('Cartesia voice response omits id or name.')
   const isOwner = voice['is_owner'] === true
   const labels = Object.fromEntries([
-    ['gender', string(voice['gender'])],
-    ['language', string(voice['language'])],
-    ['country', string(voice['country'])],
+    ['gender', trimmedString(voice['gender'])],
+    ['language', trimmedString(voice['language'])],
+    ['country', trimmedString(voice['country'])],
   ].flatMap(([key, item]) => item ? [[key as string, item]] : []))
   return {
     provider: 'cartesia', resourceId, name,
     source: isOwner ? 'account' : 'provider-library',
     origin: isOwner ? 'imported-custom' : 'provider-stock',
-    ...(string(voice['preview_file_url']) ? { previewUrl: string(voice['preview_file_url']) } : {}),
-    ...(string(voice['description']) ? { description: string(voice['description']) } : {}),
+    ...(trimmedString(voice['preview_file_url']) ? { previewUrl: trimmedString(voice['preview_file_url']) } : {}),
+    ...(trimmedString(voice['description']) ? { description: trimmedString(voice['description']) } : {}),
     labels, modelIds: [], state: 'available',
     sanitizedMetadata: {
       isOwner,
       ...(typeof voice['is_public'] === 'boolean' ? { isPublic: voice['is_public'] } : {}),
-      ...(string(voice['created_at']) ? { createdAt: string(voice['created_at']) as string } : {})
+      ...(trimmedString(voice['created_at']) ? { createdAt: trimmedString(voice['created_at']) as string } : {})
     }
   }
 }
@@ -103,7 +86,7 @@ export const createCartesiaAdvancedProvider = (options: CartesiaAdvancedProvider
         'expand[]': 'preview_file_url'
       } }), 'voice catalog')
       const entries = Array.isArray(payload['data']) ? payload['data'].map(mapVoice) : []
-      const nextCursor = payload['has_more'] === true ? string(payload['next_page']) : undefined
+      const nextCursor = payload['has_more'] === true ? trimmedString(payload['next_page']) : undefined
       const page: ProviderVoiceCatalogPage = { schemaVersion: 1, provider: 'cartesia', entries, ...(nextCursor ? { nextCursor } : {}), checkedAt: now() }
       return page
     }

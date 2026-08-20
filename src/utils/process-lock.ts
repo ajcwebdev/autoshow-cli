@@ -6,6 +6,7 @@ import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, P
 import * as l from '~/utils/app-logger/app-logger'
 import { AppError, InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import { formatRetryExhaustedMessage, sleepWithAbortSignal } from '~/utils/retries'
+import { formatErrorMessage } from '~/utils/value-helpers'
 
 const DEFAULT_LOCK_STALE_MS = 60_000
 const DEFAULT_LOCK_WAIT_TIMEOUT_MS = 2 * 60 * 60 * 1000
@@ -18,9 +19,6 @@ const CURRENT_HOSTNAME = hostname()
 
 const getErrorCode = (error: unknown): string | undefined =>
   error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined
-
-const safeErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
 
 const resolvePositiveInteger = (
   optionValue: number | undefined,
@@ -76,7 +74,7 @@ const readProcessLockOwnerState = async (lockDir: string): Promise<ProcessLockOw
     return {
       owner: null,
       ownerPath,
-      parseError: safeErrorMessage(error)
+      parseError: formatErrorMessage(error)
     }
   }
 }
@@ -357,7 +355,7 @@ export const withProcessLock = async <T,>(
     heartbeatRefresh = refreshProcessLockOwner(lockDir, activeOwner).catch((error) => {
       heartbeatHealth.failureCount += 1
       heartbeatHealth.lastFailureAt = new Date().toISOString()
-      heartbeatHealth.lastError = safeErrorMessage(error)
+      heartbeatHealth.lastError = formatErrorMessage(error)
       l.write('warn', `Failed to refresh process lock heartbeat for ${lockName}`, {
         category: 'pipeline',
         metadata: {

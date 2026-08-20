@@ -4,9 +4,6 @@ import { httpResponseError } from '~/utils/rest-client'
 import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import { describeSupadataUnsupportedSource } from './supadata'
 import { extractSupadataErrorMessage, isRecord } from './supadata-response-parsers'
-export const buildSupadataUrl = (baseURL: string, path: string): string =>
-  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
-
 export const parseSupadataBillableRequests = (headers: Headers): number | undefined => {
   const raw = headers.get('x-billable-requests')
   if (typeof raw !== 'string' || raw.trim().length === 0) {

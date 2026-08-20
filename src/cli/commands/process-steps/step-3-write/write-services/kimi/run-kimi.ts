@@ -1,29 +1,14 @@
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { ensureKimiApiKey, resolveKimiBaseUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/kimi'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
 export const runKimiModel = async (
   prompt: string,
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const policy = resolveReasoningPolicy({
-    step: 'llm',
-    service: 'kimi',
-    model,
-    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
-  })
-  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
-    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
-    : {
-        schemaName: '',
-        schema: {},
-        strict: false,
-        strategy: 'native',
-        requestedReasoningEffort: policy.requested,
-        effectiveReasoningEffort: policy.effective
-      }
+  const { policy, updatedOpts } = resolveLlmReasoningOptions('kimi', model, structuredOpts)
 
   return await runOpenAICompatibleChatModel({
     prompt,

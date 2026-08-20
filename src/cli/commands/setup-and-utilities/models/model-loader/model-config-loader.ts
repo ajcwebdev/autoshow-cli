@@ -2,14 +2,11 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { ValidationError } from '~/utils/error-handler'
 import type { ModelConfigLoadOptions } from '~/types'
-
-const isJsonRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+import { isRecord } from '~/utils/value-helpers'
 
 const readModelConfigFile = (configPath: string): Record<string, unknown> => {
   const parsed = JSON.parse(readFileSync(configPath, 'utf-8')) as unknown
-  if (!isJsonRecord(parsed)) {
+  if (!isRecord(parsed)) {
     throw ValidationError(`Model config at ${configPath} must contain a JSON object`, { stage: 'models:config-load' })
   }
   return parsed

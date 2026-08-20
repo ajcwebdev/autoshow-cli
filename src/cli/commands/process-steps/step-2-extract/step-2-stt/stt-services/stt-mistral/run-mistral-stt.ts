@@ -12,6 +12,7 @@ import { validateData } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
 import { isAppError, ProviderError } from '~/utils/error-handler'
+import { getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const MISTRAL_RATE_LIMIT_FALLBACK_COOLDOWN_MS = 60_000
@@ -22,28 +23,6 @@ const isMistralRetryWrapper = (error: unknown): error is Error & { cause: Error 
   isAppError(error)
   && error.kind === 'retry_exhausted'
   && error.cause instanceof Error
-
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status
-    if (typeof status === 'number') {
-      return status
-    }
-  }
-
-  return undefined
-}
-
-const getErrorHeaders = (error: unknown): Headers | undefined => {
-  if (error && typeof error === 'object' && 'headers' in error) {
-    const headers = (error as { headers: unknown }).headers
-    if (headers instanceof Headers) {
-      return headers
-    }
-  }
-
-  return undefined
-}
 
 const resolveMistralRateLimitCooldownMs = (
   error: unknown

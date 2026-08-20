@@ -6,17 +6,15 @@ import type {
   Step2Metadata
 } from '~/types'
 import { toArray } from '~/utils/text-utils'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const WHISPER_MODEL_PATH_PATTERN = /ggml-([a-z0-9.-]+)\.bin/i
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
-
 const isTranscriptionMetadata = (value: unknown): value is Step2Metadata =>
-  isRecord(value) && 'transcriptionService' in value
+  isObjectLike(value) && 'transcriptionService' in value
 
 const isExtractionMetadata = (value: unknown): value is ExtractionMetadata =>
-  isRecord(value) && 'extractionMethod' in value
+  isObjectLike(value) && 'extractionMethod' in value
 
 const classifyStep2 = (value: unknown): ClassifiedStep2 | undefined => {
   const isTranscription = isTranscriptionMetadata(value)

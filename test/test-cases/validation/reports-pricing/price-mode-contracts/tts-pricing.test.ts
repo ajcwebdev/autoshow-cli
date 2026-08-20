@@ -1,5 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -13,6 +12,7 @@ import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } fro
 import { runCommand } from '../../../../test-utils/test-helpers'
 import type { AggregatedPriceEstimate, PreparedTtsInput, Step4Metadata, TtsTarget } from '~/types'
 import { isRecord, parseJsonLines } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const buildTtsMetadata = (overrides: Partial<Step4Metadata> = {}): Step4Metadata => ({
   ttsService: 'grok',
@@ -168,7 +168,7 @@ describe('price mode contracts', () => {
     })
 
   test('tts --price reports chunk-concurrent Grok estimated time', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-grok-tts-price-'))
+      const dir = await makeTempDir('autoshow-grok-tts-price-')
       const inputPath = join(dir, 'long-tts.txt')
       const characterCount = 4_666
       const model = 'grok-tts'

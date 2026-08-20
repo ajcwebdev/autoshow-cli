@@ -1,9 +1,6 @@
 import { unwrapCanonicalRecordValue } from './manifest-helpers'
 import type { OutputMetadataSummary } from '~/types'
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
+import { isObjectLike } from '~/utils/value-helpers'
 
 const getFiniteNumber = (value: unknown): number | null => {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
@@ -11,10 +8,10 @@ const getFiniteNumber = (value: unknown): number | null => {
 
 const readCostTotal = (metadata: Record<string, unknown>, key: 'estimated' | 'actual'): number | null => {
   const cost = metadata['cost']
-  if (!isRecord(cost)) return null
+  if (!isObjectLike(cost)) return null
 
   const section = cost[key]
-  if (!isRecord(section)) return null
+  if (!isObjectLike(section)) return null
 
   return getFiniteNumber(section['totalCost'])
 }
@@ -28,7 +25,7 @@ const readActualProcessingTime = (metadata: Record<string, unknown>): number | n
       return value.reduce((sum, item) => sum + readEntryProcessingTime(item), 0)
     }
 
-    if (!isRecord(value)) {
+    if (!isObjectLike(value)) {
       return 0
     }
 
@@ -58,10 +55,10 @@ const readTimingTotal = (
   phase: 'estimated' | 'actual'
 ): number | null => {
   const timing = metadata['timing']
-  if (!isRecord(timing)) return null
+  if (!isObjectLike(timing)) return null
 
   const section = timing[phase]
-  if (!isRecord(section)) return null
+  if (!isObjectLike(section)) return null
 
   return getFiniteNumber(section['totalProcessingTimeMs'])
 }

@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 import * as v from 'valibot'
 import type { ExtractionOptions, LLMTarget, PipelineManifestItem, ResolvedStructuredSchema, Step3Metadata, StructuredRequestOptions, WriteRuntimeOptions } from '~/types'
 import { resolveOcrExtractionOptions } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-extraction-options'
@@ -18,6 +16,7 @@ import {
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildLlmEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/llm-estimates'
 import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const structuredSchema: ResolvedStructuredSchema = {
   schemaName: 'content',
@@ -233,7 +232,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     })
 
     it('passes the normalized request into a structured LLM target', async () => {
-      const outputDir = await mkdtemp(join(tmpdir(), 'autoshow-reasoning-dispatch-'))
+      const outputDir = await makeTempDir('autoshow-reasoning-dispatch-')
       let receivedOptions: StructuredRequestOptions | undefined
       const target: LLMTarget = {
         service: 'openai',

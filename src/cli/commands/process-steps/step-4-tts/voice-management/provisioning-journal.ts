@@ -1,7 +1,7 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readdir, readFile, rename } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { readdir, readFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
 import type {
   VoiceIssuedResource,
   VoiceProvisioningAttempt,
@@ -14,6 +14,7 @@ import { withProcessLock } from '~/utils/process-lock'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
 import { validateVoiceProvisioningAttempt } from './voice-management-contracts'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 const SAFE_KEY = /^[a-z0-9][a-z0-9_-]{0,127}$/
 
@@ -25,13 +26,6 @@ const attemptPath = (root: string, registrationDraftId: string, attemptId: strin
   assertSafeKey(registrationDraftId, 'Registration draft ID')
   assertSafeKey(attemptId, 'Provisioning attempt ID')
   return join(resolve(root), registrationDraftId, attemptId, 'voice-provisioning-attempt.json')
-}
-
-const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
-  await mkdir(dirname(path), { recursive: true })
-  const temporary = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
-  await rename(temporary, path)
 }
 
 const loadAttemptPath = async (path: string): Promise<VoiceProvisioningAttempt> => {

@@ -10,9 +10,7 @@ import {
   writePipelineItemRecords
 } from '~/cli/commands/process-steps/pipeline-manifest'
 import type { ExtractRoute, MultiProviderManifestFixtureOptions, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+import { isRecord } from '~/utils/value-helpers'
 
 const resolveRootDir = (pathOrDir: string): string =>
   basename(pathOrDir) === PIPELINE_MANIFEST_FILE ? dirname(pathOrDir) : pathOrDir

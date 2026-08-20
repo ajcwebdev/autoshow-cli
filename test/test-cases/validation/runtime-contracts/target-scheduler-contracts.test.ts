@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createResourceGate } from '~/utils/resource-gate'
 import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provider-target-scheduler'
 import { createProviderLaneIdentity } from '~/cli/commands/process-steps/provider-lane-contract'
 import { runImageTargets } from '~/cli/commands/process-steps/step-5-image/run-image-gen'
 import type { ImageTarget, SchedulerTestTarget, Step5Metadata } from '~/types'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const imageMetadata = (target: ImageTarget, fileName: string): Step5Metadata => ({
   imageService: target.service,
@@ -129,7 +129,7 @@ describe('target scheduler contracts', () => {
   })
 
   test('image target runner executes multiple hosted targets concurrently with stable artifact names', async () => {
-    const outputDir = await mkdtemp(join(tmpdir(), 'autoshow-image-target-runner-'))
+    const outputDir = await makeTempDir('autoshow-image-target-runner-')
     try {
       const active = { hosted: 0 }
       let maxHosted = 0

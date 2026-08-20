@@ -1,10 +1,11 @@
-import { mkdir, rm, stat } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import type { CheckResult, ResolvedDefuddleCli, RunOptions, RunResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { getConfiguredBinDir, PROJECT_ROOT } from '~/utils/runtime-paths'
+import { pathExists } from '~/utils/filesystem'
 
 const DEFUDDLE_CLI_VERSION = '0.17.0'
 
@@ -24,15 +25,6 @@ const mergeEnv = (env?: Record<string, string | undefined>): Record<string, stri
 
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
   stream ? await new Response(stream).text() : ''
-
-const pathExists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
 
 const runCapture = async (
   command: string,

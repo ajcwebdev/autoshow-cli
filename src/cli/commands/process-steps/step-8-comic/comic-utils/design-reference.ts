@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { copyFile, mkdir, rename } from 'node:fs/promises'
+import { copyFile, mkdir } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
 import type { DesignReferenceSnapshotManifest, PanelPrimaryReferenceInput, ResolvedDesignReference, SceneDesignReference } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getDesignReferencesDirectory, getSceneAssetsDirectory, getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const DesignReferenceSnapshotItemSchema = v.strictObject({ key: v.string(), usage: v.string(), sourcePath: v.string(), path: v.string(), sha256: v.string() })
@@ -14,12 +15,6 @@ export const DesignReferenceSnapshotManifestSchema = v.strictObject({ schemaVers
 export const getDesignReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'design-references.json')
 
 const checksum = async (path: string): Promise<string> => createHash('sha256').update(Buffer.from(await Bun.file(path).arrayBuffer())).digest('hex')
-const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
-  const temp = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temp, `${JSON.stringify(value, null, 2)}\n`)
-  await rename(temp, path)
-}
-
 const resolveSafeSource = (sourcePath: string): string => {
   if (!sourcePath.startsWith('input/') || sourcePath.includes('\\') || sourcePath.split('/').includes('..')) throw ValidationError(`Unsafe design reference source path "${sourcePath}"`, { stage: 'comic:design-reference' })
   const projectRoot = resolve(process.cwd())

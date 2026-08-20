@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseWhisperJson, extractWhisperWords } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/parse-whisper-output'
 import {
@@ -9,11 +8,12 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-timing-quality'
 import type { MetricName, SttNormalizationMetricRankingEntry } from '~/types'
 import { writeMultiProviderManifestFixture } from '../../../test-utils/manifest-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
 const makeTempRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-stt-normalization-'))
+  const root = await makeTempDir('autoshow-stt-normalization-')
   tempDirs.push(root)
   return root
 }

@@ -1,21 +1,14 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { makeExecutable, walkPaths } from '~/utils/filesystem'
 import { fileExists } from '~/utils/cli-utils'
+import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
-const tempDirs: string[] = []
+const tempDirs = createTempDirTracker('autoshow-filesystem-')
+const makeTempDir = tempDirs.make
 
-const makeTempDir = async (): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-filesystem-'))
-  tempDirs.push(dir)
-  return dir
-}
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+afterEach(tempDirs.cleanup)
 
 describe('filesystem helpers', () => {
   test('fileExists treats an overlong non-path string as missing', async () => {

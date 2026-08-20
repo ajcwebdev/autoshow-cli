@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import {
   getDraftPromptPath,
@@ -36,6 +35,7 @@ import type {
   CharacterCatalogService,
 } from '~/types'
 import { pngSignature, redDotPng } from '../../../test-utils/media-fixtures'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const comicSourceRoot = 'src/cli/commands/process-steps/step-8-comic'
 const structuredScriptFixtureRoot = 'test/test-cases/validation/comic/fixtures/structured-script-parser'
@@ -185,7 +185,7 @@ describe('comic source coverage contracts', () => {
   })
 
   test('generated WebP and JPEG images are normalized to PNG with Bun.Image', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-comic-image-writer-'))
+    const dir = await makeTempDir('autoshow-comic-image-writer-')
     const Image = getBunImageCodec()
     const encodedImages: Array<{ mimeType: string; bytes: Uint8Array; name: string }> = [
       { mimeType: 'image/webp', bytes: await new Image(redDotPng).webp().bytes(), name: 'webp' },
@@ -210,7 +210,7 @@ describe('comic source coverage contracts', () => {
       throw new Error('ImageMagick magick or convert is required for sketch sheet composition coverage')
     }
 
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-comic-sketch-sheet-'))
+    const dir = await makeTempDir('autoshow-comic-sketch-sheet-')
 
     try {
       const sources = await Promise.all(CHARACTER_SKETCH_VIEWS.map(async (view) => {
@@ -237,7 +237,7 @@ describe('comic source coverage contracts', () => {
       throw new Error('ImageMagick magick or convert is required for comic grid composition coverage')
     }
 
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-comic-grid-page-'))
+    const dir = await makeTempDir('autoshow-comic-grid-page-')
 
     try {
       const sources = await Promise.all([1, 2, 3].map(async (panelNumber) => {
@@ -615,7 +615,7 @@ describe('comic source coverage contracts', () => {
   test('draft prompt includes an explicit source segment ID checklist', async () => {
     const sceneSlug = `comic-source-checklist-${Date.now()}`
     const sceneOutputDirectory = getSceneOutputDirectory(sceneSlug)
-    const charactersRoot = await mkdtemp(join(tmpdir(), 'autoshow-source-checklist-characters-'))
+    const charactersRoot = await makeTempDir('autoshow-source-checklist-characters-')
     await writeFile(join(charactersRoot, 'guide.png'), redDotPng)
     await writeFile(join(charactersRoot, 'characters-reference.json'), JSON.stringify({
       schemaVersion: 3,

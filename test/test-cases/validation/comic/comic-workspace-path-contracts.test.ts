@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
@@ -17,11 +16,12 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
 import type { SnapshotFixtureOptions } from '~/types'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 
 const createSnapshotFixture = async (options: SnapshotFixtureOptions = {}) => {
-  const workspace = await mkdtemp(join(tmpdir(), 'autoshow-comic-assets-'))
+  const workspace = await makeTempDir('autoshow-comic-assets-')
   roots.push(workspace)
   const bytes = Buffer.from('canonical-reference')
   const canonicalPath = join(workspace, 'assets', 'character-references', 'snapshot', 'hero', 'reference.png')
@@ -53,7 +53,7 @@ afterEach(async () => {
 
 describe('panel-first comic workspace paths', () => {
   test('resolves metadata, prompt, asset-discovery, and visual paths exactly', async () => {
-    const workspace = await mkdtemp(join(tmpdir(), 'autoshow-comic-workspace-'))
+    const workspace = await makeTempDir('autoshow-comic-workspace-')
     roots.push(workspace)
     beginSceneRun('scene', { outputDir: workspace })
 
@@ -68,7 +68,7 @@ describe('panel-first comic workspace paths', () => {
   })
 
   test('resumes the latest run and honors a pinned scene workspace', async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), 'autoshow-comic-output-'))
+    const outputRoot = await makeTempDir('autoshow-comic-output-')
     roots.push(outputRoot)
     configureOutputRoot(outputRoot)
     const older = join(outputRoot, '2026-01-01_00-00-00-000_scene')

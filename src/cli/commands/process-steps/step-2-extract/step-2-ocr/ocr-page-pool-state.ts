@@ -2,12 +2,10 @@ import { randomUUID } from 'node:crypto'
 import type { OcrPoolAttemptUsage, OcrPoolClaim, OcrPoolClassifiedFailure, OcrPoolLaneState, OcrPoolLedger, OcrPoolPageAttempt, OcrPoolPageLedgerEntry, OcrPoolProcessedPage, OcrPoolState, OcrPoolTargetState, OcrTarget, RunOcrPagePoolOptions } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { getOcrTargetKey } from './ocr-run-state'
+import { normalizePositiveInt } from '~/utils/value-helpers'
 
 const invariantError = (message: string): Error =>
   InfraError(`OCR page-pool invariant failed: ${message}`, { stage: 'ocr:page-pool' })
-
-const normalizePositiveInt = (value: number): number =>
-  Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
 
 const targetKeyFromAttempt = (attempt: Pick<OcrPoolPageAttempt, 'provider' | 'model'>): string =>
   getOcrTargetKey({ service: attempt.provider, model: attempt.model })

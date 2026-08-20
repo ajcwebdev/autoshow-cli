@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runDialogueWorkSelector } from '~/cli/commands/process-steps/step-4-tts/dialogue-work-selector'
 import { runMultiSpeakerTts } from '~/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts'
 import type { Deferred, TtsOptions, TtsTarget } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { waitFor } from '../../../test-utils/wait-for'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const createDeferred = (): Deferred => {
   let resolve = (): void => undefined
@@ -26,7 +26,7 @@ afterEach(async () => {
 
 describe('bounded dialogue work selector', () => {
   test('caps setup and returns source order under reverse completion', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-dialogue-selector-order-'))
+    const root = await makeTempDir('autoshow-dialogue-selector-order-')
     roots.push(root)
     const releases = Array.from({ length: 6 }, createDeferred)
     const started: number[] = []
@@ -85,7 +85,7 @@ describe('bounded dialogue work selector', () => {
   })
 
   test('aborts active work, stops queued admission, and removes every workspace after failure', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-dialogue-selector-cancel-'))
+    const root = await makeTempDir('autoshow-dialogue-selector-cancel-')
     roots.push(root)
     const bothStarted = createDeferred()
     const started: number[] = []
@@ -126,7 +126,7 @@ describe('bounded dialogue work selector', () => {
   })
 
   test('multi-speaker target invocations receive cancellation and leave no segment workspaces', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-dialogue-selector-integration-'))
+    const root = await makeTempDir('autoshow-dialogue-selector-integration-')
     roots.push(root)
     const bothStarted = createDeferred()
     const started: number[] = []
@@ -176,7 +176,7 @@ describe('bounded dialogue work selector', () => {
   })
 
   test('multi-speaker target invocations receive immutable controls by canonical turn ID', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-dialogue-selector-controls-'))
+    const root = await makeTempDir('autoshow-dialogue-selector-controls-')
     roots.push(root)
     const audioBytes = createMockWavBytes()
     const observed: Array<{ sourceId: string, controls: unknown, frozen: boolean }> = []

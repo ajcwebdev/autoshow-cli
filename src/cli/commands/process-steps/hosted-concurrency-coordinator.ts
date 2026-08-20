@@ -23,6 +23,7 @@ import type {
 } from '~/types'
 import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from './provider-lane-contract'
 import { AppError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
+import { normalizePositiveInt } from '~/utils/value-helpers'
 
 export const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
 export const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
@@ -30,9 +31,6 @@ export const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
 
 const RATE_LIMIT_BACKOFF_MS = [2_000, 4_000, 8_000, 16_000, 30_000] as const
 const EVENT_HISTORY_LIMIT = 100
-
-const normalizeLimit = (value: number): number =>
-  Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
 
 const recoveryKeyFor = (laneKey: string, workId: string, unitIndex: number): string =>
   `${laneKey}\u0000${workId}\u0000${unitIndex}`
@@ -324,7 +322,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
 
   #getLane(admission: HostedConcurrencyAdmission): LaneState {
     const identity = this.#resolveIdentity(admission)
-    const configuredLimit = normalizeLimit(admission.configuredLimit)
+    const configuredLimit = normalizePositiveInt(admission.configuredLimit)
     const existing = this.#lanes.get(identity.laneKey)
     if (existing) {
       if (configuredLimit > existing.configuredLimit) {
@@ -366,7 +364,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
   }
 
   #getClassState(lane: LaneState, workClass: HostedConcurrencyWorkClass, limit: number): ClassState {
-    const configuredLimit = normalizeLimit(limit)
+    const configuredLimit = normalizePositiveInt(limit)
     const existing = lane.classes.get(workClass)
     if (existing) {
       existing.configuredLimit = Math.max(existing.configuredLimit, configuredLimit)
@@ -458,7 +456,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       unitIndex: admission.unitIndex,
       context: admission.context ?? {},
       workClass: admission.workClass,
-      configuredLimit: normalizeLimit(admission.configuredLimit),
+      configuredLimit: normalizePositiveInt(admission.configuredLimit),
       admittedAtMs: this.#now(),
       recoveryProbe
     })

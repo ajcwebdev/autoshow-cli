@@ -6,6 +6,7 @@ import { getCharacterAliasGuidance } from './structured-script-constants'
 import { getCharacterKeys } from '../character-reference-config'
 import { normalizeStructuredScriptData } from './structured-data-normalization'
 import { ValidationError } from '~/utils/error-handler'
+import { isRecord } from '~/utils/value-helpers'
 
 const extractJsonPayload = (content: string): string => {
   const trimmed = content.trim()
@@ -32,10 +33,6 @@ const parseStructuredScriptReviewResponse = (
   options: { lenient: boolean }
 ): unknown => {
   return JSON.parse(options.lenient ? extractJsonPayload(content) : content)
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 const deleteNullProperty = (value: Record<string, unknown>, key: string): void => {

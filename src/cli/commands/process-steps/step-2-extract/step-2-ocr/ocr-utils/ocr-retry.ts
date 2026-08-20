@@ -3,6 +3,7 @@ import { classifyFetchRetry, getRetryPolicyForClass, isTimeoutError, parseRetryA
 import { findOcrStructuredResponseError } from '../ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { classifyOcrErrorForRetry } from './ocr-failure-classifier'
+import { getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
 
 export const OCR_SCHEMA_RETRY_ATTEMPTS = 3
 export const OCR_PAGE_REQUEST_ATTEMPTS = 2
@@ -32,32 +33,12 @@ export const OCR_PAGE_REQUEST_RETRY_POLICY: RetryPolicy = {
 const isStructuredOcrResponseError = (error: unknown): boolean =>
   findOcrStructuredResponseError(error) !== undefined
 
-const getStatusFromError = (error: unknown): number | undefined => {
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status
-    if (typeof status === 'number') {
-      return status
-    }
-  }
-  return undefined
-}
-
-const getHeadersFromError = (error: unknown): Headers | undefined => {
-  if (error && typeof error === 'object' && 'headers' in error) {
-    const headers = (error as { headers: unknown }).headers
-    if (headers instanceof Headers) {
-      return headers
-    }
-  }
-  return undefined
-}
-
 const withOcrRateLimitRetryDelay = (error: unknown, decision: RetryDecision): RetryDecision => {
-  if (!decision.shouldRetry || getStatusFromError(error) !== 429) {
+  if (!decision.shouldRetry || getErrorStatus(error) !== 429) {
     return decision
   }
 
-  const retryAfterMs = parseRetryAfterMs(getHeadersFromError(error))
+  const retryAfterMs = parseRetryAfterMs(getErrorHeaders(error))
   if (typeof retryAfterMs === 'number') {
     return { ...decision, delayMs: retryAfterMs }
   }
@@ -99,8 +80,8 @@ const notifyRetryablePressure = (
     return
   }
 
-  const retryAfterMs = parseRetryAfterMs(getHeadersFromError(error))
-  const status = getStatusFromError(error)
+  const retryAfterMs = parseRetryAfterMs(getErrorHeaders(error))
+  const status = getErrorStatus(error)
   return onRetryable?.({
     reason: decision.reason,
     ...(decision.delayMs > 0 ? { delayMs: decision.delayMs } : {}),

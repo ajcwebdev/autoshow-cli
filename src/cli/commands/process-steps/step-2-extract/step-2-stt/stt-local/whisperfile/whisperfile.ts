@@ -1,5 +1,6 @@
 import { mkdir } from 'node:fs/promises'
-import { pathExists, runCapture, whisperfileBinaryPath, whisperfileDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { runCapture, whisperfileBinaryPath, whisperfileDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { pathExists } from '~/utils/filesystem'
 import * as l from '~/utils/app-logger/app-logger'
 import { downloadFile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
 import { withRetry } from '~/utils/retries'

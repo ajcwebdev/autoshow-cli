@@ -2,9 +2,10 @@ import { basename } from 'node:path'
 import type { HappyScribeApiClientOptions, HappyScribeExport, HappyScribeJsonRequestOptions, HappyScribeOrder, HappyScribePollResult, HappyScribeTranscription, RetryClass } from '~/types'
 import { ProviderError } from '~/utils/error-handler'
 import { classifyFetchRetry, getSttStageRetryPolicy, parseRetryAfterMs, withRetry } from '~/utils/retries'
-import { buildHappyScribeUrl, HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
+import { HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
 import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUploadUrl, parseHappyScribeTranscription } from './happyscribe-response-parsers'
 import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, readHappyScribeJsonOrText, toHappyScribeHttpError } from './happyscribe-utils'
+import { resolveRestPath } from '~/utils/rest-client'
 
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
@@ -68,7 +69,7 @@ export const createHappyScribeApiClient = (
       operationName: 'happyscribe-get-signed-upload',
       timeoutMs: REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe signed upload request failed',
-      request: (signal) => fetch(`${buildHappyScribeUrl(options.baseURL, '/uploads/new')}?filename=${encodeURIComponent(basename(audioPath))}`, {
+      request: (signal) => fetch(`${resolveRestPath(options.baseURL, '/uploads/new')}?filename=${encodeURIComponent(basename(audioPath))}`, {
         method: 'GET',
         headers: {
           authorization: `Bearer ${options.apiKey}`,
@@ -141,7 +142,7 @@ export const createHappyScribeApiClient = (
       operationName: 'happyscribe-create-order',
       timeoutMs: REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe order creation failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, '/orders'), {
+      request: (signal) => fetch(resolveRestPath(options.baseURL, '/orders'), {
         method: 'POST',
         headers: {
           authorization: `Bearer ${options.apiKey}`,
@@ -180,7 +181,7 @@ export const createHappyScribeApiClient = (
       operationName: 'happyscribe-poll-order',
       timeoutMs: POLL_REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe order poll failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/orders/${encodeURIComponent(orderId)}`), {
+      request: (signal) => fetch(resolveRestPath(options.baseURL, `/orders/${encodeURIComponent(orderId)}`), {
         method: 'GET',
         headers: {
           authorization: `Bearer ${options.apiKey}`,
@@ -212,7 +213,7 @@ export const createHappyScribeApiClient = (
       operationName: 'happyscribe-get-transcription',
       timeoutMs: POLL_REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe transcription lookup failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/transcriptions/${encodeURIComponent(transcriptionId)}`), {
+      request: (signal) => fetch(resolveRestPath(options.baseURL, `/transcriptions/${encodeURIComponent(transcriptionId)}`), {
         method: 'GET',
         headers: {
           authorization: `Bearer ${options.apiKey}`,
@@ -238,7 +239,7 @@ export const createHappyScribeApiClient = (
       operationName: 'happyscribe-create-export',
       timeoutMs: REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe export creation failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, '/exports'), {
+      request: (signal) => fetch(resolveRestPath(options.baseURL, '/exports'), {
         method: 'POST',
         headers: {
           authorization: `Bearer ${options.apiKey}`,
@@ -272,7 +273,7 @@ export const createHappyScribeApiClient = (
       operationName: 'happyscribe-poll-export',
       timeoutMs: POLL_REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe export poll failed',
-      request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/exports/${encodeURIComponent(exportId)}`), {
+      request: (signal) => fetch(resolveRestPath(options.baseURL, `/exports/${encodeURIComponent(exportId)}`), {
         method: 'GET',
         headers: {
           authorization: `Bearer ${options.apiKey}`,

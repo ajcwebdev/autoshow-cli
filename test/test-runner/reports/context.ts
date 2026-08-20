@@ -4,6 +4,7 @@ import type { MetricContext, ParsedCommandMetric, ParsedJunitCase, ReportTestCon
 import { readString } from '../utils'
 import { l } from '~/utils/app-logger/app-logger'
 import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])
 
@@ -68,10 +69,6 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bwhisper\b/i, service: 'whisper' },
 ]
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
-
 const cleanValue = (value: string | null | undefined): string | null => {
   if (!value) return null
   const cleaned = value.trim()
@@ -85,9 +82,9 @@ export const normalizeValue = (value: string | null | undefined): string | null 
 
 const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {
-    return value.filter(isRecord)
+    return value.filter(isObjectLike)
   }
-  return isRecord(value) ? [value] : []
+  return isObjectLike(value) ? [value] : []
 }
 
 const dedupePairs = (pairs: ServiceModelPair[]): ServiceModelPair[] => {
@@ -371,8 +368,8 @@ const unwrapManifestMetadata = (value: Record<string, unknown>): Record<string, 
     && (value['scope'] === 'single' || value['scope'] === 'batch')
     && Array.isArray(items)
     && items.length === 1
-    && isRecord(items[0])
-    && isRecord(items[0]['metadata'])
+    && isObjectLike(items[0])
+    && isObjectLike(items[0]['metadata'])
   ) {
     return items[0]['metadata']
   }
@@ -417,7 +414,7 @@ const getMetricMetadata = async (
   for (const metadataPath of buildMetricMetadataPaths(metric, artifacts)) {
     try {
       const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
-      if (isRecord(parsed)) {
+      if (isObjectLike(parsed)) {
         const record = unwrapManifestMetadata(parsed)
         cache.set(key, record)
         return record

@@ -1,9 +1,4 @@
-import type { OcrTarget, RunOcrPagePoolOptions } from '~/types'
-
-export type WorkerTarget = {
-  index: number
-  target: OcrTarget
-}
+import type { RunOcrPagePoolOptions } from '~/types'
 
 export type OcrPoolWorkerOptions = Pick<
   RunOcrPagePoolOptions,

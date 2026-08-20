@@ -22,6 +22,7 @@ import type {
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { assertContentIdentity, assertSafeArtifactRelativePath, canonicalTargetKey, canonicalTtsJson, computeRenderIdentity, computeVoiceContextKey, hashCanonicalRecordWithout, hashCanonicalTtsValue } from './contract-identity'
+import { isRecord } from '~/utils/value-helpers'
 
 const SHA256 = /^[a-f0-9]{64}$/
 
@@ -79,7 +80,7 @@ const validateTypedSettings = (
   settings: { schemaVersion: 1, settingsSchema: string, values: Record<string, unknown> },
   label: string
 ): void => {
-  if (settings.schemaVersion !== 1 || !settings.settingsSchema.trim() || !isRecordValue(settings.values)) {
+  if (settings.schemaVersion !== 1 || !settings.settingsSchema.trim() || !isRecord(settings.values)) {
     throw CLIUsageError(`${label} requires schemaVersion 1, a settings schema, and values.`)
   }
   for (const value of Object.values(settings.values)) {
@@ -94,9 +95,6 @@ const validateTypedSettings = (
     }
   }
 }
-
-const isRecordValue = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const validateObservedProviderRequest = (request: ObservedProviderRequest): void => {
   if (
@@ -547,7 +545,7 @@ const validateAdmissionProofRef = (
   }
 ): void => {
   if (
-    !isRecordValue(proof)
+    !isRecord(proof)
     || proof['journalId'] !== expected.journalId
     || proof['invocationId'] !== expected.invocationId
     || proof['requestOrdinal'] !== expected.requestOrdinal
@@ -567,7 +565,7 @@ const validateAdmissionProofRef = (
   if (proof['kind'] === 'protected-asset') {
     const asset = proof['asset']
     if (
-      !isRecordValue(asset)
+      !isRecord(asset)
       || typeof asset['storeId'] !== 'string'
       || asset['storeId'].trim().length === 0
       || typeof asset['assetId'] !== 'string'

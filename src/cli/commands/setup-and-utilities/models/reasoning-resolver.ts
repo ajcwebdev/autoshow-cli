@@ -1,6 +1,7 @@
 import type { MappedReasoningPolicy, NormalizedReasoningEffort, ReasoningCapabilities, ReasoningSupport } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getModelRegistry } from './model-loader/registry'
+import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
 export const NORMALIZED_REASONING_EFFORTS = [
   'default',
@@ -14,14 +15,6 @@ export const NORMALIZED_REASONING_EFFORTS = [
 
 export const isNormalizedReasoningEffort = (value: unknown): value is NormalizedReasoningEffort =>
   typeof value === 'string' && (NORMALIZED_REASONING_EFFORTS as readonly string[]).includes(value)
-
-const formatQuotedChoiceList = (choices: readonly string[]): string => {
-  const quotedChoices = choices.map((choice) => `"${choice}"`)
-  if (quotedChoices.length <= 2) {
-    return quotedChoices.join(' or ')
-  }
-  return `${quotedChoices.slice(0, -1).join(', ')}, or ${quotedChoices[quotedChoices.length - 1]}`
-}
 
 export const parseReasoningEffort = (value: string | undefined): NormalizedReasoningEffort | undefined => {
   if (value === undefined) {

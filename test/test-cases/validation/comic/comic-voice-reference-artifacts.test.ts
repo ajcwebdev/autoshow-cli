@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CharacterVoiceBrief, ProtectedAssetRef, VoiceAuditionManifest, VoiceRegistration } from '~/types'
 import {
@@ -17,10 +16,11 @@ import {
 import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
 import { computeVoiceAuditionId } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-management-contracts'
 import { validateVoiceRegistration } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-management-contracts'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 const makeRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-voice-phase1-'))
+  const root = await makeTempDir('autoshow-comic-voice-phase1-')
   roots.push(root)
   return root
 }

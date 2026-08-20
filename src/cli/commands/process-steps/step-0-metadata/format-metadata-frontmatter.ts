@@ -1,9 +1,7 @@
 import type { MetadataScalar } from '~/types'
+import { isRecord } from '~/utils/value-helpers'
 
 const INDENT = '  '
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isScalar = (value: unknown): value is MetadataScalar =>
   value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
@@ -32,7 +30,7 @@ const renderEntry = (entry: unknown, prefix: string, indentLevel: number): strin
   if (Array.isArray(entry)) {
     return entry.length === 0 ? [`${prefix} []`] : [prefix, renderArray(entry, indentLevel + 1)]
   }
-  if (isPlainObject(entry)) {
+  if (isRecord(entry)) {
     const hasEntries = Object.values(entry).some((nested) => nested !== undefined)
     return hasEntries ? [prefix, renderObject(entry, indentLevel + 1)] : [`${prefix} {}`]
   }

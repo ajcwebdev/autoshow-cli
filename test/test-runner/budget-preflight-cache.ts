@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import type { BudgetPreflightCacheFile, PriceCommandSpec } from '~/types'
 import { MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader/paths'
 import { EMPTY_PRICE_CONFIG_PATH } from './price-command-config'
+import { sha256Bytes } from '~/utils/value-helpers'
 
 const CACHE_VERSION = 1
 const CACHE_PATH = resolve(process.cwd(), 'project/test-output/.test-cache/budget-preflight.json')
@@ -22,9 +23,6 @@ const PRICING_SOURCE_FILES = [
   'src/cli/commands/pricing-orchestration/supadata-pricing.ts',
   EMPTY_PRICE_CONFIG_PATH
 ] as const
-
-const sha256 = (value: string | Uint8Array): string =>
-  createHash('sha256').update(value).digest('hex')
 
 const listJsonFiles = async (path: string): Promise<string[]> => {
   try {
@@ -81,7 +79,7 @@ const hashFileContents = async (paths: readonly string[]): Promise<string> => {
       return 'missing'
     }
   }))
-  const hasher = createHash('sha256')
+  const hasher = createHash('sha256Bytes')
   for (const [index, path] of paths.entries()) {
     hasher.update(path)
     hasher.update('\0')
@@ -92,7 +90,7 @@ const hashFileContents = async (paths: readonly string[]): Promise<string> => {
 }
 
 export const argvKeyFor = (args: readonly string[]): string =>
-  sha256(JSON.stringify(args))
+  sha256Bytes(JSON.stringify(args))
 
 export const hashBudgetPreflightInputs = async (
   commands: readonly PriceCommandSpec[]

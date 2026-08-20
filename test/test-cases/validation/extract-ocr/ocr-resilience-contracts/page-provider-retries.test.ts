@@ -1,28 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  basePdfMetadata,
-  classifyOcrCreateRetry,
-  classifyOcrProviderFailure,
-  createOcrPreparationCache,
-  join,
-  jsonResponse,
-  mkdtemp,
-  OcrStructuredResponseError,
-  OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS,
-  OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS,
-  OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS,
-  prefillRenderedPageCache,
-  rm,
-  runKimiOcr,
-  tmpdir,
-  withOcrPageRequestRetry
-} from './shared'
+import { basePdfMetadata, classifyOcrCreateRetry, classifyOcrProviderFailure, createOcrPreparationCache, join, jsonResponse, OcrStructuredResponseError, OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS, OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS, OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS, prefillRenderedPageCache, rm, runKimiOcr, withOcrPageRequestRetry } from './shared'
 import { runGeminiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/run-gemini-ocr'
 import { runHostedOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/hosted-ocr'
 import { AppError, ProviderError } from '~/utils/error-handler'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import type { ExtractionOptions } from '~/types'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 describe('OCR resilience contracts', () => {
   test('DeepInfra page OCR uses bounded request retries and timeout classification keeps page context', async () => {
@@ -246,7 +230,7 @@ describe('OCR resilience contracts', () => {
     const previousEnv = {
       KIMI_API_KEY: process.env['KIMI_API_KEY']
     }
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-kimi-page-retry-'))
+    const tempDir = await makeTempDir('autoshow-kimi-page-retry-')
     const inputPath = join(tempDir, 'input.png')
     let attempts = 0
 
@@ -300,7 +284,7 @@ describe('OCR resilience contracts', () => {
     const previousEnv = {
       GEMINI_API_KEY: process.env['GEMINI_API_KEY']
     }
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-gemini-single-page-cap-'))
+    const tempDir = await makeTempDir('autoshow-gemini-single-page-cap-')
     const inputPath = join(tempDir, 'input.png')
 
     try {
@@ -380,7 +364,7 @@ describe('OCR resilience contracts', () => {
     const previousEnv = {
       GEMINI_API_KEY: process.env['GEMINI_API_KEY']
     }
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-gemini-direct-pdf-cap-'))
+    const tempDir = await makeTempDir('autoshow-gemini-direct-pdf-cap-')
     const inputPath = join(tempDir, 'input.pdf')
 
     try {
@@ -423,7 +407,7 @@ describe('OCR resilience contracts', () => {
     const previousEnv = {
       KIMI_API_KEY: process.env['KIMI_API_KEY']
     }
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-kimi-default-page-concurrency-'))
+    const tempDir = await makeTempDir('autoshow-kimi-default-page-concurrency-')
     const inputPath = join(tempDir, 'input.pdf')
     const renderDir = join(tempDir, 'renders')
     const cache = createOcrPreparationCache()

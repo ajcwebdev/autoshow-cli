@@ -2,9 +2,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
 import type { DialogueWorkItem, DialogueWorkSelectorOptions } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-
-const normalizeConcurrency = (value: number): number =>
-  Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
+import { normalizePositiveInt } from '~/utils/value-helpers'
 
 const resolveWorkspaces = <TResult>(
   workspaceRoot: string,
@@ -94,7 +92,7 @@ export const runDialogueWorkSelector = async <TResult>(
     }
   }
 
-  const workerCount = Math.min(normalizeConcurrency(options.concurrency), entries.length)
+  const workerCount = Math.min(normalizePositiveInt(options.concurrency), entries.length)
   await Promise.all(Array.from({ length: workerCount }, async () => await runWorker()))
 
   if (failed) {

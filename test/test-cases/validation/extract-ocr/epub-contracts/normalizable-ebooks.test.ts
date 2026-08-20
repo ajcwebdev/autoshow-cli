@@ -1,19 +1,6 @@
 import { expect, test } from 'bun:test'
-import {
-  buildExtractionOptions,
-  configureBinDir,
-  getConfiguredBinDir,
-  join,
-  mkdtemp,
-  prepareDocumentMetadata,
-  resolveEbookConvertCommand,
-  resolveOcrStep2ExecutionFromFormat,
-  rm,
-  runOcr,
-  tmpdir,
-  withFakeEbookConvert,
-  writeFile
-} from './shared'
+import { buildExtractionOptions, configureBinDir, getConfiguredBinDir, join, prepareDocumentMetadata, resolveEbookConvertCommand, resolveOcrStep2ExecutionFromFormat, rm, runOcr, withFakeEbookConvert, writeFile } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 test('normalizable ebook metadata records source format and EPUB normalization chain', async () => {
   await withFakeEbookConvert(async (root) => {
@@ -48,7 +35,7 @@ test('normalizable ebook metadata records source format and EPUB normalization c
 test('normalizable ebook extraction follows EPUB chapter, length, and inspect behavior', async () => {
   await withFakeEbookConvert(async (root) => {
     const sourcePath = join(root, 'normalized-source.azw3')
-    const outputDir = await mkdtemp(join(tmpdir(), 'autoshow-normalized-ebook-output-'))
+    const outputDir = await makeTempDir('autoshow-normalized-ebook-output-')
     await writeFile(sourcePath, 'fake azw3 input')
     const prepared = await prepareDocumentMetadata(sourcePath)
     const epubPath = prepared.effectiveFilePath ?? sourcePath

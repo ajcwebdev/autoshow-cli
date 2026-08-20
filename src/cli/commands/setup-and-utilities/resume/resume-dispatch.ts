@@ -14,6 +14,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getResumeHandler } from './resume-registry'
+import { formatErrorMessage } from '~/utils/value-helpers'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
 
@@ -161,9 +162,6 @@ const normalizeOutputDirInputs = (
       ? [outputDirInput]
       : []
 
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
-
 const buildResumeFailureError = (
   failures: Array<{ outputDir: string, message: string }>
 ): Error => {
@@ -252,7 +250,7 @@ export const dispatchResume = async (
         resumeResults.push(outcome.result)
       }
     } catch (error) {
-      failures.push({ outputDir, message: errorMessage(error) })
+      failures.push({ outputDir, message: formatErrorMessage(error) })
     }
   }
 

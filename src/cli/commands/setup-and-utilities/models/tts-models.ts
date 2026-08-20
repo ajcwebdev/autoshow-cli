@@ -1,5 +1,4 @@
-import { createModelValidator, formatAllowedValues, throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
+import { createModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { CLIUsageError } from '~/utils/error-handler'
 import {
   getGeminiTtsVoices,
@@ -8,6 +7,7 @@ import {
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
+import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
   'eleven_v3'
@@ -20,12 +20,7 @@ export const SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS = [
   'off'
 ] as const satisfies readonly string[]
 
-const validateActiveElevenlabsTtsModel = createModelValidator<ElevenlabsTtsModel>(SUPPORTED_ELEVENLABS_TTS_MODELS, 'elevenlabs-tts')
-export const validateElevenlabsTtsModel = (model: string): ElevenlabsTtsModel => {
-  const replacement = getRetiredModelReplacement('tts', 'elevenlabs', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'elevenlabs-tts', replacement)
-  return validateActiveElevenlabsTtsModel(model)
-}
+export const validateElevenlabsTtsModel = createRetiringModelValidator<ElevenlabsTtsModel>('tts', 'elevenlabs', SUPPORTED_ELEVENLABS_TTS_MODELS, 'elevenlabs-tts')
 
 export const validateElevenLabsTtsTextNormalization = (value: string): string => {
   const normalized = normalizeListedValue(value, SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS)
@@ -141,12 +136,7 @@ export const SUPPORTED_GROQ_ENGLISH_TTS_VOICES = [
 const SUPPORTED_GROQ_TTS_VOICES = getGroqTtsVoices()
 export const GROQ_DEFAULT_TTS_VOICE = 'troy'
 
-const validateActiveGroqTtsModel = createModelValidator<GroqTtsModel>(SUPPORTED_GROQ_TTS_MODELS, 'groq-tts')
-export const validateGroqTtsModel = (model: string): GroqTtsModel => {
-  const replacement = getRetiredModelReplacement('tts', 'groq', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'groq-tts', replacement)
-  return validateActiveGroqTtsModel(model)
-}
+export const validateGroqTtsModel = createRetiringModelValidator<GroqTtsModel>('tts', 'groq', SUPPORTED_GROQ_TTS_MODELS, 'groq-tts')
 
 export const validateGroqTtsVoice = (voice: string): string => {
   const normalized = voice.trim().toLowerCase()
@@ -243,12 +233,7 @@ export const OPENAI_DEFAULT_TTS_VOICE = 'alloy'
 
 export const SUPPORTED_OPENAI_TTS_VOICES = getOpenAITtsVoices()
 
-const validateActiveOpenAITtsModel = createModelValidator<OpenAITtsModel>(SUPPORTED_OPENAI_TTS_MODELS, 'openai-tts')
-export const validateOpenAITtsModel = (model: string): OpenAITtsModel => {
-  const replacement = getRetiredModelReplacement('tts', 'openai', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'openai-tts', replacement)
-  return validateActiveOpenAITtsModel(model)
-}
+export const validateOpenAITtsModel = createRetiringModelValidator<OpenAITtsModel>('tts', 'openai', SUPPORTED_OPENAI_TTS_MODELS, 'openai-tts')
 
 export const resolveOpenAITtsVoiceForModel = (
   _model: OpenAITtsModel,
@@ -416,12 +401,7 @@ export const SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES = [
   'sophia'
 ] as const satisfies readonly string[]
 
-const validateActiveSpeechifyTtsModel = createModelValidator<SpeechifyTtsModel>(SUPPORTED_SPEECHIFY_TTS_MODELS, 'speechify-tts')
-export const validateSpeechifyTtsModel = (model: string): SpeechifyTtsModel => {
-  const replacement = getRetiredModelReplacement('tts', 'speechify', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'speechify-tts', replacement)
-  return validateActiveSpeechifyTtsModel(model)
-}
+export const validateSpeechifyTtsModel = createRetiringModelValidator<SpeechifyTtsModel>('tts', 'speechify', SUPPORTED_SPEECHIFY_TTS_MODELS, 'speechify-tts')
 
 export const validateSpeechifyTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
@@ -504,12 +484,7 @@ export const SUPPORTED_FISH_TTS_MODELS = [
 
 export const FISH_DEFAULT_TTS_VOICE = '7f92f8afb8ec43bf81429cc1c9199cb1'
 
-const validateActiveFishTtsModel = createModelValidator<FishTtsModel>(SUPPORTED_FISH_TTS_MODELS, 'fish-tts')
-export const validateFishTtsModel = (model: string): FishTtsModel => {
-  const replacement = getRetiredModelReplacement('tts', 'fish', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'fish-tts', replacement)
-  return validateActiveFishTtsModel(model)
-}
+export const validateFishTtsModel = createRetiringModelValidator<FishTtsModel>('tts', 'fish', SUPPORTED_FISH_TTS_MODELS, 'fish-tts')
 
 export const validateFishTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
@@ -525,12 +500,7 @@ export const SUPPORTED_INWORLD_TTS_MODELS = [
 
 export const INWORLD_DEFAULT_TTS_VOICE = 'voice_inworld_standard_en'
 
-const validateActiveInworldTtsModel = createModelValidator<InworldTtsModel>(SUPPORTED_INWORLD_TTS_MODELS, 'inworld-tts')
-export const validateInworldTtsModel = (model: string): InworldTtsModel => {
-  const replacement = getRetiredModelReplacement('tts', 'inworld', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'inworld-tts', replacement)
-  return validateActiveInworldTtsModel(model)
-}
+export const validateInworldTtsModel = createRetiringModelValidator<InworldTtsModel>('tts', 'inworld', SUPPORTED_INWORLD_TTS_MODELS, 'inworld-tts')
 
 export const validateInworldTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
@@ -550,12 +520,7 @@ export const SUPPORTED_DEEPINFRA_TTS_MODELS = [
 
 export const DEEPINFRA_DEFAULT_TTS_VOICE = 'standard'
 
-const validateActiveDeepinfraTtsModel = createModelValidator<DeepinfraTtsModel>(SUPPORTED_DEEPINFRA_TTS_MODELS, 'deepinfra-tts')
-export const validateDeepinfraTtsModel = (model: string): DeepinfraTtsModel => {
-  const replacement = getRetiredModelReplacement('tts', 'deepinfra', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'deepinfra-tts', replacement)
-  return validateActiveDeepinfraTtsModel(model)
-}
+export const validateDeepinfraTtsModel = createRetiringModelValidator<DeepinfraTtsModel>('tts', 'deepinfra', SUPPORTED_DEEPINFRA_TTS_MODELS, 'deepinfra-tts')
 
 export const validateDeepinfraTtsVoice = (voice: string): string => {
   const normalized = voice.trim()

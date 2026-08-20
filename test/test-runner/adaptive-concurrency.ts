@@ -20,6 +20,7 @@ import {
   TIMEOUT_PATTERN
 } from '../test-utils/provider-failure-classifiers'
 import { readString } from './utils'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const STATE_FILE = 'adaptive-concurrency.json'
 const LOCK_NAME = 'adaptive-concurrency-state'
@@ -33,9 +34,6 @@ const DEFAULT_SUCCESS_STREAK_TO_INCREASE = 3
 const DEFAULT_ACQUIRE_POLL_MS = 100
 const DEFAULT_LOCK_WAIT_MS = 25
 const DEFAULT_LOCK_STALE_MS = 30_000
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
 
 const initialLimitForGroup = (
   group: AdaptiveProviderGroup,
@@ -68,7 +66,7 @@ const emptyState = (): AdaptiveSchedulerState => ({
 })
 
 const parseLeaseState = (value: unknown): AdaptiveLeaseState | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null
   }
   const pid = value['pid']
@@ -91,12 +89,12 @@ const parseGroupState = (
   value: unknown,
   config: AdaptiveConcurrencyConfig
 ): AdaptiveGroupState | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null
   }
   const leases: Record<string, AdaptiveLeaseState> = {}
   const rawLeases = value['leases']
-  if (isRecord(rawLeases)) {
+  if (isObjectLike(rawLeases)) {
     for (const [leaseId, leaseValue] of Object.entries(rawLeases)) {
       const lease = parseLeaseState(leaseValue)
       if (lease) {
@@ -127,7 +125,7 @@ const parseGroupState = (
 const readSchedulerState = async (config: AdaptiveConcurrencyConfig): Promise<AdaptiveSchedulerState> => {
   try {
     const parsed = JSON.parse(await readFile(statePath(config), 'utf8')) as unknown
-    if (!isRecord(parsed) || parsed['schemaVersion'] !== 1 || !isRecord(parsed['groups'])) {
+    if (!isObjectLike(parsed) || parsed['schemaVersion'] !== 1 || !isObjectLike(parsed['groups'])) {
       return emptyState()
     }
 

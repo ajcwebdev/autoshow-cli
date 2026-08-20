@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { copyFile, mkdir, rename } from 'node:fs/promises'
+import { copyFile, mkdir } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
 import type { CharacterCatalogService, CharacterKey, CharacterReferenceManifest } from '~/types'
@@ -8,6 +8,7 @@ import { checksumFile, requireCurrentCharacterSketch } from '../comic-commands/p
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
 import { getCharacterReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 const SnapshotAssetSchema = v.strictObject({
   role: v.picklist(['sketch-sheet', 'source-image']),
@@ -22,12 +23,6 @@ export const CharacterReferenceManifestSchema = v.strictObject({
 })
 
 export const getCharacterReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'character-references.json')
-
-const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
-  const temp = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temp, `${JSON.stringify(value, null, 2)}\n`)
-  await rename(temp, path)
-}
 
 export const createCharacterReferenceSnapshot = async (
   runDirectory: string,

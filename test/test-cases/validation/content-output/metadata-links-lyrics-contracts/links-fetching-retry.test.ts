@@ -1,10 +1,5 @@
 import { expect, test } from 'bun:test'
-import {
-  mkdtemp,
-  rm
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 import {
   runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
@@ -14,6 +9,7 @@ import type { ConsoleCapture } from '../../../../test-utils/console-capture'
 import { captureConsole } from '../../../../test-utils/console-capture'
 import { BLOB_PREFIXED_DOC_FETCH_LINK, BLOB_PREFIXED_DOC_LINK, linksTestOutputPath } from './shared'
 import { withEnv } from '../../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const LINKS_RETRY_TEST_URL = 'https://elevenlabs.io/docs/overview/models.md'
 
@@ -60,7 +56,7 @@ const expectLinksRetryScenario = async (options: {
 }
 
 const writeLinksFakeDefuddleBin = async (): Promise<{ dir: string, bin: string }> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-links-fake-defuddle-'))
+  const dir = await makeTempDir('autoshow-links-fake-defuddle-')
   const bin = await writeFakeDefuddleBinIn(dir, [
     "const html = readFileSync(args[1], 'utf8')",
     "const text = html.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim()",

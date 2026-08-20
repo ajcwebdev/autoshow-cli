@@ -3,21 +3,20 @@ import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAs
 import { logSttDiarizationConfig } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatSpeakerLabel, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InternalError, ProviderError } from '~/utils/error-handler'
+import { InternalError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getGladiaBaseUrl } from './gladia'
+import { attachSttStageErrorContext } from '../../stt-error-context'
+import { resolveRestPath } from '~/utils/rest-client'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
 const MAX_POLL_INTERVAL_MS = 10000
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
-
-const buildGladiaUrl = (baseURL: string, path: string): string =>
-  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
 
 export const buildGladiaCreateRequest = (
   audioUrl: string,
@@ -35,17 +34,6 @@ export const buildGladiaCreateRequest = (
       }
     : {})
 })
-
-const attachGladiaErrorContext = (
-  error: unknown,
-  stage: string,
-  retryClass: RetryClass
-): never => {
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as SttStageHttpError).stage = stage
-  ;(source as SttStageHttpError).retryClass = retryClass
-  throw source
-}
 
 const flattenGladiaWords = (
   utterances: ReadonlyArray<GladiaUtterance>,
@@ -113,12 +101,12 @@ const uploadGladiaAudio = async (
   schema: GladiaUploadResponseSchema,
   schemaLabel: 'Gladia upload response',
   metrics: lifecycleMetricsToCallbacks(metrics),
-  attachError: attachGladiaErrorContext,
+  attachError: attachSttStageErrorContext,
   doFetch: (signal) => {
     const form = new FormData()
     form.append('audio', Bun.file(audioPath), basename(audioPath))
 
-    return fetch(buildGladiaUrl(baseURL, '/v2/upload'), {
+    return fetch(resolveRestPath(baseURL, '/v2/upload'), {
       method: 'POST',
       headers: { 'x-gladia-key': apiKey },
       body: form,
@@ -145,8 +133,8 @@ const createGladiaTranscription = async (
     schema: GladiaCreateResponseSchema,
     schemaLabel: 'Gladia create response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    attachError: attachGladiaErrorContext,
-    doFetch: (signal) => fetch(buildGladiaUrl(baseURL, '/v2/pre-recorded'), {
+    attachError: attachSttStageErrorContext,
+    doFetch: (signal) => fetch(resolveRestPath(baseURL, '/v2/pre-recorded'), {
       method: 'POST',
       headers: {
         'x-gladia-key': apiKey,
@@ -176,8 +164,8 @@ const pollGladiaTranscription = async (
     schema: GladiaStatusResponseSchema,
     schemaLabel: 'Gladia transcription status response',
     metrics: lifecycleMetricsToCallbacks(metrics),
-    attachError: attachGladiaErrorContext,
-    doFetch: (signal) => fetch(buildGladiaUrl(baseURL, `/v2/pre-recorded/${transcriptionId}`), {
+    attachError: attachSttStageErrorContext,
+    doFetch: (signal) => fetch(resolveRestPath(baseURL, `/v2/pre-recorded/${transcriptionId}`), {
       method: 'GET',
       headers: { 'x-gladia-key': apiKey },
       signal: signal ?? null

@@ -4,13 +4,13 @@ import {
   expect,
   test
 } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { medianDuration, readFileTimings, recordFileTimings } from '../../../../test-runner/file-timings'
 import { readHistoricalLookups } from '../../../../test-runner/reports/history'
 import { isLongRunningTestFile } from '../../../../test-utils/timeouts'
 import type { ParsedJunitCase, TestRunArtifacts } from '~/types'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
@@ -59,7 +59,7 @@ describe('test-runner file timings', () => {
   })
 
   test('recordFileTimings stores passed file p50 and per-test durations', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-file-timings-'))
+    const dir = await makeTempDir('autoshow-file-timings-')
     tempDirs.push(dir)
     const cachePath = join(dir, 'file-timings.json')
     const file = 'test/test-cases/e2e/service/example.test.ts'
@@ -82,7 +82,7 @@ describe('test-runner file timings', () => {
   })
 
   test('historical duration lookups read the surviving file-timings cache', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-file-timings-history-'))
+    const dir = await makeTempDir('autoshow-file-timings-history-')
     tempDirs.push(dir)
     const cachePath = join(dir, 'file-timings.json')
     const file = 'test/test-cases/e2e/service/example.test.ts'

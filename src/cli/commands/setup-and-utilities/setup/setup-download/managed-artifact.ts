@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import * as v from 'valibot'
@@ -24,8 +24,9 @@ import type {
   ManagedSourceArtifactValidation,
   ManagedSourceRecipe
 } from '~/types'
-import { pathExists } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { pathExists } from '~/utils/filesystem'
 import { mupdfToolDir, qpdfToolDir } from '~/utils/runtime-paths'
+import { sha256Bytes } from '~/utils/value-helpers'
 
 export const MANAGED_ARTIFACT_MANIFEST_NAME = '.autoshow-managed-artifact.json'
 export const MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME = '.autoshow-payload-manifest.json'
@@ -232,9 +233,6 @@ export const parseManagedPrebuiltArtifactManifest = (value: unknown): ManagedPre
 
 export const parseManagedArtifactManifest = (value: unknown): ManagedArtifactManifest =>
   parseSchema(ManagedArtifactManifestSchema, value, 'managed artifact manifest')
-
-export const sha256Bytes = (value: string | Uint8Array): string =>
-  createHash('sha256').update(value).digest('hex')
 
 export const sha256File = async (path: string): Promise<string> =>
   sha256Bytes(await readFile(path))

@@ -1,20 +1,4 @@
-import type {
-  AnyCapabilityRecord,
-  CreateDeepinfraAdvancedProviderOptions,
-  DeepinfraDesignSynthesis,
-  JsonObject,
-  ProviderVoiceCatalogEntry,
-  ProviderVoiceCatalogPage,
-  ProviderVoiceCloneRequest,
-  ProviderVoiceDesignResult,
-  ProviderVoiceInspection,
-  ProviderVoiceRef,
-  TtsVoiceProvider,
-  VoiceCatalogPort,
-  VoiceClonePort,
-  VoiceDesignPort,
-  VoiceLifecyclePort,
-} from '~/types'
+import type { AnyCapabilityRecord, CreateDeepinfraAdvancedProviderOptions, DeepinfraDesignSynthesis, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceCloneRequest, ProviderVoiceDesignResult, ProviderVoiceInspection, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort, VoiceLifecyclePort } from '~/types'
 import { CLIUsageError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
@@ -31,6 +15,7 @@ import {
   DEEPINFRA_VOICE_CLONE_MODELS,
   isDeepinfraVoiceDesignModel,
 } from './deepinfra-tts-request'
+import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 
 const DOCS = {
   api: 'https://docs.deepinfra.com/apis/text-to-speech',
@@ -57,16 +42,12 @@ const capabilityRecords = [
 
 export const DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
-const record = (value: unknown, label: string): JsonObject => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`DeepInfra ${label} response is invalid.`)
-  return value as JsonObject
-}
-const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
+const record = createProviderRecordReader('DeepInfra')
 
 export const mapDeepinfraVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
-  const resourceId = string(voice['voice_id'])
-  const name = string(voice['name'])
+  const resourceId = trimmedString(voice['voice_id'])
+  const name = trimmedString(voice['name'])
   if (!resourceId || !name) throw CLIUsageError('DeepInfra voice response omits voice_id or name.')
   return {
     provider: 'deepinfra',
@@ -74,12 +55,12 @@ export const mapDeepinfraVoice = (value: unknown): ProviderVoiceCatalogEntry => 
     name,
     source: 'account',
     origin: 'imported-custom',
-    ...(string(voice['description']) ? { description: string(voice['description']) } : {}),
+    ...(trimmedString(voice['description']) ? { description: trimmedString(voice['description']) } : {}),
     labels: {},
     modelIds: [...DEEPINFRA_VOICE_CLONE_MODELS],
     state: 'available',
     sanitizedMetadata: {
-      ...(string(voice['user_id']) ? { userId: string(voice['user_id']) as string } : {}),
+      ...(trimmedString(voice['user_id']) ? { userId: trimmedString(voice['user_id']) as string } : {}),
       ...(typeof voice['created_at'] === 'number' ? { createdAt: voice['created_at'] } : {}),
       ...(typeof voice['updated_at'] === 'number' ? { updatedAt: voice['updated_at'] } : {}),
     }
@@ -159,7 +140,7 @@ export const createDeepinfraAdvancedProvider = (
       form.append('files', new Blob([resolved.bytes], { type: resolved.mediaType }), resolved.fileName)
     }
     const created = record(await request({ method: 'POST', path: '/v1/voices/add', body: form }), 'voice create')
-    const resourceId = string(created['voice_id'])
+    const resourceId = trimmedString(created['voice_id'])
     if (!resourceId) throw CLIUsageError('DeepInfra voice create response omits voice_id.')
     const checkedAt = now()
     const providerVoice: ProviderVoiceRef = {

@@ -5,6 +5,7 @@ import { AppError, AppProviderError, InfraError, ValidationError } from '~/utils
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { createProviderRestClient, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { pollUntil } from '~/utils/retries'
+import { isObjectLike } from '~/utils/value-helpers'
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
@@ -27,9 +28,6 @@ export class GeminiRestError extends AppProviderError {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
-
 const buildGeminiUrl = (path: string, params?: Record<string, string>): string => {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   const url = new URL(`${GEMINI_API_BASE_URL}/${normalizedPath}`)
@@ -43,7 +41,7 @@ const buildV1BetaUrl = (path: string, params?: Record<string, string>): string =
   buildGeminiUrl(`${GEMINI_API_VERSION}/${path}`, params)
 
 const formatGeminiErrorMessage = (body: unknown, status: number): string => {
-  if (isRecord(body) && isRecord(body['error'])) {
+  if (isObjectLike(body) && isObjectLike(body['error'])) {
     const error = body['error']
     const message = typeof error['message'] === 'string' ? error['message'] : JSON.stringify(body)
     const code = typeof error['code'] === 'number' ? error['code'] : status
@@ -145,13 +143,13 @@ const normalizeGeminiContents = (
   if (typeof contents === 'string') {
     return [geminiUserContent([contents])]
   }
-  if (isRecord(contents) && Array.isArray(contents['parts'])) {
+  if (isObjectLike(contents) && Array.isArray(contents['parts'])) {
     return [contents as GeminiContent]
   }
   if (!Array.isArray(contents)) {
     return [geminiUserContent([contents as GeminiPart])]
   }
-  if (contents.length > 0 && isRecord(contents[0]) && Array.isArray((contents[0] as Record<string, unknown>)['parts'])) {
+  if (contents.length > 0 && isObjectLike(contents[0]) && Array.isArray((contents[0] as Record<string, unknown>)['parts'])) {
     return contents as GeminiContent[]
   }
   return [geminiUserContent(contents as Array<string | GeminiPart>)]
@@ -202,7 +200,7 @@ export const geminiGenerateContent = async (
     body,
     ...(params.abortSignal ? { abortSignal: params.abortSignal } : {})
   })
-  const response = isRecord(json) ? json as GeminiGenerateContentResponse : {}
+  const response = isObjectLike(json) ? json as GeminiGenerateContentResponse : {}
   response.text = extractGeminiResponseText(response)
   response.sdkHttpResponse = { headers, status }
   return response
@@ -257,16 +255,16 @@ export const geminiGetOperation = async (
 }
 
 const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => {
-  const raw = isRecord(value) ? value : {}
+  const raw = isObjectLike(value) ? value : {}
   const operation: GeminiVideoOperation = {
     ...(typeof raw['name'] === 'string' ? { name: raw['name'] } : {}),
     ...(typeof raw['done'] === 'boolean' ? { done: raw['done'] } : {}),
     ...(raw['metadata'] !== undefined ? { metadata: raw['metadata'] } : {}),
     ...(raw['error'] !== undefined ? { error: raw['error'] } : {})
   }
-  const response = isRecord(raw['response']) ? raw['response'] : undefined
+  const response = isObjectLike(raw['response']) ? raw['response'] : undefined
   // Raw Gemini REST provenance: https://ai.google.dev/gemini-api/docs/veo and the Google Gen AI SDK's ML Developer API converters at https://github.com/googleapis/js-genai/blob/4489991a7c40b22dff75348748048b0b14ac687e/src/converters/_models_converters.ts.
-  const generateVideoResponse = response && isRecord(response['generateVideoResponse'])
+  const generateVideoResponse = response && isObjectLike(response['generateVideoResponse'])
     ? response['generateVideoResponse']
     : undefined
   if (generateVideoResponse) {
@@ -276,8 +274,8 @@ const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => 
     operation.response = {
       generatedVideos: samples
         .map((sample): GeminiGeneratedVideo | undefined => {
-          if (!isRecord(sample)) return undefined
-          if (isRecord(sample['video'])) {
+          if (!isObjectLike(sample)) return undefined
+          if (isObjectLike(sample['video'])) {
             const video = normalizeGeminiVideo(sample['video'])
             return video ? { video } : undefined
           }
@@ -389,21 +387,21 @@ export const geminiUploadFile = async (
       metadata: buildCaptureMetadata(captured)
     })
   }
-  if (isRecord(parsed) && isRecord(parsed['file'])) {
+  if (isObjectLike(parsed) && isObjectLike(parsed['file'])) {
     return parsed['file'] as GeminiFile
   }
   throw ValidationError('Gemini Files API upload did not return file metadata.', { stage: 'gemini:rest' })
 }
 
 export const getGeminiFileState = (file: unknown): string | undefined => {
-  if (!isRecord(file)) {
+  if (!isObjectLike(file)) {
     return undefined
   }
   const state = file['state']
   if (typeof state === 'string') {
     return state.toUpperCase()
   }
-  if (isRecord(state) && typeof state['name'] === 'string') {
+  if (isObjectLike(state) && typeof state['name'] === 'string') {
     return state['name'].toUpperCase()
   }
   return undefined
@@ -416,7 +414,7 @@ export const geminiGetFile = async (
   const { json } = await geminiJsonRequest(apiKey, `files/${encodeURIComponent(extractGeminiFileName(name))}`, {
     method: 'GET'
   })
-  return isRecord(json) ? json as GeminiFile : {}
+  return isObjectLike(json) ? json as GeminiFile : {}
 }
 
 export const GEMINI_FILE_ACTIVATION_DEADLINE_MS = 120_000
@@ -481,7 +479,7 @@ const extractInlineVideoBytes = (file: string | GeminiVideo | GeminiGeneratedVid
   if ('videoBytes' in file && typeof file.videoBytes === 'string') {
     return file.videoBytes
   }
-  if ('video' in file && isRecord(file.video) && typeof file.video['videoBytes'] === 'string') {
+  if ('video' in file && isObjectLike(file.video) && typeof file.video['videoBytes'] === 'string') {
     return file.video['videoBytes']
   }
   return undefined
@@ -494,7 +492,7 @@ const extractGeminiFileNameFromFile = (file: string | GeminiVideo | GeminiGenera
   if ('uri' in file && typeof file.uri === 'string') {
     return extractGeminiFileName(file.uri)
   }
-  if ('video' in file && isRecord(file.video) && typeof file.video['uri'] === 'string') {
+  if ('video' in file && isObjectLike(file.video) && typeof file.video['uri'] === 'string') {
     return extractGeminiFileName(file.video['uri'])
   }
   throw ValidationError('Could not extract Gemini file name from generated media.', { stage: 'gemini:rest' })

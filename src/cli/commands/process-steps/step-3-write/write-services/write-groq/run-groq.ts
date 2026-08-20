@@ -2,7 +2,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { GROQ_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
-import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
 const getGroqClientConfig = (): { apiKey: string, baseURL: string } => {
   const apiKey = requireApiKey('GROQ_API_KEY', 'write:groq', '--groq models')
@@ -15,22 +15,7 @@ export const runGroqModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const policy = resolveReasoningPolicy({
-    step: 'llm',
-    service: 'groq',
-    model,
-    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
-  })
-  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
-    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
-    : {
-        schemaName: '',
-        schema: {},
-        strict: false,
-        strategy: 'native',
-        requestedReasoningEffort: policy.requested,
-        effectiveReasoningEffort: policy.effective
-      }
+  const { policy, updatedOpts } = resolveLlmReasoningOptions('groq', model, structuredOpts)
 
   return await runOpenAICompatibleChatModel({
     prompt,

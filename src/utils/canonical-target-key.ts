@@ -1,10 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { CanonicalProviderOperation } from '~/types'
-
-const safeKeyPart = (value: string): string => {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  return normalized.slice(0, 48) || 'none'
-}
+import { safeKeyPart } from '~/utils/value-helpers'
 
 export const canonicalTargetKey = (
   operation: CanonicalProviderOperation,

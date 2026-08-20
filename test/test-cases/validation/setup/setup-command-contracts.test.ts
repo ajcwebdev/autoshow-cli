@@ -1,5 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
@@ -21,6 +20,7 @@ import {
   resolveRuntimeToolInfo,
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 describe('setup command contracts', () => {
   test('setup rejects the retired ACSM step and omits retired steps from valid values', async () => {
@@ -153,7 +153,7 @@ describe('setup command contracts', () => {
   })
 
   test('retired Whisper CoreML artifacts are reclaimable but no longer provisioned or recorded at runtime', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-retired-coreml-'))
+    const root = await makeTempDir('autoshow-retired-coreml-')
     try {
       const coremlEnvDir = join(root, 'bin', 'whisper-coreml-env')
       const modelsDir = join(root, 'models')

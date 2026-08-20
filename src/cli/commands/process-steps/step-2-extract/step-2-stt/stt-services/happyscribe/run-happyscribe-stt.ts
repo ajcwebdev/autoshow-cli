@@ -22,12 +22,12 @@ import {
   resolveHappyScribeOrderTranscriptionId
 } from './happyscribe-response-parsers'
 import {
-  attachHappyScribeErrorContext,
-  getHappyScribeErrorStatus
+  attachHappyScribeErrorContext
 } from './happyscribe-utils'
 import { parseHappyScribeTranscriptPayload } from './parse-happyscribe-transcript'
 import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
+import { getErrorStatus } from '~/utils/error-handler'
 
 const INITIAL_POLL_INTERVAL_MS = 1_000
 const MAX_POLL_INTERVAL_MS = 10_000
@@ -130,7 +130,7 @@ export const runHappyScribeStt = async (
     onRetry: (error) => {
       if (!lifecycleMetrics) return
       lifecycleMetrics.retryCount += 1
-      if (getHappyScribeErrorStatus(error) === 429) {
+      if (getErrorStatus(error) === 429) {
         lifecycleMetrics.rateLimitCount += 1
       }
     }

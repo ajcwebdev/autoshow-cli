@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { ProviderError } from '~/utils/error-handler'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { exec } from '~/utils/cli-utils'
 import { classifyFetchRetry, getRetryPolicyForClass, withRetry } from '~/utils/retries'
 import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const stubBunSleep = (): (() => void) => {
   const original = Bun.sleep
@@ -65,7 +65,7 @@ describe('general retry-on-any-error contracts', () => {
   })
 
   test('exec retries a non-zero exit on the shared subprocess policy and succeeds once the command recovers', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-exec-retry-'))
+    const dir = await makeTempDir('autoshow-exec-retry-')
     const restoreSleep = stubBunSleep()
     try {
       const counter = join(dir, 'count')

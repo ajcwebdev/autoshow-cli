@@ -4,16 +4,10 @@ import {
   expect,
   test
 } from 'bun:test'
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildModelCalibrationReport } from '../../../../test-runner/model-calibration'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
@@ -43,7 +37,7 @@ afterEach(async () => {
 
 describe('test-runner contracts', () => {
   test('model calibration scans copied canonical manifests and reports recommendations', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-calibration-run-manifest-'))
+      const dir = await makeTempDir('autoshow-calibration-run-manifest-')
       tempDirs.push(dir)
 
       const configPath = join(dir, 'image-config.json')
@@ -121,7 +115,7 @@ describe('test-runner contracts', () => {
     })
 
   test('model calibration reads split STT provider fragments without writing back', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-calibration-stt-fragment-'))
+      const dir = await makeTempDir('autoshow-calibration-stt-fragment-')
       tempDirs.push(dir)
 
       const runsRoot = join(dir, 'runs')
@@ -209,7 +203,7 @@ describe('test-runner contracts', () => {
     })
 
   test('model calibration reads split OCR provider fragments without writing back', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-calibration-ocr-fragment-'))
+      const dir = await makeTempDir('autoshow-calibration-ocr-fragment-')
       tempDirs.push(dir)
 
       const runsRoot = join(dir, 'runs')

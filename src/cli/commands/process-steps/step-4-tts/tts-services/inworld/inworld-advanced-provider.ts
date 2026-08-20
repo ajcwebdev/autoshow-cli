@@ -1,19 +1,4 @@
-import type {
-  AnyCapabilityRecord,
-  CreateInworldAdvancedProviderOptions,
-  JsonObject,
-  ProviderVoiceCatalogEntry,
-  ProviderVoiceCatalogPage,
-  ProviderVoiceDesignResult,
-  ProviderVoiceInspection,
-  ProviderVoiceMutationResult,
-  ProviderVoiceRef,
-  TtsVoiceProvider,
-  VoiceCatalogPort,
-  VoiceClonePort,
-  VoiceDesignPort,
-  VoiceLifecyclePort,
-} from '~/types'
+import type { AnyCapabilityRecord, CreateInworldAdvancedProviderOptions, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceDesignResult, ProviderVoiceInspection, ProviderVoiceMutationResult, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort, VoiceLifecyclePort } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import {
@@ -22,6 +7,7 @@ import {
   createAdvancedProviderJsonRequest,
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
+import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 
 const DOCS = {
   synthesis: 'https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech',
@@ -49,25 +35,21 @@ const capabilityRecords = [
 
 export const INWORLD_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
-const record = (value: unknown, label: string): JsonObject => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw CLIUsageError(`Inworld ${label} response is invalid.`)
-  return value as JsonObject
-}
-const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
+const record = createProviderRecordReader('Inworld')
 
 export const mapInworldVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
-  const resourceId = string(voice['voiceId'])
-  const name = string(voice['displayName']) ?? string(voice['name'])
+  const resourceId = trimmedString(voice['voiceId'])
+  const name = trimmedString(voice['displayName']) ?? trimmedString(voice['name'])
   if (!resourceId || !name) throw CLIUsageError('Inworld voice response omits voiceId or displayName.')
-  const source = string(voice['source'])
+  const source = trimmedString(voice['source'])
   const providerStock = source === 'SYSTEM'
   const origin = providerStock ? 'provider-stock' as const : source === 'PVC' ? 'professional-clone' as const : 'imported-custom' as const
   const tags = Array.isArray(voice['tags']) ? voice['tags'].filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0) : []
   const labels = Object.fromEntries([
-    ['language', string(voice['langCode'])],
-    ['gender', string(voice['gender'])],
-    ['ageGroup', string(voice['ageGroup'])],
+    ['language', trimmedString(voice['langCode'])],
+    ['gender', trimmedString(voice['gender'])],
+    ['ageGroup', trimmedString(voice['ageGroup'])],
   ].flatMap(([key, item]) => item ? [[key as string, item]] : []))
   return {
     provider: 'inworld',
@@ -75,14 +57,14 @@ export const mapInworldVoice = (value: unknown): ProviderVoiceCatalogEntry => {
     name,
     source: providerStock ? 'provider-library' : 'account',
     origin,
-    ...(string(voice['description']) ? { description: string(voice['description']) } : {}),
+    ...(trimmedString(voice['description']) ? { description: trimmedString(voice['description']) } : {}),
     labels: { ...labels, ...(tags.length > 0 ? { tags: tags.join(',') } : {}) },
     modelIds: ['realtime-tts-2'],
     state: 'available',
     sanitizedMetadata: {
       source: source ?? 'UNKNOWN',
-      ...(string(voice['name']) ? { resourceName: string(voice['name']) as string } : {}),
-      ...(string(voice['languageCode']) ? { languageCode: string(voice['languageCode']) as string } : {}),
+      ...(trimmedString(voice['name']) ? { resourceName: trimmedString(voice['name']) as string } : {}),
+      ...(trimmedString(voice['languageCode']) ? { languageCode: trimmedString(voice['languageCode']) as string } : {}),
       ...(Array.isArray(voice['categories']) ? { categories: voice['categories'].filter((item): item is string => typeof item === 'string') } : {}),
       ...(Array.isArray(voice['promptLanguages']) ? { promptLanguages: voice['promptLanguages'].filter((item): item is string => typeof item === 'string') } : {})
     }
@@ -137,9 +119,9 @@ export const createInworldAdvancedProvider = (
         creationModel: designRequest.creationModel,
         previews: previews.map(value => {
           const preview = record(value, 'voice design preview')
-          const providerCandidateId = string(preview['voiceId'])
-          const audioBase64 = string(preview['previewAudio'])
-          const returnedPreviewText = string(preview['previewText'])
+          const providerCandidateId = trimmedString(preview['voiceId'])
+          const audioBase64 = trimmedString(preview['previewAudio'])
+          const returnedPreviewText = trimmedString(preview['previewText'])
           if (!providerCandidateId || !returnedPreviewText || !audioBase64) throw CLIUsageError('Inworld voice design preview omits voiceId, previewText, or previewAudio.')
           return { providerCandidateId, audioBase64, mediaType: 'audio/mpeg', sanitizedMetadata: { previewText: returnedPreviewText } }
         }),
@@ -152,7 +134,7 @@ export const createInworldAdvancedProvider = (
       const desiredName = materializeRequest.desiredName.trim()
       if (!providerCandidateId || !desiredName) throw CLIUsageError('Inworld materialization requires the selected candidate ID and desired name.')
       const published = record(await request({ method: 'POST', path: `/voices/v1/voices/${encodeURIComponent(providerCandidateId)}:publish`, body: { displayName: desiredName } }), 'voice publish')
-      const resourceId = string(published['voiceId'])
+      const resourceId = trimmedString(published['voiceId'])
       if (!resourceId) throw CLIUsageError('Inworld voice publish response omits voiceId.')
       const checkedAt = now()
       const providerVoice: ProviderVoiceRef = {
@@ -186,7 +168,7 @@ export const createInworldAdvancedProvider = (
         ...(cloneRequest.description?.trim() ? { description: cloneRequest.description.trim() } : {})
       } }), 'voice clone')
       const voice = record(payload['voice'], 'cloned voice')
-      const resourceId = string(voice['voiceId'])
+      const resourceId = trimmedString(voice['voiceId'])
       if (!resourceId) throw CLIUsageError('Inworld voice clone response omits voice.voiceId.')
       const checkedAt = now()
       const sourceSample = cloneRequest.protectedSamples[0]!
@@ -195,7 +177,7 @@ export const createInworldAdvancedProvider = (
         origin: 'instant-clone', ownership: 'project', deletion: { state: 'eligible', checkedAt },
         derivedFrom: { sourceRef: sourceSample.assetId, sourceIdentityHash: sourceSample.sha256, operation: 'cloned-from', localAttemptId: cloneRequest.localAttemptId }
       }
-      return { schemaVersion: 1, provider: 'inworld', state: 'ready', providerVoice, sanitizedMetadata: { cloneKind: 'instant', sampleCount: resolved.length, source: string(voice['source']) ?? 'IVC' }, checkedAt }
+      return { schemaVersion: 1, provider: 'inworld', state: 'ready', providerVoice, sanitizedMetadata: { cloneKind: 'instant', sampleCount: resolved.length, source: trimmedString(voice['source']) ?? 'IVC' }, checkedAt }
     }
   }
 

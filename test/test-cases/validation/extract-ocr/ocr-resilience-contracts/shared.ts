@@ -1,5 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DocumentMetadata, HostedOcrRun, OcrPreparationCache, PageResult } from '~/types'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
@@ -129,7 +128,6 @@ export {
   join,
   l,
   mkdir,
-  mkdtemp,
   OCR_CREATE_RETRY_POLICY,
   OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS,
   OCR_PAGE_REQUEST_ATTEMPTS,
@@ -147,7 +145,6 @@ export {
   runKimiOcr,
   shouldFallbackToOcrPdfChunks,
   stitchHostedOcrChunkRuns,
-  tmpdir,
   withOcrPageRequestRetry,
   writeOcrProviderError
 }

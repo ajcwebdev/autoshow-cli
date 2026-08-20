@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { createLocationReferenceSnapshots, normalizeLocationKey, resolveLocationCatalogEntry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
@@ -9,6 +8,7 @@ import { resolveLocationReferencesAcrossPanels } from '~/cli/commands/process-st
 import { validateSceneSourceSegmentCoverage } from '~/cli/commands/process-steps/step-8-comic/comic-utils/source-coverage-utils'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
 import type { CharacterCatalogService, LocationReferenceCatalog, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 const emptyCharacterCatalog = {
@@ -90,7 +90,7 @@ describe('multi-location comic contracts', () => {
   })
 
   test('snapshots each distinct location once and rejects tampered or missing snapshot manifests on the panel resolution path', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-multi-location-snapshots-'))
+    const root = await makeTempDir('autoshow-multi-location-snapshots-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
     const locations = join(root, 'input', 'locations')
@@ -154,7 +154,7 @@ describe('multi-location comic contracts', () => {
   })
 
   test('composes schema-version-2 views in canonical order and records source provenance', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-multi-view-location-'))
+    const root = await makeTempDir('autoshow-multi-view-location-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
     const locations = join(root, 'input', 'locations')

@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import {
   buildAss,
   buildImageBackgroundFilter,
@@ -7,6 +6,7 @@ import {
   buildTranscriptAss
 } from '~/cli/commands/process-steps/step-7-music/lyrics-video/render'
 import type { CaptionCue } from '~/types'
+import { sha256Bytes } from '~/utils/value-helpers'
 
 describe('lyrics video render filters', () => {
   test('image background filter omits eq when ffmpeg lacks the filter', () => {
@@ -35,14 +35,13 @@ describe('lyrics video render filters', () => {
       { index: 1, start: 1.234, end: 3.5, text: 'Second\nline' }
     ]
 
-    const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex')
-    expect(sha256(buildAss(options, cues))).toBe('69537f242a6555449421cc5a7bbb682b430dd78849d6420d11c62d4a4b0b0820')
+    expect(sha256Bytes(buildAss(options, cues))).toBe('69537f242a6555449421cc5a7bbb682b430dd78849d6420d11c62d4a4b0b0820')
 
     const transcriptCues = [
       { ...cues[0]!, speaker: 'speaker-A' },
       { ...cues[1]!, speaker: '2' }
     ]
-    expect(sha256(buildTranscriptAss(options, transcriptCues))).toBe('fb2b3a9201903d93d09155306300f2a7e1ab9194a884568fb095052f4d9696ce')
+    expect(sha256Bytes(buildTranscriptAss(options, transcriptCues))).toBe('fb2b3a9201903d93d09155306300f2a7e1ab9194a884568fb095052f4d9696ce')
   })
 
   test('ffmpeg argv is exact across the background and overlay matrix', () => {

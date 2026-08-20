@@ -1,5 +1,6 @@
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, RetryClass } from '~/types'
+import { isRecord } from '~/utils/value-helpers'
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
   usage: 2,
   provider_http: 1,
@@ -314,9 +315,6 @@ const PROVIDER_METADATA_KEYS = [
   'responseType'
 ] as const
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
 const addMetadataValue = (
   out: Record<string, unknown>,
   key: string,
@@ -325,6 +323,31 @@ const addMetadataValue = (
   if (value !== undefined && out[key] === undefined) {
     out[key] = value
   }
+}
+
+/**
+ * Reads the HTTP status a provider error carries. Five modules had reimplemented this and
+ * two had reimplemented the headers probe beside it; both are provider-agnostic error shape
+ * questions, so they live with the rest of the error helpers.
+ */
+export const getErrorStatus = (error: unknown): number | undefined => {
+  if (error && typeof error === 'object' && 'status' in error) {
+    const status = (error as { status: unknown }).status
+    if (typeof status === 'number') {
+      return status
+    }
+  }
+  return undefined
+}
+
+export const getErrorHeaders = (error: unknown): Headers | undefined => {
+  if (error && typeof error === 'object' && 'headers' in error) {
+    const headers = (error as { headers: unknown }).headers
+    if (headers instanceof Headers) {
+      return headers
+    }
+  }
+  return undefined
 }
 
 export const extractErrorMetadata = (error: unknown): Record<string, unknown> => {

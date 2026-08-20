@@ -1,27 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { ProviderError } from '~/utils/error-handler'
-import {
-  basePdfMetadata,
-  hostedRun,
-  jsonResponse,
-  join,
-  mkdtemp,
-  pageCachePath,
-  pageInputPath,
-  pagesForRange,
-  pageTextPath,
-  rm,
-  runAnthropicOcr,
-  runHostedOcrWithPdfChunkFallback,
-  tmpdir
-} from './shared'
+import { basePdfMetadata, hostedRun, jsonResponse, join, pageCachePath, pageInputPath, pagesForRange, pageTextPath, rm, runAnthropicOcr, runHostedOcrWithPdfChunkFallback } from './shared'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 describe('OCR resilience contracts', () => {
   test('PDFs over the hosted fallback threshold skip full-document OCR and include page 1', async () => {
     let fullAttempts = 0
     const attemptedPages: number[] = []
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-threshold-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-threshold-')
     try {
       const result = await runHostedOcrWithPdfChunkFallback({
         filePath: '/virtual/input.pdf',
@@ -57,7 +44,7 @@ describe('OCR resilience contracts', () => {
   }, 10_000)
 
   test('successful PDF fallback keeps page inputs only when requested', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-keep-inputs-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-keep-inputs-')
     try {
       await runHostedOcrWithPdfChunkFallback({
         filePath: '/virtual/input.pdf',
@@ -84,7 +71,7 @@ describe('OCR resilience contracts', () => {
   }, 10_000)
 
   test('failed PDF fallback preserves page inputs for resume and debugging', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-failed-inputs-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-failed-inputs-')
     try {
       await expect(runHostedOcrWithPdfChunkFallback({
         filePath: '/virtual/input.pdf',
@@ -141,7 +128,7 @@ describe('OCR resilience contracts', () => {
     const previousEnv = {
       ANTHROPIC_API_KEY: process.env['ANTHROPIC_API_KEY']
     }
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-anthropic-single-page-pdf-'))
+    const tempDir = await makeTempDir('autoshow-anthropic-single-page-pdf-')
     const inputPath = join(tempDir, 'page-000001.pdf')
     const calls: string[] = []
 
@@ -196,7 +183,7 @@ describe('OCR resilience contracts', () => {
 
   test('small PDF full-document failures fall back to individual cached pages', async () => {
     const attemptedPages: number[] = []
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-fallback-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-fallback-')
     try {
       const result = await runHostedOcrWithPdfChunkFallback({
         filePath: '/virtual/input.pdf',
@@ -244,7 +231,7 @@ describe('OCR resilience contracts', () => {
   test('small PDF fallback honors page concurrency and still writes ordered artifacts', async () => {
     let active = 0
     let maxActive = 0
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-fallback-concurrency-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-fallback-concurrency-')
     try {
       const result = await runHostedOcrWithPdfChunkFallback({
         filePath: '/virtual/input.pdf',
@@ -296,7 +283,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('PDF page fallback stops scheduling after provider-wide blockers and records canceled pages', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-provider-blocked-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-provider-blocked-')
     let resolveSecondStarted!: () => void
     const secondStarted = new Promise<void>(resolve => {
       resolveSecondStarted = resolve

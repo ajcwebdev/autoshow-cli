@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { randomUUID } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CliCommandContext, PipelineProviderState, ProviderRenderResult, StructuredScriptData, TtsOptions, TtsTarget, VoiceReferenceManifest } from '~/types'
 import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
@@ -21,6 +20,7 @@ import { createResourceGate } from '~/utils/resource-gate'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../test-utils/value-assertions'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const HASH_A = 'a'.repeat(64)
 const HASH_B = 'b'.repeat(64)
@@ -75,7 +75,7 @@ const snapshotEntry = (
 
 describe('comic audio phase 2 contracts', () => {
   test('source identity converges through symlinks and rejects exact-byte drift in a pinned scene run', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-source-'))
+    const root = await makeTempDir('autoshow-comic-audio-source-')
     const sourcePath = join(root, 'scene.md')
     const aliasPath = join(root, 'scene-alias.md')
     const sceneRunDir = join(root, 'run')
@@ -102,7 +102,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('preserves incompatible nonempty pinned directory contents without partial initialization', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-pinned-initialize-'))
+    const root = await makeTempDir('autoshow-comic-audio-pinned-initialize-')
     const sourcePath = join(root, 'scene.md')
     const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
     await writeFile(sourcePath, sourceBytes)
@@ -116,7 +116,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('automatic source selection skips a newer incompatible candidate without creating a fallback run', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-selection-'))
+    const root = await makeTempDir('autoshow-comic-audio-selection-')
     const outputRoot = join(root, 'output')
     const sourcePath = join(root, 'scene.md')
     const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
@@ -142,7 +142,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('compound speech remains an explicit overlap unless a role policy collapses it', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-overlap-'))
+    const root = await makeTempDir('autoshow-comic-audio-overlap-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'compound scene')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'compound scene')
@@ -184,7 +184,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('dialogue planning separates comms delivery and resolves loose-comedy timing cues', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-pacing-'))
+    const root = await makeTempDir('autoshow-comic-audio-pacing-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'paced scene')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'paced scene')
@@ -213,7 +213,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('Gemini comic planning binds approved snapshot entries and selects native only for exactly two speakers', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-plan-'))
+    const root = await makeTempDir('autoshow-comic-audio-plan-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'two speaker scene')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'two speaker scene')
@@ -261,7 +261,7 @@ describe('comic audio phase 2 contracts', () => {
 
   test('finalizes a fully compatible snapshot-identity change without another provider call', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-cross-snapshot-recovery-'))
+    const root = await makeTempDir('autoshow-comic-cross-snapshot-recovery-')
     const sourcePath = join(root, 'scene.md')
     const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
     await writeFile(sourcePath, sourceBytes)
@@ -382,7 +382,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('comic target execution carries every Inworld snapshot voice into readiness', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-inworld-readiness-'))
+    const root = await makeTempDir('autoshow-inworld-readiness-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'Inworld readiness')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'Inworld readiness')
@@ -421,7 +421,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('targetless zero-turn command completes locally without provider state', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-empty-'))
+    const root = await makeTempDir('autoshow-comic-audio-empty-')
     const sourcePath = join(root, 'silent-scene.md')
     const sceneRunDir = join(root, 'run')
     const sourceText = 'A silent bridge.\n'
@@ -466,7 +466,7 @@ describe('comic audio phase 2 contracts', () => {
   test('soundscape-only command uses a canonical local silence clock without selecting TTS', async () => {
     process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-test-key'
     const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav' } }))
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-soundscape-only-'))
+    const root = await makeTempDir('autoshow-comic-audio-soundscape-only-')
     const sourcePath = join(root, 'soundscape-only.md')
     const sceneRunDir = join(root, 'run')
     const prompt = `airlock closes ${randomUUID()}`
@@ -506,7 +506,7 @@ describe('comic audio phase 2 contracts', () => {
   test('mocked segmented command crosses the shared barrier and publishes canonical comic audio', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
     const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav' } }))
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-command-'))
+    const root = await makeTempDir('autoshow-comic-audio-command-')
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
     const sourceText = '# Episode\n\n## Scene\n\n**PILOT**\nReady? (beat) Go.\n\n**NAVIGATOR**\nReady.\n'
@@ -568,7 +568,7 @@ describe('comic audio phase 2 contracts', () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
     process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-test-key'
     const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav', 'request-id': 'fixture-request' } }))
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-soundscape-command-'))
+    const root = await makeTempDir('autoshow-comic-soundscape-command-')
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
     const prompt = `hatch slams ${randomUUID()}`
@@ -645,7 +645,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('append-only voice snapshot indexes retain and resolve recast revisions independently', async () => {
-    const sceneRunDir = await mkdtemp(join(tmpdir(), 'autoshow-comic-voice-recast-'))
+    const sceneRunDir = await makeTempDir('autoshow-comic-voice-recast-')
     const firstBase = {
       schemaVersion: 1 as const,
       sceneRunIdentity: HASH_A,
@@ -674,7 +674,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('canonical image and audio stage updates preserve each other and replace only their own provider targets', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-stage-state-'))
+    const root = await makeTempDir('autoshow-comic-stage-state-')
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
     await writeFile(sourcePath, 'stage state')
@@ -712,7 +712,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('local overlap mixing uses the longest child and honors the selected mastering profile', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-overlap-mix-'))
+    const root = await makeTempDir('autoshow-comic-overlap-mix-')
     const first = join(root, 'first.wav')
     const second = join(root, 'second.wav')
     const output = join(root, 'mixed.wav')

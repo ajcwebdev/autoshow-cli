@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, RetryClass, Step2Metadata, SttSegmentRunOptions, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, Step2Metadata, SttSegmentRunOptions, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { DeepgramResponseSchema } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
@@ -13,20 +13,9 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
 import { sttStageRequest } from '../stt-stage-request'
-import { ProviderError } from '~/utils/error-handler'
+import { attachSttStageErrorContext } from '../../stt-error-context'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
-
-const attachDeepgramErrorContext = (
-  error: unknown,
-  stage: string,
-  retryClass: RetryClass
-): never => {
-  const source = error instanceof Error ? error : ProviderError(String(error))
-  ;(source as SttStageHttpError).stage = stage
-  ;(source as SttStageHttpError).retryClass = retryClass
-  throw source
-}
 
 const inferDeepgramMimeType = (audioPath: string, fallback?: string | undefined): string => {
   const lower = audioPath.toLowerCase()
@@ -187,7 +176,7 @@ export const runDeepgramTranscribe = async (
     metrics: sttRetryMetricsToCallbacks(retryMetrics, () => {
       requestCount += 1
     }),
-    attachError: attachDeepgramErrorContext,
+    attachError: attachSttStageErrorContext,
     doFetch: async (signal) => await fetch(buildDeepgramUrl(baseURL, modelName), {
       method: 'POST',
       headers: {

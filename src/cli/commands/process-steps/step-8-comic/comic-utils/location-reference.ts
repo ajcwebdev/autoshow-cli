@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { copyFile, mkdir, rename } from 'node:fs/promises'
+import { copyFile, mkdir } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { combineCharacterSketchSheet } from '../comic-commands/character-sketch/character-sketch-sheet'
@@ -9,6 +9,7 @@ import { loadCharacterCatalog } from './character-reference-config'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
 import { getLocationReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
 import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshot, LocationReferenceSnapshotManifest, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView } from '~/types'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
 
@@ -134,13 +135,6 @@ export const readLocationSketchManifest = async (): Promise<LocationSketchManife
     if (error instanceof AppValidationError) throw error
     throw ValidationError(`Invalid location sketch manifest JSON at ${path}`, { stage: 'comic:location-reference', cause: error instanceof Error ? error : undefined })
   }
-}
-
-export const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
-  await mkdir(dirname(path), { recursive: true })
-  const temporary = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
-  await rename(temporary, path)
 }
 
 const establishingFilename = (key: string, referenceFilename?: string): string => referenceFilename ?? `${key}--reference.png`

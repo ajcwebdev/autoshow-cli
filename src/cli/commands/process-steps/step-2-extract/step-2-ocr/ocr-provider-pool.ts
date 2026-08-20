@@ -2,43 +2,12 @@ import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provide
 import type { IndexedOcrTarget, OcrPoolLedger, OcrTarget, RunOcrPagePoolOptions, TargetSchedulerConcurrency } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { resolveHostedOcrLaneKey } from './ocr-utils/hosted-ocr-scheduler'
-import { getOcrTargetKey } from './ocr-run-state'
 import { createOcrPoolState, finalizeOcrPoolLedger, markOcrPoolTerminalPages } from './ocr-page-pool-state'
 import { runOcrPoolWorkers } from './ocr-page-pool-workers'
+import { buildIndexedOcrTargetsToRun, getHostedOcrExecutionPriority, isLocalOcrTarget } from './ocr-pool-scheduling'
 
-export const isLocalOcrTarget = (
-  target: Pick<OcrTarget, 'service'>
-): target is Pick<OcrTarget, 'service'> & { service: 'tesseract' } =>
-  target.service === 'tesseract'
-
-const getHostedOcrExecutionPriority = (target: OcrTarget): number => {
-  if (target.service === 'kimi') return 90
-  if (target.service === 'deepinfra') return 85
-  if (target.service === 'anthropic') return 80
-  if (target.service === 'gemini') return 75
-  if (target.service === 'openai') return 70
-  if (target.service === 'mistral') return 60
-  if (target.service === 'glm') return 55
-  return 0
-}
-
-const buildIndexedOcrTargetsToRun = (
-  requestedTargets: OcrTarget[],
-  targetsToRun: OcrTarget[]
-): IndexedOcrTarget[] => {
-  const availableIndicesByKey = new Map<string, number[]>()
-  requestedTargets.forEach((target, index) => {
-    const key = getOcrTargetKey(target)
-    const indices = availableIndicesByKey.get(key) ?? []
-    indices.push(index)
-    availableIndicesByKey.set(key, indices)
-  })
-  return targetsToRun.flatMap((target) => {
-    const indices = availableIndicesByKey.get(getOcrTargetKey(target))
-    const index = indices?.shift()
-    return index === undefined ? [] : [{ index, target }]
-  })
-}
+// Re-exported: the pooled batch runner and a contract test import this name from here.
+export { isLocalOcrTarget }
 
 export const runOcrProviderTargetPools = async (
   requestedTargets: OcrTarget[],

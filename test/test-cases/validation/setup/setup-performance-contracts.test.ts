@@ -1,25 +1,18 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import {
   beginSetupPerformanceRun,
   finishSetupPerformanceRun,
   recordSetupPerformancePhase,
   resetSetupPerformanceRunForTests
 } from '~/cli/commands/setup-and-utilities/setup/setup-performance'
+import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
-const tempDirs: string[] = []
-
-const makeTempDir = async (): Promise<string> => {
-  const path = await mkdtemp(join(tmpdir(), 'autoshow-setup-performance-'))
-  tempDirs.push(path)
-  return path
-}
+const tempDirs = createTempDirTracker('autoshow-setup-performance-')
+const makeTempDir = tempDirs.make
 
 afterEach(async () => {
   resetSetupPerformanceRunForTests()
-  await Promise.all(tempDirs.splice(0).map(async (path) => await rm(path, { recursive: true, force: true })))
+  await tempDirs.cleanup()
 })
 
 describe('setup performance artifact', () => {

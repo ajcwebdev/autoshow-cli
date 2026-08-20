@@ -12,14 +12,10 @@ import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { readRestErrorText } from '~/utils/rest-client'
 const CARTESIA_DEFAULT_VERSION = '2026-03-01'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
-
-const readCartesiaError = async (response: Response): Promise<string> => {
-  const text = await response.text()
-  return text.trim() || `HTTP ${response.status}`
-}
 
 export const runCartesiaTts = async (
   text: string,
@@ -103,7 +99,7 @@ export const runCartesiaTts = async (
       })
 
       if (!response.ok) {
-        const errText = await readCartesiaError(response)
+        const errText = await readRestErrorText(response)
         throw httpResponseError(`Cartesia TTS failed (${response.status}): ${errText}`, response)
       }
       await accepted({ fields: { httpStatus: response.status } })

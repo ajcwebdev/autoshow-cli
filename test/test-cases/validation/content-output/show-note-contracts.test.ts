@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type {
   Step3Metadata,
@@ -11,6 +10,7 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { buildExpectedFilesList } from '~/cli/commands/process-steps/step-1-download/download-targets/expected-output'
 import { renderToPlainText } from '~/cli/commands/process-steps/step-3-write/structured-output/renderers'
 import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/process-steps/step-3-write/structured-output/validation-failure'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
@@ -46,7 +46,7 @@ const writePrompt = async (outputDir: string): Promise<void> => {
 }
 
 test('show notes preserve prompt frontmatter and include rendered output plus source text', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-'))
+  const tempDir = await makeTempDir('autoshow-show-note-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -72,7 +72,7 @@ test('show notes preserve prompt frontmatter and include rendered output plus so
 })
 
 test('show notes preserve marked structured validation failures', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-validation-failure-'))
+  const tempDir = await makeTempDir('autoshow-show-note-validation-failure-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -98,7 +98,7 @@ test('show notes preserve marked structured validation failures', async () => {
 })
 
 test('show notes preserve rendered song lyric text instead of generic JSON fields', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-song-'))
+  const tempDir = await makeTempDir('autoshow-show-note-song-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -130,7 +130,7 @@ test('show notes preserve rendered song lyric text instead of generic JSON field
 })
 
 test('show notes flatten default summary JSON into publication markdown', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-default-'))
+  const tempDir = await makeTempDir('autoshow-show-note-default-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })
@@ -188,7 +188,7 @@ test('show notes flatten default summary JSON into publication markdown', async 
 })
 
 test('show notes mirror single and multi-output JSON naming', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-names-'))
+  const tempDir = await makeTempDir('autoshow-show-note-names-')
   try {
     const outputDir = join(tempDir, 'out')
     await mkdir(outputDir, { recursive: true })

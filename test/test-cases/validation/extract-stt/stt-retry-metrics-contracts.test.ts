@@ -3,9 +3,9 @@ import { ProviderError } from '~/utils/error-handler'
 import {
   classifySttFetchRetryWithMetrics,
   createSttRetryMetrics,
-  getSttErrorStatus,
   recordSttRetryMetric
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-retry-metrics'
+import { getErrorStatus } from '~/utils/error-handler'
 
 describe('STT retry metrics contracts', () => {
   test('retry classifier records retry and rate-limit counts once per retry decision', () => {
@@ -16,7 +16,7 @@ describe('STT retry metrics contracts', () => {
     const decision = classify(error)
 
     expect(decision.shouldRetry).toBe(true)
-    expect(getSttErrorStatus(error)).toBe(429)
+    expect(getErrorStatus(error)).toBe(429)
     expect(metrics).toEqual({
       retryCount: 1,
       rateLimitCount: 1

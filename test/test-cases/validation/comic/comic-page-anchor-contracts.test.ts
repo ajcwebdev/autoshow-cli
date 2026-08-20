@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { generateComicPages } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/generate-comic-pages'
 import { generatePanelImages } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/generate-panel-images'
@@ -16,6 +15,7 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
 import type { ComicImageRequestInput, PageQaEntry, PanelBundleData } from '~/types'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const temporaryDirectories: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
@@ -35,7 +35,7 @@ const panelBundle = (panelNumber: number): PanelBundleData => ({
 })
 
 const createSceneFixture = async (sceneSlug: string): Promise<{ runDirectory: string; locationSheet: string }> => {
-  const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-comic-location-'))
+  const runDirectory = await makeTempDir('autoshow-comic-location-')
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
   const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
@@ -55,7 +55,7 @@ const createSceneFixture = async (sceneSlug: string): Promise<{ runDirectory: st
 }
 
 const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirectory: string; locationSheets: string[] }> => {
-  const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-comic-multi-location-'))
+  const runDirectory = await makeTempDir('autoshow-comic-multi-location-')
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
   const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')

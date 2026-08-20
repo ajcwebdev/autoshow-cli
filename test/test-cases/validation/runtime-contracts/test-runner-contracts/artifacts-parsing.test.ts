@@ -4,15 +4,7 @@ import {
   expect,
   test
 } from 'bun:test'
-import {
-  mkdir,
-  mkdtemp,
-  readdir,
-  readFile,
-  rm,
-  writeFile
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { appendRunnerLog, cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog } from '../../../../test-runner/artifacts'
 import { parseJunit, parseTestcase, resolveTestcaseStatus } from '../../../../test-runner/parsers'
@@ -22,6 +14,7 @@ import {
   parseCommandEstimatedTotal,
   parseOutputDirFromText
 } from '../../../../test-runner/utils'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
@@ -57,7 +50,7 @@ describe('test-runner contracts', () => {
     })
 
   test('test-output cleanup preserves latest.log only', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-test-output-cleanup-'))
+      const dir = await makeTempDir('autoshow-test-output-cleanup-')
       tempDirs.push(dir)
 
       await writeFile(join(dir, 'latest.log'), 'previous run\n')
@@ -73,7 +66,7 @@ describe('test-runner contracts', () => {
     })
 
   test('test-output cleanup can preserve active runner artifacts', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-test-output-active-cleanup-'))
+      const dir = await makeTempDir('autoshow-test-output-active-cleanup-')
       tempDirs.push(dir)
 
       const current = await createRunArtifacts(dir)
@@ -104,7 +97,7 @@ describe('test-runner contracts', () => {
     })
 
   test('latest log captures failure diagnostics before cleanup', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-test-output-latest-log-'))
+      const dir = await makeTempDir('autoshow-test-output-latest-log-')
       tempDirs.push(dir)
 
       const artifacts = await createRunArtifacts(dir)
@@ -146,7 +139,7 @@ describe('test-runner contracts', () => {
     })
 
   test('runner log sink flushes appended lines into latest.log', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-test-output-runner-sink-'))
+      const dir = await makeTempDir('autoshow-test-output-runner-sink-')
       tempDirs.push(dir)
 
       const artifacts = await createRunArtifacts(dir)
@@ -160,7 +153,7 @@ describe('test-runner contracts', () => {
     })
 
   test('latest log tail-truncates oversized commands.log', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-test-output-command-tail-'))
+      const dir = await makeTempDir('autoshow-test-output-command-tail-')
       tempDirs.push(dir)
 
       const artifacts = await createRunArtifacts(dir)
@@ -173,7 +166,7 @@ describe('test-runner contracts', () => {
     })
 
   test('JUnit XML parsing returns pass, fail, and skip counts', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-junit-'))
+      const dir = await makeTempDir('autoshow-validation-junit-')
       tempDirs.push(dir)
       const junitPath = join(dir, 'junit.xml')
       await writeFile(junitPath, `<?xml version="1.0" encoding="UTF-8"?>

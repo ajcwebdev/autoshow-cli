@@ -9,11 +9,7 @@ import type {
   HostedOcrSchedulerTelemetry,
   HostedOcrTelemetryRoot
 } from '~/types'
-
-const roundMetric = (value: number): number => {
-  const rounded = Math.round(value * 1000) / 1000
-  return Object.is(rounded, -0) ? 0 : rounded
-}
+import { roundMetric } from '~/utils/value-helpers'
 
 const pagesPerMinute = (
   pages: number,

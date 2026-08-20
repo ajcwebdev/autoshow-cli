@@ -5,10 +5,7 @@ import type {
   TestStatus
 } from '~/types'
 import { decodeXml, normalizeRepoPath, parseXmlAttributes, getFiniteNumber, readString } from './utils'
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
+import { isObjectLike } from '~/utils/value-helpers'
 
 const readNonEmptyString = (record: Record<string, unknown>, key: string): string | null => {
   const value = readString(record, key)
@@ -29,7 +26,7 @@ export const readMetrics = async (path: string): Promise<ParsedCommandMetric[]> 
         continue
       }
 
-      if (!isRecord(parsedRaw)) {
+      if (!isObjectLike(parsedRaw)) {
         continue
       }
 

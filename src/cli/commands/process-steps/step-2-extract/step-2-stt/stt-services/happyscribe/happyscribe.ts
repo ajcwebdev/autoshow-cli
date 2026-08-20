@@ -10,6 +10,7 @@ import {
   normalizeHappyScribeId,
   readHappyScribeJsonOrText
 } from './happyscribe-utils'
+import { resolveRestPath } from '~/utils/rest-client'
 
 const ORGANIZATION_REQUEST_TIMEOUT_MS = 60_000
 
@@ -37,9 +38,6 @@ const parseOrganization = (value: unknown): HappyScribeOrganization | undefined 
 }
 
 export const getHappyScribeBaseUrl = (): string => HAPPYSCRIBE_DEFAULT_BASE_URL
-
-export const buildHappyScribeUrl = (baseURL: string, path: string): string =>
-  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
 
 const formatHappyScribeOrganizationChoices = (
   organizations: HappyScribeOrganization[]
@@ -73,7 +71,7 @@ const listHappyScribeOrganizations = async (
       timeoutMs: ORGANIZATION_REQUEST_TIMEOUT_MS
     },
     async (signal) => {
-      const response = await fetch(buildHappyScribeUrl(baseURL, '/organizations'), {
+      const response = await fetch(resolveRestPath(baseURL, '/organizations'), {
         method: 'GET',
         headers: {
           authorization: `Bearer ${apiKey}`,

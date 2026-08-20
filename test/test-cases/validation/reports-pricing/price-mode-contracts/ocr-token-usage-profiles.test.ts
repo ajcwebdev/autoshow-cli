@@ -1,5 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
@@ -11,6 +10,7 @@ import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import type { ExtractionMetadata } from '~/types'
 import { missingHostedOcrProfilePath } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 describe('price mode contracts', () => {
   test('OCR token heuristics feed registry pricing consistently', () => {
@@ -128,7 +128,7 @@ describe('price mode contracts', () => {
     })
 
   test('OCR token usage profiles persist aggregate-only samples and back estimates', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-token-profiles-'))
+      const tempDir = await makeTempDir('autoshow-ocr-token-profiles-')
       const profilePath = join(tempDir, 'token-profiles.json')
       const metadata: ExtractionMetadata = {
         extractionMethod: 'pdf+gemini-ocr',
@@ -235,7 +235,7 @@ describe('price mode contracts', () => {
     })
 
   test('OCR token usage profiles calibrate clean 300-499 page PDF samples per token direction', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-token-profiles-312-'))
+      const tempDir = await makeTempDir('autoshow-ocr-token-profiles-312-')
       const profilePath = join(tempDir, 'token-profiles.json')
       const pageCount = 312
       const metadata = [
@@ -315,7 +315,7 @@ describe('price mode contracts', () => {
     })
 
   test('OCR token usage profiles ignore incomplete and failed samples', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-token-profiles-partial-'))
+      const tempDir = await makeTempDir('autoshow-ocr-token-profiles-partial-')
       const profilePath = join(tempDir, 'token-profiles.json')
       const metadata: ExtractionMetadata = {
         extractionMethod: 'pdf+gemini-ocr',

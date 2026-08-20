@@ -7,6 +7,7 @@ import type { AuditOcrTokenShapesOptions, HostedOcrTokenReasoningPolicy, HostedO
 import { selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 import { isRecord } from '~/utils/rest-client'
 import { CLIUsageError } from '~/utils/error-handler'
+import { roundMetric } from '~/utils/value-helpers'
 
 const MINIMUM_HEALTHY_SAMPLES = 3
 const PROMOTION_ERROR_THRESHOLD = 20
@@ -37,8 +38,6 @@ const reasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy => {
 
 const bucketKey = (value: Pick<TokenShapeSample, 'provider' | 'model' | 'ocrMode' | 'pageCountBand' | 'effectiveReasoningEffort'>): string =>
   [value.provider, value.model, value.ocrMode, value.pageCountBand, value.effectiveReasoningEffort].join('\u0000')
-
-const roundMetric = (value: number): number => Math.round(value * 1000) / 1000
 
 const median = (values: readonly number[]): number | undefined => {
   if (values.length === 0) return undefined

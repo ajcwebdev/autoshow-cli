@@ -5,6 +5,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { HostedOcrProfileDisqualificationReason, HostedOcrProfileEstimate, HostedOcrSchedulerTelemetry, HostedOcrThroughputProfile, HostedOcrThroughputProfileStore, OcrConcurrencyMode, PersistHostedOcrProfilesOptions } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
+import { roundMetric } from '~/utils/value-helpers'
 
 const PROFILE_STORE_VERSION = 2
 const MAX_PROFILE_ENTRIES = 500
@@ -23,11 +24,6 @@ export const resolveHostedOcrPageCountBand = (pageCount: number): string => {
   if (pages <= 200) return '51-200'
   if (pages <= 1000) return '201-1000'
   return '1001+'
-}
-
-const roundMetric = (value: number): number => {
-  const rounded = Math.round(value * 1000) / 1000
-  return Object.is(rounded, -0) ? 0 : rounded
 }
 
 

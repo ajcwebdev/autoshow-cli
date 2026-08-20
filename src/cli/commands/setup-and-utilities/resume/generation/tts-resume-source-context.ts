@@ -1,5 +1,5 @@
 import { lstat, readFile, realpath } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import type {
   CanonicalAudioProviderProjection,
   GenericTtsDialoguePlan,
@@ -22,13 +22,9 @@ import {
 } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import { resolveUserPath } from '~/utils/runtime-paths'
 import { parseTtsDialoguePlanArtifactRef, readTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { isContainedPath } from '~/utils/filesystem'
 const SOURCE_IDENTITY_FILE = 'source-identity.json'
 const DIALOGUE_PLAN_FILE = 'dialogue-plan.json'
-
-const isContainedPath = (root: string, candidate: string): boolean => {
-  const child = relative(root, candidate)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
-}
 
 const assertSafeRelativePath = (value: string, label: string): void => {
   if (

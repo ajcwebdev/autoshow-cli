@@ -1,7 +1,6 @@
 import type { HappyScribeHttpError, HappyScribeStage, RetryClass } from '~/types'
 import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { ProviderError } from '~/utils/error-handler'
-
 export { isRecord }
 
 export const normalizeHappyScribeId = (value: unknown): string | undefined => {
@@ -56,11 +55,6 @@ export const extractHappyScribeErrorMessage = (payload: unknown): string | undef
 
   return undefined
 }
-
-export const getHappyScribeErrorStatus = (error: unknown): number | undefined =>
-  error && typeof error === 'object' && 'status' in error && typeof (error as { status?: unknown }).status === 'number'
-    ? (error as { status: number }).status
-    : undefined
 
 export const buildHappyScribeRetryHeaders = (
   response: Response,

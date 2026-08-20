@@ -9,15 +9,11 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { readRestErrorText } from '~/utils/rest-client'
 
 const UUID_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
-
-const readHumeError = async (response: Response): Promise<string> => {
-  const text = await response.text()
-  return text.trim() || `HTTP ${response.status}`
-}
 
 // A UUID is Hume's stable voice locator and resolves against any voice the account can reach,
 // including its own custom voices. Anything else is a Hume voice-library name lookup.
@@ -128,7 +124,7 @@ export const runHumeTts = async (
       })
 
       if (!response.ok) {
-        const errText = await readHumeError(response)
+        const errText = await readRestErrorText(response)
         throw httpResponseError(`Hume TTS failed (${response.status}): ${errText}`, response)
       }
       await accepted({ fields: { httpStatus: response.status } })

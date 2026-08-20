@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, readdir, rm, stat, utimes, writeFile } from 'node:fs/promises'
-import { hostname, tmpdir } from 'node:os'
+import { mkdir, readdir, rm, utimes, writeFile } from 'node:fs/promises'
+import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
 import {
@@ -8,19 +8,12 @@ import {
   childLifecycleExitLine,
   readChildLifecycleTimestamp
 } from '../../../test-utils/fixtures/child-lifecycle-protocol'
+import { pathExists } from '~/utils/filesystem'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 const heartbeatReleaseFixturePath = new URL('../fixtures/process-lock-heartbeat-release.ts', import.meta.url).pathname
 const twoWaiterRaceFixturePath = new URL('../fixtures/process-lock-two-waiter-race.ts', import.meta.url).pathname
-
-const exists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
 
 const createDeferred = (): {
   promise: Promise<void>
@@ -40,7 +33,7 @@ const createDeferred = (): {
 }
 
 const makeTempRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-process-lock-'))
+  const root = await makeTempDir('autoshow-process-lock-')
   tempDirs.push(root)
   return root
 }
@@ -141,10 +134,10 @@ test('process lock serializes separate processes', async () => {
   const first = spawnLockChild('first', 60, lockRoot)
   const lockOwnerPath = join(lockRoot, 'cross-process-lock', 'owner.json')
 
-  for (let attempt = 0; attempt < 400 && !await exists(lockOwnerPath); attempt += 1) {
+  for (let attempt = 0; attempt < 400 && !await pathExists(lockOwnerPath); attempt += 1) {
     await Bun.sleep(2)
   }
-  expect(await exists(lockOwnerPath)).toBe(true)
+  expect(await pathExists(lockOwnerPath)).toBe(true)
 
   const second = spawnLockChild('second', 0, lockRoot)
   const [firstResult, secondResult] = await Promise.all([
@@ -171,10 +164,10 @@ test('process lock keeps a live same-host owner when its heartbeat is late', asy
   const first = spawnLockChild('first', 150, lockRoot, options)
   const lockOwnerPath = join(lockRoot, 'cross-process-lock', 'owner.json')
 
-  for (let attempt = 0; attempt < 400 && !await exists(lockOwnerPath); attempt += 1) {
+  for (let attempt = 0; attempt < 400 && !await pathExists(lockOwnerPath); attempt += 1) {
     await Bun.sleep(2)
   }
-  expect(await exists(lockOwnerPath)).toBe(true)
+  expect(await pathExists(lockOwnerPath)).toBe(true)
 
   const second = spawnLockChild('second', 0, lockRoot, options)
   const [firstResult, secondResult] = await Promise.all([
@@ -284,18 +277,18 @@ test('process lock recovers stale and dead-owner locks', async () => {
   await utimes(corruptOwnerLockDir, staleTime, staleTime)
 
   await withProcessLock('stale-lock', async () => {
-    expect(await exists(join(staleLockDir, 'owner.json'))).toBe(true)
+    expect(await pathExists(join(staleLockDir, 'owner.json'))).toBe(true)
   }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: 100 })
 
   await withProcessLock('dead-owner-lock', async () => {
-    expect(await exists(join(deadOwnerLockDir, 'owner.json'))).toBe(true)
+    expect(await pathExists(join(deadOwnerLockDir, 'owner.json'))).toBe(true)
   }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: 60_000 })
 
   await withProcessLock('corrupt-owner-lock', async () => {
-    expect(await exists(join(corruptOwnerLockDir, 'owner.json'))).toBe(true)
+    expect(await pathExists(join(corruptOwnerLockDir, 'owner.json'))).toBe(true)
   }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: 100 })
 
-  expect(await exists(staleLockDir)).toBe(false)
-  expect(await exists(deadOwnerLockDir)).toBe(false)
-  expect(await exists(corruptOwnerLockDir)).toBe(false)
+  expect(await pathExists(staleLockDir)).toBe(false)
+  expect(await pathExists(deadOwnerLockDir)).toBe(false)
+  expect(await pathExists(corruptOwnerLockDir)).toBe(false)
 })

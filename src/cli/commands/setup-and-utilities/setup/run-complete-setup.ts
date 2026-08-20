@@ -45,6 +45,7 @@ import {
 import { listPinnedDependencies } from './dependency-metadata'
 import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
 import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-performance'
+import { pathExists } from '~/utils/filesystem'
 
 const RUNTIME = RUNTIME_DIR
 
@@ -206,10 +207,6 @@ export const runInherit = async (command: string, args: string[] = [], options: 
 export const commandExists = (command: string): boolean => {
   const resolved = Bun.which(command)
   return typeof resolved === 'string' && resolved.length > 0
-}
-
-export const pathExists = async (path: string): Promise<boolean> => {
-  try { await stat(path); return true } catch { return false }
 }
 
 export const detectPlatform = (): SetupPlatform => {

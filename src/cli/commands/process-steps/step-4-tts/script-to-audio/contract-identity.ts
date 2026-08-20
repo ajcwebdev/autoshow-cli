@@ -1,7 +1,11 @@
-import { createHash } from 'node:crypto'
 import { isAbsolute, posix } from 'node:path'
 import type { ArtifactPathScope, CanonicalValue, ProviderRenderStrategy } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { safeKeyPart } from '~/utils/value-helpers'
+import { sha256Bytes } from '~/utils/value-helpers'
+
+// Re-exported: ~20 TTS and comic modules already import this name from here.
+export { sha256Bytes }
 export { canonicalTargetKey } from '~/utils/canonical-target-key'
 
 const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
@@ -36,9 +40,6 @@ const canonicalizeValue = (value: unknown, path: string): CanonicalValue => {
 export const canonicalTtsJson = (value: unknown): string =>
   JSON.stringify(canonicalizeValue(value, '$'))
 
-export const sha256Bytes = (value: string | Uint8Array): string =>
-  createHash('sha256').update(value).digest('hex')
-
 export const hashCanonicalTtsValue = (value: unknown): string =>
   sha256Bytes(canonicalTtsJson(value))
 
@@ -62,11 +63,6 @@ export const assertContentIdentity = <T extends Record<string, unknown>>(
   if (typeof actual !== 'string' || actual !== expected) {
     throw CLIUsageError(`${label} has an invalid ${identityField}; expected ${expected}.`)
   }
-}
-
-const safeKeyPart = (value: string): string => {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  return normalized.slice(0, 48) || 'none'
 }
 
 export const computeVoiceContextKey = (

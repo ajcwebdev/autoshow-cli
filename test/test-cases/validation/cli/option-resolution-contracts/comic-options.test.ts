@@ -1,11 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  mkdir,
-  mkdtemp,
-  rm,
-  writeFile
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
   buildComicPagePrompt,
@@ -58,6 +52,7 @@ import {
   resolveComicScriptReference
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
 import type { PanelBundleData, PromptsConfig } from '~/types'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const engineeringBayLocation = { key: 'engineering-bay', raw: 'INT. ENGINEERING BAY' }
 
@@ -215,7 +210,7 @@ describe('option resolution contracts', () => {
     })
 
   test('comic script shorthand resolves only strict NN-SC references', async () => {
-      const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-comic-script-ref-'))
+      const tempDir = await makeTempDir('autoshow-comic-script-ref-')
       const episodeDir = join(tempDir, '02-script')
       const fullPath = 'input/scripts/02-script/01-co-work-smarter.md'
 

@@ -1,5 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect } from 'bun:test'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
@@ -7,11 +6,12 @@ import { findLatestDirectory, runCommand } from '../../../../../test-utils/test-
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
 import { expectArtifact } from '../../../../../test-utils/value-assertions'
+import { makeTempDir } from '../../../../../test-utils/temp-dirs'
 
 budgetedTest('tts-gemini-gemini-3.1-flash-tts-preview', 'gemini multispeaker with explicit speaker mappings generates speech.wav', async () => {
   await requireConfiguredEnvVar('GEMINI_API_KEY', 'GEMINI_API_KEY is required for Gemini TTS test')
 
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-cli-gemini-tts-'))
+  const tempRoot = await makeTempDir('autoshow-cli-gemini-tts-')
   const inputPath = join(tempRoot, 'gemini-multispeaker-dialogue.txt')
 
   try {

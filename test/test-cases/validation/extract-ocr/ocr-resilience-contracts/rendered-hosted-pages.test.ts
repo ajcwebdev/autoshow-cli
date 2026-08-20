@@ -1,22 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  basePdfMetadata,
-  captureLogEvents,
-  createOcrPreparationCache,
-  createRenderedPngPageChunk,
-  join,
-  mkdir,
-  mkdtemp,
-  OcrStructuredResponseError,
-  pageCachePath,
-  pageInputPath,
-  pageTextPath,
-  prefillRenderedPageCache,
-  rm,
-  runHostedOcrWithPdfChunkFallback,
-  tmpdir
-} from './shared'
+import { basePdfMetadata, captureLogEvents, createOcrPreparationCache, createRenderedPngPageChunk, join, mkdir, OcrStructuredResponseError, pageCachePath, pageInputPath, pageTextPath, prefillRenderedPageCache, rm, runHostedOcrWithPdfChunkFallback } from './shared'
 import type { HostedOcrRun } from '~/types'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const kimiIdentity = {
   extractionMethod: 'kimi-ocr' as const,
@@ -69,7 +54,7 @@ const writeStoredPageCache = async (
 
 describe('OCR resilience contracts', () => {
   test('rendered PNG chunks copy preparation-cache images into provider page inputs', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-png-chunk-'))
+    const tempDir = await makeTempDir('autoshow-rendered-png-chunk-')
     const inputPath = join(tempDir, 'input.pdf')
     const outputPath = join(tempDir, 'page-000002.png')
     const cache = createOcrPreparationCache()
@@ -90,7 +75,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('forced rendered-page mode preserves ordered text bytes and records per-page usage', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-fallback-'))
+    const tempDir = await makeTempDir('autoshow-rendered-page-fallback-')
     const inputPath = join(tempDir, 'input.pdf')
     const cache = createOcrPreparationCache()
     const completionOrder: number[] = []
@@ -159,7 +144,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('v2 page caches resume byte-identically through the shared schema', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-resume-'))
+    const tempDir = await makeTempDir('autoshow-rendered-page-resume-')
     const inputPath = join(tempDir, 'input.pdf')
     let providerCalls = 0
     let renderCalls = 0
@@ -222,7 +207,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('shared page resume rejects caches from another model or source file', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-validation-'))
+    const tempDir = await makeTempDir('autoshow-rendered-page-validation-')
     const inputPath = join(tempDir, 'input.pdf')
     const attemptedPages: number[] = []
 
@@ -281,7 +266,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('v1 and source-less page caches miss cleanly and recompute', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-clean-break-'))
+    const tempDir = await makeTempDir('autoshow-rendered-page-clean-break-')
     const inputPath = join(tempDir, 'input.pdf')
     const attemptedPages: number[] = []
 
@@ -356,7 +341,7 @@ describe('OCR resilience contracts', () => {
   })
 
   test('forced page mode does not salvage Kimi provider-limit truncation as page text', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-truncation-'))
+    const tempDir = await makeTempDir('autoshow-rendered-page-truncation-')
     const inputPath = join(tempDir, 'input.pdf')
 
     try {

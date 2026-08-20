@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import ts from 'typescript'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
@@ -15,13 +13,14 @@ import { getLocationReferencePath, getLocationSketchManifestPath, readLocationRe
 import { estimateLocationReferencePrice } from '~/cli/commands/process-steps/step-8-comic/comic-utils/price-estimate'
 import { captureLogEvents } from '../../../test-utils/console-capture'
 import type { LocationViewQaResult } from '~/types'
+import { sha256Bytes } from '~/utils/value-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 const image = Buffer.from('mock-image')
-const sha = (value: Uint8Array | string): string => createHash('sha256').update(value).digest('hex')
 
 const fixture = async () => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-location-reference-'))
+  const root = await makeTempDir('autoshow-location-reference-')
   roots.push(root)
   const characters = join(root, 'input', 'characters')
   const locations = join(root, 'input', 'locations')
@@ -95,7 +94,7 @@ describe('canonical location reference registration', () => {
   })
 
   test('derives a missing location catalog style reference from the configured character catalog', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-location-default-style-'))
+    const root = await makeTempDir('autoshow-location-default-style-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
     await mkdir(characters, { recursive: true })
@@ -200,7 +199,7 @@ describe('canonical location reference registration', () => {
     const establishing = join(locations, 'cargo-bay--reference.png')
     await Bun.write(establishing, image)
     await Bun.write(getLocationReferencePath(), JSON.stringify({ schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
-    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing', generationId: 'establishing-old', image: 'cargo-bay--reference.png', imageSha256: sha(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
+    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha256Bytes(specification), views: [{ view: 'establishing', generationId: 'establishing-old', image: 'cargo-bay--reference.png', imageSha256: sha256Bytes(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
     let calls = 0
     const dependencies = (generationId: string) => ({ requestImage: async () => { calls++; return { mode: 'generate' as const, result: { imageBase64: image.toString('base64') } } }, writeImage: async (path: string) => { await Bun.write(path, image) }, generationId: () => generationId })
     await expect(locationReferenceSketchCommand({ location: 'cargo-bay', view: 'side', qa: false }, dependencies('side'))).resolves.toBeUndefined()
@@ -230,7 +229,7 @@ describe('canonical location reference registration', () => {
     const canonical = join(locations, 'cargo-bay--reference.png')
     await Bun.write(canonical, image)
     await Bun.write(getLocationReferencePath(), JSON.stringify({ schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
-    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
+    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha256Bytes(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha256Bytes(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
     let imageCalls = 0
     await expect(locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', imageModels: ['reve/2.1'], qa: false }, {
       requestImage: async () => {
@@ -245,7 +244,7 @@ describe('canonical location reference registration', () => {
     const { locations } = await fixture()
     const specification = 'Fixed loading door.'
     await Bun.write(join(locations, 'legacy--reference-sheet.png'), image)
-    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 1, sketches: [{ locationKey: 'cargo-bay', generationId: 'legacy', specificationSha256: sha(specification), sheet: 'legacy--reference-sheet.png', sheetSha256: sha(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }))
+    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 1, sketches: [{ locationKey: 'cargo-bay', generationId: 'legacy', specificationSha256: sha256Bytes(specification), sheet: 'legacy--reference-sheet.png', sheetSha256: sha256Bytes(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }))
     await expect(readLocationSketchManifest()).rejects.toThrow(/Invalid location sketch manifest/)
   })
 
@@ -256,7 +255,7 @@ describe('canonical location reference registration', () => {
     const oldImage = Buffer.from('old-canonical')
     await Bun.write(canonical, oldImage)
     const catalog = { schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }
-    const manifest = { schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }
+    const manifest = { schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha256Bytes(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha256Bytes(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }
     await Bun.write(getLocationReferencePath(), JSON.stringify(catalog))
     await Bun.write(getLocationSketchManifestPath(), JSON.stringify(manifest))
     await expect(locationReferenceSketchCommand({ location: 'cargo-bay', revise: true, notes: 'Revise.', qa: false }, {
@@ -279,7 +278,7 @@ describe('canonical location reference registration', () => {
       const stagedImagePath = join(attemptsRoot, 'establishing-attempt-0.png')
       const oldImage = Buffer.from(`old-canonical-${faultBoundary}`)
       const catalog = { schemaVersion: 1 as const, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }
-      const manifest = { schemaVersion: 2 as const, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing' as const, generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }
+      const manifest = { schemaVersion: 2 as const, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha256Bytes(specification), views: [{ view: 'establishing' as const, generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha256Bytes(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }
       const catalogBytes = `${JSON.stringify(catalog)}\n`
       const manifestBytes = `${JSON.stringify(manifest)}\n`
       await mkdir(attemptsRoot, { recursive: true })
@@ -321,7 +320,7 @@ describe('canonical location reference registration', () => {
     const oldImage = Buffer.from('old-canonical')
     await Bun.write(canonical, oldImage)
     await Bun.write(getLocationReferencePath(), JSON.stringify({ schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
-    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
+    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha256Bytes(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha256Bytes(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
     await expect(locationReferenceSketchCommand({ location: 'cargo-bay', revise: true, notes: 'Revise.', qa: false }, {
       requestImage: async () => ({ mode: 'generate', result: { imageBase64: image.toString('base64') } }),
       writeImage: async path => { await Bun.write(path, image) },

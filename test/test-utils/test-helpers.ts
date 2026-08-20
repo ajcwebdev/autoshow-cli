@@ -27,6 +27,8 @@ import type {
 } from '~/types'
 import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
 import { l } from '~/utils/app-logger/app-logger'
+import { isRecord } from '~/utils/value-helpers'
+import { pathExists } from '~/utils/filesystem'
 
 const TEST_OUTPUT_ROOT = 'project/test-output'
 
@@ -125,7 +127,7 @@ const copyManifestToArtifacts = async (outputDir: string | null, outputRoot: str
   const srcPath = `${absoluteOutputDir}/manifest.json`
 
   try {
-    const exists = await fileExists(srcPath)
+    const exists = await pathExists(srcPath)
     if (!exists) {
       return
     }
@@ -614,14 +616,7 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   return { exitCode, stdout, stderr, outputDir: runArtifacts.outputDir, outputRoot }
 }
 
-export const fileExists = async (path: string): Promise<boolean> => {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
+export { pathExists as fileExists }
 
 export const ensurePageImageFixture = async (path = 'input/examples/document/1-document.png'): Promise<void> => {
   await Bun.write(path, Buffer.from(PAGE_IMAGE_PNG_BASE64, 'base64'))
@@ -750,14 +745,8 @@ export const readConfiguredEnvVarSync = (key: string): string | undefined => {
   return undefined
 }
 
-/**
- * The one record narrowing for the suite. Arrays are excluded: five of the six local
- * copies this replaced did so, and treating `[]` as a record made `'field' in value`
- * checks quietly meaningless.
- */
-export const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+/** The one record narrowing for the suite; re-exported so existing test imports keep working. */
+export { isRecord }
 
 export const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {

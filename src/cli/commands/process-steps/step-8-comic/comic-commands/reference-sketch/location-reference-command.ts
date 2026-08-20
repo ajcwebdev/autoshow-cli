@@ -16,8 +16,9 @@ import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handle
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import { atomicWriteJson, getLocationsRoot, LOCATION_KEY_PATTERN, LOCATION_VIEWS, normalizeLocationKey, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference, resolveRegisteredLocationImagePath } from '../../comic-utils/location-reference'
+import { getLocationsRoot, LOCATION_KEY_PATTERN, LOCATION_VIEWS, normalizeLocationKey, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference, resolveRegisteredLocationImagePath } from '../../comic-utils/location-reference'
 import { promoteLocationRegistrationTransaction } from './location-reference-transaction'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 const CAMERA_CONTRACTS: Record<LocationView, string> = {
   establishing: 'Use a standing eye-level wide three-quarter establishing camera that clearly explains the location layout, depth, major fixed anchors, and traversable space. Keep the camera at adult standing height; never use aerial, isometric, overhead, bird\'s-eye, or plan views.',

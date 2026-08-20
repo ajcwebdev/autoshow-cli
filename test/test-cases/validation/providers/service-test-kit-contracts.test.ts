@@ -1,12 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm, writeFile } from 'node:fs/promises'
 import {
   classifyLiveProviderAvailabilityFailure,
   formatCommandFailureDiagnostics,
   getMissingConfiguredEnvVarKeysSync
 } from '../../../test-utils/service-test-kit'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 describe('classifyLiveProviderAvailabilityFailure', () => {
   test('classifies known live-provider availability failures', () => {
@@ -124,7 +123,7 @@ describe('getMissingConfiguredEnvVarKeysSync', () => {
 
   test('uses .env for synchronous service-test availability checks', async () => {
     const previousCwd = process.cwd()
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-service-env-'))
+    const tempDir = await makeTempDir('autoshow-service-env-')
     try {
       process.chdir(tempDir)
       await writeFile('.env', 'SERVICE_KIT_TEST_DOTENV_KEY=dotenv-value\n', 'utf8')

@@ -78,6 +78,7 @@ export type * from './write-workflow/compat-fallback-types'
 
 export type * from './write-workflow/anthropic-compatible-types'
 export type * from './write-workflow/openai-compatible-chat-types'
+export type * from './write-workflow/llm-reasoning-options-types'
 export type * from './write-workflow/prompt-utils-types'
 
 export type * from './write-workflow/run-minimax-types'

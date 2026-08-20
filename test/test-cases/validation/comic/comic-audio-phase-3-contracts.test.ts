@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ProtectedAssetRef, StructuredScriptData, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
@@ -11,6 +10,7 @@ import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '~/
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle, withEnv } from '../../../test-utils/rest-contract-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const HASH_A = 'a'.repeat(64)
 const CREATED_AT = '2026-08-14T00:00:00.000Z'
@@ -131,7 +131,7 @@ describe('ADR-017 Phase 3 Fish Audio Contracts', () => {
       return new Response('Not found', { status: 404 })
     })
 
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-fish-tts-'))
+    const tempDir = await makeTempDir('autoshow-fish-tts-')
 
     const result = await runFishTts('Ready for departure.', tempDir, {
       model: 's2.1-pro',
@@ -144,7 +144,7 @@ describe('ADR-017 Phase 3 Fish Audio Contracts', () => {
   })
 
   test('Fish Audio structured script creates dialogue plan', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-fish-scene-'))
+    const tempDir = await makeTempDir('autoshow-fish-scene-')
     const sourceFile = join(tempDir, 'input.txt')
     const sourceText = 'PILOT: Ready?\nNAVIGATOR: Ready.'
     await writeFile(sourceFile, sourceText)

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
@@ -16,11 +16,12 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
 const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
+  const root = await makeTempDir(prefix)
   tempDirs.push(root)
   return root
 }

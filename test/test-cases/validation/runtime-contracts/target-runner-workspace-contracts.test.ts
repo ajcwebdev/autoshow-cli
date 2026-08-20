@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runTargets } from '~/cli/commands/process-steps/target-runner'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 
@@ -13,7 +13,7 @@ afterEach(async () => {
 
 describe('target runner workspace preservation', () => {
   test('retains completed hosted chunks when a later chunk fails', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-hosted-chunks-'))
+    const root = await makeTempDir('autoshow-hosted-chunks-')
     roots.push(root)
 
     await expect(runHostedTtsChunkPipeline({
@@ -36,7 +36,7 @@ describe('target runner workspace preservation', () => {
   })
 
   test('retains a failed TTS workspace but removes it after successful finalization', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-target-workspace-'))
+    const root = await makeTempDir('autoshow-target-workspace-')
     roots.push(root)
     const target = { service: 'inworld', model: 'realtime-tts-2' }
     const failedWorkspace = join(root, '.tts-tmp-failed')

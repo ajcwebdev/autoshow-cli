@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { tmpdir } from 'node:os'
 import type { ComicPresentationDialogueBinding, ComicPresentationPanelInput } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
@@ -20,6 +19,7 @@ import {
   publishComicPresentationFinal,
   renderComicPresentation,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-renderer'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const HASH = 'a'.repeat(64)
 
@@ -44,7 +44,7 @@ const signChanges = (bytes: Uint8Array): number => {
 
 describe('comic presentation local FFmpeg rendering', () => {
   test('renders exact-size hard cuts with synchronized H.264/AAC audio and immutable reruns', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-presentation-ffmpeg-'))
+    const root = await makeTempDir('autoshow-presentation-ffmpeg-')
     try {
       await mkdir(join(root, 'panels'), { recursive: true })
       await mkdir(join(root, 'audio'), { recursive: true })

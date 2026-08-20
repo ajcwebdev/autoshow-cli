@@ -13,15 +13,12 @@ import type {
   JsonObject
 } from '~/types'
 import { getFiniteNumber, readString } from './utils'
+import { isRecord } from '~/utils/value-helpers'
 
 const COST_DRIFT_THRESHOLD = 0.1
 const TIME_DRIFT_THRESHOLD = 0.1
 const SMOOTHING_FACTOR = 0.35
 const MAX_CHANGE_FACTOR = 0.5
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 const buildStepKey = (step: Pick<CalibrationStepShape, 'kind' | 'service' | 'model'>): string => {
   return `${step.kind}::${step.service}::${step.model}`

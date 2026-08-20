@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { randomUUID } from 'node:crypto'
-import { mkdtemp, mkdir, readdir, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CharacterCatalogService, LocationReferenceCatalog } from '~/types'
 import { createStructuredScriptArtifactRef, computeSceneRunIdentity } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
@@ -16,6 +15,7 @@ import { sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-a
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const characters = {
   characterKeys: [], resolve: () => undefined, detectMentions: () => [],
@@ -29,7 +29,7 @@ const locations: LocationReferenceCatalog = {
 
 describe('ADR-017 canonical soundscape artifact workflow', () => {
   test('reuses one mocked ElevenLabs generation result across dialogue targets and resumes without redispatch', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-soundscape-artifacts-'))
+    const root = await makeTempDir('autoshow-soundscape-artifacts-')
     try {
       const unique = randomUUID()
       const source = ['# Episode', '', '## Scene: "Hangar"', '', '**INT. HANGAR**', '', '**AMBIENCE:**', '', `OPTIONAL ventilation ${unique}`, '', '**SFX:**', '', `airlock closes ${unique}`].join('\n')

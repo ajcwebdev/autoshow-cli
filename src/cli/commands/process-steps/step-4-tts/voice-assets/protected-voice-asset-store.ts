@@ -1,10 +1,11 @@
 import { constants } from 'node:fs'
 import { chmod, link, lstat, mkdir, open, readFile, realpath, rm, unlink } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { join, resolve } from 'node:path'
 import type { MaterializedProtectedVoiceAsset, PlannedProtectedVoiceAsset, ProtectedAssetRef, ProtectedVoiceAssetPolicy, ProtectedVoiceAssetStore, ProtectedVoiceAssetStoreConfig, ReadReferenceInput, ReadyStore, TtsCliReferenceInput, VoiceConsentRevocation } from '~/types'
 import { AppValidationError, hasErrorCode, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { isContainedPath } from '~/utils/filesystem'
 
 const SAFE_OPAQUE_ID = /^[a-z0-9][a-z0-9_-]{0,127}$/
 const SHA256 = /^[a-f0-9]{64}$/
@@ -34,11 +35,6 @@ export const assertValidProtectedAssetRef = (asset: ProtectedAssetRef): Protecte
 }
 
 const assetIdForSha256 = (sha256: string): string => `sha256_${sha256}`
-
-const isContainedPath = (root: string, candidate: string): boolean => {
-  const child = relative(root, candidate)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
-}
 
 const assertOwnerOnlyMode = (mode: number, expected: number, label: string): void => {
   if ((mode & 0o777) !== expected) {

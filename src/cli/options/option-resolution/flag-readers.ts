@@ -1,6 +1,7 @@
 import { CLIUsageError } from '~/utils/error-handler'
 import type { BatchOrder, CliFlagOccurrence, HostedConcurrencyMode, HtmlArticleBackend } from '~/types'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
 export const parseIntWithDefault = (value: string | undefined, fallback: number): number => {
   if (!value) return fallback
@@ -131,14 +132,6 @@ export const readBatchLimit = (flags: Record<string, unknown>): number | 'all' =
 export const readBatchOrder = (flags: Record<string, unknown>): BatchOrder => {
   const v = readFlagValue(flags, 'batch-order')
   return v === 'oldest' ? 'oldest' : 'newest'
-}
-
-const formatQuotedChoiceList = (choices: readonly string[]): string => {
-  const quotedChoices = choices.map((choice) => `"${choice}"`)
-  if (quotedChoices.length <= 2) {
-    return quotedChoices.join(' or ')
-  }
-  return `${quotedChoices.slice(0, -1).join(', ')}, or ${quotedChoices[quotedChoices.length - 1]}`
 }
 
 export const parseUrlBackend = (value: string | undefined): HtmlArticleBackend => {

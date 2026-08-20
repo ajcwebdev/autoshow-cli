@@ -11,6 +11,7 @@ import { validateDataSafe } from '~/utils/validate/validation'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { readRestErrorText } from '~/utils/rest-client'
 
 const SpeechifySpeechResponseSchema = v.object({
   audio_data: v.string()
@@ -28,11 +29,6 @@ const decodeSpeechifyAudioData = (audioData: string): Uint8Array => {
     ? audioData.slice(audioData.indexOf(',') + 1)
     : audioData
   return new Uint8Array(Buffer.from(cleaned, 'base64'))
-}
-
-const readSpeechifyError = async (response: Response): Promise<string> => {
-  const text = await response.text()
-  return text.trim() || `HTTP ${response.status}`
 }
 
 export const runSpeechifyTts = async (
@@ -117,7 +113,7 @@ export const runSpeechifyTts = async (
       })
 
       if (!response.ok) {
-        const errText = await readSpeechifyError(response)
+        const errText = await readRestErrorText(response)
         throw httpResponseError(`Speechify TTS failed (${response.status}): ${errText}`, response)
       }
       await accepted({ fields: { httpStatus: response.status } })

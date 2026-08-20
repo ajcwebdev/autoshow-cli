@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { tmpdir } from 'node:os'
 import type { CanonicalComicItemMetadata, CanonicalDialogueTurn, CharacterCatalogService, ComicDialoguePlan, ComicPresentationPanelInput, CompatibleComicSceneRun, LocationReferenceCatalog, PipelineManifest, ScenePromptData, SoundscapePlan, StructuredScriptData } from '~/types'
 import {
   reconcilePresentationDialogue,
@@ -16,6 +15,7 @@ import { updateComicPresentationManifest, writeInitialComicStructureManifest } f
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { canonicalTtsJson } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { writeImmutableArtifactFile } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/safe-artifact-store'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const HASH = 'a'.repeat(64)
 const NEXT_HASH = 'b'.repeat(64)
@@ -163,7 +163,7 @@ const pngHeader = (width: number, height: number): Uint8Array => {
 
 describe('canonical presentation panels', () => {
   test('reports every missing panel together and rejects duplicate aliases and dimension drift', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-presentation-panels-'))
+    const root = await makeTempDir('autoshow-presentation-panels-')
     try {
       await mkdir(join(root, 'panels'))
       await Bun.write(join(root, 'panels', 'panel-01.png'), pngHeader(64, 64))
@@ -196,7 +196,7 @@ const compatibleAudioFixture = (audio: CanonicalComicItemMetadata['audio'], prov
 
 describe('comic presentation visual input import', () => {
   test('imports an exact source-covered canonical sibling into an immutable run-contained bundle', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-presentation-visual-import-'))
+    const root = await makeTempDir('autoshow-presentation-visual-import-')
     try {
       const sceneRunDir = join(root, 'script-inworld-v1')
       const canonicalDir = join(root, 'script')
@@ -259,7 +259,7 @@ describe('comic presentation audio selection', () => {
   })
 
   test('verifies retained AudioRun checksums before accepting a complete dialogue target', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-presentation-audio-'))
+    const root = await makeTempDir('autoshow-presentation-audio-')
     try {
       const silent = await createLocalSilentDialogueRun({
         rootDir: root,
@@ -279,7 +279,7 @@ describe('comic presentation audio selection', () => {
 
 describe('comic presentation manifest migration', () => {
   test('treats historical absence as not requested and writes the new optional local stage', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-presentation-manifest-'))
+    const root = await makeTempDir('autoshow-presentation-manifest-')
     try {
       const source = '# Episode\n\n## Scene: "Room"\n\n**INT. ROOM**\n\nA quiet beat.\n'
       const characters = { characterKeys: [], resolve: () => undefined, detectMentions: () => [] } as unknown as CharacterCatalogService

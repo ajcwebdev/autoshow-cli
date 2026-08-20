@@ -1,7 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import {
   acquireAdaptiveProviderLease,
   classifyAdaptivePressure,
@@ -32,14 +29,10 @@ import {
   WRITE_STT_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { RunCommandAttemptRunner } from '~/types'
+import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
-const tempDirs: string[] = []
-
-const makeTempDir = async (): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-adaptive-concurrency-'))
-  tempDirs.push(dir)
-  return dir
-}
+const tempDirs = createTempDirTracker('autoshow-adaptive-concurrency-')
+const makeTempDir = tempDirs.make
 
 const testConfig = (stateDir: string) => resolveAdaptiveConcurrencyConfig(stateDir, {
   initialProviderLimit: 4,
@@ -102,9 +95,7 @@ const spawnLeaseChild = (
   })
 }
 
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+afterEach(tempDirs.cleanup)
 
 describe('adaptive provider group parser', () => {
   test('remote provider mirrors exactly cover target registries minus named local engines', () => {

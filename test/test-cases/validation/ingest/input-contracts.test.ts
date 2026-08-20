@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import ts from 'typescript'
 import { isLikelyInputListFile } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection'
@@ -14,11 +13,12 @@ import { withTemporaryDirectDocument } from '~/cli/commands/process-steps/step-1
 import { resolveXSpaceDownloadTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/single/x-space-runner'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { LOCAL_EXAMPLE_AUDIO_PATH, runCommand } from '../../../test-utils/test-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
 const createUnsupportedInput = async (): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-input-'))
+  const dir = await makeTempDir('autoshow-validation-input-')
   tempDirs.push(dir)
   const filePath = join(dir, 'unknown.payload')
   await writeFile(filePath, 'plain text without a supported extension')
@@ -211,7 +211,7 @@ describe('input classification contracts', () => {
   })
 
   test('write input routing accepts the extract-routed source families', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-write-routing-'))
+    const dir = await makeTempDir('autoshow-validation-write-routing-')
     tempDirs.push(dir)
     const mediaPath = join(dir, 'clip.mp3')
     const imagePath = join(dir, 'page.png')
@@ -240,7 +240,7 @@ describe('input classification contracts', () => {
   })
 
   test('write directory planning preserves input families and extract routes', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-write-dir-'))
+    const dir = await makeTempDir('autoshow-validation-write-dir-')
     tempDirs.push(dir)
     await writeFile(join(dir, 'clip.mp3'), '')
     await writeFile(join(dir, 'scan.png'), '')
@@ -263,7 +263,7 @@ describe('input classification contracts', () => {
   })
 
   test('input list detection separates batch manifests from prose content', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-list-detect-'))
+    const dir = await makeTempDir('autoshow-validation-list-detect-')
     tempDirs.push(dir)
 
     const localMedia = join(dir, 'clip.mp3')
@@ -351,7 +351,7 @@ describe('input classification contracts', () => {
   })
 
   test('write URL-list pricing plans article and X Space entries', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-write-list-'))
+    const dir = await makeTempDir('autoshow-validation-write-list-')
     tempDirs.push(dir)
     const listPath = join(dir, 'inputs.md')
     await writeFile(listPath, [
@@ -384,7 +384,7 @@ describe('input classification contracts', () => {
   })
 
   test('local ACSM files are classified and routed as unsupported', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-acsm-'))
+    const dir = await makeTempDir('autoshow-validation-acsm-')
     tempDirs.push(dir)
     const inputPath = join(dir, 'retired.acsm')
     await writeFile(inputPath, '<adept:fulfillmentToken />')

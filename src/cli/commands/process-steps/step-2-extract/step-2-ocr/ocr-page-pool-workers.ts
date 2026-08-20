@@ -1,42 +1,10 @@
 import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provider-target-scheduler'
-import type { IndexedOcrTarget, OcrPoolClaim, OcrPoolLedger, OcrPoolState, OcrPoolWorkerOptions, OcrTarget, WorkerTarget } from '~/types'
+import type { IndexedOcrTarget, OcrPoolClaim, OcrPoolLedger, OcrPoolState, OcrPoolWorkerOptions, OcrTarget } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { getOcrTargetKey } from './ocr-run-state'
 import { claimOcrPoolPage, commitAcceptedOcrPoolResult, markOcrPoolTerminalPages, recordOcrPoolClaimFailure, rejectStaleOcrPoolResult, snapshotOcrPoolLedger } from './ocr-page-pool-state'
-
-const normalizePositiveInt = (value: number): number =>
-  Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
-
-const isLocalTarget = (target: Pick<OcrTarget, 'service'>): boolean =>
-  target.service === 'tesseract'
-
-const hostedExecutionPriority = (target: OcrTarget): number => {
-  if (target.service === 'kimi') return 90
-  if (target.service === 'deepinfra') return 85
-  if (target.service === 'anthropic') return 80
-  if (target.service === 'gemini') return 75
-  if (target.service === 'openai') return 70
-  if (target.service === 'mistral') return 60
-  if (target.service === 'glm') return 55
-  return 0
-}
-
-const indexedTargetsToRun = (
-  requestedTargets: OcrTarget[],
-  targetsToRun: OcrTarget[]
-): WorkerTarget[] => {
-  const availableIndicesByKey = new Map<string, number[]>()
-  requestedTargets.forEach((target, index) => {
-    const key = getOcrTargetKey(target)
-    const indices = availableIndicesByKey.get(key) ?? []
-    indices.push(index)
-    availableIndicesByKey.set(key, indices)
-  })
-  return targetsToRun.flatMap((target) => {
-    const index = availableIndicesByKey.get(getOcrTargetKey(target))?.shift()
-    return index === undefined ? [] : [{ index, target }]
-  })
-}
+import { normalizePositiveInt } from '~/utils/value-helpers'
+import { buildIndexedOcrTargetsToRun, getHostedOcrExecutionPriority, isLocalOcrTarget } from './ocr-pool-scheduling'
 
 class OcrPoolWorkerCoordinator {
   readonly admittedKeys = new Set<string>()
@@ -135,13 +103,13 @@ export const runOcrPoolWorkers = async (
   const coordinator = new OcrPoolWorkerCoordinator(state, options)
   await coordinator.persistLedger()
   const scheduled = await runProviderTargetScheduler<IndexedOcrTarget, void>({
-    entries: indexedTargetsToRun(options.requestedTargets, options.targetsToRun).map((entry) => ({
+    entries: buildIndexedOcrTargetsToRun(options.requestedTargets, options.targetsToRun).map((entry) => ({
       index: entry.index,
       target: { index: entry.index, target: entry.target },
-      priority: isLocalTarget(entry.target) ? 0 : hostedExecutionPriority(entry.target)
+      priority: isLocalOcrTarget(entry.target) ? 0 : getHostedOcrExecutionPriority(entry.target)
     })),
     concurrency: { provider: options.providerConcurrency, local: options.localConcurrency },
-    getPool: (entry) => isLocalTarget(entry.target) ? 'local' : 'hosted',
+    getPool: (entry) => isLocalOcrTarget(entry.target) ? 'local' : 'hosted',
     runTarget: async (_index, entry) => await coordinator.runTarget(entry.target)
   })
   if (scheduled.failures.length > 0) {

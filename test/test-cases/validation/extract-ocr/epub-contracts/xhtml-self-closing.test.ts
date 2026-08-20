@@ -1,18 +1,7 @@
 import { expect, test } from 'bun:test'
 import type { DocumentMetadata } from '~/types'
-import {
-  buildEpubTextOutput,
-  buildExtractionOptions,
-  createReader,
-  inspectEpubWithReader,
-  join,
-  mkdtemp,
-  rm,
-  runOcr,
-  tmpdir,
-  withStandardEpubContainer,
-  writeStoredZip
-} from './shared'
+import { buildEpubTextOutput, buildExtractionOptions, createReader, inspectEpubWithReader, join, rm, runOcr, withStandardEpubContainer, writeStoredZip } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const buildMinimalEpubFiles = (chapterHtml: string): Record<string, string> => ({
   mimetype: 'application/epub+zip',
@@ -51,7 +40,7 @@ test('EPUB native text extraction handles XHTML self-closing title tags in chapt
 })
 
 test('EPUB native text extraction rejects all-empty inspected chapters', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-empty-epub-'))
+  const root = await makeTempDir('autoshow-empty-epub-')
   const epubPath = join(root, 'empty.epub')
   try {
     await writeStoredZip(epubPath, buildMinimalEpubFiles(

@@ -1,9 +1,9 @@
 import { afterEach } from 'bun:test'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CliCommandContext, CliParseResult } from '~/types'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 const repoFixtureFiles: string[] = []
@@ -35,7 +35,7 @@ export const asCtx = (parsed: CliParseResult): CliCommandContext => {
 }
 
 export const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
+  const root = await makeTempDir(prefix)
   tempDirs.push(root)
   return root
 }

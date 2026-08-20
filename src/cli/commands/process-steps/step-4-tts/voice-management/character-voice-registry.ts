@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { link, mkdir, readFile, rename, unlink } from 'node:fs/promises'
+import { link, mkdir, readFile, unlink } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
   CharacterVoiceBrief,
@@ -24,6 +24,8 @@ import {
   validateVoiceRegistration,
   validateVoiceRegistrationCatalog,
 } from './voice-management-contracts'
+import { isRecord } from '~/utils/value-helpers'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 export const CHARACTER_VOICES_FILENAME = 'character-voices.json'
 export const CHARACTER_VOICE_REGISTRATIONS_FILENAME = 'character-voice-registrations.json'
@@ -56,9 +58,6 @@ const assertAllowedKeys = (value: Record<string, unknown>, allowed: readonly str
   if (unknown.length > 0) throw ValidationError(`${label} contains unsupported field(s): ${unknown.join(', ')}.`, { stage: 'comic:voice-registry' })
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
 export const resolveCharacterVoiceRegistryPaths = (charactersRoot: string): CharacterVoiceRegistryPaths => {
   const root = resolve(charactersRoot)
   return {
@@ -68,13 +67,6 @@ export const resolveCharacterVoiceRegistryPaths = (charactersRoot: string): Char
     current: join(root, CHARACTER_VOICE_CURRENT_FILENAME),
     referencesRoot: join(root, 'voice-references')
   }
-}
-
-export const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
-  await mkdir(dirname(path), { recursive: true })
-  const temporary = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
-  await rename(temporary, path)
 }
 
 export const writeCreateOnlyJson = async (path: string, value: unknown): Promise<void> => {

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as v from 'valibot'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
@@ -17,6 +16,7 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
 import { characterSketchCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/character-sketch/character-sketch-command'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const parseReferenceSketchArgs = (args: string[]) =>
   coerceAndValidateReferenceSketch(parseCommandInvocation([referenceSketchCommandDefinition.name, ...args], referenceSketchCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
@@ -30,7 +30,7 @@ afterEach(async () => {
 })
 
 const makeCatalog = async (overrides: Record<string, unknown> = {}) => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-character-catalog-'))
+  const root = await makeTempDir('autoshow-character-catalog-')
   temporaryRoots.push(root)
   await writeFile(join(root, 'hero.webp'), tinyPng)
   await writeFile(join(root, 'sidekick.png'), tinyPng)
@@ -121,7 +121,7 @@ describe('comic character handling flat-reference contracts', () => {
   })
 
   test('panel-prompt preflight aggregates every unregistered visible character', async () => {
-    const charactersRoot = await mkdtemp(join(tmpdir(), 'autoshow-missing-character-catalog-'))
+    const charactersRoot = await makeTempDir('autoshow-missing-character-catalog-')
     temporaryRoots.push(charactersRoot)
     const keys = ['podcast-host', 'buoy-4-and-6', 'wilhelm-speaking-villagers', 'guards']
     for (const [index, key] of keys.entries()) await writeFile(join(charactersRoot, `${index}.webp`), key)
@@ -132,7 +132,7 @@ describe('comic character handling flat-reference contracts', () => {
     }))
     configureCharactersRoot(charactersRoot)
     const catalog = loadCharacterCatalog(charactersRoot)
-    const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-missing-character-run-'))
+    const runDirectory = await makeTempDir('autoshow-missing-character-run-')
     temporaryRoots.push(runDirectory)
     await expect(createCharacterReferenceSnapshot(runDirectory, keys.map(key => catalog.requireKey(key)), catalog))
       .rejects.toThrow(/podcast-host[\s\S]*buoy-4-and-6[\s\S]*wilhelm-speaking-villagers[\s\S]*guards/)
@@ -225,7 +225,7 @@ describe('comic character handling flat-reference contracts', () => {
   })
 
   test('scene validation accepts panels with more than five visible characters', async () => {
-    const charactersRoot = await mkdtemp(join(tmpdir(), 'autoshow-large-cast-catalog-'))
+    const charactersRoot = await makeTempDir('autoshow-large-cast-catalog-')
     temporaryRoots.push(charactersRoot)
     const keys = Array.from({ length: 8 }, (_, index) => `character-${index + 1}`)
     for (const [index] of keys.entries()) await writeFile(join(charactersRoot, `${index}.png`), tinyPng)
@@ -298,7 +298,7 @@ describe('comic character handling flat-reference contracts', () => {
     const charactersRoot = await makeCatalog()
     configureCharactersRoot(charactersRoot)
     const catalog = loadCharacterCatalog(charactersRoot)
-    const outputRoot = await mkdtemp(join(tmpdir(), 'autoshow-character-output-'))
+    const outputRoot = await makeTempDir('autoshow-character-output-')
     temporaryRoots.push(outputRoot)
     const key = catalog.requireKey('hero')
     const sheet = catalog.get(key).outlineSheetPath
@@ -340,7 +340,7 @@ describe('comic character handling flat-reference contracts', () => {
       characterKey: key, generationId: 'single-reference', origin: 'generated', sourceImage: 'hero.webp', outlineSheet: 'hero.webp',
       sourceSha256: sha256, sheetSha256: sha256, model: null, createdAt: new Date().toISOString(),
     }] }))
-    const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-single-character-run-'))
+    const runDirectory = await makeTempDir('autoshow-single-character-run-')
     temporaryRoots.push(runDirectory)
     const manifest = await createCharacterReferenceSnapshot(runDirectory, [key], catalog)
     expect(manifest.characters[0]?.assets.map(asset => asset.role)).toEqual(['sketch-sheet', 'source-image'])

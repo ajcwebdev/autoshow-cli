@@ -1,10 +1,11 @@
 import { lstat, readFile, realpath } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { join, resolve } from 'node:path'
 import type { GenericTtsDialoguePlan, PipelineProviderState, TtsDialoguePlanArtifactRef } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
 import { validateGenericTtsDialoguePlan } from './contract-validation'
 import { writeImmutableArtifactFile } from './safe-artifact-store'
+import { isContainedPath } from '~/utils/filesystem'
 
 const DIALOGUE_PLAN_ID = /^[a-f0-9]{64}$/
 const DIALOGUE_PLAN_DIRECTORY = 'metadata/tts-dialogue-plans'
@@ -25,11 +26,6 @@ export const buildTtsDialoguePlanArtifactRef = (
     path: artifactPathFor(validatedPlan.dialoguePlanId),
     sha256: sha256Bytes(bytes)
   }
-}
-
-const isContained = (root: string, candidate: string): boolean => {
-  const child = relative(root, candidate)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
 }
 
 export const materializeTtsDialoguePlanArtifact = async (
@@ -88,7 +84,7 @@ export const readTtsDialoguePlanArtifact = async (
   }
   const canonicalRoot = await realpath(rootDir)
   const candidate = resolve(canonicalRoot, reference.path)
-  if (!isContained(canonicalRoot, candidate)) {
+  if (!isContainedPath(canonicalRoot, candidate)) {
     throw CLIUsageError('Canonical TTS dialogue-plan artifact escaped its run root.')
   }
   let cursor = canonicalRoot

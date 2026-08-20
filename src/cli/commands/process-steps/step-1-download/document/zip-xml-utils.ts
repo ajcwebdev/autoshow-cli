@@ -1,74 +1,21 @@
 
 
-import { inflateRawSync } from 'node:zlib'
 import { scanTagBlocks, innerXml, firstTagText } from '~/utils/xml-scan'
 import { ValidationError } from '~/utils/error-handler'
 import type { ZipEntry, ZipXmlPage, ZipXmlResult } from '~/types'
+import { openZipArchive, readZipEntryData as readZipArchiveEntryData } from '~/utils/zip-central-directory'
 
-const EOCD_SIG = 0x06054b50
-const CD_SIG   = 0x02014b50
-const LFH_SIG  = 0x04034b50
+const ZIP_XML_ARCHIVE = { stage: 'download:zip-xml' } as const
 
-const findEocd = (buf: Buffer): number => {
-
-  const limit = Math.max(0, buf.length - 65557)
-  for (let i = buf.length - 22; i >= limit; i--) {
-    if (buf.readUInt32LE(i) === EOCD_SIG) return i
-  }
-  throw ValidationError('Not a valid ZIP file: End of Central Directory not found', { stage: 'download:zip-xml' })
-}
-
-const readZipCentralDirectory = (buf: Buffer): ZipEntry[] => {
-  const eocd = findEocd(buf)
-  const cdCount  = buf.readUInt16LE(eocd + 10)
-  const cdOffset = buf.readUInt32LE(eocd + 16)
-
-  const entries: ZipEntry[] = []
-  let pos = cdOffset
-
-  for (let i = 0; i < cdCount; i++) {
-    if (buf.readUInt32LE(pos) !== CD_SIG) break
-
-    const method       = buf.readUInt16LE(pos + 10)
-    const compSize     = buf.readUInt32LE(pos + 20)
-    const uncompSize   = buf.readUInt32LE(pos + 24)
-    const fnLen        = buf.readUInt16LE(pos + 28)
-    const extraLen     = buf.readUInt16LE(pos + 30)
-    const commentLen   = buf.readUInt16LE(pos + 32)
-    const localOffset  = buf.readUInt32LE(pos + 42)
-    const name         = buf.subarray(pos + 46, pos + 46 + fnLen).toString('utf8')
-
-    entries.push({ name, method, compSize, uncompSize, localOffset })
-    pos += 46 + fnLen + extraLen + commentLen
-  }
-
-  return entries
-}
-
-export const readZipEntryData = (buf: Buffer, entry: ZipEntry): Buffer => {
-  const lpos = entry.localOffset
-  if (buf.readUInt32LE(lpos) !== LFH_SIG) {
-    throw ValidationError(`Local file header missing for entry: ${entry.name}`, { stage: 'download:zip-xml' })
-  }
-
-  const lfnLen   = buf.readUInt16LE(lpos + 26)
-  const lextra   = buf.readUInt16LE(lpos + 28)
-  const dataStart = lpos + 30 + lfnLen + lextra
-  const raw = buf.subarray(dataStart, dataStart + entry.compSize)
-
-  if (entry.method === 0) return Buffer.from(raw)
-  if (entry.method === 8) return inflateRawSync(raw)
-  throw ValidationError(`Unsupported ZIP compression method ${entry.method} for: ${entry.name}`, { stage: 'download:zip-xml' })
-}
+export const readZipEntryData = (buf: Buffer, entry: ZipEntry): Buffer =>
+  readZipArchiveEntryData(buf, entry, ZIP_XML_ARCHIVE)
 
 const readEntryText = (buf: Buffer, entry: ZipEntry): string =>
   readZipEntryData(buf, entry).toString('utf8')
 
 export const openZip = async (filePath: string): Promise<{ buf: Buffer, entries: Map<string, ZipEntry> }> => {
-  const buf = Buffer.from(await Bun.file(filePath).arrayBuffer())
-  const list = readZipCentralDirectory(buf)
-  const entries = new Map(list.map(e => [e.name, e]))
-  return { buf, entries }
+  const { buffer, entries } = await openZipArchive(filePath, ZIP_XML_ARCHIVE)
+  return { buf: buffer, entries }
 }
 
 const stripNsPrefixes = (xml: string): string =>

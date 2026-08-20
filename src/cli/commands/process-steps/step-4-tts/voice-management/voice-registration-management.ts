@@ -21,10 +21,11 @@ import type {
 import { CLIUsageError } from '~/utils/error-handler'
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
 import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
-import { appendVoiceRegistration, atomicWriteJson, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
+import { appendVoiceRegistration, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
 import { assertVoiceConsentAllows, computeVoiceAuditionId, validateVoiceAuditionManifest, validateVoiceConsentRecord, validateVoiceRegistration } from './voice-management-contracts'
 import { createMistralSavedVoice, findMistralSavedVoiceBySlug, inspectMistralSavedVoice, mistralAccountScopeHash } from './mistral-voice-management'
 import { loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation, runCrashSafeVoiceProvisioning } from './provisioning-journal'
+import { atomicWriteJson } from '~/utils/filesystem'
 
 export const DEFAULT_VOICE_RETENTION_POLICY: VoiceRetentionPolicy = {
   protectedAssets: 'delete-on-revocation',

@@ -1,9 +1,9 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { createGenerationOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
@@ -13,7 +13,7 @@ afterEach(async () => {
 })
 
 const makeTempRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-generation-output-dir-'))
+  const root = await makeTempDir('autoshow-generation-output-dir-')
   tempDirs.push(root)
   return root
 }

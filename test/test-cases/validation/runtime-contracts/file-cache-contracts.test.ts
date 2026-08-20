@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'bun:test'
-import { mkdtemp, rm, stat, utimes, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, stat, utimes, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { readInputList } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection'
 import { parseStoredHostedOcrPageCache } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback-state'
 import { HOSTED_OCR_PDF_PAGE_FALLBACK_MODE, HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback-shared'
 import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 describe('file cache contracts', () => {
   it('invalidates a batch-list entry when same-size content changes with a restored mtime', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-batch-cache-contract-'))
+    const root = await makeTempDir('autoshow-batch-cache-contract-')
     const listPath = join(root, 'inputs.txt')
 
     try {
@@ -32,7 +32,7 @@ describe('file cache contracts', () => {
   })
 
   it('serializes concurrent cache updates without losing entries', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-json-cache-contract-'))
+    const root = await makeTempDir('autoshow-json-cache-contract-')
     const cachePath = join(root, 'cache.json')
     const lockName = `file-cache-contract-${basename(root)}`
 

@@ -5,14 +5,7 @@ import {
   test
 } from 'bun:test'
 import { spawnSync } from 'node:child_process'
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
   buildUrlCombinedReport,
@@ -25,6 +18,7 @@ import {
 } from '../../../../.codex/skills/consensus/scripts/url/url_consensus_lib'
 import type { UrlCombinedArtifact, UrlCombinedFixtureProvider } from '~/types'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { makeTempDirSync } from '../../../test-utils/temp-dirs'
 
 const tempRoots: string[] = []
 
@@ -162,7 +156,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('uses source automated quality, present-value means, USD conversion, metadata, and isolated groups', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     const localShared: UrlCombinedFixtureProvider = {
       providerKey: 'shared', processingTimeMs: 100, costCents: 999,
@@ -238,7 +232,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('omits per-run leaders when a ranking surface contains only null values', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'all-null-leaders', [], [{
       providerKey: 'missing', processingTimeMs: null, costCents: null,
@@ -276,7 +270,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('preserves fallback distance provenance alongside recomputed provider scores', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-provenance-'))
+    const root = makeTempDirSync('autoshow-url-provenance-')
     tempRoots.push(root)
     const providerDir = join(root, 'providers', 'current')
     mkdirSync(providerDir, { recursive: true })
@@ -377,7 +371,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('rejects unsafe inventory hyperlink protocols while retaining readable text', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'unsafe-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,
@@ -394,7 +388,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('escapes remote HTML and Markdown syntax in inventory link labels', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'hostile-title-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,
@@ -415,7 +409,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('percent-encodes Markdown table delimiters in inventory URLs', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'pipe-url-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,
@@ -437,7 +431,7 @@ describe('URL combined-report aggregation', () => {
   })
 
   test('reports explicit human-quality evidence without an absence note', () => {
-    const root = mkdtempSync(join(tmpdir(), 'autoshow-url-combined-'))
+    const root = makeTempDirSync('autoshow-url-combined-')
     tempRoots.push(root)
     writeFixtureRun(root, 'human-quality-run', [], [{
       providerKey: 'service', processingTimeMs: 100, costCents: 1,

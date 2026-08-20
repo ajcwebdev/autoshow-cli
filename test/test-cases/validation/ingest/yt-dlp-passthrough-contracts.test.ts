@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { chmod, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { selectBatchItems } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/metadata-batch-select'
@@ -8,12 +7,13 @@ import { resolveProcessTargetDoubleDash } from '~/cli/commands/process-steps/ste
 import { buildDownloadMediaOptions } from '~/cli/commands/process-steps/step-1-download/download-targets/single/media-runner'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { runCommand } from '../../../test-utils/test-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const EMPTY_CONFIG_PATH = 'test/test-utils/fixtures/empty-autoshow-config.json'
 const tempDirs: string[] = []
 
 const createFakeYtDlpBinDir = async (argsLogPath: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-fake-ytdlp-'))
+  const dir = await makeTempDir('autoshow-fake-ytdlp-')
   tempDirs.push(dir)
   const ytDlpPath = join(dir, 'yt-dlp')
   const ffmpegPath = join(dir, 'ffmpeg')
@@ -156,7 +156,7 @@ describe('yt-dlp passthrough mode resolution', () => {
 
 describe('yt-dlp passthrough execution contracts', () => {
   test('raw mode streams yt-dlp output and propagates raw exit codes', async () => {
-    const logDir = await mkdtemp(join(tmpdir(), 'autoshow-raw-ytdlp-log-'))
+    const logDir = await makeTempDir('autoshow-raw-ytdlp-log-')
     tempDirs.push(logDir)
     const argsLogPath = join(logDir, 'args.txt')
     const fakeBinDir = await createFakeYtDlpBinDir(argsLogPath)
@@ -186,7 +186,7 @@ describe('yt-dlp passthrough execution contracts', () => {
   })
 
   test('integrated passthrough forwards args for a direct media URL and keeps AutoShow tracking last', async () => {
-    const logDir = await mkdtemp(join(tmpdir(), 'autoshow-integrated-ytdlp-log-'))
+    const logDir = await makeTempDir('autoshow-integrated-ytdlp-log-')
     tempDirs.push(logDir)
     const argsLogPath = join(logDir, 'args.txt')
     const fakeBinDir = await createFakeYtDlpBinDir(argsLogPath)
@@ -220,7 +220,7 @@ describe('yt-dlp passthrough execution contracts', () => {
   })
 
   test('integrated passthrough reports a clear error when yt-dlp produces no primary media file', async () => {
-    const logDir = await mkdtemp(join(tmpdir(), 'autoshow-integrated-ytdlp-empty-'))
+    const logDir = await makeTempDir('autoshow-integrated-ytdlp-empty-')
     tempDirs.push(logDir)
     const argsLogPath = join(logDir, 'args.txt')
     const fakeBinDir = await createFakeYtDlpBinDir(argsLogPath)
@@ -244,7 +244,7 @@ describe('yt-dlp passthrough execution contracts', () => {
   })
 
   test('integrated passthrough reports a clear error when yt-dlp produces multiple primary media files', async () => {
-    const logDir = await mkdtemp(join(tmpdir(), 'autoshow-integrated-ytdlp-multiple-'))
+    const logDir = await makeTempDir('autoshow-integrated-ytdlp-multiple-')
     tempDirs.push(logDir)
     const argsLogPath = join(logDir, 'args.txt')
     const fakeBinDir = await createFakeYtDlpBinDir(argsLogPath)

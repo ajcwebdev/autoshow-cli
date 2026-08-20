@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { ProviderError } from '~/utils/error-handler'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import {
@@ -26,6 +25,7 @@ import { logIncompleteOcrRunSummary } from '~/cli/commands/process-steps/step-1-
 import type { DocumentMetadata, HostedOcrRun, OcrExtractionOptions, OcrProviderState, OcrTarget, PageResult, ProcessDocumentOutput, ResumeTarget } from '~/types'
 import { captureLogEvents } from '../../../test-utils/console-capture'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const requestedTargets: OcrTarget[] = [
   { service: 'tesseract', model: 'tesseract' },
@@ -168,7 +168,7 @@ describe('OCR resume contracts', () => {
   })
 
   test('existing OCR run reads canonical provider results without provider artifact files', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-root-metadata-'))
+    const tempDir = await makeTempDir('autoshow-ocr-root-metadata-')
     try {
       const tesseractMetadata = {
         extractionMethod: 'mutool+tesseract' as const,
@@ -348,7 +348,7 @@ describe('OCR resume contracts', () => {
   })
 
   test('automatic resume reports blocked-only OCR manifests without advertising retry', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-blocked-resume-'))
+    const tempDir = await makeTempDir('autoshow-ocr-blocked-resume-')
     try {
       const blockedAnthropic = providerState(anthropicTarget, 'failed', {
         message: 'Anthropic Messages request failed (400): Output blocked by content filtering policy',
@@ -538,7 +538,7 @@ describe('OCR resume contracts', () => {
   })
 
   test('hosted PDF page fallback resume skips cached pages and starts at the first missing page', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-resume-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-resume-')
     try {
       await writeCachedPage(tempDir, 1, 4)
       await writeCachedPage(tempDir, 2, 4)
@@ -577,7 +577,7 @@ describe('OCR resume contracts', () => {
   })
 
   test('hosted PDF fallback state bypasses full-document OCR even before page results exist', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-fallback-state-'))
+    const tempDir = await makeTempDir('autoshow-ocr-fallback-state-')
     try {
       await Bun.write(join(tempDir, 'fallback-state.json'), JSON.stringify({
         version: 2,
@@ -616,7 +616,7 @@ describe('OCR resume contracts', () => {
   })
 
   test('v1 hosted PDF fallback state misses cleanly and runs full-document OCR', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-fallback-state-v1-'))
+    const tempDir = await makeTempDir('autoshow-ocr-fallback-state-v1-')
     try {
       await Bun.write(join(tempDir, 'fallback-state.json'), JSON.stringify({
         version: 1,
@@ -653,7 +653,7 @@ describe('OCR resume contracts', () => {
   })
 
   test('hosted PDF page fallback ignores corrupt or mismatched page cache files', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-page-cache-invalid-'))
+    const tempDir = await makeTempDir('autoshow-ocr-page-cache-invalid-')
     try {
       await mkdir(join(tempDir, 'page-results'), { recursive: true })
       await Bun.write(pageCachePath(tempDir, 1), '{bad json')
@@ -715,7 +715,7 @@ describe('OCR resume contracts', () => {
       'OpenAI OCR response was not valid JSON.',
       '{"pages":'
     ))
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-structured-error-'))
+    const tempDir = await makeTempDir('autoshow-ocr-structured-error-')
     try {
       await writeInvalidOcrStructuredResponse(tempDir, new OcrStructuredResponseError(
         'OpenAI OCR response was not valid JSON.',

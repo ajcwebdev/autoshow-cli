@@ -2,11 +2,12 @@ import { AppError, type AppProviderError, ProviderError } from '~/utils/error-ha
 import { buildCaptureMetadata, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { BoundedCaptureResult, ProviderRestClientProfile } from '~/types'
+import { isRecord } from '~/utils/value-helpers'
+
+// Re-exported so the ~20 modules that already import it from the REST client keep working.
+export { isRecord }
 
 export const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, '')
-
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 // Field names are unchanged from the previous plain-Error shape, so the existing call
 // sites keep working; what changes is that the result is now an AppProviderError and
@@ -116,6 +117,20 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
       throw normalizeFetchAbortError(error)
     }
   }
+
+/**
+ * Resolves a request path against a provider base URL. Four STT services had a private copy
+ * of this exact one-liner. Distinct from `joinRestUrl`, which additionally applies a default
+ * base URL and version-prefix collapsing.
+ */
+export const resolveRestPath = (baseURL: string, path: string): string =>
+  new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
+
+/** Response body text for an error message, falling back to the status line when empty. */
+export const readRestErrorText = async (response: Response): Promise<string> => {
+  const text = await response.text()
+  return text.trim() || `HTTP ${response.status}`
+}
 
 export const joinRestUrl = (
   baseURL: string | undefined,

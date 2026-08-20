@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { collectLeafPrompts, getAvailablePromptNames, resolvePromptNames } from '~/prompts/prompt-loader'
 import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
 import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
 import { readPromptFile } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const MARKDOWN_PROMPT_SNAPSHOT = {
   blog: 'c1bb449943d0bfbf89f943c549ae507f254a2f362b53a65f05f6cd5be647042b',
@@ -147,7 +147,7 @@ describe('prompt loader contracts', () => {
   })
 
   test('rejects the retired markdown presentation prefix in JSON prompt files', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-prompt-prefix-'))
+    const tempDir = await makeTempDir('autoshow-prompt-prefix-')
     const promptPath = join(tempDir, 'legacy-prompt.json')
 
     try {

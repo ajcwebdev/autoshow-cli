@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, stat, symlink } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, stat, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CanonicalAudioProviderProjection, ProtectedAssetRef, ProtectedVoiceAssetStore, TtsCliReferenceInput, TtsOptions, TtsTarget, TtsTargetInvocation } from '~/types'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
@@ -20,11 +19,12 @@ import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/s
 import { assertMistralReferenceAudioDecodable } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-reference-audio-preflight'
 import { installMockFetch, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../test-utils/value-assertions'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const roots: string[] = []
 
 const makeRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-mistral-protected-integration-'))
+  const root = await makeTempDir('autoshow-mistral-protected-integration-')
   roots.push(root)
   return root
 }

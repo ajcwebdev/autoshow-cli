@@ -6,6 +6,10 @@ import { isAbortError } from '~/utils/retries'
 import { readEnv } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, ProviderError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { formatErrorMessage } from '~/utils/value-helpers'
+
+// Re-exported: two download/url modules already import this name from here.
+export { formatErrorMessage }
 
 const HTML_FETCH_TIMEOUT_MS = 15000
 export const DEFAULT_URL_REQUEST_TIMEOUT_MS = 60000
@@ -336,9 +340,6 @@ export const normalizeMarkdown = (value: unknown): string => {
   }
   return value.trim()
 }
-
-export const formatErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
 
 export const ensureMeaningfulMarkdown = (
   markdown: string,

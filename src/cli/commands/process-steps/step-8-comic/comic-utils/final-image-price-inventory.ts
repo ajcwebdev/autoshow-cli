@@ -26,6 +26,7 @@ import {
   getPageComicImagePath,
   getPanelComicImagePath,
 } from './scene-utils'
+import { isRecord } from '~/utils/value-helpers'
 
 const readPricePanelInput = async (
   panelPromptsDir: string,
@@ -61,9 +62,6 @@ export const validatePriceReferenceGroup = async (
   }
   return primary.primaryCharacterRefs.length + locations.length + designs.length
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isReusablePageQaReport = (
   reportPath: string,

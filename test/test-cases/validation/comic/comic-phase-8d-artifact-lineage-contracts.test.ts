@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { randomUUID } from 'node:crypto'
-import { mkdtemp, mkdir, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CharacterCatalogService, ComicPresentationPlan, CompactPresentation, LocationReferenceCatalog, ResolvedPanelTimeline } from '~/types'
 import { auditComicSceneArtifactLineage, soundscapeAudioRunLineageRefs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-artifact-lineage-audit'
@@ -18,6 +17,7 @@ import { PRESENTATION_ARCHIVE_PATH, PRESENTATION_FINAL_MP4, PRESENTATION_FINAL_W
 import { writeImmutableArtifactFile, writeReplaceableArtifactFile } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/safe-artifact-store'
 import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const characters = {
   characterKeys: [], resolve: () => undefined, detectMentions: () => [],
@@ -154,7 +154,7 @@ const buildSoundscapeScene = async (root: string) => {
 
 describe('ADR-017 Phase 8D artifact lineage audit', () => {
   test('passes a two-target soundscape matrix and fails stale or missing presentation lineage', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-phase-8d-lineage-'))
+    const root = await makeTempDir('autoshow-phase-8d-lineage-')
     try {
       const built = await buildSoundscapeScene(root)
       const audioOnly = await auditComicSceneArtifactLineage(root)
@@ -203,7 +203,7 @@ describe('ADR-017 Phase 8D artifact lineage audit', () => {
   })
 
   test('requires compact presentation.json when the presentation stage is published', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-phase-8d-missing-presentation-'))
+    const root = await makeTempDir('autoshow-phase-8d-missing-presentation-')
     try {
       const built = await buildSoundscapeScene(root)
       await updateComicPresentationManifest({

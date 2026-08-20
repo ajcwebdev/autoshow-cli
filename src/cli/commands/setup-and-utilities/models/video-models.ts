@@ -1,7 +1,6 @@
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
-import { throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, ReplicateVideoModel } from '~/types'
+import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_GEMINI_VIDEO_MODELS = [
   'veo-3.1-fast-generate-preview',
@@ -34,12 +33,7 @@ export const SUPPORTED_REPLICATE_VIDEO_MODELS = [
   'pixverse/pixverse-v6'
 ] as const satisfies readonly string[]
 
-const validateActiveReplicateVideoModel = createModelValidator<ReplicateVideoModel>(SUPPORTED_REPLICATE_VIDEO_MODELS, 'replicate-video')
-export const validateReplicateVideoModel = (model: string): ReplicateVideoModel => {
-  const replacement = getRetiredModelReplacement('video', 'replicate', model)
-  if (replacement !== undefined) return throwRetiredModelSelection(model, 'replicate-video', replacement)
-  return validateActiveReplicateVideoModel(model)
-}
+export const validateReplicateVideoModel = createRetiringModelValidator<ReplicateVideoModel>('video', 'replicate', SUPPORTED_REPLICATE_VIDEO_MODELS, 'replicate-video')
 
 export const SUPPORTED_LUMALABS_VIDEO_MODELS = [
   'ray-3.2'

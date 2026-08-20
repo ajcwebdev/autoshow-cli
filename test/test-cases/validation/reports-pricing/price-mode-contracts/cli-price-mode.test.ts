@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { LOCAL_EXAMPLE_AUDIO_PATH, STABLE_TTS_MD_PATH, runCommand } from '../../../../test-utils/test-helpers'
 import { findPricingNoteKeys, isRecord, parseJsonLines } from './shared'
+import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const priceCases: Array<{ label: string; args: string[]; expected: string | string[]; env?: Record<string, string | undefined> }> = [
   {
@@ -118,7 +118,7 @@ describe('price mode contracts', () => {
     })
 
   test('tts directory --price reports per-item estimates and suite total without creating output dirs', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-tts-directory-price-'))
+      const dir = await makeTempDir('autoshow-tts-directory-price-')
       const inputDir = join(dir, 'inputs')
       const nestedDir = join(inputDir, 'nested')
       const outputDir = join(dir, 'tts-batch-out')

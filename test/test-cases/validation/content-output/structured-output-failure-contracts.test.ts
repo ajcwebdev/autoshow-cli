@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as v from 'valibot'
 import type { LLMService, LLMTarget, ResolvedStructuredSchema, Step3Metadata, StructuredRequestOptions } from '~/types'
 import { runLlmTargetsForStructuredPrompt } from '~/cli/commands/process-steps/step-3-write/run-llm'
+import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const buildMetadata = (service: LLMService, model: string): Step3Metadata => ({
   llmService: service,
@@ -32,7 +32,7 @@ const structuredSchema: ResolvedStructuredSchema = {
 }
 
 test('stubbed LLM targets use capability retry budgets and persist one failure envelope', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-structured-failure-'))
+  const tempDir = await makeTempDir('autoshow-structured-failure-')
   try {
     const attempts = new Map<LLMService, number>()
     const requestOptions = new Map<LLMService, StructuredRequestOptions[]>()
