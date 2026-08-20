@@ -1,12 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { StructuredScriptData, TtsTarget, VoiceReferenceManifest } from '~/types'
-import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
+import type { TtsTarget } from '~/types'
+import { canonicalTargetKey, hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import { createSoundEffectRenderPlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/sound-effect-execution'
-import { createSoundscapePlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
 import {
   REPLICATE_KOKORO_MODEL_ID,
   REPLICATE_KOKORO_SERIALIZER_VERSION,
@@ -14,18 +13,15 @@ import {
   runReplicateTts,
 } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-replicate/run-replicate-tts'
 import { validateTtsTargetsForExecution } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import { createApprovedVoiceSnapshotEntry, createComicSourceIdentity, createStructuredScriptArtifactRef, computeSceneRunIdentity, validateVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
+import { createApprovedVoiceSnapshotEntry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { buildTargetExecution } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
-import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
 import { createLocalSilentDialogueRun, runComicSoundscape } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-soundscape-workflow'
 import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 import { createResourceGate } from '~/utils/resource-gate'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
+import { buildComicAudioPhaseFixture, COMIC_AUDIO_PHASE_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_HASH_A as HASH_A, COMIC_AUDIO_PHASE_HASH_B as HASH_B } from './comic-audio-phase-fixture'
 
-const CREATED_AT = '2026-08-14T00:00:00.000Z'
-const HASH_A = 'a'.repeat(64)
-const HASH_B = 'b'.repeat(64)
 const POLL_URL = 'https://api.replicate.com/v1/predictions/prediction-kokoro'
 const OUTPUT_URL = 'https://replicate.delivery/kokoro-soundscape.wav'
 const tempDirs = setupContractSuiteLifecycle({ envKeys: ['REPLICATE_API_TOKEN', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-replicate-soundscape-' })
@@ -52,43 +48,7 @@ const voiceEntry = (subjectKey: string, resourceId: string) => createApprovedVoi
 })
 
 const fixture = async (root: string) => {
-  const source = '# Episode\n\n## Bridge\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n\n**SFX:**\nHatch slams.\n\n**AMBIENCE:**\nEngine hum.\n'
-  const sourcePath = join(root, 'scene.md')
-  await Bun.write(sourcePath, source)
-  const sourceIdentity = await createComicSourceIdentity(sourcePath, source)
-  const dialogueStart = [...source.slice(0, source.indexOf('Ready?'))].length
-  const answerStart = [...source.slice(0, source.indexOf('Ready.'))].length
-  const sfxStart = [...source.slice(0, source.indexOf('Hatch slams.'))].length
-  const ambienceStart = [...source.slice(0, source.indexOf('Engine hum.'))].length
-  const structured: StructuredScriptData = {
-    schemaVersion: 5,
-    scriptSlug: sourceIdentity.scriptSlug,
-    sourceFile: sourceIdentity.canonicalPath,
-    sourceIdentity,
-    document: { heading: 'Episode', title: 'Episode', metadata: [] },
-    scene: {
-      heading: 'Bridge', title: 'Bridge', location: { key: 'bridge', raw: 'INT. BRIDGE' },
-      soundscape: {
-        cues: [{ cueId: hashCanonicalTtsValue({ kind: 'action-sfx', sfxStart }), kind: 'action-sfx', prompt: 'Hatch slams.', required: true, anchor: { kind: 'scene-clock', positionMs: 100 }, sourceSpan: { kind: 'sound-effect', start: sfxStart, end: sfxStart + 12, indexUnit: 'unicode-scalar-value', text: 'Hatch slams.' }, durationSeconds: 0.5 }],
-        ambientBeds: [{ cueId: hashCanonicalTtsValue({ kind: 'ambience', ambienceStart }), kind: 'ambience', prompt: 'Engine hum.', required: true, range: { kind: 'full-scene' }, sourceSpan: { kind: 'sound-effect', start: ambienceStart, end: ambienceStart + 11, indexUnit: 'unicode-scalar-value', text: 'Engine hum.' }, durationSeconds: 1 }],
-      },
-    },
-    characterKeys: ['pilot', 'navigator'],
-    beats: [],
-    sourceSegments: [
-      { id: 'beat-0001', type: 'dialogue', text: 'Ready?', beatIndex: 1, speakerKey: 'pilot', speakerKeys: ['pilot'], speakerLabel: 'PILOT', sourceSpans: [{ kind: 'spoken-text', start: dialogueStart, end: dialogueStart + 6, indexUnit: 'unicode-scalar-value', text: 'Ready?' }], location: { key: 'bridge', raw: 'INT. BRIDGE' } },
-      { id: 'beat-0002', type: 'dialogue', text: 'Ready.', beatIndex: 2, speakerKey: 'navigator', speakerKeys: ['navigator'], speakerLabel: 'NAVIGATOR', sourceSpans: [{ kind: 'spoken-text', start: answerStart, end: answerStart + 6, indexUnit: 'unicode-scalar-value', text: 'Ready.' }], location: { key: 'bridge', raw: 'INT. BRIDGE' } },
-    ],
-  }
-  const structuredRef = createStructuredScriptArtifactRef(`${canonicalTtsJson(structured)}\n`)
-  const sceneRunIdentity = computeSceneRunIdentity(sourceIdentity, structuredRef)
-  const dialoguePlan = createComicDialoguePlan({ structuredScript: structured, sourceIdentity, structuredScriptRef: structuredRef, sceneRunIdentity, createdAt: CREATED_AT })
-  const soundscapePlan = createSoundscapePlan({ structuredScript: structured, structuredScriptRef: structuredRef, dialoguePlan, sceneRunIdentity, createdAt: CREATED_AT })
-  const entries = [voiceEntry('navigator', 'af_bella'), voiceEntry('pilot', 'am_puck')]
-    .sort((left, right) => [left.provider, left.providerModel, left.profileKey, left.subjectKey, left.registrationId, left.generationId, left.entryId].join('\0').localeCompare([right.provider, right.providerModel, right.profileKey, right.subjectKey, right.registrationId, right.generationId, right.entryId].join('\0')))
-  const snapshotBase = { schemaVersion: 1 as const, sceneRunIdentity, dialoguePlanId: dialoguePlan.dialoguePlanId, catalogHash: HASH_A, briefSetHash: HASH_B, createdAt: CREATED_AT, entries }
-  const snapshot: VoiceReferenceManifest = validateVoiceReferenceManifest({ ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) })
-  return { structured, structuredRef, dialoguePlan, soundscapePlan, snapshot }
+  return await buildComicAudioPhaseFixture(root, [voiceEntry('navigator', 'af_bella'), voiceEntry('pilot', 'am_puck')])
 }
 
 describe('ADR-017 Phase 5E Replicate Kokoro soundscape acceptance', () => {

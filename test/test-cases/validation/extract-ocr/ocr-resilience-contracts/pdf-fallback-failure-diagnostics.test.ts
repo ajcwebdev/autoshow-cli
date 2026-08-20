@@ -4,17 +4,10 @@ import {
   classifyOcrProviderFailure,
   createOcrPdfChunkRenderError,
   join,
-  mkdir,
-  rm,
   shouldFallbackToOcrPdfChunks,
   writeOcrProviderError
 } from './shared'
-
-const withLocalTestDir = async <T>(prefix: string, run: (dir: string) => Promise<T>): Promise<T> => {
-  const dir = join(process.cwd(), '.test-work', `${prefix}-${crypto.randomUUID()}`)
-  await mkdir(dir, { recursive: true })
-  try { return await run(dir) } finally { await rm(dir, { recursive: true, force: true }) }
-}
+import { withLocalTestDir } from '../../../../test-utils/temp-dirs'
 
 describe('PDF fallback failure diagnostics contracts', () => {
   test('PDF fallback classifier splits transient and limit failures but not auth or policy failures', () => {

@@ -6,13 +6,13 @@ import type {
   Deferred,
   HostedOcrSchedulerAdmission,
   HostedOcrSchedulerLaneTelemetry,
-  HostedOcrSchedulerSetTimer,
   HostedOcrSchedulerTargetTelemetry,
   HostedOcrSchedulerTelemetry,
   HostedOcrService,
   HostedOcrThroughputProfile,
   SchedulerClock
 } from '~/types'
+import { createManualTimerClock } from '../../../../../test-utils/manual-timer-clock'
 
 export const defer = <T = void>(): Deferred<T> => {
   let resolve!: (value: T | PromiseLike<T>) => void
@@ -29,42 +29,7 @@ export const waitFor = async (
   timeoutMs = 500
 ): Promise<void> => await sharedWaitFor(predicate, { timeoutMs, label: 'scheduler test condition' })
 
-export const createSchedulerClock = (): SchedulerClock => {
-  let now = 0
-  let nextTimer = 1
-  const timers = new Map<number, { at: number, callback: () => void }>()
-  const setTimer: HostedOcrSchedulerSetTimer = (callback, delayMs) => {
-    const timer = nextTimer
-    nextTimer += 1
-    timers.set(timer, {
-      at: now + Math.max(0, delayMs),
-      callback
-    })
-    return timer
-  }
-  const advance = async (durationMs: number): Promise<void> => {
-    const target = now + durationMs
-    while (true) {
-      const next = [...timers.entries()].sort(
-        (left, right) =>
-          left[1].at - right[1].at || left[0] - right[0]
-      )[0]
-      if (!next || next[1].at > target) break
-      now = next[1].at
-      timers.delete(next[0])
-      next[1].callback()
-      await Promise.resolve()
-    }
-    now = target
-    await Promise.resolve()
-  }
-  return {
-    now: () => now,
-    setTimer,
-    advance,
-    timerCount: () => timers.size
-  }
-}
+export const createSchedulerClock = (): SchedulerClock => createManualTimerClock<number>()
 
 export const admission = (
   service: HostedOcrService,

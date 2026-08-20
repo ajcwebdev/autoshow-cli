@@ -9,6 +9,7 @@ import {
 import type { MetricName, SttNormalizationMetricRankingEntry } from '~/types'
 import { writeMultiProviderManifestFixture } from '../../../test-utils/manifest-helpers'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { readBunSpawnStreamText as readStreamText } from '../../../test-utils/stream-text'
 
 const tempDirs: string[] = []
 
@@ -17,11 +18,6 @@ const makeTempRoot = async (): Promise<string> => {
   tempDirs.push(root)
   return root
 }
-
-const readStreamText = async (
-  stream: ReadableStream<Uint8Array> | number | undefined | null
-): Promise<string> =>
-  stream && typeof stream !== 'number' ? await new Response(stream).text() : ''
 
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))

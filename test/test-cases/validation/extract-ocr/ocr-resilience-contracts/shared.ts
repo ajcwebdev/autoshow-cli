@@ -35,24 +35,15 @@ import {
 import { runKimiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr'
 import { runAnthropicOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { l } from '~/utils/app-logger/app-logger'
+import { pagesForOcrRange as pagesForRange } from '../../../../test-utils/ocr-page-fixtures'
+
+export { pagesForRange }
 
 export const basePdfMetadata: DocumentMetadata = {
   slug: 'document',
   pageCount: 6,
   format: 'pdf',
   fileSize: 12_345
-}
-
-export const pagesForRange = (startPage: number, endPage: number): PageResult[] => {
-  const pages: PageResult[] = []
-  for (let pageNumber = 1; pageNumber <= endPage - startPage + 1; pageNumber++) {
-    pages.push({
-      pageNumber,
-      method: 'ocr',
-      text: `page ${startPage + pageNumber - 1}`
-    })
-  }
-  return pages
 }
 
 export const hostedRun = (

@@ -1,4 +1,5 @@
 import { createHumanTable, createKeyValueTable, createSingleRowTable } from '~/utils/app-logger/human-table/human-table'
+import { defineTableLog } from '~/utils/app-logger/table-log-definition'
 import type { AudioSegmentDescriptor, EffectiveSttProviderConcurrency, HumanLogTable, LogLevel, ProviderFailure, SplitPolicyTarget, SttAcquireSummary, SttAsyncJobLifecycle, ProviderCompletionStatus, SttProviderConcurrencySummary, SttProviderSlotSummary, SttProviderState, SttRunStatusSummary, SttSegmentLifecycle, SttSplitDecision, SttSplitDecisionReason, SttSplitRetryReason, TableLogger } from '~/types'
 import { formatSttTargetLabel } from './stt-targets'
 const formatBytes = (bytes: number | undefined): string => {
@@ -49,15 +50,17 @@ const getSplitReasonInputDuration = (reason: SttSplitDecisionReason): string =>
     ? formatSeconds(reason.audioDurationSeconds)
     : ''
 
-export const buildSttDiarizationConfigTable = (
-  summary: {
-    provider: string
-    model?: string | undefined
-    enabled?: boolean | undefined
-    speakerCount?: number | undefined
-    maxSpeakers?: number | undefined
-    detail?: string | undefined
-  }
+type SttDiarizationConfigSummary = {
+  provider: string
+  model?: string | undefined
+  enabled?: boolean | undefined
+  speakerCount?: number | undefined
+  maxSpeakers?: number | undefined
+  detail?: string | undefined
+}
+
+const buildSttDiarizationConfigTableValue = (
+  summary: SttDiarizationConfigSummary
 ): HumanLogTable =>
   createKeyValueTable([
     ['provider', summary.provider],
@@ -68,24 +71,13 @@ export const buildSttDiarizationConfigTable = (
     ...(summary.detail ? [['detail', summary.detail] as const] : [])
   ])
 
-export const logSttDiarizationConfig = (
-  logger: TableLogger,
-  summary: {
-    provider: string
-    model?: string | undefined
-    enabled?: boolean | undefined
-    speakerCount?: number | undefined
-    maxSpeakers?: number | undefined
-    detail?: string | undefined
-  },
-  level: LogLevel = 'info'
-): void => {
-  logger.write(level, 'STT Diarization', {
-    category: 'pipeline',
-    humanTable: buildSttDiarizationConfigTable(summary),
-    metadata: summary
-  })
-}
+export const { buildTable: buildSttDiarizationConfigTable, log: logSttDiarizationConfig } = defineTableLog<SttDiarizationConfigSummary>({
+  title: 'STT Diarization',
+  category: 'pipeline',
+  buildTable: buildSttDiarizationConfigTableValue,
+  level: 'info',
+  metadata: summary => summary
+})
 
 export const buildSttSplitDecisionTable = (
   target: SplitPolicyTarget,
@@ -150,13 +142,15 @@ export const logSttSplitDecision = (
   })
 }
 
-const buildSttSplitSummaryTable = (
-  summary: {
-    input: string
-    segmentDurationMinutes: number
-    totalDurationSeconds: number
-    totalSegments: number
-  }
+type SttSplitSummary = {
+  input: string
+  segmentDurationMinutes: number
+  totalDurationSeconds: number
+  totalSegments: number
+}
+
+const buildSttSplitSummaryTableValue = (
+  summary: SttSplitSummary
 ): HumanLogTable =>
   createKeyValueTable([
     ['input', summary.input],
@@ -178,40 +172,33 @@ export const buildSttSplitSegmentsTable = (
     ['segment', 'start', 'duration', 'path']
   )
 
-export const logSttSplitSummary = (
-  logger: TableLogger,
-  summary: {
-    input: string
-    segmentDurationMinutes: number
-    totalDurationSeconds: number
-    totalSegments: number
-  }
-): void => {
-  logger.write('info', 'STT Split Plan', {
-    category: 'pipeline',
-    humanTable: buildSttSplitSummaryTable(summary),
-    metadata: summary
-  })
+export const { log: logSttSplitSummary } = defineTableLog<SttSplitSummary>({
+  title: 'STT Split Plan',
+  category: 'pipeline',
+  buildTable: buildSttSplitSummaryTableValue,
+  level: 'info',
+  metadata: summary => summary
+})
+
+const sttSplitSegmentsLog = defineTableLog<readonly AudioSegmentDescriptor[]>({
+  title: 'STT Split Segments',
+  category: 'artifact',
+  buildTable: buildSttSplitSegmentsTable,
+  level: 'success',
+  metadata: segments => ({ segments })
+})
+
+export const logSttSplitSegments = sttSplitSegmentsLog.log
+
+type SttTranscriptOutputSummary = {
+  provider: string
+  path: string
+  characters: number
+  speakers?: number | undefined
 }
 
-export const logSttSplitSegments = (
-  logger: TableLogger,
-  segments: readonly AudioSegmentDescriptor[]
-): void => {
-  logger.write('success', 'STT Split Segments', {
-    category: 'artifact',
-    humanTable: buildSttSplitSegmentsTable(segments),
-    metadata: { segments }
-  })
-}
-
-export const buildSttTranscriptOutputTable = (
-  summary: {
-    provider: string
-    path: string
-    characters: number
-    speakers?: number | undefined
-  }
+const buildSttTranscriptOutputTableValue = (
+  summary: SttTranscriptOutputSummary
 ): HumanLogTable =>
   createKeyValueTable([
     ['provider', summary.provider],
@@ -220,21 +207,13 @@ export const buildSttTranscriptOutputTable = (
     ...(summary.speakers !== undefined ? [['speakers', summary.speakers] as const] : [])
   ])
 
-export const logSttTranscriptOutput = (
-  logger: TableLogger,
-  summary: {
-    provider: string
-    path: string
-    characters: number
-    speakers?: number | undefined
-  }
-): void => {
-  logger.write('info', 'Transcript Output', {
-    category: 'artifact',
-    humanTable: buildSttTranscriptOutputTable(summary),
-    metadata: summary
-  })
-}
+export const { buildTable: buildSttTranscriptOutputTable, log: logSttTranscriptOutput } = defineTableLog<SttTranscriptOutputSummary>({
+  title: 'Transcript Output',
+  category: 'artifact',
+  buildTable: buildSttTranscriptOutputTableValue,
+  level: 'info',
+  metadata: summary => summary
+})
 
 export const buildSttCleanupArtifactsTable = (
   rows: ReadonlyArray<{ artifact: string, path: string }>
@@ -258,31 +237,25 @@ export const logSttCleanupArtifacts = (
   })
 }
 
-const buildSttCleanupFailureTable = (
-  summary: {
-    provider: string
-    artifact: string
-    id: string
-    detail: string
-  }
+type SttCleanupFailureSummary = {
+  provider: string
+  artifact: string
+  id: string
+  detail: string
+}
+
+const buildSttCleanupFailureTableValue = (
+  summary: SttCleanupFailureSummary
 ): HumanLogTable =>
   createHumanTable([summary], ['provider', 'artifact', 'id', 'detail'])
 
-export const logSttCleanupFailure = (
-  logger: TableLogger,
-  summary: {
-    provider: string
-    artifact: string
-    id: string
-    detail: string
-  }
-): void => {
-  logger.write('warn', 'STT Cleanup', {
-    category: 'artifact',
-    humanTable: buildSttCleanupFailureTable(summary),
-    metadata: summary
-  })
-}
+export const { log: logSttCleanupFailure } = defineTableLog<SttCleanupFailureSummary>({
+  title: 'STT Cleanup',
+  category: 'artifact',
+  buildTable: buildSttCleanupFailureTableValue,
+  level: 'warn',
+  metadata: summary => summary
+})
 
 export const buildSttProviderSpeakerCountHintsTable = (
   rows: ReadonlyArray<{ provider: string, speakerCount: number, support: 'honored' | 'ignored' }>
@@ -304,31 +277,25 @@ export const logSttProviderSpeakerCountHints = (
   })
 }
 
-const buildSttRecoveryPassTable = (
-  summary: {
-    pass: number
-    maxPasses: number
-    failures: number
-    providers: string
-  }
+type SttRecoveryPassSummary = {
+  pass: number
+  maxPasses: number
+  failures: number
+  providers: string
+}
+
+const buildSttRecoveryPassTableValue = (
+  summary: SttRecoveryPassSummary
 ): HumanLogTable =>
   createHumanTable([summary], ['pass', 'maxPasses', 'failures', 'providers'])
 
-export const logSttRecoveryPass = (
-  logger: TableLogger,
-  summary: {
-    pass: number
-    maxPasses: number
-    failures: number
-    providers: string
-  }
-): void => {
-  logger.write('warn', 'STT Recovery Pass', {
-    category: 'pipeline',
-    humanTable: buildSttRecoveryPassTable(summary),
-    metadata: summary
-  })
-}
+export const { log: logSttRecoveryPass } = defineTableLog<SttRecoveryPassSummary>({
+  title: 'STT Recovery Pass',
+  category: 'pipeline',
+  buildTable: buildSttRecoveryPassTableValue,
+  level: 'warn',
+  metadata: summary => summary
+})
 
 const buildSttAcquireRows = (
   summary: SttAcquireSummary
@@ -339,21 +306,18 @@ const buildSttAcquireRows = (
   elapsedMs: summary.elapsedMs
 }]
 
-const buildSttAcquireTable = (
+const buildSttAcquireTableValue = (
   summary: SttAcquireSummary
 ): HumanLogTable =>
   createHumanTable(buildSttAcquireRows(summary), ['item', 'sourceMedia', 'sourceMediaMs', 'elapsedMs'])
 
-export const logSttAcquireSummary = (
-  logger: TableLogger,
-  summary: SttAcquireSummary
-): void => {
-  logger.write('info', 'STT Acquire', {
-    category: 'artifact',
-    humanTable: buildSttAcquireTable(summary),
-    metadata: summary
-  })
-}
+export const { log: logSttAcquireSummary } = defineTableLog<SttAcquireSummary>({
+  title: 'STT Acquire',
+  category: 'artifact',
+  buildTable: buildSttAcquireTableValue,
+  level: 'info',
+  metadata: summary => summary
+})
 
 const buildSttAsyncJobRows = (
   lifecycle: SttAsyncJobLifecycle
@@ -364,21 +328,18 @@ const buildSttAsyncJobRows = (
   state: lifecycle.state
 }]
 
-const buildSttAsyncJobTable = (
+const buildSttAsyncJobTableValue = (
   lifecycle: SttAsyncJobLifecycle
 ): HumanLogTable =>
   createHumanTable(buildSttAsyncJobRows(lifecycle), ['provider', 'action', 'remoteId', 'state'])
 
-export const logSttAsyncJobLifecycle = (
-  logger: TableLogger,
-  lifecycle: SttAsyncJobLifecycle
-): void => {
-  logger.write('info', 'Async STT Job', {
-    category: 'pipeline',
-    humanTable: buildSttAsyncJobTable(lifecycle),
-    metadata: lifecycle
-  })
-}
+export const { log: logSttAsyncJobLifecycle } = defineTableLog<SttAsyncJobLifecycle>({
+  title: 'Async STT Job',
+  category: 'pipeline',
+  buildTable: buildSttAsyncJobTableValue,
+  level: 'info',
+  metadata: lifecycle => lifecycle
+})
 
 const buildSttSegmentLifecycleRows = (
   lifecycle: SttSegmentLifecycle
@@ -400,7 +361,7 @@ const buildSttSegmentLifecycleRows = (
   detail: lifecycle.detail ?? ''
 }]
 
-const buildSttSegmentLifecycleTable = (
+const buildSttSegmentLifecycleTableValue = (
   lifecycle: SttSegmentLifecycle
 ): HumanLogTable =>
   createHumanTable(
@@ -408,17 +369,13 @@ const buildSttSegmentLifecycleTable = (
     ['provider', 'action', 'segment', 'model', 'processingTimeMs', 'detail']
   )
 
-export const logSttSegmentLifecycle = (
-  logger: TableLogger,
-  lifecycle: SttSegmentLifecycle,
-  level: LogLevel = lifecycle.action === 'completed' ? 'success' : 'info'
-): void => {
-  logger.write(level, 'STT Segment', {
-    category: 'pipeline',
-    humanTable: buildSttSegmentLifecycleTable(lifecycle),
-    metadata: lifecycle
-  })
-}
+export const { log: logSttSegmentLifecycle } = defineTableLog<SttSegmentLifecycle>({
+  title: 'STT Segment',
+  category: 'pipeline',
+  buildTable: buildSttSegmentLifecycleTableValue,
+  level: lifecycle => lifecycle.action === 'completed' ? 'success' : 'info',
+  metadata: lifecycle => lifecycle
+})
 
 const buildSttRunStatusRows = (
   summary: SttRunStatusSummary
@@ -438,7 +395,7 @@ const buildSttRunStatusRows = (
   skipped: summary.skipped
 }]
 
-const buildSttRunStatusTable = (
+const buildSttRunStatusTableValue = (
   summary: SttRunStatusSummary
 ): HumanLogTable =>
   createHumanTable(
@@ -446,17 +403,13 @@ const buildSttRunStatusTable = (
     ['completionStatus', 'requested', 'succeeded', 'failed', 'missing', 'skipped']
   )
 
-export const logSttRunStatus = (
-  logger: TableLogger,
-  summary: SttRunStatusSummary,
-  level: LogLevel = 'warn'
-): void => {
-  logger.write(level, 'Run Status', {
-    category: 'pipeline',
-    humanTable: buildSttRunStatusTable(summary),
-    metadata: summary
-  })
-}
+export const { log: logSttRunStatus } = defineTableLog<SttRunStatusSummary>({
+  title: 'Run Status',
+  category: 'pipeline',
+  buildTable: buildSttRunStatusTableValue,
+  level: 'warn',
+  metadata: summary => summary
+})
 
 export const buildSttProviderConcurrencyTable = (
   summary: SttProviderConcurrencySummary

@@ -13,15 +13,15 @@ import { runCommand } from '../../../../test-utils/test-helpers'
 import type { AggregatedPriceEstimate, PreparedTtsInput, Step4Metadata, TtsTarget } from '~/types'
 import { isRecord, parseJsonLines } from './shared'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createMetadataFixtureBuilder } from '../../../../test-utils/metadata-fixtures'
 
-const buildTtsMetadata = (overrides: Partial<Step4Metadata> = {}): Step4Metadata => ({
+const buildTtsMetadata = createMetadataFixtureBuilder<Step4Metadata>({
   ttsService: 'grok',
   ttsModel: 'grok-tts',
   processingTime: 1234,
   audioFileName: 'speech.wav',
   audioFileSize: 1234,
-  chunkCount: 1,
-  ...overrides
+  chunkCount: 1
 })
 
 describe('price mode contracts', () => {

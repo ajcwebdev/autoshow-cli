@@ -23,19 +23,6 @@ export const parseHappyScribeNumber = (value: unknown): number | undefined =>
         })()
       : undefined
 
-export const readHappyScribeJsonOrText = async (response: Response): Promise<unknown> => {
-  const rawText = await response.text()
-  if (rawText.length === 0) {
-    return {}
-  }
-
-  try {
-    return JSON.parse(rawText) as unknown
-  } catch {
-    return rawText
-  }
-}
-
 export const extractHappyScribeErrorMessage = (payload: unknown): string | undefined => {
   if (typeof payload === 'string') {
     const trimmed = payload.trim()

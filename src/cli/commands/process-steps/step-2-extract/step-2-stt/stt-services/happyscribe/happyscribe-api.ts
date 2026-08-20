@@ -4,8 +4,8 @@ import { ProviderError } from '~/utils/error-handler'
 import { classifyFetchRetry, getSttStageRetryPolicy, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
 import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUploadUrl, parseHappyScribeTranscription } from './happyscribe-response-parsers'
-import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, readHappyScribeJsonOrText, toHappyScribeHttpError } from './happyscribe-utils'
-import { resolveRestPath } from '~/utils/rest-client'
+import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, toHappyScribeHttpError } from './happyscribe-utils'
+import { parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
@@ -32,7 +32,7 @@ export const createHappyScribeApiClient = (
         async (signal) => {
           options.onRequest?.()
           const response = await requestOptions.request(signal ?? undefined)
-          payload = await readHappyScribeJsonOrText(response)
+          payload = parseJsonOrText(await response.text())
 
           if (!response.ok) {
             throw toHappyScribeHttpError(
@@ -106,7 +106,7 @@ export const createHappyScribeApiClient = (
           })
 
           if (!uploadResponse.ok) {
-            const payload = await readHappyScribeJsonOrText(uploadResponse)
+            const payload = parseJsonOrText(await uploadResponse.text())
             throw toHappyScribeHttpError(
               'upload',
               'runtime_http_create_retriable',
@@ -315,7 +315,7 @@ export const createHappyScribeApiClient = (
           headers,
           redirect: 'follow'
         })
-        const payload = await readHappyScribeJsonOrText(response)
+        const payload = parseJsonOrText(await response.text())
         if (!response.ok) {
           throw toHappyScribeHttpError('result', 'runtime_http_read', response, payload, 'Happy Scribe transcript download failed')
         }

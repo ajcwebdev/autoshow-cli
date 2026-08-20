@@ -15,34 +15,14 @@ getStructuredScriptPath,
 } from '../../comic-utils/project-paths'
 import { validateSceneRecapMontageExpansion } from '../../comic-utils/recap-montage-utils'
 import { validateSceneSourceSegmentCoverage } from '../../comic-utils/source-coverage-utils'
-import { ValidationError } from '~/utils/error-handler'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
-
-const extractJsonPayload = (content: string): string => {
-  const trimmed = content.trim()
-  if (!trimmed) {
-    throw ValidationError('Model response was empty', { stage: 'comic:draft-scenes' })
-  }
-
-  const fencedJsonMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
-  if (fencedJsonMatch?.[1]) {
-    return fencedJsonMatch[1].trim()
-  }
-
-  const firstBraceIndex = trimmed.indexOf('{')
-  const lastBraceIndex = trimmed.lastIndexOf('}')
-  if (firstBraceIndex >= 0 && lastBraceIndex > firstBraceIndex) {
-    return trimmed.slice(firstBraceIndex, lastBraceIndex + 1)
-  }
-
-  return trimmed
-}
+import { extractLlmJsonPayload } from '../../comic-utils/llm-json-payload'
 
 const parseSceneJsonResponse = (
   content: string,
   options: { lenient: boolean }
 ): unknown => {
-  return JSON.parse(options.lenient ? extractJsonPayload(content) : content)
+  return JSON.parse(options.lenient ? extractLlmJsonPayload(content, 'comic:draft-scenes') : content)
 }
 
 export const generateSceneJson = async (

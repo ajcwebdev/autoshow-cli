@@ -12,35 +12,13 @@ import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 import { withOcrPageRequestRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
-import type { HostedConcurrencyAdmissionToken, HostedConcurrencyCoordinatorOptions } from '~/types'
+import type { HostedConcurrencyAdmissionToken } from '~/types'
+import { createManualTimerClock } from '../../../test-utils/manual-timer-clock'
 
-const createClock = () => {
-  let now = 0
-  let nextId = 1
-  const timers = new Map<number, { at: number, callback: () => void }>()
-  const setTimer: NonNullable<HostedConcurrencyCoordinatorOptions['setTimer']> = (callback, delayMs) => {
-    const id = nextId++
-    timers.set(id, { at: now + Math.max(0, delayMs), callback })
-    return id as unknown as ReturnType<typeof setTimeout>
-  }
-  const clearTimer: NonNullable<HostedConcurrencyCoordinatorOptions['clearTimer']> = (timer) => {
-    timers.delete(timer as unknown as number)
-  }
-  const advance = async (durationMs: number): Promise<void> => {
-    const target = now + durationMs
-    while (true) {
-      const next = [...timers.entries()].sort((left, right) => left[1].at - right[1].at || left[0] - right[0])[0]
-      if (!next || next[1].at > target) break
-      now = next[1].at
-      timers.delete(next[0])
-      next[1].callback()
-      await Promise.resolve()
-    }
-    now = target
-    await Promise.resolve()
-  }
-  return { now: () => now, setTimer, clearTimer, advance, timerCount: () => timers.size }
-}
+const createClock = () => createManualTimerClock<ReturnType<typeof setTimeout>>(
+  id => id as unknown as ReturnType<typeof setTimeout>,
+  timer => timer as unknown as number
+)
 
 const admission = (provider: string, unitIndex: number, configuredLimit = 12) => ({
   provider,

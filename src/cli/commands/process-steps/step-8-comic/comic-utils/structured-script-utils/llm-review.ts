@@ -5,34 +5,14 @@ import type { LlmModel, StructuredScriptData, StructuredScriptReviewResponse } f
 import { getCharacterAliasGuidance } from './structured-script-constants'
 import { getCharacterKeys } from '../character-reference-config'
 import { normalizeStructuredScriptData } from './structured-data-normalization'
-import { ValidationError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/value-helpers'
-
-const extractJsonPayload = (content: string): string => {
-  const trimmed = content.trim()
-  if (!trimmed) {
-    throw ValidationError('Model response was empty', { stage: 'comic:structured-review' })
-  }
-
-  const fencedJsonMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
-  if (fencedJsonMatch?.[1]) {
-    return fencedJsonMatch[1].trim()
-  }
-
-  const firstBraceIndex = trimmed.indexOf('{')
-  const lastBraceIndex = trimmed.lastIndexOf('}')
-  if (firstBraceIndex >= 0 && lastBraceIndex > firstBraceIndex) {
-    return trimmed.slice(firstBraceIndex, lastBraceIndex + 1)
-  }
-
-  return trimmed
-}
+import { extractLlmJsonPayload } from '../llm-json-payload'
 
 const parseStructuredScriptReviewResponse = (
   content: string,
   options: { lenient: boolean }
 ): unknown => {
-  return JSON.parse(options.lenient ? extractJsonPayload(content) : content)
+  return JSON.parse(options.lenient ? extractLlmJsonPayload(content, 'comic:structured-review') : content)
 }
 
 const deleteNullProperty = (value: Record<string, unknown>, key: string): void => {

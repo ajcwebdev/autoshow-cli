@@ -1,16 +1,14 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ensureApiKeySetup, requireApiKey } from '~/utils/validate/env-utils'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
 import {
   extractHappyScribeErrorMessage,
   isRecord,
-  normalizeHappyScribeId,
-  readHappyScribeJsonOrText
+  normalizeHappyScribeId
 } from './happyscribe-utils'
-import { resolveRestPath } from '~/utils/rest-client'
 
 const ORGANIZATION_REQUEST_TIMEOUT_MS = 60_000
 
@@ -79,7 +77,7 @@ const listHappyScribeOrganizations = async (
         },
         signal: signal ?? null
       })
-      const payload = await readHappyScribeJsonOrText(response)
+      const payload = parseJsonOrText(await response.text())
 
       if (!response.ok) {
         throw httpResponseError(

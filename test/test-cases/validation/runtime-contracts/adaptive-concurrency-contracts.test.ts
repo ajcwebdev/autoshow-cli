@@ -30,6 +30,7 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { RunCommandAttemptRunner } from '~/types'
 import { createTempDirTracker } from '../../../test-utils/temp-dirs'
+import { readBunSpawnStreamText as readStreamText } from '../../../test-utils/stream-text'
 
 const tempDirs = createTempDirTracker('autoshow-adaptive-concurrency-')
 const makeTempDir = tempDirs.make
@@ -43,11 +44,6 @@ const testConfig = (stateDir: string) => resolveAdaptiveConcurrencyConfig(stateD
   lockWaitMs: 5,
   lockStaleMs: 1000,
 })
-
-const readStreamText = async (
-  stream: ReadableStream<Uint8Array> | number | undefined | null
-): Promise<string> =>
-  stream && typeof stream !== 'number' ? await new Response(stream).text() : ''
 
 const collectChild = async (
   proc: ReturnType<typeof Bun.spawn>

@@ -23,6 +23,37 @@ const step2ConfigPath = (
   key: string
 ): readonly string[] => ['defaults', 'extract', step, key]
 
+const providerEntryHeader = <const FlagName extends string>(entry: {
+  step: Step2Command
+  modality: Step2Modality
+  flagName: FlagName
+  targetService: string
+  providerSpecProvider: string
+  bootstrapProviderId: string
+  configKey: string
+  allShortcut?: Step2ShortcutFlag | undefined
+}): {
+  step: Step2Command
+  modality: Step2Modality
+  flagName: FlagName
+  targetService: string
+  providerSpecProvider: string
+  bootstrapProviderId: string
+  configPath: readonly string[]
+  resumeSelectable: true
+  allShortcut?: Step2ShortcutFlag
+} => ({
+  step: entry.step,
+  modality: entry.modality,
+  flagName: entry.flagName,
+  targetService: entry.targetService,
+  providerSpecProvider: entry.providerSpecProvider,
+  bootstrapProviderId: entry.bootstrapProviderId,
+  configPath: step2ConfigPath(entry.step, entry.configKey),
+  resumeSelectable: true as const,
+  ...(entry.allShortcut ? { allShortcut: entry.allShortcut } : {})
+})
+
 export const booleanProvider = <
   const FlagName extends string,
   const RuntimeKey extends Step2BooleanSelectionKey
@@ -41,15 +72,7 @@ export const booleanProvider = <
     description: string
   }
 ): BooleanProviderEntry<FlagName, RuntimeKey> => ({
-  step: entry.step,
-  modality: entry.modality,
-  flagName: entry.flagName,
-  targetService: entry.targetService,
-  providerSpecProvider: entry.providerSpecProvider,
-  bootstrapProviderId: entry.bootstrapProviderId,
-  configPath: step2ConfigPath(entry.step, entry.configKey),
-  resumeSelectable: true,
-  ...(entry.allShortcut ? { allShortcut: entry.allShortcut } : {}),
+  ...providerEntryHeader(entry),
   selection: {
     type: 'boolean',
     runtimeKey: entry.runtimeKey,
@@ -79,15 +102,7 @@ export const modelProvider = <
     description: string
   }
 ): ModelProviderEntry<FlagName, RuntimeModelsKey, RuntimeModelKey> => ({
-  step: entry.step,
-  modality: entry.modality,
-  flagName: entry.flagName,
-  targetService: entry.targetService,
-  providerSpecProvider: entry.providerSpecProvider,
-  bootstrapProviderId: entry.bootstrapProviderId,
-  configPath: step2ConfigPath(entry.step, entry.configKey),
-  resumeSelectable: true,
-  ...(entry.allShortcut ? { allShortcut: entry.allShortcut } : {}),
+  ...providerEntryHeader(entry),
   selection: {
     type: 'models',
     runtimeModelsKey: entry.runtimeModelsKey,

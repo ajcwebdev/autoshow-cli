@@ -2,7 +2,7 @@ import type { BflImageModel, ImageGenOptions, ImageTarget } from '~/types'
 import { validateBflImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureBflImageGenSetup } from './bfl-image-gen'
 import { normalizeBflImageOutputFormat, normalizeBflImageSize, runBflImageGen } from './run-bfl-image-gen'
-import { unsupportedFlagError } from '../../image-utils/image-target-validation'
+import { assertNoUnsupportedFlags } from '../../image-utils/image-target-validation'
 import {
   BFL_IMAGE_INPUT_MIME_TYPES,
   validateImageInputReferences
@@ -12,18 +12,20 @@ export const collectBflImageTargets = (options: ImageGenOptions): ImageTarget[] 
   const models = options.bflImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: BflImageModel = validateBflImageModel(rawModel)
-    const unsupported: string[] = []
-    if (options.imageAspectRatio) unsupported.push('--image-aspect-ratio')
-    if (options.imageQuality) unsupported.push('--image-quality')
-    if (options.imageBackground) unsupported.push('--image-background')
-    if (options.imageCount !== undefined) unsupported.push('--image-count')
-    if (options.imageMask !== undefined) unsupported.push('--image-mask')
-    if (options.imageResponseMode !== undefined) unsupported.push('--image-response-mode')
-    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
-    if (options.imageCompression !== undefined) unsupported.push('--image-compression')
-    if (unsupported.length > 0) {
-      throw unsupportedFlagError('BFL', model, unsupported, 'Use --image-size WIDTHxHEIGHT for BFL dimensions, --image-format jpeg|png|webp for output format, and --image-input references.')
-    }
+    assertNoUnsupportedFlags(options, [
+      'imageAspectRatio',
+      'imageQuality',
+      'imageBackground',
+      'imageCount',
+      'imageMask',
+      'imageResponseMode',
+      { key: 'geminiSearchGrounding', when: value => value === true },
+      'imageCompression'
+    ], {
+      provider: 'BFL',
+      model,
+      hint: 'Use --image-size WIDTHxHEIGHT for BFL dimensions, --image-format jpeg|png|webp for output format, and --image-input references.'
+    })
     validateImageInputReferences(options.imageInputs, {
       provider: 'BFL',
       model,

@@ -17,6 +17,7 @@ import {
 import { canonicalTtsJson } from '../../step-4-tts/script-to-audio/contract-identity'
 import { computeSceneRunIdentity } from './comic-audio-contracts'
 import { appendCurrentTtsProviderState } from '../../step-4-tts/script-to-audio/current-render-artifacts'
+import { aggregateComicStageStatus } from '../../pipeline-manifest/comic-stage-status'
 
 export const notRequestedComicStage = () => ({
   requirement: 'not-requested' as const,
@@ -71,13 +72,7 @@ export const writeInitialComicStructureManifest = async (input: {
       const prior = comicMetadata(item)
       const stages = { ...prior.stages, structure: structureStage }
       const required = Object.values(stages).filter(stage => stage.requirement === 'required')
-      const status = required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')
-        ? 'full' as const
-        : required.every(stage => stage.status === 'skipped')
-          ? 'skipped' as const
-          : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
-            ? 'failed' as const
-            : 'incomplete' as const
+      const status = aggregateComicStageStatus(required)
       const items = [{
         ...item,
         status,
@@ -138,13 +133,7 @@ export const updateComicAudioManifest = async (input: {
         ]
       })()
   const requiredStages = [prior.stages.structure, prior.stages.image, input.stage].filter(stage => stage.requirement === 'required')
-  const status = requiredStages.every(stage => stage.status === 'full' || stage.status === 'skipped') && requiredStages.some(stage => stage.status === 'full')
-    ? 'full' as const
-    : requiredStages.every(stage => stage.status === 'skipped')
-      ? 'skipped' as const
-      : requiredStages.every(stage => stage.status === 'failed' || stage.status === 'skipped') && requiredStages.some(stage => stage.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(requiredStages)
   const nextItem: PipelineManifestItem = {
     ...item,
     status,
@@ -199,13 +188,7 @@ export const appendComicAudioProviderState = async (input: {
     artifactRefs: prior.stages.audio.artifactRefs,
   }
   const requiredStages = [prior.stages.structure, prior.stages.image, stage].filter(candidate => candidate.requirement === 'required')
-  const status = requiredStages.every(candidate => candidate.status === 'full' || candidate.status === 'skipped') && requiredStages.some(candidate => candidate.status === 'full')
-    ? 'full' as const
-    : requiredStages.every(candidate => candidate.status === 'skipped')
-      ? 'skipped' as const
-      : requiredStages.every(candidate => candidate.status === 'failed' || candidate.status === 'skipped') && requiredStages.some(candidate => candidate.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(requiredStages)
   return {
     ...manifest,
     items: [{
@@ -239,13 +222,7 @@ export const updateComicImageManifest = async (input: {
   }
   const stages = { ...prior.stages, image: imageStage }
   const required = Object.values(stages).filter(stage => stage.requirement === 'required')
-  const status = required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')
-    ? 'full' as const
-    : required.every(stage => stage.status === 'skipped')
-      ? 'skipped' as const
-      : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(required)
   return { ...manifest, items: [{ ...item, status, providers, metadata: { ...item.metadata, comic: { ...prior, stages } } as never }] }
 })
 
@@ -263,13 +240,7 @@ export const updateComicPresentationManifest = async (input: {
   if (input.stage.requirement !== 'optional' || input.stage.execution.kind !== 'local' || input.stage.targetKeys.length !== 0) throw CLIUsageError('Comic presentation is an optional local-only stage.')
   const stages = { ...prior.stages, presentation: input.stage }
   const required = Object.values(stages).filter(stage => stage.requirement === 'required')
-  const status = required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')
-    ? 'full' as const
-    : required.every(stage => stage.status === 'skipped')
-      ? 'skipped' as const
-      : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
-        ? 'failed' as const
-        : 'incomplete' as const
+  const status = aggregateComicStageStatus(required)
   const next = {
     ...manifest,
     items: [{

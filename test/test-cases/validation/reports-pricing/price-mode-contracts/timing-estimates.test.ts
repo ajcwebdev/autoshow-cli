@@ -1,17 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { getExtractEstimation, getMusicEstimation, getVideoEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { collectEstimatedExtractTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildAggregateTiming } from '~/cli/commands/pricing-orchestration/aggregate-pricing/timing'
 import type { ExtractionMetadata, StepEstimate } from '~/types'
-import { buildSttMetadata } from './shared'
+import { buildSttMetadata, missingHostedOcrProfilePath } from './shared'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
-
-const missingHostedOcrProfilePath = (): string =>
-  join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
 
 describe('price mode contracts', () => {
   test('timing estimates include normalized rates and throughput fields', () => {

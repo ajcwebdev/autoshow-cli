@@ -1,5 +1,6 @@
-import type { HumanLogTable, LogLevel, SetupToolStatus, SetupToolStatusRow, TableLogger } from '~/types'
+import type { HumanLogTable, SetupToolStatus, SetupToolStatusRow } from '~/types'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
+import { defineTableLog } from '~/utils/app-logger/table-log-definition'
 
 const isPathLikeDetail = (detail: string): boolean => {
   const value = detail.trim()
@@ -21,7 +22,7 @@ const buildSetupToolStatusRows = (
   }]
 }
 
-export const buildSetupToolStatusTable = (
+const buildSetupToolStatusTableValue = (
   summary: SetupToolStatus
 ): HumanLogTable => {
   const rows = buildSetupToolStatusRows(summary)
@@ -46,14 +47,10 @@ export const buildSetupToolStatusTable = (
   )
 }
 
-export const logSetupToolStatus = (
-  logger: TableLogger,
-  summary: SetupToolStatus,
-  level: LogLevel = summary.status === 'installed' || summary.status === 'ready' || summary.status === 'ok' ? 'success' : 'info'
-): void => {
-  logger.write(level, 'Setup Tool Status', {
-    category: 'command',
-    humanTable: buildSetupToolStatusTable(summary),
-    metadata: summary
-  })
-}
+export const { buildTable: buildSetupToolStatusTable, log: logSetupToolStatus } = defineTableLog<SetupToolStatus>({
+  title: 'Setup Tool Status',
+  category: 'command',
+  buildTable: buildSetupToolStatusTableValue,
+  level: summary => summary.status === 'installed' || summary.status === 'ready' || summary.status === 'ok' ? 'success' : 'info',
+  metadata: summary => summary
+})

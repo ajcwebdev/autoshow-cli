@@ -13,6 +13,29 @@ export const unsupportedFlagError = (
   `${flags.join(', ')} ${flags.length === 1 ? 'is' : 'are'} not supported by ${provider}/${model}. ${alternatives}`
 )
 
+type UnsupportedImageFlagSpec = keyof ImageGenOptions | {
+  key: keyof ImageGenOptions
+  when: (value: ImageGenOptions[keyof ImageGenOptions]) => boolean
+}
+
+export const assertNoUnsupportedFlags = (
+  options: ImageGenOptions,
+  spec: readonly UnsupportedImageFlagSpec[],
+  context: { provider: string, model: string, hint: string }
+): void => {
+  const flags = spec.flatMap((entry) => {
+    const key = typeof entry === 'string' ? entry : entry.key
+    const value = options[key]
+    const unsupported = typeof entry === 'string'
+      ? value !== undefined && value !== false
+      : entry.when(value)
+    return unsupported ? [IMAGE_OPTION_LABELS[key]] : []
+  })
+  if (flags.length > 0) {
+    throw unsupportedFlagError(context.provider, context.model, flags, context.hint)
+  }
+}
+
 export const validateEnumOption = (
   provider: string,
   model: string,
@@ -41,12 +64,6 @@ export const validateImageCount = (
   }
   return count
 }
-
-export const collectUnsupportedCommonFlags = (
-  options: ImageGenOptions,
-  flagNames: Array<keyof ImageGenOptions>,
-  flagLabels: Record<keyof ImageGenOptions, string>
-): string[] => flagNames.flatMap((key) => options[key] !== undefined ? [flagLabels[key]] : [])
 
 // Pipeline spellings, which `write`, `config`, and `resume` register verbatim. The standalone
 // `image` command drops the `image-` prefix, so it retargets these through

@@ -6,21 +6,14 @@ import {
   hostedRun,
   invalidPageResponsePath,
   join,
-  mkdir,
   OcrStructuredResponseError,
   pageCachePath,
   pagesForRange,
   pageTextPath,
-  rm,
   runHostedOcrWithPdfChunkFallback,
   stitchHostedOcrChunkRuns
 } from './shared'
-
-const withLocalTestDir = async <T>(prefix: string, run: (dir: string) => Promise<T>): Promise<T> => {
-  const dir = join(process.cwd(), '.test-work', `${prefix}-${crypto.randomUUID()}`)
-  await mkdir(dir, { recursive: true })
-  try { return await run(dir) } finally { await rm(dir, { recursive: true, force: true }) }
-}
+import { withLocalTestDir } from '../../../../test-utils/temp-dirs'
 
 const runTwoPageFallback = async (
   fallbackDir: string,

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
-import { Glob } from 'bun'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { describeSourceVocabularyViolations as describeViolations, listSourceVocabularyFiles as listFilesUnder, scanSourceVocabulary as scan, scanWholeSourceFiles as scanWholeFile, SOURCE_VOCABULARY_SRC_ROOT as SRC_ROOT, SOURCE_VOCABULARY_TEST_ROOT as TEST_ROOT, stripSourceComments as stripComments } from './source-vocabulary-scanner'
 
 /**
  * Standing enforcement for the retry vocabulary, in the same executable-contract shape as
@@ -18,9 +18,6 @@ import { PROJECT_ROOT } from '~/utils/runtime-paths'
  * Every entry in an allowlist below is deliberate and explained in place. Adding one should
  * be a conscious decision recorded in review, not a way around the convention.
  */
-
-const SRC_ROOT = join(PROJECT_ROOT, 'src')
-const TEST_ROOT = join(PROJECT_ROOT, 'test')
 
 /** The retry engine itself: the one place that owns delay math and abort-aware sleeping. */
 const RETRY_ENGINE = 'src/utils/retries.ts'
@@ -77,66 +74,6 @@ const POLICY_ATTEMPTS_LITERAL_PATTERN = /policy\s*:\s*\{[^}]*\bmaxAttempts\s*:\s
 /** A second implementation of the two primitives that were duplicated before. */
 const RETRY_PRIMITIVE_PATTERN = /\b(?:const|function)\s+(?:sleepWithAbortSignal|computeDelay|compute\w*RetryDelay)\b/
 
-const listFilesUnder = async (root: string): Promise<string[]> => {
-  const files: string[] = []
-  for await (const file of new Glob('**/*.ts').scan({ cwd: root, absolute: true })) {
-    files.push(file)
-  }
-  return files.sort()
-}
-
-// The conventions are explained in prose throughout the codebase; only code should match.
-const stripComments = (source: string): string =>
-  source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split('\n')
-    .map((line) => line.replace(/(^|\s)\/\/.*$/, '$1'))
-    .join('\n')
-
-type Violation = { file: string, line: number, text: string }
-
-const scan = async (
-  pattern: RegExp,
-  allowlist: ReadonlySet<string>,
-  root: string = SRC_ROOT
-): Promise<Violation[]> => {
-  const violations: Violation[] = []
-  for (const absolute of await listFilesUnder(root)) {
-    const repoPath = relative(PROJECT_ROOT, absolute)
-    if (allowlist.has(repoPath)) continue
-
-    const lines = stripComments(await readFile(absolute, 'utf8')).split('\n')
-    lines.forEach((text, index) => {
-      if (pattern.test(text)) {
-        violations.push({ file: repoPath, line: index + 1, text: text.trim() })
-      }
-    })
-  }
-  return violations
-}
-
-/** Whole-file variant, so an override broken across lines cannot evade a per-line grep. */
-const scanWholeFile = async (
-  pattern: RegExp,
-  allowlist: ReadonlySet<string>,
-  root: string = SRC_ROOT
-): Promise<Violation[]> => {
-  const violations: Violation[] = []
-  for (const absolute of await listFilesUnder(root)) {
-    const repoPath = relative(PROJECT_ROOT, absolute)
-    if (allowlist.has(repoPath)) continue
-
-    const source = stripComments(await readFile(absolute, 'utf8'))
-    for (const match of source.matchAll(new RegExp(pattern.source, `${pattern.flags.replace('g', '')}gs`))) {
-      const line = source.slice(0, match.index).split('\n').length
-      violations.push({ file: repoPath, line, text: match[0].replace(/\s+/g, ' ') })
-    }
-  }
-  return violations
-}
-
-const describeViolations = (violations: readonly Violation[]): string[] =>
-  violations.map(({ file, line, text }) => `${file}:${line}  ${text}`)
 
 // --- Contracts ---------------------------------------------------------------
 

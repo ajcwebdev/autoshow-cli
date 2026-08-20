@@ -10,16 +10,12 @@ import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-s
 import type { BatchCommandOptions, BatchExecutionPlan, BatchProcessResult, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand } from '~/types'
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
+import { createOptionsAssertion, type OptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
 
-function assertExtractCommandOptions (
-  opts: BatchCommandOptions
-): asserts opts is ExtractCommandOptions {
-  if (!('whisperModel' in opts) || !('step2SelectionOrigins' in opts)) {
-    throw ValidationError('Extract command options are incomplete')
-  }
-}
+const assertExtractCommandOptions: OptionsAssertion<BatchCommandOptions, ExtractCommandOptions> =
+  createOptionsAssertion('Extract command options are incomplete', ['whisperModel', 'step2SelectionOrigins'])
 
 const createExtractChildBatchPlan = (
   route: ExtractRoute

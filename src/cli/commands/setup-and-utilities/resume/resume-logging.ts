@@ -1,4 +1,5 @@
 import { createSingleRowTable } from '~/utils/app-logger/human-table/human-table'
+import { defineTableLog } from '~/utils/app-logger/table-log-definition'
 import type { HumanLogTable, LogLevel, ResumeItemSummary, ResumeSuiteSummary, ResumeTotals, TableLogger } from '~/types'
 
 const buildResumeItemTable = (
@@ -18,36 +19,28 @@ export const logResumeItem = (
   })
 }
 
-export const buildResumeSummaryTable = (
+const buildResumeSummaryTableValue = (
   totals: ResumeTotals
 ): HumanLogTable =>
   createSingleRowTable(totals, ['full', 'incomplete', 'failed'])
 
-export const logResumeSummary = (
-  logger: TableLogger,
-  totals: ResumeTotals,
-  level: LogLevel = totals.incomplete > 0 || totals.failed > 0 ? 'warn' : 'info'
-): void => {
-  logger.write(level, 'Resume Summary', {
-    category: 'pipeline',
-    humanTable: buildResumeSummaryTable(totals),
-    metadata: totals
-  })
-}
+export const { buildTable: buildResumeSummaryTable, log: logResumeSummary } = defineTableLog<ResumeTotals>({
+  title: 'Resume Summary',
+  category: 'pipeline',
+  buildTable: buildResumeSummaryTableValue,
+  level: totals => totals.incomplete > 0 || totals.failed > 0 ? 'warn' : 'info',
+  metadata: totals => totals
+})
 
-const buildResumeSuiteSummaryTable = (
+const buildResumeSuiteSummaryTableValue = (
   summary: ResumeSuiteSummary
 ): HumanLogTable =>
   createSingleRowTable(summary, ['directories', 'full', 'incomplete', 'failed'])
 
-export const logResumeSuiteSummary = (
-  logger: TableLogger,
-  summary: ResumeSuiteSummary,
-  level: LogLevel = summary.incomplete > 0 || summary.failed > 0 ? 'warn' : 'info'
-): void => {
-  logger.write(level, 'Resume Suite Summary', {
-    category: 'pipeline',
-    humanTable: buildResumeSuiteSummaryTable(summary),
-    metadata: summary
-  })
-}
+export const { log: logResumeSuiteSummary } = defineTableLog<ResumeSuiteSummary>({
+  title: 'Resume Suite Summary',
+  category: 'pipeline',
+  buildTable: buildResumeSuiteSummaryTableValue,
+  level: summary => summary.incomplete > 0 || summary.failed > 0 ? 'warn' : 'info',
+  metadata: summary => summary
+})

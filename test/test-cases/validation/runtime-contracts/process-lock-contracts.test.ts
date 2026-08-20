@@ -10,6 +10,7 @@ import {
 } from '../../../test-utils/fixtures/child-lifecycle-protocol'
 import { pathExists } from '~/utils/filesystem'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { readBunSpawnStreamText as readStreamText } from '../../../test-utils/stream-text'
 
 const tempDirs: string[] = []
 const heartbeatReleaseFixturePath = new URL('../fixtures/process-lock-heartbeat-release.ts', import.meta.url).pathname
@@ -37,11 +38,6 @@ const makeTempRoot = async (): Promise<string> => {
   tempDirs.push(root)
   return root
 }
-
-const readStreamText = async (
-  stream: ReadableStream<Uint8Array> | number | undefined | null
-): Promise<string> =>
-  stream && typeof stream !== 'number' ? await new Response(stream).text() : ''
 
 const childEnvWithLockRoot = (lockRoot: string): Record<string, string> => {
   const env = Object.entries(process.env).reduce<Record<string, string>>((acc, [key, value]) => {

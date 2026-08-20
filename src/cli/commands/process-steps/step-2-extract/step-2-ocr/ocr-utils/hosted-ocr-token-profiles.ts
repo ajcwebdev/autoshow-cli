@@ -1,6 +1,5 @@
 import { isRecord } from '~/utils/rest-client'
-import { existsSync, readFileSync } from 'node:fs'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -9,6 +8,7 @@ import type { ExtractionMetadata, HostedOcrTokenReasoningPolicy, HostedOcrTokenU
 import { withProcessLock } from '~/utils/process-lock'
 import { projectHostedOcrTokenUsageEstimate, selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 import { roundMetric } from '~/utils/value-helpers'
+import { createJsonProfileStore } from '~/utils/json-profile-store'
 
 const TOKEN_PROFILE_STORE_VERSION = 2
 const MAX_TOKEN_PROFILE_ENTRIES = 500
@@ -117,38 +117,20 @@ const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined =>
   }
 }
 
-const parseStore = (value: unknown): HostedOcrTokenUsageProfileStore => {
-  if (!isRecord(value) || (value['version'] !== 1 && value['version'] !== TOKEN_PROFILE_STORE_VERSION) || !Array.isArray(value['profiles'])) {
-    return { version: TOKEN_PROFILE_STORE_VERSION, profiles: [] }
-  }
-  return {
-    version: TOKEN_PROFILE_STORE_VERSION,
-    profiles: value['profiles'].map(parseProfile).filter((entry): entry is HostedOcrTokenUsageProfile => entry !== undefined)
-  }
-}
+const tokenUsageProfileStore = createJsonProfileStore({
+  version: TOKEN_PROFILE_STORE_VERSION,
+  acceptVersions: [1],
+  parseEntry: parseProfile,
+  resolvePath: resolveHostedOcrTokenUsageProfilePath
+})
 
-export const readHostedOcrTokenUsageProfiles = async (
-  profilePath = resolveHostedOcrTokenUsageProfilePath()
-): Promise<HostedOcrTokenUsageProfileStore> => {
-  try {
-    return parseStore(JSON.parse(await readFile(profilePath, 'utf-8')) as unknown)
-  } catch {
-    return { version: TOKEN_PROFILE_STORE_VERSION, profiles: [] }
-  }
-}
+export const readHostedOcrTokenUsageProfiles: (
+  profilePath?: string | undefined
+) => Promise<HostedOcrTokenUsageProfileStore> = tokenUsageProfileStore.read
 
-export const readHostedOcrTokenUsageProfilesSync = (
-  profilePath = resolveHostedOcrTokenUsageProfilePath()
-): HostedOcrTokenUsageProfileStore => {
-  try {
-    if (!existsSync(profilePath)) {
-      return { version: TOKEN_PROFILE_STORE_VERSION, profiles: [] }
-    }
-    return parseStore(JSON.parse(readFileSync(profilePath, 'utf-8')) as unknown)
-  } catch {
-    return { version: TOKEN_PROFILE_STORE_VERSION, profiles: [] }
-  }
-}
+export const readHostedOcrTokenUsageProfilesSync: (
+  profilePath?: string | undefined
+) => HostedOcrTokenUsageProfileStore = tokenUsageProfileStore.readSync
 
 const profileKey = (
   profile: Pick<HostedOcrTokenUsageProfile, 'provider' | 'model' | 'ocrMode' | 'pageCountBand' | 'effectiveReasoningEffort'>

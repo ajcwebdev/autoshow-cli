@@ -1,10 +1,3 @@
-import { expect, test } from 'bun:test'
-import { expectLinksUsageError } from '../links-usage-errors'
-import {
-  collectLinks,
-  getDefaultLinksOutputFileName,
-  parseLinksArgv,
-} from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   CARTESIA_ALL_LINKS,
   CARTESIA_GENERAL_LINKS,
@@ -37,519 +30,91 @@ import {
   TOGETHER_MODELS_LINKS,
   TOGETHER_TEXT_LINKS
 } from './fixtures/index'
-
-test('links selector accepts cartesia provider with general models and tts sections', async () => {
-  const cartesiaSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cartesia'
-  ])
-
-  expect(cartesiaSelection.serviceSelections.get('cartesia')).toEqual([])
-  expect(collectLinks(
-    cartesiaSelection.serviceSelections,
-    cartesiaSelection.globalSections
-  )).toEqual(CARTESIA_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    cartesiaSelection.serviceSelections,
-    cartesiaSelection.globalSections
-  )).toBe('cartesia-all-links.md')
-
-  const cartesiaTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cartesia',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    cartesiaTtsSelection.serviceSelections,
-    cartesiaTtsSelection.globalSections
-  )).toEqual(CARTESIA_TTS_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    cartesiaTtsSelection.serviceSelections,
-    cartesiaTtsSelection.globalSections
-  )).toBe('cartesia-tts-links.md')
-
-  const cartesiaModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cartesia',
-    'models'
-  ])
-
-  expect(collectLinks(
-    cartesiaModelsSelection.serviceSelections,
-    cartesiaModelsSelection.globalSections
-  )).toEqual(CARTESIA_MODELS_LINKS)
-
-  const cartesiaGeneralTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cartesia',
-    'general',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    cartesiaGeneralTtsSelection.serviceSelections,
-    cartesiaGeneralTtsSelection.globalSections
-  )).toEqual([...CARTESIA_GENERAL_LINKS, ...CARTESIA_TTS_LINKS])
-  expect(getDefaultLinksOutputFileName(
-    cartesiaGeneralTtsSelection.serviceSelections,
-    cartesiaGeneralTtsSelection.globalSections
-  )).toBe('cartesia-general-tts-links.md')
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--cartesia',
-    'stt'
-  ], 'Unknown links section(s) for --cartesia: stt')
-})
-
-test('links selector accepts speechify provider with models and tts sections', async () => {
-  const speechifySelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--speechify'
-  ])
-
-  expect(speechifySelection.serviceSelections.get('speechify')).toEqual([])
-  expect(collectLinks(
-    speechifySelection.serviceSelections,
-    speechifySelection.globalSections
-  )).toEqual(SPEECHIFY_ALL_LINKS)
-
-  const speechifyTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--speechify',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    speechifyTtsSelection.serviceSelections,
-    speechifyTtsSelection.globalSections
-  )).toEqual(SPEECHIFY_TTS_LINKS)
-
-  const speechifyModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--speechify',
-    'models'
-  ])
-
-  expect(collectLinks(
-    speechifyModelsSelection.serviceSelections,
-    speechifyModelsSelection.globalSections
-  )).toEqual(SPEECHIFY_MODELS_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--speechify',
-    'general'
-  ], 'Unknown links section(s) for --speechify: general')
-})
-
-test('links selector accepts hume provider with general and tts sections', async () => {
-  const humeSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--hume'
-  ])
-
-  expect(humeSelection.serviceSelections.get('hume')).toEqual([])
-  expect(collectLinks(
-    humeSelection.serviceSelections,
-    humeSelection.globalSections
-  )).toEqual([...HUME_GENERAL_LINKS, ...HUME_TTS_LINKS])
-  expect(getDefaultLinksOutputFileName(
-    humeSelection.serviceSelections,
-    humeSelection.globalSections
-  )).toBe('hume-all-links.md')
-
-  const humeTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--hume',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    humeTtsSelection.serviceSelections,
-    humeTtsSelection.globalSections
-  )).toEqual(HUME_TTS_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    humeTtsSelection.serviceSelections,
-    humeTtsSelection.globalSections
-  )).toBe('hume-tts-links.md')
-
-  const humeGeneralTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--hume',
-    'general',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    humeGeneralTtsSelection.serviceSelections,
-    humeGeneralTtsSelection.globalSections
-  )).toEqual([...HUME_GENERAL_LINKS, ...HUME_TTS_LINKS])
-  expect(getDefaultLinksOutputFileName(
-    humeGeneralTtsSelection.serviceSelections,
-    humeGeneralTtsSelection.globalSections
-  )).toBe('hume-general-tts-links.md')
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--hume',
-    'stt'
-  ], 'Unknown links section(s) for --hume: stt')
-})
-
-test('links selector accepts inworld provider with general models and tts sections', async () => {
-  const inworldSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--inworld'
-  ])
-
-  expect(inworldSelection.serviceSelections.get('inworld')).toEqual([])
-  expect(collectLinks(
-    inworldSelection.serviceSelections,
-    inworldSelection.globalSections
-  )).toEqual(INWORLD_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    inworldSelection.serviceSelections,
-    inworldSelection.globalSections
-  )).toBe('inworld-all-links.md')
-
-  const inworldTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--inworld',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    inworldTtsSelection.serviceSelections,
-    inworldTtsSelection.globalSections
-  )).toEqual(INWORLD_TTS_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    inworldTtsSelection.serviceSelections,
-    inworldTtsSelection.globalSections
-  )).toBe('inworld-tts-links.md')
-
-  const inworldModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--inworld',
-    'models'
-  ])
-
-  expect(collectLinks(
-    inworldModelsSelection.serviceSelections,
-    inworldModelsSelection.globalSections
-  )).toEqual(INWORLD_MODELS_LINKS)
-
-  const inworldGeneralTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--inworld',
-    'general',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    inworldGeneralTtsSelection.serviceSelections,
-    inworldGeneralTtsSelection.globalSections
-  )).toEqual([...INWORLD_GENERAL_LINKS, ...INWORLD_TTS_LINKS])
-  expect(getDefaultLinksOutputFileName(
-    inworldGeneralTtsSelection.serviceSelections,
-    inworldGeneralTtsSelection.globalSections
-  )).toBe('inworld-general-tts-links.md')
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--inworld',
-    'stt'
-  ], 'Unknown links section(s) for --inworld: stt')
-})
-
-test('links selector accepts deapi provider with general models and stt sections', async () => {
-  const deapiSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--deapi'
-  ])
-
-  expect(deapiSelection.serviceSelections.get('deapi')).toEqual([])
-  expect(collectLinks(
-    deapiSelection.serviceSelections,
-    deapiSelection.globalSections
-  )).toEqual(DEAPI_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    deapiSelection.serviceSelections,
-    deapiSelection.globalSections
-  )).toBe('deapi-all-links.md')
-
-  const deapiSttSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--deapi',
-    'stt'
-  ])
-
-  expect(collectLinks(
-    deapiSttSelection.serviceSelections,
-    deapiSttSelection.globalSections
-  )).toEqual(DEAPI_STT_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    deapiSttSelection.serviceSelections,
-    deapiSttSelection.globalSections
-  )).toBe('deapi-stt-links.md')
-
-  const deapiModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--deapi',
-    'models'
-  ])
-
-  expect(collectLinks(
-    deapiModelsSelection.serviceSelections,
-    deapiModelsSelection.globalSections
-  )).toEqual(DEAPI_MODELS_LINKS)
-
-  const deapiGeneralSttSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--deapi',
-    'general',
-    'stt'
-  ])
-
-  expect(collectLinks(
-    deapiGeneralSttSelection.serviceSelections,
-    deapiGeneralSttSelection.globalSections
-  )).toEqual([...DEAPI_GENERAL_LINKS, ...DEAPI_STT_LINKS])
-  expect(getDefaultLinksOutputFileName(
-    deapiGeneralSttSelection.serviceSelections,
-    deapiGeneralSttSelection.globalSections
-  )).toBe('deapi-general-stt-links.md')
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--deapi',
-    'tts'
-  ], 'Unknown links section(s) for --deapi: tts')
-})
-
-test('links selector accepts grok provider with models and tts sections', async () => {
-  const grokSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--grok'
-  ])
-
-  expect(grokSelection.serviceSelections.get('grok')).toEqual([])
-  expect(collectLinks(
-    grokSelection.serviceSelections,
-    grokSelection.globalSections
-  )).toEqual(GROK_ALL_LINKS)
-
-  const grokModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--grok',
-    'models'
-  ])
-
-  expect(collectLinks(
-    grokModelsSelection.serviceSelections,
-    grokModelsSelection.globalSections
-  )).toEqual(GROK_MODELS_LINKS)
-
-  const grokTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--grok',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    grokTtsSelection.serviceSelections,
-    grokTtsSelection.globalSections
-  )).toEqual(GROK_TTS_LINKS)
-
-  const grokSttSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--grok',
-    'stt'
-  ])
-
-  expect(collectLinks(
-    grokSttSelection.serviceSelections,
-    grokSttSelection.globalSections
-  )).toEqual(GROK_STT_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--grok',
-    'ocr'
-  ], 'Unknown links section(s) for --grok: ocr')
-})
-
-test('links selector accepts together provider with general models stt and text sections', async () => {
-  const togetherSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--together'
-  ])
-
-  expect(togetherSelection.serviceSelections.get('together')).toEqual([])
-  expect(collectLinks(
-    togetherSelection.serviceSelections,
-    togetherSelection.globalSections
-  )).toEqual(TOGETHER_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    togetherSelection.serviceSelections,
-    togetherSelection.globalSections
-  )).toBe('together-all-links.md')
-
-  const togetherTextSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--together',
-    'text'
-  ])
-
-  expect(collectLinks(
-    togetherTextSelection.serviceSelections,
-    togetherTextSelection.globalSections
-  )).toEqual(TOGETHER_TEXT_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    togetherTextSelection.serviceSelections,
-    togetherTextSelection.globalSections
-  )).toBe('together-text-links.md')
-
-  const togetherModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--together',
-    'models'
-  ])
-
-  expect(collectLinks(
-    togetherModelsSelection.serviceSelections,
-    togetherModelsSelection.globalSections
-  )).toEqual(TOGETHER_MODELS_LINKS)
-
-  const togetherGeneralTextSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--together',
-    'general',
-    'text'
-  ])
-
-  expect(collectLinks(
-    togetherGeneralTextSelection.serviceSelections,
-    togetherGeneralTextSelection.globalSections
-  )).toEqual([...TOGETHER_GENERAL_LINKS, ...TOGETHER_TEXT_LINKS])
-  expect(getDefaultLinksOutputFileName(
-    togetherGeneralTextSelection.serviceSelections,
-    togetherGeneralTextSelection.globalSections
-  )).toBe('together-general-text-links.md')
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--together',
-    'ocr'
-  ], 'Unknown links section(s) for --together: ocr')
-})
-
-test('links selector accepts mistral provider with general models stt ocr and tts sections', () => {
-  const mistralSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--mistral'
-  ])
-
-  expect(mistralSelection.serviceSelections.get('mistral')).toEqual([])
-  expect(collectLinks(
-    mistralSelection.serviceSelections,
-    mistralSelection.globalSections
-  )).toEqual(MISTRAL_ALL_LINKS)
-
-  const mistralModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--mistral',
-    'models'
-  ])
-
-  expect(collectLinks(
-    mistralModelsSelection.serviceSelections,
-    mistralModelsSelection.globalSections
-  )).toEqual(MISTRAL_MODELS_LINKS)
-
-  const mistralSttOcrTtsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--mistral',
-    'stt',
-    'ocr',
-    'tts'
-  ])
-
-  expect(collectLinks(
-    mistralSttOcrTtsSelection.serviceSelections,
-    mistralSttOcrTtsSelection.globalSections
-  )).toEqual([...MISTRAL_STT_LINKS, ...MISTRAL_OCR_LINKS, ...MISTRAL_TTS_LINKS])
-})
+import { registerProviderSelectorCases } from './provider-selector-cases'
+
+registerProviderSelectorCases([
+  {
+    name: 'links selector accepts cartesia provider with general models and tts sections',
+    provider: 'cartesia',
+    all: { expected: CARTESIA_ALL_LINKS, outputFileName: 'cartesia-all-links.md' },
+    selections: [
+      { sections: ['tts'], expected: CARTESIA_TTS_LINKS, outputFileName: 'cartesia-tts-links.md' },
+      { sections: ['models'], expected: CARTESIA_MODELS_LINKS },
+      { sections: ['general', 'tts'], expected: [...CARTESIA_GENERAL_LINKS, ...CARTESIA_TTS_LINKS], outputFileName: 'cartesia-general-tts-links.md' }
+    ],
+    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --cartesia: stt' }
+  },
+  {
+    name: 'links selector accepts speechify provider with models and tts sections',
+    provider: 'speechify',
+    all: { expected: SPEECHIFY_ALL_LINKS },
+    selections: [
+      { sections: ['tts'], expected: SPEECHIFY_TTS_LINKS },
+      { sections: ['models'], expected: SPEECHIFY_MODELS_LINKS }
+    ],
+    invalid: { sections: ['general'], message: 'Unknown links section(s) for --speechify: general' }
+  },
+  {
+    name: 'links selector accepts hume provider with general and tts sections',
+    provider: 'hume',
+    all: { expected: [...HUME_GENERAL_LINKS, ...HUME_TTS_LINKS], outputFileName: 'hume-all-links.md' },
+    selections: [
+      { sections: ['tts'], expected: HUME_TTS_LINKS, outputFileName: 'hume-tts-links.md' },
+      { sections: ['general', 'tts'], expected: [...HUME_GENERAL_LINKS, ...HUME_TTS_LINKS], outputFileName: 'hume-general-tts-links.md' }
+    ],
+    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --hume: stt' }
+  },
+  {
+    name: 'links selector accepts inworld provider with general models and tts sections',
+    provider: 'inworld',
+    all: { expected: INWORLD_ALL_LINKS, outputFileName: 'inworld-all-links.md' },
+    selections: [
+      { sections: ['tts'], expected: INWORLD_TTS_LINKS, outputFileName: 'inworld-tts-links.md' },
+      { sections: ['models'], expected: INWORLD_MODELS_LINKS },
+      { sections: ['general', 'tts'], expected: [...INWORLD_GENERAL_LINKS, ...INWORLD_TTS_LINKS], outputFileName: 'inworld-general-tts-links.md' }
+    ],
+    invalid: { sections: ['stt'], message: 'Unknown links section(s) for --inworld: stt' }
+  },
+  {
+    name: 'links selector accepts deapi provider with general models and stt sections',
+    provider: 'deapi',
+    all: { expected: DEAPI_ALL_LINKS, outputFileName: 'deapi-all-links.md' },
+    selections: [
+      { sections: ['stt'], expected: DEAPI_STT_LINKS, outputFileName: 'deapi-stt-links.md' },
+      { sections: ['models'], expected: DEAPI_MODELS_LINKS },
+      { sections: ['general', 'stt'], expected: [...DEAPI_GENERAL_LINKS, ...DEAPI_STT_LINKS], outputFileName: 'deapi-general-stt-links.md' }
+    ],
+    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --deapi: tts' }
+  },
+  {
+    name: 'links selector accepts grok provider with models and tts sections',
+    provider: 'grok',
+    all: { expected: GROK_ALL_LINKS },
+    selections: [
+      { sections: ['models'], expected: GROK_MODELS_LINKS },
+      { sections: ['tts'], expected: GROK_TTS_LINKS },
+      { sections: ['stt'], expected: GROK_STT_LINKS }
+    ],
+    invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --grok: ocr' }
+  },
+  {
+    name: 'links selector accepts together provider with general models stt and text sections',
+    provider: 'together',
+    all: { expected: TOGETHER_ALL_LINKS, outputFileName: 'together-all-links.md' },
+    selections: [
+      { sections: ['text'], expected: TOGETHER_TEXT_LINKS, outputFileName: 'together-text-links.md' },
+      { sections: ['models'], expected: TOGETHER_MODELS_LINKS },
+      { sections: ['general', 'text'], expected: [...TOGETHER_GENERAL_LINKS, ...TOGETHER_TEXT_LINKS], outputFileName: 'together-general-text-links.md' }
+    ],
+    invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --together: ocr' }
+  },
+  {
+    name: 'links selector accepts mistral provider with general models stt ocr and tts sections',
+    provider: 'mistral',
+    all: { expected: MISTRAL_ALL_LINKS },
+    selections: [
+      { sections: ['models'], expected: MISTRAL_MODELS_LINKS },
+      { sections: ['stt', 'ocr', 'tts'], expected: [...MISTRAL_STT_LINKS, ...MISTRAL_OCR_LINKS, ...MISTRAL_TTS_LINKS] }
+    ]
+  }
+])

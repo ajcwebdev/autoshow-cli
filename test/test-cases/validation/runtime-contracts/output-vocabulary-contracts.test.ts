@@ -1,8 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { readFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
-import { Glob } from 'bun'
-import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { describeSourceVocabularyViolations as describeViolations, listSourceVocabularyFiles as listFilesUnder, scanSourceVocabulary as scan, scanWholeSourceFiles as scanWholeFile, SOURCE_VOCABULARY_SRC_ROOT as SRC_ROOT, SOURCE_VOCABULARY_TEST_ROOT as TEST_ROOT, toSourceVocabularyRepoPath } from './source-vocabulary-scanner'
 
 /**
  * Standing enforcement for the logging and error-handling vocabulary.
@@ -16,9 +13,6 @@ import { PROJECT_ROOT } from '~/utils/runtime-paths'
  * Every exception below is deliberate and explained. Adding a file here should be a
  * conscious decision recorded in review, not a way to route around the convention.
  */
-
-const SRC_ROOT = join(PROJECT_ROOT, 'src')
-const TEST_ROOT = join(PROJECT_ROOT, 'test')
 
 /**
  * The one module allowed to own console interception and logger-sink swapping. ADR-019's
@@ -103,72 +97,7 @@ const ASSIGNED_ERROR_PATTERN = /Object\s*\.\s*assign\s*\(\s*(?:\n\s*)?new\s+\w*E
 
 const PROCESS_EXIT_PATTERN = /(?<![\w.$])process\s*\.\s*exit\s*\(/
 
-const listFilesUnder = async (root: string): Promise<string[]> => {
-  const files: string[] = []
-  for await (const file of new Glob('**/*.ts').scan({ cwd: root, absolute: true })) {
-    files.push(file)
-  }
-  return files.sort()
-}
-
 const listSourceFiles = async (): Promise<string[]> => await listFilesUnder(SRC_ROOT)
-
-// Line comments and block comments explain these conventions in prose all over the
-// codebase; only executable code should be matched.
-const stripComments = (source: string): string =>
-  source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split('\n')
-    .map((line) => line.replace(/(^|\s)\/\/.*$/, '$1'))
-    .join('\n')
-
-type Violation = { file: string, line: number, text: string }
-
-const scan = async (
-  pattern: RegExp,
-  allowlist: ReadonlySet<string>,
-  root: string = SRC_ROOT
-): Promise<Violation[]> => {
-  const violations: Violation[] = []
-  for (const absolute of await listFilesUnder(root)) {
-    const repoPath = relative(PROJECT_ROOT, absolute)
-    if (allowlist.has(repoPath)) continue
-
-    const lines = stripComments(await readFile(absolute, 'utf8')).split('\n')
-    lines.forEach((text, index) => {
-      if (pattern.test(text)) {
-        violations.push({ file: repoPath, line: index + 1, text: text.trim() })
-      }
-    })
-  }
-  return violations
-}
-
-/**
- * Whole-file variant for shapes that span a line break, so a call broken across lines
- * cannot evade a per-line grep.
- */
-const scanWholeFile = async (
-  pattern: RegExp,
-  allowlist: ReadonlySet<string>,
-  root: string = SRC_ROOT
-): Promise<Violation[]> => {
-  const violations: Violation[] = []
-  for (const absolute of await listFilesUnder(root)) {
-    const repoPath = relative(PROJECT_ROOT, absolute)
-    if (allowlist.has(repoPath)) continue
-
-    const source = stripComments(await readFile(absolute, 'utf8'))
-    for (const match of source.matchAll(new RegExp(pattern.source, `${pattern.flags.replace('g', '')}g`))) {
-      const line = source.slice(0, match.index).split('\n').length
-      violations.push({ file: repoPath, line, text: match[0].replace(/\s+/g, ' ') })
-    }
-  }
-  return violations
-}
-
-const describeViolations = (violations: readonly Violation[]): string[] =>
-  violations.map(({ file, line, text }) => `${file}:${line}  ${text}`)
 
 // --- Contracts ---------------------------------------------------------------
 
@@ -231,7 +160,7 @@ describe('src output and error vocabulary contracts', () => {
     const present = new Set([
       ...(await listSourceFiles()),
       ...(await listFilesUnder(TEST_ROOT))
-    ].map((file) => relative(PROJECT_ROOT, file)))
+    ].map(toSourceVocabularyRepoPath))
     const stale = [
       ...CONSOLE_ALLOWLIST,
       ...PLAIN_THROW_ALLOWLIST,

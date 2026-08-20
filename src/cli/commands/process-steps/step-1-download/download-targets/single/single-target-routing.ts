@@ -36,6 +36,7 @@ import type {
 } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { createOptionsAssertion, type OptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
 import { throwUnrecognizedExtractInput } from './single-target-errors'
 
 const METADATA_ROUTES = {
@@ -128,37 +129,17 @@ const throwRoutingFailure = (
   }
 }
 
-function assertMetadataOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is MetadataCommandOptions {
-  if (!('markdown' in opts) || !('save' in opts)) {
-    throw ValidationError('Metadata command options are incomplete')
-  }
-}
+const assertMetadataOptions: OptionsAssertion<SingleTargetCommandOptions, MetadataCommandOptions> =
+  createOptionsAssertion('Metadata command options are incomplete', ['markdown', 'save'])
 
-function assertDownloadOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is DownloadCommandOptions {
-  if (!('keepOriginalMedia' in opts) || !('ytDlpPassthroughArgs' in opts)) {
-    throw ValidationError('Download command options are incomplete')
-  }
-}
+const assertDownloadOptions: OptionsAssertion<SingleTargetCommandOptions, DownloadCommandOptions> =
+  createOptionsAssertion('Download command options are incomplete', ['keepOriginalMedia', 'ytDlpPassthroughArgs'])
 
-function assertWriteOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is WriteRuntimeOptions {
-  if (!('llmProviderConcurrency' in opts) || !('skipLLM' in opts)) {
-    throw ValidationError('Write command options are incomplete')
-  }
-}
+const assertWriteOptions: OptionsAssertion<SingleTargetCommandOptions, WriteRuntimeOptions> =
+  createOptionsAssertion('Write command options are incomplete', ['llmProviderConcurrency', 'skipLLM'])
 
-function assertExtractOrWriteOptions (
-  opts: SingleTargetCommandOptions
-): asserts opts is ExtractCommandOptions | WriteRuntimeOptions {
-  if (!('whisperModel' in opts) || !('sttProviderConcurrency' in opts)) {
-    throw ValidationError('Extract/write command options are incomplete')
-  }
-}
+const assertExtractOrWriteOptions: OptionsAssertion<SingleTargetCommandOptions, ExtractCommandOptions | WriteRuntimeOptions> =
+  createOptionsAssertion('Extract/write command options are incomplete', ['whisperModel', 'sttProviderConcurrency'])
 
 export const normalizeSingleTargetIntent = (
   command: ProcessCommand,

@@ -1,201 +1,57 @@
 import { expect, test } from 'bun:test'
-import { expectLinksUsageError } from '../links-usage-errors'
-import {
-  collectLinks,
-  getDefaultLinksOutputFileName,
-  parseLinksArgv,
-} from '~/cli/commands/setup-and-utilities/links/define-links-command'
+import { collectLinks, parseLinksArgv } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   BFL_ALL_LINKS,
   BFL_IMAGE_LINKS,
   BFL_MODELS_LINKS,
+  FAL_IMAGE_LINKS,
+  FAL_VIDEO_LINKS,
   LTX_ALL_LINKS,
-  LTX_VIDEO_LINKS,
   LTX_MODELS_LINKS,
+  LTX_VIDEO_LINKS,
   REPLICATE_ALL_LINKS,
   REPLICATE_GENERAL_LINKS,
-  REPLICATE_MODELS_LINKS,
-  FAL_IMAGE_LINKS,
-  FAL_VIDEO_LINKS
+  REPLICATE_MODELS_LINKS
 } from './fixtures/index'
+import { registerProviderSelectorCases } from './provider-selector-cases'
 
 test('links selector accepts separate fal image and video sections', () => {
   const imageSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--fal', 'image'])
   expect(collectLinks(imageSelection.serviceSelections, imageSelection.globalSections)).toEqual(FAL_IMAGE_LINKS)
-
   const videoSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--fal', 'video'])
   expect(collectLinks(videoSelection.serviceSelections, videoSelection.globalSections)).toEqual(FAL_VIDEO_LINKS)
 })
 
-test('links selector accepts bfl provider with models and image sections', async () => {
-  const bflSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--bfl'
-  ])
-
-  expect(bflSelection.serviceSelections.get('bfl')).toEqual([])
-  expect(collectLinks(
-    bflSelection.serviceSelections,
-    bflSelection.globalSections
-  )).toEqual(BFL_ALL_LINKS)
-
-  const bflModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--bfl',
-    'models'
-  ])
-
-  expect(collectLinks(
-    bflModelsSelection.serviceSelections,
-    bflModelsSelection.globalSections
-  )).toEqual(BFL_MODELS_LINKS)
-
-  const bflImageSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--bfl',
-    'image'
-  ])
-
-  expect(collectLinks(
-    bflImageSelection.serviceSelections,
-    bflImageSelection.globalSections
-  )).toEqual(BFL_IMAGE_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--bfl',
-    'general'
-  ], 'Unknown links section(s) for --bfl: general')
-})
-
-test('links selector accepts ltx provider with models and video sections', async () => {
-  const ltxSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--ltx'
-  ])
-
-  expect(ltxSelection.serviceSelections.get('ltx')).toEqual([])
-  expect(collectLinks(
-    ltxSelection.serviceSelections,
-    ltxSelection.globalSections
-  )).toEqual(LTX_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    ltxSelection.serviceSelections,
-    ltxSelection.globalSections
-  )).toBe('ltx-all-links.md')
-
-  const ltxVideoSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--ltx',
-    'video'
-  ])
-
-  expect(collectLinks(
-    ltxVideoSelection.serviceSelections,
-    ltxVideoSelection.globalSections
-  )).toEqual(LTX_VIDEO_LINKS)
-
-  const ltxModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--ltx',
-    'models'
-  ])
-
-  expect(collectLinks(
-    ltxModelsSelection.serviceSelections,
-    ltxModelsSelection.globalSections
-  )).toEqual(LTX_MODELS_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--ltx',
-    'image'
-  ], 'Unknown links section(s) for --ltx: image')
-})
-
-test('links selector accepts replicate provider with general and models sections', async () => {
-  const replicateSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--replicate'
-  ])
-
-  expect(replicateSelection.serviceSelections.get('replicate')).toEqual([])
-  expect(collectLinks(
-    replicateSelection.serviceSelections,
-    replicateSelection.globalSections
-  )).toEqual(REPLICATE_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    replicateSelection.serviceSelections,
-    replicateSelection.globalSections
-  )).toBe('replicate-all-links.md')
-
-  const replicateGeneralModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--replicate',
-    'general',
-    'models'
-  ])
-
-  expect(collectLinks(
-    replicateGeneralModelsSelection.serviceSelections,
-    replicateGeneralModelsSelection.globalSections
-  )).toEqual(REPLICATE_ALL_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    replicateGeneralModelsSelection.serviceSelections,
-    replicateGeneralModelsSelection.globalSections
-  )).toBe('replicate-general-models-links.md')
-
-  const replicateModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--replicate',
-    'models'
-  ])
-
-  expect(collectLinks(
-    replicateModelsSelection.serviceSelections,
-    replicateModelsSelection.globalSections
-  )).toEqual(REPLICATE_MODELS_LINKS)
-
-  const replicateGeneralSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--replicate',
-    'general'
-  ])
-
-  expect(collectLinks(
-    replicateGeneralSelection.serviceSelections,
-    replicateGeneralSelection.globalSections
-  )).toEqual(REPLICATE_GENERAL_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--replicate',
-    'image'
-  ], 'Unknown links section(s) for --replicate: image')
-})
+registerProviderSelectorCases([
+  {
+    name: 'links selector accepts bfl provider with models and image sections',
+    provider: 'bfl',
+    all: { expected: BFL_ALL_LINKS },
+    selections: [
+      { sections: ['models'], expected: BFL_MODELS_LINKS },
+      { sections: ['image'], expected: BFL_IMAGE_LINKS }
+    ],
+    invalid: { sections: ['general'], message: 'Unknown links section(s) for --bfl: general' }
+  },
+  {
+    name: 'links selector accepts ltx provider with models and video sections',
+    provider: 'ltx',
+    all: { expected: LTX_ALL_LINKS, outputFileName: 'ltx-all-links.md' },
+    selections: [
+      { sections: ['video'], expected: LTX_VIDEO_LINKS },
+      { sections: ['models'], expected: LTX_MODELS_LINKS }
+    ],
+    invalid: { sections: ['image'], message: 'Unknown links section(s) for --ltx: image' }
+  },
+  {
+    name: 'links selector accepts replicate provider with general and models sections',
+    provider: 'replicate',
+    all: { expected: REPLICATE_ALL_LINKS, outputFileName: 'replicate-all-links.md' },
+    selections: [
+      { sections: ['general', 'models'], expected: REPLICATE_ALL_LINKS, outputFileName: 'replicate-general-models-links.md' },
+      { sections: ['models'], expected: REPLICATE_MODELS_LINKS },
+      { sections: ['general'], expected: REPLICATE_GENERAL_LINKS }
+    ],
+    invalid: { sections: ['image'], message: 'Unknown links section(s) for --replicate: image' }
+  }
+])

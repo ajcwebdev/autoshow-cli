@@ -14,15 +14,15 @@ import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestrati
 import type { ExtractionMetadata, FinalImageOutputInventory, FinalImagePageInventory, FinalImagePanelInventory, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
 import { estimatePageMode, estimatePanelMode, estimateQaWork, normalizeFinalImageEstimateRequest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-estimate'
 import { resolveFinalImageOutputPathParts } from '~/cli/commands/process-steps/step-8-comic/comic-utils/final-image-price-inventory'
+import { createMetadataFixtureBuilder } from '../../../../test-utils/metadata-fixtures'
 
-const buildVideoMetadata = (overrides: Partial<Step6VideoMetadata>): Step6VideoMetadata => ({
+const buildVideoMetadata = createMetadataFixtureBuilder<Step6VideoMetadata>({
   videoGenService: 'gemini',
   videoGenModel: 'veo-3.1-fast-generate-preview',
   processingTime: 1234,
   videoFileName: 'generated-video.mp4',
   videoFileSize: 1234,
-  videoDuration: 4,
-  ...overrides
+  videoDuration: 4
 })
 
 describe('price mode contracts', () => {

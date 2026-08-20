@@ -15,8 +15,7 @@ import {
   runReplicateImageGen
 } from './run-replicate-image-gen'
 import {
-  collectUnsupportedCommonFlags,
-  IMAGE_OPTION_LABELS,
+  assertNoUnsupportedFlags,
   unsupportedFlagError
 } from '../../image-utils/image-target-validation'
 import {
@@ -30,22 +29,18 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
   const models = options.replicateImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: ReplicateImageModel = validateReplicateImageModel(rawModel)
-    const unsupported = collectUnsupportedCommonFlags(options, [
+    assertNoUnsupportedFlags(options, [
       'imageQuality',
       'imageBackground',
       'imageResponseMode',
-      'imageCompression'
-    ], IMAGE_OPTION_LABELS)
-    if (options.imageMask !== undefined) unsupported.push('--image-mask')
-    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
-    if (unsupported.length > 0) {
-      throw unsupportedFlagError(
-        'Replicate',
-        model,
-        unsupported,
-        'Supported Replicate image options vary by model family: Seedream uses --image-size, --image-aspect-ratio, optional --image-format on Seedream 5, and --image-input; Qwen uses --image-aspect-ratio and one --image-input; Wan uses --image-size, --image-count 1-4, and --image-input references.'
-      )
-    }
+      'imageCompression',
+      'imageMask',
+      { key: 'geminiSearchGrounding', when: value => value === true }
+    ], {
+      provider: 'Replicate',
+      model,
+      hint: 'Supported Replicate image options vary by model family: Seedream uses --image-size, --image-aspect-ratio, optional --image-format on Seedream 5, and --image-input; Qwen uses --image-aspect-ratio and one --image-input; Wan uses --image-size, --image-count 1-4, and --image-input references.'
+    })
 
     if (isReplicateSeedreamModel(model)) {
       normalizeReplicateSeedreamSize(model, options.imageSize)

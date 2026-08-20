@@ -1,11 +1,11 @@
 import { isRecord } from '~/utils/rest-client'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { existsSync, readFileSync } from 'node:fs'
+import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { HostedOcrProfileDisqualificationReason, HostedOcrProfileEstimate, HostedOcrSchedulerTelemetry, HostedOcrThroughputProfile, HostedOcrThroughputProfileStore, OcrConcurrencyMode, PersistHostedOcrProfilesOptions } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
 import { roundMetric } from '~/utils/value-helpers'
+import { createJsonProfileStore } from '~/utils/json-profile-store'
 
 const PROFILE_STORE_VERSION = 2
 const MAX_PROFILE_ENTRIES = 500
@@ -95,38 +95,19 @@ const parseProfile = (value: unknown): HostedOcrThroughputProfile | undefined =>
   }
 }
 
-const parseStore = (value: unknown): HostedOcrThroughputProfileStore => {
-  if (!isRecord(value) || value['version'] !== PROFILE_STORE_VERSION || !Array.isArray(value['profiles'])) {
-    return { version: PROFILE_STORE_VERSION, profiles: [] }
-  }
-  return {
-    version: PROFILE_STORE_VERSION,
-    profiles: value['profiles'].map(parseProfile).filter((entry): entry is HostedOcrThroughputProfile => entry !== undefined)
-  }
-}
+const throughputProfileStore = createJsonProfileStore({
+  version: PROFILE_STORE_VERSION,
+  parseEntry: parseProfile,
+  resolvePath: resolveHostedOcrThroughputProfilePath
+})
 
-export const readHostedOcrThroughputProfiles = async (
-  profilePath = resolveHostedOcrThroughputProfilePath()
-): Promise<HostedOcrThroughputProfileStore> => {
-  try {
-    return parseStore(JSON.parse(await readFile(profilePath, 'utf-8')) as unknown)
-  } catch {
-    return { version: PROFILE_STORE_VERSION, profiles: [] }
-  }
-}
+export const readHostedOcrThroughputProfiles: (
+  profilePath?: string | undefined
+) => Promise<HostedOcrThroughputProfileStore> = throughputProfileStore.read
 
-export const readHostedOcrThroughputProfilesSync = (
-  profilePath = resolveHostedOcrThroughputProfilePath()
-): HostedOcrThroughputProfileStore => {
-  try {
-    if (!existsSync(profilePath)) {
-      return { version: PROFILE_STORE_VERSION, profiles: [] }
-    }
-    return parseStore(JSON.parse(readFileSync(profilePath, 'utf-8')) as unknown)
-  } catch {
-    return { version: PROFILE_STORE_VERSION, profiles: [] }
-  }
-}
+export const readHostedOcrThroughputProfilesSync: (
+  profilePath?: string | undefined
+) => HostedOcrThroughputProfileStore = throughputProfileStore.readSync
 
 const profileKey = (
   profile: Pick<HostedOcrThroughputProfile, 'provider' | 'model' | 'scopeClass' | 'pageCountBand' | 'ocrConcurrencyMode' | 'laneTargetCount'>

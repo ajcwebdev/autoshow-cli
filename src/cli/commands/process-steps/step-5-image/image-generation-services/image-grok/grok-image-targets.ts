@@ -3,9 +3,8 @@ import { validateGrokImageModel } from '~/cli/commands/setup-and-utilities/model
 import { ensureGrokImageGenSetup } from './grok-image-gen'
 import { normalizeGrokImageResolution, runGrokImageGen } from './run-grok-image-gen'
 import {
-  collectUnsupportedCommonFlags,
+  assertNoUnsupportedFlags,
   hasEditInputs,
-  IMAGE_OPTION_LABELS,
   unsupportedFlagError,
   validateEnumOption,
   validateImageCount
@@ -28,18 +27,19 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
     validateImageCount('Grok', model, options.imageCount, ...GROK_IMAGE_COUNT_RANGE)
     validateEnumOption('Grok', model, 'image-aspect-ratio', options.imageAspectRatio, GROK_ASPECT_RATIOS)
     normalizeGrokImageResolution(options.imageSize)
-    const unsupported = collectUnsupportedCommonFlags(options, [
+    assertNoUnsupportedFlags(options, [
       'imageQuality',
       'imageFormat',
       'imageBackground',
       'imageResponseMode',
-      'imageCompression'
-    ], IMAGE_OPTION_LABELS)
-    if (options.imageMask !== undefined) unsupported.push('--image-mask')
-    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
-    if (unsupported.length > 0) {
-      throw unsupportedFlagError('Grok', model, unsupported, 'Supported Grok image options: --image-count, --image-aspect-ratio, --image-size 1K|2K, and up to three --image-input references.')
-    }
+      'imageCompression',
+      'imageMask',
+      { key: 'geminiSearchGrounding', when: value => value === true }
+    ], {
+      provider: 'Grok',
+      model,
+      hint: 'Supported Grok image options: --image-count, --image-aspect-ratio, --image-size 1K|2K, and up to three --image-input references.'
+    })
     if (hasEditInputs(options) && model !== 'grok-imagine-image-quality') {
       throw unsupportedFlagError('Grok', model, ['--image-input'], 'xAI documents image editing for grok-imagine-image-quality; use grok-imagine-image-quality for edit/reference inputs.')
     }

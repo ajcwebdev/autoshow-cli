@@ -2,6 +2,7 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { isRecord } from '~/utils/rest-client'
 import { computeLegacySingleRenderIdentity } from '../step-4-tts/script-to-audio/contract-identity'
 import { validateComicSourceIdentity } from '../step-8-comic/comic-utils/comic-audio-contracts'
+import { aggregateComicStageStatus } from './comic-stage-status'
 import type {
   CanonicalComicItemMetadata,
   ComicSourceIdentity,
@@ -344,10 +345,7 @@ export const expectedComicItemStatus = (
   }
   const required = stages.filter(stage => stage?.requirement === 'required') as Array<{ requirement: 'required', status: PipelineManifestItem['status'] }>
   if (required.length === 0) return undefined
-  if (required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')) return 'full'
-  if (required.every(stage => stage.status === 'skipped')) return 'skipped'
-  if (required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')) return 'failed'
-  return 'incomplete'
+  return aggregateComicStageStatus(required)
 }
 
 export const parseManifest = (

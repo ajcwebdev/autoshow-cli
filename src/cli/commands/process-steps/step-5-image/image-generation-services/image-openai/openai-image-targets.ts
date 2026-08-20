@@ -4,6 +4,7 @@ import { validateOpenAIImageModel } from '~/cli/commands/setup-and-utilities/mod
 import { ensureOpenAIImageGenSetup } from './openai-image-gen'
 import { runOpenAIImageGen } from './run-openai-image-gen'
 import {
+  assertNoUnsupportedFlags,
   hasEditInputs,
   unsupportedFlagError,
   validateEnumOption,
@@ -122,12 +123,10 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
     if (options.imageAspectRatio !== undefined) {
       throw unsupportedFlagError('OpenAI', model, ['--image-aspect-ratio'], 'Use --image-size for OpenAI dimensions.')
     }
-    if (options.imageResponseMode !== undefined || options.geminiSearchGrounding === true) {
-      const unsupported: string[] = []
-      if (options.imageResponseMode !== undefined) unsupported.push('--image-response-mode')
-      if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
-      throw unsupportedFlagError('OpenAI', model, unsupported, 'These flags are Gemini-only.')
-    }
+    assertNoUnsupportedFlags(options, [
+      'imageResponseMode',
+      { key: 'geminiSearchGrounding', when: value => value === true }
+    ], { provider: 'OpenAI', model, hint: 'These flags are Gemini-only.' })
     validateImageInputReferences(options.imageInputs, {
       provider: 'OpenAI',
       model,

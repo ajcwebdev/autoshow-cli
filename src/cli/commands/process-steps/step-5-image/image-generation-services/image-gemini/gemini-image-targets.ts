@@ -4,9 +4,8 @@ import { validateGeminiImageModel } from '~/cli/commands/setup-and-utilities/mod
 import { ensureGeminiImageGenSetup } from './gemini-image-gen'
 import { runGeminiImageGen } from './run-gemini-image-gen'
 import {
-  collectUnsupportedCommonFlags,
+  assertNoUnsupportedFlags,
   hasEditInputs,
-  IMAGE_OPTION_LABELS,
   unsupportedFlagError,
   validateEnumOption
 } from '../../image-utils/image-target-validation'
@@ -55,10 +54,11 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
       model,
       allowedMimeTypes: GEMINI_IMAGE_INPUT_MIME_TYPES
     })
-    const unsupportedCommon = collectUnsupportedCommonFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression'], IMAGE_OPTION_LABELS)
-    if (unsupportedCommon.length > 0) {
-      throw unsupportedFlagError('Gemini', model, unsupportedCommon, 'Supported Gemini image options are --image-aspect-ratio, --image-size, --image-response-mode, --image-input references, and --image-search-grounding.')
-    }
+    assertNoUnsupportedFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression'], {
+      provider: 'Gemini',
+      model,
+      hint: 'Supported Gemini image options are --image-aspect-ratio, --image-size, --image-response-mode, --image-input references, and --image-search-grounding.'
+    })
 
     return [{
       service: 'gemini',

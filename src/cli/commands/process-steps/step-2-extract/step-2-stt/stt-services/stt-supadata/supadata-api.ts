@@ -1,14 +1,12 @@
 import type { RetryClass, SttRequestMetrics, SupadataHttpError, SupadataJobStatus } from '~/types'
 import { ProviderError } from '~/utils/error-handler'
-import { httpResponseError } from '~/utils/rest-client'
+import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 import { classifyFetchRetry, parseRetryAfterMs, STT_POLL_RETRY_POLICY, withRetry } from '~/utils/retries'
 import {
   extractSupadataErrorMessage,
-  parseSupadataJobStatus,
-  readJsonOrText
+  parseSupadataJobStatus
 } from './supadata-response-parsers'
 import { toSupadataHttpError } from './supadata-utils'
-import { resolveRestPath } from '~/utils/rest-client'
 
 const REQUEST_TIMEOUT_MS = 70_000
 const POLL_REQUEST_TIMEOUT_MS = 60_000
@@ -46,7 +44,7 @@ export const fetchSupadataTranscript = async (
         },
         signal: signal ?? null
       })
-      const payload = await readJsonOrText(response)
+      const payload = parseJsonOrText(await response.text())
 
       if (response.status === 206) {
         throw httpResponseError(
@@ -104,7 +102,7 @@ export const pollSupadataTranscriptJob = async (
         },
         signal: signal ?? null
       })
-      const payload = await readJsonOrText(response)
+      const payload = parseJsonOrText(await response.text())
       if (!response.ok) {
         throw toSupadataHttpError('poll', 'runtime_http_read', response, payload, 'Supadata polling failed')
       }

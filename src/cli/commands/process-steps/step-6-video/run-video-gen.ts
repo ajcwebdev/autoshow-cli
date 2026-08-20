@@ -1,6 +1,5 @@
 import type { Step6VideoMetadata, VideoGenOptions, VideoTarget } from '~/types'
-import { runSingleFileTargets } from '~/cli/commands/process-steps/target-runner'
-import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { runMediaFileTargets } from '~/cli/commands/process-steps/media-file-target-runner'
 import { CLIUsageError } from '~/utils/error-handler'
 import {
   collectVideoTargets,
@@ -13,37 +12,35 @@ export const runVideoTargets = async (
   outputDir: string,
   options?: Pick<VideoGenOptions, 'videoProviderConcurrency' | 'videoLocalConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
 ): Promise<{ videoPaths: string[], metadata: Step6VideoMetadata[] }> => {
-  const successes = await runSingleFileTargets<VideoTarget, Step6VideoMetadata>({
+  const result = await runMediaFileTargets<VideoTarget, Step6VideoMetadata, string | undefined>({
     targets,
+    prompt,
     outputDir,
-    stepLabel: 'video',
-    noProviderMessage: 'No provider produced video',
-    concurrency: {
-      provider: options?.videoProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
-      local: options?.videoLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
+    options: {
+      providerConcurrency: options?.videoProviderConcurrency,
+      localConcurrency: options?.videoLocalConcurrency,
+      resourceGate: options?.generationResourceGate,
+      hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator
     },
-    resourceGate: options?.generationResourceGate,
-    hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator,
-    hostedWorkClass: 'video',
-    runTarget: async (target, workspaceDir) =>
-      target.run(prompt, workspaceDir).then(({ videoPath, metadata }) => ({ filePath: videoPath, metadata })),
-    workspacePrefix: '.video-tmp',
-    getArtifactFileName: getVideoArtifactFileName,
-    finalizeMetadata: (metadata, finalFileName, finalPath) => {
-      return {
+    descriptor: {
+      stepLabel: 'video',
+      noProviderMessage: 'No provider produced video',
+      hostedWorkClass: 'video',
+      workspacePrefix: '.video-tmp',
+      runTarget: async (target, targetPrompt, workspaceDir) =>
+        await target.run(targetPrompt, workspaceDir).then(({ videoPath, metadata }) => ({ filePath: videoPath, metadata })),
+      getArtifactFileName: getVideoArtifactFileName,
+      finalizeMetadata: (metadata, finalFileName, finalPath) => ({
         ...metadata,
         videoFileName: finalFileName,
-        videoFileSize: Bun.file(finalPath).size,
-      }
-    },
+        videoFileSize: Bun.file(finalPath).size
+      })
+    }
   })
 
   return {
-    videoPaths: successes.map((entry) => entry.filePath),
-    metadata: successes.map((entry) => ({
-      ...entry.metadata,
-      ...(options?.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
-    })),
+    videoPaths: result.paths,
+    metadata: result.metadata
   }
 }
 

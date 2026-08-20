@@ -1,6 +1,7 @@
 import { basename } from 'node:path'
 import { createHumanTable, createKeyValueTable, createLocationsTable } from '~/utils/app-logger/human-table/human-table'
-import type { AudioDownloadSummary, AudioNormalizeSummary, HumanLogTable, LogLevel, TableLogger } from '~/types'
+import { defineTableLog } from '~/utils/app-logger/table-log-definition'
+import type { AudioDownloadSummary, AudioNormalizeSummary, HumanLogTable, TableLogger } from '~/types'
 
 const buildAudioDownloadRows = (
   summary: AudioDownloadSummary
@@ -11,22 +12,18 @@ const buildAudioDownloadRows = (
   detail: summary.detail ?? ''
 }]
 
-const buildAudioDownloadTable = (
+const buildAudioDownloadTableValue = (
   summary: AudioDownloadSummary
 ): HumanLogTable =>
   createHumanTable(buildAudioDownloadRows(summary), ['status', 'source', 'target', 'detail'])
 
-export const logAudioDownload = (
-  logger: TableLogger,
-  summary: AudioDownloadSummary,
-  level: LogLevel = summary.status === 'downloaded' ? 'success' : 'info'
-): void => {
-  logger.write(level, 'Audio Download', {
-    category: 'pipeline',
-    humanTable: buildAudioDownloadTable(summary),
-    metadata: summary
-  })
-}
+export const { log: logAudioDownload } = defineTableLog<AudioDownloadSummary>({
+  title: 'Audio Download',
+  category: 'pipeline',
+  buildTable: buildAudioDownloadTableValue,
+  level: summary => summary.status === 'downloaded' ? 'success' : 'info',
+  metadata: summary => summary
+})
 
 export const buildAudioNormalizeTable = (
   summary: AudioNormalizeSummary

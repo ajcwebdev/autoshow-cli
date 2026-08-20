@@ -1,4 +1,4 @@
-import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { httpResponseError, isRecord, parseJsonOrText } from '~/utils/rest-client'
 import { ProviderError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import type { RetryClass, ScrapeCreatorsHttpError, ScrapeCreatorsTranscriptEntry, ScrapeCreatorsTranscriptPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
@@ -83,19 +83,6 @@ const buildScrapeCreatorsUrl = (
   url.searchParams.set('url', sourceUrl)
   url.searchParams.set('language', language)
   return url.toString()
-}
-
-const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const rawText = await response.text()
-  if (rawText.length === 0) {
-    return {}
-  }
-
-  try {
-    return JSON.parse(rawText) as unknown
-  } catch {
-    return rawText
-  }
 }
 
 const extractScrapeCreatorsErrorMessage = (payload: unknown): string | undefined => {
@@ -286,7 +273,7 @@ export const runScrapeCreatorsStt = async (
         },
         signal: signal ?? null
       })
-      const responsePayload = await readJsonOrText(response)
+      const responsePayload = parseJsonOrText(await response.text())
 
       if (!response.ok) {
         throw toScrapeCreatorsHttpError(response, responsePayload)

@@ -26,6 +26,7 @@ import type { DocumentMetadata, HostedOcrRun, OcrExtractionOptions, OcrProviderS
 import { captureLogEvents } from '../../../test-utils/console-capture'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { pagesForOcrRange as pagesForRange } from '../../../test-utils/ocr-page-fixtures'
 
 const requestedTargets: OcrTarget[] = [
   { service: 'tesseract', model: 'tesseract' },
@@ -41,18 +42,6 @@ const basePdfMetadata: DocumentMetadata = {
   pageCount: 4,
   format: 'pdf',
   fileSize: 12_345
-}
-
-const pagesForRange = (startPage: number, endPage: number): PageResult[] => {
-  const pages: PageResult[] = []
-  for (let pageNumber = 1; pageNumber <= endPage - startPage + 1; pageNumber++) {
-    pages.push({
-      pageNumber,
-      method: 'ocr',
-      text: `page ${startPage + pageNumber - 1}`
-    })
-  }
-  return pages
 }
 
 const hostedRun = (

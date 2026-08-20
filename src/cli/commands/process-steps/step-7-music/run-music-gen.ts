@@ -1,6 +1,5 @@
 import type { MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
-import { runSingleFileTargets } from '~/cli/commands/process-steps/target-runner'
-import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { runMediaFileTargets } from '~/cli/commands/process-steps/media-file-target-runner'
 import { CLIUsageError } from '~/utils/error-handler'
 import {
   collectMusicTargets,
@@ -13,37 +12,35 @@ export const runMusicTargets = async (
   outputDir: string,
   options?: Pick<MusicGenOptions, 'musicProviderConcurrency' | 'musicLocalConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
 ): Promise<{ musicPaths: string[], metadata: Step7MusicMetadata[] }> => {
-  const successes = await runSingleFileTargets<MusicTarget, Step7MusicMetadata>({
+  const result = await runMediaFileTargets<MusicTarget, Step7MusicMetadata, string>({
     targets,
+    prompt,
     outputDir,
-    stepLabel: 'music',
-    noProviderMessage: 'No provider produced music',
-    concurrency: {
-      provider: options?.musicProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
-      local: options?.musicLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
+    options: {
+      providerConcurrency: options?.musicProviderConcurrency,
+      localConcurrency: options?.musicLocalConcurrency,
+      resourceGate: options?.generationResourceGate,
+      hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator
     },
-    resourceGate: options?.generationResourceGate,
-    hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator,
-    hostedWorkClass: 'music',
-    runTarget: async (target, workspaceDir) =>
-      target.run(prompt, workspaceDir).then(({ musicPath, metadata }) => ({ filePath: musicPath, metadata })),
-    workspacePrefix: '.music-tmp',
-    getArtifactFileName: getMusicArtifactFileName,
-    finalizeMetadata: (metadata, finalFileName, finalPath) => {
-      return {
+    descriptor: {
+      stepLabel: 'music',
+      noProviderMessage: 'No provider produced music',
+      hostedWorkClass: 'music',
+      workspacePrefix: '.music-tmp',
+      runTarget: async (target, targetPrompt, workspaceDir) =>
+        await target.run(targetPrompt, workspaceDir).then(({ musicPath, metadata }) => ({ filePath: musicPath, metadata })),
+      getArtifactFileName: getMusicArtifactFileName,
+      finalizeMetadata: (metadata, finalFileName, finalPath) => ({
         ...metadata,
         musicFileName: finalFileName,
-        musicFileSize: Bun.file(finalPath).size,
-      }
-    },
+        musicFileSize: Bun.file(finalPath).size
+      })
+    }
   })
 
   return {
-    musicPaths: successes.map((entry) => entry.filePath),
-    metadata: successes.map((entry) => ({
-      ...entry.metadata,
-      ...(options?.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
-    })),
+    musicPaths: result.paths,
+    metadata: result.metadata
   }
 }
 

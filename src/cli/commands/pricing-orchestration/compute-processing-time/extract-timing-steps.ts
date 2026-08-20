@@ -21,14 +21,32 @@ import {
 } from './timing-shared'
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
-const buildSinglePagePdfFallbackStep = (
-  params: ExtractStepBuildParams & { singlePagePdfFallbackMsPerPage: number }
+const profileTimingAdjustmentFields = (
+  timed: ReturnType<typeof resolveHostedOcrTiming>
+): Record<string, number | string> => ({
+  ...(typeof timed.profileLaneTargetCount === 'number' ? { profileLaneTargetCount: timed.profileLaneTargetCount } : {}),
+  ...(typeof timed.profileSampleCount === 'number' ? { profileSampleCount: timed.profileSampleCount } : {}),
+  ...(typeof timed.profileThroughputPagesPerMinute === 'number' ? { profileThroughputPagesPerMinute: timed.profileThroughputPagesPerMinute } : {}),
+  ...(typeof timed.profileRaisedMaxCap === 'number' ? { profileRaisedMaxCap: timed.profileRaisedMaxCap } : {}),
+  ...(typeof timed.profileCapSource === 'string' ? { profileCapSource: timed.profileCapSource } : {}),
+  ...(typeof timed.profileSourceConfidence === 'string' ? { profileSourceConfidence: timed.profileSourceConfidence } : {}),
+  ...(typeof timed.profileDisqualificationReason === 'string' ? { profileDisqualificationReason: timed.profileDisqualificationReason } : {})
+})
+
+const buildFallbackExtractStep = (
+  params: ExtractStepBuildParams,
+  fallback: {
+    pages: number
+    msPerPage: number
+    timingNote: string
+    timingAdjustment: Record<string, unknown>
+  }
 ): { entry: TimingStepEntry, confidence: EstimateConfidence } => {
-  const { target, resolvedPageCount, estimation, pageConcurrency, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount, rasterizedPages, singlePagePdfFallbackPages, singlePagePdfFallbackMsPerPage } = params
-  const directPdfPages = Math.max(0, resolvedPageCount - singlePagePdfFallbackPages)
+  const { target, resolvedPageCount, estimation, pageConcurrency, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount } = params
+  const directPdfPages = Math.max(0, resolvedPageCount - fallback.pages)
   const pageDurations = [
     ...Array.from({ length: directPdfPages }, () => estimation.msPerPage),
-    ...Array.from({ length: singlePagePdfFallbackPages }, () => singlePagePdfFallbackMsPerPage)
+    ...Array.from({ length: fallback.pages }, () => fallback.msPerPage)
   ]
   const registryProcessingTimeMs = roundMs(params.isHostedOcr
     ? estimateHostedConcurrencyWallTimeMs(pageDurations, pageConcurrency, params.concurrencyMode)
@@ -43,75 +61,47 @@ const buildSinglePagePdfFallbackStep = (
     processingTimeMs,
     inputMetric: 'pages',
     inputValue: resolvedPageCount,
-    timingNote: 'Resumable single-page PDF OCR fallback uses observed slower per-page timing.',
+    timingNote: fallback.timingNote,
     timingAdjustment: {
-      kind: 'single-page-pdf-fallback',
-      singlePagePdfFallbackPages,
+      ...fallback.timingAdjustment,
       directPdfPages,
-      singlePagePdfFallbackMsPerPage: estimation.singlePagePdfFallbackMsPerPage,
-      ...(rasterizedPages > 0 ? { rasterizedPages } : {}),
       pageConcurrency,
       ocrConcurrencyMode,
       estimateConfidence: timed.estimateConfidence,
       ...(sharedProviderLaneTargetCount > 1 ? { sharedProviderLaneTargetCount } : {}),
       ...(sharedProviderLaneScale !== 1 ? { sharedProviderLaneScale } : {}),
-      ...(typeof timed.profileLaneTargetCount === 'number' ? { profileLaneTargetCount: timed.profileLaneTargetCount } : {}),
-      ...(typeof timed.profileSampleCount === 'number' ? { profileSampleCount: timed.profileSampleCount } : {}),
-      ...(typeof timed.profileThroughputPagesPerMinute === 'number' ? { profileThroughputPagesPerMinute: timed.profileThroughputPagesPerMinute } : {}),
-      ...(typeof timed.profileRaisedMaxCap === 'number' ? { profileRaisedMaxCap: timed.profileRaisedMaxCap } : {}),
-      ...(typeof timed.profileCapSource === 'string' ? { profileCapSource: timed.profileCapSource } : {}),
-      ...(typeof timed.profileSourceConfidence === 'string' ? { profileSourceConfidence: timed.profileSourceConfidence } : {}),
-      ...(typeof timed.profileDisqualificationReason === 'string' ? { profileDisqualificationReason: timed.profileDisqualificationReason } : {})
+      ...profileTimingAdjustmentFields(timed)
     }
   }, 'estimated')
   return { entry, confidence: timed.estimateConfidence }
 }
 
+const buildSinglePagePdfFallbackStep = (
+  params: ExtractStepBuildParams & { singlePagePdfFallbackMsPerPage: number }
+): { entry: TimingStepEntry, confidence: EstimateConfidence } => buildFallbackExtractStep(params, {
+  pages: params.singlePagePdfFallbackPages,
+  msPerPage: params.singlePagePdfFallbackMsPerPage,
+  timingNote: 'Resumable single-page PDF OCR fallback uses observed slower per-page timing.',
+  timingAdjustment: {
+    kind: 'single-page-pdf-fallback',
+    singlePagePdfFallbackPages: params.singlePagePdfFallbackPages,
+    singlePagePdfFallbackMsPerPage: params.estimation.singlePagePdfFallbackMsPerPage,
+    ...(params.rasterizedPages > 0 ? { rasterizedPages: params.rasterizedPages } : {})
+  }
+})
+
 const buildRasterizedFallbackStep = (
   params: ExtractStepBuildParams
-): { entry: TimingStepEntry, confidence: EstimateConfidence } => {
-  const { target, resolvedPageCount, estimation, pageConcurrency, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount, rasterizedPages } = params
-  const directPdfPages = Math.max(0, resolvedPageCount - rasterizedPages)
-  const msPerPage = estimation.msPerPage
-  const pageDurations = [
-    ...Array.from({ length: directPdfPages }, () => msPerPage),
-    ...Array.from({ length: rasterizedPages }, () => msPerPage * RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER)
-  ]
-  const registryProcessingTimeMs = roundMs(params.isHostedOcr
-    ? estimateHostedConcurrencyWallTimeMs(pageDurations, pageConcurrency, params.concurrencyMode)
-    : computePoolWallTimeMs(pageDurations, pageConcurrency))
-  const timed = resolveHostedOcrTiming(target, resolvedPageCount, registryProcessingTimeMs, ocrConcurrencyMode, hostedOcrProfilePath, sharedProviderLaneTargetCount)
-  const sharedProviderLaneScale = resolveSharedProviderLaneScale(sharedProviderLaneTargetCount, timed.profileLaneTargetCount)
-  const processingTimeMs = applySharedProviderLaneScale(timed.processingTimeMs, sharedProviderLaneTargetCount, timed.profileLaneTargetCount)
-  const entry = withNormalizedTiming({
-    step: 'extract',
-    provider: target.provider,
-    model: target.model,
-    processingTimeMs,
-    inputMetric: 'pages',
-    inputValue: resolvedPageCount,
-    timingNote: 'Rasterized single-page PDF fallback uses slower per-page timing for rasterized pages.',
-    timingAdjustment: {
-      kind: 'rasterized-single-page-pdf-fallback',
-      rasterizedPages,
-      directPdfPages,
-      rasterizedPageMultiplier: RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER,
-      pageConcurrency,
-      ocrConcurrencyMode,
-      estimateConfidence: timed.estimateConfidence,
-      ...(sharedProviderLaneTargetCount > 1 ? { sharedProviderLaneTargetCount } : {}),
-      ...(sharedProviderLaneScale !== 1 ? { sharedProviderLaneScale } : {}),
-      ...(typeof timed.profileLaneTargetCount === 'number' ? { profileLaneTargetCount: timed.profileLaneTargetCount } : {}),
-      ...(typeof timed.profileSampleCount === 'number' ? { profileSampleCount: timed.profileSampleCount } : {}),
-      ...(typeof timed.profileThroughputPagesPerMinute === 'number' ? { profileThroughputPagesPerMinute: timed.profileThroughputPagesPerMinute } : {}),
-      ...(typeof timed.profileRaisedMaxCap === 'number' ? { profileRaisedMaxCap: timed.profileRaisedMaxCap } : {}),
-      ...(typeof timed.profileCapSource === 'string' ? { profileCapSource: timed.profileCapSource } : {}),
-      ...(typeof timed.profileSourceConfidence === 'string' ? { profileSourceConfidence: timed.profileSourceConfidence } : {}),
-      ...(typeof timed.profileDisqualificationReason === 'string' ? { profileDisqualificationReason: timed.profileDisqualificationReason } : {})
-    }
-  }, 'estimated')
-  return { entry, confidence: timed.estimateConfidence }
-}
+): { entry: TimingStepEntry, confidence: EstimateConfidence } => buildFallbackExtractStep(params, {
+  pages: params.rasterizedPages,
+  msPerPage: params.estimation.msPerPage * RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER,
+  timingNote: 'Rasterized single-page PDF fallback uses slower per-page timing for rasterized pages.',
+  timingAdjustment: {
+    kind: 'rasterized-single-page-pdf-fallback',
+    rasterizedPages: params.rasterizedPages,
+    rasterizedPageMultiplier: RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER
+  }
+})
 
 const buildNormalExtractStep = (
   params: ExtractStepBuildParams
@@ -135,13 +125,7 @@ const buildNormalExtractStep = (
             ...(isHostedOcr ? { ocrConcurrencyMode, estimateConfidence: timed.estimateConfidence } : {}),
             ...(sharedProviderLaneTargetCount > 1 ? { sharedProviderLaneTargetCount } : {}),
             ...(sharedProviderLaneScale !== 1 ? { sharedProviderLaneScale } : {}),
-            ...(typeof timed.profileLaneTargetCount === 'number' ? { profileLaneTargetCount: timed.profileLaneTargetCount } : {}),
-            ...(typeof timed.profileSampleCount === 'number' ? { profileSampleCount: timed.profileSampleCount } : {}),
-            ...(typeof timed.profileThroughputPagesPerMinute === 'number' ? { profileThroughputPagesPerMinute: timed.profileThroughputPagesPerMinute } : {}),
-            ...(typeof timed.profileRaisedMaxCap === 'number' ? { profileRaisedMaxCap: timed.profileRaisedMaxCap } : {}),
-            ...(typeof timed.profileCapSource === 'string' ? { profileCapSource: timed.profileCapSource } : {}),
-            ...(typeof timed.profileSourceConfidence === 'string' ? { profileSourceConfidence: timed.profileSourceConfidence } : {}),
-            ...(typeof timed.profileDisqualificationReason === 'string' ? { profileDisqualificationReason: timed.profileDisqualificationReason } : {})
+            ...profileTimingAdjustmentFields(timed)
           }
         }
       : {})
