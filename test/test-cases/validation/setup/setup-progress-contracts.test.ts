@@ -6,6 +6,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { formatSetupElapsed, formatSetupHeartbeatLine } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import { setCompactSetupMode } from '~/utils/setup-output-mode'
+import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
 
 const waitForTurn = async (): Promise<void> => {
   await new Promise<void>((resolve) => setTimeout(resolve, 0))
@@ -15,19 +16,14 @@ describe('setup progress contracts', () => {
   test('compact setup subprocess failures include a bounded output tail', async () => {
     setCompactSetupMode(true)
     try {
-      try {
-        await runInherit('bun', [
+      const error = await expectProviderHttpError(
+        () => runInherit('bun', [
           '-e',
           'for (let i = 0; i < 80; i++) console.log(`stdout-line-${i}`); console.error("stderr-tail-line"); process.exit(7)'
-        ])
-        throw new Error('expected compact subprocess failure')
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        expect(message).toContain('exit code 7')
-        expect(message).toContain('stderr-tail-line')
-        expect(message).toContain('stdout-line-79')
-        expect(message).not.toContain('stdout-line-0')
-      }
+        ]),
+        { messageContains: ['exit code 7', 'stderr-tail-line', 'stdout-line-79'] }
+      )
+      expect(error.message).not.toContain('stdout-line-0')
     } finally {
       setCompactSetupMode(false)
     }

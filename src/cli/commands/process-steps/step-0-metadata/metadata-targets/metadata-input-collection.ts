@@ -82,7 +82,7 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
   try {
     const exists = await fileExists(filePath)
     if (!exists) {
-      l.warn(`Input list not found at ${filePath}`)
+      l.warn(`Input list not found at ${filePath}`, { category: 'pipeline', metadata: { filePath } })
       return []
     }
 
@@ -130,17 +130,17 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
     }
 
     if (invalidCount > 0) {
-      l.warn(`Ignored ${invalidCount} invalid entries in ${filePath}`)
+      l.warn(`Ignored ${invalidCount} invalid entries in ${filePath}`, { category: 'pipeline', metadata: { filePath, invalidCount } })
     }
 
-    l.write('info', `Loaded ${valid.length} inputs from ${filePath}`)
+    l.write('info', `Loaded ${valid.length} inputs from ${filePath}`, { category: 'pipeline', metadata: { filePath, inputCount: valid.length } })
     const fingerprintAfterRead = await getFileFingerprint(filePath)
     if (fingerprintAfterRead && fileFingerprintsMatch(fingerprintBeforeRead, fingerprintAfterRead)) {
       await writeBatchListCache(filePath, valid, fingerprintAfterRead)
     }
     return valid
   } catch {
-    l.error(`Failed to read input list at ${filePath}`)
+    l.error(`Failed to read input list at ${filePath}`, { category: 'pipeline', metadata: { filePath } })
     return []
   }
 }

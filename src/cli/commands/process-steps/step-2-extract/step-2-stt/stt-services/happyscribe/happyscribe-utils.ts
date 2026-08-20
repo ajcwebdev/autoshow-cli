@@ -1,5 +1,6 @@
 import type { HappyScribeHttpError, HappyScribeStage, RetryClass } from '~/types'
-import { isRecord } from '~/utils/rest-client'
+import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { ProviderError } from '~/utils/error-handler'
 
 export { isRecord }
 
@@ -82,14 +83,18 @@ export const toHappyScribeHttpError = (
   payload: unknown,
   messagePrefix = 'Happy Scribe request failed'
 ): HappyScribeHttpError => Object.assign(
-  new Error(`${messagePrefix} (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`),
-  {
-    status: response.status,
-    headers: buildHappyScribeRetryHeaders(response, payload),
-    stage,
-    retryClass,
-    rawResponse: payload
-  } satisfies Pick<HappyScribeHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'rawResponse'>
+  httpResponseError(
+    `${messagePrefix} (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`,
+    response,
+    {
+      stage,
+      retryClass,
+      rawResponse: payload
+    } satisfies Pick<HappyScribeHttpError, 'stage' | 'retryClass' | 'rawResponse'>
+  ),
+  // Happy Scribe reports its retry delay in the body, not the header, so the retry
+  // headers are rebuilt from the payload and overwrite the raw response headers.
+  { headers: buildHappyScribeRetryHeaders(response, payload) }
 )
 
 export const attachHappyScribeErrorContext = (
@@ -98,7 +103,7 @@ export const attachHappyScribeErrorContext = (
   retryClass: RetryClass,
   rawResponse?: unknown
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as HappyScribeHttpError).stage = stage
   ;(source as HappyScribeHttpError).retryClass = retryClass
   if (rawResponse !== undefined) {

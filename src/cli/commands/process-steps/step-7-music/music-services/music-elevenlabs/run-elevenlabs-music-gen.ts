@@ -93,7 +93,7 @@ const buildElevenLabsMusicRequest = async (
 
   if (forceInstrumental) {
     if (options.lyricsFile) {
-      l.warn('Ignoring --lyrics-file because --instrumental was provided for ElevenLabs music generation')
+      l.warn('Ignoring --lyrics-file because --instrumental was provided for ElevenLabs music generation', { category: 'pipeline' })
     }
 
     return {

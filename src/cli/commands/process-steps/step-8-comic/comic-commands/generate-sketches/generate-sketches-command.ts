@@ -34,13 +34,19 @@ export const generateSketchesCommand = async (
     await assertPanelPromptSourceCoverage(options.sceneSlug)
   } catch (error) {
     err('Sketch initialization failed:', error instanceof Error ? error.message : String(error))
-    throw InfraError('Failed at initialization step', { stage: 'comic:generate-sketches' })
+    throw InfraError('Failed at initialization step', {
+      stage: 'comic:generate-sketches',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 
   try {
     return await generateSceneSketches(options.sceneSlug, generationOptions)
   } catch (error) {
     err('Sketch generation failed:', error instanceof Error ? error.message : String(error))
-    throw InfraError('Failed at sketch generation step', { stage: 'comic:generate-sketches' })
+    throw InfraError('Failed at sketch generation step', {
+      stage: 'comic:generate-sketches',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 }

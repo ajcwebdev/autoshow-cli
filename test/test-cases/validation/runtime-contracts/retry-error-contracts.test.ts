@@ -5,6 +5,7 @@ import { classifyTtsProviderAdmissionError } from '~/cli/commands/process-steps/
 import { AppError, CLIUsageError, ProviderError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { classifyFetchRetry, classifyPaidCreateRetry, pollUntil, withRetry } from '~/utils/retries'
+import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
 
 const FAST_RETRY_POLICY = {
   baseDelayMs: 0,
@@ -267,8 +268,8 @@ describe('retry error contracts', () => {
 
     expect(attempts).toBe(2)
 
-    try {
-      await withRetry(
+    const exhausted = await expectProviderHttpError(
+      () => withRetry(
         {
           retryClass: 'runtime_http_read',
           operationName: 'test-provider-read',
@@ -284,30 +285,29 @@ describe('retry error contracts', () => {
           throw ProviderError('provider unavailable', { status: 503, stage: 'poll', retryable: true, metadata: { category: 'network', rawResponse: { error: 'temporary outage' } } })
         },
         (error) => classifyFetchRetry(error, 'runtime_http_read')
-      )
-      throw new Error('expected retry failure')
-    } catch (error) {
-      expect(error).toBeInstanceOf(AppError)
-      const appError = error as AppError
-      expect(appError.kind).toBe('retry_exhausted')
-      expect(appError.message).toContain('test-provider-read failed after 2/2 attempts (max attempts reached,')
-      expect(appError.status).toBe(503)
-      expect(appError.stage).toBe('poll')
-      expect(appError.retryClass).toBe('runtime_http_read')
-      expect(appError.retryable).toBe(true)
-      expect(appError.metadata).toMatchObject({
-        attemptsMade: 2,
-        maxAttempts: 2,
-        stopReason: 'max attempts reached',
-        category: 'network',
-        rawResponse: { error: 'temporary outage' }
-      })
-    }
+      ),
+      {
+        instanceOf: AppError,
+        kind: 'retry_exhausted',
+        status: 503,
+        stage: 'poll',
+        retryable: true,
+        messageContains: 'test-provider-read failed after 2/2 attempts (max attempts reached,'
+      }
+    ) as AppError
+    expect(exhausted.retryClass).toBe('runtime_http_read')
+    expect(exhausted.metadata).toMatchObject({
+      attemptsMade: 2,
+      maxAttempts: 2,
+      stopReason: 'max attempts reached',
+      category: 'network',
+      rawResponse: { error: 'temporary outage' }
+    })
   })
 
   test('withRetry hoists response headers so exhausted errors retain Retry-After pacing', async () => {
-    try {
-      await withRetry(
+    const exhausted = await expectProviderHttpError(
+      () => withRetry(
         {
           retryClass: 'runtime_http_read',
           operationName: 'rate-limited-read',
@@ -320,25 +320,21 @@ describe('retry error contracts', () => {
           throw ProviderError('rate limited', { status: 429, headers: new Headers({ 'retry-after': '3' }) })
         },
         (error) => classifyFetchRetry(error, 'runtime_http_read')
-      )
-      throw new Error('expected retry exhaustion')
-    } catch (error) {
-      expect(error).toBeInstanceOf(AppError)
-      const appError = error as AppError
-      expect(appError.headers?.get('retry-after')).toBe('3')
-      expect(classifyFetchRetry(appError, 'runtime_http_read')).toEqual({
-        shouldRetry: true,
-        delayMs: 3_000,
-        reason: 'retryable status 429'
-      })
-    }
+      ),
+      { instanceOf: AppError, kind: 'retry_exhausted', headers: { 'retry-after': '3' } }
+    )
+    expect(classifyFetchRetry(exhausted, 'runtime_http_read')).toEqual({
+      shouldRetry: true,
+      delayMs: 3_000,
+      reason: 'retryable status 429'
+    })
   })
 
   test('withRetry reports actual attempts when a later failure is non-retryable', async () => {
     let attempts = 0
 
-    try {
-      await withRetry(
+    const exhausted = await expectProviderHttpError(
+      () => withRetry(
         {
           retryClass: 'runtime_http_read',
           operationName: 'test-provider-create',
@@ -358,17 +354,17 @@ describe('retry error contracts', () => {
           throw ProviderError('bad request', { status: 400, stage: 'create' })
         },
         (error) => classifyFetchRetry(error, 'runtime_http_read')
-      )
-      throw new Error('expected retry failure')
-    } catch (error) {
-      expect(error).toBeInstanceOf(AppError)
-      const appError = error as AppError
-      expect(appError.message).toContain('test-provider-create failed after 2/4 attempts (non-retryable status 400,')
-      expect(appError.status).toBe(400)
-      expect(appError.stage).toBe('create')
-      expect(appError.metadata['attemptsMade']).toBe(2)
-      expect(appError.metadata['stopReason']).toBe('non-retryable status 400')
-    }
+      ),
+      {
+        instanceOf: AppError,
+        kind: 'retry_exhausted',
+        status: 400,
+        stage: 'create',
+        messageContains: 'test-provider-create failed after 2/4 attempts (non-retryable status 400,'
+      }
+    ) as AppError
+    expect(exhausted.metadata['attemptsMade']).toBe(2)
+    expect(exhausted.metadata['stopReason']).toBe('non-retryable status 400')
   })
 
   test('withRetry rethrows a first non-retryable failure unchanged', async () => {

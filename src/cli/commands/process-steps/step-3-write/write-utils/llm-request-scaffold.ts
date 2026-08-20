@@ -45,7 +45,11 @@ export const executeLlmRequest = async <TPrepared = undefined>(
 
     return { result: instrumentation.responseText, metadata }
   } catch (error) {
-    l.error(`Failed to run ${spec.providerLabel} model`, error)
+    l.error(`Failed to run ${spec.providerLabel} model`, {
+      category: 'pipeline',
+      error,
+      metadata: { provider: spec.providerLabel }
+    })
     throw error
   }
 }

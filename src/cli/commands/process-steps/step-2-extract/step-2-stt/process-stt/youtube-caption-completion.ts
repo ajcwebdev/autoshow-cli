@@ -101,7 +101,7 @@ export const completeYoutubeCaptionStt = async ({
   }, null, 2)
   await writePipelineItemRecords(outputDir, 'extract', 'single', [JSON.parse(metadataJson)], { extractRoute: 'media' })
   logManifestLocation(outputDir, l, 'extract')
-  l.debug(`Canonical manifest item metadata:\n${metadataJson}`)
+  l.debug(`Canonical manifest item metadata:\n${metadataJson}`, { category: 'artifact' })
 
   const artifactFiles: Record<string, string> = {
     audio: prepared.step1Metadata.audioFileName,

@@ -94,5 +94,5 @@ export const setupCommand = defineCliCommand({
     })
   }
 
-  l.write('success', 'Setup complete')
+  l.write('success', 'Setup complete', { category: 'command' })
 })

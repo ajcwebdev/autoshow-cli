@@ -5,7 +5,7 @@ import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extr
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { withRetry } from '~/utils/retries'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { InfraError, InternalError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiGetFile, geminiUploadFile, geminiUserContent, getGeminiFileState } from '~/utils/gemini/gemini-rest'
 import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '../../stt-utils/stt-utils'
 import { detectCompressedTimingCoverage } from '../../stt-utils/stt-timing-quality'
@@ -300,7 +300,10 @@ export const runGeminiStt = async (
           try {
             await geminiDeleteFile(apiKey, uploadedFileName)
           } catch (error) {
-            l.warn(`Failed to delete Gemini STT upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`)
+            l.warn(`Failed to delete Gemini STT upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`, {
+        category: 'pipeline',
+        metadata: { provider: 'gemini', uploadedFileName, error: serializeDiagnosticError(error) }
+      })
           }
         }
       }

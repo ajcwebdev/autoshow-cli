@@ -1,4 +1,6 @@
 import type { RetryClass, Step2Metadata, SupadataHttpError, SupadataStage } from '~/types'
+import { ProviderError } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
 import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import { describeSupadataUnsupportedSource } from './supadata'
 import { extractSupadataErrorMessage, isRecord } from './supadata-response-parsers'
@@ -47,18 +49,17 @@ export const toSupadataHttpError = (
   messagePrefix = 'Supadata request failed'
 ): SupadataHttpError => {
   const message = extractSupadataErrorMessage(payload)
-  return Object.assign(
-    new Error(`${messagePrefix} (${response.status}): ${message ?? 'Unknown error'}`),
+  return httpResponseError(
+    `${messagePrefix} (${response.status}): ${message ?? 'Unknown error'}`,
+    response,
     {
-      status: response.status,
-      headers: response.headers,
       stage,
       retryClass,
       rawResponse: payload,
       // Plan-quota exhaustion is terminal for this run; retrying only spends more
       // quota-denied requests. Burst 429s keep the default retryable behavior.
       ...(isSupadataPlanLimitExhausted(payload, message) ? { retryable: false } : {})
-    } satisfies Pick<SupadataHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'rawResponse'> & { retryable?: false }
+    } satisfies Pick<SupadataHttpError, 'stage' | 'retryClass' | 'rawResponse'> & { retryable?: false }
   )
 }
 
@@ -68,7 +69,7 @@ export const attachSupadataErrorContext = (
   retryClass: RetryClass,
   rawResponse?: unknown
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as SupadataHttpError).stage = stage
   ;(source as SupadataHttpError).retryClass = retryClass
   if (rawResponse !== undefined) {
@@ -80,10 +81,12 @@ export const attachSupadataErrorContext = (
 export const buildSupadataUnsupportedSourceError = (
   sourceUrl: string | undefined
 ): SupadataHttpError => Object.assign(
-  new Error(describeSupadataUnsupportedSource(sourceUrl)),
+  ProviderError(describeSupadataUnsupportedSource(sourceUrl), { stage: 'create', retryable: false }),
   {
     stage: 'create' as const,
     retryable: false,
+    // `skipped` stays an own property: `classifySttProviderFailure` reads it directly off
+    // each chain entry rather than through `extractErrorMetadata`.
     skipped: true
   }
 )

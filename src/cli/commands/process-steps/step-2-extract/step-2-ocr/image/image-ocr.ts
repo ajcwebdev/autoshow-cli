@@ -5,6 +5,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { ensureTesseractSetup, ocrImage } from '../ocr-utils/tesseract-utils'
 import { openZip, readZipEntryData } from '~/cli/commands/process-steps/step-1-download/document/zip-xml-utils'
 import { normalizeImageToPngWithBun } from '../ocr-utils/bun-image-utils'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const IMAGE_FORMATS = new Set(['png', 'jpg', 'tif', 'webp', 'bmp', 'gif'])
 
@@ -73,7 +74,10 @@ const normalizeImageForOcr = async (
       await normalizeImageToPngWithBun(imagePath, pngPath)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      l.warn(`Bun.Image conversion failed for ${imagePath}: ${message}`)
+      l.warn(`Bun.Image conversion failed for ${imagePath}: ${message}`, {
+      category: 'pipeline',
+      metadata: { imagePath, error: serializeDiagnosticError(error) }
+    })
       return imagePath
     }
     return pngPath

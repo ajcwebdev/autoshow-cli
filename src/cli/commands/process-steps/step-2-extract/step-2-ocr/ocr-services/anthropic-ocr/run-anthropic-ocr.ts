@@ -10,7 +10,7 @@ import { getAnthropicClientConfig } from '~/cli/commands/process-steps/step-3-wr
 import { OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { InfraError, InternalError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA, HostedOcrEnvelopeSchema, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
@@ -142,7 +142,10 @@ const runMessageWithSchemaRetry = async (
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
       if (attempt < OCR_SCHEMA_RETRY_ATTEMPTS - 1) {
-        l.warn(`Anthropic OCR returned malformed output for ${pageLabel}; retrying`)
+        l.warn(`Anthropic OCR returned malformed output for ${pageLabel}; retrying`, {
+        category: 'pipeline',
+        metadata: { provider: 'anthropic', pageLabel, attempt, maxAttempts: OCR_SCHEMA_RETRY_ATTEMPTS }
+      })
         continue
       }
     }
@@ -292,7 +295,10 @@ const runPdfChunk = async (
           beta: ANTHROPIC_OCR_FILES_BETA
         })
       } catch (error) {
-        l.warn(`Failed to delete Anthropic OCR upload ${uploadedFileId}: ${error instanceof Error ? error.message : String(error)}`)
+        l.warn(`Failed to delete Anthropic OCR upload ${uploadedFileId}: ${error instanceof Error ? error.message : String(error)}`, {
+        category: 'pipeline',
+        metadata: { provider: 'anthropic', uploadedFileId, error: serializeDiagnosticError(error) }
+      })
       }
     }
     if (tempDir !== undefined) {

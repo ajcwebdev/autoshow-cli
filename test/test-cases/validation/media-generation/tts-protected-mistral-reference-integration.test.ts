@@ -18,6 +18,8 @@ import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { assertMistralReferenceAudioDecodable } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-reference-audio-preflight'
+import { installMockFetch, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const roots: string[] = []
 
@@ -68,8 +70,7 @@ const planSpeakerReferenceOptions = async (
     flagOccurrences: occurrences,
     cliReferenceInput: 'standalone-mistral'
   })
-  const plan = await planStandaloneMistralSpeakerReferences(mappings, inputs, store)
-  if (!plan) throw new Error('Expected a protected Mistral speaker-reference plan.')
+  const plan = requireDefined(await planStandaloneMistralSpeakerReferences(mappings, inputs, store), 'a protected Mistral speaker-reference plan')
   return plan.attach({
     mistralTtsModels: ['voxtral-mini-tts-2603'],
     ttsDialogueFormat: 'labeled',
@@ -180,17 +181,14 @@ describe('standalone Mistral protected request references', () => {
     options = await materializeStandaloneMistralReference(options, runDir)
     expect(ingestCalls).toBe(2)
     expect(resolveCalls).toBe(0)
-    const target = collectTtsTargets(options)[0]
-    if (!target) throw new Error('Expected the protected Mistral dialogue target.')
+    const target = requireDefined(collectTtsTargets(options)[0], 'the protected Mistral dialogue target')
 
     const previousFetch = globalThis.fetch
     const previousApiKey = process.env['MISTRAL_API_KEY']
-    const calls: Array<Record<string, unknown>> = []
     process.env['MISTRAL_API_KEY'] = 'local-mock-key'
-    globalThis.fetch = (async (_input, init) => {
-      calls.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
-      return Response.json({ audio_data: createMockWavBase64() })
-    }) as typeof fetch
+    const mockCalls = installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
+    const calls = (): Array<Record<string, unknown>> =>
+      mockCalls.map((call) => call.bodyJson ?? {})
     try {
       const result = await runMultiSpeakerTts(
         'Host: First line.\nGuest: Second line.\nHost: Third line.',
@@ -199,11 +197,11 @@ describe('standalone Mistral protected request references', () => {
         options
       )
       expect(resolveCalls).toBe(3)
-      expect(calls).toHaveLength(3)
+      expect(calls()).toHaveLength(3)
       const hostReference = Buffer.from(hostBytes).toString('base64')
       const guestReference = Buffer.from(guestBytes).toString('base64')
-      expect(calls.filter((call) => call['ref_audio'] === hostReference).map((call) => call['input']).sort()).toEqual(['First line.', 'Third line.'])
-      expect(calls.filter((call) => call['ref_audio'] === guestReference).map((call) => call['input'])).toEqual(['Second line.'])
+      expect(calls().filter((call) => call['ref_audio'] === hostReference).map((call) => call['input']).sort()).toEqual(['First line.', 'Third line.'])
+      expect(calls().filter((call) => call['ref_audio'] === guestReference).map((call) => call['input'])).toEqual(['Second line.'])
       const observable = JSON.stringify({
         options,
         target: { ...target, run: undefined },
@@ -325,7 +323,7 @@ describe('standalone Mistral protected request references', () => {
         ingestCalls++
         throw new Error('corrupt input must not be ingested')
       },
-      resolve: async () => { throw new Error('corrupt input must not resolve') }
+      resolve: unexpectedCall('protected-reference resolve for corrupt input')
     }
 
     const singleError = await planStandaloneMistralReference(
@@ -568,7 +566,7 @@ describe('standalone Mistral protected request references', () => {
     const previousFetch = globalThis.fetch
     const previousApiKey = process.env['MISTRAL_API_KEY']
     process.env['MISTRAL_API_KEY'] = 'local-mock-key'
-    globalThis.fetch = (async () => Response.json({ audio_data: createMockWavBase64() })) as unknown as typeof fetch
+    installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
 
     try {
       let result!: Awaited<ReturnType<typeof targets[number]['run']>>

@@ -1,12 +1,9 @@
 import { expect } from 'bun:test'
 import { budgetedTest } from '../../../../test-utils/budget'
-import {
-  runCommand,
-  fileExists,
-  findLatestDirectory,
-} from '../../../../test-utils/test-helpers'
+import { runCommand, findLatestDirectory } from '../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVars } from '../../../../test-utils/service-test-kit'
+import { expectArtifact, requireDefined } from '../../../../test-utils/value-assertions'
 
 const MUSIC_GEN_TITLE = 'music-gen'
 
@@ -26,13 +23,10 @@ budgetedTest('music-multi-minimax-music-3.0-gemini-lyria-3-pro-preview', 'multi-
 
   expect(result.exitCode).toBe(0)
 
-  const outputDir = await findLatestDirectory(MUSIC_GEN_TITLE, result.outputRoot)
-  if (!outputDir) {
-    throw new Error(`Expected output directory for ${MUSIC_GEN_TITLE}`)
-  }
+  const outputDir = requireDefined(await findLatestDirectory(MUSIC_GEN_TITLE, result.outputRoot), `output directory for ${MUSIC_GEN_TITLE}`)
 
-  expect(await fileExists(`${outputDir}/generated-music-minimax-music-3.0.mp3`)).toBe(true)
-  expect(await fileExists(`${outputDir}/generated-music-gemini-lyria-3-pro-preview.mp3`)).toBe(true)
+  await expectArtifact(`${outputDir}/generated-music-minimax-music-3.0.mp3`)
+  await expectArtifact(`${outputDir}/generated-music-gemini-lyria-3-pro-preview.mp3`)
 
   const metadata = await readCanonicalRecord(outputDir) as {
     music?: Array<{ musicService?: string; musicModel?: string; lyricsSource?: string }>

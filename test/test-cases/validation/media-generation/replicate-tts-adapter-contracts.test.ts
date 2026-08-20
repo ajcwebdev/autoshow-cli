@@ -1,8 +1,5 @@
 import type { TtsRequestEvidenceScope, TtsSerializedRequestObservation, TtsTargetInvocation } from '~/types'
-import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { describe, expect, test } from 'bun:test'
 import { collectReplicateTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-replicate/replicate-tts-targets'
 import {
   REPLICATE_KOKORO_MODEL_ID,
@@ -17,13 +14,14 @@ import { resolveTtsTargetInvocationControls } from '~/cli/commands/process-steps
 import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tts/tts-targets/tts-target-selection'
 import { REPLICATE_DEFAULT_TTS_VOICE } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const roots: string[] = []
 const POLL_URL = 'https://api.replicate.com/v1/predictions/prediction-1'
 const OUTPUT_URL = 'https://replicate.delivery/kokoro-output.wav'
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map(async root => await rm(root, { recursive: true, force: true })))
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['REPLICATE_API_TOKEN'],
+  tempPrefix: 'autoshow-replicate-kokoro-'
 })
 
 const invocation = (controls: TtsTargetInvocation['controls'], voice: TtsTargetInvocation['voice'] = { kind: 'id', value: 'af_bella' }): TtsTargetInvocation => Object.freeze({
@@ -104,101 +102,81 @@ describe('Replicate Kokoro TTS contracts', () => {
   })
 
   test('polls a starting prediction then downloads the output before remote expiry', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-replicate-kokoro-poll-'))
-    roots.push(root)
-    const priorFetch = globalThis.fetch
-    const calls: Array<{ url: string, method: string, body?: unknown }> = []
+    const root = await tempDirs.make()
     const observations: TtsSerializedRequestObservation[] = []
-    globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-      const url = String(input)
-      const method = init?.method ?? 'GET'
-      calls.push({ url, method, ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}) })
-      if (url.endsWith('/v1/predictions') && method === 'POST') {
+    const calls = installMockFetch((call) => {
+      if (call.url.endsWith('/v1/predictions') && call.method === 'POST') {
         return Response.json({
           id: 'prediction-1',
           status: 'starting',
           urls: { get: POLL_URL, cancel: `${POLL_URL}/cancel` },
         })
       }
-      if (url === POLL_URL) {
+      if (call.url === POLL_URL) {
         return Response.json({ id: 'prediction-1', status: 'succeeded', output: OUTPUT_URL })
       }
-      if (url === OUTPUT_URL) {
+      if (call.url === OUTPUT_URL) {
         return new Response(createMockWavBytes(), { headers: { 'content-type': 'audio/wav' } })
       }
-      throw new Error(`Unexpected network call: ${method} ${url}`)
-    }) as typeof fetch
-    try {
-      const result = await runReplicateTts('Pinned Kokoro request.', root, {
-        model: REPLICATE_KOKORO_MODEL_ID,
-        apiKey: 'local-mock-key',
-        voiceId: 'am_puck',
-        speed: 1.1,
-        requestEvidence: evidence(observations),
-      })
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toEqual([
-        {
-          url: 'https://api.replicate.com/v1/predictions',
-          method: 'POST',
-          body: {
-            version: `${REPLICATE_KOKORO_MODEL_ID}:${REPLICATE_KOKORO_VERSION}`,
-            input: { text: 'Pinned Kokoro request.', voice: 'am_puck', speed: 1.1 },
-          },
+      throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
+    })
+
+    const result = await runReplicateTts('Pinned Kokoro request.', root, {
+      model: REPLICATE_KOKORO_MODEL_ID,
+      apiKey: 'local-mock-key',
+      voiceId: 'am_puck',
+      speed: 1.1,
+      requestEvidence: evidence(observations),
+    })
+    expect(await Bun.file(result.audioPath).exists()).toBe(true)
+    expect(calls.map((call) => ({ url: call.url, method: call.method, ...(call.bodyJson ? { body: call.bodyJson } : {}) }))).toEqual([
+      {
+        url: 'https://api.replicate.com/v1/predictions',
+        method: 'POST',
+        body: {
+          version: `${REPLICATE_KOKORO_MODEL_ID}:${REPLICATE_KOKORO_VERSION}`,
+          input: { text: 'Pinned Kokoro request.', voice: 'am_puck', speed: 1.1 },
         },
-        { url: POLL_URL, method: 'GET' },
-        { url: OUTPUT_URL, method: 'GET' },
-      ])
-      expect(observations[0]).toMatchObject({
-        endpointKind: 'predictions',
-        serializerVersion: REPLICATE_KOKORO_SERIALIZER_VERSION,
-        voiceField: 'input.voice',
-        serializedRequest: { path: '/v1/predictions' },
-      })
-    } finally {
-      globalThis.fetch = priorFetch
-    }
+      },
+      { url: POLL_URL, method: 'GET' },
+      { url: OUTPUT_URL, method: 'GET' },
+    ])
+    expect(observations[0]).toMatchObject({
+      endpointKind: 'predictions',
+      serializerVersion: REPLICATE_KOKORO_SERIALIZER_VERSION,
+      voiceField: 'input.voice',
+      serializedRequest: { path: '/v1/predictions' },
+    })
   }, 10_000)
 
   test('fails empty prediction output and empty downloads instead of fabricating audio', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-replicate-kokoro-empty-'))
-    roots.push(root)
-    const priorFetch = globalThis.fetch
-    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
-      if (String(input).endsWith('/v1/predictions')) {
+    const root = await tempDirs.make()
+    installMockFetch((call) => {
+      if (call.url.endsWith('/v1/predictions')) {
         return Response.json({ id: 'prediction-empty', status: 'succeeded' })
       }
-      throw new Error(`Unexpected network call: ${String(input)}`)
-    }) as typeof fetch
-    try {
-      await expect(runReplicateTts('Missing output.', root, {
-        model: REPLICATE_KOKORO_MODEL_ID,
-        apiKey: 'local-mock-key',
-        voiceId: 'af_bella',
-      })).rejects.toThrow('completed without an audio output URL')
-    } finally {
-      globalThis.fetch = priorFetch
-    }
+      throw new Error(`Unexpected network call: ${call.url}`)
+    })
+    await expect(runReplicateTts('Missing output.', root, {
+      model: REPLICATE_KOKORO_MODEL_ID,
+      apiKey: 'local-mock-key',
+      voiceId: 'af_bella',
+    })).rejects.toThrow('completed without an audio output URL')
 
-    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
-      const url = String(input)
-      if (url.endsWith('/v1/predictions')) {
+    installMockFetch((call) => {
+      if (call.url.endsWith('/v1/predictions')) {
         return Response.json({ id: 'prediction-blank', status: 'succeeded', output: OUTPUT_URL })
       }
-      if (url === OUTPUT_URL) {
+      if (call.url === OUTPUT_URL) {
         return new Response(new Uint8Array(), { headers: { 'content-type': 'audio/wav' } })
       }
-      throw new Error(`Unexpected network call: ${url}`)
-    }) as typeof fetch
-    try {
-      await expect(runReplicateTts('Empty download.', root, {
-        model: REPLICATE_KOKORO_MODEL_ID,
-        apiKey: 'local-mock-key',
-        voiceId: 'af_bella',
-      })).rejects.toThrow('audio download was empty')
-    } finally {
-      globalThis.fetch = priorFetch
-    }
+      throw new Error(`Unexpected network call: ${call.url}`)
+    })
+    await expect(runReplicateTts('Empty download.', root, {
+      model: REPLICATE_KOKORO_MODEL_ID,
+      apiKey: 'local-mock-key',
+      voiceId: 'af_bella',
+    })).rejects.toThrow('audio download was empty')
   }, 10_000)
 
   test('advanced provider declares unsupported management facets without fake catalog entries', () => {

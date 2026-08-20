@@ -1,9 +1,10 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
-import { readdir, rm } from 'node:fs/promises'
-import { cleanupTestOutput, runCommand, fileExists, findLatestDirectory, ensurePageImageFixture } from '../../../../../test-utils/test-helpers'
+import { readdir } from 'node:fs/promises'
+import { cleanupOutputDir, cleanupTestOutput, ensurePageImageFixture, fileExists, findLatestDirectory, runCommand } from '../../../../../test-utils/test-helpers'
 import { readCanonicalManifest, readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import type { OcrE2eExtractMetadata } from '~/types'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const pdfInput = 'input/examples/document/1-document.pdf'
 const multiPagePdfInput = 'input/examples/document/3-document.pdf'
@@ -39,9 +40,9 @@ test('extract PDF with default options', async () => {
 
   const outputDir = requireOutputDir(result.outputDir ?? await findLatestDirectory('1-document', result.outputRoot), '1-document')
 
-  expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
+  await expectArtifact(`${outputDir}/extraction.txt`)
   expect(await fileExists(`${outputDir}/result.json`)).toBe(false)
-  expect(await fileExists(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)).toBe(true)
+  await expectArtifact(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)
 
   const manifest = await readCanonicalManifest(outputDir)
   const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
@@ -74,7 +75,7 @@ test('extract PDF with --out json', async () => {
   const outputDir = requireOutputDir(result.outputDir ?? await findLatestDirectory('1-document', result.outputRoot), '1-document')
 
   expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(false)
-  expect(await fileExists(`${outputDir}/result.json`)).toBe(true)
+  await expectArtifact(`${outputDir}/result.json`)
 })
 
 test('extract EPUB with default options writes cleaned text and chapter metadata without synthetic page labels', async () => {
@@ -167,7 +168,7 @@ test('bun autoshow extract https://ajcwebdev.com --url-provider defuddle', async
 
     outputDir = requireOutputDir(result.outputDir, 'defuddle URL extraction')
 
-    expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
+    await expectArtifact(`${outputDir}/extraction.txt`)
 
     const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
     expect(metadata.step1?.format).toBe('html')
@@ -179,9 +180,7 @@ test('bun autoshow extract https://ajcwebdev.com --url-provider defuddle', async
     })
     expect(metadata.requestedProviders).toEqual([{ service: 'defuddle', model: 'defuddle' }])
   } finally {
-    if (outputDir && process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS'] === '0') {
-      await rm(outputDir, { recursive: true, force: true }).catch(() => {})
-    }
+    await cleanupOutputDir(outputDir)
   }
 })
 

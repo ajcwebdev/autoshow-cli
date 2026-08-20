@@ -7,6 +7,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { linksTestOutputPath } from './shared'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const DIRECT_REFRESH_URL = 'blob:https://example.com/docs'
 const DIRECT_FETCH_URL = 'https://example.com/docs'
@@ -21,18 +22,12 @@ const readRefreshMetadata = async (path: string): Promise<LinksRefreshMetadata> 
   JSON.parse(await Bun.file(path).text()) as LinksRefreshMetadata
 
 const firstRefreshLink = (metadata: LinksRefreshMetadata): LinksRefreshLinkMetadata => {
-  const link = metadata.links[0]
-  if (!link) {
-    throw new Error('Expected refresh metadata to include at least one link')
-  }
+  const link = requireDefined(metadata.links[0], 'refresh metadata to include at least one link')
   return link
 }
 
 const refreshLinkAt = (metadata: LinksRefreshMetadata, index: number): LinksRefreshLinkMetadata => {
-  const link = metadata.links[index]
-  if (!link) {
-    throw new Error(`Expected refresh metadata to include link at index ${index}`)
-  }
+  const link = requireDefined(metadata.links[index], `refresh metadata to include link at index ${index}`)
   return link
 }
 
@@ -280,10 +275,7 @@ test('links refresh fetches with bounded concurrency while preserving output ord
     `https://example.com/bounded-${index}.md`
   )
   const failIndex = DEFAULT_CLI_CONCURRENCY + 1
-  const failUrl = urls[failIndex]
-  if (!failUrl) {
-    throw new Error('Expected bounded concurrency fixture to include a failure URL')
-  }
+  const failUrl = requireDefined(urls[failIndex], 'bounded concurrency fixture to include a failure URL')
 
   const urlIndexes = new Map(urls.map((url, index) => [url, index]))
   const startedUrls: string[] = []

@@ -286,16 +286,19 @@ describe('native CLI parser contracts', () => {
     expect(() => parseCommandInvocation(argv, runCommand, globalFlags)).toThrow(expectedMessage)
     await expect(dispatchNativeCli(argv, root, commands)).rejects.toThrow(expectedMessage)
 
+    // Sentinel outside the try (via `expect.unreachable`) so a parse that wrongly succeeds
+    // reports exactly that instead of being swallowed by this catch.
+    let unknownFlagError: NativeUnknownFlagError | undefined
     try {
       parseCommandInvocation(argv, runCommand, globalFlags)
-      throw new Error('Expected parseCommandInvocation to reject unknown flags')
     } catch (error) {
       expect(error).toBeInstanceOf(NativeUnknownFlagError)
-      const unknownFlagError = error as NativeUnknownFlagError
-      expect(unknownFlagError.flagSpellings).toEqual(['--misspelled-long', '-x', '--Mixed--spelling'])
-      expect(unknownFlagError.flagNames).toBe(unknownFlagError.flagSpellings)
-      expect(unknownFlagError.message).not.toContain('secret')
+      unknownFlagError = error as NativeUnknownFlagError
     }
+    if (!unknownFlagError) expect.unreachable('Expected parseCommandInvocation to reject unknown flags')
+    expect(unknownFlagError.flagSpellings).toEqual(['--misspelled-long', '-x', '--Mixed--spelling'])
+    expect(unknownFlagError.flagNames).toBe(unknownFlagError.flagSpellings)
+    expect(unknownFlagError.message).not.toContain('secret')
   })
 
   test('falls back to normalized unknown keys for synthetic parse results without unknown occurrences', () => {

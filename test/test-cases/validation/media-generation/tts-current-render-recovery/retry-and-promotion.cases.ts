@@ -16,6 +16,7 @@ import {
   latestJournalForState,
   syntheticRecoveryAudio
 } from './shared'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const authorizedRetryScenario = async (dir: string): Promise<void> => {
   const text = 'Recover within this run.'
@@ -24,8 +25,7 @@ const authorizedRetryScenario = async (dir: string): Promise<void> => {
   const attempts: number[] = []
   await runTtsForTargets(text, dir, { ttsAllowAmbiguousRedispatch: true }, [createAuthorizedRetryFixtureTarget(attempts)], { sourceIdentity, dialoguePlan })
   expect(attempts).toEqual([1, 2, 3])
-  const resultPath = (await readdir(dir, { recursive: true })).find((name) => name.endsWith('/provider-batch-result.json'))
-  if (!resultPath) throw new Error('Missing authorized retry batch result')
+  const resultPath = requireDefined((await readdir(dir, { recursive: true })).find((name) => name.endsWith('/provider-batch-result.json')), 'authorized retry batch result')
   const result = await Bun.file(join(dir, resultPath)).json()
   expect(result.status).toBe('succeeded')
   expect(result.observedRequests).toHaveLength(3)

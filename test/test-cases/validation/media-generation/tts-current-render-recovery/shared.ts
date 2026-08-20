@@ -10,6 +10,7 @@ import type {
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { ProviderError } from '~/utils/error-handler'
 import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 export const DIALOGUE_OPTIONS: TtsOptions = {
   ttsDialogueFormat: 'labeled',
@@ -222,12 +223,10 @@ export const createRejectedDialogueFixtureTarget = (
 
 export const crashAfterPromotedResult = (state: PipelineProviderState): PipelineProviderState => {
   const projection = structuredClone(state.result?.['ttsAudio']) as CanonicalAudioProviderProjection
-  const render = projection.renderHistory[0]
-  if (!render) throw new Error('Missing recovery fixture render')
+  const render = requireDefined(projection.renderHistory[0], 'recovery fixture render')
   const running = [...render.events].reverse().find((event) => event.status === 'running' && event.providerRenderResultRef === undefined)
   const promoted = [...render.events].reverse().find((event) => event.status === 'running' && event.admissionJournalRef)
-  const selected = promoted ?? running
-  if (!selected) throw new Error('Missing recovery fixture running event')
+  const selected = requireDefined(promoted ?? running, 'recovery fixture running event')
   render.events = render.events.filter((event) => event.sequence <= selected.sequence)
   projection.activeWork = { kind: 'render', renderIdentity: render.renderIdentity, eventSequence: selected.sequence }
   delete projection.selectedSuccess

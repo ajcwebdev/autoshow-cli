@@ -5,6 +5,7 @@ import { isExtractCommand } from '~/cli/commands/process-steps/process-command-k
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import type { CommandPricingOptions, PricingRuntimeOptions, ProcessCommand } from '~/types'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const reportSuitePriceEstimate = async (
   command: ProcessCommand,
@@ -28,7 +29,10 @@ export const reportSuitePriceEstimate = async (
     } catch (error) {
       skipped++
       const message = error instanceof Error ? error.message : String(error)
-      l.warn(`Price estimate failed for ${item}: ${message}`)
+      l.warn(`Price estimate failed for ${item}: ${message}`, {
+        category: 'pricing',
+        metadata: { item, error: serializeDiagnosticError(error) }
+      })
     }
   })
 
@@ -38,7 +42,10 @@ export const reportSuitePriceEstimate = async (
     totalEstimatedCost: suiteTotalEstimatedCost
   })
   if (skipped > 0) {
-    l.warn(`${skipped} item(s) skipped due to price estimation errors`)
+    l.warn(`${skipped} item(s) skipped due to price estimation errors`, {
+      category: 'pricing',
+      metadata: { skippedCount: skipped, checkedCount: targets.length - skipped }
+    })
   }
 
   return suiteTotalEstimatedCost

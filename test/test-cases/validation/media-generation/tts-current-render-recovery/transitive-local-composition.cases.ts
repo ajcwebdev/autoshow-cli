@@ -17,6 +17,7 @@ import type {
 } from '~/types'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import { createDialogueFixtureTarget, DIALOGUE_OPTIONS, latestJournalForState } from './shared'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const MODEL = 'gpt-4o-mini-tts-2025-12-15'
 
@@ -36,8 +37,7 @@ const requireProviderState = (
 
 const attemptsRootForState = (dir: string, state: PipelineProviderState): string => {
   const projection = state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
-  const render = projection?.renderHistory[0]
-  if (!render) throw new Error('Missing transitive retained render')
+  const render = requireDefined(projection?.renderHistory[0], 'transitive retained render')
   return join(dir, state.artifactDir, render.renderDir, 'attempts')
 }
 

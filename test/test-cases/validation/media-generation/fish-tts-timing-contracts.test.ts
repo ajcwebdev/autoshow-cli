@@ -1,8 +1,5 @@
 import type { NormalizedTiming, TtsRequestEvidenceScope, TtsSerializedRequestObservation } from '~/types'
-import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { describe, expect, test } from 'bun:test'
 import {
   FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION,
   FISH_TIMESTAMP_SERIALIZER_VERSION,
@@ -19,11 +16,11 @@ import { runFishNativeDialogue } from '~/cli/commands/process-steps/step-4-tts/t
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
 import { createFishAdvancedProvider } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const roots: string[] = []
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map(async root => await rm(root, { recursive: true, force: true })))
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['FISH_API_KEY'],
+  tempPrefix: 'autoshow-fish-timing-'
 })
 
 const sse = (event: unknown): string => `data: ${JSON.stringify(event)}\n\n`
@@ -80,9 +77,7 @@ describe('Fish timestamp stream reduction', () => {
 
 describe('Fish timestamped synthesis contracts', () => {
   test('serializes s2.1-pro timestamp streaming and binds alignment to the planned turn', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-fish-timing-'))
-    roots.push(root)
-    const priorFetch = globalThis.fetch
+    const root = await tempDirs.make()
     const observations: TtsSerializedRequestObservation[] = []
     const timings: Array<NormalizedTiming<'take-audio-ms'>> = []
     const evidence: TtsRequestEvidenceScope = {
@@ -96,18 +91,14 @@ describe('Fish timestamped synthesis contracts', () => {
       complete: async () => {},
     }
     const audio = createMockWavBase64()
-    globalThis.fetch = (async () => new Response(sse({
+    installMockFetch(() => new Response(sse({
       audio_base64: audio,
       content: 'Ready?',
       chunk_seq: 0,
       chunk_audio_offset_sec: 0,
       alignment: { audio_duration: 0.05, segments: [{ text: 'Ready?', start: 0, end: 0.05 }] },
-    }), { status: 200, headers: { 'content-type': 'text/event-stream', 'x-request-id': 'fish-ts-1' } })) as unknown as typeof fetch
-    try {
-      await runFishTts('Ready?', root, { model: 's2.1-pro', apiKey: 'local-test-key', voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1', requestEvidence: evidence })
-    } finally {
-      globalThis.fetch = priorFetch
-    }
+    }), { status: 200, headers: { 'content-type': 'text/event-stream', 'x-request-id': 'fish-ts-1' } }))
+    await runFishTts('Ready?', root, { model: 's2.1-pro', apiKey: 'local-test-key', voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1', requestEvidence: evidence })
     expect(observations[0]).toMatchObject({
       serializerVersion: FISH_TIMESTAMP_SERIALIZER_VERSION,
       endpointKind: 'text-to-speech-stream-with-timestamps',
@@ -125,8 +116,7 @@ describe('Fish timestamped synthesis contracts', () => {
       apiKey: 'local-test-key',
     })).rejects.toThrow('requires model s2.1-pro')
 
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-fish-native-'))
-    roots.push(root)
+    const root = await tempDirs.make()
     const observations: TtsSerializedRequestObservation[] = []
     const timings: Array<NormalizedTiming<'take-audio-ms'>> = []
     const evidence: TtsRequestEvidenceScope = {
@@ -137,9 +127,8 @@ describe('Fish timestamped synthesis contracts', () => {
       recordOutput: async output => { if (output.timing) timings.push(output.timing) },
       complete: async () => {},
     }
-    const priorFetch = globalThis.fetch
     const audio = createMockWavBase64()
-    globalThis.fetch = (async () => new Response([
+    installMockFetch(() => new Response([
       sse({ audio_base64: audio, content: 'Hi there', chunk_seq: 0, chunk_audio_offset_sec: 0, alignment: null }),
       sse({
         audio_base64: audio,
@@ -148,15 +137,11 @@ describe('Fish timestamped synthesis contracts', () => {
         chunk_audio_offset_sec: 0,
         alignment: { audio_duration: 0.4, segments: [{ text: 'Hi', start: 0, end: 0.16 }, { text: 'there', start: 0.16, end: 0.4 }] },
       }),
-    ].join(''), { status: 200, headers: { 'content-type': 'text/event-stream' } })) as unknown as typeof fetch
-    try {
-      await runFishNativeDialogue([
-        { turnId: 't1', subjectKey: 'pilot', speaker: 'PILOT', canonicalText: 'Hi', voiceId: 'voice-a' },
-        { turnId: 't2', subjectKey: 'navigator', speaker: 'NAVIGATOR', canonicalText: 'there', voiceId: 'voice-b' },
-       ], root, { model: 's2.1-pro', apiKey: 'local-test-key', requestEvidence: evidence })
-    } finally {
-      globalThis.fetch = priorFetch
-    }
+    ].join(''), { status: 200, headers: { 'content-type': 'text/event-stream' } }))
+    await runFishNativeDialogue([
+      { turnId: 't1', subjectKey: 'pilot', speaker: 'PILOT', canonicalText: 'Hi', voiceId: 'voice-a' },
+      { turnId: 't2', subjectKey: 'navigator', speaker: 'NAVIGATOR', canonicalText: 'there', voiceId: 'voice-b' },
+    ], root, { model: 's2.1-pro', apiKey: 'local-test-key', requestEvidence: evidence })
     expect(observations[0]).toMatchObject({
       serializerVersion: FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION,
       serializedRequest: { body: { text: '<|speaker:0|>Hi<|speaker:1|>there', reference_id: ['voice-a', 'voice-b'], format: 'wav' } },
@@ -165,24 +150,18 @@ describe('Fish timestamped synthesis contracts', () => {
   })
 
   test('interrupts a timestamp stream when the abort signal fires', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-fish-abort-'))
-    roots.push(root)
+    const root = await tempDirs.make()
     const controller = new AbortController()
-    const priorFetch = globalThis.fetch
-    globalThis.fetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+    installMockFetch((_call, _input, init) => {
       controller.abort()
       init?.signal?.throwIfAborted()
       return new Response(sse({ audio_base64: createMockWavBase64(), content: 'Hi', chunk_seq: 0, chunk_audio_offset_sec: 0, alignment: null }), { status: 200 })
-    }) as unknown as typeof fetch
-    try {
-      await expect(runFishTts('Ready?', root, {
-        model: 's2.1-pro',
-        apiKey: 'local-test-key',
-        abortSignal: controller.signal,
-      })).rejects.toThrow()
-    } finally {
-      globalThis.fetch = priorFetch
-    }
+    })
+    await expect(runFishTts('Ready?', root, {
+      model: 's2.1-pro',
+      apiKey: 'local-test-key',
+      abortSignal: controller.signal,
+    })).rejects.toThrow()
   })
 
   test('normalizes native dialogue words onto canonical offsets', () => {

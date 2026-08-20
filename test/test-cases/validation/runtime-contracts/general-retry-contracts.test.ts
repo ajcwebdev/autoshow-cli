@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { exec } from '~/utils/cli-utils'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
 
 describe('general retry-on-any-error contracts', () => {
   test('classifyFetchRetry retries unrecognized error types', () => {
@@ -20,8 +21,8 @@ describe('general retry-on-any-error contracts', () => {
   })
 
   test('classifyFetchRetry preserves timeout identity through retry-exhaustion wrappers', async () => {
-    try {
-      await withRetry(
+    const error = await expectProviderHttpError(
+      () => withRetry(
         {
           retryClass: 'runtime_http_read',
           operationName: 'wrapped-timeout',
@@ -37,18 +38,17 @@ describe('general retry-on-any-error contracts', () => {
           throw new DOMException('The operation timed out.', 'TimeoutError')
         },
         (error) => classifyFetchRetry(error, 'runtime_http_read')
-      )
-      throw new Error('expected retry exhaustion')
-    } catch (error) {
-      expect(classifyFetchRetry(error, 'runtime_http_create_conservative')).toMatchObject({
-        shouldRetry: false,
-        reason: 'paid create outcome is ambiguous'
-      })
-      expect(classifyFetchRetry(error, 'runtime_http_create_retriable')).toMatchObject({
-        shouldRetry: true,
-        reason: 'abort/timeout'
-      })
-    }
+      ),
+      { kind: 'retry_exhausted' }
+    )
+    expect(classifyFetchRetry(error, 'runtime_http_create_conservative')).toMatchObject({
+      shouldRetry: false,
+      reason: 'paid create outcome is ambiguous'
+    })
+    expect(classifyFetchRetry(error, 'runtime_http_create_retriable')).toMatchObject({
+      shouldRetry: true,
+      reason: 'abort/timeout'
+    })
   })
 
   test('exec does not retry by default and returns the first failing result', async () => {

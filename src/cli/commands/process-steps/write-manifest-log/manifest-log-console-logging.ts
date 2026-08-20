@@ -94,5 +94,5 @@ const logManifestConsoleSummary = (
     })
   }
 
-  logger.debug(`Manifest item metadata:\n${JSON.stringify({ command, metadata }, null, 2)}`)
+  logger.debug(`Manifest item metadata:\n${JSON.stringify({ command, metadata }, null, 2)}`, { category: 'usage' })
 }

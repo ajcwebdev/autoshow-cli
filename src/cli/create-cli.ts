@@ -1,5 +1,5 @@
 import { installProcessFailureHandlers } from '~/cli/failure-handlers'
-import { extractErrorHints, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
+import { extractErrorHints, extractErrorMetadata, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import type { HelpCommandGroupKey } from '~/types'
 import {
@@ -15,18 +15,18 @@ export { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-defin
 
 const cliErrorHandler = (error: unknown): void => {
   if (isUsageError(error)) {
-    l.error(`Usage error: ${usageMessage(error)}`)
+    l.error(`Usage error: ${usageMessage(error)}`, { category: 'usage', metadata: extractErrorMetadata(error) })
     for (const hint of extractErrorHints(error)) {
-      l.write('info', hint)
+      l.write('info', hint, { category: 'usage' })
     }
     process.exit(2)
   }
 
   const exitCode = normalizeExitCode(error)
-  l.error('Command failed', error)
+  l.error('Command failed', { category: 'command', error })
 
   for (const hint of extractErrorHints(error)) {
-    l.write('info', hint)
+    l.write('info', hint, { category: 'command' })
   }
 
   process.exit(exitCode)

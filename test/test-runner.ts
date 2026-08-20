@@ -12,7 +12,7 @@ installTimestampedConsole()
 // `error.message`, and exits with the error's own code so a usage failure from
 // `parseRunnerArgs` surfacing asynchronously still exits 2 rather than a hardcoded 1.
 const reportFatal = (label: string, err: unknown): never => {
-  l.error(label, err)
+  l.error(label, { category: 'command', error: err })
   l.write('error', 'Fatal runner diagnostics', {
     category: 'command',
     metadata: { error: serializeDiagnosticError(err) }
@@ -27,7 +27,7 @@ try {
   exitCode = await runTestRunner(process.argv)
 } catch (error) {
   exitCode = normalizeExitCode(error)
-  l.error('Test runner failed', error)
+  l.error('Test runner failed', { category: 'command', error })
   l.write('error', 'Runner failure diagnostics', {
     category: 'command',
     metadata: { error: serializeDiagnosticError(error) }

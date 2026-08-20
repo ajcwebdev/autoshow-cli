@@ -109,7 +109,7 @@ const buildGeminiMusicPrompt = async (
 
   if (options.forceInstrumental) {
     if (options.lyricsFile) {
-      l.warn('Ignoring --lyrics-file because --instrumental was provided for Gemini music generation')
+      l.warn('Ignoring --lyrics-file because --instrumental was provided for Gemini music generation', { category: 'pipeline' })
     }
     parts.push('Instrumental only, no vocals.')
     return {

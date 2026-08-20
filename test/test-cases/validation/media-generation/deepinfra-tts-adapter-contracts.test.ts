@@ -9,7 +9,7 @@ import { prepareComicSegmentedProviderTexts } from '~/cli/commands/process-steps
 import { validatePreparedProviderText } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import type { AdvancedProviderHttpRequest } from '~/types'
 
 const CHECKED_AT = '2026-08-14T00:00:00.000Z'
@@ -100,13 +100,10 @@ describe('DeepInfra Phase 4 Contracts', () => {
 
   test('classifies HTTP 500 as retryable instead of fabricating audio', async () => {
     installMockFetch(() => new Response(JSON.stringify({ error: 'upstream failed' }), { status: 500, headers: { 'content-type': 'application/json' } }))
-    try {
-      await runDeepinfraTts('Ready?', await tempDirs.make(), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key' })
-      throw new Error('expected DeepInfra 500 to fail')
-    } catch (error) {
-      expect(error).toMatchObject({ retryable: true })
-      expect(String(error)).toContain('DeepInfra TTS failed (500)')
-    }
+    await expectProviderHttpError(
+      async () => await runDeepinfraTts('Ready?', await tempDirs.make(), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key' }),
+      { retryable: true, messageContains: 'DeepInfra TTS failed (500)' }
+    )
   })
 
   test('advanced provider lists account voices and declares implemented management facets', async () => {

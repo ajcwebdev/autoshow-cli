@@ -693,6 +693,21 @@ export const findLatestDirectory = async (
   }
 }
 
+/**
+ * Removes a known output directory, honoring the preserve flag.
+ *
+ * Five e2e suites spelled this inline as `process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS']
+ * === '0'`, duplicating the flag's polarity beside `shouldPreserveArtifacts`'s `!== '0'` —
+ * the two agreed only by coincidence, and a change to the flag's default would have split
+ * them silently.
+ */
+export const cleanupOutputDir = async (dir: string | null | undefined): Promise<void> => {
+  if (!dir || shouldPreserveArtifacts()) {
+    return
+  }
+  await rm(dir, { recursive: true, force: true }).catch(() => {})
+}
+
 export const cleanupTestOutput = async (titleSuffix: string): Promise<void> => {
   if (shouldPreserveArtifacts()) {
     return
@@ -735,8 +750,13 @@ export const readConfiguredEnvVarSync = (key: string): string | undefined => {
   return undefined
 }
 
+/**
+ * The one record narrowing for the suite. Arrays are excluded: five of the six local
+ * copies this replaced did so, and treating `[]` as a record made `'field' in value`
+ * checks quietly meaningless.
+ */
 export const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export const toRecordArray = (value: unknown): Record<string, unknown>[] => {

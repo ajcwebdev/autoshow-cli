@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { classifyFetchRetry } from '~/utils/retries'
 import { isSupadataPlanLimitExhausted } from '~/utils/supadata-plan-limit'
 import { toSupadataHttpError } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-supadata/supadata-utils'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 const response = (status: number): Response => new Response(null, { status })
 
@@ -32,7 +33,7 @@ describe('Supadata plan-limit contracts', () => {
       { error: 'limit-exceeded', message: 'Limit Exceeded' }
     )
     expect(planLimit.message).toBe('Supadata request failed (429): Limit Exceeded')
-    expect((planLimit as { retryable?: unknown }).retryable).toBe(false)
+    expect(extractErrorMetadata(planLimit)['retryable']).toBe(false)
     expect(classifyFetchRetry(planLimit, 'runtime_http_create_retriable').shouldRetry).toBe(false)
 
     const burst = toSupadataHttpError(
@@ -41,7 +42,7 @@ describe('Supadata plan-limit contracts', () => {
       response(429),
       { message: 'Too many requests, slow down' }
     )
-    expect((burst as { retryable?: unknown }).retryable).toBeUndefined()
+    expect(extractErrorMetadata(burst)['retryable']).toBeUndefined()
     expect(classifyFetchRetry(burst, 'runtime_http_create_retriable').shouldRetry).toBe(true)
   })
 

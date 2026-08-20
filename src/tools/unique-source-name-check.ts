@@ -145,7 +145,7 @@ const listSourceFiles = (): string[] => {
 if (import.meta.main) {
   const violations = findSourceNameViolations(listSourceFiles())
   if (violations.length > 0) {
-    l.error(formatSourceNameViolations(violations))
+    l.error(formatSourceNameViolations(violations), { category: 'command' })
     process.exit(1)
   }
 }

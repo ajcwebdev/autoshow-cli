@@ -1,4 +1,4 @@
-import { CLIUsageError, extractErrorMetadata, hintsForMissingEnv } from '~/utils/error-handler'
+import { AppUsageError, extractErrorMetadata, hintsForMissingEnv } from '~/utils/error-handler'
 
 export const readEnv = (key: string): string | undefined => {
   const val = process.env[key]?.trim()
@@ -18,9 +18,10 @@ export const readEnv = (key: string): string | undefined => {
  * regexes that matched this function's own message text.
  */
 const missingCredentialError = (envVar: string, stage: string, description?: string): Error =>
-  Object.assign(
-    CLIUsageError(`${envVar} environment variable is required${description ? ` for ${description}` : ''}`),
-    { metadata: { missingEnvVar: envVar }, stage, retryable: false, hints: hintsForMissingEnv(envVar) }
+  new AppUsageError(
+    `${envVar} environment variable is required${description ? ` for ${description}` : ''}`,
+    hintsForMissingEnv(envVar),
+    { stage, retryable: false, metadata: { missingEnvVar: envVar } }
   )
 
 export const requireApiKey = (envVar: string, stage: string, description?: string): string => {

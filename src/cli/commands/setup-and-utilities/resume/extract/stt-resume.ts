@@ -62,7 +62,7 @@ const parseResumeRecord = async (
   const outputDir = resolveProviderResumeOutputDir(record)
   if (!outputDir) {
     if (options.ignoreUnresumableEntries) {
-      l.warn('Skipping STT item record with no resumable output directory')
+      l.warn('Skipping STT item record with no resumable output directory', { category: 'pipeline' })
       return undefined
     }
     throw CLIUsageError('Pipeline item record is missing outputDir and could not be matched to an STT output directory.')
@@ -88,7 +88,7 @@ const parseResumeRecord = async (
     source = toSourceFromStep1(record)
   } catch (error) {
     if (options.ignoreUnresumableEntries) {
-      l.warn(error instanceof Error ? error.message : String(error))
+      l.warn(error instanceof Error ? error.message : String(error), { category: 'pipeline' })
       return undefined
     }
     throw error

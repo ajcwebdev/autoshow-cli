@@ -1,4 +1,5 @@
 import type { GlobalLogger, LogCategory, LogFormatChoice, Logger, LogLevel, LogSink, ReconfigureOptions } from '~/types'
+import { LOG_LEVEL_PRIORITY } from '~/types'
 import { runWithLogContext } from '~/utils/app-logger/context-store'
 import { createLogger } from '~/utils/app-logger/core'
 import { createReporter } from '~/utils/app-logger/reporter'
@@ -66,6 +67,15 @@ export const suppressLogCategories = (categories: readonly LogCategory[]): (() =
     }
   }
 }
+
+/**
+ * Whether an event at `level` would reach a sink. The one query helper for behavior that
+ * depends on verbosity (the setup command decides whether to stream a child build's raw
+ * output this way), so callers no longer reach into `l.config.minLevel` — the only place
+ * that coupled runtime behavior to logger internals.
+ */
+export const isLogLevelEnabled = (level: LogLevel): boolean =>
+  LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[activeLogger.config.minLevel]
 
 export const clearSuppressedLogCategories = (): void => {
   activeLogger.config.suppressedCategories.length = 0

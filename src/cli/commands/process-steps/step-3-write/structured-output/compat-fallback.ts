@@ -53,7 +53,10 @@ export const runCompatFallback = async (
 
     lastIssue = validated.issue ?? 'Unknown compat validation failure'
     if (attempt < maxAttempts) {
-      l.warn(`Structured compat retry ${attempt}/${maxAttempts - 1} for ${target.label}/${model}: ${lastIssue}`)
+      l.warn(`Structured compat retry ${attempt}/${maxAttempts - 1} for ${target.label}/${model}: ${lastIssue}`, {
+        category: 'pipeline',
+        metadata: { provider: target.label, model, attempt, maxAttempts, issue: lastIssue }
+      })
     }
   }
 
@@ -61,7 +64,10 @@ export const runCompatFallback = async (
     throw InfraError(`Structured compat mode failed for ${target.label}/${model}: ${lastIssue}`, { stage: 'write:compat-fallback' })
   }
 
-  l.warn(`Structured compat fallback for ${target.label}/${model}: ${lastIssue}`)
+  l.warn(`Structured compat fallback for ${target.label}/${model}: ${lastIssue}`, {
+    category: 'pipeline',
+    metadata: { provider: target.label, model, issue: lastIssue }
+  })
   return {
     parsedJson: buildStructuredValidationFailureEnvelope(lastResponse.result, lastIssue),
     rawResponse: lastResponse.result,

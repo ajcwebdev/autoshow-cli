@@ -19,6 +19,7 @@ import { isMissingArtifactError, readContainedArtifactFile } from '../../step-4-
 import { soundscapeReportedOutputPath } from './comic-soundscape-workflow'
 import { validateComicPresentationPlan, validateResolvedPanelTimeline } from './comic-presentation-plan'
 import { PRESENTATION_ARCHIVE_PATH, validateCompactPresentation } from './comic-presentation-renderer'
+import { hasErrorCode } from '~/utils/error-handler'
 
 export const soundscapeAudioRunLineageRefs = (run: CompactMix): ArtifactRef[] => [
   { path: run.soundscapePlan.path, sha256: run.soundscapePlan.sha256 },
@@ -243,7 +244,7 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
       verified.add(key)
       return stored.bytes
     } catch (error) {
-      const missing = error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT'
+      const missing = hasErrorCode(error, 'ENOENT')
         || isMissingArtifactError(error)
       fail({
         code: missing ? 'missing-artifact' : 'checksum-mismatch',

@@ -6,7 +6,7 @@ import type { AsyncSttLifecycleMetrics, HostedAsyncSttRunOptions, RetryClass, St
 import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
-import { InternalError, ValidationError } from '~/utils/error-handler'
+import { InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import * as v from 'valibot'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
@@ -37,7 +37,7 @@ const attachAssemblyAiErrorContext = (
   stage: string,
   retryClass: RetryClass
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as SttStageHttpError).stage = stage
   ;(source as SttStageHttpError).retryClass = retryClass
   throw source

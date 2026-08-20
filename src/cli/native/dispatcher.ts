@@ -127,6 +127,9 @@ export const dispatchNativeCli = async (
   const startedAtMs = store['startedAtMs']
   if (typeof startedAtMs === 'number') {
     const elapsedMs = Date.now() - startedAtMs
-    l.debug(`Command "${parsed.calledAs ?? command.name}" completed in ${elapsedMs}ms`)
+    l.debug(`Command "${parsed.calledAs ?? command.name}" completed in ${elapsedMs}ms`, {
+      category: 'command',
+      metadata: { command: parsed.calledAs ?? command.name, elapsedMs }
+    })
   }
 }

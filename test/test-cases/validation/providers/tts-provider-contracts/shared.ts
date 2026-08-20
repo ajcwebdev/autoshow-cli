@@ -44,6 +44,36 @@ export const waitForCondition = async (
   throw new Error(message)
 }
 
+/**
+ * Runs gated assertions without letting a failure hang the test.
+ *
+ * These scheduler contracts hold provider chunks open behind manual release callbacks. An
+ * assertion that throws before the gate opens leaves those promises pending, so the test
+ * times out instead of reporting the assertion — which is why every site pasted the same
+ * `try/catch/finally + rethrow-after-await` shape. Here it is once: the failure is captured,
+ * the gate is always released, and the returned function rethrows once the caller has
+ * awaited the in-flight work.
+ */
+export const captureGatedAssertions = async (
+  assertions: () => Promise<void> | void,
+  release: () => void
+): Promise<() => void> => {
+  let failure: unknown
+  let failed = false
+  try {
+    await assertions()
+  } catch (error) {
+    failed = true
+    failure = error
+  } finally {
+    release()
+  }
+
+  return () => {
+    if (failed) throw failure
+  }
+}
+
 export const readWavSamples = async (path: string): Promise<number[]> => {
   const buffer = Buffer.from(await Bun.file(path).arrayBuffer())
   let offset = 12

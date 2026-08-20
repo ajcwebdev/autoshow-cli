@@ -12,6 +12,7 @@ import { runGeminiMusicGen } from '~/cli/commands/process-steps/step-7-music/mus
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { geminiGenerateContent, geminiGetOperation, GeminiRestError } from '~/utils/gemini/gemini-rest'
 import {
+  expectProviderHttpError,
   installMockFetch as installFetch,
   jsonResponse,
   setupContractSuiteLifecycle
@@ -81,18 +82,14 @@ describe('Gemini REST contracts', () => {
       headers: { 'retry-after': '1' }
     }))
 
-    try {
-      await geminiGenerateContent('gemini-key', {
+    const error = await expectProviderHttpError(
+      () => geminiGenerateContent('gemini-key', {
         model: 'gemini-test',
         contents: 'retry?'
-      })
-      throw new Error('expected Gemini request to fail')
-    } catch (error) {
-      expect(error).toBeInstanceOf(GeminiRestError)
-      expect((error as GeminiRestError).status).toBe(429)
-      expect((error as GeminiRestError).headers.get('retry-after')).toBe('1')
-      expect(classifyGeminiRetry(error)).toMatchObject({ shouldRetry: true, reason: 'provider rejected paid create with retryable status 429' })
-    }
+      }),
+      { instanceOf: GeminiRestError, status: 429, headers: { 'retry-after': '1' } }
+    )
+    expect(classifyGeminiRetry(error)).toMatchObject({ shouldRetry: true, reason: 'provider rejected paid create with retryable status 429' })
   })
 
   test('Gemini LLM structured output sends response JSON schema', async () => {

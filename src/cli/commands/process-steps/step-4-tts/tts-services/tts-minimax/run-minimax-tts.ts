@@ -100,7 +100,10 @@ export const runMinimaxTts = async (
   try {
     const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
       const chunkIndex = index + 1
-      l.debug(`Submitting MiniMax TTS chunk ${chunkIndex}/${chunks.length}`)
+      l.debug(`Submitting MiniMax TTS chunk ${chunkIndex}/${chunks.length}`, {
+      category: 'tts',
+      metadata: { provider: 'minimax', chunkIndex, chunkCount: chunks.length }
+    })
       const voiceSetting = {
         voice_id: voiceId,
         ...(typeof options.speed === 'number' ? { speed: options.speed } : {}),

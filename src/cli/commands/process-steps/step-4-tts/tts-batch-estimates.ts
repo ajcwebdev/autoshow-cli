@@ -96,7 +96,10 @@ export const enforceTtsBatchBudget = (
     )
   }
 
-  l.warn(`Estimated suite cost ${formatCents(totalEstimatedCost)} exceeds budget ${formatCents(maxCents)} - continuing because --allow-over-budget is set.`)
+  l.warn(`Estimated suite cost ${formatCents(totalEstimatedCost)} exceeds budget ${formatCents(maxCents)} - continuing because --allow-over-budget is set.`, {
+      category: 'pricing',
+      metadata: { estimatedCostCents: totalEstimatedCost, budgetCents: maxCents, allowOverBudget: true }
+    })
 }
 
 export const mergeEstimatedCostBreakdowns = (

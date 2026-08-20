@@ -251,7 +251,10 @@ const processLyricsRun = async (options: {
       cueSource
     }
   } catch (error) {
-    l.write('debug', `Retaining ${toProjectDisplayPath(tempDir)} for debugging after a failed lyric video run`)
+    l.write('debug', `Retaining ${toProjectDisplayPath(tempDir)} for debugging after a failed lyric video run`, {
+      category: 'artifact',
+      metadata: { tempDir: toProjectDisplayPath(tempDir), retained: true }
+    })
     throw error
   }
 }
@@ -351,7 +354,11 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
           status: 'failed',
           error: message
         })
-        l.error(`Music lyric-video batch item failed: ${toProjectDisplayPath(audioPath)}`, error)
+        l.error(`Music lyric-video batch item failed: ${toProjectDisplayPath(audioPath)}`, {
+          category: 'pipeline',
+          error,
+          metadata: { inputAudioPath: toProjectDisplayPath(audioPath), outputDir: childDirAbsolute }
+        })
       }
     }
 

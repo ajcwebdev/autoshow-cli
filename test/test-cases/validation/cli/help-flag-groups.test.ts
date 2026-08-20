@@ -4,6 +4,7 @@ import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from '~/cli/command-d
 import { HELP_FLAG_GROUPS } from '~/cli/native/help-groups'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import type { CliFlagsDefinition } from '~/types'
+import { isRecord } from '../../../test-utils/test-helpers'
 
 const COMMANDS = COMMAND_DEFINITIONS
 
@@ -11,9 +12,6 @@ const GROUPED_FLAG_SETS: (CliFlagsDefinition | undefined)[] = COMMANDS.flatMap((
   command.flags,
   ...(command.subcommands ?? []).map((subcommand) => subcommand.flags)
 ])
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const collectClaimedGroups = (): Set<string> => {
   const claimed = new Set<string>()

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { readFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import * as v from 'valibot'
-import type { CharacterSketchCommandOptions, ComicPriceModelRow, DraftScenesCommandOptions, FinalImageEstimateResult, GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePricingEstimate, SceneSketchCount, StructureScriptsCommandOptions } from '~/types'
+import type { CharacterSketchCommandOptions, ComicPriceModelRow, DraftScenesCommandOptions, FinalImageEstimateResult, GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePricingEstimate, LogMetadata, SceneSketchCount, StructureScriptsCommandOptions } from '~/types'
 import {
 COMIC_GRID_PANEL_SIZE,
 DEFAULT_SKETCH_PANELS_PER_IMAGE,
@@ -25,7 +25,7 @@ import { DEFAULT_LLM_MODEL, DEFAULT_QA_MODEL } from './cli-args'
 import { CLIUsageError } from '~/utils/error-handler'
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from './image-size'
 import { ScenePromptDataSchema } from '../schemas/schemas'
-import { comicWrite } from './comic-logger'
+import { priceDetails, priceLine, priceNotice, priceTable } from './price-estimate-logging'
 import { loadCharacterCatalog } from './character-reference-config'
 import { validateReferenceImageCount } from './reference-capabilities'
 import { LOCATION_VIEWS, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference } from './location-reference'
@@ -49,6 +49,12 @@ validatePriceReferenceGroup,
 
 const ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL = 800
 
+const LLM_ESTIMATE_BASIS_NOTE = 'Estimates: tokens ~ chars / 4, no cache discount, output ~800 tokens/call'
+const IMAGE_ESTIMATE_BASIS_NOTE = 'Per-image output cost only. Token-based input costs are not estimated.'
+const GEMINI_IMAGE_ESTIMATE_NOTE = 'Gemini costs use estimated1KImage (~$0.067/image) -- actual token costs vary.'
+const JUDGE_COST_BASIS_NOTE = 'Judge cost is separate from image-generation cost; actual vision token usage may vary.'
+const PANEL_QA_BASIS_NOTE = 'Image input tokens and actual vision-token usage are not modeled, so provider charges may vary.'
+
 const estimateTokens = (content: string): number => {
   return Math.ceil(content.length / 4)
 }
@@ -56,53 +62,81 @@ const estimateTokens = (content: string): number => {
 const estimateLlmCost = (model: DraftScenesCommandOptions['llmModel'], inputTokens: number, outputTokens: number): number =>
   estimateLlmCostFromRegistry(model ?? DEFAULT_LLM_MODEL, inputTokens, outputTokens)
 
+const logLlmTokenEstimate = (
+  title: string,
+  model: string,
+  sourceLabel: string,
+  sourcePath: string,
+  tokens: number
+): void => {
+  const totalCalls = 1
+  const totalOutputTokens = ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL * totalCalls
+  const inputCost = estimateLlmCost(model, tokens, 0)
+  const outputCost = estimateLlmCost(model, 0, totalOutputTokens)
+  const totalCost = estimateLlmCost(model, tokens, totalOutputTokens)
+
+  priceTable(
+    title,
+    [{
+      model,
+      [sourceLabel]: sourcePath,
+      inputTokens: tokens.toLocaleString(),
+      outputTokens: totalOutputTokens.toLocaleString(),
+      inputCost: `~${formatCost(inputCost)}`,
+      outputCost: `~${formatCost(outputCost)}`,
+      total: `~${formatCost(totalCost)}`
+    }],
+    [sourceLabel, 'model', 'inputTokens', 'outputTokens', 'inputCost', 'outputCost', 'total'],
+    {
+      model,
+      [sourceLabel]: sourcePath,
+      inputTokens: tokens,
+      outputTokens: totalOutputTokens,
+      calls: totalCalls,
+      inputCost,
+      outputCost,
+      totalCost
+    }
+  )
+  priceLine(LLM_ESTIMATE_BASIS_NOTE, {
+    tokensPerChar: 0.25,
+    cacheDiscount: false,
+    outputTokensPerCall: ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL
+  })
+}
+
 const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions): Promise<void> => {
   const model = options.llmModel ?? DEFAULT_LLM_MODEL
   const { sceneSlug } = options
 
-  comicWrite(`${'Comic'} - Price Estimate: draft-scenes --only scene`)
-  comicWrite(`  Model: ${model}`)
-  comicWrite('')
-
   const draftPromptPath = getDraftPromptPath(sceneSlug)
 
   if (!existsSync(draftPromptPath)) {
-    comicWrite('  No draft prompt file found. Run "bun autoshow comic draft-scenes --only prompt" first.')
+    priceNotice('Comic - Price Estimate: draft-scenes --only scene: no draft prompt file found. Run "bun autoshow comic draft-scenes --only prompt" first.', {
+      stage: 'draft-scenes:scene',
+      model,
+      draftPromptPath
+    })
     return
   }
 
   const content = await Bun.file(draftPromptPath).text()
-  const tokens = estimateTokens(content)
-
-  comicWrite('  Prompt files:')
-  comicWrite(`    ${sceneSlug}/metadata/draft-prompt.md`.padEnd(50, ' ') + `  ~${tokens.toLocaleString()} tokens`)
-  comicWrite('')
-
-  const totalInputTokens = tokens
-  const totalCalls = 1
-  const totalOutputTokens = ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL * totalCalls
-
-  comicWrite(`  Estimated totals:`)
-  comicWrite(`    Input:  ~${totalInputTokens.toLocaleString()} tokens (${totalCalls} call)`)
-  comicWrite(`    Output: ~${totalOutputTokens.toLocaleString()} tokens (~${ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL} tokens per call)`)
-  comicWrite('')
-
-  const totalCost = estimateLlmCost(model, totalInputTokens, totalOutputTokens)
-  const inputCost = estimateLlmCost(model, totalInputTokens, 0)
-  const outputCost = estimateLlmCost(model, 0, totalOutputTokens)
-
-  comicWrite(`  ${model}:`)
-  comicWrite(`    Input cost:   ~${formatCost(inputCost)}`)
-  comicWrite(`    Output cost:  ~${formatCost(outputCost)}`)
-  comicWrite(`    Total:        ~${formatCost(totalCost)}`)
-  comicWrite('')
-  comicWrite('  Estimates: tokens ~ chars / 4, no cache discount, output ~800 tokens/call')
+  logLlmTokenEstimate(
+    'Comic - Price Estimate: draft-scenes --only scene',
+    model,
+    'promptFile',
+    `${sceneSlug}/metadata/draft-prompt.md`,
+    estimateTokens(content)
+  )
 }
 
 const estimatePanelPromptsPrice = (): void => {
-  comicWrite(`${'Comic'} - Price Estimate: draft-scenes --only panel-prompts`)
-  comicWrite('  The panel-prompt stage makes no LLM or image generation API calls.')
-  comicWrite('')
+  priceLine('Comic - Price Estimate: draft-scenes --only panel-prompts: the panel-prompt stage makes no LLM or image generation API calls.', {
+    stage: 'draft-scenes:panel-prompts',
+    llmCalls: 0,
+    imageCalls: 0,
+    totalCost: 0
+  })
 }
 
 export const estimateDraftScenesPrice = async (options: DraftScenesCommandOptions): Promise<void> => {
@@ -117,9 +151,12 @@ export const estimateDraftScenesPrice = async (options: DraftScenesCommandOption
   }
 
   if (stages.includes('prompt')) {
-    comicWrite(`${'Comic'} - Price Estimate: draft-scenes --only prompt`)
-    comicWrite('  The prompt-bundle stage makes no LLM or image generation API calls.')
-    comicWrite('')
+    priceLine('Comic - Price Estimate: draft-scenes --only prompt: the prompt-bundle stage makes no LLM or image generation API calls.', {
+      stage: 'draft-scenes:prompt',
+      llmCalls: 0,
+      imageCalls: 0,
+      totalCost: 0
+    })
   }
 
   if (stages.includes('scene')) {
@@ -132,49 +169,88 @@ export const estimateDraftScenesPrice = async (options: DraftScenesCommandOption
 }
 
 const estimateStructureScriptsPrice = async (options: StructureScriptsCommandOptions): Promise<void> => {
-  comicWrite(`${'Comic'} - Price Estimate: draft-scenes --only structure`)
-
   if (!options.llmModel) {
-    comicWrite('  No --llm-model specified. The structure stage makes no API calls without --llm-model.')
+    priceNotice('Comic - Price Estimate: draft-scenes --only structure: no --llm-model specified, so the structure stage makes no API calls.', {
+      stage: 'draft-scenes:structure',
+      llmCalls: 0,
+      totalCost: 0
+    })
     return
   }
 
   const model = options.llmModel
   const { scriptPath, sceneSlug } = options
-  comicWrite(`  Model: ${model}`)
-  comicWrite('')
 
   if (!existsSync(scriptPath)) {
-    comicWrite(`  Script file not found: ${scriptPath}`)
+    priceNotice(`Comic - Price Estimate: draft-scenes --only structure: script file not found: ${scriptPath}`, {
+      stage: 'draft-scenes:structure',
+      model,
+      scriptPath
+    })
     return
   }
 
   const content = await Bun.file(scriptPath).text()
-  const tokens = estimateTokens(content)
+  logLlmTokenEstimate(
+    'Comic - Price Estimate: draft-scenes --only structure',
+    model,
+    'scriptFile',
+    sceneSlug,
+    estimateTokens(content)
+  )
+}
 
-  comicWrite('  Script files:')
-  comicWrite(`    ${sceneSlug}`.padEnd(50, ' ') + `  ~${tokens.toLocaleString()} tokens`)
-  comicWrite('')
+/**
+ * The one renderer for every per-image cost table in this module. Emits a single
+ * `pricing` event carrying `humanTable` rows plus the same numbers as `metadata`; the
+ * `n/a` cells and the total line stay in the human view, while a JSON consumer reads
+ * `pricePerImage`/`subtotal` as numbers (or `null`) rather than parsing "$0.0420".
+ */
+const logImagePriceRows = (
+  title: string,
+  rows: readonly ComicPriceModelRow[],
+  totalOutputs: number,
+  outputLabel: string,
+  hasGeminiModel: boolean,
+  extraMetadata: LogMetadata = {}
+): void => {
+  const knownTotal = rows.reduce((total, row) => total + (row.subtotal ?? 0), 0)
+  const hasNullCost = rows.some((row) => row.subtotal === null)
+  const outputsColumn = `x${totalOutputs} ${outputLabel}${totalOutputs !== 1 ? 's' : ''}`
 
-  const totalInputTokens = tokens
-  const totalCalls = 1
-  const totalOutputTokens = ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL * totalCalls
+  priceTable(
+    title,
+    rows.map((row) => ({
+      model: row.modelLabel,
+      perImage: row.pricePerImage === null ? 'n/a' : formatCost(row.pricePerImage),
+      [outputsColumn]: totalOutputs,
+      subtotal: row.subtotal === null ? 'n/a' : formatCost(row.subtotal)
+    })),
+    ['model', 'perImage', outputsColumn, 'subtotal'],
+    {
+      outputLabel,
+      totalOutputs,
+      knownTotal,
+      hasUnknownPricing: hasNullCost,
+      rows: rows.map((row) => ({
+        model: row.modelLabel,
+        pricePerImage: row.pricePerImage,
+        subtotal: row.subtotal
+      })),
+      ...extraMetadata
+    }
+  )
 
-  comicWrite(`  Estimated totals:`)
-  comicWrite(`    Input:  ~${totalInputTokens.toLocaleString()} tokens (${totalCalls} call)`)
-  comicWrite(`    Output: ~${totalOutputTokens.toLocaleString()} tokens (~${ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL} tokens per call)`)
-  comicWrite('')
-
-  const totalCost = estimateLlmCost(model, totalInputTokens, totalOutputTokens)
-  const inputCost = estimateLlmCost(model, totalInputTokens, 0)
-  const outputCost = estimateLlmCost(model, 0, totalOutputTokens)
-
-  comicWrite(`  ${model}:`)
-  comicWrite(`    Input cost:   ~${formatCost(inputCost)}`)
-  comicWrite(`    Output cost:  ~${formatCost(outputCost)}`)
-  comicWrite(`    Total:        ~${formatCost(totalCost)}`)
-  comicWrite('')
-  comicWrite('  Estimates: tokens ~ chars / 4, no cache discount, output ~800 tokens/call')
+  priceLine(
+    hasNullCost
+      ? `Total: ~${formatCost(knownTotal)} + n/a (some models have no per-image estimate)`
+      : `Total: ~${formatCost(knownTotal)}`,
+    { knownTotal, hasUnknownPricing: hasNullCost }
+  )
+  priceLine(IMAGE_ESTIMATE_BASIS_NOTE, { inputTokenCostsModeled: false })
+  if (hasGeminiModel) {
+    priceNotice(GEMINI_IMAGE_ESTIMATE_NOTE, { provider: 'gemini', estimatedCostPerImage: 0.067 })
+  }
 }
 
 const printImageEstimateTable = (
@@ -184,50 +260,24 @@ const printImageEstimateTable = (
   totalOutputs: number,
   outputLabel: string
 ): void => {
-  const colWidths = { model: 0 }
-  const rows: ComicPriceModelRow[] = []
-
-  for (const model of models) {
+  const rows: ComicPriceModelRow[] = models.map((model) => {
     const qualityLabel = isGeminiImageModel(model) ? 'ignored' : quality
-    const modelLabel = `${model} (${qualityLabel})`
-    colWidths.model = Math.max(colWidths.model, modelLabel.length)
-
     const pricePerImage = estimateImageOutputCost(model, quality, size)
-    const subtotal = pricePerImage !== null ? pricePerImage * totalOutputs : null
-    rows.push({ modelLabel, pricePerImage, subtotal })
-  }
-
-  const headerPer = 'per image'
-  const headerOutputs = `x ${totalOutputs} ${outputLabel}${totalOutputs !== 1 ? 's' : ''}`
-  const headerSubtotal = 'subtotal'
-
-  comicWrite(`  ${''.padEnd(colWidths.model + 2)}  ${headerPer.padEnd(12)}  ${headerOutputs.padEnd(14)}  ${headerSubtotal}`)
-
-  let grandTotal = 0
-  let hasNullCost = false
-
-  for (const { modelLabel, pricePerImage, subtotal } of rows) {
-    const perImageStr = pricePerImage !== null ? formatCost(pricePerImage) : 'n/a'
-    const subtotalStr = subtotal !== null ? formatCost(subtotal) : 'n/a'
-    comicWrite(`  ${modelLabel.padEnd(colWidths.model + 2)}  ${perImageStr.padEnd(12)}               ${subtotalStr}`)
-    if (subtotal !== null) {
-      grandTotal += subtotal
-    } else {
-      hasNullCost = true
+    return {
+      modelLabel: `${model} (${qualityLabel})`,
+      pricePerImage,
+      subtotal: pricePerImage !== null ? pricePerImage * totalOutputs : null
     }
-  }
+  })
 
-  comicWrite('')
-  if (hasNullCost) {
-    comicWrite(`  Total: ~${formatCost(grandTotal)} + n/a (some models have no per-image estimate)`)
-  } else {
-    comicWrite(`  Total: ~${formatCost(grandTotal)}`)
-  }
-  comicWrite('')
-  comicWrite('  Per-image output cost only. Token-based input costs are not estimated.')
-  if (models.some(isGeminiImageModel)) {
-    comicWrite('  Gemini costs use estimated1KImage (~$0.067/image) -- actual token costs vary.')
-  }
+  logImagePriceRows(
+    'Comic Image Price Estimate',
+    rows,
+    totalOutputs,
+    outputLabel,
+    models.some(isGeminiImageModel),
+    { quality, size }
+  )
 }
 
 export const estimateCharacterSketchPrice = async (
@@ -252,14 +302,29 @@ export const estimateCharacterSketchPrice = async (
     await requireCurrentCharacterSketch(key, character)
   }
 
-  comicWrite(`${'Comic'} - Price Estimate: reference-sketch --character`)
-  comicWrite(`  Character: ${key}`)
-  comicWrite(`  Source:    ${sourcePath}`)
-  comicWrite(`  Model:     ${models[0]}`)
-  comicWrite(`  Size:    ${size}  Quality: ${quality}`)
-  comicWrite(`  References per view: ${referenceCount}`)
-  comicWrite('')
-  comicWrite(`  Views: ${CHARACTER_SKETCH_VIEWS.join(', ')}; the sheet is composed locally after all succeed.`)
+  priceDetails(
+    'Comic - Price Estimate: reference-sketch --character',
+    [
+      ['Character', key],
+      ['Source', sourcePath],
+      ['Model', models[0]],
+      ['Size', size],
+      ['Quality', quality],
+      ['References per view', referenceCount],
+      ['Views', CHARACTER_SKETCH_VIEWS.join(', ')]
+    ],
+    {
+      command: 'reference-sketch',
+      character: key,
+      sourcePath,
+      model: models[0],
+      size,
+      quality,
+      referencesPerView: referenceCount,
+      views: [...CHARACTER_SKETCH_VIEWS]
+    }
+  )
+  priceLine('The character sheet is composed locally after all views succeed.', { localComposition: true })
   printImageEstimateTable(models, quality, size, CHARACTER_SKETCH_VIEWS.length, 'view')
 }
 
@@ -281,72 +346,119 @@ export const estimateLocationReferencePrice = async (
   if (!LOCATION_VIEWS.includes(view)) throw CLIUsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
   if (view !== 'establishing' && !registration?.views.some(item => item.view === 'establishing')) throw CLIUsageError(`Cannot generate ${view} view before the establishing view`)
   if (options.revise && (!entry || !target)) throw CLIUsageError(`Cannot revise unregistered ${view} view for location "${options.location}"`)
-  comicWrite(`${'Comic'} - Price Estimate: reference-sketch --location`)
-  comicWrite(`  Location: ${options.location}  View: ${view}`)
   if (!options.revise && target) {
     await requireCurrentLocationReference(options.location!)
-    comicWrite('  Existing validated view: no provider calls.')
-    comicWrite('  Dry run: no provider calls and no files written.')
+    priceLine('Comic - Price Estimate: reference-sketch --location: existing validated view, no provider calls.', {
+      command: 'reference-sketch',
+      location: options.location,
+      view,
+      imageCalls: 0,
+      judgeCalls: 0,
+      totalCost: 0,
+      dryRun: true
+    })
     return
   }
   const aggregationCalls = entry ? 0 : 1
-  comicWrite(`  Location-spec aggregation (${options.llmModel ?? DEFAULT_LLM_MODEL}): ${aggregationCalls} call${aggregationCalls === 1 ? '' : 's'}`)
-  comicWrite('  Initial location-reference image calls: 1')
+  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
+  priceDetails(
+    'Comic - Price Estimate: reference-sketch --location',
+    [
+      ['Location', options.location],
+      ['View', view],
+      ['Location-spec aggregation model', options.llmModel ?? DEFAULT_LLM_MODEL],
+      ['Location-spec aggregation calls', aggregationCalls],
+      ['Initial image calls', 1],
+      ['Judge model', judgeModel],
+      ['Initial judge calls', qaEnabled ? 1 : 0],
+      ['Maximum additional image repairs', qaEnabled ? maxRepairs : 0],
+      ['Maximum additional judge calls', qaEnabled ? maxRepairs : 0]
+    ],
+    {
+      command: 'reference-sketch',
+      location: options.location,
+      view,
+      aggregationModel: options.llmModel ?? DEFAULT_LLM_MODEL,
+      aggregationCalls,
+      initialImageCalls: 1,
+      judgeModel,
+      initialJudgeCalls: qaEnabled ? 1 : 0,
+      maximumAdditionalImageRepairs: qaEnabled ? maxRepairs : 0,
+      maximumAdditionalJudgeCalls: qaEnabled ? maxRepairs : 0
+    }
+  )
   printImageEstimateTable([model], quality, size, 1, 'initial location view')
-  comicWrite(`  Initial judge calls (${options.qaModel ?? DEFAULT_QA_MODEL}): ${qaEnabled ? 1 : 0}`)
-  comicWrite(`  Maximum additional image repairs or fresh camera retries: ${qaEnabled ? maxRepairs : 0}`)
-  comicWrite(`  Maximum additional judge calls: ${qaEnabled ? maxRepairs : 0}`)
   if (qaEnabled && maxRepairs > 0) printImageEstimateTable([DEFAULT_IMAGE_MODEL], quality, size, maxRepairs, 'maximum location retry')
-  comicWrite('  Dry run: no provider calls and no files written.')
+  priceLine('Dry run: no provider calls and no files written.', { dryRun: true })
 }
 
 const printFinalImageHeader = (result: FinalImageEstimateResult): void => {
   const { request } = result
   const modeLabel = request.mode === 'grid' ? ' (grid mode)' : request.mode === 'page' ? ' (page mode)' : ''
-  comicWrite(`${'Comic'} - Price Estimate: generate-images${modeLabel}`)
-  comicWrite(`  Models:  ${request.models.join(', ')}`)
-  if (request.variationsSpecified) {
-    comicWrite(`  Variations: ${request.variations.map(getImagePromptVariationLabel).join(', ')}`)
-  }
-  comicWrite(`  Size:    ${request.size}  Quality: ${request.quality}`)
-  if (request.mode === 'page') comicWrite(`  Panels per image: ${request.panelsPerImage}`)
-  if (request.mode === 'grid') {
-    comicWrite(`  Grid:    ${request.grid.columns}x${request.grid.rows} local composites from individual panels`)
-  }
-  comicWrite('')
+  const variations = request.variationsSpecified
+    ? request.variations.map(getImagePromptVariationLabel)
+    : undefined
+  priceDetails(
+    `Comic - Price Estimate: generate-images${modeLabel}`,
+    [
+      ['Models', request.models.join(', ')],
+      ...(variations ? [['Variations', variations.join(', ')] as const] : []),
+      ['Size', request.size],
+      ['Quality', request.quality],
+      ...(request.mode === 'page' ? [['Panels per image', request.panelsPerImage] as const] : []),
+      ...(request.mode === 'grid'
+        ? [['Grid', `${request.grid.columns}x${request.grid.rows} local composites from individual panels`] as const]
+        : [])
+    ],
+    {
+      command: 'generate-images',
+      mode: request.mode,
+      models: [...request.models],
+      ...(variations ? { variations } : {}),
+      size: request.size,
+      quality: request.quality,
+      ...(request.mode === 'page' ? { panelsPerImage: request.panelsPerImage } : {}),
+      ...(request.mode === 'grid' ? { gridColumns: request.grid.columns, gridRows: request.grid.rows } : {})
+    }
+  )
 }
 
-const printImagePricingEstimate = (pricing: ImagePricingEstimate): void => {
-  const modelWidth = pricing.rows.reduce((width, row) => Math.max(width, row.modelLabel.length), 0)
-  const outputs = pricing.rows[0]?.outputs ?? 0
-  const headerOutputs = `x ${outputs} ${pricing.outputLabel}${outputs !== 1 ? 's' : ''}`
-  comicWrite(`  ${''.padEnd(modelWidth + 2)}  ${'per image'.padEnd(12)}  ${headerOutputs.padEnd(14)}  subtotal`)
-
-  for (const row of pricing.rows) {
-    const perImage = row.pricePerImage === null ? 'n/a' : formatCost(row.pricePerImage)
-    const subtotal = row.subtotal === null ? 'n/a' : formatCost(row.subtotal)
-    comicWrite(`  ${row.modelLabel.padEnd(modelWidth + 2)}  ${perImage.padEnd(12)}               ${subtotal}`)
-  }
-
-  comicWrite('')
-  comicWrite(pricing.hasUnknown
-    ? `  Total: ~${formatCost(pricing.knownTotal)} + n/a (some models have no per-image estimate)`
-    : `  Total: ~${formatCost(pricing.knownTotal)}`)
-  comicWrite('')
-  comicWrite('  Per-image output cost only. Token-based input costs are not estimated.')
-  if (pricing.rows.some(row => isGeminiImageModel(row.model))) {
-    comicWrite('  Gemini costs use estimated1KImage (~$0.067/image) -- actual token costs vary.')
-  }
+const printImagePricingEstimate = (pricing: ImagePricingEstimate, title = 'Comic Image Price Estimate'): void => {
+  logImagePriceRows(
+    title,
+    pricing.rows,
+    pricing.rows[0]?.outputs ?? 0,
+    pricing.outputLabel,
+    pricing.rows.some(row => isGeminiImageModel(row.model))
+  )
 }
 
 const printPagePricingEstimate = (pricing: ImagePricingEstimate): void => {
-  for (const row of pricing.rows) {
-    const perImage = row.pricePerImage === null ? 'n/a' : formatCost(row.pricePerImage)
-    const subtotal = row.subtotal === null ? 'n/a' : formatCost(row.subtotal)
-    comicWrite(`    ${row.modelLabel}: ${row.outputs} page${row.outputs === 1 ? '' : 's'} x ${perImage} = ${subtotal}`)
-  }
-  comicWrite(`    Subtotal: ~${formatCost(pricing.knownTotal)}${pricing.hasUnknown ? ' + n/a' : ''}`)
-  comicWrite('')
+  priceTable(
+    'Comic Page Price Estimate',
+    pricing.rows.map((row) => ({
+      model: row.modelLabel,
+      pages: row.outputs,
+      perImage: row.pricePerImage === null ? 'n/a' : formatCost(row.pricePerImage),
+      subtotal: row.subtotal === null ? 'n/a' : formatCost(row.subtotal)
+    })),
+    ['model', 'pages', 'perImage', 'subtotal'],
+    {
+      outputLabel: pricing.outputLabel,
+      knownTotal: pricing.knownTotal,
+      hasUnknownPricing: pricing.hasUnknown,
+      rows: pricing.rows.map((row) => ({
+        model: row.modelLabel,
+        outputs: row.outputs,
+        pricePerImage: row.pricePerImage,
+        subtotal: row.subtotal
+      }))
+    }
+  )
+  priceLine(`Subtotal: ~${formatCost(pricing.knownTotal)}${pricing.hasUnknown ? ' + n/a' : ''}`, {
+    knownTotal: pricing.knownTotal,
+    hasUnknownPricing: pricing.hasUnknown
+  })
 }
 
 const printPageQaEstimate = (
@@ -355,15 +467,31 @@ const printPageQaEstimate = (
   const qa = result.qaWork
   if (qa?.mode !== 'page') return
 
-  comicWrite('  Page QA judge calls:')
-  const reuseNote = qa.reusedReports > 0 ? ` (${qa.reusedReports} reused reports)` : ''
-  comicWrite(`    Initial judge calls (${qa.judgeModel}): ${qa.initialJudgeCalls}${reuseNote}`)
-  comicWrite(`    Maximum additional image edits: ${qa.maximumAdditionalImageEdits}`)
-  comicWrite(`    Maximum additional judge calls: ${qa.maximumAdditionalJudgeCalls}`)
-  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair)
-  comicWrite(`    Heuristic judge tokens: ${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output = ~${formatCost(result.pricing.judgeCost ?? 0)}`)
-  comicWrite('    Judge cost is separate from image-generation cost; actual vision token usage may vary.')
-  comicWrite('')
+  priceDetails(
+    'Comic Page QA Price Estimate',
+    [
+      ['Judge model', qa.judgeModel],
+      ['Initial judge calls', qa.initialJudgeCalls],
+      ...(qa.reusedReports > 0 ? [['Reused reports', qa.reusedReports] as const] : []),
+      ['Maximum additional image edits', qa.maximumAdditionalImageEdits],
+      ['Maximum additional judge calls', qa.maximumAdditionalJudgeCalls],
+      ['Heuristic judge tokens', `${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output`],
+      ['Heuristic judge cost', `~${formatCost(result.pricing.judgeCost ?? 0)}`]
+    ],
+    {
+      mode: 'page',
+      judgeModel: qa.judgeModel,
+      initialJudgeCalls: qa.initialJudgeCalls,
+      reusedReports: qa.reusedReports,
+      maximumAdditionalImageEdits: qa.maximumAdditionalImageEdits,
+      maximumAdditionalJudgeCalls: qa.maximumAdditionalJudgeCalls,
+      estimatedInputTokens: qa.estimatedInputTokens,
+      estimatedOutputTokens: qa.estimatedOutputTokens,
+      judgeCost: result.pricing.judgeCost ?? 0
+    }
+  )
+  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair, 'Comic Page Repair Price Estimate')
+  priceLine(JUDGE_COST_BASIS_NOTE, { visionTokenUsageModeled: false })
 }
 
 const printPanelQaEstimate = (
@@ -372,18 +500,38 @@ const printPanelQaEstimate = (
   const qa = result.qaWork
   if (qa?.mode !== 'panel') return
 
-  comicWrite(`  Initial judge calls (${qa.judgeModel}): ${qa.initialJudgeCalls}`)
-  comicWrite(`  Maximum additional image edits: ${qa.maximumAdditionalImageEdits}`)
-  comicWrite(`  Maximum additional judge calls: ${qa.maximumAdditionalJudgeCalls}`)
-  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair)
-  comicWrite(`  Maximum total judge calls: ${qa.maximumTotalJudgeCalls}`)
-  comicWrite(`  Maximum heuristic judge tokens: ${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output = ~${formatCost(result.pricing.judgeCost ?? 0)}`)
-  if (result.pricing.maximumModeledCost === null) {
-    comicWrite(`  Maximum modeled cost: n/a image output pricing + ~${formatCost(result.pricing.judgeCost ?? 0)} heuristic QA`)
-  } else {
-    comicWrite(`  Maximum modeled cost (image outputs + heuristic QA): ~${formatCost(result.pricing.maximumModeledCost)}`)
-  }
-  comicWrite('  Image input tokens and actual vision-token usage are not modeled, so provider charges may vary.')
+  priceDetails(
+    'Comic Panel QA Price Estimate',
+    [
+      ['Judge model', qa.judgeModel],
+      ['Initial judge calls', qa.initialJudgeCalls],
+      ['Maximum additional image edits', qa.maximumAdditionalImageEdits],
+      ['Maximum additional judge calls', qa.maximumAdditionalJudgeCalls],
+      ['Maximum total judge calls', qa.maximumTotalJudgeCalls],
+      ['Maximum heuristic judge tokens', `${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output`],
+      ['Maximum heuristic judge cost', `~${formatCost(result.pricing.judgeCost ?? 0)}`],
+      [
+        'Maximum modeled cost',
+        result.pricing.maximumModeledCost === null
+          ? `n/a image output pricing + ~${formatCost(result.pricing.judgeCost ?? 0)} heuristic QA`
+          : `~${formatCost(result.pricing.maximumModeledCost)} (image outputs + heuristic QA)`
+      ]
+    ],
+    {
+      mode: 'panel',
+      judgeModel: qa.judgeModel,
+      initialJudgeCalls: qa.initialJudgeCalls,
+      maximumAdditionalImageEdits: qa.maximumAdditionalImageEdits,
+      maximumAdditionalJudgeCalls: qa.maximumAdditionalJudgeCalls,
+      maximumTotalJudgeCalls: qa.maximumTotalJudgeCalls,
+      estimatedInputTokens: qa.estimatedInputTokens,
+      estimatedOutputTokens: qa.estimatedOutputTokens,
+      judgeCost: result.pricing.judgeCost ?? 0,
+      maximumModeledCost: result.pricing.maximumModeledCost
+    }
+  )
+  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair, 'Comic Panel Repair Price Estimate')
+  priceLine(PANEL_QA_BASIS_NOTE, { imageInputTokensModeled: false, visionTokenUsageModeled: false })
 }
 
 const printGridEstimate = (
@@ -391,17 +539,28 @@ const printGridEstimate = (
 ): void => {
   const grid = result.modeEstimate.mode === 'grid' ? result.modeEstimate.grid : null
   if (!grid) return
-  const skipNote = grid.skipped > 0 ? ` (${grid.skipped} skipped -- already exist)` : ''
 
-  comicWrite('  Grid pages:')
-  comicWrite(
-    `    ${result.request.sceneSlug.padEnd(40, ' ')}  ` +
-    `${grid.totalOutputs} composite${grid.totalOutputs !== 1 ? 's' : ''} ` +
-    `(${grid.columns}x${grid.rows}, ${grid.capacity} cells)${skipNote}`
+  priceTable(
+    'Comic Grid Pages',
+    [{
+      scene: result.request.sceneSlug,
+      composites: grid.totalOutputs,
+      grid: `${grid.columns}x${grid.rows}`,
+      cells: grid.capacity,
+      skipped: grid.skipped
+    }],
+    ['scene', 'composites', 'grid', 'cells', 'skipped'],
+    {
+      scene: result.request.sceneSlug,
+      totalOutputs: grid.totalOutputs,
+      columns: grid.columns,
+      rows: grid.rows,
+      capacity: grid.capacity,
+      skipped: grid.skipped,
+      totalCost: 0
+    }
   )
-  comicWrite('')
-  comicWrite('  Grid pages are local ImageMagick composites and add no API cost.')
-  comicWrite('')
+  priceLine('Grid pages are local ImageMagick composites and add no API cost.', { totalCost: 0 })
 }
 
 const printReadyFinalImageEstimate = (
@@ -412,39 +571,77 @@ const printReadyFinalImageEstimate = (
     && result.inventory.mode === 'page'
     && result.modeEstimate.mode === 'page'
   ) {
-    comicWrite('  Reference preflight: canonical character references followed by distinct immutable location references in first-panel order')
-    for (const page of result.inventory.pages) {
-      comicWrite(`  Reference preflight page ${page.pageNumber}: ${page.referenceCount} required`)
-    }
-    comicWrite('  Pages:')
-    const skipNote = result.modeEstimate.skipped > 0 ? ` (${result.modeEstimate.skipped} skipped -- already exist)` : ''
-    comicWrite(`    ${result.request.sceneSlug.padEnd(40, ' ')}  ${result.modeEstimate.totalOutputs} page${result.modeEstimate.totalOutputs !== 1 ? 's' : ''}${skipNote}`)
-    comicWrite('')
+    priceTable(
+      'Comic Reference Preflight (pages)',
+      result.inventory.pages.map((page) => ({ page: page.pageNumber, referencesRequired: page.referenceCount })),
+      ['page', 'referencesRequired'],
+      {
+        order: 'canonical character references followed by distinct immutable location references in first-panel order',
+        pages: result.inventory.pages.map((page) => ({ page: page.pageNumber, referenceCount: page.referenceCount }))
+      }
+    )
+    priceTable(
+      'Comic Pages',
+      [{
+        scene: result.request.sceneSlug,
+        pages: result.modeEstimate.totalOutputs,
+        skipped: result.modeEstimate.skipped
+      }],
+      ['scene', 'pages', 'skipped'],
+      {
+        scene: result.request.sceneSlug,
+        totalOutputs: result.modeEstimate.totalOutputs,
+        skipped: result.modeEstimate.skipped
+      }
+    )
     if (result.modeEstimate.totalOutputs === 0) {
-      comicWrite('  All page images already exist. Nothing to generate.')
+      priceNotice('All page images already exist. Nothing to generate.', {
+        scene: result.request.sceneSlug,
+        totalOutputs: 0,
+        skipped: result.modeEstimate.skipped,
+        totalCost: 0
+      })
       return
     }
     printPagePricingEstimate(result.pricing.primary)
-    comicWrite('  Grouped pages use canonical character references followed by each distinct immutable location reference.')
+    priceLine('Grouped pages use canonical character references followed by each distinct immutable location reference.')
     printPageQaEstimate(result)
     return
   }
 
   if (result.inventory.mode === 'page' || result.modeEstimate.mode === 'page') return
-  for (const panel of result.inventory.panels) {
-    comicWrite(`  Reference preflight panel ${panel.panelNumber}: ${panel.referenceCount} required`)
-  }
-  comicWrite('  Panels:')
-  const skipNote = result.modeEstimate.skipped > 0 ? ` (${result.modeEstimate.skipped} skipped -- already exist)` : ''
-  comicWrite(`    ${result.request.sceneSlug.padEnd(40, ' ')}  ${result.modeEstimate.totalOutputs} panel${result.modeEstimate.totalOutputs !== 1 ? 's' : ''}${skipNote}`)
-  comicWrite('')
+  priceTable(
+    'Comic Reference Preflight (panels)',
+    result.inventory.panels.map((panel) => ({ panel: panel.panelNumber, referencesRequired: panel.referenceCount })),
+    ['panel', 'referencesRequired'],
+    { panels: result.inventory.panels.map((panel) => ({ panel: panel.panelNumber, referenceCount: panel.referenceCount })) }
+  )
+  priceTable(
+    'Comic Panels',
+    [{
+      scene: result.request.sceneSlug,
+      panels: result.modeEstimate.totalOutputs,
+      skipped: result.modeEstimate.skipped
+    }],
+    ['scene', 'panels', 'skipped'],
+    {
+      scene: result.request.sceneSlug,
+      totalOutputs: result.modeEstimate.totalOutputs,
+      skipped: result.modeEstimate.skipped
+    }
+  )
   if (result.modeEstimate.totalOutputs === 0) {
-    comicWrite('  All panels already exist. Nothing to generate.')
+    priceNotice('All panels already exist. Nothing to generate.', {
+      scene: result.request.sceneSlug,
+      totalOutputs: 0,
+      skipped: result.modeEstimate.skipped,
+      totalCost: 0
+    })
     printGridEstimate(result)
     return
   }
   printImagePricingEstimate(result.pricing.primary)
-  comicWrite(`  Initial image calls: ${result.modeEstimate.totalOutputs}`)
+  priceLine(`Initial image calls: ${result.modeEstimate.totalOutputs}`, { initialImageCalls: result.modeEstimate.totalOutputs })
   printPanelQaEstimate(result)
   printGridEstimate(result)
 }
@@ -452,9 +649,12 @@ const printReadyFinalImageEstimate = (
 const printFinalImageEstimate = (result: FinalImageEstimateResult): void => {
   printFinalImageHeader(result)
   if (result.status !== 'ready') {
-    comicWrite(result.status === 'missing-prompts'
-      ? '  No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.'
-      : '  No panel prompt bundles found.')
+    priceNotice(
+      result.status === 'missing-prompts'
+        ? 'No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.'
+        : 'No panel prompt bundles found.',
+      { status: result.status, scene: result.request.sceneSlug }
+    )
     return
   }
   printReadyFinalImageEstimate(result)
@@ -517,16 +717,31 @@ const estimateGenerateSketchesPrice = async (
   const useModelSpecificFilenames = models.length > 1
   validateImageSizeForModels(size, models)
 
-  comicWrite(`${'Comic'} - Price Estimate: generate-images --target sketches`)
-  comicWrite(`  Models:  ${models.join(', ')}`)
-  comicWrite(`  Size:    ${size}  Quality: ${quality}`)
-  comicWrite(`  Panels per sketch: ${panelsPerImage}`)
-  comicWrite('')
+  priceDetails(
+    'Comic - Price Estimate: generate-images --target sketches',
+    [
+      ['Models', models.join(', ')],
+      ['Size', size],
+      ['Quality', quality],
+      ['Panels per sketch', panelsPerImage]
+    ],
+    {
+      command: 'generate-images',
+      target: 'sketches',
+      models: [...models],
+      size,
+      quality,
+      panelsPerImage
+    }
+  )
 
   const panelPromptsDir = getPanelPromptsDirectory(sceneSlug)
 
   if (!existsSync(panelPromptsDir)) {
-    comicWrite('  No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.')
+    priceNotice('No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.', {
+      scene: sceneSlug,
+      panelPromptsDir
+    })
     return
   }
 
@@ -538,7 +753,7 @@ const estimateGenerateSketchesPrice = async (
     .sort((left, right) => left - right)
 
   if (panelNumbers.length === 0) {
-    comicWrite('  No panel prompt bundles found.')
+    priceNotice('No panel prompt bundles found.', { scene: sceneSlug, panelPromptsDir })
     return
   }
 
@@ -550,12 +765,19 @@ const estimateGenerateSketchesPrice = async (
     },
     sceneSlug,
   )
+  const preflightRows: Array<{ panels: string, referencesRequired: number }> = []
   for (const chunk of selectedSketchChunks) {
     const chunkPanelNumbers: number[] = []
     for (let panelNumber = chunk.startPanelNumber; panelNumber <= chunk.endPanelNumber; panelNumber++) chunkPanelNumbers.push(panelNumber)
     const count = await validatePriceReferenceGroup(panelPromptsDir, chunkPanelNumbers, models)
-    comicWrite(`  Reference preflight panels ${chunk.startPanelNumber}-${chunk.endPanelNumber}: ${count} required`)
+    preflightRows.push({ panels: `${chunk.startPanelNumber}-${chunk.endPanelNumber}`, referencesRequired: count })
   }
+  priceTable(
+    'Comic Reference Preflight (sketch chunks)',
+    preflightRows,
+    ['panels', 'referencesRequired'],
+    { chunks: preflightRows }
+  )
 
   let skipped = 0
   if (!force) {
@@ -591,13 +813,24 @@ const estimateGenerateSketchesPrice = async (
   }
   const sceneSketchCount: SceneSketchCount = { label, sketches: totalSketches, skipped }
 
-  comicWrite('  Sketch chunks:')
-  const skipNote = sceneSketchCount.skipped > 0 ? ` (${sceneSketchCount.skipped} skipped -- already exist)` : ''
-  comicWrite(`    ${sceneSketchCount.label.padEnd(40, ' ')}  ${sceneSketchCount.sketches} sketch${sceneSketchCount.sketches !== 1 ? 'es' : ''}${skipNote}`)
-  comicWrite('')
+  priceTable(
+    'Comic Sketch Chunks',
+    [{
+      scene: sceneSketchCount.label,
+      sketches: sceneSketchCount.sketches,
+      skipped: sceneSketchCount.skipped
+    }],
+    ['scene', 'sketches', 'skipped'],
+    { scene: sceneSketchCount.label, sketches: sceneSketchCount.sketches, skipped: sceneSketchCount.skipped }
+  )
 
   if (totalSketches === 0) {
-    comicWrite('  All sketch chunks already exist. Nothing to generate.')
+    priceNotice('All sketch chunks already exist. Nothing to generate.', {
+      scene: sceneSketchCount.label,
+      sketches: 0,
+      skipped: sceneSketchCount.skipped,
+      totalCost: 0
+    })
     return
   }
 
@@ -632,15 +865,21 @@ export const estimateGenerateImagesPrice = async (
   }
 
   if (!sceneJsonExists) {
-    comicWrite(`${'Comic'} - Price Estimate: generate-images`)
-    comicWrite('  Reviewed schemaVersion 4 scene and panel bundles are required. Run draft-scenes explicitly; generate-images price mode never drafts or upgrades artifacts.')
+    priceNotice('Comic - Price Estimate: generate-images: reviewed schemaVersion 4 scene and panel bundles are required. Run draft-scenes explicitly; generate-images price mode never drafts or upgrades artifacts.', {
+      command: 'generate-images',
+      scene: sceneSlug,
+      sceneJsonPath: getSceneJsonPath(sceneSlug)
+    })
     return
   }
   try {
     v.parse(ScenePromptDataSchema, JSON.parse(readFileSync(getSceneJsonPath(sceneSlug), 'utf8')))
   } catch {
-    comicWrite(`${'Comic'} - Price Estimate: generate-images`)
-    comicWrite('  The scene is not reviewed schemaVersion 4. Run draft-scenes explicitly; older scene artifacts cannot enter controlled image generation.')
+    priceNotice('Comic - Price Estimate: generate-images: the scene is not reviewed schemaVersion 4. Run draft-scenes explicitly; older scene artifacts cannot enter controlled image generation.', {
+      command: 'generate-images',
+      scene: sceneSlug,
+      sceneJsonPath: getSceneJsonPath(sceneSlug)
+    })
     return
   }
 

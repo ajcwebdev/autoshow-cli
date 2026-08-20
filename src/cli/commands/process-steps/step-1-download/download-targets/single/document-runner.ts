@@ -15,10 +15,10 @@ import { appendChapterExportArtifacts, buildExtractionCallOpts } from './documen
 
 const warnHtmlArticleFlagBehavior = (target: string, opts: OcrSelectionOptions, backend: PreparedDocument['htmlArticleBackend']): void => {
   if (hasConfiguredOcrProviderSelection(opts)) {
-    l.warn(formatHtmlArticleOcrFlagsIgnoredWarning(target))
+    l.warn(formatHtmlArticleOcrFlagsIgnoredWarning(target), { category: 'pipeline' })
   }
   if (backend && backend !== 'defuddle') {
-    l.write('info', `Article extraction backend: ${getHtmlArticleBackendDisplayName(backend)}`)
+    l.write('info', `Article extraction backend: ${getHtmlArticleBackendDisplayName(backend)}`, { category: 'pipeline', metadata: { backend } })
   }
 }
 

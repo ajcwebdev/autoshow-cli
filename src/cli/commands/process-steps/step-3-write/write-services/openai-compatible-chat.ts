@@ -66,7 +66,10 @@ export const runOpenAICompatibleChatModel = async ({
         if (!isStructuredFallbackError(error)) {
           throw error
         }
-        l.warn(`${providerLabel} structured output failed for ${model}; retrying without response_format`)
+        l.warn(`${providerLabel} structured output failed for ${model}; retrying without response_format`, {
+      category: 'pipeline',
+      metadata: { provider: providerLabel, model, fallback: 'no-response-format' }
+    })
         return await executeRequest(requestBody)
       }
     }

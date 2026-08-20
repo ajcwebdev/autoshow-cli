@@ -9,6 +9,7 @@ import type { CanonicalAudioProviderProjection, PipelineProviderState, ProviderB
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const FIXED_TIME = new Date(0).toISOString()
 const MODEL = 'gpt-4o-mini-tts-2025-12-15'
@@ -57,8 +58,7 @@ const projectionFor = (state: PipelineProviderState): CanonicalAudioProviderProj
 
 const crashAfterPromotedResult = (state: PipelineProviderState): PipelineProviderState => {
   const projection = structuredClone(projectionFor(state))
-  const render = projection.renderHistory[0]
-  if (!render) throw new Error('Missing completed safe-artifact fixture render')
+  const render = requireDefined(projection.renderHistory[0], 'completed safe-artifact fixture render')
   const selectedRunning = [...render.events].reverse().find((event) =>
     event.status === 'running' && event.admissionJournalRef !== undefined)
   if (!selectedRunning) throw new Error('Missing retained running event with promoted result evidence')
@@ -129,12 +129,10 @@ const retainedBatchAndAudioPaths = async (
   if (!event?.admissionJournalRef) throw new Error('Missing retained admission journal reference')
   const journalPath = join(rootDir, state.artifactDir, event.admissionJournalRef)
   const journal = JSON.parse(await readFile(journalPath, 'utf8')) as RenderAdmissionJournalSnapshot
-  const batchReference = journal.recordedBatchResults[0]
-  if (!batchReference) throw new Error('Missing retained provider batch result reference')
+  const batchReference = requireDefined(journal.recordedBatchResults[0], 'retained provider batch result reference')
   const batchResultPath = join(dirname(journalPath), batchReference.batchResultRef)
   const batchResult = JSON.parse(await readFile(batchResultPath, 'utf8')) as ProviderBatchResult
-  const output = batchResult.outputs[0]
-  if (!output) throw new Error('Missing retained provider batch audio reference')
+  const output = requireDefined(batchResult.outputs[0], 'retained provider batch audio reference')
   return {
     batchResultPath,
     audioPath: join(dirname(batchResultPath), output.artifactRef)
@@ -142,8 +140,7 @@ const retainedBatchAndAudioPaths = async (
 }
 
 const attemptsDirectoryFor = (outputDir: string, state: PipelineProviderState): string => {
-  const render = projectionFor(state).renderHistory[0]
-  if (!render) throw new Error('Missing prepared render fixture')
+  const render = requireDefined(projectionFor(state).renderHistory[0], 'prepared render fixture')
   return join(outputDir, state.artifactDir, render.renderDir, 'attempts')
 }
 
@@ -258,16 +255,14 @@ describe('safe artifact integration in the TTS lifecycle', () => {
       const successes = outcomes.filter((outcome): outcome is PromiseFulfilledResult<string> => outcome.status === 'fulfilled')
 
       expect(successes).toHaveLength(1)
-      const winner = successes[0]?.value
-      if (!winner) throw new Error('Missing winning same-render dispatch contender')
+      const winner = requireDefined(successes[0]?.value, 'winning same-render dispatch contender')
       expect(operations).toEqual([winner])
       const attemptsDirectory = attemptsDirectoryFor(outputDir, first.preparedState)
       const attemptDirectories = (await readdir(attemptsDirectory)).filter((name) => name.startsWith('attempt-'))
       expect(attemptDirectories).toHaveLength(1)
       expect(attemptDirectories[0]).toMatch(/^attempt-001-invocation-/)
       const evidenceFiles = await readdir(join(attemptsDirectory, attemptDirectories[0] as string), { recursive: true })
-      const acceptanceRef = evidenceFiles.find((path) => path.endsWith('-acceptance.json'))
-      if (!acceptanceRef) throw new Error('Missing winning immutable acceptance evidence')
+      const acceptanceRef = requireDefined(evidenceFiles.find((path) => path.endsWith('-acceptance.json')), 'winning immutable acceptance evidence')
       const acceptance = JSON.parse(await readFile(
         join(attemptsDirectory, attemptDirectories[0] as string, acceptanceRef),
         'utf8'
@@ -408,8 +403,7 @@ describe('safe artifact integration in the TTS lifecycle', () => {
       const retainedProjection = projectionFor(retainedPreparedState)
       const retainedActive = retainedProjection.activeWork
       if (retainedActive?.kind !== 'render') throw new Error('Missing retained prepared render pointer')
-      const journalPath = retainedActive.journalPath
-      if (!journalPath) throw new Error('Missing retained prepared journal reference')
+      const journalPath = requireDefined(retainedActive.journalPath, 'retained prepared journal reference')
       const journalLines = (await readFile(join(outputDir, journalPath), 'utf8')).split('\n').filter((line) => line.length > 0)
       const retainedJournal = JSON.parse(journalLines.at(-1) ?? '{}') as { snapshot?: { invocationId?: string } }
       if (!retainedJournal.snapshot?.invocationId) throw new Error('Missing retained prepared invocation identity')
@@ -554,8 +548,7 @@ describe('safe artifact integration in the TTS lifecycle', () => {
       expect(schedulerMessage).toContain('HTTP status 400')
       expect(schedulerMessage).not.toContain(canary)
 
-      const failedState = observedStates.at(-1)
-      if (!failedState) throw new Error('Missing retained provider-error state')
+      const failedState = requireDefined(observedStates.at(-1), 'retained provider-error state')
       expect(failedState.status).toBe('failed')
       expect(failedState.error?.['code']).toBe('http_400')
       expect(failedState.error?.['message']).toBe('TTS provider request failed with HTTP status 400.')
@@ -569,8 +562,7 @@ describe('safe artifact integration in the TTS lifecycle', () => {
         text: await readFile(join(outputDir, name), 'utf8')
       })))
       expect(retainedJson.map((artifact) => artifact.text).join('\n')).not.toContain(canary)
-      const rejectionArtifact = retainedJson.find((artifact) => artifact.name.endsWith('-rejection.json'))
-      if (!rejectionArtifact) throw new Error('Missing sanitized provider rejection evidence')
+      const rejectionArtifact = requireDefined(retainedJson.find((artifact) => artifact.name.endsWith('-rejection.json')), 'sanitized provider rejection evidence')
       const rejection = JSON.parse(rejectionArtifact.text) as { fields?: { code?: string, retryable?: boolean, status?: number, providerMessage?: string } }
       expect(rejection.fields).toEqual(expect.objectContaining({ code: 'http_400', retryable: false, status: 400 }))
       expect(rejection.fields?.providerMessage).toContain('[REDACTED_EMAIL]')

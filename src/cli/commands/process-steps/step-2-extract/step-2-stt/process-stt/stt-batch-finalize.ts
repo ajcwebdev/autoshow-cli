@@ -152,7 +152,7 @@ export const finalizeSttBatchCostTiming = async ({
   }, null, 2)
   await writePipelineItemRecords(outputDir, 'extract', 'single', [JSON.parse(metadataJson)], { extractRoute: 'media' })
   logManifestLocation(outputDir, l, 'extract')
-  l.debug(`Canonical manifest item metadata:\n${metadataJson}`)
+  l.debug(`Canonical manifest item metadata:\n${metadataJson}`, { category: 'artifact' })
 
   return { cost, timing }
 }
@@ -246,7 +246,7 @@ export const reportSttBatchOutcome = ({
   })
   logSttProviderFailures(l, failures)
   logSttProviderSkips(l, skippedProviderStates)
-  l.warn('Output directory preserved for retry/backfill')
+  l.warn('Output directory preserved for retry/backfill', { category: 'artifact' })
   l.write('warn', 'Locations', {
     category: 'artifact',
     humanTable: createKeyValueTable([['retryOutputDir', outputDir]], 'artifact', 'path')

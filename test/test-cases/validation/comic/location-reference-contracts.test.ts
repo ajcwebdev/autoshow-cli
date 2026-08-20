@@ -13,7 +13,7 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-transaction'
 import { getLocationReferencePath, getLocationSketchManifestPath, readLocationReferenceCatalog, readLocationSketchManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 import { estimateLocationReferencePrice } from '~/cli/commands/process-steps/step-8-comic/comic-utils/price-estimate'
-import { captureLogMessages } from '../../../test-utils/console-capture'
+import { captureLogEvents } from '../../../test-utils/console-capture'
 import type { LocationViewQaResult } from '~/types'
 
 const roots: string[] = []
@@ -134,14 +134,25 @@ describe('canonical location reference registration', () => {
 
   test('price preflight estimates one initial image and one permitted repair for one view', async () => {
     await fixture()
-    const messages = await captureLogMessages(async () => {
+    // Comic price estimates emit structured `pricing` events, so the call counts are
+    // asserted on metadata rather than on the rendered line.
+    const { events } = await captureLogEvents(async () => {
       await estimateLocationReferencePrice({ location: 'cargo-bay', view: 'establishing', maxRepairs: 1 })
     })
-    const output = messages.join('\n')
-    expect(output).toContain('Initial location-reference image calls: 1')
-    expect(output).toContain('Initial judge calls (gpt-5.6-sol): 1')
-    expect(output).toContain('Maximum additional image repairs or fresh camera retries: 1')
-    expect(output).not.toContain('image calls: 3')
+    expect(events.every((event) => event.category === 'pricing')).toBe(true)
+    const preflight = events.find((event) => event.message === 'Comic - Price Estimate: reference-sketch --location')
+    expect(preflight?.metadata).toMatchObject({
+      location: 'cargo-bay',
+      view: 'establishing',
+      initialImageCalls: 1,
+      judgeModel: 'gpt-5.6-sol',
+      initialJudgeCalls: 1,
+      maximumAdditionalImageRepairs: 1,
+      maximumAdditionalJudgeCalls: 1
+    })
+    const imageTables = events.filter((event) => event.message === 'Comic Image Price Estimate')
+    expect(imageTables).toHaveLength(2)
+    expect(imageTables.map((event) => event.metadata?.['totalOutputs'])).toEqual([1, 1])
   })
 
   test('restarts camera failures fresh but edits ordinary repairable failures', async () => {

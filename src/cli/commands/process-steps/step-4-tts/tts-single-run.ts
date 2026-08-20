@@ -10,7 +10,7 @@ import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/comp
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
 import type { AggregatedPriceEstimate, PipelineItemRecord, PipelineProviderState, PreparedTtsInput, PreparedTtsRun, StandaloneTtsCommandOptions, Step4Metadata, TtsExecutionReadinessObservation, TtsOptions, TtsRunSourceContext, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
@@ -34,11 +34,8 @@ export const getTtsInputKind = async (inputPath: string): Promise<'file' | 'dire
       return 'file'
     }
   } catch (error) {
-    const code = error !== null && typeof error === 'object' && 'code' in error
-      ? (error as { code?: unknown }).code
-      : undefined
-    if (code === 'ENOENT') {
-      throw CLIUsageError(`File not found: ${inputPath}`)
+    if (hasErrorCode(error, 'ENOENT')) {
+      throw CLIUsageError(`File not found: ${inputPath}`, undefined, error instanceof Error ? { cause: error } : {})
     }
     throw error
   }

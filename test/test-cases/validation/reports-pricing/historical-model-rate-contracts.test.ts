@@ -13,6 +13,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveTranscriptionModel } from '~/cli/commands/pricing-orchestration/run-step-walk'
 import type { HistoricalIdentity, ModelCategory, ModelIdentitySpec, Step2Metadata } from '~/types'
+import { isRecord } from '../../../test-utils/test-helpers'
 
 const MODEL_IDENTITY_SPECS: readonly ModelIdentitySpec[] = [
   { category: 'stt', serviceField: 'transcriptionService', modelField: 'transcriptionModel' },
@@ -32,9 +33,6 @@ const MINIMAX_01_SERIES_MODELS = [
   'I2V-01-Director',
   'S2V-01'
 ] as const
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
 
 const collectModelIdentities = (
   value: unknown,

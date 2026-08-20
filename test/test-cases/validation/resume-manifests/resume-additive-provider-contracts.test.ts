@@ -17,9 +17,8 @@ import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities
 import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
 import type { OcrTarget, PipelineItemRecord, ProviderBatchResumeConfig, ProviderIdentity, ResolvedFlagOptions, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import { readCanonicalManifest, readCanonicalRecord, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+import { isRecord } from '../../../test-utils/test-helpers'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const FAKE_MODEL_FIELDS = {
   openai: ['openaiImageModels', 'openaiImageModel'],
@@ -134,10 +133,7 @@ const parseFakeProviderResumeEntry = (
 const readFakeProviderItemRecord = async (
   outputDir: string
 ): Promise<PipelineItemRecord> => {
-  const record = await readSinglePipelineItemRecord(outputDir, { command: 'extract' })
-  if (!record) {
-    throw new Error(`Missing fake provider manifest at ${outputDir}`)
-  }
+  const record = requireDefined(await readSinglePipelineItemRecord(outputDir, { command: 'extract' }), `fake provider manifest at ${outputDir}`)
   return record
 }
 

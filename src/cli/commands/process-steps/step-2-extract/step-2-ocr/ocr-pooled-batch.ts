@@ -498,7 +498,11 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
       await preparePage(pageNumber)
     } catch (error) {
       const detail = error instanceof Error && error.message.trim().length > 0 ? error.message.trim() : String(error)
-      throw CLIUsageError(`--ocr-provider-mode pool could not normalize page ${pageNumber} into a compatible work unit: ${detail}`)
+      throw CLIUsageError(
+        `--ocr-provider-mode pool could not normalize page ${pageNumber} into a compatible work unit: ${detail}`,
+        undefined,
+        error instanceof Error ? { cause: error } : {}
+      )
     }
   }
 
@@ -668,7 +672,10 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
       ...(failure.errorFile ? { errorFile: failure.errorFile } : {})
     }] : []
   })
-  l.write(ledger.status === 'full' ? 'info' : 'warn', `Pooled OCR ${ledger.status}: ${ledger.telemetry.acceptedPages}/${ledger.totalPages} pages accepted`)
+  l.write(ledger.status === 'full' ? 'info' : 'warn', `Pooled OCR ${ledger.status}: ${ledger.telemetry.acceptedPages}/${ledger.totalPages} pages accepted`, {
+    category: 'pipeline',
+    metadata: { status: ledger.status, acceptedPages: ledger.telemetry.acceptedPages, totalPages: ledger.totalPages }
+  })
 
   return {
     result: composite.result,

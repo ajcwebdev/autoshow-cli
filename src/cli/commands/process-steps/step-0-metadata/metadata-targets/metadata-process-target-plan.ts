@@ -58,7 +58,7 @@ export const resolveProcessTargetPlan = async (
 
     const all = includeUrlsFromInputDir ? [...allFiles, ...listedInputs] : allFiles
     if (all.length === 0) {
-      l.warn(`No inputs found in ${resolvedTarget}`)
+      l.warn(`No inputs found in ${resolvedTarget}`, { category: 'pipeline', metadata: { target: resolvedTarget } })
     }
     return { kind: 'directory', targets: all }
   }

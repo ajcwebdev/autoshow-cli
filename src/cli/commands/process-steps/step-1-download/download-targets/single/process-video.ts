@@ -232,7 +232,13 @@ export const processVideo = async (
     l.report.complete(outputDir, artifactFiles, { steps: stepSummaries, totalTimeMs: totalTime, totalCost: cost.actual.totalCost })
 
     if (sttFailures.length > 0) {
-      l.warn(`write run completed with partial STT failures/skips: ${sttFailures.map((failure) => `${failure.service}/${failure.model}: ${failure.message}`).join('; ')}`)
+      l.warn(`write run completed with partial STT failures/skips: ${sttFailures.map((failure) => `${failure.service}/${failure.model}: ${failure.message}`).join('; ')}`, {
+        category: 'pipeline',
+        metadata: {
+          failureCount: sttFailures.length,
+          failures: sttFailures.map((failure) => ({ service: failure.service, model: failure.model, message: failure.message }))
+        }
+      })
     }
 
     return outputDir

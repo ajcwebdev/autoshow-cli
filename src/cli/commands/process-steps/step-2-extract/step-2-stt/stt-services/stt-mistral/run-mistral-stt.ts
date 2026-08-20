@@ -11,7 +11,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
-import { isAppError } from '~/utils/error-handler'
+import { isAppError, ProviderError } from '~/utils/error-handler'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const MISTRAL_RATE_LIMIT_FALLBACK_COOLDOWN_MS = 60_000
@@ -60,7 +60,7 @@ const throwMistralErrorWithContext = (
     throw error.cause
   }
 
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as SttTranscribeHttpError).stage = stage
   ;(source as SttTranscribeHttpError).retryClass = retryClass
   throw source
@@ -197,7 +197,7 @@ export const runMistralStt = async (
   const payload = validateData(MistralTranscriptionResponseSchema, rawPayload, 'Mistral STT response')
   const segments = toSegments(payload.segments ?? [], offsetSeconds)
   if (segments.every(seg => seg.speaker === undefined)) {
-    l.warn('Mistral diarization is enabled but the API returned no speaker labels for this audio')
+    l.warn('Mistral diarization is enabled but the API returned no speaker labels for this audio', { category: 'pipeline' })
   }
   const textFromPayload = (payload.text ?? '').trim()
   const text = textFromPayload.length > 0 ? textFromPayload : segments.map(seg => seg.text).join(' ').trim()

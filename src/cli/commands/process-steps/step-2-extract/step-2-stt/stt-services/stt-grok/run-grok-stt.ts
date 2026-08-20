@@ -9,6 +9,7 @@ import { validateDataSafe } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
 import { sttStageRequest } from '../stt-stage-request'
+import { ProviderError } from '~/utils/error-handler'
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 
 const GrokSttWordSchema = v.object({
@@ -166,7 +167,7 @@ const attachGrokErrorContext = (
   stage: string,
   retryClass: RetryClass
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as SttStageHttpError).stage = stage
   ;(source as SttStageHttpError).retryClass = retryClass
   throw source

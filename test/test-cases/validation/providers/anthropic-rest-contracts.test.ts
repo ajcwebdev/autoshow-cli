@@ -8,6 +8,7 @@ import {
   uploadAnthropicFile
 } from '~/utils/anthropic/anthropic-client'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 const envKeys = ['ANTHROPIC_API_KEY']
 
@@ -226,7 +227,8 @@ describe('Anthropic REST contracts', () => {
       headers: { 'retry-after': '7' },
       messageContains: 'slow down'
     })
-    expect((error as { body?: string }).body).toContain('rate_limit_error')
-    expect((error as { errorType?: string }).errorType).toBe('rate_limit_error')
+    const metadata = extractErrorMetadata(error)
+    expect(metadata['body']).toContain('rate_limit_error')
+    expect(metadata['errorType']).toBe('rate_limit_error')
   })
 })

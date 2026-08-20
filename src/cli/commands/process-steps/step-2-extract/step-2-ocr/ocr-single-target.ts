@@ -8,6 +8,7 @@ import { buildExtractionOptionsForTarget } from './ocr-targets'
 import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token-profiles'
 import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throughput-profiles'
 import { runOcr } from './run-ocr'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<ProcessDocumentOutput> => {
   const { outputDir, explicitTargets, opts, effectiveOpts, hostedOcrScheduler, step1Metadata, web, documentSource, extractFilePath, preparedMarkdown, preflightEstimate } = ctx
@@ -52,12 +53,18 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
   await persistHostedOcrThroughputProfiles(hostedOcrScheduler.snapshot(), {
     completionStatus: 'full'
   }).catch((error) => {
-    l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`)
+    l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { profile: 'throughput', error: serializeDiagnosticError(error) }
+    })
   })
   await persistHostedOcrTokenUsageProfiles(extracted.step2Metadata, {
     completionStatus: 'full'
   }).catch((error) => {
-    l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`)
+    l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { profile: 'token', error: serializeDiagnosticError(error) }
+    })
   })
   logExtractManifestConsoleSummary(outputDir, rootMetadata)
   await writeExtractionArtifact(

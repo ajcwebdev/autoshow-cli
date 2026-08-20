@@ -1,16 +1,13 @@
 import type { NormalizedTiming, TtsRequestEvidenceScope, TtsSerializedRequestObservation } from '~/types'
-import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { describe, expect, test } from 'bun:test'
 import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, normalizeInworldTimestampInfo } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-tts-request'
 import { parseInworldMarkups, runInworldTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/run-inworld-tts'
 import { createMockWavBase64 } from '../../../test-utils/media-fixtures'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const roots: string[] = []
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map(async root => await rm(root, { recursive: true, force: true })))
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['INWORLD_API_KEY'],
+  tempPrefix: 'autoshow-inworld-timing-'
 })
 
 describe('Inworld REST timing contracts', () => {
@@ -54,12 +51,9 @@ describe('Inworld REST timing contracts', () => {
   })
 
   test('passes mocked response alignment through output evidence with the planned identity', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'autoshow-inworld-timing-'))
-    roots.push(root)
-    const priorFetch = globalThis.fetch
+    const root = await tempDirs.make()
     const observations: TtsSerializedRequestObservation[] = []
     const timings: Array<NormalizedTiming<'take-audio-ms'>> = []
-    const requestBodies: unknown[] = []
     const evidence: TtsRequestEvidenceScope = {
       dispatch: async (observation, _attempt, operation) => {
         observations.push(observation)
@@ -70,36 +64,30 @@ describe('Inworld REST timing contracts', () => {
       },
       complete: async () => {}
     }
-    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-      requestBodies.push(JSON.parse(String(init?.body)))
-      return Response.json({
-        audioContent: createMockWavBase64({ samples: 800 }),
-        timestampInfo: {
-          wordAlignment: {
-            words: ['Hello', ' ', '[sigh]', ' ', 'world'],
-            wordStartTimeSeconds: [0, 0.04, 0.05, 0.08, 0.09],
-            wordEndTimeSeconds: [0.04, 0.05, 0.08, 0.09, 0.1],
-            phoneticDetails: []
-          }
+    const calls = installMockFetch(() => Response.json({
+      audioContent: createMockWavBase64({ samples: 800 }),
+      timestampInfo: {
+        wordAlignment: {
+          words: ['Hello', ' ', '[sigh]', ' ', 'world'],
+          wordStartTimeSeconds: [0, 0.04, 0.05, 0.08, 0.09],
+          wordEndTimeSeconds: [0.04, 0.05, 0.08, 0.09, 0.1],
+          phoneticDetails: []
         }
-      })
-    }) as typeof fetch
-    try {
-      const result = await runInworldTts('Hello [sigh] world', root, {
-        model: 'realtime-tts-2',
-        apiKey: 'local-test-key',
-        voiceId: 'Dennis',
-        steeringPrompt: 'Sound tired',
-        requestEvidence: evidence
-      })
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(requestBodies[0]).toMatchObject({ text: 'Hello [sigh] world', instruction: 'Sound tired', timestampType: 'WORD' })
-      expect(requestBodies[0]).not.toHaveProperty('steering_prompt')
-      expect(requestBodies[0]).not.toHaveProperty('markups')
-      expect(observations[0]).toMatchObject({ serializerVersion: 'inworld.tts.phase-3-v3', providerText: 'Hello [sigh] world' })
-      expect(timings[0]).toMatchObject({ availability: 'timed', turns: [{ turnId: 'turn-7', subjectKey: 'narrator' }] })
-    } finally {
-      globalThis.fetch = priorFetch
-    }
+      }
+    }))
+
+    const result = await runInworldTts('Hello [sigh] world', root, {
+      model: 'realtime-tts-2',
+      apiKey: 'local-test-key',
+      voiceId: 'Dennis',
+      steeringPrompt: 'Sound tired',
+      requestEvidence: evidence
+    })
+    expect(await Bun.file(result.audioPath).exists()).toBe(true)
+    expect(calls[0]?.bodyJson).toMatchObject({ text: 'Hello [sigh] world', instruction: 'Sound tired', timestampType: 'WORD' })
+    expect(calls[0]?.bodyJson).not.toHaveProperty('steering_prompt')
+    expect(calls[0]?.bodyJson).not.toHaveProperty('markups')
+    expect(observations[0]).toMatchObject({ serializerVersion: 'inworld.tts.phase-3-v3', providerText: 'Hello [sigh] world' })
+    expect(timings[0]).toMatchObject({ availability: 'timed', turns: [{ turnId: 'turn-7', subjectKey: 'narrator' }] })
   }, 10_000)
 })

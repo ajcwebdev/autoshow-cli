@@ -8,7 +8,7 @@ import { defineCliCommand } from '~/cli/native/native-types'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import type { CliFlagsDefinition, FetchFn, FetchUrlResult, LinksChangeStatus, LinksParsedCommand, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode, ModelLinksData, RunLinksOptions } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import * as l from '~/utils/app-logger/app-logger'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -349,7 +349,11 @@ export const readLinksInputFile = async (inputFilePath: string): Promise<string[
   try {
     content = await inputFile.text()
   } catch (error) {
-    throw CLIUsageError(`Failed to read links input file ${inputFilePath}: ${formatErrorMessage(error)}`)
+    throw CLIUsageError(
+      `Failed to read links input file ${inputFilePath}: ${formatErrorMessage(error)}`,
+      undefined,
+      error instanceof Error ? { cause: error } : {}
+    )
   }
 
   if (content.trim().length === 0) {
@@ -398,7 +402,7 @@ const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUrlResult
   try {
     const { contentType, finalUrl, fetchedText, requestUrl } = await downloadUrl(url, fetchImpl)
     if (fetchedText.length === 0) {
-      l.warn(`Fetched empty response from ${url}`)
+      l.warn(`Fetched empty response from ${url}`, { category: 'pipeline', metadata: { url } })
       return {
         sourceUrl: url,
         fetchUrl: requestUrl,
@@ -419,14 +423,21 @@ const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUrlResult
           finalUrl
         })).markdown
       } catch (defuddleError) {
-        l.warn(`Defuddle failed for ${url}; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`)
+        l.warn(`Defuddle failed for ${url}; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
+          category: 'pipeline',
+          metadata: { url, fallbackBackend: 'firecrawl', error: serializeDiagnosticError(defuddleError) }
+        })
         try {
           content = (await runFirecrawlUrl(requestUrl, url)).markdown
         } catch (firecrawlError) {
           throw InfraError(
             `Defuddle failed and Firecrawl fallback failed. ` +
             `Defuddle: ${formatErrorMessage(defuddleError)} Firecrawl: ${formatErrorMessage(firecrawlError)}`,
-            { stage: 'links:fetch' }
+            {
+              stage: 'links:fetch',
+              metadata: { defuddleError: serializeDiagnosticError(defuddleError) },
+              ...(firecrawlError instanceof Error ? { cause: firecrawlError } : {})
+            }
           )
         }
       }
@@ -443,7 +454,10 @@ const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUrlResult
       markdownContent: content
     }
   } catch (error) {
-    l.warn(`Failed to fetch ${url}: ${formatErrorMessage(error)}`)
+    l.warn(`Failed to fetch ${url}: ${formatErrorMessage(error)}`, {
+      category: 'pipeline',
+      metadata: { url, error: serializeDiagnosticError(error) }
+    })
     return {
       sourceUrl: url,
       fetchUrl,
@@ -468,12 +482,15 @@ const readPreviousLinksRefreshMetadata = async (
   try {
     const parsed = JSON.parse(await sidecarFile.text()) as unknown
     if (!isRecord(parsed) || !Array.isArray(parsed['links'])) {
-      l.warn(`Ignoring invalid links refresh metadata sidecar: ${sidecarPath}`)
+      l.warn(`Ignoring invalid links refresh metadata sidecar: ${sidecarPath}`, { category: 'artifact', metadata: { sidecarPath } })
       return undefined
     }
     return parsed as LinksRefreshMetadata
   } catch (error) {
-    l.warn(`Ignoring unreadable links refresh metadata sidecar ${sidecarPath}: ${formatErrorMessage(error)}`)
+    l.warn(`Ignoring unreadable links refresh metadata sidecar ${sidecarPath}: ${formatErrorMessage(error)}`, {
+      category: 'artifact',
+      metadata: { sidecarPath, error: serializeDiagnosticError(error) }
+    })
     return undefined
   }
 }
@@ -632,7 +649,10 @@ export const runLinks = async (
   const fetchImpl = options.fetchImpl ?? fetch
 
   const fetchConcurrency = DEFAULT_CLI_CONCURRENCY
-  l.write('info', `Fetching ${links.length} documentation URLs with concurrency ${fetchConcurrency}`)
+  l.write('info', `Fetching ${links.length} documentation URLs with concurrency ${fetchConcurrency}`, {
+    category: 'pipeline',
+    metadata: { urlCount: links.length, fetchConcurrency }
+  })
 
   const fetchResults = await mapWithConcurrency(
     fetchConcurrency,
@@ -645,7 +665,8 @@ export const runLinks = async (
   if (failedUrls.length > 0) {
     l.warn(
       `Failed to fetch ${failedUrls.length}/${links.length} documentation URL${failedUrls.length === 1 ? '' : 's'} after retries:\n` +
-      failedUrls.map(url => `- ${url}`).join('\n')
+      failedUrls.map(url => `- ${url}`).join('\n'),
+      { category: 'pipeline', metadata: { failedUrls, failedCount: failedUrls.length, urlCount: links.length } }
     )
   }
 
@@ -670,12 +691,16 @@ export const runLinks = async (
 
     if (existingHash !== freshHash) {
       l.warn(
-        `Documentation content updated on remote server; run without --refresh-only to update Markdown bundle at ${resolvedOutputPath}.`
+        `Documentation content updated on remote server; run without --refresh-only to update Markdown bundle at ${resolvedOutputPath}.`,
+        { category: 'artifact', metadata: { outputPath: resolvedOutputPath, refreshOnly: true } }
       )
     }
   } else {
     await Bun.write(outputPath, combinedContent)
-    l.write('success', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`)
+    l.write('success', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`, {
+    category: 'artifact',
+    metadata: { outputPath: resolvedOutputPath, urlCount: links.length, lineCount }
+  })
   }
 
   if (refresh) {
@@ -702,7 +727,11 @@ export const runLinks = async (
       `${metadata.totals.changedCount} changed, ` +
       `${metadata.totals.unchangedCount} unchanged, ` +
       `${metadata.totals.failedChangeCount} failed, ` +
-      `${metadata.totals.tokenCount} ${REFERENCE_TOKENIZER_METADATA.name} tokens)`
+      `${metadata.totals.tokenCount} ${REFERENCE_TOKENIZER_METADATA.name} tokens)`,
+      {
+        category: 'artifact',
+        metadata: { refreshMetadataPath, tokenizer: REFERENCE_TOKENIZER_METADATA.name, ...metadata.totals }
+      }
     )
   }
 

@@ -6,7 +6,7 @@ import { getExtractLimits } from '~/cli/commands/setup-and-utilities/models/mode
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { hasAnthropicOcr, hasDeepinfraOcr, hasFalOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr, hasReplicateOcr } from './ocr-engine-selection'
 import { ANTHROPIC_OCR_LIMIT_SOURCE, ensureAnthropicOcrSetup } from './ocr-services/anthropic-ocr/anthropic-ocr'
 import { runAnthropicOcr } from './ocr-services/anthropic-ocr/run-anthropic-ocr'
@@ -197,8 +197,18 @@ const normalizeHostedImageWithBun = async (
   try {
     await normalizeImageToPngWithBun(imagePath, pngPath)
   } catch (error) {
+    // A conversion failure is a tooling/infrastructure problem, not a usage mistake:
+    // the format was accepted by `resolveHostedDirectImageInputStrategy`, so exiting 2
+    // here would report "you typed it wrong" for a decoder failure.
     const message = error instanceof Error ? error.message : String(error)
-    throw CLIUsageError(`Failed to normalize ${basename(imagePath)} for --${engine}. Bun.Image could not convert ${normalizedFormat.toUpperCase()} to PNG: ${message}`)
+    throw InfraError(
+      `Failed to normalize ${basename(imagePath)} for --${engine}. Bun.Image could not convert ${normalizedFormat.toUpperCase()} to PNG: ${message}`,
+      {
+        stage: 'ocr:image-normalize',
+        hints: ['Convert the image to PNG or JPG yourself (for example with ImageMagick) and rerun.'],
+        ...(error instanceof Error ? { cause: error } : {})
+      }
+    )
   }
 
   return { filePath: pngPath, format: 'png' }
@@ -222,7 +232,13 @@ const normalizeHostedImageWithImageMagick = async (
   const pngPath = join(tempDir, `${outputStem}.png`)
   const result = await exec(imageMagickCommand, [imagePath, pngPath])
   if (result.exitCode !== 0) {
-    throw CLIUsageError(`Failed to normalize ${basename(imagePath)} for --${engine}. ${result.stderr || result.stdout || 'ImageMagick conversion failed.'}`)
+    throw InfraError(
+      `Failed to normalize ${basename(imagePath)} for --${engine}. ${result.stderr || result.stdout || 'ImageMagick conversion failed.'}`,
+      {
+        stage: 'ocr:image-normalize',
+        hints: ['Convert the image to PNG or JPG yourself and rerun.']
+      }
+    )
   }
 
   return { filePath: pngPath, format: 'png' }

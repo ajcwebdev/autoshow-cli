@@ -4,8 +4,8 @@ import * as l from '~/utils/app-logger/app-logger'
 import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError } from '~/utils/retries'
 import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
-import { isRecord } from '~/utils/rest-client'
+import { InfraError, InternalError, ProviderError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { httpResponseError, isRecord } from '~/utils/rest-client'
 
 const HTML_FETCH_TIMEOUT_MS = 15000
 export const DEFAULT_URL_REQUEST_TIMEOUT_MS = 60000
@@ -110,15 +110,15 @@ const createUrlProviderTimeoutError = (
   timeoutMs: number,
   cause: unknown
 ): Error => {
-  const error = new Error(`${providerLabel} request timed out after ${timeoutMs}ms`, {
-    cause: cause instanceof Error ? cause : undefined
+  const error = ProviderError(`${providerLabel} request timed out after ${timeoutMs}ms`, {
+    retryable: true,
+    stage: 'extract:url',
+    metadata: { timeoutMs, provider: providerLabel },
+    ...(cause instanceof Error ? { cause } : {})
   })
+  // `isAbortError` and `classifyFetchRetry` key on the name, so the abort spelling has to
+  // survive the move onto AppProviderError.
   error.name = 'AbortError'
-  Object.assign(error, {
-    timeoutMs,
-    provider: providerLabel,
-    retryable: true
-  })
   return error
 }
 
@@ -130,19 +130,15 @@ export const createUrlProviderHttpError = (
   // Providers that answer both burst throttling and terminal quota exhaustion with the same
   // retryable status pass true here to suppress retries for the terminal case.
   terminal = false
-): Error => {
-  const error = new Error(
-    `${providerLabel} ${action} failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`
-  )
-  Object.assign(error, {
-    status: response.status,
-    headers: response.headers,
+): Error => httpResponseError(
+  `${providerLabel} ${action} failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`,
+  response,
+  {
     provider: providerLabel,
     retryable: !terminal
       && (response.status === 408 || response.status === 429 || response.status >= 500)
-  })
-  return error
-}
+  }
+)
 
 export const withUrlProviderTimeout = async <T>(
   providerLabel: string,
@@ -304,7 +300,7 @@ export const createUrlArticleRun = (
   baseUrl?: string
 ) => Promise<UrlArticleRunResult> =>
   async (source, sourceUrl, options, baseUrl) => {
-    l.write('info', `Using ${displayName} backend for article extraction`)
+    l.write('info', `Using ${displayName} backend for article extraction`, { category: 'pipeline', metadata: { backend: displayName } })
     const scraped = await scrape(source, options, baseUrl)
     return await finalizeUrlArticleResult(source, sourceUrl, backend, scraped)
   }

@@ -1,4 +1,5 @@
-import { isRecord } from '~/utils/rest-client'
+import { httpResponseError, isRecord } from '~/utils/rest-client'
+import { ProviderError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import type { RetryClass, ScrapeCreatorsHttpError, ScrapeCreatorsTranscriptEntry, ScrapeCreatorsTranscriptPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
@@ -123,11 +124,10 @@ const extractScrapeCreatorsErrorMessage = (payload: unknown): string | undefined
 const toScrapeCreatorsHttpError = (
   response: Response,
   payload: unknown
-): ScrapeCreatorsHttpError => Object.assign(
-  new Error(`ScrapeCreators transcript request failed (${response.status}): ${extractScrapeCreatorsErrorMessage(payload) ?? 'Unknown error'}`),
+): ScrapeCreatorsHttpError => httpResponseError(
+  `ScrapeCreators transcript request failed (${response.status}): ${extractScrapeCreatorsErrorMessage(payload) ?? 'Unknown error'}`,
+  response,
   {
-    status: response.status,
-    headers: response.headers,
     stage: 'create',
     retryClass: 'runtime_http_create_retriable' as RetryClass,
     rawResponse: payload
@@ -137,10 +137,12 @@ const toScrapeCreatorsHttpError = (
 const buildScrapeCreatorsUnsupportedSourceError = (
   sourceUrl: string | undefined
 ): ScrapeCreatorsHttpError => Object.assign(
-  new Error(describeScrapeCreatorsUnsupportedSource(sourceUrl)),
+  ProviderError(describeScrapeCreatorsUnsupportedSource(sourceUrl), { stage: 'create', retryable: false }),
   {
     stage: 'create',
     retryable: false,
+    // `skipped` stays an own property: `classifySttProviderFailure` reads it directly off
+    // each chain entry rather than through `extractErrorMetadata`.
     skipped: true
   } satisfies Partial<ScrapeCreatorsHttpError>
 )
@@ -149,7 +151,10 @@ const buildLanguageUnavailableError = (
   language: string,
   payload: ScrapeCreatorsTranscriptPayload
 ): ScrapeCreatorsHttpError => Object.assign(
-  new Error(`ScrapeCreators transcript is unavailable for requested language "${language}"`),
+  ProviderError(`ScrapeCreators transcript is unavailable for requested language "${language}"`, {
+    stage: 'create',
+    retryable: false
+  }),
   {
     stage: 'create',
     retryable: false,
@@ -290,12 +295,19 @@ export const runScrapeCreatorsStt = async (
 
       const parsed = parseScrapeCreatorsTranscriptPayload(responsePayload)
       if (!parsed) {
-        throw Object.assign(new Error('ScrapeCreators returned an invalid transcript payload'), {
-          stage: 'create',
-          retryClass: 'runtime_http_create_retriable' as RetryClass,
-          retryable: false,
-          rawResponse: responsePayload
-        })
+        throw Object.assign(
+          ProviderError('ScrapeCreators returned an invalid transcript payload', {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable',
+            retryable: false
+          }),
+          {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable' as RetryClass,
+            retryable: false,
+            rawResponse: responsePayload
+          }
+        )
       }
 
       return parsed

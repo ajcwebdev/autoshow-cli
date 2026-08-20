@@ -203,7 +203,7 @@ const executeExtractBatchPlan = async (
   logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/${PIPELINE_MANIFEST_FILE}` }])
 
   if (childPlans.media.items.length === 0 && childPlans.document.items.length === 0 && childPlans.article.items.length === 0 && childPlans['x-space'].items.length === 0) {
-    l.warn('No supported inputs to process')
+    l.warn('No supported inputs to process', { category: 'pipeline' })
     return
   }
 

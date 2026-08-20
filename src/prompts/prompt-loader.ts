@@ -4,7 +4,7 @@ import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
 import type { LeafPrompt, PromptEntry, PromptExampleFormat, PromptExamples, PromptsRegistry, PromptTokenEstimate, ResolvedLeafPrompt } from '~/types'
 import { BoundedTextCapture, buildCaptureMetadata } from '~/utils/bounded-capture'
-import { AppError, CLIUsageError } from '~/utils/error-handler'
+import { AppError, CLIUsageError, hasErrorCode } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import { validateData } from '~/utils/validate/validation'
 
@@ -46,7 +46,7 @@ const collectPromptFilePaths = async (directory: string): Promise<string[]> => {
   try {
     dirEntries = await readdir(directory, { withFileTypes: true })
   } catch (error) {
-    if (directory === PROMPTS_DIR && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if (directory === PROMPTS_DIR && hasErrorCode(error, 'ENOENT')) {
       throw new AppError(`Prompts registry directory not found at ${PROMPTS_DIR}`, {
         kind: 'infrastructure',
         cause: error instanceof Error ? error : new Error(String(error)),

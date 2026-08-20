@@ -18,6 +18,7 @@ import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tt
 import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { appendCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const provider = (
   rootDir: string,
@@ -445,8 +446,7 @@ describe('canonical pipeline manifest', () => {
       const projection = appended.result?.['ttsAudio'] as CanonicalAudioProviderProjection
       expect(projection.renderHistory).toHaveLength(2)
       expect(new Set(projection.renderHistory.map((render) => render.renderIdentity)).size).toBe(2)
-      const activeRender = projection.renderHistory[1]
-      if (!activeRender) throw new Error('Expected the appended render to retain its render plan')
+      const activeRender = requireDefined(projection.renderHistory[1], 'the appended render to retain its render plan')
       expect(projection.activeWork).toEqual({ kind: 'render', renderIdentity: activeRender.renderIdentity, eventSequence: activeRender.events.at(-1)?.sequence as number })
       expect(projection.pointerEvents.at(-1)).toMatchObject({
         action: 'activate-render',

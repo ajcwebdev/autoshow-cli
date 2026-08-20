@@ -12,7 +12,7 @@ import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/set
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, ReclaimableWhisperCoremlArtifact, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { l as globalLogger, isJsonResultActive } from '~/utils/app-logger/app-logger'
+import { isJsonResultActive, isLogLevelEnabled } from '~/utils/app-logger/app-logger'
 import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
 import { isCompactSetupMode, setCompactSetupMode } from '~/utils/setup-output-mode'
 import { extractErrorHints, InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
@@ -91,7 +91,7 @@ const formatCommandFailure = (command: string, args: string[], result: RunResult
 const shouldUseCompactSetup = (): boolean => isCompactSetupMode()
 
 const shouldUseVerboseHumanOutput = (): boolean =>
-  globalLogger.config.minLevel === 'debug' && !isJsonResultActive()
+  isLogLevelEnabled('debug') && !isJsonResultActive()
 
 const shouldStreamCompactSetupOutput = (): boolean =>
   shouldUseCompactSetup()
@@ -260,14 +260,20 @@ const logPinnedVersions = async (): Promise<void> => {
 }
 
 const validateBinary = async (name: string, path: string, args: string[]): Promise<void> => {
-  if (!await pathExists(path)) { l.warn(`${name}: not found at ${path}`); return }
+  if (!await pathExists(path)) { l.warn(`${name}: not found at ${path}`, { category: 'command', metadata: { tool: name, path, status: 'missing' } }); return }
   try {
     const result = await runCapture(path, args, { allowFailure: true })
     if (result.exitCode === 0 || result.exitCode === 1) {
       logSetupToolStatus(l, { tool: name, status: 'ready', detail: path })
-    } else l.warn(`${name}: installed but exited ${result.exitCode} (may still work)`)
+    } else l.warn(`${name}: installed but exited ${result.exitCode} (may still work)`, {
+      category: 'command',
+      metadata: { tool: name, path, exitCode: result.exitCode, status: 'unhealthy' }
+    })
   } catch (err) {
-    l.warn(`${name}: could not execute — ${err instanceof Error ? err.message : String(err)}`)
+    l.warn(`${name}: could not execute — ${err instanceof Error ? err.message : String(err)}`, {
+      category: 'command',
+      metadata: { tool: name, path, status: 'unexecutable', error: serializeDiagnosticError(err) }
+    })
   }
 }
 
@@ -523,7 +529,7 @@ const runFullSetup = async (): Promise<boolean> => {
   let healthy = false
 
   try {
-    l.write('info', 'Starting complete AutoShow setup')
+    l.write('info', 'Starting complete AutoShow setup', { category: 'command' })
     await logPinnedVersions()
     await ensureRuntimeDirs()
 
@@ -553,7 +559,7 @@ const runFullSetup = async (): Promise<boolean> => {
     logSetupStepTimings()
     healthy = await logSetupSummary(startedAtMs, providerSummary)
 
-    l.write('info', 'You can now run: bun autoshow "https://www.youtube.com/watch?v=u1-WHqATSQU"')
+    l.write('info', 'You can now run: bun autoshow "https://www.youtube.com/watch?v=u1-WHqATSQU"', { category: 'command' })
     return healthy
   } finally {
     try {
@@ -563,7 +569,10 @@ const runFullSetup = async (): Promise<boolean> => {
       })
       logDetailedSetupPerformance(performanceResult)
     } catch (error) {
-      l.warn(`Could not write setup performance artifact: ${error instanceof Error ? error.message : String(error)}`)
+      l.warn(`Could not write setup performance artifact: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { error: serializeDiagnosticError(error) }
+    })
     }
   }
 }
@@ -573,27 +582,27 @@ export const runCompleteSetup = async (): Promise<boolean> => await runFullSetup
 const runSetupTranscription = async (): Promise<void> => {
   await downloadWhisperModel('large-v3-turbo')
   logSetupProviderConfiguration('Transcription Provider Configuration', TRANSCRIPTION_PROVIDER_ENV_KEYS)
-  l.write('success', 'Transcription setup complete')
+  l.write('success', 'Transcription setup complete', { category: 'command' })
 }
 
 const runSetupWrite = async (): Promise<void> => {
   logSetupProviderConfiguration('Write Provider Configuration', WRITE_PROVIDER_ENV_KEYS)
-  l.write('success', 'Write setup complete (all write providers are API-based)')
+  l.write('success', 'Write setup complete (all write providers are API-based)', { category: 'command' })
 }
 
 const runSetupTts = async (): Promise<void> => {
   logSetupProviderConfiguration('TTS Provider Configuration', TTS_PROVIDER_ENV_KEYS)
-  l.write('success', 'TTS setup complete (all TTS providers are API-based)')
+  l.write('success', 'TTS setup complete (all TTS providers are API-based)', { category: 'command' })
 }
 
 const runSetupImage = async (): Promise<void> => {
   logSetupProviderConfiguration('Image Provider Configuration', IMAGE_PROVIDER_ENV_KEYS)
-  l.write('success', 'Image setup complete (all image providers are API-based)')
+  l.write('success', 'Image setup complete (all image providers are API-based)', { category: 'command' })
 }
 
 const runSetupVideo = async (): Promise<void> => {
   logSetupProviderConfiguration('Video Provider Configuration', VIDEO_PROVIDER_ENV_KEYS)
-  l.write('success', 'Video setup complete (all video providers are API-based)')
+  l.write('success', 'Video setup complete (all video providers are API-based)', { category: 'command' })
 }
 
 const runSetupMusic = async (): Promise<void> => {
@@ -623,7 +632,7 @@ const runSetupMusic = async (): Promise<void> => {
 
   await setupWhisper()
   await downloadWhisperModel('large-v3-turbo')
-  l.write('success', 'Music setup complete')
+  l.write('success', 'Music setup complete', { category: 'command' })
 }
 
 export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {

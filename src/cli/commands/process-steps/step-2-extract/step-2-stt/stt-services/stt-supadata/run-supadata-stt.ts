@@ -22,7 +22,7 @@ import {
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { InfraError, InternalError, ProviderError } from '~/utils/error-handler'
 import { getSupadataCreditRateCents } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import {
   fetchSupadataTranscript,
@@ -222,11 +222,17 @@ export const runSupadataStt = async (
       captureCreateBilling(createResult.headers)
       const jobPayload = parseSupadataJobPayload(createResult.payload)
       if (!jobPayload) {
-        throw Object.assign(new Error('Supadata returned 202 without a jobId'), {
-          stage: 'create',
-          retryClass: 'runtime_http_create_retriable' as const,
-          rawResponse: createResult.payload
-        })
+        throw Object.assign(
+          ProviderError('Supadata returned 202 without a jobId', {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable'
+          }),
+          {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable' as const,
+            rawResponse: createResult.payload
+          }
+        )
       }
 
       const nextRuntime: Step2RuntimeMetadata = {
@@ -252,12 +258,19 @@ export const runSupadataStt = async (
       captureCreateBilling(createResult.headers)
       const transcriptPayload = parseSupadataTranscriptPayload(createResult.payload)
       if (!transcriptPayload) {
-        throw Object.assign(new Error('Supadata returned an invalid transcript payload'), {
-          stage: 'create',
-          retryClass: 'runtime_http_create_retriable' as const,
-          retryable: false,
-          rawResponse: createResult.payload
-        })
+        throw Object.assign(
+          ProviderError('Supadata returned an invalid transcript payload', {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable',
+            retryable: false
+          }),
+          {
+            stage: 'create',
+            retryClass: 'runtime_http_create_retriable' as const,
+            retryable: false,
+            rawResponse: createResult.payload
+          }
+        )
       }
       finalPayload = transcriptPayload
     }
@@ -326,11 +339,17 @@ export const runSupadataStt = async (
       ...(completedStatus.availableLangs ? { availableLangs: completedStatus.availableLangs } : {})
     })
     if (!transcriptPayload) {
-      throw Object.assign(new Error('Supadata completed job without transcript content'), {
-        stage: 'poll',
-        retryClass: 'runtime_http_read' as const,
-        rawResponse: completedStatus
-      })
+      throw Object.assign(
+        ProviderError('Supadata completed job without transcript content', {
+          stage: 'poll',
+          retryClass: 'runtime_http_read'
+        }),
+        {
+          stage: 'poll',
+          retryClass: 'runtime_http_read' as const,
+          rawResponse: completedStatus
+        }
+      )
     }
 
     const completedRuntime: Step2RuntimeMetadata = {

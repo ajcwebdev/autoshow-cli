@@ -230,7 +230,10 @@ export const handleProcessTarget = async (
   const resolvedTarget = resolvedDoubleDash.resolvedTarget
   if (resolvedDoubleDash.ytDlpPassthroughArgs && resolvedDoubleDash.ytDlpPassthroughArgs.length > 0) {
     opts.ytDlpPassthroughArgs = resolvedDoubleDash.ytDlpPassthroughArgs
-    l.write('info', `Forwarding ${resolvedDoubleDash.ytDlpPassthroughArgs.length} passthrough arg(s) to yt-dlp`)
+    l.write('info', `Forwarding ${resolvedDoubleDash.ytDlpPassthroughArgs.length} passthrough arg(s) to yt-dlp`, {
+      category: 'pipeline',
+      metadata: { passthroughArgCount: resolvedDoubleDash.ytDlpPassthroughArgs.length }
+    })
   }
 
   const writeProjectDefaults = command === 'write'
@@ -240,7 +243,10 @@ export const handleProcessTarget = async (
     ? await shouldTreatWriteTargetAsTextInput(resolvedTarget)
     : false
   if (writeAutoTextInput) {
-    l.write('info', `Detected prose content in ${resolvedTarget}; running write in text-input mode. Use one URL or file path per line for batch mode.`)
+    l.write('info', `Detected prose content in ${resolvedTarget}; running write in text-input mode. Use one URL or file path per line for batch mode.`, {
+      category: 'pipeline',
+      metadata: { target: resolvedTarget, mode: 'text-input' }
+    })
   }
   const effectiveOpts = writeProjectDefaults
     ? {
@@ -255,8 +261,12 @@ export const handleProcessTarget = async (
       : opts
 
   if (writeProjectDefaults && !explicitFlags.has('prompt-file')) {
-    await readPromptFileText(writeProjectDefaults.promptFile).catch(() => {
-      throw CLIUsageError(`write project mode requires ${writeProjectDefaults.projectDir}/prompt.md or an explicit --prompt-file`)
+    await readPromptFileText(writeProjectDefaults.promptFile).catch((error: unknown) => {
+      throw CLIUsageError(
+        `write project mode requires ${writeProjectDefaults.projectDir}/prompt.md or an explicit --prompt-file`,
+        undefined,
+        error instanceof Error ? { cause: error } : {}
+      )
     })
   }
 
@@ -298,7 +308,7 @@ export const handleProcessTarget = async (
       const estimate = await buildAggregatedPriceEstimate(command, preflightTargets[0] as string, effectiveOpts, undefined)
       l.report.estimate(estimate)
       if (typeof preflightTargets[0] === 'string' && await isHtmlArticleTarget(preflightTargets[0] as string, effectiveOpts) && hasConfiguredOcrProviderSelection(effectiveOpts)) {
-        l.warn(`${HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING.slice(0, -1)} during extraction pricing and execution.`)
+        l.warn(`${HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING.slice(0, -1)} during extraction pricing and execution.`, { category: 'pipeline' })
       }
       l.report.expectedOutput('./output/<timestamp>_<label>/', await buildExpectedFilesList(command, effectiveOpts, preflightTargets[0] as string))
       return
@@ -328,7 +338,10 @@ export const handleProcessTarget = async (
             `Estimated suite cost ${formatCents(suiteTotalEstimatedCost)} exceeds configured budget ${formatCents(maxCents)}. Use --allow-over-budget to proceed.`
           )
         }
-        l.warn(`Estimated suite cost ${formatCents(suiteTotalEstimatedCost)} exceeds budget ${formatCents(maxCents)} — continuing because --allow-over-budget is set.`)
+        l.warn(`Estimated suite cost ${formatCents(suiteTotalEstimatedCost)} exceeds budget ${formatCents(maxCents)} — continuing because --allow-over-budget is set.`, {
+        category: 'pricing',
+        metadata: { estimatedCostCents: suiteTotalEstimatedCost, budgetCents: maxCents, allowOverBudget: true }
+      })
       }
     }
   }
@@ -339,11 +352,14 @@ export const handleProcessTarget = async (
 
   if (batchPlan) {
     if (plan.kind === 'directory' && batchPlan.initialRecords.length === 0) {
-      l.warn(`No inputs found in ${resolvedTarget}`)
+      l.warn(`No inputs found in ${resolvedTarget}`, { category: 'pipeline', metadata: { target: resolvedTarget } })
       return
     }
     if (plan.kind === 'youtube_collection') {
-      l.write('info', `Detected YouTube collection URL, processing ${batchPlan.initialRecords.length} videos`)
+      l.write('info', `Detected YouTube collection URL, processing ${batchPlan.initialRecords.length} videos`, {
+      category: 'pipeline',
+      metadata: { target: resolvedTarget, itemCount: batchPlan.initialRecords.length }
+    })
     }
     await executeBatchPlan(command, effectiveOpts, batchPlan)
     return

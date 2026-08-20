@@ -52,13 +52,26 @@ export class AppUsageError extends AppError {
   constructor(
     message: string,
     hints?: string[],
-    options: { usageMessage?: string, cause?: Error | undefined } = {}
+    options: {
+      usageMessage?: string
+      cause?: Error | undefined
+      // Usage errors carry the same structural fields as every other kind: the credential
+      // gate needs `stage`/`retryable`/`metadata.missingEnvVar` on the error it throws, and
+      // reaching them through a post-construction `Object.assign` bypassed the constructor
+      // that normalizes them.
+      stage?: string
+      retryable?: boolean
+      metadata?: Record<string, unknown>
+    } = {}
   ) {
     super(message, {
       kind: 'usage',
       exitCode: 2,
       ...(hints ? { hints } : {}),
-      ...(options.cause ? { cause: options.cause } : {})
+      ...(options.cause ? { cause: options.cause } : {}),
+      ...(options.stage !== undefined ? { stage: options.stage } : {}),
+      ...(typeof options.retryable === 'boolean' ? { retryable: options.retryable } : {}),
+      ...(options.metadata ? { metadata: options.metadata } : {})
     })
     this.name = 'AppUsageError'
     this.usageMessage = options.usageMessage ?? message

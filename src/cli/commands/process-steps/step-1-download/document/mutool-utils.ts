@@ -126,10 +126,10 @@ const writeSplitPdfDiagnostic = (message: string, options?: PdfChunkSplitOptions
   }
   const text = formatSplitPdfDiagnostic(message, options)
   if (logMode === 'debug') {
-    l.debug(text)
+    l.debug(text, { category: 'pipeline' })
     return
   }
-  l.warn(text)
+  l.warn(text, { category: 'pipeline' })
 }
 
 const splitFailureFirstLine = (stderr: string, stdout: string): string => {

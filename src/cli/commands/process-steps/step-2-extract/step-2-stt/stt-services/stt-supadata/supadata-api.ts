@@ -1,4 +1,6 @@
 import type { RetryClass, SttRequestMetrics, SupadataHttpError, SupadataJobStatus } from '~/types'
+import { ProviderError } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import {
   extractSupadataErrorMessage,
@@ -47,16 +49,15 @@ export const fetchSupadataTranscript = async (
       const payload = await readJsonOrText(response)
 
       if (response.status === 206) {
-        throw Object.assign(
-          new Error(`Supadata transcript unavailable (${response.status}): ${extractSupadataErrorMessage(payload) ?? 'Transcript unavailable'}`),
+        throw httpResponseError(
+          `Supadata transcript unavailable (${response.status}): ${extractSupadataErrorMessage(payload) ?? 'Transcript unavailable'}`,
+          response,
           {
-            status: response.status,
-            headers: response.headers,
             stage: 'create',
             retryClass: 'runtime_http_create_retriable',
             retryable: false,
             rawResponse: payload
-          } satisfies Pick<SupadataHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'retryable' | 'rawResponse'>
+          } satisfies Pick<SupadataHttpError, 'stage' | 'retryClass' | 'retryable' | 'rawResponse'>
         )
       }
 
@@ -110,11 +111,13 @@ export const pollSupadataTranscriptJob = async (
 
       const parsed = parseSupadataJobStatus(payload)
       if (!parsed) {
-        throw Object.assign(new Error('Supadata returned an invalid job status payload'), {
-          stage: 'poll',
-          retryClass: 'runtime_http_read' as RetryClass,
-          rawResponse: payload
-        })
+        throw Object.assign(
+          ProviderError('Supadata returned an invalid job status payload', {
+            stage: 'poll',
+            retryClass: 'runtime_http_read'
+          }),
+          { stage: 'poll', retryClass: 'runtime_http_read' as RetryClass, rawResponse: payload }
+        )
       }
 
       return {

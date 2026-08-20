@@ -16,6 +16,7 @@ import {
   journalEventForState,
   latestJournalForState
 } from './shared'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const blockedAdmissionScenario = async (dir: string): Promise<void> => {
   const text = 'Do not repurchase accepted work.'
@@ -30,8 +31,7 @@ const blockedAdmissionScenario = async (dir: string): Promise<void> => {
     beforeDispatch: async () => {},
     onProviderState: async (state) => { states.push(state) }
   })).rejects.toThrow(/Recovery checkpoint: 0\/1 generation slots retained; 1 unresolved\. 1 unresolved slot has ambiguous provider admission\. Rerun the same command with --allow-ambiguous-redispatch/)
-  const retained = states.at(-1)
-  if (!retained) throw new Error('Missing retained accepted-error provider state')
+  const retained = requireDefined(states.at(-1), 'retained accepted-error provider state')
   const callsBeforeResume = providerCalls
   await expect(runTtsForTargets(text, dir, {}, [target], {
     sourceIdentity,
@@ -85,8 +85,7 @@ const historicalOrphanScenario = async (dir: string): Promise<void> => {
     }
   })).rejects.toThrow('No TTS outputs were generated')
   expect(rejectedCalls).toEqual([1])
-  const rejected = rejectedStates.at(-1)
-  if (!rejected) throw new Error('Missing rejected follow-up provider state')
+  const rejected = requireDefined(rejectedStates.at(-1), 'rejected follow-up provider state')
   const price = await planCurrentTtsResumePrice({ rootDir: dir, state: rejected, target: createDialogueFixtureTarget([]), sourceText: text, ttsOptions: DIALOGUE_OPTIONS, sourceIdentity, dialoguePlan })
   expect(price).toMatchObject({ recoveredSlotCount: 1, unresolvedSlotCount: 1, plannedSlotCount: 1 })
   expect(price.reconciliationBlockers).toEqual([expect.objectContaining({ state: 'provider-accepted', attempt: 1, requestOrdinal: 2 })])
@@ -115,8 +114,7 @@ const compatibleAmbiguityScenario = async (dir: string): Promise<void> => {
     beforeDispatch: async () => {},
     onProviderState: async (state) => { retainedStates.push(state) }
   })).rejects.toThrow(/Recovery checkpoint: 1\/3 generation slots retained; 2 unresolved\. 1 unresolved slot has ambiguous provider admission/)
-  const retained = retainedStates.at(-1)
-  if (!retained) throw new Error('Missing retained cross-render ambiguity state')
+  const retained = requireDefined(retainedStates.at(-1), 'retained cross-render ambiguity state')
   expect(firstCalls).toEqual([0, 1])
   const changedOptions: TtsOptions = { ...initialOptions, ttsSpeakers: ['Host=alloy', 'Guest=echo', 'Narrator=onyx'] }
   const price = await planCurrentTtsResumePrice({ rootDir: dir, state: retained, target: createDialogueFixtureTarget([]), sourceText: text, ttsOptions: changedOptions, sourceIdentity, dialoguePlan })
@@ -193,8 +191,7 @@ const foreignJournalScenario = async (dir: string): Promise<void> => {
   if (!event?.admissionJournalRef || !event.admissionJournalSnapshotId) throw new Error('Missing retained journal fixture')
   const retainedJournalPath = join(dir, retained.artifactDir, event.admissionJournalRef)
   const attemptRoot = join(retainedJournalPath, '..')
-  const seedName = (await readdir(attemptRoot)).filter((entry) => /^admission-journal-\d+\.json$/.test(entry)).sort()[0]
-  if (!seedName) throw new Error('Missing seed admission journal fixture')
+  const seedName = requireDefined((await readdir(attemptRoot)).filter((entry) => /^admission-journal-\d+\.json$/.test(entry)).sort()[0], 'seed admission journal fixture')
   const foreign = await Bun.file(join(attemptRoot, seedName)).json() as RenderAdmissionJournalSnapshot
   foreign.previousSnapshotId = event.admissionJournalSnapshotId
   foreign.invocationId = 'invocation-foreign-orphan-fixture'

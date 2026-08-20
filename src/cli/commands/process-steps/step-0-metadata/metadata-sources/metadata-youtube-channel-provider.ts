@@ -84,13 +84,16 @@ export const tryEnumerateYoutubeChannel = async (
 ): Promise<BatchSource | null> => {
   if (!isYoutubeChannelUrl(url)) return null
 
-  l.write('info', `Enumerating YouTube channel/playlist: ${url}`)
+  l.write('info', `Enumerating YouTube channel/playlist: ${url}`, { category: 'pipeline', metadata: { url } })
 
   const args = await buildYoutubeChannelListArgs(url, batchOpts)
   const res = await exec(getYtDlpBinary(), args)
 
   if (res.exitCode !== 0) {
-    l.warn(buildYtDlpFailureMessage('list', res.stderr || res.stdout || `failed to enumerate ${url}`))
+    l.warn(buildYtDlpFailureMessage('list', res.stderr || res.stdout || `failed to enumerate ${url}`), {
+      category: 'pipeline',
+      metadata: { url, exitCode: res.exitCode }
+    })
     return null
   }
 
@@ -117,11 +120,11 @@ export const tryEnumerateYoutubeChannel = async (
   }
 
   if (items.length === 0) {
-    l.write('info', `No items found in YouTube channel/playlist: ${url}`)
+    l.write('info', `No items found in YouTube channel/playlist: ${url}`, { category: 'pipeline', metadata: { url, itemCount: 0 } })
     return null
   }
 
-  l.write('success', `Found ${items.length} items in YouTube channel/playlist`)
+  l.write('success', `Found ${items.length} items in YouTube channel/playlist`, { category: 'pipeline', metadata: { url, itemCount: items.length } })
 
   const channelTitle = items[0]?.author
 

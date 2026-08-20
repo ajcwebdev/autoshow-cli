@@ -19,7 +19,7 @@ import type {
   SoundscapePlan,
   StructuredScriptData,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { inspectSoundscapeAudio } from '../../step-4-tts/soundscape/soundscape-audio'
@@ -231,7 +231,13 @@ export const readReviewedPresentationScene = async (sceneRunDir: string): Promis
   let bytes: Uint8Array
   try { bytes = new Uint8Array(await readFile(join(sceneRunDir, path))) }
   catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') throw CLIUsageError(`Reviewed comic scene is missing: ${join(sceneRunDir, path)}`)
+    if (hasErrorCode(error, 'ENOENT')) {
+      throw CLIUsageError(
+        `Reviewed comic scene is missing: ${join(sceneRunDir, path)}`,
+        undefined,
+        error instanceof Error ? { cause: error } : {}
+      )
+    }
     throw error
   }
   let parsed: unknown

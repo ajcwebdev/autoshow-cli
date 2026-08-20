@@ -65,7 +65,7 @@ const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
     const args = await buildYoutubeCollectionListArgs(url)
     const res = await exec(getYtDlpBinary(), args)
     if (res.exitCode !== 0) {
-      l.warn(buildYtDlpFailureMessage('list', res.stderr || res.stdout || 'unknown yt-dlp error'))
+      l.warn(buildYtDlpFailureMessage('list', res.stderr || res.stdout || 'unknown yt-dlp error'), { category: 'pipeline' })
       return []
     }
     const lines = res.stdout.split('\n').map((s: string) => s.trim()).filter((s: string) => s.length > 0)
@@ -86,7 +86,7 @@ const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
     writeCollectionCache(url, uniq)
     return uniq
   } catch {
-    l.warn(`Failed to enumerate YouTube items`)
+    l.warn(`Failed to enumerate YouTube items`, { category: 'pipeline' })
     return []
   }
 }

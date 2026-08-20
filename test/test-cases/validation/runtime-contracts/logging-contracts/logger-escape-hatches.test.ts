@@ -80,7 +80,7 @@ test('suppressLogCategories filters the global logger and clears back to normal'
   })
 })
 
-test('warn and debug lift a trailing options object into structured fields', () => {
+test('warn and debug take the same options object write does', () => {
   const { sink, events } = collectEvents()
   const logger = createLogger({ sinks: [sink], minLevel: 'debug' })
 
@@ -93,18 +93,20 @@ test('warn and debug lift a trailing options object into structured fields', () 
   expect(events[1]!.category).toBe('artifact')
 })
 
-test('warn and debug still forward ordinary arguments untouched', () => {
+test('interpolation arguments ride in options.args rather than trailing parameters', () => {
   const { sink, events } = collectEvents()
   const logger = createLogger({ sinks: [sink], minLevel: 'debug' })
 
-  logger.warn('count', 3, 'items')
-  logger.warn('payload', { slot: 3 })
-  logger.warn('error arg', new Error('boom'))
+  // The shorthands used to guess whether a trailing object was options or an ordinary
+  // interpolation argument by checking its keys. Args are now declared, so a payload that
+  // happens to share a key name with LogWriteOptions can no longer be mistaken for options.
+  logger.warn('count', { category: 'pipeline', args: [3, 'items'] })
+  logger.warn('payload', { category: 'pipeline', args: [{ slot: 3 }] })
+  logger.warn('error arg', { category: 'pipeline', args: [new Error('boom')] })
 
   expect(events[0]!.args).toEqual([3, 'items'])
-  expect(events[0]!.category).toBe('general')
-  // `{ slot: 3 }` has no LogWriteOptions keys, so it stays an interpolation argument.
+  expect(events[0]!.category).toBe('pipeline')
   expect(events[1]!.args).toHaveLength(1)
-  expect(events[1]!.category).toBe('general')
+  expect(events[1]!.category).toBe('pipeline')
   expect(events[2]!.args).toHaveLength(1)
 })

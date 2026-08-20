@@ -7,7 +7,7 @@ import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/st
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { readElevenLabsError } from './elevenlabs-utils'
 import { materializeMediaInput } from '~/utils/media-url'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import type { ElevenLabsTtsIvcContext, ElevenLabsTtsIvcOptions, ElevenLabsTtsIvcResult, TtsCustomVoiceSampleAudio } from '~/types'
 import { httpResponseError } from '~/utils/rest-client'
 
@@ -75,14 +75,23 @@ export const validateElevenLabsTtsIvcAudio = async (
     durationSeconds = await getAudioDuration(normalizedPath)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    l.warn(`Could not determine ElevenLabs TTS IVC reference audio duration; continuing anyway: ${message}`)
+    l.warn(`Could not determine ElevenLabs TTS IVC reference audio duration; continuing anyway: ${message}`, {
+      category: 'tts',
+      metadata: { provider: 'elevenlabs', error: serializeDiagnosticError(error) }
+    })
   }
 
   if (durationSeconds !== undefined && Number.isFinite(durationSeconds) && durationSeconds > 0) {
     if (durationSeconds < ELEVENLABS_IVC_BEST_PRACTICE_MIN_SECONDS) {
-      l.warn(`ElevenLabs IVC reference audio is short (${durationSeconds.toFixed(2)}s); longer, varied speech samples usually improve clone consistency.`)
+      l.warn(`ElevenLabs IVC reference audio is short (${durationSeconds.toFixed(2)}s); longer, varied speech samples usually improve clone consistency.`, {
+      category: 'tts',
+      metadata: { provider: 'elevenlabs', durationSeconds }
+    })
     } else if (durationSeconds > ELEVENLABS_IVC_BEST_PRACTICE_MAX_SECONDS) {
-      l.warn(`ElevenLabs IVC reference audio is longer than the usual short-sample guidance (${durationSeconds.toFixed(2)}s); continuing without trimming.`)
+      l.warn(`ElevenLabs IVC reference audio is longer than the usual short-sample guidance (${durationSeconds.toFixed(2)}s); continuing without trimming.`, {
+      category: 'tts',
+      metadata: { provider: 'elevenlabs', durationSeconds }
+    })
     }
   }
 
@@ -135,7 +144,10 @@ const createElevenLabsTtsIvcVoice = async (
         payload = await response.json()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        throw ValidationError(`ElevenLabs IVC voice creation returned invalid JSON: ${message}`, { stage: 'tts:elevenlabs' })
+        throw ValidationError(`ElevenLabs IVC voice creation returned invalid JSON: ${message}`, {
+      stage: 'tts:elevenlabs',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
       }
 
       return validateData(ElevenLabsIvcResponseSchema, payload, 'ElevenLabs IVC voice creation response')

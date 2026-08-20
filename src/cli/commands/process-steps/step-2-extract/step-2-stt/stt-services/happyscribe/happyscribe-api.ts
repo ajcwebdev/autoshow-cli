@@ -1,5 +1,6 @@
 import { basename } from 'node:path'
 import type { HappyScribeApiClientOptions, HappyScribeExport, HappyScribeJsonRequestOptions, HappyScribeOrder, HappyScribePollResult, HappyScribeTranscription, RetryClass } from '~/types'
+import { ProviderError } from '~/utils/error-handler'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { buildHappyScribeUrl, HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
 import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUploadUrl, parseHappyScribeTranscription } from './happyscribe-response-parsers'
@@ -323,7 +324,10 @@ export const createHappyScribeApiClient = (
         }
         if (typeof payload === 'string') {
           throw Object.assign(
-            new Error('Happy Scribe transcript download did not return JSON'),
+            ProviderError('Happy Scribe transcript download did not return JSON', {
+              stage: 'result',
+              retryClass: 'runtime_http_read'
+            }),
             {
               stage: 'result',
               retryClass: 'runtime_http_read' as RetryClass,
@@ -337,7 +341,9 @@ export const createHappyScribeApiClient = (
       }
     }
 
-    throw lastError instanceof Error ? lastError : new Error(String(lastError))
+    throw lastError instanceof Error
+      ? lastError
+      : ProviderError(String(lastError), { stage: 'result', retryClass: 'runtime_http_read' })
   }
 
   return {

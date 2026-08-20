@@ -11,7 +11,7 @@ import type {
   ObservedAudioFormat,
   ResolvedPanelTimeline,
 } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { CLIUsageError, hasErrorCode, InfraError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
@@ -218,9 +218,13 @@ const publishStagedImmutable = async (sceneRunDir: string, stagedPath: string, r
   try {
     await link(stagedPath, destination)
   } catch (error) {
-    if (!(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'EEXIST')) throw error
+    if (!hasErrorCode(error, 'EEXIST')) throw error
     const existing = await readContainedArtifactFile(sceneRunDir, relativePath)
-    if (existing.sha256 !== sha256) throw CLIUsageError(`Immutable comic presentation artifact conflicts with existing bytes: ${relativePath}`)
+    if (existing.sha256 !== sha256) throw CLIUsageError(
+        `Immutable comic presentation artifact conflicts with existing bytes: ${relativePath}`,
+        undefined,
+        error instanceof Error ? { cause: error } : {}
+      )
   }
   await rm(stagedPath, { force: true })
   return { path: relativePath, sha256 }

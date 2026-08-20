@@ -42,6 +42,30 @@ export const expectUsageClassification = (error: unknown, expected: string): voi
   expect(normalizeExitCode(error)).toBe(2)
 }
 
+/**
+ * The message a throwing call produced, for the assertions `expectUsageThrow` cannot make:
+ * an exact `toBe` comparison, or a transformation of the message (the standalone image
+ * command retargets flag spellings before asserting). Two suites had their own copy of
+ * this and of the async variant below.
+ */
+export const thrownMessage = (fn: () => unknown): string => {
+  try {
+    fn()
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
+  }
+  return expect.unreachable('Expected the call to throw')
+}
+
+export const rejectionMessage = async (fn: () => unknown): Promise<string> => {
+  try {
+    await fn()
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
+  }
+  return expect.unreachable('Expected the call to reject')
+}
+
 export const expectUsageThrow = (fn: () => unknown, expected: string): void => {
   try {
     fn()

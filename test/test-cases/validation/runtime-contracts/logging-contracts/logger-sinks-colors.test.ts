@@ -132,7 +132,7 @@ describe('logging contracts', () => {
         cause
       })
 
-      logger.error('Command failed', error)
+      logger.error('Command failed', { category: 'command', error })
 
       const metadataError = events[0]?.metadata?.['error'] as Record<string, unknown> | undefined
       const serialized = JSON.stringify(metadataError)

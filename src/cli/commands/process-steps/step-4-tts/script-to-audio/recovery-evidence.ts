@@ -11,7 +11,7 @@ import type {
   RenderAdmissionJournalSnapshot,
   RetainedJournalEvidence,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
 import {
   hardlinkContainedArtifact,
   readContainedArtifactFile,
@@ -113,7 +113,7 @@ export const resolveCurrentTtsPriorAdmittedAttemptCount = async (options: {
   try {
     await lstat(claimPath)
   } catch (error) {
-    if ((error as { code?: unknown })?.code === 'ENOENT') return retainedCount - 1
+    if (hasErrorCode(error, 'ENOENT')) return retainedCount - 1
     throw error
   }
   await releasePreparedInvocationAttemptClaim(options.rootDir, {

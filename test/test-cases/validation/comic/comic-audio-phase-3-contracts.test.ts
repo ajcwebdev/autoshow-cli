@@ -10,7 +10,7 @@ import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-com
 import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { installMockFetch, setupContractSuiteLifecycle, withEnv } from '../../../test-utils/rest-contract-helpers'
 
 const HASH_A = 'a'.repeat(64)
 const CREATED_AT = '2026-08-14T00:00:00.000Z'
@@ -62,17 +62,12 @@ describe('ADR-017 Phase 3 Fish Audio Contracts', () => {
   })
 
   test('Fish Audio target preflight check with FISH_API_KEY present', async () => {
-    const originalKey = process.env['FISH_API_KEY']
-    process.env['FISH_API_KEY'] = 'test-fish-key'
-    try {
+    await withEnv({ FISH_API_KEY: 'test-fish-key' }, async () => {
       const targetKey = canonicalTargetKey('tts-synthesis', 'fish', 's2.1-pro', 'http')
       const targets: readonly TtsTarget[] = [{ service: 'fish', model: 's2.1-pro', voice: '7f92f8afb8ec43bf81429cc1c9199cb1', operation: 'tts-synthesis', transport: 'http', targetKey, run: createDummyRun() }]
       const preflight = await validateTtsTargetsForExecution(targets)
       expect(preflight[0]?.status).toBe('ready')
-    } finally {
-      if (originalKey !== undefined) process.env['FISH_API_KEY'] = originalKey
-      else delete process.env['FISH_API_KEY']
-    }
+    })
   })
 
   test('Fish Audio advanced provider generates design candidates and clones voices', async () => {

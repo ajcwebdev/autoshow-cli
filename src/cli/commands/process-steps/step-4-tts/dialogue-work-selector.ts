@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
 import type { DialogueWorkItem, DialogueWorkSelectorOptions } from '~/types'
-import { ValidationError } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const normalizeConcurrency = (value: number): number =>
   Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
@@ -61,7 +61,7 @@ export const runDialogueWorkSelector = async <TResult>(
     try {
       await mkdir(entry.workspaceDir, { recursive: true })
       if (controller.signal.aborted) {
-        throw controller.signal.reason ?? new Error('Dialogue work was cancelled')
+        throw controller.signal.reason ?? InfraError('Dialogue work was cancelled', { stage: 'tts:dialogue', retryable: false })
       }
       return await entry.run(entry.workspaceDir, controller.signal)
     } catch (error) {

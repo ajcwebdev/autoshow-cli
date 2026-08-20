@@ -1,11 +1,10 @@
 import { join } from 'node:path'
 import { expect } from 'bun:test'
 import { E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
-import {
-  fileExists,
-} from '../../../../../test-utils/test-helpers'
+import { fileExists, isRecord, toRecordArray } from '../../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
 import {
   defineBudgetedLiveServiceTest,
   requireConfiguredEnvVar,
@@ -14,12 +13,6 @@ import {
 
 const YOUTUBE_TRANSCRIPT_URL = 'https://www.youtube.com/watch?v=u1-WHqATSQU'
 const YOUTUBE_TRANSCRIPT_TITLE = 'u1-WHqATSQU'
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const toRecordArray = (value: unknown): Record<string, unknown>[] =>
-  Array.isArray(value) ? value.filter(isRecord) : []
 
 const findStep2Metadata = (
   metadata: Record<string, unknown>,
@@ -85,7 +78,7 @@ export const defineUrlTranscriptServiceTest = ({
       `${provider}=${model}`
     ])
 
-    expect(await fileExists(join(outputDir, PIPELINE_MANIFEST_FILE))).toBe(true)
+    await expectArtifact(join(outputDir, PIPELINE_MANIFEST_FILE))
 
     const metadata = await readCanonicalRecord(outputDir)
     const step2 = findStep2Metadata(metadata, service, model)
@@ -94,8 +87,8 @@ export const defineUrlTranscriptServiceTest = ({
 
     const artifactDir = await resolveTranscriptArtifactDir(outputDir, metadata, service, model)
     const transcriptPath = join(artifactDir, 'transcription.txt')
-    expect(await fileExists(transcriptPath)).toBe(true)
+    await expectArtifact(transcriptPath)
     expect((await Bun.file(transcriptPath).text()).length).toBeGreaterThan(0)
-    expect(await fileExists(join(artifactDir, 'result.json'))).toBe(true)
+    await expectArtifact(join(artifactDir, 'result.json'))
   }, E2E_TEST_TIMEOUT_MS)
 }

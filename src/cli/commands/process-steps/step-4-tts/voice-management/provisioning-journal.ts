@@ -8,7 +8,7 @@ import type {
   VoiceProvisioningState,
   RunCrashSafeProvisioningInput,
 } from '~/types'
-import { CLIUsageError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { withProcessLock } from '~/utils/process-lock'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
@@ -258,7 +258,7 @@ export const requireVoiceProvisioningReconciliation = async (
   if (!current.transitions.some(entry => entry.phase === 'request-sent')) {
     throw CLIUsageError('Prepared provisioning has not reached the provider and can be safely resumed through the original management action.')
   }
-  return await markAmbiguous(path, current, new Error('Provisioning stopped after request dispatch without a durable terminal outcome.'))
+  return await markAmbiguous(path, current, InfraError('Provisioning stopped after request dispatch without a durable terminal outcome.', { stage: 'tts:voice-provisioning', retryable: false }))
 })
 
 export const runCrashSafeVoiceProvisioning = async (
@@ -277,7 +277,7 @@ export const runCrashSafeVoiceProvisioning = async (
         // The durable journal proves the provider mutation was never admitted, so resuming this exact
         // attempt is safe. Preserve the original lease and prepared transition.
       } else if (attempt.outcome === undefined && attempt.transitions.some(entry => entry.phase === 'request-sent')) {
-        await markAmbiguous(path, attempt, new Error('Provisioning stopped after request dispatch without a durable terminal outcome.'))
+        await markAmbiguous(path, attempt, InfraError('Provisioning stopped after request dispatch without a durable terminal outcome.', { stage: 'tts:voice-provisioning', retryable: false }))
         throw CLIUsageError('Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')
       } else {
         throw CLIUsageError('A provisioning attempt already exists for this identity; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')

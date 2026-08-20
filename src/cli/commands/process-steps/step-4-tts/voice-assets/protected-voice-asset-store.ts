@@ -51,7 +51,10 @@ const lstatIfPresent = async (path: string) => {
     return await lstat(path)
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) return undefined
-    throw ValidationError('Unable to inspect the protected asset store.', { stage: 'tts:protected-assets' })
+    throw ValidationError('Unable to inspect the protected asset store.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 }
 
@@ -177,7 +180,10 @@ const readAuthorizedReferenceInput = async (input: TtsCliReferenceInput): Promis
     }
   } catch (error) {
     if (error instanceof AppValidationError) throw error
-    throw ValidationError('Unable to read the authorized reference audio.', { stage: 'tts:protected-assets' })
+    throw ValidationError('Unable to read the authorized reference audio.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   } finally {
     await handle?.close().catch(() => undefined)
   }
@@ -277,12 +283,18 @@ const atomicallyStoreBytes = async (
       await link(temporaryPath, assetPath)
     } catch (error) {
       if (!hasErrorCode(error, 'EEXIST')) {
-        throw ValidationError('Unable to atomically promote the protected asset.', { stage: 'tts:protected-assets' })
+        throw ValidationError('Unable to atomically promote the protected asset.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
       }
     }
   } catch (error) {
     if (error instanceof AppValidationError) throw error
-    throw ValidationError('Unable to write the protected asset.', { stage: 'tts:protected-assets' })
+    throw ValidationError('Unable to write the protected asset.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   } finally {
     if (temporaryCreated) await unlink(temporaryPath).catch(() => undefined)
   }
@@ -372,7 +384,10 @@ const writePolicy = async (
       if (!hasErrorCode(error, 'EEXIST')) throw error
       const existing = await readFile(destination, 'utf8')
       if (existing !== bytes) {
-        throw ValidationError('Protected asset policy identity conflicts with existing bytes.', { stage: 'tts:protected-assets' })
+        throw ValidationError('Protected asset policy identity conflicts with existing bytes.', {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
       }
     }
   } finally {

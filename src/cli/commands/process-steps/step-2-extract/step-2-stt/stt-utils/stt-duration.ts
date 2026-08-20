@@ -71,7 +71,7 @@ const resolveByTemporaryDownload = async (
 ): Promise<number> => {
   const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-price-'))
   try {
-    l.write('info', `Resolving media duration for STT pricing via temporary ${logLabel} download`)
+    l.write('info', `Resolving media duration for STT pricing via temporary ${logLabel} download`, { category: 'pricing', metadata: { source: logLabel } })
     const metadata = await extractSourceMetadata(source)
     const { audioPath } = await downloadAudio({
       ...(source.url ? { url: source.url } : {}),

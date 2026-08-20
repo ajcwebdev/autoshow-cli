@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import type { TreeNode } from '~/types'
 import { countReferenceTokens } from '~/utils/reference-tokenizer'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
@@ -150,7 +151,7 @@ const resolveInstructionFile = async (): Promise<{ path: string, tempDir?: strin
   const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-repo-snapshot-'))
   const instructionPath = join(tempDir, 'repo-snapshot-instruction-temp.md')
   await Bun.write(instructionPath, DEFAULT_INSTRUCTION)
-  l.write('info', `Created temporary instruction file: ${instructionPath}`)
+  l.write('info', `Created temporary instruction file: ${instructionPath}`, { category: 'artifact', metadata: { instructionPath } })
   return { path: instructionPath, tempDir }
 }
 
@@ -263,7 +264,10 @@ const run = async (): Promise<number> => {
     })
     return 0
   } catch (error) {
-    l.error(`Error creating repository snapshot: ${error instanceof Error ? error.message : String(error)}`)
+    l.error(`Error creating repository snapshot: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'command',
+      metadata: { error: serializeDiagnosticError(error) }
+    })
     return 1
   } finally {
     if (instruction.tempDir) {

@@ -21,7 +21,7 @@ import { createLocalSilentDialogueRun, runComicSoundscape } from '~/cli/commands
 import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 import { createResourceGate } from '~/utils/resource-gate'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { installMockFetch, setupContractSuiteLifecycle, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 
 const CREATED_AT = '2026-08-14T00:00:00.000Z'
 const HASH_A = 'a'.repeat(64)
@@ -95,7 +95,7 @@ describe('ADR-017 Phase 5E Replicate Kokoro soundscape acceptance', () => {
   test('keeps segmented Kokoro dialogue separate from ElevenLabs action and ambience routing', async () => {
     const root = await tempDirs.make()
     const { dialoguePlan, soundscapePlan, snapshot } = await fixture(root)
-    const target: TtsTarget = { service: 'replicate', model: REPLICATE_KOKORO_MODEL_ID, run: async () => { throw new Error('provider must not run during planning') } }
+    const target: TtsTarget = { service: 'replicate', model: REPLICATE_KOKORO_MODEL_ID, run: unexpectedCall('Replicate dispatch during planning') }
     const execution = buildTargetExecution({ target, baseOptions: {}, snapshot, dialoguePlan, mode: 'segmented', deliveryPolicy: 'best-effort', sampleRate: 48000, channels: 2, codec: 'pcm_s24le', resourceGate: createResourceGate({ capacity: 1 }) })
     expect(execution.target).toMatchObject({ service: 'replicate', model: REPLICATE_KOKORO_MODEL_ID, operation: 'comic-audio', multiSpeakerStrategy: 'segment-and-concat' })
     expect(() => resolveSoundEffectTarget(`replicate=${REPLICATE_KOKORO_MODEL_ID}`)).toThrow(/Unsupported Replicate sound-effect model jaaari\/kokoro-82m/)

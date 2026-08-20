@@ -75,7 +75,7 @@ const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promise<void>
   }
   process.env['AUTOSHOW_TEST_CLI_BUNDLE'] = TEST_CLI_BUNDLE_PATH
   process.env['AUTOSHOW_PROJECT_ROOT'] = process.cwd()
-  l.write('info', `Prebuilt test CLI bundle: ${normalizeRepoPath(TEST_CLI_BUNDLE_PATH)}`)
+  l.write('info', `Prebuilt test CLI bundle: ${normalizeRepoPath(TEST_CLI_BUNDLE_PATH)}`, { category: 'command' })
 }
 
 const runWithConcurrency = async <T, R>(
@@ -230,13 +230,13 @@ const buildEmptyBudgetSummary = (suiteName: string, budgetHundredthCents: number
 }
 
 const logPriceCommandFailure = (executed: ExecutedPriceCommand, message: string): void => {
-  l.error(message)
+  l.error(message, { category: 'command' })
 
   for (const tail of [
     formatOutputTail('stdout', executed.stdout),
     formatOutputTail('stderr', executed.stderr)
   ]) {
-    if (tail !== undefined) l.error(tail)
+    if (tail !== undefined) l.error(tail, { category: 'command' })
   }
 }
 
@@ -656,9 +656,9 @@ const runStandardTestMode = async (
   const filesToRun = orderTestFiles(resolveSelectedFiles(allFiles, args.pathFilters), fileTimings.fileP50)
 
   if (args.pathFilters.length === 0) {
-    l.write('info', `Running all discovered tests (${filesToRun.length} files)`)
+    l.write('info', `Running all discovered tests (${filesToRun.length} files)`, { category: 'command' })
   } else {
-    l.write('info', `Running selected tests (${filesToRun.length} files from ${args.pathFilters.length} path filter${args.pathFilters.length === 1 ? '' : 's'})`)
+    l.write('info', `Running selected tests (${filesToRun.length} files from ${args.pathFilters.length} path filter${args.pathFilters.length === 1 ? '' : 's'})`, { category: 'command' })
   }
 
   const budgetSummary = budgetHead.summary
@@ -696,9 +696,9 @@ const runStandardTestMode = async (
   }
   const calibrationReport = await buildModelCalibrationReport(artifacts.rootDir)
   await writeJsonFile(artifacts.calibrationReportJsonPath, calibrationReport as unknown as Record<string, unknown>)
-  l.write('info', `Model calibration report: ${normalizeRepoPath(artifacts.calibrationReportJsonPath)}`)
+  l.write('info', `Model calibration report: ${normalizeRepoPath(artifacts.calibrationReportJsonPath)}`, { category: 'artifact' })
   if (calibrationReport.recommendedModels > 0) {
-    l.write('info', `Model calibration recommendations found for ${calibrationReport.recommendedModels} model entr${calibrationReport.recommendedModels === 1 ? 'y' : 'ies'}`)
+    l.write('info', `Model calibration recommendations found for ${calibrationReport.recommendedModels} model entr${calibrationReport.recommendedModels === 1 ? 'y' : 'ies'}`, { category: 'command' })
   }
 
   return exitCode
@@ -746,7 +746,7 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
 
   const artifacts = await createRunArtifacts()
   installTimestampedConsole()
-  l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`)
+  l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
 
   const [, , budgetHead] = await Promise.all([
     args.preserveTestOutput
@@ -809,21 +809,21 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
     }
     await writeReportJson(artifacts, fallbackReport)
 
-    l.error('Test run failed', error)
+    l.error('Test run failed', { category: 'command', error })
   }
 
   const latestLogPath = await writeLatestRunLog(artifacts, exitCode)
 
   if (args.preserveTestOutput) {
-    l.write('info', `Report JSON: ${normalizeRepoPath(artifacts.reportJsonPath)}`)
+    l.write('info', `Report JSON: ${normalizeRepoPath(artifacts.reportJsonPath)}`, { category: 'artifact' })
     if (!args.priceMode) {
-      l.write('info', `E2E Report JSON: ${normalizeRepoPath(artifacts.e2eReportJsonPath)}`)
-      l.write('info', `Model Calibration JSON: ${normalizeRepoPath(artifacts.calibrationReportJsonPath)}`)
+      l.write('info', `E2E Report JSON: ${normalizeRepoPath(artifacts.e2eReportJsonPath)}`, { category: 'artifact' })
+      l.write('info', `Model Calibration JSON: ${normalizeRepoPath(artifacts.calibrationReportJsonPath)}`, { category: 'artifact' })
     }
-    l.write('info', `Latest log: ${normalizeRepoPath(latestLogPath)}`)
+    l.write('info', `Latest log: ${normalizeRepoPath(latestLogPath)}`, { category: 'artifact' })
   } else {
     await cleanupRunArtifacts(artifacts)
-    l.write('info', `Test output cleaned up; latest log: ${normalizeRepoPath(latestLogPath)}`)
+    l.write('info', `Test output cleaned up; latest log: ${normalizeRepoPath(latestLogPath)}`, { category: 'artifact' })
   }
 
   return exitCode

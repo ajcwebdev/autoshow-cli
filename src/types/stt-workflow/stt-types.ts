@@ -264,6 +264,14 @@ export type AudioSegmentDescriptor = {
   durationSeconds: number
 }
 
+/**
+ * The structural contract STT provider failures satisfy. Construction goes through
+ * `ProviderError`/`httpResponseError`, so every value flowing through these aliases is an
+ * `AppProviderError` at runtime; the aliases stay structural because the `attach*Context`
+ * helpers stamp `stage`/`retryClass` onto whatever error the transport threw (a raw
+ * `TypeError` from fetch, a `retry_exhausted` AppError), not only onto values this module
+ * built.
+ */
 type RequiredSttHttpError<TStage extends string> = Error & {
   status: number
   headers: Headers

@@ -64,7 +64,7 @@ export const extractEpubNativeFormat = async (
   opts: ExtractionOptions,
   normalizedFrom?: string
 ): Promise<FormatExtractionResult> => {
-  l.write('info', 'Extracting EPUB chapter text with Bun ZIP/XML parser')
+  l.write('info', 'Extracting EPUB chapter text with Bun ZIP/XML parser', { category: 'pipeline' })
   const inspected = await runEpubBunInspect(filePath)
   if (allInspectedEpubChaptersAreEmpty(inspected.payload.chapters)) {
     throw ValidationError(
@@ -98,7 +98,7 @@ export const extractEpubOcrFormat = async (
   conversionChain?: string[]
 ): Promise<FormatExtractionResult> => {
   if (epubExportFlagsActive) {
-    l.warn(EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING)
+    l.warn(EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING, { category: 'pipeline' })
   }
   const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-epub-ocr-'))
   try {
@@ -144,13 +144,13 @@ export const extractOfficeNativeFormat = async (
   opts: ExtractionOptions
 ): Promise<FormatExtractionResult> => {
   if (hasOcrFlag(opts)) {
-    l.warn(`${format.toUpperCase()} OCR flags are ignored; extracting native ZIP/XML text with Bun`)
+    l.warn(`${format.toUpperCase()} OCR flags are ignored; extracting native ZIP/XML text with Bun`, { category: 'pipeline', metadata: { format } })
   }
   if (!isZipXmlFormat(format)) {
     throw CLIUsageError(`Unsupported ZIP/XML document format: ${format}`)
   }
 
-  l.write('info', `Extracting ${format.toUpperCase()} with native ZIP/XML parser`)
+  l.write('info', `Extracting ${format.toUpperCase()} with native ZIP/XML parser`, { category: 'pipeline', metadata: { format, extractor: 'zip-xml' } })
   const run = await runZipXmlExtract(filePath, format)
   return {
     pages: run.pages,
@@ -164,9 +164,9 @@ export const extractRtfNativeFormat = async (
   opts: ExtractionOptions
 ): Promise<FormatExtractionResult> => {
   if (hasOcrFlag(opts)) {
-    l.warn('RTF OCR flags are ignored; extracting native RTF text with Bun')
+    l.warn('RTF OCR flags are ignored; extracting native RTF text with Bun', { category: 'pipeline' })
   }
-  l.write('info', 'Extracting RTF with native text parser')
+  l.write('info', 'Extracting RTF with native text parser', { category: 'pipeline' })
   const pages = await extractRtfFile(filePath)
   return {
     pages,
@@ -180,7 +180,7 @@ export const extractCsvFormat = async (
   opts: ExtractionOptions
 ): Promise<FormatExtractionResult> => {
   if (hasOcrFlag(opts)) {
-    l.warn(CSV_OCR_FLAGS_IGNORED_WARNING)
+    l.warn(CSV_OCR_FLAGS_IGNORED_WARNING, { category: 'pipeline' })
   }
   const text = await Bun.file(filePath).text()
   return {
@@ -195,11 +195,11 @@ export const extractCbzFormat = async (
   step1Metadata: DocumentMetadata,
   opts: ExtractionOptions
 ): Promise<FormatExtractionResult> => {
-  l.write('info', 'Extracting images from CBZ archive')
+  l.write('info', 'Extracting images from CBZ archive', { category: 'pipeline' })
   const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-'))
   try {
     const images = await extractCbzImages(filePath, tempDir)
-    l.write('info', `Processing ${images.length} images from CBZ`)
+    l.write('info', `Processing ${images.length} images from CBZ`, { category: 'pipeline', metadata: { format: 'cbz', imageCount: images.length } })
 
     if (hasHostedOcr(opts)) {
       const hostedEngine = getHostedOcrEngine(opts)

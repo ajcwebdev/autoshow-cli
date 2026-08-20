@@ -10,6 +10,7 @@ import type {
 } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: ['OPENAI_API_KEY'],
@@ -40,8 +41,7 @@ describe('current TTS render control dispatch', () => {
         'dialogue-turn-003': { openai: { speed: 0.8 } }
       }
     }
-    const target = collectTtsTargets(options).find((candidate) => candidate.service === 'openai')
-    if (!target) throw new Error('Missing OpenAI TTS target')
+    const target = requireDefined(collectTtsTargets(options).find((candidate) => candidate.service === 'openai'), 'OpenAI TTS target')
 
     const result = await runTtsForTargets(
       'Alice: First.\nBob: Second.\nAlice: Third.',
@@ -62,10 +62,8 @@ describe('current TTS render control dispatch', () => {
     const metadata = result.metadata[0]
     if (!metadata?.artifactDir || !metadata.ttsAudio) throw new Error('Missing retained OpenAI TTS artifacts')
     const projection = metadata.ttsAudio as CanonicalAudioProviderProjection
-    const selected = projection.selectedSuccess
-    if (!selected) throw new Error('Missing selected TTS success')
-    const archive = projection.archive
-    if (!archive) throw new Error('Missing compact TTS archive')
+    requireDefined(projection.selectedSuccess, 'selected TTS success')
+    const archive = requireDefined(projection.archive, 'compact TTS archive')
     const compactRender = await Bun.file(join(outputDir, archive.renderRef.path)).json() as {
       slots: Array<{ turnIds: string[], voiceHash: string }>
     }

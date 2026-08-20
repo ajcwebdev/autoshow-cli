@@ -43,7 +43,7 @@ const maybeCopyWhisperDylibs = async (buildSrcDir: string): Promise<void> => {
 const verifyWhisperBinary = async (): Promise<void> => {
   const result = await runCapture(whisperBinaryPath, ['--help'], { allowFailure: true })
   if (result.exitCode !== 0) {
-    l.warn('Whisper installation may have issues, but continuing')
+    l.warn('Whisper installation may have issues, but continuing', { category: 'command' })
   }
 }
 
@@ -58,13 +58,13 @@ export const setupWhisper = async (): Promise<void> => {
       return
     }
 
-    l.write('info', 'Whisper binary found but not working, rebuilding')
+    l.write('info', 'Whisper binary found but not working, rebuilding', { category: 'command' })
   }
 
   const tag = await readWhisperTag()
   const repoDir = whisperBuildDir
 
-  l.write('info', `Building whisper.cpp ${tag}`)
+  l.write('info', `Building whisper.cpp ${tag}`, { category: 'command', metadata: { engine: 'whisper', tag } })
 
   await mkdir(repoDir, { recursive: true })
   await cleanupPath(repoDir)
@@ -123,7 +123,7 @@ export const setupWhisper = async (): Promise<void> => {
     await cleanupPath(repoDir)
   })
 
-  l.write('success', 'Whisper.cpp installed')
+  l.write('success', 'Whisper.cpp installed', { category: 'command' })
 }
 
 export const downloadWhisperModel = async (modelName: string): Promise<void> => {
@@ -134,7 +134,7 @@ export const downloadWhisperModel = async (modelName: string): Promise<void> => 
 
   if (await fileExists(destination)) {
   } else {
-    l.write('info', `Downloading whisper model: ${modelName}`)
+    l.write('info', `Downloading whisper model: ${modelName}`, { category: 'command', metadata: { engine: 'whisper', model: modelName } })
 
     const url = `${whisperBaseUrl}/${modelFile}`
     const integrity = getWhisperModelIntegrity(modelName)
@@ -154,13 +154,13 @@ export const downloadWhisperModel = async (modelName: string): Promise<void> => 
       }
     )
 
-    l.write('success', `Whisper model ${modelName} downloaded`)
+    l.write('success', `Whisper model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisper', model: modelName } })
   }
 }
 
 export const ensureWhisperReady = async (modelName: string): Promise<void> => {
   if (!modelName) {
-    l.error('Model name required')
+    l.error('Model name required', { category: 'command' })
     throw InternalError('Model name required', { stage: 'setup:whisper' })
   }
 
@@ -168,7 +168,7 @@ export const ensureWhisperReady = async (modelName: string): Promise<void> => {
     const healthy = (await runCapture(whisperBinaryPath, ['--help'], { allowFailure: true })).exitCode === 0
 
     if (!healthy) {
-      l.write('info', 'Rebuilding whisper')
+      l.write('info', 'Rebuilding whisper', { category: 'command' })
       await setupWhisper()
     }
   } else {

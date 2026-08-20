@@ -155,7 +155,8 @@ export const assertDialogueFormatIsUsable = (
 
   l.warn(
     `--tts-dialogue-format ${format} has no effect without --tts-speaker mappings and was ignored. `
-    + 'Pass --tts-speaker SPEAKER=VOICE to run multi-speaker TTS, or remove ttsDialogueFormat from your config defaults.'
+    + 'Pass --tts-speaker SPEAKER=VOICE to run multi-speaker TTS, or remove ttsDialogueFormat from your config defaults.',
+    { category: 'tts', metadata: { dialogueFormat: format } }
   )
 }
 

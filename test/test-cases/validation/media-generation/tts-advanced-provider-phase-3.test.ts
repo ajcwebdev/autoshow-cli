@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import type {
   AdvancedProviderHttpRequest,
@@ -43,19 +41,16 @@ import {
   materializeAdvancedVoiceCandidate,
 } from '~/cli/commands/process-steps/step-4-tts/voice-management/advanced-voice-management'
 import { createMockWavBase64 } from '../../../test-utils/media-fixtures'
+import { installMockFetch, setupContractSuiteLifecycle, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 
 const CHECKED_AT = '2026-08-11T00:00:00.000Z'
-const roots: string[] = []
 
-const makeRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-phase-3-'))
-  roots.push(root)
-  return root
-}
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['ELEVENLABS_API_KEY', 'HUME_API_KEY'],
+  tempPrefix: 'autoshow-phase-3-'
 })
+
+const makeRoot = async (): Promise<string> => await tempDirs.make()
 
 const accountVoice = (
   provider: 'elevenlabs' | 'hume',
@@ -284,7 +279,7 @@ describe('Phase 3 design, lineage, clone, and lifecycle contracts', () => {
 
 describe('Phase 3 native planning, prepared text, timing, and continuation', () => {
   test('shared render planning selects ElevenLabs dialogue and Hume utterances with supported controls', () => {
-    const elevenTarget: TtsTarget = { service: 'elevenlabs', model: 'eleven_v3', run: async () => { throw new Error('planning must not dispatch') } }
+    const elevenTarget: TtsTarget = { service: 'elevenlabs', model: 'eleven_v3', run: unexpectedCall('ElevenLabs dispatch during planning') }
     const elevenTurns = Array.from({ length: 11 }, (_, index) => ({ turnId: `turn-${index}`, speaker: `SPEAKER_${index}`, text: 'hello' }))
     const eleven = planCurrentTtsReadiness({
       target: elevenTarget,
@@ -298,7 +293,7 @@ describe('Phase 3 native planning, prepared text, timing, and continuation', () 
     expect(eleven.strategy).toBe('native-dialogue')
     expect(eleven.renderPlan.batches.map(batch => batch.orderedTurnIds.length)).toEqual([10, 1])
 
-    const humeTarget: TtsTarget = { service: 'hume', model: 'octave-2', run: async () => { throw new Error('planning must not dispatch') } }
+    const humeTarget: TtsTarget = { service: 'hume', model: 'octave-2', run: unexpectedCall('Hume dispatch during planning') }
     const hume = planCurrentTtsReadiness({
       target: humeTarget,
       sourceText: 'HERO: Hello\nGUIDE: Go.',
@@ -432,13 +427,11 @@ describe('Phase 3 native planning, prepared text, timing, and continuation', () 
 
   test('ElevenLabs final native serializer retains ordered voice IDs and timing evidence', async () => {
     const root = await makeRoot()
-    const priorFetch = globalThis.fetch
-    const priorKey = process.env['ELEVENLABS_API_KEY']
     const observations: TtsSerializedRequestObservation[] = []
     const outputTiming: unknown[] = []
     const audio = createMockWavBase64({ samples: 800 })
     process.env['ELEVENLABS_API_KEY'] = 'test-key'
-    globalThis.fetch = (async () => new Response(JSON.stringify({
+    installMockFetch(() => new Response(JSON.stringify({
       audio_base64: audio,
       voice_segments: [
         { dialogue_input_index: 0, start_time_seconds: 0, end_time_seconds: 0.05, character_start_index: 0, character_end_index: 5 },
@@ -449,7 +442,7 @@ describe('Phase 3 native planning, prepared text, timing, and continuation', () 
         character_start_times_seconds: Array.from({ length: 8 }, (_, index) => index * 0.01),
         character_end_times_seconds: Array.from({ length: 8 }, (_, index) => (index + 1) * 0.01)
       }
-    }), { headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+    }), { headers: { 'content-type': 'application/json' } }))
     const evidence: TtsRequestEvidenceScope = {
       dispatch: async (observation, _attempt, operation) => {
         observations.push(observation)
@@ -458,59 +451,44 @@ describe('Phase 3 native planning, prepared text, timing, and continuation', () 
       recordOutput: async output => { outputTiming.push(output.timing) },
       complete: async () => {}
     }
-    try {
-      const result = await runElevenLabsNativeDialogue([
-        { turnId: 'one', subjectKey: 'hero', speaker: 'Hero', canonicalText: 'Hello', voiceId: 'voice-a' },
-        { turnId: 'two', subjectKey: 'guide', speaker: 'Guide', canonicalText: 'Go.', voiceId: 'voice-b' }
-      ], root, { model: 'eleven_v3', requestEvidence: evidence })
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(observations).toHaveLength(1)
-      expect(observations[0]).toEqual(expect.objectContaining({
-        endpointKind: 'text-to-dialogue-with-timestamps',
-        voiceField: 'inputs[].voice_id',
-        voices: [
-          { kind: 'provider-id', value: 'voice-a', speaker: 'Hero' },
-          { kind: 'provider-id', value: 'voice-b', speaker: 'Guide' }
-        ],
-        serializedRequest: expect.objectContaining({ body: expect.objectContaining({ inputs: [{ text: 'Hello', voice_id: 'voice-a' }, { text: 'Go.', voice_id: 'voice-b' }] }) })
-      }))
-      expect(outputTiming[0]).toEqual(expect.objectContaining({ availability: 'timed', provenance: 'provider-alignment' }))
-    } finally {
-      globalThis.fetch = priorFetch
-      if (priorKey === undefined) delete process.env['ELEVENLABS_API_KEY']
-      else process.env['ELEVENLABS_API_KEY'] = priorKey
-    }
+    const result = await runElevenLabsNativeDialogue([
+      { turnId: 'one', subjectKey: 'hero', speaker: 'Hero', canonicalText: 'Hello', voiceId: 'voice-a' },
+      { turnId: 'two', subjectKey: 'guide', speaker: 'Guide', canonicalText: 'Go.', voiceId: 'voice-b' }
+    ], root, { model: 'eleven_v3', requestEvidence: evidence })
+    expect(await Bun.file(result.audioPath).exists()).toBe(true)
+    expect(observations).toHaveLength(1)
+    expect(observations[0]).toEqual(expect.objectContaining({
+      endpointKind: 'text-to-dialogue-with-timestamps',
+      voiceField: 'inputs[].voice_id',
+      voices: [
+        { kind: 'provider-id', value: 'voice-a', speaker: 'Hero' },
+        { kind: 'provider-id', value: 'voice-b', speaker: 'Guide' }
+      ],
+      serializedRequest: expect.objectContaining({ body: expect.objectContaining({ inputs: [{ text: 'Hello', voice_id: 'voice-a' }, { text: 'Go.', voice_id: 'voice-b' }] }) })
+    }))
+    expect(outputTiming[0]).toEqual(expect.objectContaining({ availability: 'timed', provenance: 'provider-alignment' }))
   })
 
   test('Hume native serializer returns bounded takes and continues from the selected first generation', async () => {
     const root = await makeRoot()
-    const priorFetch = globalThis.fetch
-    const priorKey = process.env['HUME_API_KEY']
-    const bodies: Array<Record<string, unknown>> = []
     const audio = createMockWavBase64({ samples: 800 })
     process.env['HUME_API_KEY'] = 'test-key'
-    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
-      bodies.push(body)
-      const batch = bodies.length
+    const calls = installMockFetch(() => {
+      const batch = calls.length
       return new Response(JSON.stringify({ generations: [
         { generation_id: `batch-${batch}-selected`, audio, duration: 0.05 },
         { generation_id: `batch-${batch}-alternate`, audio, duration: 0.05 }
       ] }), { headers: { 'content-type': 'application/json' } })
-    }) as unknown as typeof fetch
-    try {
-      const result = await runHumeNativeUtterances([
-        { turnId: 'one', subjectKey: 'hero', speaker: 'Hero', canonicalText: 'A'.repeat(3000), voiceId: 'voice-a', speed: 1.1 },
-        { turnId: 'two', subjectKey: 'guide', speaker: 'Guide', canonicalText: 'B'.repeat(3000), voiceId: 'voice-b', trailingSilence: 0.2 }
-      ], root, { model: 'octave-2', takeCount: 2 })
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(bodies).toHaveLength(2)
-      expect(bodies[0]).toEqual(expect.objectContaining({ version: '2', num_generations: 2, utterances: [expect.objectContaining({ voice: { id: 'voice-a' }, speed: 1.1 })] }))
-      expect(bodies[1]).toEqual(expect.objectContaining({ context: { generation_id: 'batch-1-selected' }, utterances: [expect.objectContaining({ voice: { id: 'voice-b' }, trailing_silence: 0.2 })] }))
-    } finally {
-      globalThis.fetch = priorFetch
-      if (priorKey === undefined) delete process.env['HUME_API_KEY']
-      else process.env['HUME_API_KEY'] = priorKey
-    }
+    })
+
+    const result = await runHumeNativeUtterances([
+      { turnId: 'one', subjectKey: 'hero', speaker: 'Hero', canonicalText: 'A'.repeat(3000), voiceId: 'voice-a', speed: 1.1 },
+      { turnId: 'two', subjectKey: 'guide', speaker: 'Guide', canonicalText: 'B'.repeat(3000), voiceId: 'voice-b', trailingSilence: 0.2 }
+    ], root, { model: 'octave-2', takeCount: 2 })
+    expect(await Bun.file(result.audioPath).exists()).toBe(true)
+    const bodies = calls.map((call) => call.bodyJson)
+    expect(bodies).toHaveLength(2)
+    expect(bodies[0]).toEqual(expect.objectContaining({ version: '2', num_generations: 2, utterances: [expect.objectContaining({ voice: { id: 'voice-a' }, speed: 1.1 })] }))
+    expect(bodies[1]).toEqual(expect.objectContaining({ context: { generation_id: 'batch-1-selected' }, utterances: [expect.objectContaining({ voice: { id: 'voice-b' }, trailing_silence: 0.2 })] }))
   })
 })

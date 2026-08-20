@@ -20,6 +20,7 @@ import type {
 import { DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from '~/cli/commands/process-steps/provider-lane-contract'
 import { createHostedConcurrencyCoordinator, recoverHostedConcurrencyRequest } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+import { InternalError, ProviderError } from '~/utils/error-handler'
 
 const DEFAULT_RATE_LIMIT_PAUSE_MS = 2_000
 export const HOSTED_TTS_DEFAULT_SCOPE_LABEL = DEFAULT_PROVIDER_LANE_SCOPE_LABEL
@@ -266,7 +267,9 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
 
     job.settled = true
     this.#detachAbortListener(job)
-    job.reject(job.failureReason ?? new Error('Hosted TTS chunk job failed'))
+    job.reject(job.failureReason ?? InternalError('Hosted TTS chunk job failed', {
+      stage: 'tts:chunk-scheduler'
+    }))
     this.#removeSettledJobs(state)
   }
 
@@ -502,7 +505,10 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
           abortSignal: job.abortSignal
         },
         token: coreAdmission,
-        error: error ?? Object.assign(new Error('Hosted TTS request was rate limited.'), { status: 429 }),
+        error: error ?? ProviderError('Hosted TTS request was rate limited.', {
+          status: 429,
+          stage: 'tts:chunk-scheduler'
+        }),
         pressure: {
           ...feedback,
           reason: feedback.reason ?? 'rate-limit',

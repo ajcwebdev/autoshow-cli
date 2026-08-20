@@ -283,6 +283,7 @@ describe('logging contracts', () => {
       })
 
       logger.write('info', 'Locations', {
+        category: 'artifact',
         humanTable: createLocationsTable([{ artifact: 'manifest', path: longPath }])
       })
 

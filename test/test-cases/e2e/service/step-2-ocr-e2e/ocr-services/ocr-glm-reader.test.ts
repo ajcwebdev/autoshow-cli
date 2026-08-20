@@ -1,13 +1,14 @@
 import { expect } from 'bun:test'
-import { rm } from 'node:fs/promises'
 import { budgetedTest } from '../../../../../test-utils/budget'
-import { fileExists } from '../../../../../test-utils/test-helpers'
+
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
+import { cleanupOutputDir } from '../../../../../test-utils/test-helpers'
 import {
   requireConfiguredEnvVar,
   runCommandAndExpectOutputDir
 } from '../../../../../test-utils/service-test-kit'
 import type { OcrE2eExtractMetadata } from '~/types'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const articleUrl = 'https://ajcwebdev.com'
 
@@ -24,14 +25,12 @@ budgetedTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.c
       { testName: 'bun autoshow extract https://ajcwebdev.com --url-provider glm-reader' }
     )
 
-    expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
+    await expectArtifact(`${outputDir}/extraction.txt`)
 
     const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
     expect(metadata.step1?.format).toBe('html')
     expect(metadata.step2?.extractionMethod).toBe('html+glm-reader')
   } finally {
-    if (outputDir && process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS'] === '0') {
-      await rm(outputDir, { recursive: true, force: true }).catch(() => {})
-    }
+    await cleanupOutputDir(outputDir)
   }
 })

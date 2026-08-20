@@ -8,7 +8,12 @@ import { join } from 'node:path'
 import { concatAndConvertToWav, runTtsChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { bindHostedTtsChunkScheduler, createHostedTtsBatchCoordinator, createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
-import { setupTtsContractLifecycle, waitForCondition } from './shared'
+import {
+  captureGatedAssertions,
+  setupTtsContractLifecycle,
+  waitForCondition
+} from './shared'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const { makeTempDir } = setupTtsContractLifecycle()
 
@@ -54,9 +59,7 @@ describe('TTS provider service contracts', () => {
 
       const first = runTtsChunks(['a1', 'a2', 'a3'], 2, runChunk, { provider: 'grok', scheduler })
       const second = runTtsChunks(['b1', 'b2', 'b3'], 2, runChunk, { provider: 'grok', scheduler })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => releases.length === 2, 'same-provider scheduler did not start the first capped chunks')
         expect(maxInFlight).toBe(2)
         expect(scheduler.getProviderSnapshot('grok')).toMatchObject({
@@ -64,15 +67,13 @@ describe('TTS provider service contracts', () => {
           currentLimit: 2,
           active: 2
         })
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.splice(0)) release()
-      }
+      })
 
       const results = await Promise.all([first, second])
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
       expect(maxInFlight).toBe(2)
       expect(results).toEqual([
         ['a1', 'a2', 'a3'],
@@ -104,25 +105,21 @@ describe('TTS provider service contracts', () => {
         scheduler,
         job: { originalOrder: 1, label: 'small' }
       })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         expect(await scheduler.waitForRegisteredJobs(2, 100)).toBe(true)
         scheduler.start()
         await waitForCondition(() => started.length === 2, 'batch coordinator did not fill capacity from the earliest job')
         expect(started).toEqual(['L1', 'L2'])
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.values()) release()
-      }
+      })
 
       expect(await Promise.all([large, small])).toEqual([
         ['L1', 'L2', 'L3'],
         ['S1']
       ])
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
     })
 
   test('hosted TTS batch coordinator fills provider capacity from the earliest job', async () => {
@@ -149,23 +146,19 @@ describe('TTS provider service contracts', () => {
         scheduler,
         job: { originalOrder: 1 }
       })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         expect(await scheduler.waitForRegisteredJobs(2, 100)).toBe(true)
         scheduler.start()
         await waitForCondition(() => started.length === 3, 'batch coordinator did not fill provider capacity')
         expect(started).toEqual(['A1', 'A2', 'A3'])
         expect(scheduler.getProviderSnapshot('grok').active).toBe(3)
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.values()) release()
-      }
+      })
 
       await Promise.all([first, second])
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
     })
 
   test('hosted TTS batch coordinator moves forward only after all earlier-job chunks are dispatched', async () => {
@@ -327,22 +320,18 @@ describe('TTS provider service contracts', () => {
 
       const grok = runTtsChunks(['g1', 'g2'], 2, runChunk, { provider: 'grok', scheduler })
       const openai = runTtsChunks(['o1', 'o2'], 2, runChunk, { provider: 'openai', scheduler })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => releases.length === 4, 'different-provider scheduler did not use independent caps')
         expect(maxInFlight).toBe(4)
         expect(scheduler.getProviderSnapshot('grok').active).toBe(2)
         expect(scheduler.getProviderSnapshot('openai').active).toBe(2)
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.splice(0)) release()
-      }
+      })
 
       await Promise.all([grok, openai])
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
     })
 
   test('hosted TTS chunk scheduler reduces provider limit and pauses new starts on 429 feedback', async () => {
@@ -364,9 +353,7 @@ describe('TTS provider service contracts', () => {
         }
         return chunk
       }, { provider: 'grok', scheduler })
-      let waitError: unknown
-
-      try {
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(() => starts.length === 2, 'rate-limit test did not start the reduced-limit chunks')
         expect(scheduler.getProviderSnapshot('grok').currentLimit).toBe(2)
         releaseImmediately = true
@@ -375,15 +362,13 @@ describe('TTS provider service contracts', () => {
         expect(starts).toHaveLength(2)
         await new Promise<void>((resolve) => setTimeout(resolve, 35))
         await waitForCondition(() => starts.length === 5, 'rate-limit pause did not eventually reopen starts')
-      } catch (error) {
-        waitError = error
-      } finally {
+      }, () => {
         releaseImmediately = true
         for (const release of releases.splice(0)) release()
-      }
+      })
 
       expect(await runPromise).toEqual(['a', 'b', 'c', 'd', 'e'])
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
     })
 
   test('hosted TTS chunk scheduler gradually ramps successful providers back to the configured max', async () => {
@@ -429,15 +414,14 @@ describe('TTS provider service contracts', () => {
         abortSignal: controller.signal
       })
 
-      let waitError: unknown
-      try {
+      // No gate to release here — the abort below is what unblocks the run — but the
+      // assertion still has to survive until after the cancellation is observed.
+      const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(
           () => scheduler.getProviderSnapshot('grok').queued === 2,
           'paused scheduler did not queue the cancellable job'
         )
-      } catch (error) {
-        waitError = error
-      }
+      }, () => {})
 
       const startedAt = Date.now()
       controller.abort(cancellation)
@@ -449,7 +433,7 @@ describe('TTS provider service contracts', () => {
         active: 0,
         queued: 0
       })
-      if (waitError) throw waitError
+      rethrowGatedAssertions()
     }, 5_000)
 
   test('hosted TTS chunk scheduler waits for active chunks to settle after cancellation', async () => {
@@ -485,14 +469,12 @@ describe('TTS provider service contracts', () => {
       expect(starts).toBe(2)
       expect(scheduler.getProviderSnapshot('grok')).toMatchObject({ active: 2, queued: 0 })
 
-      const firstRelease = releases.shift()
-      if (!firstRelease) throw new Error('Missing first active chunk release')
+      const firstRelease = requireDefined(releases.shift(), 'first active chunk release')
       firstRelease()
       await waitForCondition(() => scheduler.getProviderSnapshot('grok').active === 1, 'first active chunk did not settle')
       expect(settled).toBe(false)
 
-      const secondRelease = releases.shift()
-      if (!secondRelease) throw new Error('Missing second active chunk release')
+      const secondRelease = requireDefined(releases.shift(), 'second active chunk release')
       secondRelease()
       await observed
 

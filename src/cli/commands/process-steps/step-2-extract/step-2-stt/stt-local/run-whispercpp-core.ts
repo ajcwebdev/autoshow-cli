@@ -75,7 +75,7 @@ export const runWhisperCppTranscribe = async (
       segmentStartSeconds,
       segmentDurationSeconds,
       totalDurationSeconds
-    }))
+    }), { category: 'pipeline' })
     lastLoggedProgress = 0
     const result = await exec(command, args, {
       onStderrLine: (line) => {
@@ -90,7 +90,7 @@ export const runWhisperCppTranscribe = async (
           segmentStartSeconds,
           segmentDurationSeconds,
           totalDurationSeconds
-        }))
+        }), { category: 'pipeline' })
       },
       retry: { operationName: `${label} transcription` }
     })
@@ -177,7 +177,7 @@ export const runWhisperCppTranscribe = async (
       metadata
     }
   } catch (error) {
-    l.error(`Failed to transcribe audio`, error)
+    l.error(`Failed to transcribe audio`, { category: 'pipeline', error })
     throw error
   } finally {
     await preparedInput?.cleanup()

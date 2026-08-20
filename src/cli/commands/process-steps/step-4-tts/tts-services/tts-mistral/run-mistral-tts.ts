@@ -105,7 +105,10 @@ const prepareReferenceAudio = async (
     await convertAudioToWav(path, convertedPath, 'Mistral', 'reference audio', abortSignal)
   } catch (error) {
     if (!protectedReference) throw error
-    throw InfraError('Failed to convert protected Mistral reference audio to WAV.', { stage: 'tts:mistral' })
+    throw InfraError('Failed to convert protected Mistral reference audio to WAV.', {
+      stage: 'tts:mistral',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 
   return {

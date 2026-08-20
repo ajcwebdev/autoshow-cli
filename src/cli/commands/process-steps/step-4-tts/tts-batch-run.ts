@@ -301,7 +301,7 @@ export const runTtsDirectoryBatch = async (
 ): Promise<void> => {
   const inputFiles = await collectTextInputFiles(inputPath)
   if (inputFiles.length === 0) {
-    l.warn(`No .md or .txt files found in ${inputPath}`)
+    l.warn(`No .md or .txt files found in ${inputPath}`, { category: 'tts', metadata: { inputPath } })
     return
   }
 
@@ -381,7 +381,10 @@ export const runTtsDirectoryBatch = async (
   logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/manifest.json` }])
 
   if (concurrency > 1) {
-    l.write('info', `Processing ${preparedInputs.length} TTS inputs with local/file concurrency ${concurrency}`)
+    l.write('info', `Processing ${preparedInputs.length} TTS inputs with local/file concurrency ${concurrency}`, {
+    category: 'tts',
+    metadata: { inputCount: preparedInputs.length, concurrency }
+  })
   }
 
   let ok = 0
@@ -436,7 +439,10 @@ export const runTtsDirectoryBatch = async (
       ? true
       : await hostedCoordinator.waitForRegisteredJobs(expectedHostedJobs, 1_000)
     if (!registeredAllJobs) {
-      l.debug(`Hosted TTS scheduler registered ${hostedCoordinator.getRegisteredJobCount()}/${expectedHostedJobs} expected chunk jobs before release`)
+      l.debug(`Hosted TTS scheduler registered ${hostedCoordinator.getRegisteredJobCount()}/${expectedHostedJobs} expected chunk jobs before release`, {
+        category: 'tts',
+        metadata: { registeredJobs: hostedCoordinator.getRegisteredJobCount(), expectedHostedJobs }
+      })
     }
     hostedCoordinator.start()
   }

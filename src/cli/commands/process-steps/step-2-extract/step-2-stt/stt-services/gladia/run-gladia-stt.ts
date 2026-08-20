@@ -6,7 +6,7 @@ import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, form
 import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InternalError } from '~/utils/error-handler'
+import { InternalError, ProviderError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getGladiaBaseUrl } from './gladia'
@@ -41,7 +41,7 @@ const attachGladiaErrorContext = (
   stage: string,
   retryClass: RetryClass
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as SttStageHttpError).stage = stage
   ;(source as SttStageHttpError).retryClass = retryClass
   throw source

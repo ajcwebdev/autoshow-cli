@@ -1,6 +1,7 @@
 import type { InferOutput } from 'valibot'
 import type { AsyncSttLifecycleMetrics, SttRequestMetrics, SttStageHttpError, SttStageRequestOptions, SttStageSchema } from '~/types'
 import { attachAsyncSttErrorContext, attachAsyncSttValidationContext, getAsyncSttErrorStatus } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { httpResponseError } from '~/utils/rest-client'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 
@@ -40,11 +41,14 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
           const failure = options.readFailure
             ? await options.readFailure(response)
             : { message: await response.text(), rawResponse: undefined }
-          throw Object.assign(
-            new Error(`${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${failure.message}`),
+          // AppProviderError rather than a bare Error: the duck-typed extras below stay
+          // readable by `extractErrorMetadata`, but the error now carries `kind`, so the
+          // provider_http hint branch fires and the fatal handler prints the message
+          // instead of "payload redacted".
+          throw httpResponseError(
+            `${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${failure.message}`,
+            response,
             {
-              status: response.status,
-              headers: response.headers,
               stage,
               retryClass,
               ...(failure.rawResponse !== undefined ? { rawResponse: failure.rawResponse } : {})

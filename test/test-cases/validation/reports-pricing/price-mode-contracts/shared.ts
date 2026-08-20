@@ -4,6 +4,11 @@ import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { CommandPricingOptions, Step2Metadata } from '~/types'
 
+// One record narrowing for the suite; re-exported so the price-mode files keep their
+// local import path.
+import { isRecord } from '../../../../test-utils/test-helpers'
+export { isRecord }
+
 export const buildSttMetadata = (overrides: Partial<Step2Metadata> = {}): Step2Metadata => ({
   transcriptionService: 'deepgram',
   transcriptionModel: 'nova-3',
@@ -11,9 +16,6 @@ export const buildSttMetadata = (overrides: Partial<Step2Metadata> = {}): Step2M
   tokenCount: 0,
   ...overrides
 })
-
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === 'object' && !Array.isArray(value)
 
 export const findPricingNoteKeys = (value: unknown): string[] => {
   const keys: string[] = []

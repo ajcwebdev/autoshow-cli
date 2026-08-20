@@ -78,10 +78,10 @@ export const runOcr = async (
   const pdfChunkOnlyRequested = format === 'pdf' && opts.chapterFiles === false && typeof opts.chapterChunkLimitChars === 'number'
 
   if (format !== 'epub' && format !== 'pdf' && epubExportFlagsActive) {
-    l.warn(CHAPTER_EXPORT_FLAGS_IGNORED_WARNING)
+    l.warn(CHAPTER_EXPORT_FLAGS_IGNORED_WARNING, { category: 'pipeline' })
   }
   if (pdfChunkOnlyRequested) {
-    l.warn(PDF_LENGTH_WITHOUT_CHAPTERS_WARNING)
+    l.warn(PDF_LENGTH_WITHOUT_CHAPTERS_WARNING, { category: 'pipeline' })
   }
 
   let extracted: FormatExtractionResult
@@ -124,7 +124,7 @@ export const runOcr = async (
   if (pdfChapterFilesRequested && format === 'pdf') {
     await writeExtractionTextCheckpoint(opts, extracted.pages, extracted.canonicalText, extracted.extractionMethod)
     const pdfChapterMode = resolvePdfChapterDetectionMode(opts.chapterFiles, opts.pdfChapterMode)
-    l.write('info', `Detecting PDF chapters with ${pdfChapterMode} mode`)
+    l.write('info', `Detecting PDF chapters with ${pdfChapterMode} mode`, { category: 'pipeline', metadata: { pdfChapterMode } })
     const pdfChapterOutput = await buildPdfChapterArtifacts({
       filePath,
       pages: extracted.pages,

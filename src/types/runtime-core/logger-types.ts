@@ -52,8 +52,15 @@ export type HumanLogSection = {
   table: HumanLogTable
 }
 
+/**
+ * `category` is required rather than defaulted (ADR-006). It used to be optional and 245 of
+ * 291 emission sites omitted it, so every one of those events silently landed in `general`
+ * and `suppressLogCategories`/JSON-sink category filtering could only discriminate a
+ * minority of the stream. Requiring it in the type is what keeps that gap from reopening —
+ * a source-scan contract would only catch the spellings it thought to grep for.
+ */
 export type LogWriteOptions = {
-  category?: LogCategory
+  category: LogCategory
   metadata?: LogMetadata
   context?: LogContext
   indent?: boolean
@@ -62,17 +69,14 @@ export type LogWriteOptions = {
   humanSections?: readonly HumanLogSection[]
 }
 
-// Runtime key set used by `l.warn`/`l.debug` to tell a trailing options object
-// apart from an ordinary interpolation argument. Keep in sync with LogWriteOptions.
-export const LOG_WRITE_OPTION_KEYS: readonly string[] = [
-  'category',
-  'metadata',
-  'context',
-  'indent',
-  'args',
-  'humanTable',
-  'humanSections'
-]
+/**
+ * Options for `l.error`. The error object rides in the options object rather than in a
+ * positional parameter so error events carry a `category` like every other event; the
+ * logger appends `error.message` to the line and emits the stack as a follow-up event.
+ */
+export type LogErrorOptions = LogWriteOptions & {
+  error?: unknown
+}
 
 export type LogSinkEvent = {
   timestamp: string
@@ -101,18 +105,23 @@ export type MutableLoggerConfig = {
 }
 
 
-// A single trailing LogWriteOptions object is lifted into structured fields;
-// anything else is forwarded as interpolation args, as before.
-export interface StructuredLogFn {
-  (message: string, options: LogWriteOptions): void
-  (message: string, ...args: unknown[]): void
-}
-
+/**
+ * Spelling rules for the emission surface (ADR-006):
+ *
+ * - `write(level, message, options)` is the one spelling for `info`/`success` and for any
+ *   computed level. It is also the only method on `TableLogger`, which is why it stays
+ *   first-class instead of growing `info`/`success` shorthands beside it — adding those
+ *   would put two spellings on the levels most often emitted through an injected logger.
+ * - `debug`/`warn`/`error` are the spelling for their own level, and take the identical
+ *   options object, so there is one options contract rather than one per method.
+ * - `error` additionally accepts `options.error`; when it is an `Error` the logger appends
+ *   its message to the line and emits the stack as a follow-up event.
+ */
 export interface Logger {
-  write: (level: LogLevel, message: string, options?: LogWriteOptions) => void
-  debug: StructuredLogFn
-  warn: StructuredLogFn
-  error: (message: string, errorObj?: unknown) => void
+  write: (level: LogLevel, message: string, options: LogWriteOptions) => void
+  debug: (message: string, options: LogWriteOptions) => void
+  warn: (message: string, options: LogWriteOptions) => void
+  error: (message: string, options: LogErrorOptions) => void
   withContext: (context: LogContext) => Logger
   config: MutableLoggerConfig
 }

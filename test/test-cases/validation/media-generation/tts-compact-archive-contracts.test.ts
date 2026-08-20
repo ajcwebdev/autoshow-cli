@@ -16,6 +16,7 @@ import type { CanonicalAudioProviderProjection, CompactTargetRender, FinalTimeli
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const MODEL = 'fixture-compact-archive-model'
 
@@ -136,8 +137,7 @@ describe('ADR-013 compact archive contracts', () => {
           })
         },
       })
-      const archive = first.metadata[0]?.ttsAudio?.archive
-      if (!archive) throw new Error('Missing compact TTS archive')
+      const archive = requireDefined(first.metadata[0]?.ttsAudio?.archive, 'compact TTS archive')
       const compactRender = await Bun.file(join(dir, archive.renderRef.path)).json() as CompactTargetRender
       const { renderId, ...compactRenderBase } = compactRender
       expect(renderId).toBe(hashCanonicalTtsValue(compactRenderBase))
@@ -149,8 +149,7 @@ describe('ADR-013 compact archive contracts', () => {
       const timeline = await Bun.file(join(dir, archive.timelineRef.path)).json() as FinalTimeline
       const { timelineId, ...timelineBase } = timeline
       expect(timelineId).toBe(hashCanonicalTtsValue(timelineBase))
-      const slotHash = compactRender.slots[0]?.slotHash
-      if (!slotHash) throw new Error('Missing compact slot hash')
+      const slotHash = requireDefined(compactRender.slots[0]?.slotHash, 'compact slot hash')
       const names = await relativeNames(dir)
       expect(names.some(name => name === `audio/${targetKey}/render.json`)).toBe(true)
       expect(names.some(name => name === `audio/${targetKey}/timeline.json`)).toBe(true)
@@ -205,11 +204,9 @@ describe('ADR-013 compact archive contracts', () => {
         artifactRoot: 'audio/providers',
         resolveReportedOutput: () => ({ path: join(dir, 'audio', 'final', `${targetKey}.wav`), fileName: `audio/final/${targetKey}.wav` }),
       })
-      const archive = first.metadata[0]?.ttsAudio?.archive
-      if (!archive) throw new Error('Missing compact TTS archive')
+      const archive = requireDefined(first.metadata[0]?.ttsAudio?.archive, 'compact TTS archive')
       const compactRender = await Bun.file(join(dir, archive.renderRef.path)).json() as { slots: Array<{ slotHash: string }> }
-      const slotHash = compactRender.slots[0]?.slotHash
-      if (!slotHash) throw new Error('Missing compact slot hash')
+      const slotHash = requireDefined(compactRender.slots[0]?.slotHash, 'compact slot hash')
       const slotBytes = new Uint8Array(await Bun.file(join(dir, 'audio', 'slots', `${slotHash}.wav`)).arrayBuffer())
       await mkdir(join(dir, 'audio', 'providers', targetKey, 'slots'), { recursive: true })
       await Bun.write(join(dir, 'audio', 'providers', targetKey, 'slots', `${slotHash}.wav`), slotBytes)

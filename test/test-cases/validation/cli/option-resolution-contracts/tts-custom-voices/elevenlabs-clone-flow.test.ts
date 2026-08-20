@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runElevenLabsTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/run-elevenlabs-tts'
 import { createElevenLabsTtsIvcContext, ensureElevenLabsTtsIvcVoice } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-ivc'
-import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
 import { LOCAL_SHORT_AUDIO_PATH } from './shared'
 
 const tempDirs = setupContractSuiteLifecycle({
@@ -122,16 +122,16 @@ describe('ElevenLabs clone flow contracts', () => {
           throw new Error(`Unexpected ElevenLabs error mock fetch: ${call.url}`)
         })
 
-        try {
-          await ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', {
+        await expectProviderHttpError(
+          () => ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', {
             refAudioPath: 'input/examples/audio/anthony-voice.mp3',
             context: createElevenLabsTtsIvcContext()
-          })
-          throw new Error('expected ElevenLabs IVC failure')
-        } catch (error) {
-          expect((error as Error).message).toContain('ElevenLabs IVC voice creation failed (400): bad reference audio')
-          expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('7')
-        }
+          }),
+          {
+            messageContains: 'ElevenLabs IVC voice creation failed (400): bad reference audio',
+            headers: { 'retry-after': '7' }
+          }
+        )
         expect(synthesisCalls).toBe(0)
     })
 })

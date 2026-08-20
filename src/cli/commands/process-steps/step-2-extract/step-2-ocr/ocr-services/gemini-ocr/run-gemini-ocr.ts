@@ -2,7 +2,7 @@ import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/preparation-cache'
@@ -349,7 +349,10 @@ export const runGeminiOcr = async (
             try {
               await geminiDeleteFile(apiKey, uploadedFileName)
             } catch (error) {
-              l.warn(`Failed to delete Gemini OCR upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`)
+              l.warn(`Failed to delete Gemini OCR upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`, {
+        category: 'pipeline',
+        metadata: { provider: 'gemini', uploadedFileName, error: serializeDiagnosticError(error) }
+      })
             }
           }
         }
@@ -418,6 +421,7 @@ export const runGeminiOcr = async (
       lastSchemaError = error instanceof Error ? error : new Error(String(error))
       if (attempt < OCR_SCHEMA_RETRY_ATTEMPTS - 1) {
         l.write('warn', formatGeminiOcrMalformedRetryWarning(filePath, attempt + 1, usage, failureReason), {
+          category: 'pipeline',
           metadata: {
             provider: 'gemini',
             pageCount: expectedPageCount,

@@ -13,7 +13,7 @@ import { resolveLlmCandidates } from './llm'
 import { parsePdfPageLabels } from './page-map'
 import { buildChapterSlug, cleanDetectedChapterTitle, cleanPageTextForExport, trimPageTextToHeading } from './text'
 import { parseTocEntriesFromPage } from './toc'
-import { InternalError } from '~/utils/error-handler'
+import { InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 
 export const buildPdfChapterFiles = (
   pages: PageResult[],
@@ -173,7 +173,10 @@ export const buildPdfChapterArtifacts = async (input: {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         warnings.push(`LLM chapter fallback failed: ${message}`)
-        l.warn(`PDF chapter LLM fallback failed: ${message}`)
+        l.warn(`PDF chapter LLM fallback failed: ${message}`, {
+      category: 'pipeline',
+      metadata: { error: serializeDiagnosticError(error) }
+    })
       }
     } else {
       warnings.push('PDF chapter LLM assistance was requested, but no default LLM is configured.')

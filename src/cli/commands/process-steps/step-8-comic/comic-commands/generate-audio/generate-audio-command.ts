@@ -76,17 +76,26 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
 
   if (turns.length === 0 && !soundEffectRenderPlan) {
     if (price) {
-      l.write('info', `Comic audio price: 0 speakable turns; no provider work or artifact writes. ${soundscapePrice.summary}`)
+      l.write('info', `Comic audio price: 0 speakable turns; no provider work or artifact writes. ${soundscapePrice.summary}`, {
+      category: 'pricing',
+      metadata: { speakableTurns: 0, soundscapeSummary: soundscapePrice.summary }
+    })
       return
     }
     await executeZeroTurnsWithoutSoundscape({ compatible, dialoguePlan, soundscapePlan, structuredRef })
-    l.write('info', `Comic audio completed locally with no speakable turns: ${compatible.sceneRunDir}`)
+    l.write('info', `Comic audio completed locally with no speakable turns: ${compatible.sceneRunDir}`, {
+      category: 'command',
+      metadata: { sceneRunDir: compatible.sceneRunDir, speakableTurns: 0 }
+    })
     return
   }
 
   if (turns.length === 0 && soundEffectRenderPlan) {
     if (price) {
-      l.write('info', `Comic audio price: 0 speakable turns. ${soundscapePrice.summary}`)
+      l.write('info', `Comic audio price: 0 speakable turns. ${soundscapePrice.summary}`, {
+      category: 'pricing',
+      metadata: { speakableTurns: 0, soundscapeSummary: soundscapePrice.summary }
+    })
       return
     }
     await executeZeroTurnsWithSoundscape({
@@ -98,7 +107,10 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
       sfxConcurrency,
       hostedConcurrencyCoordinator: baseOptions.hostedConcurrencyCoordinator,
     })
-    l.write('info', `Comic soundscape complete without dialogue: ${compatible.sceneRunDir}`)
+    l.write('info', `Comic soundscape complete without dialogue: ${compatible.sceneRunDir}`, {
+      category: 'command',
+      metadata: { sceneRunDir: compatible.sceneRunDir, dialogue: false }
+    })
     return
   }
 
@@ -146,9 +158,12 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
         : allowAmbiguousRedispatch
           ? `, ${blockedSlotCount} ambiguous slot redispatch authorized`
           : `, blocked: ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot requires' : 'slots require'} reconciliation`
-      l.write('info', `${execution.target.service}/${execution.target.model}: ${estimate.readiness.strategy}, ${cost}${resumeDetail}${reconciliationDetail}`)
+      l.write('info', `${execution.target.service}/${execution.target.model}: ${estimate.readiness.strategy}, ${cost}${resumeDetail}${reconciliationDetail}`, {
+      category: 'pricing',
+      metadata: { service: execution.target.service, model: execution.target.model, strategy: estimate.readiness.strategy }
+    })
     }
-    l.write('info', soundscapePrice.summary)
+    l.write('info', soundscapePrice.summary, { category: 'pricing' })
     return
   }
 
@@ -201,12 +216,26 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   if (soundscapeRequiredFailure) throw CLIUsageError('Comic soundscape failed one or more required cues; verified dialogue and sound-effect artifacts were retained for resume, but no master was published.')
   if (checkpoints.length > 0) {
     for (const { entry, checkpoint } of checkpoints) {
-      l.write('info', `${entry.ttsService}/${entry.ttsModel} generation checkpoint complete: ${checkpoint.completedGenerationSlotIds.length} retained, ${checkpoint.remainingGenerationSlotCount} remaining.`)
+      l.write('info', `${entry.ttsService}/${entry.ttsModel} generation checkpoint complete: ${checkpoint.completedGenerationSlotIds.length} retained, ${checkpoint.remainingGenerationSlotCount} remaining.`, {
+        category: 'command',
+        metadata: {
+          service: entry.ttsService,
+          model: entry.ttsModel,
+          retainedSlots: checkpoint.completedGenerationSlotIds.length,
+          remainingSlots: checkpoint.remainingGenerationSlotCount
+        }
+      })
     }
-    l.write('info', `Comic audio generation checkpoint saved; no final WAV was published: ${compatible.sceneRunDir}`)
+    l.write('info', `Comic audio generation checkpoint saved; no final WAV was published: ${compatible.sceneRunDir}`, {
+      category: 'command',
+      metadata: { sceneRunDir: compatible.sceneRunDir, published: false }
+    })
     return
   }
-  l.write('info', finalStageStatus === 'full' ? `Comic audio complete: ${compatible.sceneRunDir}` : `Comic audio target update complete; aggregate stage remains ${finalStageStatus}: ${compatible.sceneRunDir}`)
+  l.write('info', finalStageStatus === 'full' ? `Comic audio complete: ${compatible.sceneRunDir}` : `Comic audio target update complete; aggregate stage remains ${finalStageStatus}: ${compatible.sceneRunDir}`, {
+    category: 'command',
+    metadata: { sceneRunDir: compatible.sceneRunDir, stageStatus: finalStageStatus }
+  })
   if (presentationRequested) {
     await generateComicSlideshow(ctx, scriptPath)
   }

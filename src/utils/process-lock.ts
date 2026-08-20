@@ -174,6 +174,7 @@ const removeStaleProcessLock = async (
   if (!ownerIsGone && !heartbeatIsStale) {
     if (ownerState.parseError) {
       l.write('warn', `Process lock owner metadata at ${ownerState.ownerPath} could not be parsed; keeping non-stale lock`, {
+        category: 'pipeline',
         metadata: {
           lockDir,
           ownerPath: ownerState.ownerPath,
@@ -223,6 +224,7 @@ const removeStaleProcessLock = async (
   }
 
   l.write('warn', `Removing stale process lock at ${lockDir}`, {
+    category: 'pipeline',
     metadata: {
       lockDir,
       ownerPath: ownerState.ownerPath,
@@ -304,7 +306,10 @@ export const withProcessLock = async <T,>(
       }
 
       if (Date.now() - startedAt > waitTimeoutMs) {
-        throw InfraError(`Timed out waiting for process lock ${lockName} at ${lockDir}`, { stage: 'lock:process' })
+        throw InfraError(`Timed out waiting for process lock ${lockName} at ${lockDir}`, {
+          stage: 'lock:process',
+          ...(error instanceof Error ? { cause: error } : {})
+        })
       }
 
       await Bun.sleep(waitMs)
@@ -324,6 +329,7 @@ export const withProcessLock = async <T,>(
       heartbeatHealth.lastFailureAt = new Date().toISOString()
       heartbeatHealth.lastError = safeErrorMessage(error)
       l.write('warn', `Failed to refresh process lock heartbeat for ${lockName}`, {
+        category: 'pipeline',
         metadata: {
           lockName,
           lockDir,
@@ -348,6 +354,7 @@ export const withProcessLock = async <T,>(
     await heartbeatRefresh
     if (heartbeatHealth.failureCount > 0) {
       l.write('warn', `Process lock ${lockName} completed after heartbeat refresh failures`, {
+        category: 'pipeline',
         metadata: {
           lockName,
           lockDir,

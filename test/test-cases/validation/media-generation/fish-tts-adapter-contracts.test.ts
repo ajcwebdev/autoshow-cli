@@ -3,6 +3,7 @@ import type { ProtectedAssetRef } from '~/types'
 import { createFishAdvancedProvider } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
 import { createFishClient } from '~/utils/fish-client/fish-client'
 import { AppError } from '~/utils/error-handler'
+import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
 
 describe('Fish Audio adapter contracts', () => {
   test('returns structured provider failures instead of usage errors or raw bodies', async () => {
@@ -14,15 +15,18 @@ describe('Fish Audio adapter contracts', () => {
       })) as unknown as typeof fetch
     })
 
-    try {
-      await client.synthesizeTts({ text: 'hello', reference_id: 'voice-id' })
-      throw new Error('expected Fish provider failure')
-    } catch (error) {
-      expect(error).toBeInstanceOf(AppError)
-      expect(error).toMatchObject({ kind: 'provider_http', status: 503, stage: 'fish:TTS create', retryable: true })
-      expect((error as AppError).headers?.get('x-request-id')).toBe('fish-503')
-      expect((error as Error).message).toContain('temporary outage')
-    }
+    await expectProviderHttpError(
+      () => client.synthesizeTts({ text: 'hello', reference_id: 'voice-id' }),
+      {
+        instanceOf: AppError,
+        kind: 'provider_http',
+        status: 503,
+        stage: 'fish:TTS create',
+        retryable: true,
+        headers: { 'x-request-id': 'fish-503' },
+        messageContains: 'temporary outage'
+      }
+    )
   })
 
   test('materializes a design candidate with its protected preview audio', async () => {

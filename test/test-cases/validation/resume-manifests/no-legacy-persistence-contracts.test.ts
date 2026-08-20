@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readdir, readFile } from 'node:fs/promises'
 import { basename, dirname, extname, join, relative, resolve } from 'node:path'
+import { isRecord } from '../../../test-utils/test-helpers'
 
 const repositoryRoot = resolve(import.meta.dir, '../../../..')
 const thisContractPath = resolve(import.meta.path)
@@ -91,9 +92,6 @@ const scanRoots = [
   resolve(repositoryRoot, '.codex/skills/consensus'),
   resolve(repositoryRoot, 'README.md')
 ]
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const stableJson = (value: unknown): string => JSON.stringify(value, (_key, nested) =>
   isRecord(nested)

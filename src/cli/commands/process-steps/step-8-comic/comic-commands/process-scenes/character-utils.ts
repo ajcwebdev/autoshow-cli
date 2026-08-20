@@ -74,7 +74,10 @@ export const readCharacterSketchManifest = async (charactersRoot = getCharacters
   } catch (error) {
     throw ValidationError(
       `Invalid character sketch manifest ${path}: ${error instanceof Error ? error.message : String(error)}`,
-      { stage: 'comic:character-sketch' }
+      {
+        stage: 'comic:character-sketch',
+        ...(error instanceof Error ? { cause: error } : {})
+      }
     )
   }
 }

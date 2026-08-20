@@ -171,7 +171,7 @@ const verifyYtDlpVersion = async (): Promise<void> => {
 
     ytDlpVersionVerified = true
   } catch (error) {
-    l.error(`yt-dlp verification failed`, error)
+    l.error(`yt-dlp verification failed`, { category: 'pipeline', error })
     throw error
   }
 }

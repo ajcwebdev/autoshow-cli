@@ -78,7 +78,7 @@ const inspectSafeRoot = async (rootDir: string): Promise<{ absolute: string, can
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
       throw Object.assign(
-        CLIUsageError(`Safe artifact root does not exist: ${absolute}`),
+        CLIUsageError(`Safe artifact root does not exist: ${absolute}`, undefined, error instanceof Error ? { cause: error } : {}),
         { metadata: { artifactState: MISSING_ARTIFACT_STATE } }
       )
     }
@@ -164,7 +164,7 @@ const readExistingImmutableBytes = async (path: string): Promise<Buffer> => {
     return await handle.readFile()
   } catch (error) {
     if (hasErrorCode(error, 'ELOOP')) {
-      throw CLIUsageError(`Immutable artifact path cannot be a symbolic link: ${path}`)
+      throw CLIUsageError(`Immutable artifact path cannot be a symbolic link: ${path}`, undefined, error instanceof Error ? { cause: error } : {})
     }
     throw error
   } finally {
@@ -241,7 +241,7 @@ export const writeImmutableArtifactFile = async (
     }
   } catch (error) {
     if (hasErrorCode(error, 'ELOOP')) {
-      throw CLIUsageError(`Immutable artifact destination cannot be a symbolic link: ${path}`)
+      throw CLIUsageError(`Immutable artifact destination cannot be a symbolic link: ${path}`, undefined, error instanceof Error ? { cause: error } : {})
     }
     throw error
   } finally {
@@ -347,7 +347,7 @@ export const hardlinkContainedArtifact = async (
     const existing = await readExistingImmutableBytes(path)
     if (!existing.equals(source.bytes)) {
       throw Object.assign(
-        CLIUsageError(`Hardlinked artifact already exists with different bytes: ${path}`),
+        CLIUsageError(`Hardlinked artifact already exists with different bytes: ${path}`, undefined, error instanceof Error ? { cause: error } : {}),
         { metadata: { artifactState: ARTIFACT_CONFLICT_STATE } }
       )
     }

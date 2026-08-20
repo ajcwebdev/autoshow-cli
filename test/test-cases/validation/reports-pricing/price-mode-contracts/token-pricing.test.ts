@@ -6,6 +6,7 @@ import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import type { Step3Metadata } from '~/types'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
@@ -60,10 +61,7 @@ describe('price mode contracts', () => {
     })
 
   test('shared token pricing helper applies OpenAI long-context bands', () => {
-      const rates = getLlmCost('openai', 'gpt-5.5')
-      if (!rates) {
-        throw new Error('Missing GPT-5.5 pricing')
-      }
+      const rates = requireDefined(getLlmCost('openai', 'gpt-5.5'), 'GPT-5.5 pricing')
 
       const shortContext = computeTokenCost(rates, 200_000, 10_000)
       expect(shortContext).toMatchObject({
@@ -106,10 +104,7 @@ describe('price mode contracts', () => {
     })
 
   test('shared token pricing helper applies Gemini Pro 200K bands', () => {
-      const rates = getLlmCost('gemini', 'gemini-3.1-pro-preview')
-      if (!rates) {
-        throw new Error('Missing Gemini 3.1 Pro pricing')
-      }
+      const rates = requireDefined(getLlmCost('gemini', 'gemini-3.1-pro-preview'), 'Gemini 3.1 Pro pricing')
 
       const standard = computeTokenCost(rates, 200_000, 1000)
       const over200k = computeTokenCost(rates, 200_001, 1000)
@@ -128,10 +123,7 @@ describe('price mode contracts', () => {
     })
 
   test('shared token pricing helper applies MiniMax M3 512K bands and registry provenance', () => {
-      const rates = getLlmCost('minimax', 'MiniMax-M3')
-      if (!rates) {
-        throw new Error('Missing MiniMax-M3 pricing')
-      }
+      const rates = requireDefined(getLlmCost('minimax', 'MiniMax-M3'), 'MiniMax-M3 pricing')
 
       const standard = computeTokenCost(rates, 512_000, 1000)
       const over512k = computeTokenCost(rates, 512_001, 1000)
@@ -149,10 +141,7 @@ describe('price mode contracts', () => {
       })
       expect(over512k.totalCost).toBeCloseTo(61.92012)
 
-      const entry = getModelRegistry().llm['minimax']?.models['MiniMax-M3']
-      if (!entry) {
-        throw new Error('Missing MiniMax-M3 registry entry')
-      }
+      const entry = requireDefined(getModelRegistry().llm['minimax']?.models['MiniMax-M3'], 'MiniMax-M3 registry entry')
       expect(entry.pricingSourceUrl).toBe('https://platform.minimax.io/docs/guides/pricing-paygo')
       expect(entry.pricingCheckedAt).toBe('2026-05-31')
       expect(entry.pricingTier).toBe('MiniMax pay-as-you-go standard pricing')
@@ -169,10 +158,7 @@ describe('price mode contracts', () => {
     })
 
   test('shared token pricing helper emits xAI higher-context notes without inventing rates', () => {
-      const rates = getLlmCost('grok', 'grok-4.3')
-      if (!rates) {
-        throw new Error('Missing Grok 4.3 pricing')
-      }
+      const rates = requireDefined(getLlmCost('grok', 'grok-4.3'), 'Grok 4.3 pricing')
 
       const cost = computeTokenCost(rates, 200_001, 1000)
 
@@ -572,10 +558,7 @@ describe('price mode contracts', () => {
         expect(getLlmCost(service, model)?.tokenPricingBands).toBeUndefined()
       }
 
-      const kimiK3 = getModelRegistry().llm['kimi']?.models['kimi-k3']
-      if (!kimiK3) {
-        throw new Error('Missing Kimi K3 registry entry')
-      }
+      const kimiK3 = requireDefined(getModelRegistry().llm['kimi']?.models['kimi-k3'], 'Kimi K3 registry entry')
       expect(kimiK3).toMatchObject({
         pricingSourceUrl: 'https://platform.kimi.ai/docs/pricing/chat-k3',
         cachedInputCostPer1MCents: 30

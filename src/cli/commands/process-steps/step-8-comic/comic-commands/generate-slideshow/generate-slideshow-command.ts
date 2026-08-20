@@ -46,7 +46,7 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
   const audioTarget = typeof flags['audio-target'] === 'string' && flags['audio-target'].trim() ? flags['audio-target'].trim() : undefined
   if (audioTarget && !/^[^=\s]+=[^=\s]+$/u.test(audioTarget)) throw CLIUsageError('--audio-target must use <provider>=<model>.')
   if (flags['price'] === true) {
-    l.write('info', 'Comic slideshow price: $0.00 (local FFmpeg presentation; no writes).')
+    l.write('info', 'Comic slideshow price: $0.00 (local FFmpeg presentation; no writes).', { category: 'pricing' })
     return
   }
 
@@ -140,5 +140,8 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
   }
   l.write('info', alreadyPublished
     ? `Comic slideshow already complete; verified immutable checksums: ${compatible.sceneRunDir}`
-    : `Comic slideshow complete: ${compatible.sceneRunDir}/presentation/final/slideshow.mp4`)
+    : `Comic slideshow complete: ${compatible.sceneRunDir}/presentation/final/slideshow.mp4`, {
+    category: 'command',
+    metadata: { sceneRunDir: compatible.sceneRunDir, alreadyPublished }
+  })
 }

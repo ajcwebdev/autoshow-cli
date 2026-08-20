@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
@@ -62,7 +62,7 @@ const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task:
   let names: string[]
   try { names = await readdir(join(rootDir, relativeRoot)) }
   catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return { nextOrdinal: 1 }
+    if (hasErrorCode(error, 'ENOENT')) return { nextOrdinal: 1 }
     throw error
   }
   const ordinals = [...new Set(names.flatMap(name => {
@@ -355,7 +355,7 @@ const compactSucceededSoundEffectRender = async (rootDir: string, plan: SoundEff
       await rm(join(rootDir, 'audio', 'sound-effects', 'sources', name), { force: true })
     }
   } catch (error) {
-    if (!(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT')) throw error
+    if (!hasErrorCode(error, 'ENOENT')) throw error
   }
   await removeContainedDirectory(rootDir, soundEffectWorkingRoot(plan.renderPlanId))
   return { compact, ref: { path: written.relativePath, sha256: written.sha256 } }
@@ -494,7 +494,7 @@ export const loadSoundEffectRenderResult = async (rootDir: string, plan: SoundEf
     }
     return result
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
+    if (hasErrorCode(error, 'ENOENT')) return undefined
     throw error
   }
 }

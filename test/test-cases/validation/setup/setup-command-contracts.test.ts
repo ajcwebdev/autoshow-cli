@@ -6,6 +6,8 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-setup-command'
 import { runCommand } from '../../../test-utils/test-helpers'
+import { rejectionMessage } from '../../../test-utils/cli-assertions'
+import { requireDefined } from '../../../test-utils/value-assertions'
 import { CALIBRE_REQUIRED_TOOLS } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { readDependencyMetadata } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import {
@@ -27,20 +29,15 @@ describe('setup command contracts', () => {
       setupCommand,
       GLOBAL_FLAG_DEFINITIONS
     )
-    if (!parsed.command) throw new Error('parsed setup command is missing')
-    let message = ''
-    try {
-      await setupCommand.handler({
-        argv: parsed.argv,
-        command: parsed.command,
-        flags: parsed.flags,
-        parameters: parsed.parameters,
-        rawParsed: parsed.rawParsed,
-        store: {}
-      })
-    } catch (error) {
-      message = error instanceof Error ? error.message : String(error)
-    }
+    const command = requireDefined(parsed.command, 'parsed setup command')
+    const message = await rejectionMessage(() => setupCommand.handler({
+      argv: parsed.argv,
+      command,
+      flags: parsed.flags,
+      parameters: parsed.parameters,
+      rawParsed: parsed.rawParsed,
+      store: {}
+    }))
     expect(message).toContain('Invalid --step value: acsm')
     expect(message).toContain('defuddle')
     expect(message).toContain('whisperfile')

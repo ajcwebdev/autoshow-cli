@@ -23,7 +23,7 @@ import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 const DEFAULT_IMAGE_SIZE: ImageGenerationSize = '1024x1536'
@@ -167,8 +167,15 @@ const runCharacterSketchCommand = async (
         await rm(manifestTemporaryPath, { force: true }).catch(() => undefined)
         if (sheetPromoted) await rm(character.outlineSheetPath, { force: true }).catch(() => undefined)
         if (hadSheet) {
-          await rename(sheetBackupPath, character.outlineSheetPath).catch(rollbackError => {
-            throw InfraError(`Character sketch promotion failed and rollback also failed for "${key}": ${String(rollbackError)}`, { stage: 'comic:character-sketch' })
+          await rename(sheetBackupPath, character.outlineSheetPath).catch((rollbackError: unknown) => {
+            // Two failures produced this throw. The rollback failure is the `cause` because it
+            // is the one that left the tree inconsistent; the promotion failure that triggered
+            // the rollback rides in metadata so neither is lost from the chain.
+            throw InfraError(`Character sketch promotion failed and rollback also failed for "${key}": ${String(rollbackError)}`, {
+              stage: 'comic:character-sketch',
+              metadata: { promotionError: serializeDiagnosticError(promotionError) },
+              ...(rollbackError instanceof Error ? { cause: rollbackError } : {})
+            })
           })
         }
         throw promotionError

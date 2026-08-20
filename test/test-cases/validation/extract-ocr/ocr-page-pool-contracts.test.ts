@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { ProviderError } from '~/utils/error-handler'
+import { extractErrorMetadata, ProviderError } from '~/utils/error-handler'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { defaultOcrPoolLaneKey, runOcrPagePool } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool'
@@ -250,7 +250,7 @@ describe('pooled OCR page scheduler contracts', () => {
       },
       classifyFailure: (error, target) => ({
         scope: 'page',
-        ambiguous: (error as { ambiguous?: boolean }).ambiguous === true,
+        ambiguous: extractErrorMetadata(error)['ambiguous'] === true,
         failure: { message: String(error), service: target.service },
         providerCostCents: 2.5,
         effectiveReasoningEffort: 'default'
@@ -297,7 +297,7 @@ describe('pooled OCR page scheduler contracts', () => {
         }
       },
       classifyFailure: (error) => ({
-        scope: (error as { laneWide?: boolean }).laneWide ? 'lane' : 'target',
+        scope: extractErrorMetadata(error)['laneWide'] ? 'lane' : 'target',
         ambiguous: false,
         failure: { message: String(error) }
       })

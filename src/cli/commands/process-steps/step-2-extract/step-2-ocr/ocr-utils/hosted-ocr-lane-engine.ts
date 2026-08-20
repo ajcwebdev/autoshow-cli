@@ -5,13 +5,18 @@ import type {
   HostedOcrSchedulerTargetStats,
   QueuedHostedOcrJob
 } from '~/types'
+import { InternalError } from '~/utils/error-handler'
 import { resolveHostedOcrSuccessRamp } from './hosted-ocr-cap-policy'
 
 const laneInvariantError = (
   lane: HostedOcrSchedulerLaneState,
   message: string
 ): Error =>
-  new Error(`Hosted OCR lane ${lane.laneKey} invariant failed: ${message}`)
+  InternalError(`Hosted OCR lane ${lane.laneKey} invariant failed: ${message}`, {
+    stage: 'ocr:lane-engine',
+    retryable: false,
+    metadata: { laneKey: lane.laneKey }
+  })
 
 const createTarget = (
   admission: HostedOcrSchedulerAdmission,

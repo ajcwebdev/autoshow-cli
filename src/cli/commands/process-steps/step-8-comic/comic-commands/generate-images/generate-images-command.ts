@@ -111,7 +111,10 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
     await assertPanelPromptSourceCoverage(sceneSlug)
   } catch (error) {
     err('Image initialization failed:', error instanceof Error ? error.message : String(error))
-    throw InfraError('Failed at initialization step', { stage: 'comic:generate-images' })
+    throw InfraError('Failed at initialization step', {
+      stage: 'comic:generate-images',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 
   try {
@@ -179,7 +182,10 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
     }
   } catch (error) {
     err(`${stageLabel} generation failed:`, error instanceof Error ? error.message : String(error))
-    throw InfraError(`Failed at ${options.grid ? 'grid' : usePageMode ? 'page' : 'image'} generation step`, { stage: 'comic:generate-images' })
+    throw InfraError(`Failed at ${options.grid ? 'grid' : usePageMode ? 'page' : 'image'} generation step`, {
+      stage: 'comic:generate-images',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 }
 

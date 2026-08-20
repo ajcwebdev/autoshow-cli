@@ -240,7 +240,7 @@ export const runCommandWithTransientRetry = async (
   if (result.exitCode === 0) return result
   if (!opts.isTransient(`${result.stdout}\n${result.stderr}`)) return result
 
-  l.warn(`Retrying once after ${opts.providerLabel}`)
+  l.warn(`Retrying once after ${opts.providerLabel}`, { category: 'pipeline' })
   await Bun.sleep(opts.retryDelayMs ?? 2_000)
   result = await runCommand(commandArgs, runOptions)
 

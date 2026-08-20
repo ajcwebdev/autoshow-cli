@@ -23,7 +23,7 @@ export const validateData = <T extends v.BaseSchema<unknown, unknown, v.BaseIssu
   const result = v.safeParse(schema, data)
 
   if (!result.success) {
-    l.error(`Validation failed for ${context}`)
+    l.error(`Validation failed for ${context}`, { category: 'pipeline', metadata: { context } })
     throw new AppError(`Invalid data structure for ${context}: ${formatValidationIssues(v.flatten(result.issues))}`, {
       kind: 'validation',
       metadata: {
@@ -59,7 +59,7 @@ export const validateJson = <T extends v.BaseSchema<unknown, unknown, v.BaseIssu
   try {
     parsed = JSON.parse(jsonString)
   } catch (error) {
-    l.error(`JSON parsing failed for ${context}`, error)
+    l.error(`JSON parsing failed for ${context}`, { category: 'pipeline', error, metadata: { context } })
     throw new AppError(`Invalid JSON for ${context}`, {
       kind: 'validation',
       cause: error instanceof Error ? error : new Error(String(error)),

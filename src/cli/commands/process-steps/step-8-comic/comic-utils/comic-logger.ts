@@ -95,7 +95,7 @@ const errBase = (...messages: unknown[]): void => {
     return
   }
 
-  appLog.error(messages.map(String).join(' '))
+  appLog.error(messages.map(String).join(' '), { category: 'command' })
 }
 
 const flattenValidationIssues = (

@@ -27,6 +27,7 @@ import {
 } from './happyscribe-utils'
 import { parseHappyScribeTranscriptPayload } from './parse-happyscribe-transcript'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { ProviderError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 
 const INITIAL_POLL_INTERVAL_MS = 1_000
@@ -36,15 +37,14 @@ const buildExportDeadlineError = (
   exportId: string,
   pollDeadlineMs: number
 ): never => {
-  const error = Object.assign(
-    new Error(`Happy Scribe timed out waiting for export completion for ${exportId} (deadline exceeded after ${pollDeadlineMs}ms)`),
+  throw ProviderError(
+    `Happy Scribe timed out waiting for export completion for ${exportId} (deadline exceeded after ${pollDeadlineMs}ms)`,
     {
       stage: 'result',
-      retryClass: 'runtime_http_read' as RetryClass,
+      retryClass: 'runtime_http_read' satisfies RetryClass,
       retryable: true
     }
   )
-  throw error
 }
 
 const buildBillingMetadata = (

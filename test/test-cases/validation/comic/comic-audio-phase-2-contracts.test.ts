@@ -20,6 +20,7 @@ import { loadVoiceReferenceManifest, writeVoiceReferenceManifest } from '~/cli/c
 import { createResourceGate } from '~/utils/resource-gate'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const HASH_A = 'a'.repeat(64)
 const HASH_B = 'b'.repeat(64)
@@ -338,8 +339,7 @@ describe('comic audio phase 2 contracts', () => {
       beforeDispatch: async () => {},
       onProviderState: async (state) => { firstStates.push(state) }
     })
-    const retained = firstStates.at(-1)
-    if (!retained) throw new Error('Missing first snapshot provider state')
+    const retained = requireDefined(firstStates.at(-1), 'first snapshot provider state')
     expect(providerCalls).toEqual([0, 1])
 
     const price = await planCurrentTtsResumePrice({ rootDir: root, state: retained, target, sourceText, ttsOptions: options, comicContext: contextFor(secondSnapshot) })

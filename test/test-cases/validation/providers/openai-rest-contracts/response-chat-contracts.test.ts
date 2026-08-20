@@ -7,6 +7,7 @@ import { runOpenAIModel } from '~/cli/commands/process-steps/step-3-write/write-
 import { CEREBRAS_DEFAULT_BASE_URL, MINIMAX_DEFAULT_BASE_URL, TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { OpenAIRestError, createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, structuredOpts } from './shared'
+import { expectProviderHttpError } from '../../../../test-utils/rest-contract-helpers'
 
 installOpenAIRestContractHooks()
 
@@ -58,21 +59,17 @@ describe('OpenAI REST response and chat contracts', () => {
       { model: 'gpt-5.5', input: 'retry?' }
     )).rejects.toThrow('OpenAI Responses request failed (429): try later')
 
-    try {
-      await createOpenAIResponse(
+    const error = await expectProviderHttpError(
+      () => createOpenAIResponse(
         { apiKey: 'openai-key', baseURL: 'https://mock.openai.local' },
         { model: 'gpt-5.5', input: 'retry?' }
-      )
-      throw new Error('expected request to fail')
-    } catch (error) {
-      expect(error).toBeInstanceOf(OpenAIRestError)
-      expect((error as OpenAIRestError).status).toBe(429)
-      expect((error as OpenAIRestError).headers.get('retry-after')).toBe('2')
-      expect((error as OpenAIRestError).body).toContain('rate_limit_exceeded')
-      expect((error as OpenAIRestError).code).toBe('rate_limit_exceeded')
-      expect((error as OpenAIRestError).param).toBe('model')
-      expect((error as OpenAIRestError).type).toBe('rate_limit_error')
-    }
+      ),
+      { instanceOf: OpenAIRestError, status: 429, headers: { 'retry-after': '2' } }
+    ) as OpenAIRestError
+    expect(error.body).toContain('rate_limit_exceeded')
+    expect(error.code).toBe('rate_limit_exceeded')
+    expect(error.param).toBe('model')
+    expect(error.type).toBe('rate_limit_error')
   })
 
   test('OpenAI write routes Responses output and metadata through the shared request scaffold', async () => {

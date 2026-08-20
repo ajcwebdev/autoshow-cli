@@ -12,6 +12,7 @@ import type { CanonicalAudioProviderProjection, PipelineProviderState, Step4Meta
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { canonicalFileInput, findRecoverableCompletedState, localTtsResumeConfig, materializeBlockedReadinessProviderState, materializeFailedProviderState, resumeTarget, succeededMetadata, successfulTarget, ttsTarget } from './tts-resume-fixtures'
+import { withEnv } from '../../../test-utils/rest-contract-helpers'
 
 describe('canonical TTS resume', () => {
   test('prices and appends a canonical model to an unambiguous legacy inline run', async () => {
@@ -67,23 +68,16 @@ describe('canonical TTS resume', () => {
       const target = ttsTarget()
       const runnable = successfulTarget(target)
       const runtimeOptions = { openaiTtsModels: [target.model] } as TtsOptions
-      const priorKey = process.env['OPENAI_API_KEY']
-      process.env['OPENAI_API_KEY'] = 'configured-for-local-legacy-resume-fixture'
-      try {
-        await resumeGenerationTarget(
-          resumeTarget(dir),
-          {
-            ...ttsResumeConfig,
-            collectTargets: () => [runnable],
-            resolveStoredTargets: async () => [runnable]
-          },
-          runtimeOptions,
-          new Set(['openai-tts'])
-        )
-      } finally {
-        if (priorKey === undefined) delete process.env['OPENAI_API_KEY']
-        else process.env['OPENAI_API_KEY'] = priorKey
-      }
+      await withEnv({ OPENAI_API_KEY: 'configured-for-local-legacy-resume-fixture' }, () => resumeGenerationTarget(
+        resumeTarget(dir),
+        {
+          ...ttsResumeConfig,
+          collectTargets: () => [runnable],
+          resolveStoredTargets: async () => [runnable]
+        },
+        runtimeOptions,
+        new Set(['openai-tts'])
+      ))
 
       const updated = await readManifest(dir)
       expect(updated?.items[0]?.providers).toHaveLength(2)
@@ -142,9 +136,7 @@ describe('canonical TTS resume', () => {
           return await runnableBase.run(...args)
         }
       }
-      const priorKey = process.env['OPENAI_API_KEY']
-      process.env['OPENAI_API_KEY'] = 'configured-for-local-resume-fixture'
-      try {
+      await withEnv({ OPENAI_API_KEY: 'configured-for-local-resume-fixture' }, async () => {
         const estimate = await priceGenerationTarget(
           resumeTarget(dir),
           { ...ttsResumeConfig, collectTargets: () => [runnable] },
@@ -159,10 +151,7 @@ describe('canonical TTS resume', () => {
           { ...ttsResumeConfig, collectTargets: () => [runnable] },
           runtimeOptions
         )
-      } finally {
-        if (priorKey === undefined) delete process.env['OPENAI_API_KEY']
-        else process.env['OPENAI_API_KEY'] = priorKey
-      }
+      })
 
       const provider = (await readManifest(dir))?.items[0]?.providers[0]
       const projection = provider?.result?.['ttsAudio'] as CanonicalAudioProviderProjection
@@ -210,18 +199,13 @@ describe('canonical TTS resume', () => {
       })]))
       let providerCalls = 0
       const candidate = successfulTarget(target, () => { providerCalls++ })
-      const priorKey = process.env['OPENAI_API_KEY']
-      delete process.env['OPENAI_API_KEY']
-      try {
+      await withEnv({ OPENAI_API_KEY: undefined }, async () => {
         await expect(resumeGenerationTarget(
           resumeTarget(dir),
           { ...ttsResumeConfig, collectTargets: () => [candidate] },
           runtimeOptions
         )).rejects.toThrow('still has failed providers')
-      } finally {
-        if (priorKey === undefined) delete process.env['OPENAI_API_KEY']
-        else process.env['OPENAI_API_KEY'] = priorKey
-      }
+      })
 
       const provider = (await readManifest(dir))?.items[0]?.providers[0]
       const projection = provider?.result?.['ttsAudio'] as CanonicalAudioProviderProjection

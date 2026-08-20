@@ -8,6 +8,7 @@ import { musicCommandFlags, musicCommandOptionNames } from '~/cli/flags/music-fl
 import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-flags'
 import { renameFlagSpellings } from '~/cli/flags/flag-utils'
 import type { MusicGenOptions, VideoGenOptions } from '~/types'
+import { rejectionMessage, thrownMessage } from '../../../../test-utils/cli-assertions'
 
 const internalNames = Object.keys(imageCommandOptionNames)
 const publicNames = Object.values(imageCommandOptionNames)
@@ -19,24 +20,6 @@ const expectOnlyPublicCommandSpellings = (
   const registered = Object.keys(registeredFlags)
   expect(Object.values(optionNames).filter((name) => !registered.includes(name))).toEqual([])
   expect(Object.keys(optionNames).filter((name) => registered.includes(name))).toEqual([])
-}
-
-const messageFor = (run: () => unknown): string => {
-  try {
-    run()
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error)
-  }
-  throw new Error('expected the image target collector to reject these options')
-}
-
-const rejectionMessageFor = async (run: () => Promise<unknown>): Promise<string> => {
-  try {
-    await run()
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error)
-  }
-  throw new Error('expected the generation runner to reject an empty provider selection')
 }
 
 describe('image command flag spellings', () => {
@@ -56,7 +39,7 @@ describe('image command flag spellings', () => {
   // Step-5 validators are shared with write/config/resume and name the `--image-*` flags. The
   // standalone command retargets their usage errors, so a rejection names a flag it accepts.
   test('shared step-5 rejections retarget to the spellings the image command accepts', () => {
-    const grokMessage = messageFor(() => collectImageTargets(buildOptsFromFlags(false, {
+    const grokMessage = thrownMessage(() => collectImageTargets(buildOptsFromFlags(false, {
       'grok-image': 'grok-imagine-image-quality',
       'image-search-grounding': true
     })))
@@ -84,9 +67,9 @@ describe('video and music command flag spellings', () => {
   })
 
   test('runtime provider-list errors match their command-boundary twins', async () => {
-    await expect(rejectionMessageFor(async () => await runVideoGen('prompt', '/tmp/unused', {} as VideoGenOptions)))
+    await expect(rejectionMessage(async () => await runVideoGen('prompt', '/tmp/unused', {} as VideoGenOptions)))
       .resolves.toBe('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
-    await expect(rejectionMessageFor(async () => await runMusicGen('prompt', '/tmp/unused', {} as MusicGenOptions)))
+    await expect(rejectionMessage(async () => await runMusicGen('prompt', '/tmp/unused', {} as MusicGenOptions)))
       .resolves.toBe('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   })
 })

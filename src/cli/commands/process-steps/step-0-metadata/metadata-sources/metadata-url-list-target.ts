@@ -9,7 +9,7 @@ export const resolveInputListBatch = async (
   command: ProcessCommand,
   opts: ProcessPlanningOptions
 ): Promise<ResolvedBatch> => {
-  l.write('info', `Reading inputs from ${resolvedTarget}`)
+  l.write('info', `Reading inputs from ${resolvedTarget}`, { category: 'pipeline', metadata: { target: resolvedTarget } })
   const items = await readInputList(resolvedTarget)
   if (items.length === 0) {
     throw CLIUsageError(`No valid inputs found in ${resolvedTarget}. Provide newline-delimited URLs or local file paths in a .md or .txt file.`)

@@ -1,7 +1,7 @@
 import { isRecord } from '~/utils/rest-client'
 import type { AsyncSttActiveJobContext, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { InfraError, InternalError, ProviderError } from '~/utils/error-handler'
 import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
 import { buildStep2TimingMetadata } from './stt-timing-metadata'
 
@@ -248,7 +248,7 @@ export const attachAsyncSttErrorContext = <TError extends Error & { stage?: stri
     throw error.cause
   }
 
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as unknown as TError).stage = stage
   ;(source as unknown as TError).retryClass = retryClass
   throw source
@@ -260,7 +260,7 @@ export const attachAsyncSttValidationContext = <TError extends Error & { stage?:
   retryClass: RetryClass,
   rawResponse: unknown
 ): never => {
-  const source = error instanceof Error ? error : new Error(String(error))
+  const source = error instanceof Error ? error : ProviderError(String(error))
   ;(source as unknown as TError).stage = stage
   ;(source as unknown as TError).retryClass = retryClass
   ;(source as unknown as TError).rawResponse = rawResponse
@@ -272,15 +272,14 @@ export const buildAsyncSttPollingDeadlineError = (
   jobId: string,
   pollDeadlineMs: number
 ): never => {
-  const error = Object.assign(
-    new Error(`${provider} timed out waiting for transcription completion for ${jobId} (deadline exceeded after ${pollDeadlineMs}ms)`),
+  throw ProviderError(
+    `${provider} timed out waiting for transcription completion for ${jobId} (deadline exceeded after ${pollDeadlineMs}ms)`,
     {
       stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
+      retryClass: 'runtime_http_read' satisfies RetryClass,
       retryable: true
     }
   )
-  throw error
 }
 
 export const buildAsyncSttResumeProbeError = (
@@ -290,15 +289,14 @@ export const buildAsyncSttResumeProbeError = (
   probeCount: number,
   totalWaitMs: number
 ): never => {
-  const error = Object.assign(
-    new Error(`${provider} ${jobNoun} ${jobId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
+  throw ProviderError(
+    `${provider} ${jobNoun} ${jobId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`,
     {
       stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
+      retryClass: 'runtime_http_read' satisfies RetryClass,
       retryable: true
     }
   )
-  throw error
 }
 
 export const deleteSttRemoteResource = async (options: {

@@ -71,7 +71,7 @@ const findDownloadedAudio = async (
     if (options.strictSingleOutput === true) {
       throw buildNoPrimaryMediaError('output directory scan')
     }
-    l.error(`No files found in ${outputDir}`)
+    l.error(`No files found in ${outputDir}`, { category: 'artifact', metadata: { outputDir } })
     throw InfraError('No downloaded files found', { stage: 'download:audio' })
   }
   return first
@@ -101,7 +101,7 @@ export const downloadVideo = async (
     if (result.exitCode !== 0) {
       const details = result.stderr || result.stdout || 'unknown yt-dlp error'
       const message = buildYtDlpFailureMessage('download', details)
-      l.error(message)
+      l.error(message, { category: 'pipeline' })
       throw InfraError(message, { stage: 'download:audio' })
     }
 
@@ -114,11 +114,9 @@ export const downloadVideo = async (
     })
     return downloadedPath
   } catch (error) {
-    const details = error instanceof Error ? error.message : String(error)
-    if (details.startsWith('yt-dlp download failed.')) {
-      throw error instanceof Error ? error : new Error(details)
-    }
-    throw error instanceof Error ? error : new Error(details)
+    throw error instanceof Error
+      ? error
+      : InfraError(String(error), { stage: 'download:audio' })
   } finally {
     await rm(downloadedPathLogFile, { force: true })
   }

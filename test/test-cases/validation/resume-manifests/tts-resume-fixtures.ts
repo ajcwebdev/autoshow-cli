@@ -7,6 +7,7 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import type { CanonicalAudioProviderProjection, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PipelineProviderState, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 
 export const ttsTarget = (transport = 'hosted-api'): TtsTarget => {
   const operation = 'tts-synthesis' as const
@@ -18,7 +19,7 @@ export const ttsTarget = (transport = 'hosted-api'): TtsTarget => {
     operation,
     transport,
     targetKey: canonicalTargetKey(operation, service, model, transport),
-    run: async () => { throw new Error('provider must not run in this local contract test') }
+    run: unexpectedCall('provider run in a local contract test')
   }
 }
 

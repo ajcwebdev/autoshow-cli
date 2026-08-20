@@ -13,6 +13,7 @@ import { writeFakeDefuddleBinIn } from '../../../../test-utils/fixtures/fake-def
 import type { ConsoleCapture } from '../../../../test-utils/console-capture'
 import { captureConsole } from '../../../../test-utils/console-capture'
 import { BLOB_PREFIXED_DOC_FETCH_LINK, BLOB_PREFIXED_DOC_LINK, linksTestOutputPath } from './shared'
+import { withEnv } from '../../../../test-utils/rest-contract-helpers'
 
 const LINKS_RETRY_TEST_URL = 'https://elevenlabs.io/docs/overview/models.md'
 
@@ -129,33 +130,29 @@ test('links captures defuddle CLI diagnostics for fetched html', async () => {
   const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(' ')
   const html = `<!doctype html><html><body><div class="hidden bad[">${words}</div></body></html>`
   const previousBinDir = getConfiguredBinDir()
-  const previousDefuddleStderr = process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR']
   const fakeDefuddle = await writeLinksFakeDefuddleBin()
   configureBinDir(fakeDefuddle.dir)
-  process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR'] = 'Defuddle Error processing document: captured by wrapper'
   let captured: ConsoleCapture = { stdout: [], stderr: [] }
 
   try {
-    captured = await captureConsole(async () => {
-      await runLinksWithArgv([
-        'bun',
-        'src/cli/create-cli.ts',
-        'links',
-        BLOB_PREFIXED_DOC_LINK
-      ], {
-        outputPath,
-        fetchImpl: async (): Promise<Response> => new Response(html, {
-          headers: { 'content-type': 'text/html' }
+    captured = await withEnv(
+      { AUTOSHOW_FAKE_DEFUDDLE_STDERR: 'Defuddle Error processing document: captured by wrapper' },
+      async () => await captureConsole(async () => {
+        await runLinksWithArgv([
+          'bun',
+          'src/cli/create-cli.ts',
+          'links',
+          BLOB_PREFIXED_DOC_LINK
+        ], {
+          outputPath,
+          fetchImpl: async (): Promise<Response> => new Response(html, {
+            headers: { 'content-type': 'text/html' }
+          })
         })
       })
-    })
+    )
   } finally {
     configureBinDir(previousBinDir ?? '')
-    if (previousDefuddleStderr === undefined) {
-      delete process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR']
-    } else {
-      process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR'] = previousDefuddleStderr
-    }
     await rm(fakeDefuddle.dir, { recursive: true, force: true })
   }
 

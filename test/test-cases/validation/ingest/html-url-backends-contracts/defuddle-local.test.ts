@@ -17,6 +17,7 @@ import {
   writeFakeDefuddleBin
 } from './shared'
 import type { DocumentMetadata, ExtractionOptions } from '~/types'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const pathExists = async (path: string): Promise<boolean> => {
   try {
@@ -28,10 +29,7 @@ const pathExists = async (path: string): Promise<boolean> => {
 }
 
 const streamFromText = (value: string): ReadableStream<Uint8Array> => {
-  const stream = new Response(value).body
-  if (!stream) {
-    throw new Error('Expected Response body stream')
-  }
+  const stream = requireDefined(new Response(value).body, 'Response body stream')
   return stream
 }
 

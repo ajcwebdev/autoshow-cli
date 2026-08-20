@@ -2,6 +2,7 @@ import { constants } from 'node:fs'
 import { access, mkdir } from 'node:fs/promises'
 import type { ExecOptions, ExecResult } from '~/types'
 import { readBoundedTextStream } from '~/utils/bounded-capture'
+import { hasErrorCode, InfraError } from '~/utils/error-handler'
 import * as l from './app-logger/app-logger'
 
 const DEFAULT_LINE_BUFFER_CHARS = 64 * 1024
@@ -202,7 +203,10 @@ export const exec = async (
   if (lastResult) {
     return lastResult
   }
-  throw lastError ?? new Error(`${label} failed`)
+  throw lastError ?? InfraError(`${label} failed`, {
+    stage: 'exec',
+    metadata: { command, maxAttempts }
+  })
 }
 
 export const commandExists = (command: string): boolean => {
@@ -221,7 +225,7 @@ export const ensureDirectory = async (dirPath: string): Promise<void> => {
   try {
     await mkdir(dirPath, { recursive: true })
   } catch (error) {
-    l.error(`Failed to create directory: ${dirPath}`, error)
+    l.error(`Failed to create directory: ${dirPath}`, { category: 'artifact', error, metadata: { dirPath } })
     throw error
   }
 }
@@ -230,7 +234,7 @@ export const writeFile = async (filePath: string, content: string): Promise<void
   try {
     await Bun.write(filePath, content)
   } catch (error) {
-    l.error(`Failed to write file: ${filePath}`, error)
+    l.error(`Failed to write file: ${filePath}`, { category: 'artifact', error, metadata: { filePath } })
     throw error
   }
 }
@@ -240,10 +244,7 @@ export const fileExists = async (filePath: string): Promise<boolean> => {
     await access(filePath, constants.F_OK)
     return true
   } catch (error) {
-    const code = error instanceof Error && 'code' in error
-      ? (error as NodeJS.ErrnoException).code
-      : undefined
-    if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ENAMETOOLONG') {
+    if (['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'].some((code) => hasErrorCode(error, code))) {
       return false
     }
     throw error

@@ -23,9 +23,9 @@ const installFfmpeg = async (): Promise<void> => {
     // build stamp (not binary existence) proves the managed install is current.
     if (hasBoth && resolveRuntimeToolInfo('ffmpeg')?.source === 'override') return
     if (await hasManagedFfmpegBuild()) return
-    l.write('info', 'Installing FFmpeg')
+    l.write('info', 'Installing FFmpeg', { category: 'command' })
     await installManagedFfmpegMacos()
-    l.write('success', 'FFmpeg installed')
+    l.write('success', 'FFmpeg installed', { category: 'command' })
     return
   }
 
@@ -33,15 +33,15 @@ const installFfmpeg = async (): Promise<void> => {
     return
   }
 
-  l.write('info', 'Installing FFmpeg')
+  l.write('info', 'Installing FFmpeg', { category: 'command' })
 
   if (platform === 'linux') {
     await runInherit('sudo', ['apt', 'install', '-y', 'ffmpeg'])
-    l.write('success', 'FFmpeg installed')
+    l.write('success', 'FFmpeg installed', { category: 'command' })
     return
   }
 
-  l.error('Unsupported platform for automatic FFmpeg installation')
+  l.error('Unsupported platform for automatic FFmpeg installation', { category: 'command' })
   throw InfraError('Unsupported platform for FFmpeg setup', { stage: 'setup:download' })
 }
 
@@ -50,12 +50,12 @@ const installYtDlp = async (): Promise<void> => {
     return
   }
 
-  l.write('info', 'Installing yt-dlp')
+  l.write('info', 'Installing yt-dlp', { category: 'command' })
   const platform = detectPlatform()
 
   if (platform === 'darwin') {
     await installManagedYtDlpMacos()
-    l.write('success', 'yt-dlp installed')
+    l.write('success', 'yt-dlp installed', { category: 'command' })
     return
   }
 
@@ -77,11 +77,11 @@ const installYtDlp = async (): Promise<void> => {
       }
     )
     await makeExecutable(ytDlpManagedBinaryPath)
-    l.write('success', 'yt-dlp installed')
+    l.write('success', 'yt-dlp installed', { category: 'command' })
     return
   }
 
-  l.error('Unsupported platform for automatic yt-dlp installation')
+  l.error('Unsupported platform for automatic yt-dlp installation', { category: 'command' })
   throw InfraError('Unsupported platform for yt-dlp setup', { stage: 'setup:download' })
 }
 
@@ -90,6 +90,6 @@ export const setupYtDependencies = async (): Promise<void> => {
   await installYtDlp()
 
   if (shouldPrintCompletion()) {
-    l.write('success', 'yt-dlp and FFmpeg setup complete')
+    l.write('success', 'yt-dlp and FFmpeg setup complete', { category: 'command' })
   }
 }

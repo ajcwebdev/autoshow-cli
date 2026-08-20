@@ -52,7 +52,7 @@ export const processMediaSingle = async (
   batchChildContext?: BatchChildRunContext
 ): Promise<{ outputDir: string, info: { url: string, title: string, channel: string, channelURL?: string, publishDate?: string, duration: string } }> => {
   if (llmDefaults.split) {
-    l.write('info', 'Audio will be split into 30-minute segments for transcription')
+    l.write('info', 'Audio will be split into 30-minute segments for transcription', { category: 'pipeline' })
   }
 
   const isUrl = isLikelyUrl(target)
@@ -271,7 +271,10 @@ export const processDownloadMedia = async (
   const itemRecord = buildDownloadItemRecord(step1Metadata)
 
   if (useFlatBatchOutput) {
-    l.write('info', `Saved media file: ${step1Metadata.audioFileName}`)
+    l.write('info', `Saved media file: ${step1Metadata.audioFileName}`, {
+    category: 'artifact',
+    metadata: { audioFileName: step1Metadata.audioFileName }
+  })
     return { itemRecord }
   }
 

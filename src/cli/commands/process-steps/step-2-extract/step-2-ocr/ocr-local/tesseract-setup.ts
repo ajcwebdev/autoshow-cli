@@ -21,22 +21,22 @@ const installTesseract = async (): Promise<void> => {
     return
   }
 
-  l.write('info', 'Installing Tesseract')
+  l.write('info', 'Installing Tesseract', { category: 'command' })
   const platform = detectPlatform()
 
   if (platform === 'darwin') {
     await installManagedTesseractMacos()
-    l.write('success', 'Tesseract installed')
+    l.write('success', 'Tesseract installed', { category: 'command' })
     return
   }
 
   if (platform === 'linux') {
     await runInherit('sudo', ['apt', 'install', '-y', 'tesseract-ocr'])
-    l.write('success', 'Tesseract installed')
+    l.write('success', 'Tesseract installed', { category: 'command' })
     return
   }
 
-  l.error('Unsupported platform for tesseract auto-install')
+  l.error('Unsupported platform for tesseract auto-install', { category: 'command' })
   throw InternalError('Unsupported platform for tesseract setup', { stage: 'setup:tesseract' })
 }
 
@@ -51,14 +51,17 @@ const ensureEnglishLanguageData = async (): Promise<void> => {
     .filter(Boolean)
 
   if (langs.includes('eng')) {
-    l.write('success', 'Tesseract language data (eng) found')
+    l.write('success', 'Tesseract language data (eng) found', { category: 'command' })
     return
   }
 
-  l.warn('Could not find eng.traineddata in tessdata path')
+  l.warn('Could not find eng.traineddata in tessdata path', { category: 'command' })
   // The CLI sets TESSDATA_PREFIX itself when spawning tesseract and never reads
   // it back, so pointing users at the env var would be a dead end.
-  l.write('info', `Add eng.traineddata to ${resolveTessdataPrefix()} (the CLI points tesseract at this directory)`)
+  l.write('info', `Add eng.traineddata to ${resolveTessdataPrefix()} (the CLI points tesseract at this directory)`, {
+      category: 'command',
+      metadata: { tool: 'tesseract', tessdataPrefix: resolveTessdataPrefix() }
+    })
 }
 
 export const setupTesseractOcr = async (): Promise<void> => {
@@ -69,6 +72,6 @@ export const setupTesseractOcr = async (): Promise<void> => {
   await ensureEnglishLanguageData()
 
   if (shouldPrintCompletion()) {
-    l.write('success', 'Extraction OCR setup complete')
+    l.write('success', 'Extraction OCR setup complete', { category: 'command' })
   }
 }

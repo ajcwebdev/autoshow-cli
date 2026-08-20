@@ -3,13 +3,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect } from 'bun:test'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
-import {
-  fileExists,
-  findLatestDirectory,
-  runCommand,
-} from '../../../../../test-utils/test-helpers'
+import { findLatestDirectory, runCommand } from '../../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
+import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 budgetedTest('tts-gemini-gemini-3.1-flash-tts-preview', 'gemini multispeaker with explicit speaker mappings generates speech.wav', async () => {
   await requireConfiguredEnvVar('GEMINI_API_KEY', 'GEMINI_API_KEY is required for Gemini TTS test')
@@ -45,7 +42,7 @@ budgetedTest('tts-gemini-gemini-3.1-flash-tts-preview', 'gemini multispeaker wit
     expect(outputDir).not.toBeNull()
 
     if (outputDir) {
-      expect(await fileExists(`${outputDir}/speech.wav`)).toBe(true)
+      await expectArtifact(`${outputDir}/speech.wav`)
 
       const metadata = await readCanonicalRecord(outputDir) as {
         tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string }>

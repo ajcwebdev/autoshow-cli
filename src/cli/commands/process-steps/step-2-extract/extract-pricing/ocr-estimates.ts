@@ -134,7 +134,18 @@ const resolveExtractInputPageCountUncached = async (input: string): Promise<numb
     }
     throw ValidationError(`document info returned ${info.pageCount} pages`, { stage: 'ocr:pricing', retryable: false })
   } catch (error) {
-    throw CLIUsageError(`Unable to estimate hosted OCR price for "${input}": could not determine PDF page count (${formatPageCountError(error)}).`)
+    // An unreadable or malformed PDF is not a usage mistake, so it must not exit 2
+    // alongside "you passed the wrong flag". Keep the cause so the underlying mutool /
+    // download failure survives into `collectErrorChain`.
+    throw ValidationError(
+      `Unable to estimate hosted OCR price for "${input}": could not determine PDF page count (${formatPageCountError(error)}).`,
+      {
+        stage: 'ocr:pricing',
+        retryable: false,
+        hints: ['Confirm the input is a readable PDF, or pass an explicit page count via the pricing options.'],
+        ...(error instanceof Error ? { cause: error } : {})
+      }
+    )
   } finally {
     if (tempFile) {
       await unlink(tempFile).catch(() => {})

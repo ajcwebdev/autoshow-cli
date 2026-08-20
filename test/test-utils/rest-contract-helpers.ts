@@ -100,6 +100,39 @@ export const restoreEnv = (snapshot: EnvSnapshot): void => {
   }
 }
 
+/**
+ * Scoped env override for the tests whose variables change per case rather than per suite.
+ * Snapshot/restore comes from `snapshotEnv`/`restoreEnv` so the "undefined means delete"
+ * rule has one definition — the hand-rolled copies this replaced each re-derived it, and
+ * one of them spelled the preserve check with the opposite polarity.
+ */
+export const withEnv = async <T>(
+  env: Readonly<Record<string, string | undefined>>,
+  run: () => Promise<T> | T
+): Promise<T> => {
+  const previous = snapshotEnv(Object.keys(env))
+  restoreEnv(env)
+  try {
+    return await run()
+  } finally {
+    restoreEnv(previous)
+  }
+}
+
+/** Synchronous counterpart to `withEnv`, for assertions that never await. */
+export const withEnvSync = <T>(
+  env: Readonly<Record<string, string | undefined>>,
+  run: () => T
+): T => {
+  const previous = snapshotEnv(Object.keys(env))
+  restoreEnv(env)
+  try {
+    return run()
+  } finally {
+    restoreEnv(previous)
+  }
+}
+
 export const setupContractSuiteLifecycle = (
   options: {
     envKeys: readonly string[]

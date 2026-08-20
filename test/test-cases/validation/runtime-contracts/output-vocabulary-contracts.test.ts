@@ -59,11 +59,49 @@ const CONSOLE_ALLOWLIST = new Set([...LOGGER_SINK_FILES, ...PAYLOAD_STDOUT_FILES
 /** No exceptions: every throw in `src/` belongs to the AppError family (ADR-006). */
 const PLAIN_THROW_ALLOWLIST = new Set<string>([])
 
+/**
+ * The two top-level failure handlers plus the two standalone `bun run` scripts. Everything
+ * else must throw an AppError and let `normalizeExitCode` decide, so a mid-pipeline module
+ * cannot terminate a paid run by calling `process.exit` directly.
+ */
+const PROCESS_EXIT_ALLOWLIST = new Set([
+  'src/cli/create-cli.ts',                 // cliErrorHandler: usage exit 2 / kind-derived exit code
+  'src/cli/failure-handlers.ts',           // handleFatal for uncaughtException/unhandledRejection
+  'src/tools/repo-snapshot.ts',            // standalone `bun run` script, outside the CLI dispatcher
+  'src/tools/unique-source-name-check.ts'  // standalone `bun run` script, outside the CLI dispatcher
+])
+
+/**
+ * Empty by design. The STT provider subsystem used to build its errors as
+ * `Object.assign(new Error(msg), { status, headers, stage, retryClass })`, which produced
+ * kind-less errors: `isAppError` was false, the provider_http hint branch never fired, and
+ * an escape to `handleFatal` printed "payload redacted" instead of the message. Those sites
+ * now build an `AppProviderError` (through `httpResponseError` or `ProviderError`) and
+ * `Object.assign` only the duck-typed extras onto it.
+ */
+const ASSIGNED_ERROR_ALLOWLIST = new Set<string>([])
+
 // --- Scanning ----------------------------------------------------------------
 
 const CONSOLE_PATTERN = /(?<![\w.$])console\s*\.\s*(?:log|error|warn|info|debug)\s*\(/
 const PROCESS_WRITE_PATTERN = /process\s*\.\s*std(?:out|err)\s*\.\s*write\s*\(/
 const PLAIN_THROW_PATTERN = /throw\s+new\s+Error\s*\(/
+
+/**
+ * The builtin error constructors a throw site might reach for instead of `Error`. The
+ * original contract grepped only `Error`, so a `throw new TypeError(...)` would have
+ * slipped through with the same kind-less consequences.
+ */
+const BUILTIN_ERROR_THROW_PATTERN =
+  /throw\s+new\s+(?:TypeError|RangeError|SyntaxError|ReferenceError|EvalError|URIError|AggregateError|DOMException)\s*\(/
+
+/**
+ * `Object.assign(new Error(...), {...})` — the duck-typed provider-error shape. Matching
+ * across a line break too, because the STT sites spelled it over several lines.
+ */
+const ASSIGNED_ERROR_PATTERN = /Object\s*\.\s*assign\s*\(\s*(?:\n\s*)?new\s+\w*Error\s*\(/
+
+const PROCESS_EXIT_PATTERN = /(?<![\w.$])process\s*\.\s*exit\s*\(/
 
 const listFilesUnder = async (root: string): Promise<string[]> => {
   const files: string[] = []
@@ -106,6 +144,29 @@ const scan = async (
   return violations
 }
 
+/**
+ * Whole-file variant for shapes that span a line break, so a call broken across lines
+ * cannot evade a per-line grep.
+ */
+const scanWholeFile = async (
+  pattern: RegExp,
+  allowlist: ReadonlySet<string>,
+  root: string = SRC_ROOT
+): Promise<Violation[]> => {
+  const violations: Violation[] = []
+  for (const absolute of await listFilesUnder(root)) {
+    const repoPath = relative(PROJECT_ROOT, absolute)
+    if (allowlist.has(repoPath)) continue
+
+    const source = stripComments(await readFile(absolute, 'utf8'))
+    for (const match of source.matchAll(new RegExp(pattern.source, `${pattern.flags.replace('g', '')}g`))) {
+      const line = source.slice(0, match.index).split('\n').length
+      violations.push({ file: repoPath, line, text: match[0].replace(/\s+/g, ' ') })
+    }
+  }
+  return violations
+}
+
 const describeViolations = (violations: readonly Violation[]): string[] =>
   violations.map(({ file, line, text }) => `${file}:${line}  ${text}`)
 
@@ -124,6 +185,23 @@ describe('src output and error vocabulary contracts', () => {
 
   test('every throw in src uses the AppError family, never a plain Error', async () => {
     const violations = await scan(PLAIN_THROW_PATTERN, PLAIN_THROW_ALLOWLIST)
+    expect(describeViolations(violations)).toEqual([])
+  })
+
+  test('no builtin error subclass is thrown in src either', async () => {
+    // The AppError family covers every failure the CLI raises; a `TypeError`/`RangeError`
+    // thrown directly carries no kind, no exit code, and no hints.
+    const violations = await scan(BUILTIN_ERROR_THROW_PATTERN, PLAIN_THROW_ALLOWLIST)
+    expect(describeViolations(violations)).toEqual([])
+  })
+
+  test('no duck-typed Object.assign(new Error(...)) provider errors in src', async () => {
+    const violations = await scanWholeFile(ASSIGNED_ERROR_PATTERN, ASSIGNED_ERROR_ALLOWLIST)
+    expect(describeViolations(violations)).toEqual([])
+  })
+
+  test('process.exit stays in the two failure handlers and the standalone scripts', async () => {
+    const violations = await scan(PROCESS_EXIT_PATTERN, PROCESS_EXIT_ALLOWLIST)
     expect(describeViolations(violations)).toEqual([])
   })
 
@@ -154,8 +232,13 @@ describe('src output and error vocabulary contracts', () => {
       ...(await listSourceFiles()),
       ...(await listFilesUnder(TEST_ROOT))
     ].map((file) => relative(PROJECT_ROOT, file)))
-    const stale = [...CONSOLE_ALLOWLIST, ...PLAIN_THROW_ALLOWLIST, ...TEST_CAPTURE_OWNERS]
-      .filter((file) => !present.has(file))
+    const stale = [
+      ...CONSOLE_ALLOWLIST,
+      ...PLAIN_THROW_ALLOWLIST,
+      ...ASSIGNED_ERROR_ALLOWLIST,
+      ...PROCESS_EXIT_ALLOWLIST,
+      ...TEST_CAPTURE_OWNERS
+    ].filter((file) => !present.has(file))
     expect(stale).toEqual([])
   })
 })

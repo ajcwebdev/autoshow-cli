@@ -6,7 +6,7 @@ import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { ensureDirectory, writeFile } from '~/utils/cli-utils'
 import { validateData } from '~/utils/validate/validation'
 import { estimateTokens } from '~/utils/text-utils'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { buildArticleSlug } from '~/cli/commands/process-steps/step-1-download/document/prepare-html-article'
@@ -203,7 +203,10 @@ const runSingleUrlBackend = async (
       article = run.article
       attempts = run.attempts
     } catch (defuddleError) {
-      l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`)
+      l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
+        category: 'pipeline',
+        metadata: { fallbackBackend: 'firecrawl', error: serializeDiagnosticError(defuddleError) }
+      })
       try {
         const run = await runUrlArticleProviderWithStats('firecrawl', source, sourceUrl, urlRunOptions)
         article = run.article
@@ -213,7 +216,11 @@ const runSingleUrlBackend = async (
         throw InfraError(
           `Defuddle article extraction failed and Firecrawl fallback failed. ` +
           `Defuddle: ${formatErrorMessage(defuddleError)} Firecrawl: ${formatErrorMessage(firecrawlError)}`,
-          { stage: 'extract:url' }
+          {
+            stage: 'extract:url',
+            metadata: { defuddleError: serializeDiagnosticError(defuddleError) },
+            ...(firecrawlError instanceof Error ? { cause: firecrawlError } : {})
+          }
         )
       }
     }

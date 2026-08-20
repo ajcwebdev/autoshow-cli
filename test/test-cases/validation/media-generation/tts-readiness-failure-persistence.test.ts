@@ -15,6 +15,7 @@ import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { CanonicalAudioProviderProjection, HostedFixture, PipelineProviderState, ProtectedVoiceAssetStore, ProviderReadinessResult, TtsProvider, TtsTarget } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const hostedFixture = (
   service: Extract<TtsProvider, 'openai' | 'groq'>,
@@ -310,8 +311,7 @@ describe('canonical TTS execution-readiness failures', () => {
           sourcePath: referencePath,
           authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
         }, store)
-        const plannedMistral = collectTtsTargets(options)[0]
-        if (!plannedMistral) throw new Error('Expected a planned Mistral protected-reference target.')
+        const plannedMistral = requireDefined(collectTtsTargets(options)[0], 'a planned Mistral protected-reference target')
         const mistralCalls = { run: 0, setup: 0, fetch: 0 }
         const mistralTarget: TtsTarget = {
           ...plannedMistral,
@@ -442,8 +442,7 @@ describe('canonical TTS execution-readiness failures', () => {
         sourcePath: referencePath,
         authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
       }, store)
-      const plannedMistral = collectTtsTargets(options)[0]
-      if (!plannedMistral) throw new Error('Expected a planned Mistral protected-reference target.')
+      const plannedMistral = requireDefined(collectTtsTargets(options)[0], 'a planned Mistral protected-reference target')
       const mistralCalls = { run: 0, setup: 0, fetch: 0 }
       const mistralTarget: TtsTarget = {
         ...plannedMistral,

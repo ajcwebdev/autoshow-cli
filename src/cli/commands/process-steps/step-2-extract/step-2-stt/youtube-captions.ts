@@ -2,6 +2,7 @@ import { copyFile, mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import * as l from '~/utils/app-logger/app-logger'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 import type { ParsedYoutubeCue, Step2Metadata, SttProviderSuccess, SttTarget, TranscriptionEvidenceSegment, TranscriptionResult, YoutubeCaptionMetadataFile, YoutubeCaptionSelection, YoutubeCaptionTrack, YtDlpVideoInfo } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getVideoInfo } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
@@ -407,7 +408,15 @@ const syncRootArtifact = async (
 ): Promise<void> => {
   const fromPath = join(providerDir, fileName)
   const toPath = join(outputDir, fileName)
-  await copyFile(fromPath, toPath).catch(() => undefined)
+  // Root-level copies are conveniences over the provider directory, so a failure is not
+  // fatal — but it must not vanish either, or a missing root artifact looks like the
+  // provider never produced one.
+  await copyFile(fromPath, toPath).catch((error: unknown) => {
+    l.write('debug', `Failed to mirror ${fileName} into the run output directory`, {
+      category: 'artifact',
+      metadata: { fromPath, toPath, error: serializeDiagnosticError(error) }
+    })
+  })
 }
 
 const syncRootArtifacts = async (
@@ -481,25 +490,25 @@ export const tryResolveYoutubeCaptionTranscription = async (
     const args = await buildYtDlpSubtitleDownloadArgs(watchUrl, tempDir, selection.kind)
     const result = await exec(getYtDlpBinary(), args)
     if (result.exitCode !== 0) {
-      l.warn(buildYtDlpFailureMessage('subtitles', result.stderr || result.stdout || 'unknown yt-dlp error'))
+      l.warn(buildYtDlpFailureMessage('subtitles', result.stderr || result.stdout || 'unknown yt-dlp error'), { category: 'pipeline' })
       return null
     }
 
     const downloadedVttPath = await findDownloadedSubtitleFile(tempDir, selection.language)
     if (!downloadedVttPath) {
-      l.warn('YouTube captions were selected but yt-dlp produced no VTT file; falling back to the normal STT flow')
+      l.warn('YouTube captions were selected but yt-dlp produced no VTT file; falling back to the normal STT flow', { category: 'pipeline' })
       return null
     }
 
     const vttText = await Bun.file(downloadedVttPath).text()
     if (vttText.trim().length === 0) {
-      l.warn('YouTube captions were downloaded but the VTT file was empty; falling back to the normal STT flow')
+      l.warn('YouTube captions were downloaded but the VTT file was empty; falling back to the normal STT flow', { category: 'pipeline' })
       return null
     }
 
     const transcription = buildYoutubeCaptionTranscription(vttText, selection)
     if (!transcription || transcription.text.trim().length === 0) {
-      l.warn('YouTube captions were downloaded but could not be parsed into transcript cues; falling back to the normal STT flow')
+      l.warn('YouTube captions were downloaded but could not be parsed into transcript cues; falling back to the normal STT flow', { category: 'pipeline' })
       return null
     }
 

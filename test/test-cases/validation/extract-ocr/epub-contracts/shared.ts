@@ -12,6 +12,7 @@ import { runOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/r
 import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { EpubChapter, EpubContentReader, ExtractionOptions } from '~/types'
+import { withEnv } from '../../../../test-utils/rest-contract-helpers'
 
 export const createReader = (files: Record<string, string>): EpubContentReader => ({
   adapterLabel: 'test',
@@ -70,18 +71,11 @@ export const withFakeEbookConvert = async <T>(
   await chmod(fakeConvertPath, 0o755)
   await chmod(fakeMutoolPath, 0o755)
 
-  const previousPath = process.env['PATH']
   const previousBinDir = getConfiguredBinDir()
-  process.env['PATH'] = `${binDir}:${previousPath ?? ''}`
   configureBinDir(binDir)
   try {
-    return await fn(root)
+    return await withEnv({ PATH: `${binDir}:${process.env['PATH'] ?? ''}` }, () => fn(root))
   } finally {
-    if (previousPath === undefined) {
-      delete process.env['PATH']
-    } else {
-      process.env['PATH'] = previousPath
-    }
     configureBinDir(previousBinDir ?? '')
     await rm(root, { recursive: true, force: true })
   }

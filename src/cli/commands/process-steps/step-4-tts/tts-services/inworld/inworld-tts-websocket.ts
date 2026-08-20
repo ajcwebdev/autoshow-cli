@@ -150,7 +150,7 @@ export const reduceInworldWebSocketResponse = (
   return next
 }
 
-const abortError = (signal: AbortSignal): Error => signal.reason instanceof Error ? signal.reason : new Error('Inworld WebSocket synthesis was cancelled.')
+const abortError = (signal: AbortSignal): Error => signal.reason instanceof Error ? signal.reason : InfraError('Inworld WebSocket synthesis was cancelled.', { stage: 'tts:inworld-websocket', retryable: false })
 
 const waitFor = async <T>(operation: Promise<T>, signal: AbortSignal): Promise<T> => {
   if (signal.aborted) throw abortError(signal)
@@ -167,7 +167,7 @@ export const createBunInworldWebSocketConnector: InworldWebSocketConnector = asy
   const socket = new BunWebSocket(url, { headers })
   await waitFor(new Promise<void>((resolve, reject) => {
     socket.addEventListener('open', () => resolve(), { once: true })
-    socket.addEventListener('error', () => reject(new Error('Inworld WebSocket connection failed.')), { once: true })
+    socket.addEventListener('error', () => reject(InfraError('Inworld WebSocket connection failed.', { stage: 'tts:inworld-websocket' })), { once: true })
   }), signal).catch(error => {
     socket.close()
     throw error
@@ -182,11 +182,11 @@ export const createBunInworldWebSocketConnector: InworldWebSocketConnector = asy
     else queued.push(event.data)
   })
   socket.addEventListener('error', () => {
-    closed = new Error('Inworld WebSocket transport failed.')
+    closed = InfraError('Inworld WebSocket transport failed.', { stage: 'tts:inworld-websocket' })
     for (const receiver of waiting.splice(0)) receiver.reject(closed)
   })
   socket.addEventListener('close', () => {
-    closed ??= new Error('Inworld WebSocket closed before synthesis completed.')
+    closed ??= InfraError('Inworld WebSocket closed before synthesis completed.', { stage: 'tts:inworld-websocket' })
     for (const receiver of waiting.splice(0)) receiver.reject(closed)
   })
   return {

@@ -1,5 +1,5 @@
 import type { CreateLoggerOptions, LogCategory, LogContext, Logger, LogLevel, LogSinkEvent, LogWriteOptions, MutableLoggerConfig } from '~/types'
-import { LOG_LEVEL_PRIORITY, LOG_WRITE_OPTION_KEYS } from '~/types'
+import { LOG_LEVEL_PRIORITY } from '~/types'
 import { getLogContext } from '~/utils/app-logger/context-store'
 import {
 sanitizeHumanSections,
@@ -43,40 +43,15 @@ const shouldEmitLevel = (level: LogLevel, minLevel: LogLevel): boolean => {
   return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[minLevel]
 }
 
-// `l.warn`/`l.debug` keep their variadic `...args` shape, so a trailing options
-// object is only lifted into structured fields when every key belongs to
-// LogWriteOptions. Anything else stays an ordinary interpolation argument.
-const isLogWriteOptions = (value: unknown): value is LogWriteOptions => {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return false
-  }
-
-  const prototype = Object.getPrototypeOf(value)
-  if (prototype !== Object.prototype && prototype !== null) {
-    return false
-  }
-
-  const keys = Object.keys(value)
-  return keys.length > 0 && keys.every((key) => LOG_WRITE_OPTION_KEYS.includes(key))
-}
-
-const toShorthandWriteOptions = (args: readonly unknown[]): LogWriteOptions => {
-  if (args.length === 1 && isLogWriteOptions(args[0])) {
-    return args[0]
-  }
-
-  return { args }
-}
-
 const makeSinkEvent = (
   level: LogLevel,
   message: string,
   runId: string,
   baseContext: LogContext,
-  options?: LogWriteOptions
+  options: LogWriteOptions
 ): LogSinkEvent => {
   const asyncContext = getLogContext()
-  const mergedContext = sanitizeLogContext(mergeContext(baseContext, asyncContext, options?.context))
+  const mergedContext = sanitizeLogContext(mergeContext(baseContext, asyncContext, options.context))
   const contextKeys = Object.keys(mergedContext)
   const command = getContextString(mergedContext, 'command')
   const step = getContextString(mergedContext, 'step')
@@ -85,16 +60,16 @@ const makeSinkEvent = (
     timestamp: getTimestamp(),
     level,
     message: sanitizeLogText(message),
-    category: options?.category ?? 'general',
+    category: options.category,
     runId,
     ...(command ? { command } : {}),
     ...(step ? { step } : {}),
     ...(contextKeys.length > 0 ? { context: mergedContext } : {}),
-    ...(options?.metadata ? { metadata: sanitizeLogMetadata(options.metadata) } : {}),
-    ...(options?.humanTable ? { humanTable: sanitizeHumanTable(options.humanTable) } : {}),
-    ...(options?.humanSections ? { humanSections: sanitizeHumanSections(options.humanSections) } : {}),
-    indent: options?.indent ?? true,
-    args: sanitizeLogArgs(options?.args ?? [])
+    ...(options.metadata ? { metadata: sanitizeLogMetadata(options.metadata) } : {}),
+    ...(options.humanTable ? { humanTable: sanitizeHumanTable(options.humanTable) } : {}),
+    ...(options.humanSections ? { humanSections: sanitizeHumanSections(options.humanSections) } : {}),
+    indent: options.indent ?? true,
+    args: sanitizeLogArgs(options.args ?? [])
   }
 }
 
@@ -127,11 +102,11 @@ export const createLogger = (options: CreateLoggerOptions = {}): Logger => {
     }
   }
 
-  const write = (level: LogLevel, message: string, writeOptions?: LogWriteOptions): void => {
+  const write = (level: LogLevel, message: string, writeOptions: LogWriteOptions): void => {
     if (!shouldEmitLevel(level, config.minLevel)) {
       return
     }
-    const category: LogCategory = writeOptions?.category ?? 'general'
+    const category: LogCategory = writeOptions.category
     if (config.suppressedCategories.includes(category)) {
       return
     }
@@ -141,29 +116,38 @@ export const createLogger = (options: CreateLoggerOptions = {}): Logger => {
   const logger: Logger = {
     config,
     write,
-    debug: (message: string, ...args: unknown[]) => {
-      write('debug', message, toShorthandWriteOptions(args))
+    debug: (message, options) => {
+      write('debug', message, options)
     },
-    warn: (message: string, ...args: unknown[]) => {
-      write('warn', message, toShorthandWriteOptions(args))
+    warn: (message, options) => {
+      write('warn', message, options)
     },
-    error: (message, errorObj) => {
+    error: (message, options) => {
+      const { error: errorObj, ...writeOptions } = options
+
       if (errorObj instanceof Error) {
         write('error', `${message}: ${errorObj.message}`, {
-          metadata: { error: errorObj }
+          ...writeOptions,
+          metadata: { ...writeOptions.metadata, error: errorObj }
         })
         if (errorObj.stack) {
-          write('error', errorObj.stack, { indent: false })
+          // The stack is a continuation of the same event, so it keeps the caller's
+          // category: category filtering must not be able to split a failure from its trace.
+          write('error', errorObj.stack, {
+            category: writeOptions.category,
+            ...(writeOptions.context ? { context: writeOptions.context } : {}),
+            indent: false
+          })
         }
         return
       }
 
       if (errorObj === undefined) {
-        write('error', message)
+        write('error', message, writeOptions)
         return
       }
 
-      write('error', message, { args: [errorObj] })
+      write('error', message, { ...writeOptions, args: [errorObj] })
     },
     withContext: (context) => {
       return createLogger({

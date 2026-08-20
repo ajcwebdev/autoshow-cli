@@ -32,7 +32,7 @@ export const downloadWhisperfileBinary = async (modelName: string): Promise<void
     return
   }
 
-  l.write('info', `Downloading whisperfile model: ${modelName}`)
+  l.write('info', `Downloading whisperfile model: ${modelName}`, { category: 'command', metadata: { engine: 'whisperfile', model: modelName } })
 
   const url = `${WHISPERFILE_BASE_URL}/${artifactFileName(modelName)}`
 
@@ -50,20 +50,20 @@ export const downloadWhisperfileBinary = async (modelName: string): Promise<void
 
   await makeExecutable(destination)
 
-  l.write('success', `Whisperfile model ${modelName} downloaded`)
+  l.write('success', `Whisperfile model ${modelName} downloaded`, { category: 'command', metadata: { engine: 'whisperfile', model: modelName } })
 }
 
 export const setupWhisperfile = async (modelName: string): Promise<void> => {
   await downloadWhisperfileBinary(modelName)
 
   if (!await verifyWhisperfileBinary(whisperfileBinaryPath(modelName))) {
-    l.warn('Whisperfile installation may have issues, but continuing')
+    l.warn('Whisperfile installation may have issues, but continuing', { category: 'command' })
   }
 }
 
 export const ensureWhisperfileReady = async (modelName: string): Promise<void> => {
   if (!modelName) {
-    l.error('Model name required')
+    l.error('Model name required', { category: 'command' })
     throw InternalError('Model name required', { stage: 'setup:whisperfile' })
   }
 
@@ -74,7 +74,7 @@ export const ensureWhisperfileReady = async (modelName: string): Promise<void> =
     if (await verifyWhisperfileBinary(binaryPath)) {
       return
     }
-    l.write('info', 'Whisperfile binary found but not working, re-downloading')
+    l.write('info', 'Whisperfile binary found but not working, re-downloading', { category: 'command' })
   }
 
   await setupWhisperfile(modelName)

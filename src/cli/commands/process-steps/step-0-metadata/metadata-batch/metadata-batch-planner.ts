@@ -84,7 +84,10 @@ export const planBatchInputsForCommand = async (
     if (!routing.supported) {
       const reason = routing.skipReason ?? describeUnsupportedInputForCommand(command, routing.family)
       if (logSkips && isExtractCommand(command)) {
-        l.warn(`Skipping ${routing.family} input in ${command} batch: ${item} (${reason})`)
+        l.warn(`Skipping ${routing.family} input in ${command} batch: ${item} (${reason})`, {
+      category: 'pipeline',
+      metadata: { command, family: routing.family, item, reason }
+    })
       }
       initialRecords.push({
         ...recordBase,

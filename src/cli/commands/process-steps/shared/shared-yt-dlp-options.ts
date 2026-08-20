@@ -78,7 +78,7 @@ const buildSharedYtDlpArgs = async (): Promise<string[]> => {
     const warningKey = authState.resolvedCookiesPath ?? authState.cookiesPath ?? authState.warning
     if (!warnedUnreadableCookiePaths.has(warningKey)) {
       warnedUnreadableCookiePaths.add(warningKey)
-      l.warn(authState.warning)
+      l.warn(authState.warning, { category: 'pipeline' })
     }
   }
   args.push(...authState.cookieArgs)

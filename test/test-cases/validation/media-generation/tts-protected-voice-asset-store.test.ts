@@ -1,24 +1,17 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
-import { chmod, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, unlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { chmod, lstat, mkdir, readFile, readdir, symlink, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
   createProtectedVoiceAssetStore,
   resolveProtectedVoiceAsset
 } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'
+import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
-const roots: string[] = []
+const tempDirTracker = createTempDirTracker('autoshow-protected-voice-assets-')
+const makeRoot = tempDirTracker.make
 
-const makeRoot = async (): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), 'autoshow-protected-voice-assets-'))
-  roots.push(root)
-  return root
-}
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
-})
+afterEach(tempDirTracker.cleanup)
 
 describe('Phase 0 protected voice asset store', () => {
   test('price planning hashes in memory without materializing a store or exposing the source path', async () => {

@@ -4,7 +4,7 @@ import { dirname } from 'node:path'
 import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdog, PartialDownloadMetadata } from '~/types'
 import { extractTarGzBuffer } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
-import { InfraError } from '~/utils/error-handler'
+import { hasErrorCode, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 
 // Downloads abort on inactivity, not on elapsed transfer time: a flat total
@@ -44,7 +44,7 @@ const getFileSize = async (path: string): Promise<number | null> => {
     const s = await stat(path)
     return s.size
   } catch (error: unknown) {
-    if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if (hasErrorCode(error, 'ENOENT')) {
       return null
     }
     throw error
@@ -210,7 +210,10 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
   } catch (error) {
     const timeoutMessage = watchdog.timeoutMessage()
     if (timeoutMessage) {
-      throw InfraError(`${timeoutMessage} (${req.url})`, { stage: 'setup:download' })
+      throw InfraError(`${timeoutMessage} (${req.url})`, {
+        stage: 'setup:download',
+        ...(error instanceof Error ? { cause: error } : {})
+      })
     }
     throw error
   } finally {

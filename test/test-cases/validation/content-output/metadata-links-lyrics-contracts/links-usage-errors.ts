@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runLinksWithArgv } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import type { FetchFn } from '~/types'
-import { expectUsageMessage } from '../../../../test-utils/cli-assertions'
+import { expectUsageClassification } from '../../../../test-utils/cli-assertions'
 import { unexpectedFetch } from '../../../../test-utils/rest-contract-helpers'
 
 /**
@@ -29,7 +29,9 @@ export const expectLinksUsageError = async (argv: string[], message: string): Pr
       outputPath: join(tmpdir(), 'autoshow-links-usage-error-must-not-be-written.md')
     })
   } catch (error) {
-    expectUsageMessage(error, message)
+    // Pins the classification, not only the wording: a links rejection must stay an
+    // AppUsageError that exits 2, not degrade into a generic failure with the same text.
+    expectUsageClassification(error, message)
     expect(guard.attempts()).toBe(0)
     return
   }

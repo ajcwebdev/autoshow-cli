@@ -379,7 +379,8 @@ export const buildConfigPatchFromFlags = (
   if (discardedFlags.length > 0) {
     l.warn(
       `These flags have no config destination and were not saved: ${discardedFlags.sort().map(flag => `--${flag}`).join(', ')}. `
-      + 'Pass them on the command that uses them instead.'
+      + 'Pass them on the command that uses them instead.',
+      { category: 'command', metadata: { discardedFlags: [...discardedFlags].sort() } }
     )
   }
 

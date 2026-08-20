@@ -7,38 +7,30 @@ import { runElevenLabsMusicGen } from '~/cli/commands/process-steps/step-7-music
 import { writeGeminiMusicInlineAudio } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { runMinimaxMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-minimax/run-minimax-music-gen'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { expectProviderHttpError, restoreEnv, snapshotEnv } from '../../../test-utils/rest-contract-helpers'
 
 const audioBytes = new Uint8Array([1, 2, 3, 4])
 const audioHex = Buffer.from(audioBytes).toString('hex')
 const audioBase64 = Buffer.from(audioBytes).toString('base64')
 
+// Env varies per test here, so the scope stays a wrapper rather than a suite-level
+// lifecycle — but the snapshot/restore rules come from the shared helpers instead of a
+// second hand-rolled copy.
 const withEnvAndFetch = async <T,>(
   env: Record<string, string | undefined>,
   fetchImpl: typeof fetch,
   fn: () => Promise<T>
 ): Promise<T> => {
   const previousFetch = globalThis.fetch
-  const previousEnv = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]))
+  const previousEnv = snapshotEnv(Object.keys(env))
 
   try {
-    for (const [key, value] of Object.entries(env)) {
-      if (value === undefined) {
-        delete process.env[key]
-      } else {
-        process.env[key] = value
-      }
-    }
+    restoreEnv(env)
     globalThis.fetch = fetchImpl
     return await fn()
   } finally {
     globalThis.fetch = previousFetch
-    for (const [key, value] of Object.entries(previousEnv)) {
-      if (value === undefined) {
-        delete process.env[key]
-      } else {
-        process.env[key] = value
-      }
-    }
+    restoreEnv(previousEnv)
   }
 }
 
@@ -139,17 +131,13 @@ describe('music provider contracts', () => {
         status: 200,
         headers: { 'content-type': 'application/json' }
       })) as typeof fetch, async () => {
-        try {
-          await runMinimaxMusicGen('ambient instrumental', dir, {
+        await expectProviderHttpError(
+          () => runMinimaxMusicGen('ambient instrumental', dir, {
             model: 'music-3.0',
             forceInstrumental: true
-          })
-          throw new Error('expected MiniMax music generation to fail')
-        } catch (error) {
-          expect(error).toBeInstanceOf(Error)
-          expect((error as Error).message).toContain('returned invalid JSON')
-          expect((error as { stage?: string }).stage).toBe('music:minimax')
-        }
+          }),
+          { stage: 'music:minimax', messageContains: 'returned invalid JSON' }
+        )
       })
     })
   })

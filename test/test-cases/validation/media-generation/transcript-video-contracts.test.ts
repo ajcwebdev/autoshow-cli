@@ -9,6 +9,7 @@ import {
   runCommand
 } from '../../../test-utils/test-helpers'
 import { readCanonicalManifest, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
+import { expectArtifact } from '../../../test-utils/value-assertions'
 
 const SHORT_AUDIO_PATH = EXAMPLE_SHORT_AUDIO_URL
 const FIXTURE_RUN_DIR = `${OUTPUT_DIR}/transcript-video-fixture-run`
@@ -83,9 +84,9 @@ test('extract transcript-video renders from a media extract output directory', a
   expect(result.outputDir).not.toBeNull()
 
   if (result.outputDir) {
-    expect(await fileExists(`${result.outputDir}/0-audio-short.mp4`)).toBe(true)
-    expect(await fileExists(`${result.outputDir}/0-audio-short.vtt`)).toBe(true)
-    expect(await fileExists(`${result.outputDir}/0-audio-short.srt`)).toBe(true)
+    await expectArtifact(`${result.outputDir}/0-audio-short.mp4`)
+    await expectArtifact(`${result.outputDir}/0-audio-short.vtt`)
+    await expectArtifact(`${result.outputDir}/0-audio-short.srt`)
     expect(await fileExists(`${result.outputDir}/.transcript-video-tmp`)).toBe(false)
 
     const manifest = await readCanonicalManifest(result.outputDir)
@@ -119,9 +120,9 @@ test('extract transcript-video renders from explicit audio and transcript text f
   expect(result.outputDir).not.toBeNull()
 
   if (result.outputDir) {
-    expect(await fileExists(`${result.outputDir}/transcription.mp4`)).toBe(true)
-    expect(await fileExists(`${result.outputDir}/transcription.vtt`)).toBe(true)
-    expect(await fileExists(`${result.outputDir}/.transcript-video-tmp`)).toBe(true)
+    await expectArtifact(`${result.outputDir}/transcription.mp4`)
+    await expectArtifact(`${result.outputDir}/transcription.vtt`)
+    await expectArtifact(`${result.outputDir}/.transcript-video-tmp`)
 
     const manifest = await readCanonicalManifest(result.outputDir)
     const metadata = manifest.items[0]!.metadata

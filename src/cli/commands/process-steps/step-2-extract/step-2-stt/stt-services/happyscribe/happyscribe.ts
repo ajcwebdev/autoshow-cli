@@ -1,7 +1,8 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ensureApiKeySetup, requireApiKey } from '~/utils/validate/env-utils'
+import { httpResponseError } from '~/utils/rest-client'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
 import {
   extractHappyScribeErrorMessage,
@@ -84,11 +85,10 @@ const listHappyScribeOrganizations = async (
       const payload = await readHappyScribeJsonOrText(response)
 
       if (!response.ok) {
-        throw Object.assign(
-          new Error(`Happy Scribe organizations lookup failed (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`),
+        throw httpResponseError(
+          `Happy Scribe organizations lookup failed (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`,
+          response,
           {
-            status: response.status,
-            headers: response.headers,
             stage: 'create',
             retryClass: 'runtime_http_read',
             rawResponse: payload
@@ -160,11 +160,16 @@ export const buildHappyScribeOrganizationResolutionError = (
       ? 'Happy Scribe execution requires an explicit organization because this API key can access multiple organizations.'
       : 'No Happy Scribe organizations are available for this API key.'
 
-  return new Error([
-    baseMessage,
-    `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`,
+  // The remediation belongs in `hints`, not baked into the message: this is a
+  // configuration mistake the user fixes with a flag, so it should exit 2 and print
+  // the follow-up command through the standard usage-hint channel.
+  return CLIUsageError(
+    [
+      baseMessage,
+      `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`
+    ].join(' '),
     'Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow config.'
-  ].join(' '))
+  )
 }
 
 export const ensureHappyScribeSttSetup = ensureApiKeySetup('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')

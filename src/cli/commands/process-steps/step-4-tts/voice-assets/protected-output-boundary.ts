@@ -14,7 +14,11 @@ const canonicalProspectivePath = async (input: string): Promise<string> => {
       exists = true
     } catch (error) {
       if (!hasErrorCode(error, 'ENOENT')) {
-        throw CLIUsageError('Unable to inspect the TTS output/protected-store path boundary.')
+        throw CLIUsageError(
+      'Unable to inspect the TTS output/protected-store path boundary.',
+      undefined,
+      error instanceof Error ? { cause: error } : {}
+    )
       }
     }
     if (exists) {

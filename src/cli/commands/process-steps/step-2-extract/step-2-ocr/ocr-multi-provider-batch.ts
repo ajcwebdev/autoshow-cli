@@ -30,6 +30,7 @@ import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throu
 import { runOcr } from './run-ocr'
 import { ProviderBatchCompletionError } from '../step-2-shared/provider-batch-state'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export class OcrBatchCompletionError extends ProviderBatchCompletionError {
   constructor(outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
@@ -261,12 +262,18 @@ const finalizeOcrProviderBatch = async (params: {
   await persistHostedOcrThroughputProfiles(hostedOcrScheduler.snapshot(), {
     completionStatus
   }).catch((error) => {
-    l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`)
+    l.write('debug', `Failed to update hosted OCR throughput profiles: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { profile: 'throughput', error: serializeDiagnosticError(error) }
+    })
   })
   await persistHostedOcrTokenUsageProfiles(step2Metadata, {
     completionStatus
   }).catch((error) => {
-    l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`)
+    l.write('debug', `Failed to update hosted OCR token profiles: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'artifact',
+      metadata: { profile: 'token', error: serializeDiagnosticError(error) }
+    })
   })
   logExtractManifestConsoleSummary(outputDir, writtenMetadata)
 

@@ -8,7 +8,7 @@ import { validateData } from '~/utils/validate/validation'
 import { DocumentMetadataSchema } from '~/types'
 import { getUrlArticleProviderAdapter, runUrlArticleProvider } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-provider-registry'
 import { fallbackTitleFromSource, formatErrorMessage, getLocalBaseName, isRemoteSource } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import type { BatchChildRunContext, HtmlArticleBackend, PreparedDocument, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 
 export const buildArticleSlug = (
@@ -58,7 +58,10 @@ export async function prepareHtmlArticle(
 
   if (!remote) {
     if (backend !== 'defuddle') {
-      l.warn(`Ignoring --url-provider ${backend} for local HTML inputs; using defuddle instead`)
+      l.warn(`Ignoring --url-provider ${backend} for local HTML inputs; using defuddle instead`, {
+        category: 'pipeline',
+        metadata: { requestedBackend: backend, resolvedBackend: 'defuddle' }
+      })
     }
     resolvedBackend = 'defuddle'
   }
@@ -72,7 +75,10 @@ export async function prepareHtmlArticle(
       try {
         article = await runUrlArticleProvider('defuddle', source, sourceUrl, urlRunOptions)
       } catch (defuddleError) {
-        l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`)
+        l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
+          category: 'pipeline',
+          metadata: { fallbackBackend: 'firecrawl', error: serializeDiagnosticError(defuddleError) }
+        })
         try {
           article = await runUrlArticleProvider('firecrawl', source, sourceUrl, urlRunOptions)
           resolvedBackend = 'firecrawl'
@@ -80,7 +86,11 @@ export async function prepareHtmlArticle(
           throw InfraError(
             `Defuddle article extraction failed and Firecrawl fallback failed. ` +
             `Defuddle: ${formatErrorMessage(defuddleError)} Firecrawl: ${formatErrorMessage(firecrawlError)}`,
-            { stage: 'download:html-article' }
+            {
+              stage: 'download:html-article',
+              metadata: { defuddleError: serializeDiagnosticError(defuddleError) },
+              ...(firecrawlError instanceof Error ? { cause: firecrawlError } : {})
+            }
           )
         }
       }

@@ -10,6 +10,7 @@ import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from 
 import type { CanonicalAudioProviderProjection, PipelineProviderState, ProviderRenderPlan, ProviderRenderResult, TtsOptions } from '~/types'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import { createDialogueFixtureTarget, DIALOGUE_OPTIONS, latestJournalForState } from './shared'
+import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const createPartialSlotFixture = async (dir: string) => {
   const text = 'Host: First retained turn.\nGuest: Second unstarted turn.'
@@ -32,8 +33,7 @@ const createPartialSlotFixture = async (dir: string) => {
     }
   })).rejects.toThrow(/Recovery checkpoint: 1\/2 generation slots retained; 1 unresolved\. Rerun the same command to reuse retained audio/)
   if (!retained) throw new Error('Missing partial-slot retained state')
-  const recoveredSlotId = (await latestJournalForState(dir, retained))?.recordedBatchResults[0]?.generationSlotId
-  if (!recoveredSlotId) throw new Error('Missing first promoted slot evidence')
+  const recoveredSlotId = requireDefined((await latestJournalForState(dir, retained))?.recordedBatchResults[0]?.generationSlotId, 'first promoted slot evidence')
   return { text, sourceIdentity, dialoguePlan, firstCalls, retained, recoveredSlotId }
 }
 
@@ -93,8 +93,7 @@ const partialSlotScenario = async (dir: string): Promise<void> => {
   expect(resumedCalls).toEqual([1])
   expect(await Bun.file(reportedOutput).exists()).toBe(true)
   expect(resumed.metadata[0]?.ttsAudio?.renderHistory[0]?.events.at(-1)?.status).toBe('succeeded')
-  const terminal = states.at(-1)
-  if (!terminal) throw new Error('Missing resumed terminal provider state')
+  const terminal = requireDefined(states.at(-1), 'resumed terminal provider state')
   await assertPartialAggregate(dir, fixture, resumed, terminal)
 }
 
@@ -104,8 +103,7 @@ const slotHashScenario = async (dir: string): Promise<void> => {
   const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, DIALOGUE_OPTIONS, new Date(0).toISOString())
   const firstCalls: number[] = []
   const first = await runTtsForTargets(text, dir, DIALOGUE_OPTIONS, [createDialogueFixtureTarget(firstCalls)], { sourceIdentity, dialoguePlan, beforeDispatch: async () => {}, onProviderState: async () => {} })
-  const firstArchive = first.metadata[0]?.ttsAudio?.archive
-  if (!firstArchive) throw new Error('Missing first compact TTS archive')
+  const firstArchive = requireDefined(first.metadata[0]?.ttsAudio?.archive, 'first compact TTS archive')
   const firstRender = await Bun.file(join(dir, firstArchive.renderRef.path)).json() as { slots: Array<{ slotHash: string }> }
   const reusedSlotHashes = firstRender.slots.map((slot) => slot.slotHash)
   expect(reusedSlotHashes).toHaveLength(2)
@@ -130,8 +128,7 @@ const slotHashScenario = async (dir: string): Promise<void> => {
   expect(resumed.metadata[0]?.ttsAudio?.archive?.slotCount).toBe(2)
   expect(resumed.metadata[0]?.ttsAudio?.renderHistory).toEqual([])
   expect(await Bun.file(join(dir, 'cache-materializations')).exists()).toBe(false)
-  const resumedArchive = resumed.metadata[0]?.ttsAudio?.archive
-  if (!resumedArchive) throw new Error('Missing recast compact TTS archive')
+  const resumedArchive = requireDefined(resumed.metadata[0]?.ttsAudio?.archive, 'recast compact TTS archive')
   const resumedRender = await Bun.file(join(dir, resumedArchive.renderRef.path)).json() as { slots: Array<{ slotHash: string }> }
   const reused = resumedRender.slots.find((slot) => reusedSlotHashes.includes(slot.slotHash))
   expect(reused).toBeDefined()

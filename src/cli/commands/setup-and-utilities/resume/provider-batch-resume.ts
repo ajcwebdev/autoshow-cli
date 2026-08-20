@@ -224,7 +224,10 @@ export const runProviderResumePass = async <
   const updatedRecords: PipelineItemRecord[] = []
 
   if (totalPasses > 1) {
-    l.write('info', `${config.stepLabel} resume pass ${pass}/${totalPasses}`)
+    l.write('info', `${config.stepLabel} resume pass ${pass}/${totalPasses}`, {
+      category: 'pipeline',
+      metadata: { step: config.stepLabel, pass, totalPasses }
+    })
   }
 
   for (let index = 0; index < parsedEntries.length; index++) {

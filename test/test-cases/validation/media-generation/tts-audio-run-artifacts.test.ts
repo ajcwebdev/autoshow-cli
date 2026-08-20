@@ -13,6 +13,7 @@ import { withTempDir } from '../../../test-utils/temp-dirs'
 import { createFileTtsSourceIdentity, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { buildNormalizedTiming } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/attempt-success-builders'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 describe('TTS Phase 0 audio-run artifacts', () => {
   test('native timing is normalized onto one final-audio clock without losing token provenance', () => {
@@ -207,8 +208,7 @@ describe('TTS Phase 0 audio-run artifacts', () => {
       expect(await Bun.file(join(dir, 'speech.wav')).text()).not.toBe('unreferenced stale reported output')
       expect(await Bun.file(join(dir, 'work')).exists()).toBe(false)
 
-      const archive = metadata?.ttsAudio?.archive
-      if (!archive) throw new Error('Missing compact TTS archive')
+      const archive = requireDefined(metadata?.ttsAudio?.archive, 'compact TTS archive')
       const renderPath = join(dir, archive.renderRef.path)
       const timelinePath = join(dir, archive.timelineRef.path)
       const finalPath = join(dir, archive.finalRef.path)
@@ -312,8 +312,7 @@ describe('TTS Phase 0 audio-run artifacts', () => {
         }>
       }
       const tamperedSha256 = sha256Bytes(tamperedRenderBytes)
-      const rawProvider = rawManifest.items[0]?.providers[0]
-      if (!rawProvider) throw new Error('Missing fixture provider state')
+      const rawProvider = requireDefined(rawManifest.items[0]?.providers[0], 'fixture provider state')
       rawProvider.metadata.ttsAudio.archive.renderRef.sha256 = tamperedSha256
       rawProvider.result.ttsAudio.archive.renderRef.sha256 = tamperedSha256
       await Bun.write(join(dir, 'manifest.json'), `${JSON.stringify(rawManifest, null, 2)}\n`)

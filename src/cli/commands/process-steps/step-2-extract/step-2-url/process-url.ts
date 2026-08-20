@@ -54,15 +54,18 @@ export const processUrlArticle = async (
   const fallbackStep1 = await buildFallbackStep1Metadata(source)
 
   if (hasConfiguredOcrProviderSelection(opts)) {
-    l.warn(formatHtmlArticleOcrFlagsIgnoredWarning(source))
+    l.warn(formatHtmlArticleOcrFlagsIgnoredWarning(source), { category: 'pipeline' })
   }
 
   if (plan.ignoresHostedBackendForLocalHtml) {
-    l.warn(`Ignoring --url-provider ${opts.urlBackend} for local HTML inputs; using defuddle instead`)
+    l.warn(`Ignoring --url-provider ${opts.urlBackend} for local HTML inputs; using defuddle instead`, {
+      category: 'pipeline',
+      metadata: { requestedBackend: opts.urlBackend, resolvedBackend: 'defuddle' }
+    })
   }
 
   if (plan.allUrlMode && !plan.remote && plan.skippedBackends.length > 0) {
-    l.warn('--all-providers with a local HTML input skips hosted URL backends; use --all-local to include defuddle')
+    l.warn('--all-providers with a local HTML input skips hosted URL backends; use --all-local to include defuddle', { category: 'pipeline' })
   }
 
   const outcomes = await runUrlArticleBackendPlan(source, plan, opts, extractionOpts)

@@ -141,7 +141,7 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
   ) as TtsOptions)
   baseOptions.ttsAllowAmbiguousRedispatch = allowAmbiguousRedispatch
   baseOptions.ttsMaxGenerationSlots = maxGenerationSlots
-  if (allowAmbiguousRedispatch) l.write('warn', 'Ambiguous TTS redispatch is explicitly authorized for this run; a provider-admitted slot without retained audio may be purchased again.')
+  if (allowAmbiguousRedispatch) l.write('warn', 'Ambiguous TTS redispatch is explicitly authorized for this run; a provider-admitted slot without retained audio may be purchased again.', { category: 'tts' })
   const compatible = await resolveCompatibleComicSceneRun({ scriptPath })
   await assertProtectedStoreOutputDisjoint(compatible.sceneRunDir, MANAGED_VOICE_STORE_ROOT)
   const dialoguePlan = createComicDialoguePlan({

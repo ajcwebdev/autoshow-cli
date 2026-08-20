@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import type { LLMOptions, LLMTarget, PendingStructuredRunResult, RunLlmTargetsForStructuredPromptOptions, StructuredRequestOptions, StructuredRunResult, StructuredValidationContext, TranscriptionResult, VideoMetadata } from '~/types'
 import { buildPrompt as buildPromptFromUtils } from './write-utils/prompt-utils'
 import { resolvePromptNames } from '~/prompts/prompt-loader'
@@ -123,7 +123,10 @@ export const runLlmTargetsForStructuredPrompt = async (
         let validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
 
         for (let retry = 1; !validation.success && retry <= validationRetryBudget; retry++) {
-          l.warn(`Structured validation retry ${retry}/${validationRetryBudget} for ${target.label}/${target.model}: ${validation.issue ?? 'validation failed'}`)
+          l.warn(`Structured validation retry ${retry}/${validationRetryBudget} for ${target.label}/${target.model}: ${validation.issue ?? 'validation failed'}`, {
+            category: 'pipeline',
+            metadata: { provider: target.label, model: target.model, retry, retryBudget: validationRetryBudget, issue: validation.issue }
+          })
           response = await target.run(options.prompt, target.model, structuredOpts)
           validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
         }
@@ -132,7 +135,10 @@ export const runLlmTargetsForStructuredPrompt = async (
           parsedJson = validation.value
         } else {
           const issue = validation.issue ?? 'Schema validation failed'
-          l.warn(`Structured validation fallback for ${target.label}/${target.model}: ${issue}`)
+          l.warn(`Structured validation fallback for ${target.label}/${target.model}: ${issue}`, {
+            category: 'pipeline',
+            metadata: { provider: target.label, model: target.model, issue }
+          })
           parsedJson = buildStructuredValidationFailureEnvelope(response.result, issue)
         }
 
@@ -158,7 +164,10 @@ export const runLlmTargetsForStructuredPrompt = async (
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      l.error(`Failed to run ${target.label} model ${target.model}: ${message}`)
+      l.error(`Failed to run ${target.label} model ${target.model}: ${message}`, {
+        category: 'pipeline',
+        metadata: { provider: target.label, service: target.service, model: target.model, error: serializeDiagnosticError(err) }
+      })
       failedTargetsByIndex[index] = `${target.service}/${target.model}: ${message}`
     }
   }, options.hostedConcurrencyCoordinator, options.outputDir)
@@ -177,7 +186,10 @@ export const runLlmTargetsForStructuredPrompt = async (
   }
 
   if (failedTargets.length > 0) {
-    l.warn(`LLM run completed with partial failures: ${failedTargets.join('; ')}`)
+    l.warn(`LLM run completed with partial failures: ${failedTargets.join('; ')}`, {
+      category: 'pipeline',
+      metadata: { failureCount: failedTargets.length, failures: failedTargets }
+    })
   }
 
   return results.map((result) => ({

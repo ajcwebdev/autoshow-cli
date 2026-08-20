@@ -5,7 +5,7 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
-import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { installMockFetch, setupContractSuiteLifecycle, unexpectedCall } from '../../../test-utils/rest-contract-helpers'
 import { resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import {
   AUDIOGEN_NONCOMMERCIAL_LICENSE_USE,
@@ -322,7 +322,7 @@ describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
     const executed = await executeSoundEffectRenderPlan({
       rootDir: historicalRoot,
       plan: historical,
-      adapter: { generate: async () => { throw new Error('must not dispatch retired AudioGen') } },
+      adapter: { generate: unexpectedCall('retired AudioGen dispatch') },
     })
     expect(executed.result.status).toBe('failed')
     expect(executed.result.entries[0]?.omissionReason).toMatch(/cannot dispatch new predictions/)

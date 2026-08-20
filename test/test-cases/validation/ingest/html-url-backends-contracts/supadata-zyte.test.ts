@@ -6,6 +6,7 @@ import {
   runSupadataUrl,
   runZyteUrl
 } from './shared'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 test('Supadata URL backend sends scrape request and normalizes article metadata', async () => {
   process.env['SUPADATA_API_KEY'] = 'supadata-test-key'
@@ -87,7 +88,7 @@ test('Supadata URL backend marks plan-limit 429 non-retryable but keeps burst 42
 
   const planLimitError = await runSupadataUrl('https://article.test/limit', 'https://article.test/limit')
     .then(() => undefined, (error: unknown) => error)
-  expect((planLimitError as { retryable?: unknown }).retryable).toBe(false)
+  expect(extractErrorMetadata(planLimitError)['retryable']).toBe(false)
   expect((planLimitError as Error).message).toContain('Limit Exceeded')
 
   installMockFetch(() => new Response(JSON.stringify({
@@ -97,7 +98,7 @@ test('Supadata URL backend marks plan-limit 429 non-retryable but keeps burst 42
 
   const burstError = await runSupadataUrl('https://article.test/burst', 'https://article.test/burst')
     .then(() => undefined, (error: unknown) => error)
-  expect((burstError as { retryable?: unknown }).retryable).toBe(true)
+  expect(extractErrorMetadata(burstError)['retryable']).toBe(true)
 })
 
 test('Zyte URL backend posts article extract request and normalizes article metadata', async () => {
