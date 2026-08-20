@@ -65,8 +65,8 @@ export type AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload = unknown> = 
   getTranscript: (jobId: string, metrics: AsyncSttLifecycleMetrics, finalStatus: TStatus) => Promise<TTranscript>
   isComplete: (status: TStatus) => boolean
   isFailed: (status: TStatus) => string | undefined
-  buildDeadlineError: (jobId: string, pollDeadlineMs: number) => never
-  buildResumeProbeError: (jobId: string, probeCount: number, totalWaitMs: number) => never
+  buildDeadlineError: (jobId: string, pollDeadlineMs: number, cause?: unknown) => never
+  buildResumeProbeError: (jobId: string, probeCount: number, totalWaitMs: number, cause?: unknown) => never
   persistCompletedProgress?: boolean | undefined
   extendProgressMetadata?: ((runtime: Step2RuntimeMetadata) => Partial<Pick<Step2Metadata, 'billing'>>) | undefined
   cleanup?: {
@@ -138,8 +138,8 @@ export type AsyncSttPollLoopOptions<TStatus> = {
   poll: () => Promise<{ status: TStatus, retryAfterMs: number | null }>
   isComplete: (status: TStatus) => boolean
   isFailed: (status: TStatus) => string | undefined
-  buildDeadlineError: (jobId: string, pollDeadlineMs: number) => never
-  buildResumeProbeError?: ((jobId: string, probeCount: number, totalWaitMs: number) => never) | undefined
+  buildDeadlineError: (jobId: string, pollDeadlineMs: number, cause?: unknown) => never
+  buildResumeProbeError?: ((jobId: string, probeCount: number, totalWaitMs: number, cause?: unknown) => never) | undefined
   onProgress?: ((status: TStatus) => Promise<void> | void) | undefined
   withPollSlot?: (<T>(fn: () => Promise<T>) => Promise<T>) | undefined
 }

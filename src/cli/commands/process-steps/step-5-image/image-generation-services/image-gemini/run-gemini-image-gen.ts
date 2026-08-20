@@ -55,8 +55,7 @@ export const runGeminiImageGen = async (
   const response = await withRetry(
     {
       retryClass: 'runtime_http_create_conservative',
-      operationName: 'gemini-image-generate',
-      policy: { maxAttempts: 3 }
+      operationName: 'gemini-image-generate'
     },
     async (signal) => await geminiGenerateContent(apiKey, {
       model: options.model,

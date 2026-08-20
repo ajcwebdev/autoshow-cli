@@ -9,5 +9,4 @@ export type RunDeepinfraTtsOptions = Readonly<{
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined
-  allowAmbiguousRedispatch?: boolean | undefined
 }>

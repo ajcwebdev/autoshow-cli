@@ -195,6 +195,24 @@ export const isCLIUsageError = (error: unknown): error is AppUsageError =>
   error instanceof AppUsageError
 
 /**
+ * True when a retry or poll loop gave up anywhere in the cause chain. Downstream
+ * accounting used to detect this by matching the wording of the messages those loops
+ * produce; asking about the kind means a rewording cannot silently change behavior.
+ */
+export const isRetryExhaustedError = (error: unknown): boolean => {
+  const seen = new Set<unknown>()
+  let current: unknown = error
+  while (current instanceof Error && !seen.has(current)) {
+    seen.add(current)
+    if (isAppError(current) && current.kind === 'retry_exhausted') {
+      return true
+    }
+    current = current.cause
+  }
+  return false
+}
+
+/**
  * The one filesystem/system errno check. ENOENT in particular used to be detected three
  * different ways (this predicate defined twice locally, plus a `/does not exist|no such
  * file/` message regex), so a probe could silently classify differently depending on which

@@ -19,6 +19,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build'
 import type { SetupTarEntry } from '~/types'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { waitFor } from '../../../test-utils/wait-for'
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: [],
@@ -287,14 +288,6 @@ describe('setup download admission budget', () => {
     let resolve!: () => void
     const promise = new Promise<void>((r) => { resolve = r })
     return { promise, resolve }
-  }
-
-  const waitFor = async (predicate: () => boolean, timeoutMs = 2_000): Promise<void> => {
-    const deadline = Date.now() + timeoutMs
-    while (!predicate()) {
-      if (Date.now() > deadline) throw new Error('timed out waiting for download admission state')
-      await new Promise<void>((resolve) => { setTimeout(resolve, 1) })
-    }
   }
 
   const settle = async (): Promise<void> => {

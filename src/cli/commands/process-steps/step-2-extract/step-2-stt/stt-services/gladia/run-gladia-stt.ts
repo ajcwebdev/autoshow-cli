@@ -108,7 +108,6 @@ const uploadGladiaAudio = async (
   operationName: 'gladia-upload',
   stage: 'upload',
   retryClass: 'runtime_http_create_retriable',
-  maxAttempts: 4,
   timeoutMs: REQUEST_TIMEOUT_MS,
   errorPrefix: 'Gladia',
   schema: GladiaUploadResponseSchema,
@@ -140,7 +139,6 @@ const createGladiaTranscription = async (
     operationName: 'gladia-create-transcription',
     stage: 'create',
     retryClass: 'runtime_http_create_retriable',
-    maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Gladia',
     failureLabel: 'transcription creation',
@@ -172,7 +170,6 @@ const pollGladiaTranscription = async (
     operationName: 'gladia-poll-transcription',
     stage: 'poll',
     retryClass: 'runtime_http_read',
-    maxAttempts: 6,
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     errorPrefix: 'Gladia',
     failureLabel: 'polling',
@@ -265,8 +262,8 @@ export const runGladiaStt = async (
     isFailed: (status) => status.status === 'error'
       ? `Gladia transcription failed: ${status.message ?? (typeof status.error_code === 'number' ? `error code ${status.error_code}` : 'unknown error')}`
       : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Gladia', jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Gladia', 'transcription', jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Gladia', jobId, pollDeadlineMs, cause),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Gladia', 'transcription', jobId, probeCount, totalWaitMs, cause),
     buildResult: async ({ transcript, runtime, processingTime, timings }) => {
       const utterances = extractUtterances(transcript)
       const normalizedWords = buildNormalizedWords(utterances)

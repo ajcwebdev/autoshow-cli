@@ -4,6 +4,7 @@ import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capt
 import { AppError, AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { createProviderRestClient, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { pollUntil } from '~/utils/retries'
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
@@ -416,6 +417,37 @@ export const geminiGetFile = async (
     method: 'GET'
   })
   return isRecord(json) ? json as GeminiFile : {}
+}
+
+export const GEMINI_FILE_ACTIVATION_DEADLINE_MS = 120_000
+const GEMINI_FILE_ACTIVATION_INTERVAL_MS = 1_000
+
+/**
+ * Waits for an uploaded Files API object to become usable. This was a hand-written
+ * `while (Date.now() < deadline)` loop duplicated byte-for-byte in the Gemini OCR and STT
+ * services: silent, un-abortable, and running inside an outer retry attempt that could
+ * not cancel it. One copy, on the central poll loop, with a real abort signal.
+ */
+export const waitForGeminiFileActive = async (
+  apiKey: string,
+  fileName: string,
+  options: { stage: string, abortSignal?: AbortSignal | undefined }
+): Promise<void> => {
+  await pollUntil<GeminiFile>({
+    operationName: `gemini-file-activation:${extractGeminiFileName(fileName)}`,
+    pollFn: async () => await geminiGetFile(apiKey, fileName),
+    isDone: (file) => {
+      const state = getGeminiFileState(file)
+      return state === undefined || state === 'ACTIVE'
+    },
+    isFailed: (file) => getGeminiFileState(file) === 'FAILED'
+      ? { failed: true, reason: `Gemini Files API upload failed for ${fileName}`, metadata: { fileName, stage: options.stage } }
+      : { failed: false },
+    describeResult: (file) => ({ fileName, state: getGeminiFileState(file) ?? 'unknown' }),
+    intervalMs: GEMINI_FILE_ACTIVATION_INTERVAL_MS,
+    deadlineMs: GEMINI_FILE_ACTIVATION_DEADLINE_MS,
+    ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+  })
 }
 
 export const geminiDeleteFile = async (

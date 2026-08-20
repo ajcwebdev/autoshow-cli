@@ -62,7 +62,7 @@ export const createAdvancedProviderJsonRequest = (input: {
   if (request.method === 'GET') {
     return await withRetry({
       retryClass: 'runtime_http_read',
-      operationName: `${input.providerLabel} voice management read`,
+      operationName: `${input.providerLabel.toLowerCase()}-voice-management-read`,
       timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
       abortSignal: request.signal
     }, execute, (error) => classifyFetchRetry(error, 'runtime_http_read'))

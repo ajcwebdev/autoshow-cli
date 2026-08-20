@@ -113,8 +113,8 @@ describe('TTS provider service contracts', () => {
       })
     }, 10_000)
 
-  test('Grok TTS retries Bun request timeouts and passes per-attempt signals', async () => {
-      const dir = await makeTempDir('autoshow-grok-tts-timeout-retry-')
+  test('Grok TTS redispatches provider-rejected chunks and passes per-attempt signals', async () => {
+      const dir = await makeTempDir('autoshow-grok-tts-rejected-retry-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
       const signals: boolean[] = []
       let attempt = 0
@@ -126,14 +126,13 @@ describe('TTS provider service contracts', () => {
         signals.push(init?.signal instanceof AbortSignal)
         attempt += 1
         if (attempt === 1) {
-          throw new DOMException('The operation timed out.', 'TimeoutError')
+          return new Response('slow down', { status: 429 })
         }
         return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
       })
 
       const result = await runGrokTts('Grok timeout retry synthesis.', dir, {
-        model: 'grok-tts',
-        allowAmbiguousRedispatch: true
+        model: 'grok-tts'
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)

@@ -301,8 +301,8 @@ export const runSupadataStt = async (
           }
           return extractSupadataErrorMessage(status.error) ?? extractSupadataErrorMessage(status.message) ?? 'Supadata transcription failed'
         },
-        buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Supadata', jobId, pollDeadlineMs),
-        buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Supadata', 'transcript job', jobId, probeCount, totalWaitMs),
+        buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Supadata', jobId, pollDeadlineMs, cause),
+        buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Supadata', 'transcript job', jobId, probeCount, totalWaitMs, cause),
         onProgress: async () => {
           if (!runtime || runtime.remoteJobId !== jobId) {
             return

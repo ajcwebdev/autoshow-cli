@@ -1,7 +1,7 @@
 import { basename } from 'node:path'
 import type { HappyScribeApiClientOptions, HappyScribeExport, HappyScribeJsonRequestOptions, HappyScribeOrder, HappyScribePollResult, HappyScribeTranscription, RetryClass } from '~/types'
 import { ProviderError } from '~/utils/error-handler'
-import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, getSttStageRetryPolicy, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { buildHappyScribeUrl, HAPPYSCRIBE_STT_LANGUAGE } from './happyscribe'
 import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUploadUrl, parseHappyScribeTranscription } from './happyscribe-response-parsers'
 import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, readHappyScribeJsonOrText, toHappyScribeHttpError } from './happyscribe-utils'
@@ -22,7 +22,10 @@ export const createHappyScribeApiClient = (
         {
           retryClass: requestOptions.retryClass,
           operationName: requestOptions.operationName,
-          policy: { maxAttempts: requestOptions.maxAttempts },
+          ...(() => {
+            const policy = getSttStageRetryPolicy(requestOptions.retryClass)
+            return policy ? { policy } : {}
+          })(),
           timeoutMs: requestOptions.timeoutMs
         },
         async (signal) => {
@@ -63,7 +66,6 @@ export const createHappyScribeApiClient = (
       stage: 'upload',
       retryClass: 'runtime_http_create_retriable',
       operationName: 'happyscribe-get-signed-upload',
-      maxAttempts: 4,
       timeoutMs: REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe signed upload request failed',
       request: (signal) => fetch(`${buildHappyScribeUrl(options.baseURL, '/uploads/new')}?filename=${encodeURIComponent(basename(audioPath))}`, {
@@ -92,7 +94,6 @@ export const createHappyScribeApiClient = (
         {
           retryClass: 'runtime_http_create_retriable',
           operationName: 'happyscribe-upload-media',
-          policy: { maxAttempts: 3 },
           timeoutMs: REQUEST_TIMEOUT_MS
         },
         async (signal) => {
@@ -138,7 +139,6 @@ export const createHappyScribeApiClient = (
       stage: 'create',
       retryClass: 'runtime_http_create_retriable',
       operationName: 'happyscribe-create-order',
-      maxAttempts: 4,
       timeoutMs: REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe order creation failed',
       request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, '/orders'), {
@@ -178,7 +178,6 @@ export const createHappyScribeApiClient = (
       stage: 'poll',
       retryClass: 'runtime_http_read',
       operationName: 'happyscribe-poll-order',
-      maxAttempts: 6,
       timeoutMs: POLL_REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe order poll failed',
       request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/orders/${encodeURIComponent(orderId)}`), {
@@ -211,7 +210,6 @@ export const createHappyScribeApiClient = (
       stage: 'result',
       retryClass: 'runtime_http_read',
       operationName: 'happyscribe-get-transcription',
-      maxAttempts: 4,
       timeoutMs: POLL_REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe transcription lookup failed',
       request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/transcriptions/${encodeURIComponent(transcriptionId)}`), {
@@ -238,7 +236,6 @@ export const createHappyScribeApiClient = (
       stage: 'result',
       retryClass: 'runtime_http_create_retriable',
       operationName: 'happyscribe-create-export',
-      maxAttempts: 4,
       timeoutMs: REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe export creation failed',
       request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, '/exports'), {
@@ -273,7 +270,6 @@ export const createHappyScribeApiClient = (
       stage: 'result',
       retryClass: 'runtime_http_read',
       operationName: 'happyscribe-poll-export',
-      maxAttempts: 6,
       timeoutMs: POLL_REQUEST_TIMEOUT_MS,
       messagePrefix: 'Happy Scribe export poll failed',
       request: (signal) => fetch(buildHappyScribeUrl(options.baseURL, `/exports/${encodeURIComponent(exportId)}`), {

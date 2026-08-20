@@ -11,6 +11,10 @@ import { logOcrPagesProgress } from '../ocr-logging'
 import { getCachedRenderedPageImage } from './preparation-cache'
 import { normalizeOcrPageConcurrency } from './ocr-page-concurrency'
 import { InfraError, InternalError } from '~/utils/error-handler'
+import { logRetryAttempt } from '~/utils/retries'
+
+/** Below this tesseract confidence the page is re-rendered once at a higher DPI. */
+const LOW_CONFIDENCE_RERENDER_THRESHOLD = 40
 
 const toPlainTextFromTsv = (tsv: string): string => {
   const lines = tsv.split('\n').map(l => l.trim()).filter(Boolean)
@@ -208,7 +212,16 @@ export const processPages = async (
           throw InternalError('OCR function was not initialized', { stage: 'ocr:render' })
         }
         let attempt = await runOcrAttempt(filePath, page.pageNumber, options.dpi, tempDir, options, effectiveOcrFn)
-        if ((attempt.confidence ?? 100) < 40) {
+        if ((attempt.confidence ?? 100) < LOW_CONFIDENCE_RERENDER_THRESHOLD) {
+          // A silent second render at a higher DPI. Reported like every other retry, so a
+          // page that costs twice the render time says why.
+          logRetryAttempt({
+            operation: `tesseract-page-${page.pageNumber}`,
+            attempt: 1,
+            maxAttempts: 2,
+            reason: `confidence ${attempt.confidence ?? 'unknown'} below ${LOW_CONFIDENCE_RERENDER_THRESHOLD}`,
+            delayMs: 0
+          }, { retryClass: 'runtime_subprocess_transient', pageNumber: page.pageNumber, dpi: options.dpi + 100 })
           attempt = await runOcrAttempt(filePath, page.pageNumber, options.dpi + 100, tempDir, options, effectiveOcrFn)
         }
         return {

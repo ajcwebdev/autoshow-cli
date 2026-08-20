@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { collectDeepinfraTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-tts-targets'
-import { DEEPINFRA_TTS_RETRY_POLICY, runDeepinfraTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/run-deepinfra-tts'
+import { runDeepinfraTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/run-deepinfra-tts'
+import { getRetryPolicyForClass } from '~/utils/retries'
 import { createDeepinfraAdvancedProvider, DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-advanced-provider'
 import { prepareDeepinfraChatterboxText } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-text-preparation'
 import { buildDeepinfraTtsRequestBody, DEEPINFRA_TTS_SERIALIZER_VERSION, DEEPINFRA_VOICE_DESIGN_MODELS, isDeepinfraVoiceDesignModel, prepareDeepinfraTtsText, resolveDeepinfraTtsDefaultVoice, resolveDeepinfraTtsVoiceField } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/deepinfra-tts-request'
@@ -24,7 +25,9 @@ describe('DeepInfra Phase 4 Contracts', () => {
     expect(targets[0]?.service).toBe('deepinfra')
     expect(targets[0]?.model).toBe('ResembleAI/chatterbox-turbo')
     expect(targets[0]?.voice).toBe('standard')
-    expect(DEEPINFRA_TTS_RETRY_POLICY).toMatchObject({ maxAttempts: 8, baseDelayMs: 3_000, maxDelayMs: 30_000, jitter: true, exponential: true })
+    // DeepInfra used to carry a private 8-attempt/3s policy while every other hosted TTS
+    // provider ran the shared 4-attempt one. There is now a single retriable-create tier.
+    expect(getRetryPolicyForClass('runtime_http_create_retriable')).toEqual({ maxAttempts: 4, baseDelayMs: 2_000, maxDelayMs: 30_000, jitter: true, exponential: true })
   })
 
   test('rejects missing credentials instead of fabricating offline audio', async () => {

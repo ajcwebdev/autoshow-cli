@@ -10,6 +10,7 @@ import { materializeMediaInput } from '~/utils/media-url'
 import { InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import type { ElevenLabsTtsIvcContext, ElevenLabsTtsIvcOptions, ElevenLabsTtsIvcResult, TtsCustomVoiceSampleAudio } from '~/types'
 import { httpResponseError } from '~/utils/rest-client'
+import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 export const ELEVENLABS_TTS_IVC_COST_CENTS = 0
 export const ELEVENLABS_TTS_IVC_SETUP_MS = 10_000
@@ -119,8 +120,13 @@ const createElevenLabsTtsIvcVoice = async (
   const voiceName = options.voiceName?.trim() || defaultElevenLabsTtsIvcVoiceName()
 
   const data = await withRetry(
-    { retryClass: 'runtime_http_create_conservative', operationName: 'elevenlabs-ivc-create' },
-    async () => {
+    {
+      retryClass: 'runtime_http_create_conservative',
+      operationName: 'elevenlabs-ivc-create',
+      timeoutMs: MEDIA_GENERATION_TIMEOUT_MS
+    },
+    // The operation took no signal parameter at all, so nothing could cancel an attempt.
+    async (signal) => {
       const form = new FormData()
       form.append('name', voiceName)
       form.append('files', Bun.file(sourceAudio.path, { type: sourceAudio.mimeType }), sourceAudio.basename)
@@ -131,7 +137,8 @@ const createElevenLabsTtsIvcVoice = async (
         headers: {
           'xi-api-key': apiKey
         },
-        body: form
+        body: form,
+        ...(signal ? { signal } : {})
       })
 
       if (!response.ok) {

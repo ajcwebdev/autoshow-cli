@@ -13,22 +13,7 @@ import { buildBatchPartialFailureTable, logBatchCompletionTable } from './downlo
 import { executeBatchItem } from './execute-batch-item'
 import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
 import { serializeDiagnosticError } from '~/utils/error-handler'
-
-const runWithSemaphore = async <T>(
-  max: number,
-  sem: { active: number },
-  fn: () => Promise<T>
-): Promise<T> => {
-  while (sem.active >= max) {
-    await new Promise<void>(r => setTimeout(r, 50))
-  }
-  sem.active++
-  try {
-    return await fn()
-  } finally {
-    sem.active--
-  }
-}
+import { createResourceGate, runWithGate } from '~/utils/resource-gate'
 
 /**
  * Validates inputs, creates the batch directory, and writes the initial canonical manifest.
@@ -281,10 +266,13 @@ export const processBatch = async <TOptions extends object>(
     category: 'pipeline',
     metadata: { itemCount: items.length, concurrency }
   })
-    const sem = { active: 0 }
+    // A 50ms busy-wait used to poll for a free slot here while every other concurrency
+    // limiter in the CLI waits on the shared FIFO gate; a released slot now hands off
+    // immediately instead of on the next tick of a timer.
+    const gate = createResourceGate({ capacity: concurrency })
     const results = await Promise.allSettled(
       items.map((item, index) =>
-        runWithSemaphore(concurrency, sem, async () => await executeBatchItem(itemContext, item, index))
+        runWithGate(gate, async () => await executeBatchItem(itemContext, item, index))
       )
     )
     for (const [index, r] of results.entries()) {

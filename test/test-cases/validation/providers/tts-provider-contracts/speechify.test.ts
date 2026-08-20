@@ -35,7 +35,7 @@ describe('TTS provider service contracts', () => {
       const calls = installMockFetch(() => {
         attempt += 1
         if (attempt === 1) {
-          return new Response('try again', { status: 500 })
+          return new Response('slow down', { status: 429 })
         }
         return Response.json({ audio_data: audioBase64 })
       })
@@ -43,8 +43,7 @@ describe('TTS provider service contracts', () => {
       const result = await runSpeechifyTts('a'.repeat(2100), dir, {
         model: 'simba-3.2',
         voiceId: 'narrator_voice',
-        language: 'en-US',
-        allowAmbiguousRedispatch: true
+        language: 'en-US'
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)

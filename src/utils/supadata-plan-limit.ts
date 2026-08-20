@@ -4,7 +4,9 @@ import { isRecord } from '~/utils/rest-client'
 // Only the burst case is worth retrying. When the body says the plan limit is exhausted the
 // account has no requests left, so each retry spends another quota-denied request against the
 // same exhausted plan and merely delays a failure that cannot recover within the run.
-const PLAN_LIMIT_PATTERN = /\blimit[-\s_]?exceeded\b|\bexceeded\b[\s\S]{0,40}\b(?:limit|quota|plan)\b|\bquota[-\s_]?(?:exceeded|exhausted)\b/i
+// Exported because the test suite had a second, drifted copy of this account-state
+// knowledge; its predicate now matches on this pattern instead of its own.
+export const SUPADATA_PLAN_LIMIT_PATTERN = /\blimit[-\s_]?exceeded\b|\bexceeded\b[\s\S]{0,40}\b(?:limit|quota|plan)\b|\bquota[-\s_]?(?:exceeded|exhausted)\b/i
 
 const readErrorText = (payload: unknown): string[] => {
   if (typeof payload === 'string') return [payload]
@@ -29,5 +31,5 @@ export const isSupadataPlanLimitExhausted = (
 ): boolean => {
   const candidates = readErrorText(payload)
   if (typeof message === 'string') candidates.push(message)
-  return candidates.some((text) => PLAN_LIMIT_PATTERN.test(text))
+  return candidates.some((text) => SUPADATA_PLAN_LIMIT_PATTERN.test(text))
 }

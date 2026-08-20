@@ -12,7 +12,6 @@ export type SttStageRequestOptions<TSchema extends SttStageSchema> = {
   operationName: string
   stage: string
   retryClass: RetryClass
-  maxAttempts: number
   timeoutMs: number
   errorPrefix: string
   schema: TSchema

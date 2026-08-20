@@ -9,7 +9,7 @@ import { exec, fileExists } from '~/utils/cli-utils'
 import { resolve } from 'node:path'
 import { pollUntil } from '~/utils/retries'
 import { prepareLocalSttInput } from './local-audio-normalize'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, isRetryExhaustedError } from '~/utils/error-handler'
 
 const WHISPER_JSON_WAIT_TIMEOUT_MS = 3000
 const WHISPER_JSON_WAIT_POLL_MS = 100
@@ -24,7 +24,10 @@ const waitForWhisperJson = async (jsonFile: string, providerName: string): Promi
       isDone: (exists) => exists
     })
     return true
-  } catch {
+  } catch (error) {
+    // Only a poll that ran out of time falls back to a direct check; a bare catch here
+    // also swallowed aborts and programming errors.
+    if (!isRetryExhaustedError(error)) throw error
     return await fileExists(jsonFile)
   }
 }
@@ -92,7 +95,7 @@ export const runWhisperCppTranscribe = async (
           totalDurationSeconds
         }), { category: 'pipeline' })
       },
-      retry: { operationName: `${label} transcription` }
+      retry: { operationName: `${name}-transcription` }
     })
     if (result.exitCode !== 0) {
       throw InfraError(`${label} transcription failed: ${result.stderr}`, { stage: `stt:${name}` })

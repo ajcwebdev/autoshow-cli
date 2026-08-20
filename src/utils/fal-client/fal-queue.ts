@@ -51,6 +51,8 @@ export const runFalQueue = async <T>(options: {
   pollIntervalMs?: number | undefined
   operationName: string
   onStatus?: ((status: FalQueueStatus) => void) | undefined
+  // Without this, Ctrl-C could not interrupt a ten-minute queue poll.
+  abortSignal?: AbortSignal | undefined
 }): Promise<{ requestId: string, output: T }> => {
   const baseUrl = getFalQueueBaseUrl()
   const headers = headersFor(options.apiKey)
@@ -58,7 +60,11 @@ export const runFalQueue = async <T>(options: {
 
   try {
     submission = await withRetry(
-      { operationName: `${options.operationName}-submit`, retryClass: 'runtime_http_create_conservative' },
+      {
+        operationName: `${options.operationName}-submit`,
+        retryClass: 'runtime_http_create_conservative',
+        ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+      },
       async (signal) => {
         const response = await fetch(`${baseUrl}/${options.endpointId}`, {
           method: 'POST',
@@ -81,8 +87,9 @@ export const runFalQueue = async <T>(options: {
           operationName: options.operationName,
           intervalMs: options.pollIntervalMs ?? 5_000,
           deadlineMs: MEDIA_GENERATION_TIMEOUT_MS,
+          ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
           pollFn: async () => {
-            const response = await fetch(statusUrl, { headers })
+            const response = await fetch(statusUrl, { headers, ...(options.abortSignal ? { signal: options.abortSignal } : {}) })
             if (!response.ok) {
               throw InfraError(`fal.ai queue status failed (${response.status}): ${await readErrorBody(response)}`, { stage: 'fal:queue', status: response.status })
             }

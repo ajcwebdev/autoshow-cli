@@ -9,7 +9,7 @@ import type { PipelineProviderState } from '~/types'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import {
   crashAfterPromotedResult,
-  createAuthorizedRetryFixtureTarget,
+  createAmbiguousAdmissionFixtureTarget,
   createDialogueFixtureTarget,
   createFixtureTarget,
   DIALOGUE_OPTIONS,
@@ -18,21 +18,24 @@ import {
 } from './shared'
 import { requireDefined } from '../../../../test-utils/value-assertions'
 
-const authorizedRetryScenario = async (dir: string): Promise<void> => {
+const ambiguousAdmissionScenario = async (dir: string): Promise<void> => {
   const text = 'Recover within this run.'
   const sourceIdentity = createInlineTtsSourceIdentity(text)
   const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text, new Date(0).toISOString())
   const attempts: number[] = []
-  await runTtsForTargets(text, dir, { ttsAllowAmbiguousRedispatch: true }, [createAuthorizedRetryFixtureTarget(attempts)], { sourceIdentity, dialoguePlan })
-  expect(attempts).toEqual([1, 2, 3])
-  const resultPath = requireDefined((await readdir(dir, { recursive: true })).find((name) => name.endsWith('/provider-batch-result.json')), 'authorized retry batch result')
+  // Even with the flag set, a provider-admitted request that then fails is left for
+  // reconciliation at resume rather than re-purchased mid-run. The flag's only effect is
+  // on the stored-slot blockers, which is the one behavior every provider now shares.
+  await expect(runTtsForTargets(text, dir, { ttsAllowAmbiguousRedispatch: true }, [createAmbiguousAdmissionFixtureTarget(attempts)], { sourceIdentity, dialoguePlan }))
+    .rejects.toThrow('1 unresolved slot has ambiguous provider admission')
+  expect(attempts).toEqual([1])
+
+  // The admitted-then-failed request stays on the slot as unresolved provider work rather
+  // than being re-purchased, which is what the resume-time reconciliation blockers read.
+  const resultPath = requireDefined((await readdir(dir, { recursive: true })).find((name) => name.endsWith('/provider-batch-result.json')), 'ambiguous admission batch result')
   const result = await Bun.file(join(dir, resultPath)).json()
-  expect(result.status).toBe('succeeded')
-  expect(result.observedRequests).toHaveLength(3)
-  expect(result.retryAttempts).toEqual([
-    expect.objectContaining({ requestOrdinal: 2, retryOfRequestOrdinal: 1, reasonCode: 'retryable status 500' }),
-    expect.objectContaining({ requestOrdinal: 3, retryOfRequestOrdinal: 2, reasonCode: 'retryable status 500' })
-  ])
+  expect(result.observedRequests).toHaveLength(1)
+  expect(result.retryAttempts).toEqual([])
 }
 
 const completeInterruptedTurn = async (
@@ -140,8 +143,8 @@ const promotedResultScenario = async (dir: string): Promise<void> => {
 }
 
 export const registerRetryAndPromotionCases = (): void => {
-  test('journals authorized ambiguous retries against one slot and completes without a new process', async () =>
-    await withTempDir('autoshow-tts-authorized-retry-', authorizedRetryScenario))
+  test('leaves an ambiguous admission for reconciliation instead of redispatching it in flight', async () =>
+    await withTempDir('autoshow-tts-ambiguous-admission-', ambiguousAdmissionScenario))
   test('reconstructs a completed partial slot when termination interrupts batch-result promotion', async () =>
     await withTempDir('autoshow-tts-interrupted-batch-promotion-', interruptedPromotionScenario))
   test('assembles a promoted completed result locally without another provider call', async () =>

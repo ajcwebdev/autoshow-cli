@@ -18,7 +18,6 @@ export type HappyScribeJsonRequestOptions = {
   stage: HappyScribeStage
   retryClass: HappyScribeRetryPolicyClass
   operationName: string
-  maxAttempts: number
   timeoutMs: number
   messagePrefix: string
   request: (signal: AbortSignal | undefined) => Promise<Response>

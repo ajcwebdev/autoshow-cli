@@ -1,16 +1,62 @@
 import { stripAnsi } from '~/utils/terminal-colors'
+import { NETWORK_FAILURE_SPELLINGS, RETRYABLE_STATUS_CODES } from '~/utils/retries'
+import { SUPADATA_PLAN_LIMIT_PATTERN } from '~/utils/supadata-plan-limit'
 
 // Single source of truth for transient-failure detection across the test suite.
 // Houses the generic pressure patterns consumed by the runner's adaptive classifier
 // (classifyAdaptivePressure) and the provider-specific predicates consumed by the
 // service kit's classifyLiveProviderAvailabilityFailure. Both classifiers stay separate
 // and keep their distinct return types; only these building blocks are shared.
+//
+// The status codes and network spellings below are derived from production's own retry
+// vocabulary rather than re-typed here. Hand-maintained copies had already drifted: the
+// network pattern was missing three of production's socket-failure spellings, so a
+// MiniMax run failing with a spelling production retries was denied its sanctioned retry.
+
+const escapeForRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const RETRYABLE_STATUS_GROUP = RETRYABLE_STATUS_CODES.join('|')
+const SERVER_ERROR_STATUS_GROUP = RETRYABLE_STATUS_CODES.filter((status) => status >= 500).join('|')
 
 // --- Generic transient-pressure patterns (used by classifyAdaptivePressure) ---
 
-export const RATE_LIMIT_PATTERN = /\b(?:429|too many requests|rate[-\s]?limit(?:ed|ing)?|retryable status 429)\b/i
+export const RATE_LIMIT_PATTERN = /\b(?:429|too many requests|rate[-\s]?limit(?:ed|ing)?|(?<!non-)retryable status 429)\b/i
 export const TIMEOUT_PATTERN = /\b(?:timed?\s*out|timeout|abort\/timeout|timeouterror|etimedout|deadline exceeded|sigterm)\b/i
-export const TRANSIENT_PATTERN = /\(5\d\d\)|\b(?:retryable status 5\d\d|service unavailable|bad gateway|gateway timeout|internal server error|backend error|fetch failed|network error|econnreset|econnaborted|socket hang up|closed unexpectedly|connection reset|max attempts reached|retry_exhausted|retry attempts? (?:were )?exhausted|failed after \d+\/\d+ attempts)\b/i
+
+/**
+ * Transient evidence that stands on its own, independent of any retry-exhaustion banner.
+ * `(?<!non-)` matters: "non-retryable status 500" is production refusing to retry, and the
+ * old pattern read the tail of that phrase as a retryable status.
+ */
+export const TRANSIENT_SIGNAL_PATTERN = new RegExp(
+  `\\(5\\d\\d\\)|\\b(?:(?<!non-)retryable status (?:${SERVER_ERROR_STATUS_GROUP})|service unavailable|bad gateway|gateway timeout|internal server error|backend error|econnaborted|connection reset|max attempts reached|retry_exhausted|retry attempts? (?:were )?exhausted|${NETWORK_FAILURE_SPELLINGS.map(escapeForRegex).join('|')})\\b`,
+  'i'
+)
+
+/** The stop reasons `withRetry` prints when it refused to retry rather than ran out of budget. */
+export const TERMINAL_STOP_REASON_PATTERN =
+  /^(?:non-retryable status \d{3}|unexpected status \d{3}|error marked non-retryable|paid create outcome is ambiguous|paid create status \d{3} is not safe to redispatch|deterministic \w+ error|provider admission outcome is ambiguous|operation cancelled|non-schema failure)/i
+
+const RETRY_EXHAUSTION_PATTERN = /failed after \d+\/\d+ attempts \(([^),]+)/gi
+
+/**
+ * True when a run's retry-exhaustion banner reports a transient stop reason. A run that
+ * ended "failed after 2/4 attempts (non-retryable status 400, …)" is production's own
+ * deterministic refusal: re-running the command re-spends the money and can mask a
+ * request-shape regression for another two paid attempts.
+ */
+export const hasTransientRetryExhaustion = (output: string): boolean => {
+  for (const match of output.matchAll(RETRY_EXHAUSTION_PATTERN)) {
+    const stopReason = (match[1] ?? '').trim()
+    if (!TERMINAL_STOP_REASON_PATTERN.test(stopReason)) {
+      return true
+    }
+  }
+  return false
+}
+
+export const isTransientPressureOutput = (output: string): boolean =>
+  TRANSIENT_SIGNAL_PATTERN.test(output) || hasTransientRetryExhaustion(output)
 
 // --- Provider-specific predicates (used by classifyLiveProviderAvailabilityFailure) ---
 
@@ -63,7 +109,7 @@ export const isDeepInfraWhisperLargeV3CommandTimeout = (output: string): boolean
     /\bexit(?:ed)?(?:\s+with)?(?:\s+code)?\s*(?:143|-15)\b/i.test(output)
   )
 
-const GEMINI_IMAGE_TEMP_STATUS_PATTERN = '\\b(?:429|500|502|503|504)\\b'
+const GEMINI_IMAGE_TEMP_STATUS_PATTERN = `\\b(?:429|${SERVER_ERROR_STATUS_GROUP})\\b`
 
 const hasGeminiImageSignal = (output: string): boolean =>
   /\bgemini\b/i.test(output)
@@ -94,7 +140,7 @@ export const isGeminiImageEmptyResponse = (output: string): boolean =>
 // not a code regression, and no retry inside the run can clear it.
 export const isSupadataPlanLimitFailure = (output: string): boolean =>
   /\bsupadata\b/i.test(output)
-  && /\blimit[-\s_]?exceeded\b|\bexceeded\b[\s\S]{0,40}\b(?:limit|quota|plan)\b/i.test(output)
+  && SUPADATA_PLAN_LIMIT_PATTERN.test(output)
 
 const hasBflImageSignal = (output: string): boolean =>
   /\bBFL\b/i.test(output)
@@ -136,17 +182,18 @@ export const isTogetherSttAvailabilityFailure = (output: string): boolean => {
 export const isGeminiLlmTransientUnavailable = (output: string): boolean => {
   const clean = stripAnsi(output)
   return (
-    /"code"\s*:\s*(408|425|429|500|502|503|504)\b/.test(clean) ||
+    new RegExp(`"code"\\s*:\\s*(?:${RETRYABLE_STATUS_GROUP})\\b`).test(clean) ||
     /"status"\s*:\s*"UNAVAILABLE"/.test(clean) ||
     /currently experiencing high demand/i.test(clean)
   )
 }
 
-// The transport-level alternation shared by every provider predicate below. It used to be
-// pasted into three separate copies (here, define-tts-service-test, and the TTS e2e cases
-// table), so a new spelling of a socket failure had to be added in three places.
-export const NETWORK_FAILURE_PATTERN =
-  /fetch failed|network error|econnreset|econnrefused|etimedout|socket hang up|dns/i
+// The transport-level alternation shared by every provider predicate below, built from
+// production's own list so a spelling cannot exist on one side and not the other.
+export const NETWORK_FAILURE_PATTERN = new RegExp(
+  NETWORK_FAILURE_SPELLINGS.map(escapeForRegex).join('|'),
+  'i'
+)
 
 export const isNetworkFailureOutput = (output: string): boolean =>
   NETWORK_FAILURE_PATTERN.test(stripAnsi(output))
@@ -161,19 +208,25 @@ export const isMinimaxTransientUnavailable = (output: string): boolean => {
   )
 }
 
+/**
+ * Task *creation* is deliberately absent from the retriable stages. It is a paid create,
+ * and production refuses to redispatch one after a 408/5xx because the request may already
+ * have been admitted (`classifyPaidCreateRetry`); re-running the whole command here would
+ * perform exactly the redispatch production declined. The read-side stages carry no such
+ * risk. Production's own rate-limit rejection (429) stays retriable at every stage.
+ */
+const MINIMAX_TTS_RETRIABLE_STAGE_PATTERN = new RegExp(
+  `MiniMax TTS (?:task query|download) failed \\((?:${RETRYABLE_STATUS_CODES.join('|')})\\)`,
+  'i'
+)
+const MINIMAX_TTS_REJECTED_CREATE_PATTERN = /MiniMax TTS task creation failed \((?:425|429)\)/i
+
 export const isTransientMinimaxTtsFailure = (output: string): boolean => {
   const clean = stripAnsi(output)
   return (
     /minimax-tts-chunk-\d+: deadline exceeded/i.test(clean) ||
-    /MiniMax TTS (task creation|task query|download) failed \((408|425|429|500|502|503|504)\)/i.test(clean) ||
-    NETWORK_FAILURE_PATTERN.test(clean)
-  )
-}
-
-export const isTransientMistralTtsFailure = (output: string): boolean => {
-  const clean = stripAnsi(output)
-  return (
-    /Unable to connect|Unexpected HTTP client error/i.test(clean) ||
+    MINIMAX_TTS_RETRIABLE_STAGE_PATTERN.test(clean) ||
+    MINIMAX_TTS_REJECTED_CREATE_PATTERN.test(clean) ||
     NETWORK_FAILURE_PATTERN.test(clean)
   )
 }

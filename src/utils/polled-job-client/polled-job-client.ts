@@ -48,6 +48,8 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
   isFailed?: ((value: TPoll) => PolledJobFailure) | undefined
   onPoll?: ((value: TPoll) => void) | undefined
   validateCreate?: ((value: TCreate) => void) | undefined
+  // Without this, Ctrl-C could not interrupt a ten-minute poll.
+  abortSignal?: AbortSignal | undefined
 }): Promise<{ created: TCreate, result: TPoll }> => {
   // Create is intentionally single-shot: retrying an ambiguous submission can duplicate a paid job.
   const created = await runStep(options.create)
@@ -58,7 +60,11 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
     intervalMs: options.intervalMs,
     deadlineMs: options.deadlineMs,
     pollFn: () => withRetry(
-      { retryClass: 'runtime_http_read', operationName: `${options.operationName}-poll` },
+      {
+        retryClass: 'runtime_http_read',
+        operationName: `${options.operationName}-poll`,
+        ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
+      },
       async (signal) => {
         const value = await runStep(options.poll(created), signal)
         options.onPoll?.(value)
@@ -67,7 +73,8 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
       (error) => classifyFetchRetry(error, 'runtime_http_read')
     ),
     isDone: options.isDone,
-    ...(options.isFailed ? { isFailed: options.isFailed } : {})
+    ...(options.isFailed ? { isFailed: options.isFailed } : {}),
+    ...(options.abortSignal ? { abortSignal: options.abortSignal } : {})
   })
 
   return { created, result }

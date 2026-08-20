@@ -2,11 +2,12 @@ import { basename, extname } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { GeminiContent, GeminiGenerateContentUsageMetadata, GeminiSttPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
+import { createGeminiRetryClassifier } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { withRetry } from '~/utils/retries'
+import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
-import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiGetFile, geminiUploadFile, geminiUserContent, getGeminiFileState } from '~/utils/gemini/gemini-rest'
+import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiUploadFile, geminiUserContent, waitForGeminiFileActive } from '~/utils/gemini/gemini-rest'
 import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '../../stt-utils/stt-utils'
 import { detectCompressedTimingCoverage } from '../../stt-utils/stt-timing-quality'
 const GEMINI_INLINE_AUDIO_BYTES = 14 * 1024 * 1024
@@ -158,25 +159,6 @@ const buildInlineContents = async (
   ])
 }
 
-const waitForGeminiFile = async (
-  apiKey: string,
-  fileName: string
-): Promise<void> => {
-  const deadline = Date.now() + 120_000
-  while (Date.now() < deadline) {
-    const file = await geminiGetFile(apiKey, fileName)
-    const state = getGeminiFileState(file)
-    if (state === undefined || state === 'ACTIVE') {
-      return
-    }
-    if (state === 'FAILED') {
-      throw InfraError(`Gemini Files API upload failed for ${fileName}`, { stage: 'stt:gemini' })
-    }
-    await Bun.sleep(1000)
-  }
-  throw InfraError(`Gemini Files API upload did not become active for ${fileName}`, { stage: 'stt:gemini' })
-}
-
 const normalizeGeminiSegments = (
   value: unknown,
   offsetSeconds: number
@@ -261,20 +243,27 @@ export const runGeminiStt = async (
     {
       retryClass: 'runtime_http_create_retriable',
       operationName: 'gemini-stt',
-      policy: { maxAttempts: 3 }
+      // An attempt here covers an upload, a file-activation poll, and generation. Without
+      // a per-attempt deadline it could hang indefinitely, so the retry budget was
+      // unreachable in exactly the case it exists for.
+      timeoutMs: LLM_REQUEST_TIMEOUT_MS
     },
-    async () => {
+    async (signal) => {
       let uploadedFileName: string | undefined
       try {
         const contents = fileSizeBytes > GEMINI_INLINE_AUDIO_BYTES
           ? await (async () => {
               const uploadedFile = await geminiUploadFile(apiKey, audioPath, {
                 mimeType,
-                displayName: basename(audioPath)
+                displayName: basename(audioPath),
+                ...(signal ? { abortSignal: signal } : {})
               })
               uploadedFileName = uploadedFile.name ?? undefined
               if (uploadedFileName) {
-                await waitForGeminiFile(apiKey, uploadedFileName)
+                await waitForGeminiFileActive(apiKey, uploadedFileName, {
+                  stage: 'stt:gemini',
+                  ...(signal ? { abortSignal: signal } : {})
+                })
               }
               const fileMimeType = uploadedFile.mimeType ?? mimeType
               if (typeof uploadedFile.uri !== 'string' || uploadedFile.uri.length === 0) {
@@ -293,7 +282,8 @@ export const runGeminiStt = async (
           generationConfig: {
             responseMimeType: 'application/json',
             responseJsonSchema: GEMINI_STT_JSON_SCHEMA
-          }
+          },
+          ...(signal ? { abortSignal: signal } : {})
         })
       } finally {
         if (uploadedFileName) {
@@ -308,7 +298,7 @@ export const runGeminiStt = async (
         }
       }
     },
-    classifyGeminiRetry
+    createGeminiRetryClassifier('runtime_http_create_retriable')
   )
 
   const rawText = response.text?.trim() ?? ''

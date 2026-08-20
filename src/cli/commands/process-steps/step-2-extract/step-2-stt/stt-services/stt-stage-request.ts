@@ -2,7 +2,7 @@ import type { InferOutput } from 'valibot'
 import type { AsyncSttLifecycleMetrics, SttRequestMetrics, SttStageHttpError, SttStageRequestOptions, SttStageSchema } from '~/types'
 import { attachAsyncSttErrorContext, attachAsyncSttValidationContext, getAsyncSttErrorStatus } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { httpResponseError } from '~/utils/rest-client'
-import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, getSttStageRetryPolicy, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 
 export const lifecycleMetricsToCallbacks = (
@@ -30,7 +30,10 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
       {
         retryClass,
         operationName: options.operationName,
-        policy: { maxAttempts: options.maxAttempts },
+        ...(() => {
+          const policy = getSttStageRetryPolicy(retryClass)
+          return policy ? { policy } : {}
+        })(),
         timeoutMs: options.timeoutMs
       },
       async (signal) => {

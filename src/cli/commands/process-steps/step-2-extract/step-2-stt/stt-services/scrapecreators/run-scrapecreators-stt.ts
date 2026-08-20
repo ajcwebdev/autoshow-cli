@@ -275,7 +275,6 @@ export const runScrapeCreatorsStt = async (
     {
       retryClass: 'runtime_http_create_retriable',
       operationName: 'scrapecreators-youtube-transcript',
-      policy: { maxAttempts: 3 },
       timeoutMs: REQUEST_TIMEOUT_MS
     },
     async (signal) => {

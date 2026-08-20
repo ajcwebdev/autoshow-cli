@@ -3,6 +3,8 @@ export type ProcessLockOptions = {
   staleMs?: number
   waitMs?: number
   heartbeatMs?: number
+  /** Cancels the acquisition wait, so Ctrl-C is not swallowed by a two-hour hold. */
+  abortSignal?: AbortSignal | undefined
 }
 
 export type ProcessLockOwner = {

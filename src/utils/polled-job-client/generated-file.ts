@@ -1,6 +1,7 @@
 import { InfraError } from '~/utils/error-handler'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { httpResponseError } from '~/utils/rest-client'
+import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 export const downloadGeneratedFile = async (options: {
   url: string
@@ -9,9 +10,16 @@ export const downloadGeneratedFile = async (options: {
   outputPath?: string | undefined
   errorFactory: (response: Response) => Error
   validateBytes?: ((bytes: Uint8Array) => void) | undefined
+  timeoutMs?: number | undefined
 }): Promise<Uint8Array> =>
   await withRetry(
-    { operationName: options.operationName, retryClass: 'runtime_http_read' },
+    {
+      operationName: options.operationName,
+      retryClass: 'runtime_http_read',
+      // The TTS result downloads set a per-attempt deadline and this one did not, so with
+      // the REST layer's `timeout: false` an image or video download could hang forever.
+      timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS
+    },
     async (signal) => {
       const response = await fetch(options.url, {
         ...options.init,

@@ -26,8 +26,6 @@ export type HostedTtsChunkPipelineOptions = {
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
   retryPolicy?: Partial<RetryPolicy> | undefined
-  /** Explicit authorization to retry paid requests with ambiguous provider admission. */
-  allowAmbiguousRedispatch?: boolean | undefined
   chunkJob?: HostedTtsChunkJobContext | undefined
   laneScopeLabel?: string | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined

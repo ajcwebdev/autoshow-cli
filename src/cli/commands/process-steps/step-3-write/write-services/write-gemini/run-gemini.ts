@@ -43,7 +43,6 @@ export const runGeminiModel = async (
     operationName: 'gemini-llm',
     emptyResponseStage: 'write:gemini',
     classifier: classifyGeminiRetry,
-    policy: { maxAttempts: 3 },
     prepare: () => requireApiKey('GEMINI_API_KEY', 'write:gemini'),
     execute: async (createSignal, apiKey): Promise<LlmApiCallResult> => {
       const thinkingLevel = buildGeminiThinkingLevel(policy.effective)

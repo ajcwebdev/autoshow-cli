@@ -78,7 +78,7 @@ export const runFalTts = async (
           apiKey: options.apiKey,
           endpointId: options.model,
           input: body,
-          operationName: `fal.ai TTS chunk ${chunkIndex + 1}`,
+          operationName: `fal-tts-chunk-${chunkIndex + 1}`,
         })
         await accepted({
           providerRequestId: queued.requestId,
@@ -87,7 +87,7 @@ export const runFalTts = async (
         const audioUrl = extractFalTtsAudioUrl(queued.output)
         return await withRetry({
           retryClass: 'runtime_http_read',
-          operationName: `fal.ai TTS audio download ${chunkIndex + 1}`,
+          operationName: `fal-tts-audio-download-${chunkIndex + 1}`,
           timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
         }, async (downloadSignal) => {
           const audioRes = await fetch(audioUrl, downloadSignal ? { signal: downloadSignal } : undefined)

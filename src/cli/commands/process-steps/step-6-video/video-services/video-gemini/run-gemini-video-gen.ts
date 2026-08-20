@@ -29,6 +29,8 @@ export const runGeminiVideoGen = async (
     lastFrameImage?: string | undefined
     referenceImages?: string[] | undefined
     inputVideo?: string | undefined
+    // Without this, Ctrl-C could not interrupt the video generation poll.
+    abortSignal?: AbortSignal | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const apiKey = requireApiKey('GEMINI_API_KEY', 'video:gemini')
@@ -82,6 +84,7 @@ export const runGeminiVideoGen = async (
     operationName: 'gemini-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
+    ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
     pollFn: async () => {
       logGenStatus('video', 'gemini', options.model, 'in_progress')
       const operationName = operation.name

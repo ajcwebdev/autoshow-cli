@@ -1,7 +1,7 @@
 import type { RetryClass, SttRequestMetrics, SupadataHttpError, SupadataJobStatus } from '~/types'
 import { ProviderError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
-import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, parseRetryAfterMs, STT_POLL_RETRY_POLICY, withRetry } from '~/utils/retries'
 import {
   extractSupadataErrorMessage,
   parseSupadataJobStatus,
@@ -26,7 +26,6 @@ export const fetchSupadataTranscript = async (
     {
       retryClass: 'runtime_http_create_retriable',
       operationName: 'supadata-create-transcript',
-      policy: { maxAttempts: 3 },
       timeoutMs: REQUEST_TIMEOUT_MS
     },
     async (signal) => {
@@ -92,7 +91,7 @@ export const pollSupadataTranscriptJob = async (
     {
       retryClass: 'runtime_http_read',
       operationName: 'supadata-poll-transcript',
-      policy: { maxAttempts: 4 },
+      policy: STT_POLL_RETRY_POLICY,
       timeoutMs: POLL_REQUEST_TIMEOUT_MS
     },
     async (signal) => {

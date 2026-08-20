@@ -2,7 +2,8 @@ import { constants } from 'node:fs'
 import { access, mkdir } from 'node:fs/promises'
 import type { ExecOptions, ExecResult } from '~/types'
 import { readBoundedTextStream } from '~/utils/bounded-capture'
-import { hasErrorCode, InfraError } from '~/utils/error-handler'
+import { extractErrorMetadata, hasErrorCode, InfraError } from '~/utils/error-handler'
+import { withRetry } from '~/utils/retries'
 import * as l from './app-logger/app-logger'
 
 const DEFAULT_LINE_BUFFER_CHARS = 64 * 1024
@@ -65,43 +66,6 @@ const readStreamText = async (
   }
 }
 
-const DEFAULT_EXEC_RETRY_ATTEMPTS = 2
-const DEFAULT_EXEC_RETRY_BASE_DELAY_MS = 1_000
-const DEFAULT_EXEC_RETRY_MAX_DELAY_MS = 8_000
-
-const computeExecRetryDelay = (
-  attempt: number,
-  baseDelayMs: number,
-  maxDelayMs: number
-): number => {
-  const exponential = baseDelayMs * Math.pow(2, attempt - 1)
-  const jittered = exponential * (0.5 + Math.random() * 0.5)
-  return Math.round(Math.min(jittered, maxDelayMs))
-}
-
-const sleepWithAbortSignal = async (
-  delayMs: number,
-  signal?: AbortSignal | undefined
-): Promise<void> => {
-  signal?.throwIfAborted()
-  if (!signal) {
-    await Bun.sleep(delayMs)
-    return
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const onAbort = (): void => {
-      clearTimeout(timer)
-      reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'))
-    }
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort)
-      resolve()
-    }, delayMs)
-    signal.addEventListener('abort', onAbort, { once: true })
-  })
-}
-
 const execOnce = async (
   command: string,
   args: string[],
@@ -150,6 +114,15 @@ const execOnce = async (
   }
 }
 
+/**
+ * Retried subprocesses run on the shared `runtime_subprocess_transient` policy rather
+ * than a private attempt loop with its own delay math and its own abort-aware sleep.
+ *
+ * Exhaustion deliberately returns the last failed result instead of throwing: every
+ * caller reads `exitCode` and builds a domain error from `stderr`, which diagnoses the
+ * failure better than a generic `retry_exhausted` would. The exhaustion is still recorded
+ * structurally so a run that burned its whole attempt budget is visible in the log.
+ */
 export const exec = async (
   command: string,
   args: string[] = [],
@@ -160,53 +133,50 @@ export const exec = async (
     return await execOnce(command, args, opts)
   }
 
-  const maxAttempts = Math.max(1, Math.floor(retry.maxAttempts ?? DEFAULT_EXEC_RETRY_ATTEMPTS))
-  const baseDelayMs = retry.baseDelayMs ?? DEFAULT_EXEC_RETRY_BASE_DELAY_MS
-  const maxDelayMs = retry.maxDelayMs ?? DEFAULT_EXEC_RETRY_MAX_DELAY_MS
-  const label = retry.operationName ?? command
-
+  const operationName = retry.operationName ?? command
   let lastResult: ExecResult | undefined
-  let lastError: unknown
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    opts?.signal?.throwIfAborted()
-    let result: ExecResult | undefined
-    let failureReason: string | undefined
-
-    try {
-      result = await execOnce(command, args, opts)
-      if (result.exitCode === 0) {
-        return result
+  try {
+    return await withRetry(
+      {
+        retryClass: 'runtime_subprocess_transient',
+        operationName,
+        ...(opts?.signal ? { abortSignal: opts.signal } : {})
+      },
+      async () => {
+        const result = await execOnce(command, args, opts)
+        if (result.exitCode === 0) {
+          return result
+        }
+        lastResult = result
+        throw InfraError(`${operationName} failed (exit code ${result.exitCode})`, {
+          stage: 'exec',
+          metadata: { command, exitCode: result.exitCode }
+        })
       }
-      lastResult = result
-      failureReason = `exit code ${result.exitCode}`
-    } catch (error) {
-      opts?.signal?.throwIfAborted()
-      lastError = error
-      failureReason = error instanceof Error ? error.message : String(error)
-    }
-
+    )
+  } catch (error) {
     opts?.signal?.throwIfAborted()
-
-    if (attempt >= maxAttempts) {
-      break
+    if (!lastResult) {
+      throw error
     }
 
-    const delayMs = computeExecRetryDelay(attempt, baseDelayMs, maxDelayMs)
-    l.write('warn', `${label} failed (${failureReason}); retrying (${attempt}/${maxAttempts}) in ${delayMs}ms`, {
+    const metadata = extractErrorMetadata(error)
+    l.write('warn', 'Exec Retry Exhausted', {
       category: 'pipeline',
-      metadata: { command, attempt, maxAttempts, failureReason, delayMs }
+      metadata: {
+        operation: operationName,
+        command,
+        exitCode: lastResult.exitCode,
+        attemptsMade: metadata['attemptsMade'],
+        maxAttempts: metadata['maxAttempts'],
+        elapsedMs: metadata['elapsedMs'],
+        stopReason: metadata['stopReason'],
+        retryClass: 'runtime_subprocess_transient'
+      }
     })
-    await sleepWithAbortSignal(delayMs, opts?.signal)
-  }
-
-  if (lastResult) {
     return lastResult
   }
-  throw lastError ?? InfraError(`${label} failed`, {
-    stage: 'exec',
-    metadata: { command, maxAttempts }
-  })
 }
 
 export const commandExists = (command: string): boolean => {

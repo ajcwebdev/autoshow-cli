@@ -1,6 +1,6 @@
 import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 import { AppError, isAppError } from '~/utils/error-handler'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, URL_ARTICLE_RETRY_POLICY, withRetry } from '~/utils/retries'
 import { defuddleArticleAdapter } from './url-local/defuddle/run-defuddle-url'
 import { firecrawlArticleAdapter } from './url-services/firecrawl/run-firecrawl-url'
 import { glmReaderArticleAdapter } from './url-services/glm-reader/run-glm-reader-url'
@@ -21,13 +21,6 @@ export const URL_ARTICLE_PROVIDER_ADAPTERS: Record<HtmlArticleBackend, UrlArticl
 export const getUrlArticleProviderAdapter = (
   backend: HtmlArticleBackend
 ): UrlArticleProviderAdapter => URL_ARTICLE_PROVIDER_ADAPTERS[backend]
-
-const URL_PROVIDER_RETRY_POLICY = {
-  baseDelayMs: 2_000,
-  maxDelayMs: 10_000,
-  jitter: true,
-  exponential: true
-} as const
 
 const enrichUrlRetryError = (
   error: unknown,
@@ -86,10 +79,10 @@ export const runUrlArticleProviderWithStats = async (
     const article = await withRetry(
       {
         retryClass: 'runtime_http_read',
-        operationName: `${adapter.displayName} request`,
+        operationName: `url-article-${adapter.id}`,
         timeoutMs,
         policy: {
-          ...URL_PROVIDER_RETRY_POLICY,
+          ...URL_ARTICLE_RETRY_POLICY,
           maxAttempts
         }
       },

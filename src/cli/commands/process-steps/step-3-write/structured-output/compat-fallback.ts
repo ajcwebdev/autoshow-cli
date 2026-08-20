@@ -1,6 +1,7 @@
 import type { CompatStructuredResponse, LLMTarget, NormalizedReasoningEffort, ResolvedStructuredSchema, StructuredRequestOptions, StructuredValidationContext } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError } from '~/utils/error-handler'
+import { AppError } from '~/utils/error-handler'
+import { formatRetryExhaustedMessage, logRetryAttempt } from '~/utils/retries'
 import { buildStructuredInstructionSuffix } from './schema-resolver'
 import { parseAndValidateStructured } from './validator'
 import { buildStructuredValidationFailureEnvelope } from './validation-failure'
@@ -53,15 +54,36 @@ export const runCompatFallback = async (
 
     lastIssue = validated.issue ?? 'Unknown compat validation failure'
     if (attempt < maxAttempts) {
-      l.warn(`Structured compat retry ${attempt}/${maxAttempts - 1} for ${target.label}/${model}: ${lastIssue}`, {
-        category: 'pipeline',
-        metadata: { provider: target.label, model, attempt, maxAttempts, issue: lastIssue }
-      })
+      // The same `Retry Attempt` record every other retry site emits, rather than a
+      // second wording for the same event.
+      logRetryAttempt({
+        operation: `structured-compat-${target.label.toLowerCase()}`,
+        attempt,
+        maxAttempts,
+        // Deliberately no delay: the model may emit valid JSON on the next pass and no
+        // provider backoff applies to a 200 response.
+        reason: 'structured_response',
+        delayMs: 0
+      }, { provider: target.label, model, issue: lastIssue })
     }
   }
 
   if (!lastResponse) {
-    throw InfraError(`Structured compat mode failed for ${target.label}/${model}: ${lastIssue}`, { stage: 'write:compat-fallback' })
+    throw new AppError(
+      formatRetryExhaustedMessage(`structured-compat-${target.label.toLowerCase()}`, maxAttempts, maxAttempts, 'max attempts reached', 0),
+      {
+        kind: 'retry_exhausted',
+        stage: 'write:compat-fallback',
+        metadata: {
+          provider: target.label,
+          model,
+          issue: lastIssue,
+          attemptsMade: maxAttempts,
+          maxAttempts,
+          stopReason: 'max attempts reached'
+        }
+      }
+    )
   }
 
   l.warn(`Structured compat fallback for ${target.label}/${model}: ${lastIssue}`, {

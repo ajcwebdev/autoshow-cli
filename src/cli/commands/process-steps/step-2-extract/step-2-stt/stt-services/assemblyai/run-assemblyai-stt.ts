@@ -52,7 +52,6 @@ const uploadAssemblyAiAudio = async (
     operationName: 'assemblyai-upload',
     stage: 'upload',
     retryClass: 'runtime_http_create_retriable',
-    maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',
     schema: v.unknown(),
@@ -89,7 +88,6 @@ const createAssemblyAiTranscript = async (
     operationName: 'assemblyai-create-transcript',
     stage: 'create',
     retryClass: 'runtime_http_create_retriable',
-    maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',
     failureLabel: 'transcript creation',
@@ -125,7 +123,6 @@ const pollAssemblyAiTranscript = async (
     operationName: 'assemblyai-poll-transcript',
     stage: 'poll',
     retryClass: 'runtime_http_read',
-    maxAttempts: 6,
     timeoutMs: POLL_REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',
     failureLabel: 'polling',
@@ -212,8 +209,8 @@ export const runAssemblyAiTranscribe = async (
     isFailed: (status) => status.status === 'error'
       ? `AssemblyAI transcription failed: ${status.error ?? 'unknown error'}`
       : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('AssemblyAI', jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('AssemblyAI', 'transcript', jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('AssemblyAI', jobId, pollDeadlineMs, cause),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('AssemblyAI', 'transcript', jobId, probeCount, totalWaitMs, cause),
     buildResult: async ({ transcript, runtime, processingTime, timings }) => {
       const segments: TranscriptionSegment[] = []
 

@@ -121,7 +121,7 @@ export const runReplicateTts = async (
             voice,
             ...(options.speed !== undefined ? { speed: options.speed } : {})
           },
-          operationName: `Replicate TTS chunk ${chunkIndex + 1}`,
+          operationName: `replicate-tts-chunk-${chunkIndex + 1}`,
           abortSignal: signal,
           onCreated: async (created) => {
             await accepted({
@@ -141,7 +141,7 @@ export const runReplicateTts = async (
 
         return await withRetry({
           retryClass: 'runtime_http_read',
-          operationName: `Replicate TTS audio download ${chunkIndex + 1}`,
+          operationName: `replicate-tts-audio-download-${chunkIndex + 1}`,
           timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
           abortSignal: signal
         }, async (downloadSignal) => {

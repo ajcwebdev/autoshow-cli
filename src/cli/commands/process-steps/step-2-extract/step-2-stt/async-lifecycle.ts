@@ -1,7 +1,8 @@
 import { isRecord } from '~/utils/rest-client'
-import type { AsyncSttActiveJobContext, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
+import { pollUntil } from '~/utils/retries'
+import type { AsyncSttActiveJobContext, PollStats, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError, InternalError, ProviderError } from '~/utils/error-handler'
+import { AppError, extractErrorMetadata, InfraError, InternalError, isRetryExhaustedError, ProviderError } from '~/utils/error-handler'
 import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
 import { buildStep2TimingMetadata } from './stt-timing-metadata'
 
@@ -10,6 +11,9 @@ const DEFAULT_POLL_DEADLINE_MS = 10 * 60 * 1000
 const MAX_POLL_DEADLINE_MS = 30 * 60 * 1000
 const POLL_DEADLINE_AUDIO_MULTIPLIER_MS = 250
 const ASYNC_STT_RESUME_PROBE_DELAYS_MS = [0, 30_000, 60_000, 120_000, 240_000] as const
+// The probe ladder is bounded by its own step count; this deadline only exists so the
+// probe requests themselves cannot hang the loop past the ladder.
+const ASYNC_STT_RESUME_PROBE_REQUEST_BUDGET_MS = 5 * 60 * 1000
 
 const getAsyncSttProgressKey = (segmentNumber: number | undefined): string =>
   segmentNumber === undefined
@@ -134,17 +138,31 @@ const resolveAsyncSttPollDeadlineMs = (
   )
 }
 
+/**
+ * Waits for a hosted transcription job on the central poll loop.
+ *
+ * This was a second polling engine: its own deadline arithmetic, its own adaptive
+ * interval doubling, its own `Retry-After` pacing, its own resume-probe ladder, and no
+ * abort support — and because it raised prose-shaped deadline errors, downstream retry
+ * accounting had to recognise them by matching their message. `pollUntil` grew the
+ * features this loop had that it lacked, so the behavior is unchanged and there is one
+ * engine again.
+ */
 export const pollAsyncSttJobUntilComplete = async <TStatus>(
   options: AsyncSttPollLoopOptions<TStatus>
 ): Promise<{ status: TStatus, pollCount: number, pollSleepMs: number }> => {
-  const pollOnce = async (): Promise<{ status: TStatus, retryAfterMs: number | null }> => {
-    const runPoll = async (): Promise<{ status: TStatus, retryAfterMs: number | null }> =>
-      await options.poll()
+  type AsyncSttPoll = { status: TStatus, retryAfterMs: number | null }
+
+  const pollOnce = async (): Promise<AsyncSttPoll> => {
+    const runPoll = async (): Promise<AsyncSttPoll> => await options.poll()
     const pollResult = options.withPollSlot
       ? await options.withPollSlot(runPoll)
       : await runPoll()
     await options.onProgress?.(pollResult.status)
 
+    // The provider's own terminal-failure error is raised here rather than through
+    // `pollUntil`'s `isFailed` so its message and `stt:async` stage reach the caller
+    // exactly as before.
     const failureReason = options.isFailed(pollResult.status)
     if (failureReason) {
       throw InfraError(failureReason, { stage: 'stt:async' })
@@ -153,66 +171,44 @@ export const pollAsyncSttJobUntilComplete = async <TStatus>(
     return pollResult
   }
 
-  if (options.pollMode === 'resume-probe') {
-    let pollCount = 0
-    let pollSleepMs = 0
+  const resumeProbe = options.pollMode === 'resume-probe'
+  const totalProbeWaitMs = ASYNC_STT_RESUME_PROBE_DELAYS_MS.reduce<number>((sum, delayMs) => sum + delayMs, 0)
+  const pollDeadlineMs = resumeProbe
+    ? totalProbeWaitMs + ASYNC_STT_RESUME_PROBE_REQUEST_BUDGET_MS
+    : resolveAsyncSttPollDeadlineMs(options.audioDurationSeconds)
+  const stats: PollStats = { pollCount: 0, pollSleepMs: 0 }
 
-    for (const delayMs of ASYNC_STT_RESUME_PROBE_DELAYS_MS) {
-      if (delayMs > 0) {
-        const sleepStartedAt = Date.now()
-        await Bun.sleep(delayMs)
-        pollSleepMs += Date.now() - sleepStartedAt
-      }
+  try {
+    const pollResult = await pollUntil<AsyncSttPoll>({
+      operationName: `async-stt-poll-${options.jobId}`,
+      pollFn: pollOnce,
+      isDone: (result) => options.isComplete(result.status),
+      describeResult: (result) => ({
+        jobId: options.jobId,
+        ...(result.retryAfterMs !== null ? { retryAfterMs: result.retryAfterMs } : {})
+      }),
+      intervalMs: options.initialPollIntervalMs,
+      maxIntervalMs: options.maxPollIntervalMs,
+      deadlineMs: pollDeadlineMs,
+      sleepBeforeFirstPoll: true,
+      nextIntervalMs: (result) => result.retryAfterMs ?? undefined,
+      ...(resumeProbe ? { intervalSchedule: ASYNC_STT_RESUME_PROBE_DELAYS_MS } : {}),
+      stats
+    })
 
-      const pollResult = await pollOnce()
-      pollCount += 1
-
-      if (options.isComplete(pollResult.status)) {
-        return {
-          status: pollResult.status,
-          pollCount,
-          pollSleepMs
-        }
-      }
+    return {
+      status: pollResult.status,
+      pollCount: stats.pollCount,
+      pollSleepMs: stats.pollSleepMs
     }
-
-    const totalWaitMs = ASYNC_STT_RESUME_PROBE_DELAYS_MS.reduce<number>((sum, delayMs) => sum + delayMs, 0)
-    if (options.buildResumeProbeError) {
-      options.buildResumeProbeError(options.jobId, ASYNC_STT_RESUME_PROBE_DELAYS_MS.length, totalWaitMs)
+  } catch (error) {
+    if (!isRetryExhaustedError(error)) {
+      throw error
     }
-    options.buildDeadlineError(options.jobId, totalWaitMs)
-  }
-
-  const pollDeadlineMs = resolveAsyncSttPollDeadlineMs(options.audioDurationSeconds)
-  const deadlineAt = Date.now() + pollDeadlineMs
-  let pollDelayMs = options.initialPollIntervalMs
-  let pollCount = 0
-  let pollSleepMs = 0
-
-  while (true) {
-    const remainingBeforeSleep = deadlineAt - Date.now()
-    if (remainingBeforeSleep <= 0) {
-      options.buildDeadlineError(options.jobId, pollDeadlineMs)
+    if (resumeProbe && options.buildResumeProbeError) {
+      options.buildResumeProbeError(options.jobId, ASYNC_STT_RESUME_PROBE_DELAYS_MS.length, totalProbeWaitMs, error)
     }
-
-    const sleepStartedAt = Date.now()
-    await Bun.sleep(Math.min(pollDelayMs, remainingBeforeSleep))
-    pollSleepMs += Date.now() - sleepStartedAt
-
-    const pollResult = await pollOnce()
-    pollCount += 1
-
-    if (options.isComplete(pollResult.status)) {
-      return {
-        status: pollResult.status,
-        pollCount,
-        pollSleepMs
-      }
-    }
-
-    pollDelayMs = pollResult.retryAfterMs !== null
-      ? Math.min(options.maxPollIntervalMs, Math.max(options.initialPollIntervalMs, pollResult.retryAfterMs))
-      : Math.min(options.maxPollIntervalMs, pollDelayMs * 2)
+    options.buildDeadlineError(options.jobId, resumeProbe ? totalProbeWaitMs : pollDeadlineMs, error)
   }
 }
 
@@ -267,17 +263,34 @@ export const attachAsyncSttValidationContext = <TError extends Error & { stage?:
   throw source
 }
 
+/**
+ * Poll exhaustion is `retry_exhausted`, like every other exhausted retry in the CLI.
+ * These used to be prose-shaped provider errors, which is why the STT failure classifier
+ * had to recognise a poll deadline with a regex over the message; it now reads the kind.
+ * The wording is unchanged because users read it, and the underlying poll error is kept
+ * as the cause so its last-poll snapshot survives.
+ */
 export const buildAsyncSttPollingDeadlineError = (
   provider: string,
   jobId: string,
-  pollDeadlineMs: number
+  pollDeadlineMs: number,
+  cause?: unknown
 ): never => {
-  throw ProviderError(
+  throw new AppError(
     `${provider} timed out waiting for transcription completion for ${jobId} (deadline exceeded after ${pollDeadlineMs}ms)`,
     {
+      kind: 'retry_exhausted',
       stage: 'poll',
       retryClass: 'runtime_http_read' satisfies RetryClass,
-      retryable: true
+      retryable: true,
+      ...(cause instanceof Error ? { cause } : {}),
+      metadata: {
+        provider,
+        jobId,
+        deadlineMs: pollDeadlineMs,
+        stopReason: 'deadline exceeded',
+        ...extractErrorMetadata(cause)
+      }
     }
   )
 }
@@ -287,14 +300,25 @@ export const buildAsyncSttResumeProbeError = (
   jobNoun: string,
   jobId: string,
   probeCount: number,
-  totalWaitMs: number
+  totalWaitMs: number,
+  cause?: unknown
 ): never => {
-  throw ProviderError(
+  throw new AppError(
     `${provider} ${jobNoun} ${jobId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`,
     {
+      kind: 'retry_exhausted',
       stage: 'poll',
       retryClass: 'runtime_http_read' satisfies RetryClass,
-      retryable: true
+      retryable: true,
+      ...(cause instanceof Error ? { cause } : {}),
+      metadata: {
+        provider,
+        jobId,
+        probeCount,
+        totalWaitMs,
+        stopReason: 'resume probes exhausted',
+        ...extractErrorMetadata(cause)
+      }
     }
   )
 }

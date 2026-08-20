@@ -143,7 +143,6 @@ export const runMistralStt = async (
       {
         retryClass: 'runtime_http_create_retriable',
         operationName: 'mistral-stt',
-        policy: { maxAttempts: 4 },
         timeoutMs: REQUEST_TIMEOUT_MS
       },
       async (signal) => {

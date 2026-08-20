@@ -6,6 +6,7 @@ import { AppError, CLIUsageError, ProviderError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { classifyFetchRetry, classifyPaidCreateRetry, pollUntil, withRetry } from '~/utils/retries'
 import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
+import { waitFor } from '../../../test-utils/wait-for'
 
 const FAST_RETRY_POLICY = {
   baseDelayMs: 0,
@@ -172,23 +173,38 @@ describe('retry error contracts', () => {
     expect(attempts).toBe(1)
   })
 
-  test('withHostedTtsRetry performs bounded ambiguous 5xx redispatch only when explicitly authorized', async () => {
+  test('withHostedTtsRetry never redispatches an ambiguous admission in flight', async () => {
+    let attempts = 0
+    const ambiguous = ProviderError('provider inference failed', { status: 500, retryable: true })
+    Object.defineProperty(ambiguous, 'ttsAdmissionAmbiguous', { value: true, configurable: true })
+
+    await expect(withHostedTtsRetry(
+      {
+        operationName: 'hosted-tts-ambiguous-admission',
+        policy: { ...FAST_RETRY_POLICY, maxAttempts: 5 }
+      },
+      async () => {
+        attempts += 1
+        throw ambiguous
+      }
+    )).rejects.toBe(ambiguous)
+
+    // `--allow-ambiguous-redispatch` authorizes reconciliation of a stored slot on resume,
+    // never an in-flight re-purchase — and it no longer reaches this layer for any provider.
+    expect(attempts).toBe(1)
+  })
+
+  test('withHostedTtsRetry redispatches a definite provider rejection', async () => {
     let attempts = 0
     const result = await withHostedTtsRetry(
       {
-        operationName: 'hosted-tts-authorized-ambiguous-retry',
-        allowAmbiguousRedispatch: true,
-        policy: {
-          ...FAST_RETRY_POLICY,
-          maxAttempts: 5
-        }
+        operationName: 'hosted-tts-rejected-create',
+        policy: { ...FAST_RETRY_POLICY, maxAttempts: 5 }
       },
       async () => {
         attempts += 1
         if (attempts < 4) {
-          const error = ProviderError('provider inference failed', { status: 500, retryable: true })
-          Object.defineProperty(error, 'ttsAdmissionAmbiguous', { value: true, configurable: true })
-          throw error
+          throw ProviderError('slow down', { status: 429 })
         }
         return 'recovered'
       }
@@ -431,7 +447,7 @@ describe('retry error contracts', () => {
       isDone: result => result.done
     })
 
-    while (polls === 0) await Bun.sleep(1)
+    await waitFor(() => polls > 0, { label: 'the first poll' })
     const startedAt = Date.now()
     controller.abort(cancellation)
 
@@ -446,10 +462,7 @@ describe('retry error contracts', () => {
     const startedAt = Date.now()
     const run = exec(process.execPath, ['-e', 'setTimeout(() => {}, 10_000)'], {
       signal: controller.signal,
-      retry: {
-        operationName: 'abortable subprocess',
-        maxAttempts: 3
-      }
+      retry: { operationName: 'abortable subprocess' }
     })
     setTimeout(() => controller.abort(cancellation), 20)
     await expect(run).rejects.toBe(cancellation)

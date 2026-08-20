@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import type { ProviderErrorLike, ProviderFailure, SttBatchBlockedProviderReason } from '~/types'
 import { classifyFetchRetry, parseRetryAfterMs } from '~/utils/retries'
-import { collectErrorChain, extractErrorMetadata, ProviderError, serializeDiagnosticError } from '~/utils/error-handler'
+import { collectErrorChain, extractErrorMetadata, isRetryExhaustedError, ProviderError, serializeDiagnosticError } from '~/utils/error-handler'
 import { missingCredentialEnvVar } from '~/utils/validate/env-utils'
 
 const BATCH_BLOCKING_AUTH_STATUS_CODES = new Set([401, 403])
@@ -12,7 +12,6 @@ const BATCH_BLOCKING_MODEL_MESSAGE_PATTERNS = [
   /\bendpoint\b.*\bnot found\b/i,
   /\bspeaker reference\b.*\bnot found\b/i
 ]
-const RETRYABLE_DEADLINE_MESSAGE_PATTERN = /\bdeadline exceeded\b|\btimed out waiting for transcription completion\b/i
 
 const resolveFailureMessage = (
   chain: ProviderErrorLike[],
@@ -52,7 +51,10 @@ export const classifySttProviderFailure = (
   let retryable = false
   if (explicitRetryable !== undefined) {
     retryable = explicitRetryable
-  } else if (RETRYABLE_DEADLINE_MESSAGE_PATTERN.test(message)) {
+  } else if (isRetryExhaustedError(error)) {
+    // A poll or retry loop that ran out of budget is transient by construction. This used
+    // to be a regex over the deadline message prose, which broke the moment that wording
+    // moved; the loops now raise `retry_exhausted` and this asks for the kind.
     retryable = true
   } else if (retryClass) {
     // Reclassifying needs an error carrying the status/headers we extracted; build a real
@@ -106,7 +108,7 @@ export const resolveTransientProviderCooldownMs = (
     return 10_000
   }
 
-  if (failure.stage === 'poll' || RETRYABLE_DEADLINE_MESSAGE_PATTERN.test(failure.message)) {
+  if (failure.stage === 'poll' || failure.stage === 'result') {
     return 15_000
   }
 

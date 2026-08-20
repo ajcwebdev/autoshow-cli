@@ -6,6 +6,7 @@ import { runDialogueWorkSelector } from '~/cli/commands/process-steps/step-4-tts
 import { runMultiSpeakerTts } from '~/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts'
 import type { Deferred, TtsOptions, TtsTarget } from '~/types'
 import { createMockWavBytes } from '../../../test-utils/media-fixtures'
+import { waitFor } from '../../../test-utils/wait-for'
 
 const createDeferred = (): Deferred => {
   let resolve = (): void => undefined
@@ -15,14 +16,6 @@ const createDeferred = (): Deferred => {
     reject = fail
   })
   return { promise, resolve, reject }
-}
-
-const waitFor = async (condition: () => boolean): Promise<void> => {
-  for (let attempt = 0; attempt < 500; attempt++) {
-    if (condition()) return
-    await Bun.sleep(1)
-  }
-  throw new Error('Timed out waiting for dialogue work')
 }
 
 const roots: string[] = []

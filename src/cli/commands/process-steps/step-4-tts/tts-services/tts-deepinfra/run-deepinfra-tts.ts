@@ -18,14 +18,6 @@ import {
   resolveDeepinfraTtsVoiceField,
 } from './deepinfra-tts-request'
 
-export const DEEPINFRA_TTS_RETRY_POLICY = {
-  maxAttempts: 8,
-  baseDelayMs: 3_000,
-  maxDelayMs: 30_000,
-  jitter: true,
-  exponential: true
-} as const
-
 export const runDeepinfraTts = async (
   text: string,
   outputDir: string,
@@ -63,8 +55,6 @@ export const runDeepinfraTts = async (
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    retryPolicy: DEEPINFRA_TTS_RETRY_POLICY,
-    allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       const body = buildDeepinfraTtsRequestBody({

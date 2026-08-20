@@ -79,10 +79,10 @@ export const createFixtureTarget = (
   }
 }
 
-export const createAuthorizedRetryFixtureTarget = (attempts: number[]): TtsTarget => {
+export const createAmbiguousAdmissionFixtureTarget = (attempts: number[]): TtsTarget => {
   const operation = 'tts-synthesis' as const
   const transport = 'hosted-api'
-  const model = 'fixture-authorized-retry-model'
+  const model = 'fixture-ambiguous-admission-model'
   return {
     service: 'openai',
     model,
@@ -90,13 +90,12 @@ export const createAuthorizedRetryFixtureTarget = (attempts: number[]): TtsTarge
     transport,
     targetKey: canonicalTargetKey(operation, 'openai', model, transport),
     voice: 'alloy',
-    run: async (text, outputDir, options, _invocation, requestEvidence) => {
+    run: async (text, outputDir, _options, _invocation, requestEvidence) => {
       if (!requestEvidence) throw new Error('Missing retry fixture request evidence')
       const audioPath = join(outputDir, 'speech.wav')
       const bytes = syntheticRecoveryAudio(0, 0.15)
       await withHostedTtsRetry({
-        operationName: 'fixture-authorized-ambiguous-retry',
-        allowAmbiguousRedispatch: options.ttsAllowAmbiguousRedispatch,
+        operationName: 'fixture-ambiguous-admission',
         policy: { maxAttempts: 4, baseDelayMs: 0, maxDelayMs: 0, jitter: false, exponential: false }
       }, async (_signal, requestAttempt) => await requestEvidence.dispatch({
         chunkIndex: 1,

@@ -4,8 +4,16 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { exec } from '~/utils/cli-utils'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, getRetryPolicyForClass, withRetry } from '~/utils/retries'
 import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
+
+const stubBunSleep = (): (() => void) => {
+  const original = Bun.sleep
+  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+  return () => {
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = original
+  }
+}
 
 describe('general retry-on-any-error contracts', () => {
   test('classifyFetchRetry retries unrecognized error types', () => {
@@ -56,26 +64,42 @@ describe('general retry-on-any-error contracts', () => {
     expect(result.exitCode).toBe(5)
   })
 
-  test('exec retries a non-zero exit and succeeds once the command recovers', async () => {
+  test('exec retries a non-zero exit on the shared subprocess policy and succeeds once the command recovers', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'autoshow-exec-retry-'))
+    const restoreSleep = stubBunSleep()
     try {
       const counter = join(dir, 'count')
       const script = `n=$(cat ${counter} 2>/dev/null || echo 0); n=$((n+1)); echo $n > ${counter}; if [ $n -lt 2 ]; then exit 1; fi; printf ok`
       const result = await exec('sh', ['-c', script], {
-        retry: { operationName: 'flaky-exec', maxAttempts: 3, baseDelayMs: 0, maxDelayMs: 0 }
+        retry: { operationName: 'flaky-exec' }
       })
       expect(result.exitCode).toBe(0)
       expect(result.stdout.trim()).toBe('ok')
+      // The subprocess tier owns the numbers; exec no longer carries its own attempt
+      // count, delay math, or abort-aware sleep.
+      expect(getRetryPolicyForClass('runtime_subprocess_transient')).toEqual({
+        maxAttempts: 2,
+        baseDelayMs: 1_000,
+        maxDelayMs: 5_000,
+        jitter: false,
+        exponential: false
+      })
     } finally {
+      restoreSleep()
       await rm(dir, { recursive: true, force: true })
     }
   })
 
   test('exec returns the last failing result after exhausting retries', async () => {
-    const result = await exec('sh', ['-c', 'exit 7'], {
-      retry: { operationName: 'always-fails', maxAttempts: 2, baseDelayMs: 0, maxDelayMs: 0 }
-    })
-    expect(result.exitCode).toBe(7)
+    const restoreSleep = stubBunSleep()
+    try {
+      const result = await exec('sh', ['-c', 'exit 7'], {
+        retry: { operationName: 'always-fails' }
+      })
+      expect(result.exitCode).toBe(7)
+    } finally {
+      restoreSleep()
+    }
   })
 
 })

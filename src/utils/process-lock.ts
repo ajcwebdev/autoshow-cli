@@ -4,11 +4,13 @@ import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
 import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
+import { AppError, InfraError, serializeDiagnosticError } from '~/utils/error-handler'
+import { formatRetryExhaustedMessage, sleepWithAbortSignal } from '~/utils/retries'
 
 const DEFAULT_LOCK_STALE_MS = 60_000
 const DEFAULT_LOCK_WAIT_TIMEOUT_MS = 2 * 60 * 60 * 1000
 const DEFAULT_LOCK_WAIT_MS = 100
+const LOCK_WAIT_LOG_INTERVAL_MS = 30_000
 const DEFAULT_LOCK_HEARTBEAT_MS = 5_000
 const LIVE_OWNER_STALE_MULTIPLIER = 10
 const LOCK_OWNER_FILE = 'owner.json'
@@ -276,7 +278,10 @@ export const withProcessLock = async <T,>(
   await mkdir(lockRoot, { recursive: true })
 
   let owner: ActiveProcessLockOwner | null = null
+  let waitAttempts = 0
+  let lastWaitLogAtMs = 0
   while (owner === null) {
+    options.abortSignal?.throwIfAborted()
     try {
       await mkdir(lockDir)
       const now = new Date().toISOString()
@@ -305,14 +310,39 @@ export const withProcessLock = async <T,>(
         continue
       }
 
-      if (Date.now() - startedAt > waitTimeoutMs) {
-        throw InfraError(`Timed out waiting for process lock ${lockName} at ${lockDir}`, {
-          stage: 'lock:process',
-          ...(error instanceof Error ? { cause: error } : {})
+      const waitedMs = Date.now() - startedAt
+      if (waitedMs > waitTimeoutMs) {
+        throw new AppError(
+          formatRetryExhaustedMessage(`process lock ${lockName}`, waitAttempts, waitAttempts, 'lock wait timed out', waitedMs),
+          {
+            kind: 'retry_exhausted',
+            stage: 'lock:process',
+            ...(error instanceof Error ? { cause: error } : {}),
+            metadata: {
+              lockName,
+              lockDir,
+              attemptsMade: waitAttempts,
+              maxAttempts: waitAttempts,
+              elapsedMs: waitedMs,
+              waitTimeoutMs,
+              stopReason: 'lock wait timed out'
+            }
+          }
+        )
+      }
+
+      // The wait used to be completely silent for up to two hours. Report it on a slow
+      // cadence so a run blocked on another process says so.
+      waitAttempts += 1
+      if (waitedMs - lastWaitLogAtMs >= LOCK_WAIT_LOG_INTERVAL_MS) {
+        lastWaitLogAtMs = waitedMs
+        l.write('info', `Waiting for process lock ${lockName}`, {
+          category: 'pipeline',
+          metadata: { lockName, lockDir, waitedMs, waitTimeoutMs, attempt: waitAttempts }
         })
       }
 
-      await Bun.sleep(waitMs)
+      await sleepWithAbortSignal(waitMs, options.abortSignal)
     }
   }
 

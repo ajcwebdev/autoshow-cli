@@ -70,7 +70,6 @@ const listHappyScribeOrganizations = async (
     {
       retryClass: 'runtime_http_read',
       operationName: 'happyscribe-list-organizations',
-      policy: { maxAttempts: 4 },
       timeoutMs: ORGANIZATION_REQUEST_TIMEOUT_MS
     },
     async (signal) => {

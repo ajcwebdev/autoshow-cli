@@ -1,4 +1,5 @@
 import type { MistralAvailabilityWaiter } from '~/types'
+import * as l from '~/utils/app-logger/app-logger'
 
 const wakeWaiters = (
   waiters: MistralAvailabilityWaiter[]
@@ -69,6 +70,14 @@ export class MistralSttPassController {
 
         const targetCooldownAt = this.#cooldownUntil
         const cooldownMs = Math.max(0, targetCooldownAt - Date.now())
+        // The gate used to hold silently, so a run pausing on provider pressure looked
+        // like a hang.
+        if (cooldownMs > 0) {
+          l.write('info', 'Waiting out Mistral STT cooldown', {
+            category: 'pipeline',
+            metadata: { provider: 'mistral', cooldownMs }
+          })
+        }
         await Bun.sleep(cooldownMs)
         if (this.#cooldownUntil !== undefined && this.#cooldownUntil <= targetCooldownAt) {
           this.#cooldownUntil = undefined

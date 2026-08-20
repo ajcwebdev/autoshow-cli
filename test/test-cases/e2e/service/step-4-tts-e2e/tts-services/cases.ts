@@ -110,5 +110,3 @@ export const cartesiaTts = {
   envVarDescription: 'Cartesia TTS',
 } as const
 
-// Lives in the shared classifier registry; re-exported so existing imports keep working.
-export { isTransientMistralTtsFailure } from '../../../../../test-utils/provider-failure-classifiers'

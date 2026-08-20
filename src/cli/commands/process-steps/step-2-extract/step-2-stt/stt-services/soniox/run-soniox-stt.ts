@@ -99,8 +99,8 @@ export const runSonioxStt = async (
     isFailed: (status) => status.status === 'error'
       ? `Soniox transcription failed: ${status.error_message ?? status.error_type ?? 'unknown error'}`
       : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Soniox', jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Soniox', 'transcription', jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Soniox', jobId, pollDeadlineMs, cause),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Soniox', 'transcription', jobId, probeCount, totalWaitMs, cause),
     cleanup: {
       shouldDelete: ({ metadata, lastKnownStatus }) =>
         metadata !== undefined || lastKnownStatus?.status === 'completed' || lastKnownStatus?.status === 'error',

@@ -7,9 +7,11 @@ import { runGeminiStt } from '~/cli/commands/process-steps/step-2-extract/step-2
 import { runGeminiModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/run-gemini'
 import { runGeminiTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-gemini/run-gemini-tts'
 import { parseSpeakerVoiceMappings } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
+import { runGeminiImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-gemini/run-gemini-image-gen'
 import { runGeminiVideoGen } from '~/cli/commands/process-steps/step-6-video/video-services/video-gemini/run-gemini-video-gen'
 import { runGeminiMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
+import { requireDefined } from '../../../test-utils/value-assertions'
 import { geminiGenerateContent, geminiGetOperation, GeminiRestError } from '~/utils/gemini/gemini-rest'
 import {
   expectProviderHttpError,
@@ -90,6 +92,57 @@ describe('Gemini REST contracts', () => {
       { instanceOf: GeminiRestError, status: 429, headers: { 'retry-after': '1' } }
     )
     expect(classifyGeminiRetry(error)).toMatchObject({ shouldRetry: true, reason: 'provider rejected paid create with retryable status 429' })
+  })
+
+  test('a Gemini status parsed out of the response body is judged by the caller\'s retry class', () => {
+    // Gemini reports the HTTP status inside the body, so the shared classifier cannot see
+    // it. The classifier restates it as a structured field and lets the class decide;
+    // it used to override the conservative refusal outright, which meant a paid create
+    // redispatched after a 5xx while still labelled conservative.
+    const bodyStatusError = new Error('Gemini API request failed: {"error":{"code":500,"message":"internal"}}')
+
+    expect(classifyGeminiRetry(bodyStatusError, 'runtime_http_create_conservative')).toMatchObject({
+      shouldRetry: false,
+      reason: 'paid create status 500 is not safe to redispatch'
+    })
+    expect(classifyGeminiRetry(bodyStatusError, 'runtime_http_create_retriable')).toMatchObject({
+      shouldRetry: true,
+      reason: 'retryable status 500'
+    })
+    // Conservative is the default, so a site that declares no class gets the safe posture.
+    expect(classifyGeminiRetry(bodyStatusError)).toMatchObject({ shouldRetry: false })
+
+    const rateLimited = new Error('Gemini API request failed: {"error":{"code":429,"message":"quota"}}')
+    expect(classifyGeminiRetry(rateLimited, 'runtime_http_create_conservative')).toMatchObject({
+      shouldRetry: true,
+      reason: 'provider rejected paid create with retryable status 429'
+    })
+
+    const deterministic = new Error('Gemini API request failed: {"error":{"code":400,"message":"bad request"}}')
+    expect(classifyGeminiRetry(deterministic, 'runtime_http_create_retriable')).toMatchObject({
+      shouldRetry: false,
+      reason: 'non-retryable status 400'
+    })
+  })
+
+  test('the paid Gemini image create runs the conservative tier', async () => {
+    process.env['GEMINI_API_KEY'] = 'gemini-key'
+    const calls: number[] = []
+    installFetch(() => {
+      calls.push(1)
+      return new Response(JSON.stringify({ error: { code: 500, message: 'internal' } }), {
+        status: 500,
+        headers: { 'content-type': 'application/json' }
+      })
+    })
+
+    await withTempDir(async (dir) => {
+      await expect(runGeminiImageGen('a lighthouse', dir, { model: 'gemini-3-pro-image' }))
+        .rejects.toThrow()
+    })
+
+    // A 500 after the request may already have been admitted is not re-purchased.
+    expect(calls).toHaveLength(1)
   })
 
   test('Gemini LLM structured output sends response JSON schema', async () => {
@@ -309,11 +362,29 @@ describe('Gemini REST contracts', () => {
         8192,
         8192
       ])
-      const warnings = events.filter((event) => event.level === 'warn').map((event) => event.message)
-      expect(warnings).toEqual([
-        'Gemini OCR returned malformed output for page-000660.png on attempt 1/3 (7 output tokens) (Gemini OCR returned no pages.); retrying'
-      ])
-      expect(warnings[0]).not.toContain('{"pages":[]}')
+      // The schema retry is now the one central `Retry Attempt` record rather than a
+      // second provider-specific warn line; Gemini's diagnostics ride on its metadata,
+      // alongside the stacked paid-request ceiling the loop can reach.
+      const retryEvents = events.filter((event) => event.level === 'warn' && event.message === 'Retry Attempt')
+      expect(retryEvents).toHaveLength(1)
+      const retryMetadata = requireDefined(retryEvents[0], 'schema retry event').metadata as Record<string, unknown>
+      expect(retryMetadata).toMatchObject({
+        operation: 'gemini-ocr',
+        attempt: 1,
+        maxAttempts: 3,
+        reason: 'structured_response',
+        provider: 'gemini',
+        pageCount: 1,
+        pageNumber: 1,
+        retryClass: 'runtime_http_create_retriable',
+        failureReason: 'Gemini OCR returned no pages.',
+        ocrSchemaAttempts: 3,
+        ocrCreateAttempts: 4,
+        maxPaidRequests: 12,
+        malformedOutput: 'Gemini OCR returned malformed output for page-000660.png on attempt 1/3 (7 output tokens) (Gemini OCR returned no pages.); retrying'
+      })
+      expect(JSON.stringify(retryMetadata)).not.toContain('{\"pages\":[]}')
+      expect(events.filter((event) => event.level === 'warn')).toHaveLength(1)
     })
   })
 

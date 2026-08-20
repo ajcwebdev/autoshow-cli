@@ -1,6 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
+import { waitFor as sharedWaitFor } from '../../../../../test-utils/wait-for'
 import type {
   Deferred,
   HostedOcrSchedulerAdmission,
@@ -26,15 +27,7 @@ export const defer = <T = void>(): Deferred<T> => {
 export const waitFor = async (
   predicate: () => boolean,
   timeoutMs = 500
-): Promise<void> => {
-  const startedAt = Date.now()
-  while (!predicate()) {
-    if (Date.now() - startedAt > timeoutMs) {
-      throw new Error('Timed out waiting for scheduler test condition')
-    }
-    await sleep(1)
-  }
-}
+): Promise<void> => await sharedWaitFor(predicate, { timeoutMs, label: 'scheduler test condition' })
 
 export const createSchedulerClock = (): SchedulerClock => {
   let now = 0

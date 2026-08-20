@@ -31,7 +31,6 @@ export const collectDeepinfraTtsTargets = (
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
           requestEvidence,
-          allowAmbiguousRedispatch: opts.ttsAllowAmbiguousRedispatch,
           promptInstructions: typeof (controls as { promptInstructions?: unknown }).promptInstructions === 'string' ? (controls as { promptInstructions?: string }).promptInstructions : undefined,
         })
       }

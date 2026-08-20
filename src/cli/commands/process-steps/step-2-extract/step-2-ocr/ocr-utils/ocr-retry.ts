@@ -1,5 +1,5 @@
 import type { HostedOcrSchedulerRetryPressureHandler, OcrCreateRetryOptions, OcrPageRequestRetryOptions, RetryClassifier, RetryDecision, RetryPolicy } from '~/types'
-import { classifyFetchRetry, isTimeoutError, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, getRetryPolicyForClass, isTimeoutError, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { findOcrStructuredResponseError } from '../ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { classifyOcrErrorForRetry } from './ocr-failure-classifier'
@@ -11,20 +11,18 @@ export const OCR_PAGE_REQUEST_TIMEOUT_MS = 5 * 60_000
 export const OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS = 2_000
 export const OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS = 30_000
 
-export const OCR_CREATE_RETRY_POLICY: Partial<RetryPolicy> = {
-  maxAttempts: 4,
-  baseDelayMs: 2_000,
-  maxDelayMs: 60_000,
-  jitter: true,
-  exponential: true
-}
+/**
+ * Both OCR policies are the shared retriable-create tier. They used to be separate
+ * literals with their own ceilings (60s here against TTS's 30s and the class table's 10s
+ * for the same rate-limited-create situation); the numbers now come from one table, and
+ * only the deliberate difference — a page request gets fewer attempts, with a wider
+ * budget reserved for 429s — is restated.
+ */
+export const OCR_CREATE_RETRY_POLICY: RetryPolicy = getRetryPolicyForClass('runtime_http_create_retriable')
 
-export const OCR_PAGE_REQUEST_RETRY_POLICY: Partial<RetryPolicy> = {
-  maxAttempts: OCR_PAGE_REQUEST_ATTEMPTS,
-  baseDelayMs: 2_000,
-  maxDelayMs: 10_000,
-  jitter: true,
-  exponential: true
+export const OCR_PAGE_REQUEST_RETRY_POLICY: RetryPolicy = {
+  ...getRetryPolicyForClass('runtime_http_create_retriable'),
+  maxAttempts: OCR_PAGE_REQUEST_ATTEMPTS
 }
 
 // Classification, not prose: every structured-response failure is an
@@ -132,13 +130,74 @@ export const withOcrCreateRetry = async <T>(
     {
       retryClass: 'runtime_http_create_retriable',
       operationName,
-      policy: OCR_CREATE_RETRY_POLICY,
       timeoutMs: OCR_REQUEST_TIMEOUT_MS,
       onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
       retryHookCanExtendAttempts: options.onRetryable?.managesHostedRateLimitRecovery === true
     },
     operation,
     withOcrRateLimitDelayClassifier(options.classifier ?? classifyOcrCreateRetry)
+  )
+}
+
+/**
+ * The one schema-retry loop for hosted OCR. Anthropic, Gemini and OpenAI each carried a
+ * copy: same 3 attempts, three different levels of observability — Gemini logged
+ * structured metadata and accumulated per-attempt billing, Anthropic logged a bare
+ * message, and OpenAI retried paid requests completely silently.
+ *
+ * Only a failure of `parse` retries; anything thrown by `request` (including the create's
+ * own exhausted retry) propagates untouched, exactly as the hand-rolled loops did. The
+ * stacked paid-request ceiling — schema attempts × create attempts — is recorded on every
+ * retry log so the real cost of a malformed-output storm is visible rather than implied.
+ */
+export const withOcrSchemaRetry = async <TResponse, TResult>(options: {
+  operationName: string
+  attempts?: number | undefined
+  request: (attempt: number) => Promise<TResponse>
+  parse: (response: TResponse, attempt: number) => TResult
+  onSchemaFailure?: ((context: { error: unknown, response: TResponse, attempt: number }) => void) | undefined
+  retryLogMetadata?: ((context: { error: unknown, response: TResponse, attempt: number }) => Record<string, unknown> | undefined) | undefined
+}): Promise<TResult> => {
+  const maxAttempts = Math.max(1, Math.floor(options.attempts ?? OCR_SCHEMA_RETRY_ATTEMPTS))
+  const createAttempts = OCR_CREATE_RETRY_POLICY.maxAttempts ?? 1
+  // Identity, not prose: the helper records which errors came out of `parse` so the
+  // classifier never has to recognise a schema failure by its message.
+  const schemaFailures = new WeakSet<object>()
+  let attempt = 0
+  let attemptLogMetadata: Record<string, unknown> | undefined
+
+  return await withRetry(
+    {
+      retryClass: 'runtime_http_create_retriable',
+      operationName: options.operationName,
+      // A malformed response is re-requested immediately: the model may emit valid
+      // output on the next pass, and no provider backoff applies to a 200 response.
+      policy: { maxAttempts, baseDelayMs: 0, maxDelayMs: 0, jitter: false, exponential: false },
+      retryLogMetadata: () => ({
+        ocrSchemaAttempts: maxAttempts,
+        ocrCreateAttempts: createAttempts,
+        maxPaidRequests: maxAttempts * createAttempts,
+        ...attemptLogMetadata
+      })
+    },
+    async () => {
+      attempt += 1
+      const currentAttempt = attempt
+      const response = await options.request(currentAttempt)
+      try {
+        return options.parse(response, currentAttempt)
+      } catch (error) {
+        if (error !== null && typeof error === 'object') {
+          schemaFailures.add(error)
+        }
+        options.onSchemaFailure?.({ error, response, attempt: currentAttempt })
+        attemptLogMetadata = options.retryLogMetadata?.({ error, response, attempt: currentAttempt })
+        throw error
+      }
+    },
+    (error) => error !== null && typeof error === 'object' && schemaFailures.has(error)
+      ? { shouldRetry: true, delayMs: 0, reason: 'structured_response' }
+      : { shouldRetry: false, delayMs: 0, reason: 'non-schema failure' }
   )
 }
 

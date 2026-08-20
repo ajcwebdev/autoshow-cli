@@ -7,7 +7,7 @@ import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, Normaliz
 import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
 import { splitPdfPages } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
 import { getAnthropicClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-anthropic/anthropic-utils'
-import { OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
+import { withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { InfraError, InternalError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
@@ -110,49 +110,28 @@ const runMessageWithSchemaRetry = async (
   operationName: string,
   beta?: string | string[] | undefined,
   onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-): Promise<{ pages: PageResult[], promptTokens?: number, completionTokens?: number }> => {
-  let lastError: Error | undefined
+): Promise<{ pages: PageResult[], promptTokens?: number, completionTokens?: number }> =>
+  await withOcrSchemaRetry({
+    operationName,
+    request: async () => await callAnthropicMessage(requestBody, operationName, beta, onRetryable),
+    parse: (message) => {
+      const rawText = extractAnthropicText(message.content ?? [])
+      const usage = {
+        ...(typeof message.usage?.input_tokens === 'number' ? { promptTokens: message.usage.input_tokens } : {}),
+        ...(typeof message.usage?.output_tokens === 'number' ? { completionTokens: message.usage.output_tokens } : {})
+      }
 
-  for (let attempt = 0; attempt < OCR_SCHEMA_RETRY_ATTEMPTS; attempt++) {
-    const message = await callAnthropicMessage(requestBody, operationName, beta, onRetryable)
-    const rawText = extractAnthropicText(message.content ?? [])
-
-    try {
       if (!rawText.trim()) {
         if (expectedPageCount === 1) {
-          return {
-            pages: [{
-              pageNumber: 1,
-              method: 'ocr',
-              text: ''
-            }],
-            ...(typeof message.usage?.input_tokens === 'number' ? { promptTokens: message.usage.input_tokens } : {}),
-            ...(typeof message.usage?.output_tokens === 'number' ? { completionTokens: message.usage.output_tokens } : {})
-          }
+          return { pages: [{ pageNumber: 1, method: 'ocr', text: '' }], ...usage }
         }
         throw new OcrStructuredResponseError(`Anthropic OCR returned no text output for ${pageLabel}.`, rawText)
       }
 
-      const pages = parseOcrResponse(rawText, expectedPageCount, pageLabel)
-      return {
-        pages,
-        ...(typeof message.usage?.input_tokens === 'number' ? { promptTokens: message.usage.input_tokens } : {}),
-        ...(typeof message.usage?.output_tokens === 'number' ? { completionTokens: message.usage.output_tokens } : {})
-      }
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      if (attempt < OCR_SCHEMA_RETRY_ATTEMPTS - 1) {
-        l.warn(`Anthropic OCR returned malformed output for ${pageLabel}; retrying`, {
-        category: 'pipeline',
-        metadata: { provider: 'anthropic', pageLabel, attempt, maxAttempts: OCR_SCHEMA_RETRY_ATTEMPTS }
-      })
-        continue
-      }
-    }
-  }
-
-  throw lastError ?? InfraError(`Anthropic OCR failed for ${pageLabel}.`, { stage: 'ocr:anthropic' })
-}
+      return { pages: parseOcrResponse(rawText, expectedPageCount, pageLabel), ...usage }
+    },
+    retryLogMetadata: () => ({ provider: 'anthropic', pageLabel })
+  })
 
 const createImageRequestBody = async (
   filePath: string,
