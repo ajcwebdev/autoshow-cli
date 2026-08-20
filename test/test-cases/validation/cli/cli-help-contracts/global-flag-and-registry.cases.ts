@@ -145,7 +145,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
       ['src/cli/create-cli.ts', 'resume', 'output/does-not-exist', '--output-dir', 'output/nope'],
       { env: helpEnv }
     )
-    expect(resumeResult.exitCode).not.toBe(0)
+    expect(resumeResult.exitCode).toBe(2)
     expect(`${resumeResult.stdout}\n${resumeResult.stderr}`).toContain('--output-dir is not supported by "resume"')
 
     const writeResult = await loadHelp(['write', '--help'])

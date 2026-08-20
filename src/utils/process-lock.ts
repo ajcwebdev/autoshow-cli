@@ -4,7 +4,7 @@ import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
 import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 
 const DEFAULT_LOCK_STALE_MS = 60_000
 const DEFAULT_LOCK_WAIT_TIMEOUT_MS = 2 * 60 * 60 * 1000
@@ -206,9 +206,17 @@ const removeStaleProcessLock = async (
     // A third contender can acquire the canonical path before this restore and make
     // it fail. That residual window is accepted; orphaned .reap-* directories are
     // ignored because acquisition only considers the canonical lock directory.
+    //
+    // Both outcomes return false, but they mean different things: "another contender holds
+    // the lock" is routine, while "the restore itself failed" leaves an orphaned .reap-*
+    // directory worth knowing about. The warn keeps them distinguishable.
     try {
       await rename(reapDir, lockDir)
-    } catch {
+    } catch (error) {
+      l.warn(`Could not restore the process lock directory after a failed reap: ${lockDir}`, {
+        category: 'pipeline',
+        metadata: { lockDir, reapDir, error: serializeDiagnosticError(error) }
+      })
       return false
     }
     return false

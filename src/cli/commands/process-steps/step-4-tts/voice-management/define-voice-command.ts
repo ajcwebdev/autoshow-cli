@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { boolFlag, strFlag, strListFlag } from '~/cli/flags/flag-utils'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
+import * as l from '~/utils/app-logger/app-logger'
 import { CLIUsageError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { withProcessLock } from '~/utils/process-lock'
@@ -159,6 +160,19 @@ const requireBrief = async (subjectKey: string, profileKey: string) => {
   return brief
 }
 
+// Voice management results are structured payloads rather than file-producing
+// completions, so they travel the sanctioned `report.result` channel: NDJSON on
+// stdout under --json/--log-format, a human detail table otherwise. Both honor
+// --quiet and the configured log level, which the raw stdout writes did not.
+const reportVoiceResult = (message: string, data: Record<string, unknown>): void => {
+  l.report.result(data, { message })
+}
+
+// `--price` previews are dry runs: no mutation and no provider call.
+const reportVoicePrice = (message: string, data: Record<string, unknown>): void => {
+  l.report.result({ dryRun: true, ...data }, { message, category: 'pricing' })
+}
+
 const optionalConsent = async (reference: string | undefined): Promise<VoiceConsentRecord | undefined> =>
   reference ? await loadVoiceConsentRecord(managedVoiceAssetStore, reference) : undefined
 
@@ -178,7 +192,7 @@ const handleRevokeConsent = async (ctx: CliCommandContext, reference = parameter
     reason: requiredFlag(ctx, 'reason'),
     revokedBy: actor
   })
-  console.log(JSON.stringify({ consentRecordId: revocation.consentRecordId, revocationId: revocation.revocationId, state: 'revoked' }, null, 2))
+  reportVoiceResult('Voice consent revoked', { consentRecordId: revocation.consentRecordId, revocationId: revocation.revocationId, state: 'revoked' })
 }
 
 const handleConsent = async (ctx: CliCommandContext): Promise<void> => {
@@ -230,11 +244,11 @@ const handleConsent = async (ctx: CliCommandContext): Promise<void> => {
   const record: VoiceConsentRecord = { ...withoutId, consentRecordId: computeConsentRecordId(withoutId) }
   validateVoiceConsentRecord(record)
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'voice-consent', estimatedCostCents: 0, mutation: false, consentRecordId: record.consentRecordId }, null, 2))
+    reportVoicePrice('Voice consent estimate', { operation: 'voice-consent', estimatedCostCents: 0, mutation: false, consentRecordId: record.consentRecordId })
     return
   }
   const reference = await storeVoiceConsentRecord(managedVoiceAssetStore, record)
-  console.log(JSON.stringify({ consentRecordId: record.consentRecordId, consentRecordRef: reference }, null, 2))
+  reportVoiceResult('Voice consent recorded', { consentRecordId: record.consentRecordId, consentRecordRef: reference })
 }
 
 const handleImport = async (ctx: CliCommandContext): Promise<void> => {
@@ -258,11 +272,11 @@ const handleImport = async (ctx: CliCommandContext): Promise<void> => {
     capabilityFixtureHash: capabilityFixtureHash(ctx, provider, model)
   }
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'voice-import', estimatedCostCents: 0, mutation: false, subjectKey, provider, model }, null, 2))
+    reportVoicePrice('Voice import estimate', { operation: 'voice-import', estimatedCostCents: 0, mutation: false, subjectKey, provider, model })
     return
   }
   const registration = await importExistingVoiceRegistration(request)
-  console.log(JSON.stringify({ registrationId: registration.registrationId, generationId: registration.generationId, state: registration.provisioning.state }, null, 2))
+  reportVoiceResult('Voice registration imported', { registrationId: registration.registrationId, generationId: registration.generationId, state: registration.provisioning.state })
 }
 
 const handleDiscover = async (ctx: CliCommandContext): Promise<void> => {
@@ -273,12 +287,12 @@ const handleDiscover = async (ctx: CliCommandContext): Promise<void> => {
   const cursor = optionalFlag(ctx, 'cursor')
   if (cursor && provider === 'inworld') throw CLIUsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'voice-discover', provider, mutation: false, providerCalls: 0, capabilityFixtureHash: advancedCapabilityFixtureHash(provider) }, null, 2))
+    reportVoicePrice('Voice discovery estimate', { operation: 'voice-discover', provider, mutation: false, providerCalls: 0, capabilityFixtureHash: advancedCapabilityFixtureHash(provider) })
     return
   }
   const adapter = advancedProvider(provider)
   const page = await adapter.catalog?.list({ source: sourceRaw, ...(cursor ? { cursor } : {}) })
-  console.log(JSON.stringify(page, null, 2))
+  reportVoiceResult('Voice catalog page', { ...(page ?? {}) })
 }
 
 const DESIGN_PREVIEW_FLAGS = ['description', 'preview-text', 'candidates', 'seed', 'source-voice-id', 'creation-model'] as const
@@ -345,7 +359,7 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
     const rate = getTtsPricing(provider, providerModel).costPer1kCharsCents
     if (rate === undefined) throw CLIUsageError(`Voice design pricing is unavailable for ${provider}/${providerModel}; provider dispatch is blocked.`)
     const estimatedCostCents = ([...previewText].length / 1000) * rate
-    console.log(JSON.stringify({ operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations: 1, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 }, null, 2))
+    reportVoicePrice('Voice design estimate', { operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations: 1, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 })
     return
   }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
@@ -366,7 +380,7 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
     ...(sourceVoice ? { sourceVoice, eligibilitySnapshotHash } : {}),
     ...(seed !== undefined ? { seed } : {})
   })
-  console.log(JSON.stringify({ schemaVersion: 1, provider, candidates: candidates.map(candidate => ({ candidateId: candidate.candidateId, registrationDraftId: candidate.registrationDraftId, previewAssets: candidate.previewAssets, expiryState: candidate.expiryState })) }, null, 2))
+  reportVoiceResult('Voice design candidates', { schemaVersion: 1, provider, candidates: candidates.map(candidate => ({ candidateId: candidate.candidateId, registrationDraftId: candidate.registrationDraftId, previewAssets: candidate.previewAssets, expiryState: candidate.expiryState })) })
 }
 
 const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
@@ -383,7 +397,7 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
   const consentRef = optionalFlag(ctx, 'consent-ref')
   const consent = await optionalConsent(consentRef)
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'voice-materialize-candidate', provider, candidateId, estimatedCostCents: 0, pricing: 'no-usage-charge', mutation: false, providerCalls: 0 }, null, 2))
+    reportVoicePrice('Voice candidate materialization estimate', { operation: 'voice-materialize-candidate', provider, candidateId, estimatedCostCents: 0, pricing: 'no-usage-charge', mutation: false, providerCalls: 0 })
     return
   }
   const catalog = await loadVoiceRegistrationCatalog(getCharactersRoot())
@@ -391,7 +405,7 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
   if (existing) {
     const completed = await maybeCompleteRegistrationJournal(existing, ctx)
     if (completed) {
-      console.log(JSON.stringify({ candidateId, registrationId: completed.registrationId, generationId: completed.generationId, state: completed.provisioning.state }, null, 2))
+      reportVoiceResult('Voice provisioning reconciled', { candidateId, registrationId: completed.registrationId, generationId: completed.generationId, state: completed.provisioning.state })
       return
     }
   } else {
@@ -421,7 +435,7 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
     capabilityFixtureHash: advancedCapabilityFixtureHash(provider),
     ...(candidate.sourceVoice ? { sourceVoice: candidate.sourceVoice, eligibilitySnapshotHash: candidate.eligibilitySnapshotHash } : {})
   })
-  console.log(JSON.stringify({ candidateId: result.candidate.candidateId, registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state }, null, 2))
+  reportVoiceResult('Voice candidate materialized', { candidateId: result.candidate.candidateId, registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state })
 }
 
 const cloneMediaType = (path: string): string => {
@@ -447,7 +461,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     for (const match of catalog.registrations.filter(entry => entry.subjectKey === subjectKey && entry.provider === provider && entry.profileKey === profileKey)) {
       const completed = await maybeCompleteRegistrationJournal(match, ctx)
       if (completed) {
-        console.log(JSON.stringify({ registrationId: completed.registrationId, generationId: completed.generationId, state: completed.provisioning.state }, null, 2))
+        reportVoiceResult('Voice provisioning reconciled', { registrationId: completed.registrationId, generationId: completed.generationId, state: completed.provisioning.state })
         return
       }
     }
@@ -487,7 +501,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   } as const
   if (ctx.flags['price'] === true) {
     const estimate = planAdvancedClone(request)
-    console.log(JSON.stringify({ operation: 'voice-clone', provider, providerModel, cloneKind, sampleCount: samplePaths.length, ...estimate, mutation: false, providerCalls: 0 }, null, 2))
+    reportVoicePrice('Voice clone estimate', { operation: 'voice-clone', provider, providerModel, cloneKind, sampleCount: samplePaths.length, ...estimate, mutation: false, providerCalls: 0 })
     return
   }
   const brief = await requireBrief(subjectKey, profileKey)
@@ -536,7 +550,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), provider: adapter, providerModel, subjectKey, profileKey, brief,
     request: { ...cloneRequest, protectedSamples }, capabilityFixtureHash: advancedCapabilityFixtureHash(provider),
   })
-  console.log(JSON.stringify({ registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state }, null, 2))
+  reportVoiceResult('Voice clone provisioned', { registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state })
 }
 
 const handleRevokeConsentAlias = async (ctx: CliCommandContext): Promise<void> => {
@@ -577,7 +591,7 @@ const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
   const maxCents = nonNegativeNumberFlag(ctx, 'max-cents')
   if (maxCents !== undefined && plan.estimatedCostCents > maxCents) throw CLIUsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${maxCents}.`)
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'voice-audition', estimatedCostCents: plan.estimatedCostCents, mutation: false, characterCount: plan.characterCount, takeCount }, null, 2))
+    reportVoicePrice('Voice audition estimate', { operation: 'voice-audition', estimatedCostCents: plan.estimatedCostCents, mutation: false, characterCount: plan.characterCount, takeCount })
     return
   }
   const { audition, auditioned } = await withProcessLock(`voice-audition-${hashCanonicalTtsValue({ registrationId, generationId }).slice(0, 32)}`, async () => {
@@ -592,10 +606,10 @@ const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
     const recorded = await recordVoiceAudition({ charactersRoot: getCharactersRoot(), registrationId, generationId, audition: generated })
     return { audition: generated, auditioned: recorded }
   })
-  console.log(JSON.stringify({ auditionId: audition.auditionId, registrationId, generationId: auditioned.generationId, state: auditioned.approval.state }, null, 2))
+  reportVoiceResult('Voice audition recorded', { auditionId: audition.auditionId, registrationId, generationId: auditioned.generationId, state: auditioned.approval.state })
   if (approve) {
     const approved = await approveRegistration(registrationId, auditioned.generationId, requiredFlag(ctx, 'actor-id'))
-    console.log(JSON.stringify({ registrationId, generationId: approved.generationId, state: approved.approval.state }, null, 2))
+    reportVoiceResult('Voice registration approved', { registrationId, generationId: approved.generationId, state: approved.approval.state })
   }
 }
 
@@ -603,13 +617,13 @@ const handleApprove = async (ctx: CliCommandContext): Promise<void> => {
   const registrationId = parameter(ctx, 'registrationId')
   const registration = await findRegistration(registrationId, optionalFlag(ctx, 'generation-id'))
   const approved = await approveRegistration(registrationId, registration.generationId, requiredFlag(ctx, 'actor-id'))
-  console.log(JSON.stringify({ registrationId, generationId: approved.generationId, state: approved.approval.state }, null, 2))
+  reportVoiceResult('Voice registration approved', { registrationId, generationId: approved.generationId, state: approved.approval.state })
 }
 
 const handleStatus = async (): Promise<void> => {
   const catalog = await loadVoiceRegistrationCatalog(getCharactersRoot())
   const current = await loadCurrentVoiceRegistrationIndex(getCharactersRoot(), catalog)
-  console.log(JSON.stringify({ schemaVersion: 1, registrations: catalog.registrations, current }, null, 2))
+  reportVoiceResult('Voice registration catalog', { schemaVersion: 1, registrations: catalog.registrations, current })
 }
 
 const handleInspect = async (ctx: CliCommandContext, options: { live?: boolean } = {}): Promise<void> => {
@@ -625,14 +639,14 @@ const handleInspect = async (ctx: CliCommandContext, options: { live?: boolean }
   if (options.live === true && !staticOnly && registration.provisioning.state === 'ready') {
     const adapter = advancedProvider(registration.provider)
     const inspection = await adapter.lifecycle?.inspect(registration.provisioning.providerVoice)
-    console.log(JSON.stringify({ registrationId, generationId, staticOnly: false, inspection, mutation: false }, null, 2))
+    reportVoiceResult('Voice registration inspection', { registrationId, generationId, staticOnly: false, inspection, mutation: false })
     return
   }
   const readiness = await inspectVoiceRegistrationReadiness({
     registration,
     staticOnly,
   })
-  console.log(JSON.stringify({ ...readiness, mutation: false }, null, 2))
+  reportVoiceResult('Voice registration readiness', { ...readiness, mutation: false })
 }
 
 const handleList = async (ctx: CliCommandContext): Promise<void> => {
@@ -653,7 +667,7 @@ const handleList = async (ctx: CliCommandContext): Promise<void> => {
     const registration = await findRegistration(registrationId, optionalFlag(ctx, 'generation-id'))
     const completed = await maybeCompleteRegistrationJournal(registration, ctx)
     if (completed) {
-      console.log(JSON.stringify({ registrationId: completed.registrationId, generationId: completed.generationId, state: completed.provisioning.state }, null, 2))
+      reportVoiceResult('Voice provisioning reconciled', { registrationId: completed.registrationId, generationId: completed.generationId, state: completed.provisioning.state })
       return
     }
     await handleInspect(ctx, { live })
@@ -679,7 +693,7 @@ const handleLifecycle = async (ctx: CliCommandContext, action: 'retire' | 'revok
   const transitioned = await transitionVoiceRegistrationLifecycle({
     charactersRoot: getCharactersRoot(), registrationId, generationId, action: resolved, ...(reason ? { reason } : {})
   })
-  console.log(JSON.stringify({ registrationId, generationId: transitioned.generationId, state: transitioned.approval.state, cleanupState: transitioned.cleanupState.state }, null, 2))
+  reportVoiceResult('Voice lifecycle transitioned', { registrationId, generationId: transitioned.generationId, state: transitioned.approval.state, cleanupState: transitioned.cleanupState.state })
 }
 
 const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
@@ -696,7 +710,7 @@ const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   if (confirmResourceId !== providerVoice.resourceId) throw CLIUsageError('--confirm-voice-id must match the exact registered provider resource ID.')
   if (providerVoice.ownership !== 'project' || providerVoice.deletion.state !== 'eligible') throw CLIUsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'voice-delete', estimatedCostCents: 0, mutation: false, registrationId, generationId, resourceId: providerVoice.resourceId }, null, 2))
+    reportVoicePrice('Voice delete estimate', { operation: 'voice-delete', estimatedCostCents: 0, mutation: false, registrationId, generationId, resourceId: providerVoice.resourceId })
     return
   }
   const pending = registration.cleanupState.state === 'deletion-pending'
@@ -712,7 +726,7 @@ const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const terminal = await transitionVoiceRegistrationLifecycle({
     charactersRoot: getCharactersRoot(), registrationId, generationId: pending.generationId, action: 'delete', transitionedAt: deleted.deletedAt
   })
-  console.log(JSON.stringify({ registrationId, generationId: terminal.generationId, state: terminal.provisioning.state }, null, 2))
+  reportVoiceResult('Voice registration deleted', { registrationId, generationId: terminal.generationId, state: terminal.provisioning.state })
 }
 
 const consentCommand = defineCliCommand({

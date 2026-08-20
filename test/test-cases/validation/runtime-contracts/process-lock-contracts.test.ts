@@ -3,6 +3,11 @@ import { mkdir, mkdtemp, readdir, rm, stat, utimes, writeFile } from 'node:fs/pr
 import { hostname, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
+import {
+  childLifecycleEnterLine,
+  childLifecycleExitLine,
+  readChildLifecycleTimestamp
+} from '../../../test-utils/fixtures/child-lifecycle-protocol'
 
 const tempDirs: string[] = []
 const heartbeatReleaseFixturePath = new URL('../fixtures/process-lock-heartbeat-release.ts', import.meta.url).pathname
@@ -74,9 +79,9 @@ const spawnLockChild = (
     const lockRoot = process.env.LOCK_ROOT
     if (!lockRoot) throw new Error('missing LOCK_ROOT')
     await withProcessLock('cross-process-lock', async () => {
-      console.log('${label}:enter:' + Date.now())
+      ${childLifecycleEnterLine(label)}
       ${hold}
-      console.log('${label}:exit:' + Date.now())
+      ${childLifecycleExitLine(label)}
     }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: ${staleMs} })
   `
 
@@ -152,9 +157,9 @@ test('process lock serializes separate processes', async () => {
   expect(firstResult.stderr).toBe('')
   expect(secondResult.stderr).toBe('')
 
-  const lines = `${firstResult.stdout}\n${secondResult.stdout}`.trim().split('\n')
-  const firstExit = Number(lines.find((line) => line.startsWith('first:exit:'))?.split(':')[2] ?? '0')
-  const secondEnter = Number(lines.find((line) => line.startsWith('second:enter:'))?.split(':')[2] ?? '0')
+  const combined = `${firstResult.stdout}\n${secondResult.stdout}`
+  const firstExit = readChildLifecycleTimestamp(combined, 'first', 'exit')
+  const secondEnter = readChildLifecycleTimestamp(combined, 'second', 'enter')
 
   expect(firstExit).toBeGreaterThan(0)
   expect(secondEnter).toBeGreaterThanOrEqual(firstExit)
@@ -182,9 +187,9 @@ test('process lock keeps a live same-host owner when its heartbeat is late', asy
   expect(firstResult.stderr).toBe('')
   expect(secondResult.stderr).toBe('')
 
-  const lines = `${firstResult.stdout}\n${secondResult.stdout}`.trim().split('\n')
-  const firstExit = Number(lines.find((line) => line.startsWith('first:exit:'))?.split(':')[2] ?? '0')
-  const secondEnter = Number(lines.find((line) => line.startsWith('second:enter:'))?.split(':')[2] ?? '0')
+  const combined = `${firstResult.stdout}\n${secondResult.stdout}`
+  const firstExit = readChildLifecycleTimestamp(combined, 'first', 'exit')
+  const secondEnter = readChildLifecycleTimestamp(combined, 'second', 'enter')
 
   expect(firstExit).toBeGreaterThan(0)
   expect(secondEnter).toBeGreaterThanOrEqual(firstExit)

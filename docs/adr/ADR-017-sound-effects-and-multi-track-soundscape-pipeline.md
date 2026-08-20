@@ -383,12 +383,12 @@ The offline test suite verifies:
 
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — canonical manifest, resume, and no-call price planning
 - Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — workflow type ownership and the `~/types` barrel
-- Related ADR: [ADR-006](ADR-006-unify-error-handling-vocabulary.md) — cause-aware admission classification, structured failures, and explicit TTS redispatch authorization
+- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) — cause-aware admission classification, structured failures, and explicit TTS redispatch authorization
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — shared provider infrastructure and comic boundaries
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — bounded provider work and lane identity
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — model-qualified capability, lifecycle, and pricing policy
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md) — exact TTS preflight, paid-approval state, and report evidence lifecycle
-- Related report: [2026 Hosted-Model Refresh Report: TTS](../reports/07-model-refresh-tts-report-2026-08-19.md) — dated selector, provider, price, and compatibility changes
+- Related report: [2026 Hosted-Model Refresh Report: TTS](../models/05-tts-model-report.md) — dated selector, provider, price, and compatibility changes
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — dialogue, timing, cache, artifact, and mastering foundation
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — derived panel timing, presentation remix, and still-image rendering
 - Core Implementation: `src/types/soundscape-workflow/soundscape-types.ts`

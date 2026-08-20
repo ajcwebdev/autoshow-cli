@@ -1,5 +1,6 @@
-import { afterEach, beforeEach } from 'bun:test'
-import type { EnvSnapshot, MockFetchCall, MockFetchHandler } from '~/types'
+import { afterEach, beforeEach, expect } from 'bun:test'
+import type { AppErrorKind, EnvSnapshot, MockFetchCall, MockFetchHandler } from '~/types'
+import { extractErrorMetadata, isAppError } from '~/utils/error-handler'
 import { createTempDirTracker } from './temp-dirs'
 
 export const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
@@ -138,3 +139,94 @@ export const setupContractSuiteLifecycle = (
 
   return tempDirs
 }
+
+export type ProviderHttpErrorExpectation = {
+  status?: number
+  kind?: AppErrorKind
+  stage?: string
+  retryable?: boolean
+  headers?: Readonly<Record<string, string>>
+  messageContains?: string | readonly string[]
+  instanceOf?: new (...args: never[]) => Error
+  name?: string
+}
+
+/**
+ * Asserts a provider call rejects with the expected HTTP-error shape.
+ *
+ * The sentinel lives outside the `try`, via `expect.unreachable`, so a call that
+ * unexpectedly *succeeds* reports exactly that. The widespread hand-rolled spelling put
+ * `throw new Error('Expected … to fail')` inside the try, where its own catch swallowed
+ * it and asserted against the sentinel as if it were the provider error — turning a
+ * missing rejection into a confusing message mismatch.
+ *
+ * Fields are read through `extractErrorMetadata`, the same duck-typed reader production
+ * retry classification uses, so an assertion here pins what the app actually sees.
+ */
+export const expectProviderHttpError = async (
+  fn: () => Promise<unknown>,
+  expectation: ProviderHttpErrorExpectation = {}
+): Promise<Error> => {
+  let caught: unknown
+  let threw = false
+  try {
+    await fn()
+  } catch (error) {
+    threw = true
+    caught = error
+  }
+
+  if (!threw) {
+    expect.unreachable('Expected the provider call to reject, but it resolved')
+  }
+
+  const error = caught instanceof Error ? caught : new Error(String(caught))
+  const metadata = extractErrorMetadata(error)
+
+  if (expectation.instanceOf) expect(error).toBeInstanceOf(expectation.instanceOf)
+  if (expectation.name !== undefined) expect(error.name).toBe(expectation.name)
+  if (expectation.status !== undefined) expect(metadata['status']).toBe(expectation.status)
+  if (expectation.stage !== undefined) expect(metadata['stage']).toBe(expectation.stage)
+  if (expectation.retryable !== undefined) expect(metadata['retryable']).toBe(expectation.retryable)
+  if (expectation.kind !== undefined) {
+    expect(isAppError(error)).toBe(true)
+    expect(isAppError(error) ? error.kind : undefined).toBe(expectation.kind)
+  }
+  if (expectation.headers) {
+    const headers = (error as { headers?: Headers }).headers
+    for (const [key, value] of Object.entries(expectation.headers)) {
+      expect(headers?.get(key)).toBe(value)
+    }
+  }
+  for (const fragment of typeof expectation.messageContains === 'string'
+    ? [expectation.messageContains]
+    : expectation.messageContains ?? []) {
+    expect(error.message).toContain(fragment)
+  }
+
+  return error
+}
+
+/**
+ * Mock-fetch guard for suites that must not reach the network. Counting the calls (rather
+ * than only throwing) means a swallowed rejection still fails the test, and the thrown
+ * message names the URL so the offending call is identifiable.
+ */
+export const unexpectedFetch = (label = 'test'): { fetchImpl: typeof fetch, attempts: () => number } => {
+  let attempts = 0
+  const fetchImpl = ((input: Parameters<typeof fetch>[0]): Promise<Response> => {
+    attempts += 1
+    return Promise.reject(new Error(`${label} attempted an unexpected network fetch: ${String(input)}`))
+  }) as typeof fetch
+  return { fetchImpl, attempts: () => attempts }
+}
+
+/**
+ * Factory for the "this callback must never run" guards used in negative fixtures. The
+ * thrown error names the callback, so the failure is distinguishable from a real
+ * assertion failure in the same test.
+ */
+export const unexpectedCall = (label: string): (...args: unknown[]) => never =>
+  () => {
+    throw new Error(`Unexpected call to ${label}`)
+  }

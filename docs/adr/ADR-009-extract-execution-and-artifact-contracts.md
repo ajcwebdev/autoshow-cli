@@ -309,7 +309,7 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 - Command pricing orchestration: `src/cli/commands/pricing-orchestration/`
 - Pure pricing primitives: `src/utils/pricing/`
 - OCR workflow types: `src/types/ocr-workflow/`
-- Token-shape audit entry point: `src/cli/commands/process-steps/step-2-extract/extract-pricing/audit-ocr-token-shapes.ts`
+- Token-shape audit entry point: `src/tools/audit-ocr-token-shapes.ts`
 - Resume command: `src/cli/commands/setup-and-utilities/resume/`
 - Extract selector projection: `src/cli/flags/service-selector-normalization/extract-selectors.ts`, `src/cli/flags/service-selector-normalization/provider-targets.ts`
 - Shared chapter filename helper: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`

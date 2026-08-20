@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "repo": "bun src/tools/repo-snapshot.ts",
-    "audit:ocr-tokens": "bun src/cli/commands/process-steps/step-2-extract/extract-pricing/audit-ocr-token-shapes.ts",
+    "audit:ocr-tokens": "bun src/tools/audit-ocr-token-shapes.ts",
     "analyze:complexity": "bun src/tools/analyze-typescript-complexity.ts --scope src --scope test",
     "check": "bun src/tools/unique-source-name-check.ts && bunx tsc --noEmit",
     "t": "bun test/test-runner.ts",

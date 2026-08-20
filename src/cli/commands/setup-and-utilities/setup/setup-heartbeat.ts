@@ -47,8 +47,22 @@ const stopTicker = (): void => {
 const startTicker = (): void => {
   if (ticker) return
   ticker = setInterval(() => {
-    const line = formatSetupHeartbeatLine([...inFlight.values()], Date.now())
-    if (line) l.write('info', line)
+    const nowMs = Date.now()
+    const line = formatSetupHeartbeatLine([...inFlight.values()], nowMs)
+    if (!line) return
+    // The mechanism is scheduling, so it stays; only the emission is normalized — a
+    // category, and the elapsed times as structured fields rather than only inside the
+    // rendered sentence.
+    l.write('info', line, {
+      category: 'command',
+      metadata: {
+        tasks: [...inFlight.values()].map((entry) => ({
+          label: entry.label,
+          elapsedMs: nowMs - entry.startedAtMs,
+          quietMs: nowMs - entry.lastActivityAtMs
+        }))
+      }
+    })
   }, SETUP_HEARTBEAT_INTERVAL_MS)
   ticker.unref?.()
 }

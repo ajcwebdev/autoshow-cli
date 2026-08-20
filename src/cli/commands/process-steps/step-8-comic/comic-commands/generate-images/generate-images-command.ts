@@ -6,7 +6,7 @@ import type { ComicSourceIdentity, FinalPanelImageStageOptions, GenerateComicPag
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '../../comic-utils/image-size'
 import { InfraError } from '~/utils/error-handler'
 import { ScenePromptDataSchema } from '../../schemas/schemas'
-import { comicLog, err, formatCompactCost, formatDuration, suppressSharedPipelineLogs } from '../../comic-utils/comic-logger'
+import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
 import { getPanelPromptsDirectory, getSceneJsonPath, getSceneMetadataDirectoryForWorkspace, getSceneOutputDirectory } from '../../comic-utils/project-paths'
 import { beginSceneRun, findLatestSceneRunDirectory } from '../../comic-utils/scene-run-context'
 import { createComicRunId } from '../../comic-utils/comic-run-id'
@@ -183,15 +183,11 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
   }
 }
 
-export const generateImagesCommand = async (
+const runGenerateImagesCommand = async (
   options: GenerateImagesCommandOptions,
   dependencies: GenerateImagesWorkflowDependencies = {}
 ): Promise<void> => {
   const { sceneSlug } = options
-
-  // Comic prints its own per-image output line with the real path; drop the shared
-  // image services' interim pipeline logs (which show the throwaway scratch path).
-  suppressSharedPipelineLogs()
 
   // Image generation is a controlled consumer: it only resumes a reviewed run and
   // never drafts, upgrades, or rewrites scene/panel artifacts. --force is image-only.
@@ -364,3 +360,16 @@ export const generateImagesCommand = async (
   ])
   comicLog.outputDirectory(sceneRunDir)
 }
+
+/**
+ * Comic prints its own per-image output line with the real path, so the shared image
+ * services' interim `pipeline` logs (which show the throwaway scratch path) are suppressed
+ * for the duration of this run — and only this run, so a direct caller is unaffected after
+ * it returns.
+ */
+export const generateImagesCommand = async (
+  options: GenerateImagesCommandOptions,
+  dependencies: GenerateImagesWorkflowDependencies = {}
+): Promise<void> => await withSuppressedPipelineLogs(
+  async () => { await runGenerateImagesCommand(options, dependencies) }
+)

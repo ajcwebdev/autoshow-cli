@@ -256,10 +256,15 @@ const processLyricsRun = async (options: {
   }
 }
 
+// Was a hand-rolled `new Error(...) as Error & { exitCode }` cast. A batch that finishes
+// with failed items is an execution outcome, not a usage mistake, so it stays exit 1 and
+// joins the AppError family rather than becoming a usage error.
 const failWithExitCode = (message: string, exitCode: number): never => {
-  const error = new Error(message) as Error & { exitCode?: number }
-  error.exitCode = exitCode
-  throw error
+  throw InfraError(message, {
+    stage: 'music:lyrics-video',
+    exitCode,
+    retryable: false
+  })
 }
 
 export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promise<void> => {

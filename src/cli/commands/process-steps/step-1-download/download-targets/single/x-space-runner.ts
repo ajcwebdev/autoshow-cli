@@ -1,27 +1,19 @@
 import { ensureDirectory } from '~/utils/cli-utils'
-import { CLIUsageError, hintsForMissingEnv } from '~/utils/error-handler'
+import { CLIUsageError } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
 import { runExtractedDocumentWrite } from './document-write'
 import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItemProcessResult, DocumentMetadata, ExtractionResult, MetadataOutputOptions, ParsedSpaceInput, ProcessDocumentOutput, SharedPipelineOptions, SpacesArtifact, WriteRuntimeOptions, XSpaceExtractionArtifacts } from '~/types'
+import { requireApiKey } from '~/utils/validate/env-utils'
 
 const X_SPACE_URL_BASE = 'https://x.com/i/spaces/'
 
-const getXBearerToken = (purpose: 'download' | 'extraction' | 'metadata'): string => {
-  const bearerToken = readEnv('X_BEARER_TOKEN')
-  if (!bearerToken) {
-    throw CLIUsageError(
-      `X_BEARER_TOKEN environment variable is required for X/Twitter Space ${purpose}.`,
-      hintsForMissingEnv('X_BEARER_TOKEN')[0]
-    )
-  }
-  return bearerToken
-}
+const getXBearerToken = (purpose: 'download' | 'extraction' | 'metadata'): string =>
+  requireApiKey('X_BEARER_TOKEN', 'download:x-spaces', `X/Twitter Space ${purpose}`)
 
 const collectXSpacesArtifact = async (
   target: string,

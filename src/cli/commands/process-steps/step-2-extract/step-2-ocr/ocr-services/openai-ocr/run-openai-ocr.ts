@@ -6,6 +6,7 @@ import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAG
 import { InfraError, InternalError } from '~/utils/error-handler'
 import { applyOpenAIResponsesReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 
 const OPENAI_NATIVE_STRUCTURED_MODELS = new Set([
   'gpt-5.6-sol',
@@ -195,7 +196,7 @@ export const runOpenAIOcr = async (
             effectiveReasoningEffort: policy.effective
           }
         }
-        throw InfraError('OpenAI OCR returned no text output.', { stage: 'ocr:openai' })
+        throw new OcrStructuredResponseError('OpenAI OCR returned no text output.', rawText)
       }
 
       const pages = expectedPageCount === 1

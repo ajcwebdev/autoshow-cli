@@ -1,9 +1,10 @@
+import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { join, resolve as resolvePath } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import type { AggregatedPriceEstimate, NormalizedResumeProviderBatchRunOptions, PipelineItemRecord, ProviderResumePassResult, ResumeDisplayOptions, ResumeProviderBatchRunOptions, ResumeResult, ResumeSttEntry, ResumeTarget, SttExtractionOptions, SttResumePassContext, SttTarget } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { CLIUsageError } from '~/utils/error-handler'
 import { processStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/process-stt'
 import { logSttBatchFinalSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
 import { buildSttBatchSchedulerRows } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-policy'
@@ -337,7 +338,10 @@ export const resumeSttTarget = async (
     await logSttBatchFinalSummary(result.batchDir)
   }
   if (result.incomplete > 0 || result.fail > 0) {
-    throw InfraError(`STT resume still has ${result.incomplete} incomplete and ${result.fail} failed item(s)`, { stage: 'resume:stt', exitCode: 2 })
+    throw partialCompletionError(`STT resume still has ${result.incomplete} incomplete and ${result.fail} failed item(s)`, {
+      stage: 'resume:stt',
+      metadata: { incomplete: result.incomplete, failed: result.fail }
+    })
   }
   return toProviderResumeResult(result)
 }

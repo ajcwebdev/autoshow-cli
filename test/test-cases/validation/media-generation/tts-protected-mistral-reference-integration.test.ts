@@ -7,6 +7,7 @@ import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/ste
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { getMistralProtectedReference, getMistralProtectedSpeakerReferences } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-protected-reference-binding'
 import { materializeStandaloneMistralReference, planStandaloneMistralReference, planStandaloneMistralSpeakerReferences, prepareStandaloneMistralReference } from '~/cli/commands/process-steps/step-4-tts/voice-assets/standalone-mistral-reference'
+import { captureConsole } from '../../../test-utils/console-capture'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
@@ -566,20 +567,15 @@ describe('standalone Mistral protected request references', () => {
 
     const previousFetch = globalThis.fetch
     const previousApiKey = process.env['MISTRAL_API_KEY']
-    const previousConsole = {
-      log: console.log,
-      warn: console.warn,
-      error: console.error
-    }
-    const logs: string[] = []
-    console.log = (...args: unknown[]) => { logs.push(args.map(String).join(' ')) }
-    console.warn = (...args: unknown[]) => { logs.push(args.map(String).join(' ')) }
-    console.error = (...args: unknown[]) => { logs.push(args.map(String).join(' ')) }
     process.env['MISTRAL_API_KEY'] = 'local-mock-key'
     globalThis.fetch = (async () => Response.json({ audio_data: createMockWavBase64() })) as unknown as typeof fetch
 
     try {
-      const result = await targets[0]!.run('Protected reference logging contract.', root, prepared)
+      let result!: Awaited<ReturnType<typeof targets[number]['run']>>
+      const captured = await captureConsole(async () => {
+        result = await targets[0]!.run('Protected reference logging contract.', root, prepared)
+      })
+      const logs = [...captured.stdout, ...captured.stderr]
       const observable = `${logs.join('\n')}\n${JSON.stringify(result.metadata)}\n${JSON.stringify({
         service: targets[0]!.service,
         model: targets[0]!.model,
@@ -594,9 +590,6 @@ describe('standalone Mistral protected request references', () => {
       globalThis.fetch = previousFetch
       if (previousApiKey === undefined) delete process.env['MISTRAL_API_KEY']
       else process.env['MISTRAL_API_KEY'] = previousApiKey
-      console.log = previousConsole.log
-      console.warn = previousConsole.warn
-      console.error = previousConsole.error
     }
   }, 10_000)
 

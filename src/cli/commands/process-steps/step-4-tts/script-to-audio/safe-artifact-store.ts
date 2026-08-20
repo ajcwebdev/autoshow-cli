@@ -3,7 +3,7 @@ import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir, unlink 
 import { createHash, randomUUID } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { ContainedArtifactFile, ImmutableArtifactFile, ReservedInvocationAttemptDirectory, SafeArtifactDirectory } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { AppInfrastructureError, CLIUsageError, extractErrorMetadata, hasErrorCode } from '~/utils/error-handler'
 
 const DIRECTORY_MODE = 0o700
 const FILE_MODE = 0o600
@@ -11,20 +11,37 @@ const SAFE_INVOCATION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
 const CLAIM_OWNER_FILE = /^owner-([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.lock$/
 
-export class ArtifactReservationConflictError extends Error {
+export class ArtifactReservationConflictError extends AppInfrastructureError {
   readonly code = 'ARTIFACT_RESERVATION_CONFLICT'
+  readonly relativePath: string
 
-  constructor(readonly relativePath: string) {
-    super(`Immutable invocation attempt directory is already reserved: ${relativePath}`)
+  constructor(relativePath: string) {
+    super(`Immutable invocation attempt directory is already reserved: ${relativePath}`, {
+      stage: 'tts:artifact-store',
+      retryable: false,
+      metadata: { relativePath }
+    })
     this.name = 'ArtifactReservationConflictError'
+    this.relativePath = relativePath
   }
 }
 
-const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object'
-  && error !== null
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
+// Marker for "the artifact this probe asked about is not there". Existence probes used to
+// spot it with a `/does not exist|no such file/` regex over the message, which matched this
+// module's own wording; classifying on the marker (or a real ENOENT) keeps the probe honest
+// when that wording changes.
+export const MISSING_ARTIFACT_STATE = 'missing'
+
+export const ARTIFACT_CONFLICT_STATE = 'conflict'
+
+/** True when a create-only artifact write lost to an existing file with different bytes. */
+export const isArtifactConflictError = (error: unknown): boolean =>
+  hasErrorCode(error, 'EEXIST')
+  || extractErrorMetadata(error)['artifactState'] === ARTIFACT_CONFLICT_STATE
+
+export const isMissingArtifactError = (error: unknown): boolean =>
+  hasErrorCode(error, 'ENOENT')
+  || extractErrorMetadata(error)['artifactState'] === MISSING_ARTIFACT_STATE
 
 const normalizeSafeRelativePath = (
   value: string,
@@ -60,7 +77,10 @@ const inspectSafeRoot = async (rootDir: string): Promise<{ absolute: string, can
     entry = await lstat(absolute)
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
-      throw CLIUsageError(`Safe artifact root does not exist: ${absolute}`)
+      throw Object.assign(
+        CLIUsageError(`Safe artifact root does not exist: ${absolute}`),
+        { metadata: { artifactState: MISSING_ARTIFACT_STATE } }
+      )
     }
     throw error
   }
@@ -213,7 +233,10 @@ export const writeImmutableArtifactFile = async (
       if (!hasErrorCode(error, 'EEXIST')) throw error
       const existing = await readExistingImmutableBytes(path)
       if (!existing.equals(bytes)) {
-        throw CLIUsageError(`Immutable artifact already exists with different bytes: ${path}`)
+        throw Object.assign(
+          CLIUsageError(`Immutable artifact already exists with different bytes: ${path}`),
+          { metadata: { artifactState: ARTIFACT_CONFLICT_STATE } }
+        )
       }
     }
   } catch (error) {
@@ -323,7 +346,10 @@ export const hardlinkContainedArtifact = async (
     if (!hasErrorCode(error, 'EEXIST')) throw error
     const existing = await readExistingImmutableBytes(path)
     if (!existing.equals(source.bytes)) {
-      throw CLIUsageError(`Hardlinked artifact already exists with different bytes: ${path}`)
+      throw Object.assign(
+        CLIUsageError(`Hardlinked artifact already exists with different bytes: ${path}`),
+        { metadata: { artifactState: ARTIFACT_CONFLICT_STATE } }
+      )
     }
   }
   return {

@@ -4,7 +4,7 @@ import { extname, isAbsolute, join } from 'node:path'
 import type { DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, OcrBatchRunContext, OcrPoolAttemptUsage, OcrPoolLedger, OcrPoolTargetState, OcrProviderFailureSummary, OcrTarget, ProcessDocumentOutput } from '~/types'
 import { ExtractionMetadataSchema } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
-import { CLIUsageError, extractErrorMetadata } from '~/utils/error-handler'
+import { CLIUsageError, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { validateData } from '~/utils/validate/validation'
 import { writeFile } from '~/utils/cli-utils'
@@ -598,7 +598,15 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
           ...(extracted.step2Metadata.effectiveReasoningEffort ? { effectiveReasoningEffort: extracted.step2Metadata.effectiveReasoningEffort } : {})
         }
       } catch (error) {
-        await writeOcrProviderError(absoluteArtifactDir, error, classifyOcrProviderFailure(error)).catch(() => undefined)
+        // If writing the failure diagnostics itself fails, say so: silently swallowing it
+        // leaves an artifact directory that looks complete but has no error record.
+        await writeOcrProviderError(absoluteArtifactDir, error, classifyOcrProviderFailure(error))
+          .catch((writeError: unknown) => {
+            l.warn(`Could not write OCR failure diagnostics to ${absoluteArtifactDir}`, {
+              category: 'artifact',
+              metadata: { artifactDir: absoluteArtifactDir, error: serializeDiagnosticError(writeError) }
+            })
+          })
         const failedUsage = usageFromError(error)
         await writeFile(join(absoluteArtifactDir, 'usage.json'), `${JSON.stringify({
           providerMode: 'pool',

@@ -1,5 +1,5 @@
 import type { FalTtsModel } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 
 export const FAL_TTS_SERIALIZER_VERSION = 'fal.tts.v1'
 
@@ -104,7 +104,7 @@ export const buildFalTtsRequestBody = (input: Readonly<{
 }
 
 export const extractFalTtsAudioUrl = (output: unknown): string => {
-  if (!output || typeof output !== 'object') throw new Error('fal.ai TTS returned an invalid response.')
+  if (!output || typeof output !== 'object') throw ValidationError('fal.ai TTS returned an invalid response.', { stage: 'tts:fal', retryable: false })
   const record = output as Record<string, unknown>
   const audio = record['audio']
   if (typeof audio === 'string' && audio.trim()) return audio
@@ -112,5 +112,5 @@ export const extractFalTtsAudioUrl = (output: unknown): string => {
     const url = (audio as Record<string, unknown>)['url']
     if (typeof url === 'string' && url.trim()) return url
   }
-  throw new Error('fal.ai TTS response did not contain an audio URL.')
+  throw ValidationError('fal.ai TTS response did not contain an audio URL.', { stage: 'tts:fal', retryable: false })
 }

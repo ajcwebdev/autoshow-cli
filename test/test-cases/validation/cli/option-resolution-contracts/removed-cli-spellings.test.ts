@@ -1,33 +1,16 @@
 import { describe, expect, test } from 'bun:test'
-import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
-import { NativeNoSuchCommandError, NativeUnknownFlagError } from '~/cli/native/native-errors'
-import { parseCommandInvocation, parseNativeCli } from '~/cli/native/native-parser'
+import { parseCommandInvocation } from '~/cli/native/native-parser'
+import {
+  commandNamed,
+  expectUnknownCommand,
+  expectUnknownFlag
+} from '../../../../test-utils/cli-assertions'
 import {
   draftScenesCommandDefinition
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-
-const parseRoot = (argv: string[]) =>
-  parseNativeCli(argv, COMMAND_DEFINITIONS, GLOBAL_FLAG_DEFINITIONS)
-
-const commandNamed = (name: string) => {
-  const command = COMMAND_DEFINITIONS.find((entry) => entry.name === name)
-  if (!command) throw new Error(`missing command ${name}`)
-  return command
-}
-
-const expectUnknownCommand = (argv: string[], name: string): void => {
-  expect(() => parseRoot(argv)).toThrow(NativeNoSuchCommandError)
-  expect(() => parseRoot(argv)).toThrow(`Unknown command "${name}"`)
-}
-
-const expectUnknownFlag = (argv: string[], flag: string): void => {
-  const command = commandNamed(argv[0]!)
-  expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(NativeUnknownFlagError)
-  expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(`Unexpected flag: ${flag}`)
-}
 
 const removedSetupCommand = ['so', 'ck'].join('')
 

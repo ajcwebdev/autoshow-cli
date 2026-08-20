@@ -16,6 +16,7 @@ import { computeVoiceCandidateId } from '~/cli/commands/process-steps/step-4-tts
 import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/process-steps/step-4-tts/voice-management/voice-registration-management'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
+import { captureLogEvents } from '../../../../test-utils/console-capture'
 import { asCtx, expectUnknownCommand, makeTempRoot, parseRoot, registerUsageErrorCleanup } from './shared'
 
 registerUsageErrorCleanup()
@@ -93,18 +94,11 @@ const writeCurrentIndex = async (root: string, selections: Array<{ registrationI
   }, null, 2)}\n`)
 }
 
+// Voice results now travel `l.report.result`, so assertions read the structured
+// payload off the sink event instead of scraping stdout.
 const captureLogs = async (run: () => Promise<void>): Promise<string[]> => {
-  const logs: string[] = []
-  const original = console.log
-  console.log = (...args: unknown[]) => {
-    logs.push(args.map(String).join(' '))
-  }
-  try {
-    await run()
-    return logs
-  } finally {
-    console.log = original
-  }
+  const { events } = await captureLogEvents(run)
+  return events.filter((event) => event.metadata).map((event) => JSON.stringify(event.metadata))
 }
 
 afterEach(() => {

@@ -67,7 +67,7 @@ This applies to:
 - Hosted and local OCR targets admitted by target-pool controls and provider/account lane identities.
 - Page claims, accepted outputs, attempts, failures, usage, costs, timing, artifacts, telemetry, and diagnostics.
 - Fan-out preservation: absent or explicit `fanout` keeps existing full-document provider paths, provider state, pricing, resume, and optional primary-result behavior unchanged.
-- Scope explicitly excluded: altering source classification or normalization under [ADR-001](ADR-001-source-ingestion-and-normalization.md), changing error taxonomies under [ADR-006](ADR-006-unify-error-handling-vocabulary.md), modifying model catalog entries recorded in the 2026 hosted-model refresh reports under `docs/reports/`, or treating benchmark reports as price or resume authorities.
+- Scope explicitly excluded: altering source classification or normalization under [ADR-001](ADR-001-source-ingestion-and-normalization.md), changing error taxonomies under [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), modifying model catalog entries recorded in the 2026 hosted-model refresh reports under `docs/reports/`, or treating benchmark reports as price or resume authorities.
 
 ### Queue, admission, and claims
 

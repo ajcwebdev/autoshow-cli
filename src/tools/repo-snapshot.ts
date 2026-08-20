@@ -7,6 +7,7 @@ import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import type { TreeNode } from '~/types'
 import { countReferenceTokens } from '~/utils/reference-tokenizer'
 import * as l from '~/utils/app-logger/app-logger'
+import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
 // In-repository replacement for the retired Repomix dependency. It reproduces
 // the previous `bun repo` snapshot byte for byte: the same include set
@@ -221,17 +222,45 @@ const run = async (): Promise<number> => {
     const totalTokens = countReferenceTokens(document)
     const totalChars = document.length
     const topFiles = [...metrics].sort((a, b) => b.tokens - a.tokens || b.chars - a.chars).slice(0, TOP_FILES_LENGTH)
-    console.log(`\nTop ${TOP_FILES_LENGTH} Files by Token Count:`)
-    topFiles.forEach((file, index) => {
+    const topFileRows = topFiles.map((file, index) => {
       const share = totalTokens > 0 ? ((file.tokens / totalTokens) * 100).toFixed(1) : '0.0'
-      console.log(`${String(index + 1).padEnd(3)} ${file.path} (${formatCount(file.tokens)} tokens, ${formatCount(file.chars)} chars, ${share}%)`)
+      return {
+        rank: index + 1,
+        // Deliberately not named `path`: the ranked listing is the payload here, so the
+        // wide-path detail lifting that suits artifact summaries would break it apart.
+        module: file.path,
+        tokens: formatCount(file.tokens),
+        chars: formatCount(file.chars),
+        share: `${share}%`
+      }
     })
-    console.log('\nPack Summary:')
-    console.log(`  Total Files: ${formatCount(metrics.length)} files`)
-    console.log(` Total Tokens: ${formatCount(totalTokens)} tokens (o200k_base)`)
-    console.log(`  Total Chars: ${formatCount(totalChars)} chars`)
-    console.log(`       Output: ${outputFile}`)
-    l.write('info', `Successfully created ${outputFile}`, { category: 'artifact' })
+
+    l.write('success', `Successfully created ${outputFile}`, {
+      category: 'artifact',
+      humanSections: [
+        {
+          title: `Top ${TOP_FILES_LENGTH} Files by Token Count`,
+          table: createHumanTable(topFileRows, ['rank', 'module', 'tokens', 'chars', 'share'], {
+            align: { tokens: 'right', chars: 'right', share: 'right' }
+          })
+        },
+        {
+          title: 'Pack Summary',
+          table: createKeyValueTable([
+            ['Total Files', `${formatCount(metrics.length)} files`],
+            ['Total Tokens', `${formatCount(totalTokens)} tokens (o200k_base)`],
+            ['Total Chars', `${formatCount(totalChars)} chars`],
+            ['Output file', outputFile]
+          ])
+        }
+      ],
+      metadata: {
+        outputFile,
+        totalFiles: metrics.length,
+        totalTokens,
+        totalChars
+      }
+    })
     return 0
   } catch (error) {
     l.error(`Error creating repository snapshot: ${error instanceof Error ? error.message : String(error)}`)

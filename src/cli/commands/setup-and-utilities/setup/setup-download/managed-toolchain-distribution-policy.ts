@@ -1,4 +1,5 @@
 import type { ManagedArtifactToolId, ManagedPrebuiltLicense, ManagedToolchainNoticePlanEntry } from '~/types'
+import { InternalError } from '~/utils/error-handler'
 
 const REVIEWED_AT = '2026-08-13'
 const REPOSITORY_REVIEWER = 'github:ajcwebdev/repository-owner'
@@ -148,7 +149,12 @@ export const managedToolchainDistributionNoticePlan = (tool: ManagedArtifactTool
 
 export const managedToolchainSpdxLicense = (sourceName: string): string => {
   const license = SPDX_LICENSE_BY_SOURCE[sourceName]
-  if (!license) throw new Error(`no approved SPDX license for managed toolchain source ${sourceName}`)
+  if (!license) {
+    throw InternalError(`no approved SPDX license for managed toolchain source ${sourceName}`, {
+      stage: 'setup:managed-artifact',
+      retryable: false
+    })
+  }
   return license
 }
 

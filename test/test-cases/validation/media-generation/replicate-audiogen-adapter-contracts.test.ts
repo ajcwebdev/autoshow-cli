@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -28,6 +29,7 @@ import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, planSoundEff
 import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import type { SoundEffectRenderTask, SoundscapePlan } from '~/types'
+import { isAppError, normalizeExitCode } from '~/utils/error-handler'
 
 const POLL_URL = 'https://api.replicate.com/v1/predictions/prediction-audiogen'
 const CANCEL_URL = 'https://api.replicate.com/v1/predictions/prediction-audiogen/cancel'
@@ -190,7 +192,18 @@ describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
   })
 
   test('createReplicateAudioGenAdapter requires an API token', () => {
-    expect(() => createReplicateAudioGenAdapter({ apiToken: '' })).toThrow(/requires REPLICATE_API_TOKEN/)
+    // Reports the missing credential through the single gate, so the message, exit code,
+    // and hints match every other provider rather than being adapter-specific.
+    expect(() => createReplicateAudioGenAdapter({ apiToken: '' }))
+      .toThrow(/REPLICATE_API_TOKEN environment variable is required/)
+    try {
+      createReplicateAudioGenAdapter({ apiToken: '' })
+    } catch (error) {
+      expect(isAppError(error) && error.kind).toBe('usage')
+      expect(normalizeExitCode(error)).toBe(2)
+      return
+    }
+    expect.unreachable('Expected a missing-credential usage error')
   })
 
   test('mocked prediction create/poll/download retains evidence and reuses the shared cache', async () => {
@@ -234,7 +247,7 @@ describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
     const failedAdapter = createReplicateAudioGenAdapter({
       apiToken: 'fixture-token',
       runPrediction: async () => {
-        throw Object.assign(new Error('status failed'), { status: 422 })
+        throw ProviderError('status failed', { status: 422 })
       },
     })
     await expect(failedAdapter.generate(validTask(), target, 1, new AbortController().signal)).rejects.toThrow(/prediction failed/)
@@ -242,7 +255,7 @@ describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
     const timedOutAdapter = createReplicateAudioGenAdapter({
       apiToken: 'fixture-token',
       runPrediction: async () => {
-        throw Object.assign(new Error('prediction timed out'), { status: 504 })
+        throw ProviderError('prediction timed out', { status: 504 })
       },
     })
     await expect(timedOutAdapter.generate(validTask(), target, 1, new AbortController().signal)).rejects.toMatchObject({ admissionDisposition: 'ambiguous' })

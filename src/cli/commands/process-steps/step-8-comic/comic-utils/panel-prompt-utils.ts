@@ -11,7 +11,7 @@ import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATIO
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
-import { l } from './comic-logger'
+import { comicWrite } from './comic-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
@@ -29,10 +29,10 @@ export const extractPanelBundleData = (content: string): PanelBundleData => {
   if (!json) throw ValidationError('Prompt bundle is missing a JSON block. Unversioned bundles must be regenerated.', { stage: 'comic:panel-prompt' })
   try {
     const value = v.parse(PanelBundleDataSchema, JSON.parse(json))
-    if (value.panels.length !== 1) throw new Error(`expected one panel, found ${value.panels.length}`)
+    if (value.panels.length !== 1) throw ValidationError(`expected one panel, found ${value.panels.length}`, { stage: 'comic:panel-prompt', retryable: false })
     return value
   } catch (error) {
-    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt' })
+    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt', ...(error instanceof Error ? { cause: error } : {}) })
   }
 }
 
@@ -121,7 +121,7 @@ export const applyReferenceImageLimits = (
 ): ResolvedReferenceImages => {
   const optional = [...prior, ...secondary].filter(path => !primary.includes(path))
   const limited = trimOptionalContinuityReferences(model, primary, optional)
-  if (limited.trimmed.length > 0) l.dim(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
+  if (limited.trimmed.length > 0) comicWrite(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
   return buildResolved(limited.references, primary, prior, secondary, missing)
 }
 

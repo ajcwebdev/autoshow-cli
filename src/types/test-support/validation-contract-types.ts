@@ -97,7 +97,6 @@ export type ClientCase = {
   name: string
   request: () => Promise<unknown>
   errorName: string
-  appError: boolean
   bodyPolicy: 'raw-text' | 'parsed'
 }
 

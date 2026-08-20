@@ -10,6 +10,7 @@ import type {
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { SoundEffectProviderError } from './sound-effect-errors'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const DOCS = [
   'https://platform.stability.ai/docs/api-reference',
@@ -122,7 +123,7 @@ export const createStabilitySoundEffectAdapter = (options: {
   request?: StabilitySoundEffectHttpRequest | undefined
   now?: (() => string) | undefined
 }) => {
-  if (!options.apiKey.trim()) throw CLIUsageError('Stability Stable Audio 3 requires STABILITY_API_KEY.')
+  requireProvidedApiKey(options.apiKey, 'STABILITY_API_KEY', 'tts:soundscape', 'Stability Stable Audio 3')
   const request = options.request ?? defaultRequest(options.apiKey)
   const now = options.now ?? (() => new Date().toISOString())
   return {

@@ -1,32 +1,28 @@
 import { writeFile } from '~/utils/cli-utils'
 import type { OcrProviderFailureSummary } from '~/types'
-import { extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
+import { AppValidationError, collectErrorChain, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 
-export class OcrStructuredResponseError extends Error {
-  rawResponse: string
+// A provider returned a 200 whose body does not parse as the requested structure:
+// deterministic, so re-requesting the same response would fail identically.
+export class OcrStructuredResponseError extends AppValidationError {
+  readonly rawResponse: string
 
   constructor(message: string, rawResponse: string) {
-    super(message)
+    super(message, { stage: 'ocr:structured-response', retryable: false })
     this.name = 'OcrStructuredResponseError'
     this.rawResponse = rawResponse
   }
 }
 
+// Uses the shared `collectErrorChain` rather than a private cause walker, so cycle and
+// depth handling stay identical to the rest of the diagnostics layer.
 export const findOcrStructuredResponseError = (
   error: unknown
-): OcrStructuredResponseError | undefined => {
-  const seen = new Set<unknown>()
-  let current: unknown = error
-  while (current instanceof Error && !seen.has(current)) {
-    if (current instanceof OcrStructuredResponseError) {
-      return current
-    }
-    seen.add(current)
-    current = current.cause
-  }
-  return undefined
-}
+): OcrStructuredResponseError | undefined =>
+  collectErrorChain(error).find(
+    (entry) => entry instanceof OcrStructuredResponseError
+  ) as OcrStructuredResponseError | undefined
 
 export const writeInvalidOcrStructuredResponse = async (
   providerDir: string,

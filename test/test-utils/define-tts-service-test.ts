@@ -1,8 +1,6 @@
 import { expect } from 'bun:test'
 import {
-  runCommand,
   fileExists,
-  findLatestDirectory,
   STABLE_TTS_MD_PATH,
   STABLE_TTS_MD_TITLE,
 } from './test-helpers'
@@ -11,38 +9,12 @@ import {
   defineBudgetedLiveServiceTest,
   formatCommandFailureDiagnostics,
   requireConfiguredEnvVar,
+  runCommandAndExpectOutputDir,
   withOutputLifecycle
 } from './service-test-kit'
 import { readCanonicalRecord } from './manifest-helpers'
-import { l } from '~/utils/app-logger/app-logger'
+import { isTransientMinimaxTtsFailure, TERMINAL_TTS_FAILURES } from './provider-failure-classifiers'
 import type { RunCommandResult, TtsExtraArgs } from '~/types'
-
-const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, '')
-
-const isTransientMinimaxTtsFailure = (output: string): boolean => {
-  const clean = stripAnsi(output)
-  return (
-    /minimax-tts-chunk-\d+: deadline exceeded/i.test(clean) ||
-    /MiniMax TTS (task creation|task query|download) failed \((408|425|429|500|502|503|504)\)/i.test(clean) ||
-    /fetch failed|network error|econnreset|econnrefused|etimedout|socket hang up|dns/i.test(clean)
-  )
-}
-
-const isGroqTermsAcceptanceFailure = (output: string): boolean =>
-  /requires terms acceptance/i.test(stripAnsi(output))
-
-// Terminal per-service account states: no retry inside the run can clear them, so the
-// suite fails with the account-state message instead of a generic command failure.
-// Adding a provider quirk is a row here, not another branch in the test body.
-const TERMINAL_TTS_FAILURES: Record<string, {
-  matches: (output: string) => boolean
-  describe: (model: string) => string
-}> = {
-  groq: {
-    matches: isGroqTermsAcceptanceFailure,
-    describe: (model) => `Groq terms acceptance is required for ${model}`,
-  },
-}
 
 const resolveTtsExtraArgs = async (
   extraArgs: TtsExtraArgs | undefined,
@@ -50,34 +22,6 @@ const resolveTtsExtraArgs = async (
 ): Promise<readonly string[]> => {
   if (!extraArgs) return []
   return typeof extraArgs === 'function' ? await extraArgs(model) : extraArgs
-}
-
-// MiniMax alone gets one retry, because its transient chunk/deadline failures clear on a
-// second attempt. A transient failure that survives the retry is reported as such rather
-// than as a plain command failure.
-const runTtsWithMinimaxRetry = async (
-  args: string[],
-  ttsService: string,
-  model: string
-): Promise<RunCommandResult> => {
-  const result = await runCommand(args)
-  if (result.exitCode === 0 || ttsService !== 'minimax') {
-    return result
-  }
-
-  if (!isTransientMinimaxTtsFailure(`${result.stdout}\n${result.stderr}`)) {
-    return result
-  }
-
-  l.warn(`Retrying once after transient MiniMax TTS error for ${model}`)
-  await Bun.sleep(2_000)
-  const retried = await runCommand(args)
-
-  if (retried.exitCode !== 0 && isTransientMinimaxTtsFailure(`${retried.stdout}\n${retried.stderr}`)) {
-    throw new Error(`MiniMax transient TTS error persisted for ${model}\n${formatCommandFailureDiagnostics(args, retried)}`)
-  }
-
-  return retried
 }
 
 const throwOnKnownProviderFailure = (
@@ -169,19 +113,21 @@ export const defineTTSServiceTest = ({
         ...resolvedExtraArgs
       ]
 
-      const result = await runTtsWithMinimaxRetry(args, ttsService, model)
-      throwOnKnownProviderFailure(ttsService, model, args, result)
-
-      if (result.exitCode !== 0) {
-        throw new Error(formatCommandFailureDiagnostics(args, result))
-      }
-
-      expect(result.exitCode).toBe(0)
-
-      const outputDir = result.outputDir ?? await findLatestDirectory(inputTitle, result.outputRoot)
-      if (!outputDir) {
-        throw new Error(`Expected output directory for ${inputTitle}`)
-      }
+      const outputDir = await runCommandAndExpectOutputDir(inputTitle, args, undefined, {
+        // MiniMax is the one TTS provider whose transport failures are worth a single retry.
+        ...(ttsService === 'minimax'
+          ? {
+              transient: {
+                isTransient: isTransientMinimaxTtsFailure,
+                providerLabel: `transient MiniMax TTS error for ${model}`,
+                persistedLabel: `MiniMax transient TTS error persisted for ${model}`,
+              }
+            }
+          : {}),
+        onResult: (result) => { throwOnKnownProviderFailure(ttsService, model, args, result) },
+        // TTS reports the raw command failure; live-availability classification is not applied.
+        classifyAvailability: false
+      })
 
       await assertTtsArtifacts(outputDir, { ttsService, model, resolveExpectedSpeaker })
     }, timeoutMs)

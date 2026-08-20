@@ -62,6 +62,18 @@ export type LogWriteOptions = {
   humanSections?: readonly HumanLogSection[]
 }
 
+// Runtime key set used by `l.warn`/`l.debug` to tell a trailing options object
+// apart from an ordinary interpolation argument. Keep in sync with LogWriteOptions.
+export const LOG_WRITE_OPTION_KEYS: readonly string[] = [
+  'category',
+  'metadata',
+  'context',
+  'indent',
+  'args',
+  'humanTable',
+  'humanSections'
+]
+
 export type LogSinkEvent = {
   timestamp: string
   level: LogLevel
@@ -83,15 +95,23 @@ export type LogSink = (event: LogSinkEvent) => void
 export type MutableLoggerConfig = {
   sinks: LogSink[]
   minLevel: LogLevel
+  // Shared by reference with loggers derived through `withContext`, so a single
+  // `suppressLogCategories` call reaches every live logger.
+  suppressedCategories: LogCategory[]
 }
 
 
-type BaseLogFn = (message: string, ...args: unknown[]) => void
+// A single trailing LogWriteOptions object is lifted into structured fields;
+// anything else is forwarded as interpolation args, as before.
+export interface StructuredLogFn {
+  (message: string, options: LogWriteOptions): void
+  (message: string, ...args: unknown[]): void
+}
 
 export interface Logger {
   write: (level: LogLevel, message: string, options?: LogWriteOptions) => void
-  debug: BaseLogFn
-  warn: BaseLogFn
+  debug: StructuredLogFn
+  warn: StructuredLogFn
   error: (message: string, errorObj?: unknown) => void
   withContext: (context: LogContext) => Logger
   config: MutableLoggerConfig
@@ -144,10 +164,21 @@ export type CompleteOptions = {
   includeOutputDir?: boolean
 }
 
+export type ReportResultOptions = {
+  message?: string
+  level?: LogLevel
+  category?: LogCategory
+  humanTable?: HumanLogTable
+  humanSections?: readonly HumanLogSection[]
+}
+
 export type Reporter = {
   expectedOutput: (outputDir: string, files: string[]) => void
   estimate: (estimate: AggregatedPriceEstimate) => void
   complete: (outputDir: string, files: Record<string, string>, options?: CompleteOptions) => void
+  // Sanctioned structured-result channel for commands whose result is neither a
+  // price estimate nor a file-producing completion.
+  result: (data: Record<string, unknown>, options?: ReportResultOptions) => void
 }
 
 export type StepSummaryEntry = {

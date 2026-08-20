@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import {
   basePdfMetadata,
   hostedRun,
@@ -93,7 +94,7 @@ describe('OCR resilience contracts', () => {
         fallbackDir: tempDir,
         pageConcurrency: 1,
         runFull: async () => {
-          throw Object.assign(new Error('provider timed out while reading OCR response'), { status: 503 })
+          throw ProviderError('provider timed out while reading OCR response', { status: 503 })
         },
         createChunk: async (_inputPath, outputPath, range) => {
           await Bun.write(outputPath, `page ${range.startPage}`)
@@ -205,7 +206,7 @@ describe('OCR resilience contracts', () => {
         fallbackDir: tempDir,
         pageConcurrency: 1,
         runFull: async () => {
-          throw Object.assign(new Error('provider timed out while reading OCR response'), { status: 503 })
+          throw ProviderError('provider timed out while reading OCR response', { status: 503 })
         },
         createChunk: async (_inputPath, outputPath, range) => {
           await Bun.write(outputPath, `page ${range.startPage}`)
@@ -253,7 +254,7 @@ describe('OCR resilience contracts', () => {
         fallbackDir: tempDir,
         pageConcurrency: 2,
         runFull: async () => {
-          throw Object.assign(new Error('provider timed out while reading OCR response'), { status: 503 })
+          throw ProviderError('provider timed out while reading OCR response', { status: 503 })
         },
         createChunk: async (_inputPath, outputPath, range) => {
           await Bun.write(outputPath, `page ${range.startPage}`)
@@ -333,10 +334,7 @@ describe('OCR resilience contracts', () => {
           }
           if (range.startPage === 1) {
             await secondStarted
-            throw Object.assign(new Error('Anthropic Messages request failed (400): Output blocked by content filtering policy'), {
-              status: 400,
-              errorType: 'invalid_request_error'
-            })
+            throw ProviderError('Anthropic Messages request failed (400): Output blocked by content filtering policy', { status: 400, metadata: { errorType: 'invalid_request_error' } })
           }
           throw new Error(`page ${range.startPage} should not have been scheduled`)
         }

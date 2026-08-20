@@ -1,4 +1,3 @@
-import { isNativeUsageError, nativeUsageMessage } from '~/cli/native/native-errors'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, RetryClass } from '~/types'
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
@@ -45,9 +44,24 @@ export class AppError extends Error {
 }
 
 export class AppUsageError extends AppError {
-  constructor(message: string, hints?: string[]) {
-    super(message, { kind: 'usage', exitCode: 2, ...(hints ? { hints } : {}) })
-    this.name = 'CLIUsageError'
+  // The phrasing the top-level handler prints on the "Usage error: …" line. Defaults to
+  // `message`; subclasses (notably the native parser errors) set a longer form that adds
+  // the follow-up command without changing the message the throw site chose.
+  readonly usageMessage: string
+
+  constructor(
+    message: string,
+    hints?: string[],
+    options: { usageMessage?: string, cause?: Error | undefined } = {}
+  ) {
+    super(message, {
+      kind: 'usage',
+      exitCode: 2,
+      ...(hints ? { hints } : {}),
+      ...(options.cause ? { cause: options.cause } : {})
+    })
+    this.name = 'AppUsageError'
+    this.usageMessage = options.usageMessage ?? message
   }
 }
 
@@ -79,10 +93,17 @@ export class AppInternalError extends AppError {
   }
 }
 
+// `cause` matters even for usage errors: a re-wrap that drops it leaves `collectErrorChain`
+// with a one-element chain, so the underlying failure never reaches diagnostics.
 export const CLIUsageError = (
   message: string,
-  hint?: string
-): Error => new AppUsageError(message, hint ? [hint] : undefined)
+  hint?: string,
+  options: { cause?: Error | undefined } = {}
+): Error => new AppUsageError(
+  message,
+  hint ? [hint] : undefined,
+  options.cause ? { cause: options.cause } : {}
+)
 
 export const InfraError = (
   message: string,
@@ -161,6 +182,18 @@ export const isCLIUsageError = (error: unknown): error is AppUsageError =>
   error instanceof AppUsageError
 
 /**
+ * The one filesystem/system errno check. ENOENT in particular used to be detected three
+ * different ways (this predicate defined twice locally, plus a `/does not exist|no such
+ * file/` message regex), so a probe could silently classify differently depending on which
+ * spelling the call site happened to use.
+ */
+export const hasErrorCode = (error: unknown, code: string): boolean =>
+  typeof error === 'object'
+  && error !== null
+  && 'code' in error
+  && (error as { code?: unknown }).code === code
+
+/**
  * Runs `fn` and re-wraps any non-usage throw as a `CLIUsageError` (usage errors pass
  * through untouched). Consolidates the validator-wrapping idiom at command boundaries.
  */
@@ -174,7 +207,11 @@ export function rethrowAsUsage<T>(
     if (isCLIUsageError(error)) {
       throw error
     }
-    throw CLIUsageError(error instanceof Error ? error.message : String(error), fallbackHint)
+    throw CLIUsageError(
+      error instanceof Error ? error.message : String(error),
+      fallbackHint,
+      error instanceof Error ? { cause: error } : {}
+    )
   }
   try {
     const result = fn()
@@ -187,12 +224,9 @@ export function rethrowAsUsage<T>(
   }
 }
 
-export const isUsageError = (error: unknown): boolean => {
-  return (
-    isCLIUsageError(error) ||
-    isNativeUsageError(error)
-  )
-}
+// The whole usage family now extends AppUsageError, so one instanceof check covers it;
+// the native-parser duck-type bridge this used to need is gone.
+export const isUsageError = (error: unknown): boolean => isCLIUsageError(error)
 
 export const normalizeExitCode = (error: unknown): number => {
   if (isAppError(error)) {
@@ -211,10 +245,8 @@ export const normalizeExitCode = (error: unknown): number => {
 
 export const usageMessage = (error: unknown): string => {
   if (isCLIUsageError(error)) {
-    return error.message
+    return error.usageMessage
   }
-  const nativeMessage = nativeUsageMessage(error)
-  if (nativeMessage !== undefined) return nativeMessage
   return 'Invalid command usage. Run: bun autoshow --help'
 }
 

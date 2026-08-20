@@ -27,9 +27,9 @@ describe('logging contracts', () => {
       expect(formatCost(0.0736)).toBe('0.074\u00a2')
     })
 
-  test('human sink routes interactive info logs to stdout with table output', () => {
+  test('human sink routes interactive info logs to stdout with table output', async () => {
       const sink = createHumanSink({ interactive: true })
-      const captured = captureConsole(() => {
+      const captured = await captureConsole(() => {
         sink({
           ...makeEvent('info'),
           message: 'Locations',
@@ -43,9 +43,9 @@ describe('logging contracts', () => {
       expect(stripAnsi(captured.stdout[0] as string)).toContain('output/run/manifest.json')
     })
 
-  test('human sink colors log prefixes when color is enabled', () => {
+  test('human sink colors log prefixes when color is enabled', async () => {
       const sink = createHumanSink({ interactive: true })
-      const captured = withColorEnv({ forceColor: '1' }, () => captureConsole(() => {
+      const captured = await withColorEnv({ forceColor: '1' }, () => captureConsole(() => {
         sink({
           ...makeEvent('success'),
           message: 'Complete!',
@@ -58,9 +58,9 @@ describe('logging contracts', () => {
       expect(stripAnsi(output)).toContain('[00:00:00.000] \u2713 Complete!')
     })
 
-  test('human sink renders multiple titled sections on one event', () => {
+  test('human sink renders multiple titled sections on one event', async () => {
       const sink = createHumanSink({ interactive: true })
-      const captured = captureConsole(() => {
+      const captured = await captureConsole(() => {
         sink({
           ...makeEvent('info'),
           message: 'Complete',
@@ -79,9 +79,9 @@ describe('logging contracts', () => {
       expect(output).toContain('\u2502 speech \u2502 speech.wav')
     })
 
-  test('json sink routes warnings and errors to stderr and info to stdout', () => {
+  test('json sink routes warnings and errors to stderr and info to stdout', async () => {
       const sink = createJsonSink()
-      const captured = withColorEnv({ forceColor: '1' }, () => captureConsole(() => {
+      const captured = await withColorEnv({ forceColor: '1' }, () => captureConsole(() => {
         sink({
           ...makeEvent('info'),
           humanTable: createHumanTable([{ status: 'failed', cost: '2.00000\u00a2' }], ['status', 'cost'])

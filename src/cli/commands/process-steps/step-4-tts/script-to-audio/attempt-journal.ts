@@ -10,6 +10,7 @@ import { contained, writeJsonCreateOnly } from './attempt-io'
 import { stateForProjection } from './attempt-planning'
 import { buildProjection, publish } from './attempt-projection'
 import { buildBatchProgress } from './attempt-batches'
+import { isArtifactConflictError } from './safe-artifact-store'
 
 export const requireJournalFile = (ctx: AttemptContext): WrittenJson<RenderAdmissionJournalSnapshot> => {
   if (!ctx.journalFile) {
@@ -75,7 +76,10 @@ export const ensureJournalStarted = async (ctx: AttemptContext): Promise<void> =
       journalPath: ctx.journalRelativePath,
     })
   } catch (error) {
-    if (!(error instanceof Error) || !error.message.includes('already exists')) throw error
+    // A create-only write losing to an existing attempt file is benign here. Classified on
+    // the artifact-state marker rather than the message text, so a wording change cannot
+    // silently turn a benign conflict into a hard failure.
+    if (!isArtifactConflictError(error)) throw error
   }
   ctx.journalFile = await writeJournalLine(ctx, ctx.journal)
 }

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { stripAnsi } from '~/utils/terminal-colors'
 import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from '~/cli/command-definitions'
 import { HELP_FLAG_GROUPS } from '~/cli/native/help-groups'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
@@ -89,7 +90,7 @@ describe('help flag group catalog contracts', () => {
         if (!isRecord(definition) || !('default' in definition) || definition['default'] === undefined) continue
         const description = definition['description']
         if (typeof description !== 'string') continue
-        if (/\(default/i.test(description.replace(ANSI_ESCAPE_PATTERN, ''))) {
+        if (/\(default/i.test(stripAnsi(description))) {
           conflicting.push(`--${name}`)
         }
       }
@@ -99,12 +100,10 @@ describe('help flag group catalog contracts', () => {
   })
 })
 
-const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/g
-
 const descriptionRestatesDefault = (description: string, defaultValue: unknown): boolean => {
   if (typeof defaultValue !== 'string' && typeof defaultValue !== 'number' && typeof defaultValue !== 'boolean') {
     return false
   }
   const escaped = String(defaultValue).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`\\(default:?\\s*["']?${escaped}["']?(?:\\)|\\s*[;,])`, 'i').test(description.replace(ANSI_ESCAPE_PATTERN, ''))
+  return new RegExp(`\\(default:?\\s*["']?${escaped}["']?(?:\\)|\\s*[;,])`, 'i').test(stripAnsi(description))
 }

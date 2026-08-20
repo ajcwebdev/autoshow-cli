@@ -153,7 +153,7 @@ describe('retry error contracts', () => {
 
     expect(attempts).toBe(1)
 
-    const badRequest = Object.assign(new Error('bad request'), { status: 400 })
+    const badRequest = ProviderError('bad request', { status: 400 })
     attempts = 0
     await expect(withHostedTtsRetry(
       {
@@ -231,10 +231,7 @@ describe('retry error contracts', () => {
         async () => {
           attempts += 1
           if (attempts === 1) {
-            throw Object.assign(new Error('rate limited'), {
-              status: 429,
-              headers: new Headers({ 'retry-after': '0' })
-            })
+            throw ProviderError('rate limited', { status: 429, headers: new Headers({ 'retry-after': '0' }) })
           }
           return 'ok'
         }
@@ -263,13 +260,7 @@ describe('retry error contracts', () => {
       },
       async () => {
         attempts += 1
-        throw Object.assign(new Error('provider unavailable'), {
-          status: 503,
-          stage: 'poll',
-          retryable: true,
-          category: 'network',
-          rawResponse: { error: 'temporary outage' }
-        })
+        throw ProviderError('provider unavailable', { status: 503, stage: 'poll', retryable: true, metadata: { category: 'network', rawResponse: { error: 'temporary outage' } } })
       },
       (error) => classifyFetchRetry(error, 'runtime_http_read')
     )).rejects.toThrow(AppError)
@@ -290,13 +281,7 @@ describe('retry error contracts', () => {
           }
         },
         async () => {
-          throw Object.assign(new Error('provider unavailable'), {
-            status: 503,
-            stage: 'poll',
-            retryable: true,
-            category: 'network',
-            rawResponse: { error: 'temporary outage' }
-          })
+          throw ProviderError('provider unavailable', { status: 503, stage: 'poll', retryable: true, metadata: { category: 'network', rawResponse: { error: 'temporary outage' } } })
         },
         (error) => classifyFetchRetry(error, 'runtime_http_read')
       )
@@ -332,10 +317,7 @@ describe('retry error contracts', () => {
           }
         },
         async () => {
-          throw Object.assign(new Error('rate limited'), {
-            status: 429,
-            headers: new Headers({ 'retry-after': '3' })
-          })
+          throw ProviderError('rate limited', { status: 429, headers: new Headers({ 'retry-after': '3' }) })
         },
         (error) => classifyFetchRetry(error, 'runtime_http_read')
       )
@@ -373,7 +355,7 @@ describe('retry error contracts', () => {
           if (attempts === 1) {
             throw new TypeError('fetch failed')
           }
-          throw Object.assign(new Error('bad request'), { status: 400, stage: 'create' })
+          throw ProviderError('bad request', { status: 400, stage: 'create' })
         },
         (error) => classifyFetchRetry(error, 'runtime_http_read')
       )
@@ -390,7 +372,7 @@ describe('retry error contracts', () => {
   })
 
   test('withRetry rethrows a first non-retryable failure unchanged', async () => {
-    const original = Object.assign(new Error('bad request'), { status: 400 })
+    const original = ProviderError('bad request', { status: 400 })
 
     await expect(withRetry(
       {
@@ -427,10 +409,7 @@ describe('retry error contracts', () => {
       },
       async () => {
         attempts += 1
-        throw Object.assign(new Error('rate limited'), {
-          status: 429,
-          headers: new Headers({ 'retry-after': '10' })
-        })
+        throw ProviderError('rate limited', { status: 429, headers: new Headers({ 'retry-after': '10' }) })
       }
     )
     setTimeout(() => controller.abort(cancellation), 20)

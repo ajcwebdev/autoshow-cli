@@ -125,7 +125,7 @@ bun test test/test-cases/validation/providers/tts-provider-contracts/openai-grok
 
 ## References
 
-- Related ADR: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
+- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
 - `test/test-utils/test-console-harness.ts`
 - `test/test-runner/runner.ts`
 - `test/test-runner/utils.ts`

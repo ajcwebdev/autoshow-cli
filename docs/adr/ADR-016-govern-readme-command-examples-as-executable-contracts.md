@@ -183,7 +183,7 @@ When the dedicated documentation harness is implemented:
 - [`docs/reports/`](../reports/)
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
 - Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
-- Related ADR: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
+- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)

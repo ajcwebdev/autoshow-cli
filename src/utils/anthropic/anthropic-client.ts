@@ -1,5 +1,6 @@
 import type { AnthropicDeletedFile, AnthropicFetchOptions, AnthropicFileMetadata, AnthropicMessageResponse, AnthropicRequestOptions, AnthropicRestConfig, AnthropicRestError } from '~/types'
 import { ANTHROPIC_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { ProviderError } from '~/utils/error-handler'
 import { createProviderRestClient, isRecord, joinRestUrl, readJsonResponse } from '~/utils/rest-client'
 
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -60,10 +61,13 @@ const anthropicFetch = createProviderRestClient<AnthropicFetchOptions, Anthropic
     }
   },
   errorMessagePrefix: (options) => options.errorMessagePrefix,
-  createError: ({ parsedBody, message }) => Object.assign(new Error(message), {
-    ...(extractErrorType(parsedBody) ? { errorType: extractErrorType(parsedBody) } : {}),
-    ...(extractResponseType(parsedBody) ? { responseType: extractResponseType(parsedBody) } : {})
-  }) as AnthropicRestError
+  createError: ({ parsedBody, message, response }) => Object.assign(
+    ProviderError(message, { status: response.status, headers: response.headers, stage: 'anthropic' }),
+    {
+      ...(extractErrorType(parsedBody) ? { errorType: extractErrorType(parsedBody) } : {}),
+      ...(extractResponseType(parsedBody) ? { responseType: extractResponseType(parsedBody) } : {})
+    }
+  ) as AnthropicRestError
 })
 
 const extractBetasFromBody = (body: Record<string, unknown>): string[] | undefined => {

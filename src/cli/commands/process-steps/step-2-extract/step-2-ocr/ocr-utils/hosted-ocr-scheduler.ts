@@ -1,3 +1,4 @@
+import { InternalError } from '~/utils/error-handler'
 import type {
   HostedConcurrencyAdmission,
   HostedConcurrencyAdmissionToken,
@@ -261,8 +262,9 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
   ): ProviderLaneIdentity<HostedOcrService> {
     if (admission.lane) {
       if (admission.lane.service !== admission.service) {
-        throw new Error(
-          `Hosted OCR lane service ${admission.lane.service} does not match admission service ${admission.service}.`
+        throw InternalError(
+          `Hosted OCR lane service ${admission.lane.service} does not match admission service ${admission.service}.`,
+          { stage: 'ocr:scheduler', retryable: false }
         )
       }
       const identity = createProviderLaneIdentity(
@@ -271,8 +273,9 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
         HOSTED_OCR_DEFAULT_SCOPE_LABEL
       )
       if (admission.lane.laneKey !== identity.laneKey) {
-        throw new Error(
-          'Hosted OCR lane key does not match its service and scope label.'
+        throw InternalError(
+          'Hosted OCR lane key does not match its service and scope label.',
+          { stage: 'ocr:scheduler', retryable: false }
         )
       }
       return identity
@@ -283,8 +286,9 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       HOSTED_OCR_DEFAULT_SCOPE_LABEL
     )
     if (admission.laneKey && admission.laneKey !== identity.laneKey) {
-      throw new Error(
-        'Hosted OCR lane key does not match its service and scope label.'
+      throw InternalError(
+        'Hosted OCR lane key does not match its service and scope label.',
+        { stage: 'ocr:scheduler', retryable: false }
       )
     }
     return identity

@@ -1,3 +1,4 @@
+import { InternalError } from '~/utils/error-handler'
 import { rename } from 'node:fs/promises'
 import type {
   CurrentTtsObservedTurn,
@@ -158,7 +159,7 @@ export const runMultiSpeakerTts = async (
     const providerSegmentIndexes = turn.providerSegmentIndexes?.length
       ? [...turn.providerSegmentIndexes]
       : providerSegments.map((_segment, providerSegmentIndex) => providerSegmentIndex)
-    if (providerSegmentIndexes.length !== providerSegments.length) throw new Error('Canonical TTS provider segment indexes do not match the selected provider segments.')
+    if (providerSegmentIndexes.length !== providerSegments.length) throw InternalError('Canonical TTS provider segment indexes do not match the selected provider segments.', { stage: 'tts:multi-speaker', retryable: false })
     const providerSegmentPaths: string[] = []
     let observedSpeaker: string | undefined
     for (const [selectedSegmentIndex, providerText] of providerSegments.entries()) {

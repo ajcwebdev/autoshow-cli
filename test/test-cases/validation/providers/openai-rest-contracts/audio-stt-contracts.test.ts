@@ -5,6 +5,7 @@ import { runOpenAICompatibleSingleSpeakerStt } from '~/cli/commands/process-step
 import { runDeepgramTranscribe } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-deepgram/run-deepgram-stt'
 import { runGrokStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-grok/run-grok-stt'
 import { createOpenAISpeech, createOpenAITranscription } from '~/utils/openai/openai-client'
+import { expectProviderHttpError } from '../../../../test-utils/rest-contract-helpers'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withTempDir } from './shared'
 
 installOpenAIRestContractHooks()
@@ -126,25 +127,20 @@ describe('OpenAI REST audio and STT contracts', () => {
       const audioPath = join(dir, 'audio.mp3')
       await writeFile(audioPath, 'audio', 'utf8')
 
-      try {
-        await runGrokStt(audioPath, dir, {
-          model: 'grok-2-audio',
-          segmentOffsetMinutes: 0
-        })
-        throw new Error('Expected Grok STT to fail')
-      } catch (error) {
-        expect(error).toMatchObject({
-          kind: 'retry_exhausted',
-          status: 400,
-          stage: 'transcribe',
-          retryClass: 'runtime_http_create_retriable'
-        })
-        expect((error as Error).message).toStartWith('grok-stt failed after 2/4 attempts')
-        expect((error as Error).cause).toMatchObject({
-          message: 'Grok transcription failed (400): bad audio',
-          rawResponse: { error: { message: 'bad audio' } }
-        })
-      }
+      const error = await expectProviderHttpError(async () => await runGrokStt(audioPath, dir, {
+        model: 'grok-2-audio',
+        segmentOffsetMinutes: 0
+      }), {
+        kind: 'retry_exhausted',
+        status: 400,
+        stage: 'transcribe'
+      })
+      expect(error).toMatchObject({ retryClass: 'runtime_http_create_retriable' })
+      expect(error.message).toStartWith('grok-stt failed after 2/4 attempts')
+      expect(error.cause).toMatchObject({
+        message: 'Grok transcription failed (400): bad audio',
+        rawResponse: { error: { message: 'bad audio' } }
+      })
     })
 
     expect(calls).toHaveLength(2)

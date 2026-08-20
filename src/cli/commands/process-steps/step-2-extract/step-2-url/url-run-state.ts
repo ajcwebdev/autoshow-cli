@@ -31,6 +31,7 @@ import {
   parseStoredProviderArray,
   resolveProviderCompletionStatus
 } from '../step-2-shared/provider-batch-state'
+import { extractErrorMetadata } from '~/utils/error-handler'
 
 
 const readLocalHtmlFileSize = async (source: string): Promise<number | undefined> => {
@@ -59,12 +60,12 @@ const buildUrlRunOptions = (
   requestAttempts: opts.urlRequestAttempts
 })
 
+// Reads through `extractErrorMetadata`, so it finds the count whether the thrower put it on
+// the error as an own property or in AppError metadata.
 const getErrorAttempts = (error: unknown): number => {
-  if (error && typeof error === 'object' && 'attemptsMade' in error) {
-    const attempts = (error as { attemptsMade?: unknown }).attemptsMade
-    if (typeof attempts === 'number' && Number.isFinite(attempts) && attempts > 0) {
-      return Math.floor(attempts)
-    }
+  const attempts = extractErrorMetadata(error)['attemptsMade']
+  if (typeof attempts === 'number' && Number.isFinite(attempts) && attempts > 0) {
+    return Math.floor(attempts)
   }
   return 1
 }

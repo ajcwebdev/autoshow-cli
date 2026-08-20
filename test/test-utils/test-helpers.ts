@@ -25,6 +25,8 @@ import type {
   RunCommandOptions,
   RunCommandResult
 } from '~/types'
+import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
+import { l } from '~/utils/app-logger/app-logger'
 
 const TEST_OUTPUT_ROOT = 'project/test-output'
 
@@ -166,6 +168,7 @@ export const resolveCliSpawnArgs = (args: string[], forceSource = false): string
 }
 
 let commandOutputCounter = 0
+let commandMetricsWriteWarned = false
 const BASE_CHILD_ENV = Object.entries(process.env).reduce<Record<string, string>>((env, [key, value]) => {
   if (typeof value === 'string') {
     env[key] = value
@@ -542,7 +545,15 @@ const appendCommandMetricsRecord = async (
 
   try {
     await appendFile(metricsLogPath, `${JSON.stringify(record)}\n`)
-  } catch {
+  } catch (error) {
+    // Warn once per process: a broken metrics path otherwise yields empty pricing reports
+    // with no signal, while warning per command would drown the run.
+    if (commandMetricsWriteWarned) return
+    commandMetricsWriteWarned = true
+    l.warn(`Could not append to the command metrics log at ${metricsLogPath}; pricing reports will be incomplete`, {
+      category: 'pricing',
+      metadata: { metricsLogPath, error: serializeDiagnosticError(error) }
+    })
   }
 }
 
@@ -671,8 +682,14 @@ export const findLatestDirectory = async (
     })
 
     return stats[stats.length - 1]?.dir ?? null
-  } catch {
-    return null
+  } catch (error) {
+    // Only "the directory isn't there" means "no match". A permissions or ENOTDIR failure
+    // used to return null too, which downstream reported as a misleading
+    // `Expected output directory for <title>` instead of the real filesystem problem.
+    if (hasErrorCode(error, 'ENOENT')) {
+      return null
+    }
+    throw error
   }
 }
 

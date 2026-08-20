@@ -26,7 +26,7 @@ test('mistral dialogue rejects remote reference locators before provider setup',
   })
 
   const output = `${result.stdout}\n${result.stderr}`
-  expect(result.exitCode).not.toBe(0)
+  expect(result.exitCode).toBe(1)
   expect(result.outputDir).toBeNull()
   expect(output).toContain('Unable to read the authorized reference audio.')
   expect(output).not.toContain(remoteReference)

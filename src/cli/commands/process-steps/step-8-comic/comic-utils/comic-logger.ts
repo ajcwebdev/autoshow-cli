@@ -1,17 +1,20 @@
 import * as v from 'valibot'
 import * as appLog from '~/utils/app-logger/app-logger'
 import { formatDuration as formatSharedDuration } from '~/utils/app-logger/formatters'
-import { paint, terminalStyles } from '~/utils/terminal-colors'
-import type { LogSink } from '~/types'
+import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 
-export const bold = (text: string): string => {
-  return paint(text, 'white')
-}
-
-export const cyan = (text: string): string => {
-  return terminalStyles.info(text)
-}
-
+/**
+ * Comic's compact log surface.
+ *
+ * It stays a thin wrapper — the one-line `label key=value` shape is comic's deliberate
+ * output contract — but it no longer competes with the canonical logger:
+ *   - the writer is named `comicWrite`, not `l`, so `import { l }` inside step-8-comic can
+ *     only ever be the global logger;
+ *   - `.dim()` is gone (it was identical to the plain call, so the name lied);
+ *   - `bold()`/`cyan()` are gone: they baked ANSI into the message string before it reached
+ *     the sink, which is the one place styling belongs — the JSON sink was receiving
+ *     escape codes that redaction and --no-color could not cleanly strip.
+ */
 export const formatDuration = formatSharedDuration
 
 export const formatCompactCost = (dollars: number): string => {
@@ -29,53 +32,44 @@ const compactParts = (
     .join(' ')
 }
 
-const logBase = (...messages: unknown[]): void => {
+const comicWrite = (...messages: unknown[]): void => {
   appLog.write('info', messages.map(String).join(' '), { category: 'command' })
 }
 
-logBase.dim = (...messages: unknown[]): void => {
-  appLog.write('info', messages.map(String).join(' '), { category: 'command' })
-}
-
-logBase.success = (message: string): void => {
+comicWrite.success = (message: string): void => {
   appLog.write('success', message, { category: 'command' })
 }
 
-export const l = logBase
+export { comicWrite }
 
-// The shared image services emit their own "Image Status/Result" lines
-// (category 'pipeline') that point at the scratch directory comic runs each image
-// in and then deletes. Comic already prints an authoritative per-image line with
-// the real output path, so these interim logs are redundant and the scratch path
-// is actively confusing. Filter category 'pipeline' out of the active sinks once
-// per command. It is idempotent (wrapped sinks are tagged) and concurrency-safe
-// because it only rewrites sink output, not shared per-call state.
-const PIPELINE_SINK_FILTERED = Symbol('comicPipelineSinkFiltered')
-
-export const suppressSharedPipelineLogs = (): void => {
-  const sinks = appLog.l.config.sinks
-  for (let index = 0; index < sinks.length; index++) {
-    const sink = sinks[index]
-    if (!sink || (sink as { [PIPELINE_SINK_FILTERED]?: boolean })[PIPELINE_SINK_FILTERED]) {
-      continue
-    }
-
-    const filtered: LogSink = (event) => {
-      if (event.category === 'pipeline') return
-      sink(event)
-    }
-    ;(filtered as { [PIPELINE_SINK_FILTERED]?: boolean })[PIPELINE_SINK_FILTERED] = true
-    sinks[index] = filtered
+// The shared image services emit their own "Image Status/Result" lines (category
+// 'pipeline') that point at the scratch directory comic runs each image in and then
+// deletes. Comic already prints an authoritative per-image line with the real output path,
+// so these interim logs are redundant and the scratch path is actively confusing.
+//
+// This used to be done by monkey-patching `appLog.l.config.sinks` in place, wrapping each
+// sink to drop the category. The logger now has first-class category filtering, so the
+// suppression happens before any sink is reached and derived loggers observe it too.
+//
+// Scoped to the run rather than applied process-wide: the CLI dispatcher gives each command
+// a clean slate, but these command functions are also called directly (by other commands
+// and by tests), where a permanent mutation would silently mute an unrelated caller.
+export const withSuppressedPipelineLogs = async <T>(run: () => Promise<T>): Promise<T> => {
+  const restore = appLog.suppressLogCategories(['pipeline'])
+  try {
+    return await run()
+  } finally {
+    restore()
   }
 }
 
 export const comicLog = {
   header(command: string, details: Array<string | number | false | null | undefined> = []): void {
-    l(`${bold(command)}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
+    comicWrite(`${command}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
   },
 
   line(label: string, details: Array<string | number | false | null | undefined> = []): void {
-    l.dim(`${label}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
+    comicWrite(`${label}${details.length > 0 ? ` ${compactParts(details)}` : ''}`)
   },
 
   output(
@@ -83,15 +77,15 @@ export const comicLog = {
     kind: string,
     details: Array<string | number | false | null | undefined>
   ): void {
-    l.dim(compactParts([status, kind, ...details]))
+    comicWrite(compactParts([status, kind, ...details]))
   },
 
   summary(details: Array<string | number | false | null | undefined>): void {
-    l.dim(compactParts(['summary', ...details]))
+    comicWrite(compactParts(['summary', ...details]))
   },
 
   outputDirectory(path: string): void {
-    l.dim(`output directory: ${path}`)
+    comicWrite(`output directory: ${path}`)
   },
 }
 
@@ -104,29 +98,35 @@ const errBase = (...messages: unknown[]): void => {
   appLog.error(messages.map(String).join(' '))
 }
 
-const errValidation = (error: v.ValiError<v.GenericSchema | v.GenericSchemaAsync>): void => {
-  errBase('Validation error:')
-
+const flattenValidationIssues = (
+  error: v.ValiError<v.GenericSchema | v.GenericSchemaAsync>
+): Array<{ path: string, message: string }> => {
   const issues = Array.isArray(error.issues) ? error.issues : []
-
   if (issues.length === 0) {
-    errBase(`  - ${error.message}`)
-    return
+    return [{ path: '', message: error.message }]
   }
 
   const flatErrors = v.flatten(issues as [v.BaseIssue<unknown>, ...v.BaseIssue<unknown>[]])
+  return [
+    ...(flatErrors.root ?? []).map((message) => ({ path: '', message })),
+    ...Object.entries(flatErrors.nested ?? {}).flatMap(([path, messages]) =>
+      (messages ?? []).map((message) => ({ path, message }))
+    )
+  ]
+}
 
-  if (flatErrors.root) {
-    flatErrors.root.forEach(msg => errBase(`  - ${msg}`))
-  }
-
-  if (flatErrors.nested) {
-    Object.entries(flatErrors.nested).forEach(([path, messages]) => {
-      if (messages) {
-        messages.forEach(msg => errBase(`  - ${path}: ${msg}`))
-      }
-    })
-  }
+// One event carrying every issue, rendered as a table by the human sink, instead of one
+// hand-indented `l.error` line per issue with no structure for the JSON sink to emit.
+const errValidation = (error: v.ValiError<v.GenericSchema | v.GenericSchemaAsync>): void => {
+  const issues = flattenValidationIssues(error)
+  appLog.write('error', 'Validation error', {
+    category: 'command',
+    metadata: { issues },
+    humanTable: createHumanTable(
+      issues.map(({ path, message }) => ({ path: path || '(root)', message })),
+      ['path', 'message']
+    )
+  })
 }
 
 export const err = errBase

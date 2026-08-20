@@ -13,7 +13,7 @@ test('rejects unsupported Luma Labs image size flag', async () => {
   ])
   const output = `${result.stdout}\n${result.stderr}`
 
-  expect(result.exitCode).not.toBe(0)
+  expect(result.exitCode).toBe(2)
   expect(output).toContain('--size is not supported by Luma Labs/uni-1')
 })
 
@@ -29,7 +29,7 @@ test('rejects invalid Luma Labs aspect ratio values', async () => {
   ])
   const output = `${result.stdout}\n${result.stderr}`
 
-  expect(result.exitCode).not.toBe(0)
+  expect(result.exitCode).toBe(2)
   expect(output).toContain('Invalid --aspect-ratio value "5:7" for Luma Labs')
 })
 
@@ -45,6 +45,6 @@ test('rejects invalid Luma Labs output format values', async () => {
   ])
   const output = `${result.stdout}\n${result.stderr}`
 
-  expect(result.exitCode).not.toBe(0)
+  expect(result.exitCode).toBe(2)
   expect(output).toContain('Invalid --format value "webp" for Luma Labs')
 })

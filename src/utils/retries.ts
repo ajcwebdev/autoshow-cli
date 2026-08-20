@@ -160,6 +160,32 @@ const getWrappedRetryCause = (error: unknown): unknown => {
   return current
 }
 
+/**
+ * Retry a paid create request only when the provider definitely rejected it
+ * before admitting work. Network failures, timeouts, 408/409 responses, and
+ * 5xx responses are ambiguous and must be reconciled instead of redispatched.
+ */
+export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  if (status !== 425 && status !== 429) {
+    return {
+      shouldRetry: false,
+      delayMs: 0,
+      reason: status === undefined
+        ? 'paid create outcome is ambiguous'
+        : `paid create status ${status} is not safe to redispatch`
+    }
+  }
+
+  const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
+  return {
+    shouldRetry: true,
+    delayMs: parseRetryAfterMs(headers) ?? 0,
+    reason: `provider rejected paid create with retryable status ${status}`
+  }
+}
+
 export const classifyFetchRetry = (
   error: unknown,
   retryClass: RetryClass
@@ -167,16 +193,10 @@ export const classifyFetchRetry = (
   const noRetry = (reason: string): RetryDecision => ({ shouldRetry: false, delayMs: 0, reason })
   const doRetry = (delayMs: number, reason: string): RetryDecision => ({ shouldRetry: true, delayMs, reason })
 
+  // The conservative paid-create rule had a byte-for-byte second copy here; it now defers
+  // to the single implementation so the two cannot drift apart.
   if (retryClass === 'runtime_http_create_conservative') {
-    const metadata = extractErrorMetadata(error)
-    const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
-    if (status === 425 || status === 429) {
-      const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
-      return doRetry(parseRetryAfterMs(headers) ?? 0, `provider rejected paid create with retryable status ${status}`)
-    }
-    return noRetry(status === undefined
-      ? 'paid create outcome is ambiguous'
-      : `paid create status ${status} is not safe to redispatch`)
+    return classifyPaidCreateRetry(error)
   }
 
   // An explicit retryable flag always wins: deterministic errors (e.g. a 200
@@ -216,32 +236,6 @@ export const classifyFetchRetry = (
   // client errors (4xx above) and side-effecting aborts are the only cases we
   // refuse to retry; any other unrecognized error is treated as transient.
   return doRetry(0, 'unclassified error')
-}
-
-/**
- * Retry a paid create request only when the provider definitely rejected it
- * before admitting work. Network failures, timeouts, 408/409 responses, and
- * 5xx responses are ambiguous and must be reconciled instead of redispatched.
- */
-export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
-  const metadata = extractErrorMetadata(error)
-  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
-  if (status !== 425 && status !== 429) {
-    return {
-      shouldRetry: false,
-      delayMs: 0,
-      reason: status === undefined
-        ? 'paid create outcome is ambiguous'
-        : `paid create status ${status} is not safe to redispatch`
-    }
-  }
-
-  const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
-  return {
-    shouldRetry: true,
-    delayMs: parseRetryAfterMs(headers) ?? 0,
-    reason: `provider rejected paid create with retryable status ${status}`
-  }
 }
 
 const getRetryPolicy = (retryClass: RetryClass, overrides?: Partial<RetryPolicy>): RetryPolicy => {

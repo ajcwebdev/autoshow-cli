@@ -3,6 +3,8 @@ import { installManagedQpdfMacos } from '~/cli/commands/setup-and-utilities/setu
 import { exec } from '~/utils/cli-utils'
 import { resolveRuntimeToolInfo } from '~/utils/runtime-paths'
 
+// Message-matching by design: the upstream source is the qpdf binary's own stderr and the
+// OS loader's dyld/exec failures, neither of which carries a machine-readable code.
 const QPDF_LAUNCH_FAILURE_PATTERN = /(?:dyld|@rpath|library not loaded|image not found|mach-o|bad cpu|exec format|permission denied|not executable|no such file|enoent)/i
 
 let qpdfHealthCache:

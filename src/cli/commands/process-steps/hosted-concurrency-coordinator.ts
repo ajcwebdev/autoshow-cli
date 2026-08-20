@@ -22,7 +22,7 @@ import type {
   Waiter
 } from '~/types'
 import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from './provider-lane-contract'
-import { AppError, extractErrorMetadata } from '~/utils/error-handler'
+import { AppError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
 
 export const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
 export const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
@@ -309,7 +309,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       )
     }
     if (admission.lane.service !== admission.provider) {
-      throw new Error(`Hosted concurrency lane provider ${admission.lane.service} does not match admission provider ${admission.provider}.`)
+      throw InternalError(`Hosted concurrency lane provider ${admission.lane.service} does not match admission provider ${admission.provider}.`, { stage: 'concurrency:lane', retryable: false })
     }
     const lane = createProviderLaneIdentity(
       admission.provider,
@@ -317,7 +317,7 @@ class HostedConcurrencyCoordinatorImpl implements HostedConcurrencyCoordinator {
       DEFAULT_PROVIDER_LANE_SCOPE_LABEL
     )
     if (lane.laneKey !== admission.lane.laneKey) {
-      throw new Error('Hosted concurrency lane key does not match its provider and account label.')
+      throw InternalError('Hosted concurrency lane key does not match its provider and account label.', { stage: 'concurrency:lane', retryable: false })
     }
     return lane
   }
@@ -579,12 +579,17 @@ export const createHostedConcurrencyCoordinator = (
   options: HostedConcurrencyCoordinatorOptions = {}
 ): HostedConcurrencyCoordinator => new HostedConcurrencyCoordinatorImpl(options)
 
+// Walks the cause chain for a duck-typed diagnostic field. AppError carries such fields
+// in `metadata` rather than as own properties, so both are consulted (own property first)
+// — otherwise a structured AppProviderError would be invisible to pressure classification
+// that a hand-assembled plain error still matched.
 const readNestedErrorValue = (error: unknown, key: string): unknown => {
   const seen = new Set<unknown>()
   let current = error
   while (current && typeof current === 'object' && !seen.has(current)) {
     seen.add(current)
     if (key in current) return (current as Record<string, unknown>)[key]
+    if (current instanceof AppError && key in current.metadata) return current.metadata[key]
     current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
   }
   return undefined
@@ -620,6 +625,9 @@ const toHeaders = (headers: unknown): Headers | undefined => {
   return [...normalized.keys()].length > 0 ? normalized : undefined
 }
 
+// Message-matching by design: the upstream source is provider rate-limit prose, which
+// varies per vendor and is often the only signal when a 429 status is absent. Structured
+// fields (status, category, code) are consulted first, including AppError metadata.
 export const classifyHostedRateLimitPressure = (
   error: unknown
 ): ProviderLanePressureFeedback | undefined => {

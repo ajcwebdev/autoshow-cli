@@ -15,6 +15,11 @@ import {
   ADAPTIVE_REMOTE_PROVIDERS,
   extractAdaptiveProviderGroups
 } from '../../../test-runner/adaptive-provider-groups'
+import {
+  childLifecycleEnterLine,
+  childLifecycleExitLine,
+  readChildLifecycleTimestamp
+} from '../../../test-utils/fixtures/child-lifecycle-protocol'
 import { runCommand } from '../../../test-utils/test-helpers'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import {
@@ -81,10 +86,10 @@ const spawnLeaseChild = (
       command: '${label}',
       leaseTtlMs: 2000
     })
-    console.log('${label}:enter:' + Date.now())
+    ${childLifecycleEnterLine(label)}
     await Bun.sleep(${holdMs})
     await lease.release()
-    console.log('${label}:exit:' + Date.now())
+    ${childLifecycleExitLine(label)}
   `
 
   return Bun.spawn([process.execPath, '--eval', code], {
@@ -399,8 +404,9 @@ describe('adaptive scheduler contracts', () => {
     expect(secondResult.stderr).toBe('')
 
     const lines = `${firstResult.stdout}\n${secondResult.stdout}`.trim().split('\n')
-    const firstExit = Number(lines.find((line) => line.startsWith('first:exit:'))?.split(':')[2] ?? '0')
-    const secondEnter = Number(lines.find((line) => line.startsWith('second:enter:'))?.split(':')[2] ?? '0')
+    const combined = lines.join('\n')
+    const firstExit = readChildLifecycleTimestamp(combined, 'first', 'exit')
+    const secondEnter = readChildLifecycleTimestamp(combined, 'second', 'enter')
     expect(firstExit).toBeGreaterThan(0)
     expect(secondEnter).toBeGreaterThanOrEqual(firstExit)
   })

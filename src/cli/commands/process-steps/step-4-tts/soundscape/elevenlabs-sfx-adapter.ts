@@ -4,6 +4,7 @@ import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../
 import { resolveReplicateAudioGenTarget } from './replicate-audiogen-adapter'
 import { resolveStabilitySoundEffectTarget } from './stability-stable-audio-adapter'
 import { SoundEffectProviderError } from './sound-effect-errors'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 export { SoundEffectProviderError } from './sound-effect-errors'
 
@@ -114,7 +115,7 @@ export const createElevenLabsSoundEffectAdapter = (input: {
   request?: ElevenLabsSoundEffectHttpRequest | undefined
   now?: (() => string) | undefined
 }) => {
-  if (!input.apiKey.trim()) throw CLIUsageError('ElevenLabs sound-effect execution requires ELEVENLABS_API_KEY.')
+  requireProvidedApiKey(input.apiKey, 'ELEVENLABS_API_KEY', 'tts:soundscape', 'ElevenLabs sound-effect execution')
   const request = input.request ?? defaultRequest(input.apiKey)
   const now = input.now ?? (() => new Date().toISOString())
   return {

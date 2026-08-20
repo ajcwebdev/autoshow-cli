@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import type { HostedOcrRun, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import {
   basePdfMetadata,
@@ -32,7 +33,7 @@ const runTwoPageFallback = async (
   fallbackDir,
   pageConcurrency: 1,
   runFull: async () => {
-    throw Object.assign(new Error('provider timed out while reading OCR response'), { status: 503 })
+    throw ProviderError('provider timed out while reading OCR response', { status: 503 })
   },
   createChunk: async (_inputPath, outputPath, range) => {
     await Bun.write(outputPath, `page ${range.startPage}`)

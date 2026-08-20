@@ -19,6 +19,7 @@ import { cancelReplicatePrediction, runReplicatePrediction, normalizeReplicateOu
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { SoundEffectProviderError } from './sound-effect-errors'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const DOCS = [
   'https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api',
@@ -261,7 +262,7 @@ export const createReplicateAudioGenAdapter = (input: {
 }) => {
   const apiToken = input.apiToken.trim()
   if (!apiToken) {
-    throw CLIUsageError('Replicate AudioGen sound-effect execution requires REPLICATE_API_TOKEN.')
+    requireProvidedApiKey(undefined, 'REPLICATE_API_TOKEN', 'tts:soundscape', 'Replicate AudioGen sound-effect execution')
   }
   const baseUrl = input.baseUrl ?? REPLICATE_DEFAULT_BASE_URL
   const now = input.now ?? (() => new Date().toISOString())

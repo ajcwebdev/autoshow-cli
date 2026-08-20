@@ -4,7 +4,7 @@ import * as v from 'valibot'
 import type { ComicLlmResponseUsage, DraftSceneRunStats, GenerateSceneJsonOptions } from '~/types'
 import { buildSceneJsonSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters } from '../../schemas/schemas'
 import { parseJsonFile } from '../../comic-utils/json-prompt-utils'
-import { comicLog, err, formatCompactCost, formatDuration, l } from '../../comic-utils/comic-logger'
+import { comicLog, err, formatCompactCost, formatDuration, comicWrite } from '../../comic-utils/comic-logger'
 import { runComicStructuredLlm } from '../../comic-utils/structured-script-utils/run-structured-llm'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
 import {
@@ -63,7 +63,7 @@ export const generateSceneJson = async (
     const content = await Bun.file(filePath).text()
 
     if (!content.trim()) {
-      l.dim(`Skipping empty draft prompt bundle: ${sceneSlug}`)
+      comicWrite(`Skipping empty draft prompt bundle: ${sceneSlug}`)
       return stats
     }
 
@@ -128,9 +128,9 @@ export const generateSceneJson = async (
           validationError: validationError instanceof Error ? validationError.message : String(validationError),
           output: parsed,
         }, null, 2))
-        l.dim(`Saved invalid scene draft candidate: ${invalidOutputPath}`)
+        comicWrite(`Saved invalid scene draft candidate: ${invalidOutputPath}`)
       } catch (writeError) {
-        l.dim(
+        comicWrite(
           `Could not save invalid scene draft candidate: ${
             writeError instanceof Error ? writeError.message : String(writeError)
           }`

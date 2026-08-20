@@ -1,4 +1,4 @@
-import type { GlobalLogger, LogFormatChoice, Logger, LogLevel, LogSink, ReconfigureOptions } from '~/types'
+import type { GlobalLogger, LogCategory, LogFormatChoice, Logger, LogLevel, LogSink, ReconfigureOptions } from '~/types'
 import { runWithLogContext } from '~/utils/app-logger/context-store'
 import { createLogger } from '~/utils/app-logger/core'
 import { createReporter } from '~/utils/app-logger/reporter'
@@ -46,6 +46,31 @@ let activeLogger = attachReport(createLogger({
   sinks: createConfiguredSinks()
 }))
 
+/**
+ * First-class replacement for sink monkey-patching: events in these categories are dropped
+ * in `core.ts` before they reach any sink. The array is shared by reference with loggers
+ * derived through `withContext`, so one call covers all of them.
+ *
+ * Returns a restore function so callers can scope the suppression to a run; the CLI
+ * dispatcher additionally clears it at the start of every command.
+ */
+export const suppressLogCategories = (categories: readonly LogCategory[]): (() => void) => {
+  const suppressed = activeLogger.config.suppressedCategories
+  const added = categories.filter((category) => !suppressed.includes(category))
+  suppressed.push(...added)
+
+  return () => {
+    for (const category of added) {
+      const index = suppressed.indexOf(category)
+      if (index !== -1) suppressed.splice(index, 1)
+    }
+  }
+}
+
+export const clearSuppressedLogCategories = (): void => {
+  activeLogger.config.suppressedCategories.length = 0
+}
+
 export const reconfigureLogger = (opts: ReconfigureOptions): void => {
   let minLevel: LogLevel | undefined
   let formatOverride: LogFormatChoice | undefined
@@ -68,6 +93,10 @@ export const reconfigureLogger = (opts: ReconfigureOptions): void => {
 
   if (formatOverride === 'json' || formatOverride === 'both') {
     enableJsonResult()
+  }
+
+  if (opts.suppressCategories !== undefined) {
+    suppressLogCategories(opts.suppressCategories)
   }
 
   if (minLevel === undefined && formatOverride === undefined) {

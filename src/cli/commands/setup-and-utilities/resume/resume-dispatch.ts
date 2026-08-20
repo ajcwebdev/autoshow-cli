@@ -1,3 +1,4 @@
+import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { join, resolve as resolvePath } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
@@ -11,7 +12,7 @@ import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-downlo
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { CLIUsageError } from '~/utils/error-handler'
 import { getResumeHandler } from './resume-registry'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
@@ -171,7 +172,7 @@ const buildResumeFailureError = (
     `Resume failed for ${failures.length} output ${noun}:`,
     ...failures.map((failure) => `- ${failure.outputDir}: ${failure.message}`)
   ]
-  return InfraError(lines.join('\n'), { stage: 'resume:dispatch', exitCode: 2 })
+  return partialCompletionError(lines.join('\n'), { stage: 'resume:dispatch' })
 }
 
 const dispatchSingleResume = async (

@@ -1,4 +1,5 @@
 import type { InworldTtsModel, InworldWebSocketConnection, InworldWebSocketConnector, InworldWebSocketRequestInput, InworldWebSocketResponseState, InworldWebSocketSynthesisResult, JsonObject, TtsTimingIdentity } from '~/types'
+import { CLIUsageError, InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { normalizeInworldTimestampInfo, resolveInworldTtsApiModelId } from './inworld-tts-request'
 
 export const INWORLD_TTS_WEBSOCKET_URL = 'wss://api.inworld.ai/tts/v1/voice:streamBidirectional'
@@ -12,14 +13,14 @@ const MAX_AUDIO_BYTES = 100 * 1024 * 1024
 const record = (value: unknown): Readonly<JsonObject> | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Readonly<JsonObject> : undefined
 const nonempty = (value: string, label: string): string => {
   const result = value.trim()
-  if (!result) throw new Error(`Inworld WebSocket ${label} cannot be blank.`)
+  if (!result) throw CLIUsageError(`Inworld WebSocket ${label} cannot be blank.`)
   return result
 }
 
 export const buildInworldWebSocketRequests = (input: InworldWebSocketRequestInput): readonly Readonly<JsonObject>[] => {
   const text = nonempty(input.text, 'text')
   if (Array.from(text).length > INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH) {
-    throw new Error(`Inworld WebSocket text cannot exceed ${INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH} characters.`)
+    throw CLIUsageError(`Inworld WebSocket text cannot exceed ${INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH} characters.`)
   }
   const contextId = nonempty(input.contextId, 'contextId')
   return [
@@ -59,20 +60,20 @@ const parseMessage = (message: unknown): Readonly<JsonObject> => {
     try {
       value = JSON.parse(value) as unknown
     } catch {
-      throw new Error('Inworld WebSocket returned malformed JSON.')
+      throw ValidationError('Inworld WebSocket returned malformed JSON.', { stage: 'tts:inworld-websocket', retryable: false })
     }
   }
   const parsed = record(value)
-  if (!parsed) throw new Error('Inworld WebSocket returned a malformed response.')
+  if (!parsed) throw ValidationError('Inworld WebSocket returned a malformed response.', { stage: 'tts:inworld-websocket', retryable: false })
   return parsed
 }
 
 const decodeAudio = (value: unknown): Uint8Array => {
   if (typeof value !== 'string' || !value || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) {
-    throw new Error('Inworld WebSocket returned malformed audioContent.')
+    throw ValidationError('Inworld WebSocket returned malformed audioContent.', { stage: 'tts:inworld-websocket', retryable: false })
   }
   const audio = new Uint8Array(Buffer.from(value, 'base64'))
-  if (audio.byteLength === 0) throw new Error('Inworld WebSocket returned empty audioContent.')
+  if (audio.byteLength === 0) throw ValidationError('Inworld WebSocket returned empty audioContent.', { stage: 'tts:inworld-websocket', retryable: false })
   return audio
 }
 
@@ -84,7 +85,7 @@ const appendArray = (left: unknown, right: unknown): unknown[] => [
 const mergeTimestampInfo = (current: unknown, next: unknown): unknown => {
   if (next === undefined) return current
   const nextInfo = record(next)
-  if (!nextInfo) throw new Error('Inworld WebSocket returned malformed timestampInfo.')
+  if (!nextInfo) throw ValidationError('Inworld WebSocket returned malformed timestampInfo.', { stage: 'tts:inworld-websocket', retryable: false })
   const currentInfo = record(current)
   const nextAlignment = record(nextInfo['wordAlignment'])
   if (!nextAlignment) return { ...(currentInfo ?? {}), ...nextInfo }
@@ -113,26 +114,26 @@ export const reduceInworldWebSocketResponse = (
   state: InworldWebSocketResponseState,
   message: unknown,
 ): InworldWebSocketResponseState => {
-  if (state.terminal) throw new Error('Inworld WebSocket received a response after completion.')
-  if (state.messageCount >= MAX_RESPONSE_MESSAGES) throw new Error(`Inworld WebSocket exceeded ${MAX_RESPONSE_MESSAGES} response messages.`)
+  if (state.terminal) throw InternalError('Inworld WebSocket received a response after completion.', { stage: 'tts:inworld-websocket', retryable: false })
+  if (state.messageCount >= MAX_RESPONSE_MESSAGES) throw InfraError(`Inworld WebSocket exceeded ${MAX_RESPONSE_MESSAGES} response messages.`, { stage: 'tts:inworld-websocket', retryable: false })
   const payload = parseMessage(message)
-  if (payload['error'] !== undefined) throw new Error(`Inworld WebSocket provider error: ${errorMessage(payload['error'])}`)
+  if (payload['error'] !== undefined) throw ProviderError(`Inworld WebSocket provider error: ${errorMessage(payload['error'])}`, { stage: 'tts:inworld-websocket' })
   const result = record(payload['result'])
-  if (!result) throw new Error('Inworld WebSocket response is missing result.')
-  if (result['contextId'] !== state.contextId) throw new Error('Inworld WebSocket response contextId does not match the request.')
+  if (!result) throw ValidationError('Inworld WebSocket response is missing result.', { stage: 'tts:inworld-websocket', retryable: false })
+  if (result['contextId'] !== state.contextId) throw ValidationError('Inworld WebSocket response contextId does not match the request.', { stage: 'tts:inworld-websocket', retryable: false })
   const status = result['status'] === undefined ? undefined : record(result['status'])
-  if (result['status'] !== undefined && !status) throw new Error('Inworld WebSocket returned malformed status.')
+  if (result['status'] !== undefined && !status) throw ValidationError('Inworld WebSocket returned malformed status.', { stage: 'tts:inworld-websocket', retryable: false })
   const statusCode = status?.['code'] ?? 0
-  if (typeof statusCode !== 'number' || !Number.isInteger(statusCode)) throw new Error('Inworld WebSocket returned malformed status code.')
-  if (statusCode !== 0) throw new Error(`Inworld WebSocket provider error (${statusCode}): ${errorMessage(status?.['message'])}`)
+  if (typeof statusCode !== 'number' || !Number.isInteger(statusCode)) throw ValidationError('Inworld WebSocket returned malformed status code.', { stage: 'tts:inworld-websocket', retryable: false })
+  if (statusCode !== 0) throw ProviderError(`Inworld WebSocket provider error (${statusCode}): ${errorMessage(status?.['message'])}`, { stage: 'tts:inworld-websocket', status: statusCode })
 
   const audioChunkValue = result['audioChunk']
   const audioChunk = audioChunkValue === undefined ? undefined : record(audioChunkValue)
-  if (audioChunkValue !== undefined && !audioChunk) throw new Error('Inworld WebSocket returned malformed audioChunk.')
+  if (audioChunkValue !== undefined && !audioChunk) throw ValidationError('Inworld WebSocket returned malformed audioChunk.', { stage: 'tts:inworld-websocket', retryable: false })
   const audio = audioChunk?.['audioContent'] === undefined ? undefined : decodeAudio(audioChunk['audioContent'])
-  if (audioChunk && audio === undefined && audioChunk['timestampInfo'] === undefined) throw new Error('Inworld WebSocket audioChunk contains neither audioContent nor timestampInfo.')
+  if (audioChunk && audio === undefined && audioChunk['timestampInfo'] === undefined) throw ValidationError('Inworld WebSocket audioChunk contains neither audioContent nor timestampInfo.', { stage: 'tts:inworld-websocket', retryable: false })
   const audioBytes = state.audioBytes + (audio?.byteLength ?? 0)
-  if (audioBytes > MAX_AUDIO_BYTES) throw new Error(`Inworld WebSocket audio exceeded ${MAX_AUDIO_BYTES} bytes.`)
+  if (audioBytes > MAX_AUDIO_BYTES) throw InfraError(`Inworld WebSocket audio exceeded ${MAX_AUDIO_BYTES} bytes.`, { stage: 'tts:inworld-websocket', retryable: false })
   const terminalKind = Object.hasOwn(result, 'contextClosed')
     ? 'contextClosed' as const
     : Object.hasOwn(result, 'flushCompleted') ? 'flushCompleted' as const : undefined
@@ -145,7 +146,7 @@ export const reduceInworldWebSocketResponse = (
     terminal: terminalKind !== undefined,
     ...(terminalKind ? { terminalKind } : {}),
   }
-  if (next.terminal && next.audioBytes === 0) throw new Error('Inworld WebSocket completed without audio.')
+  if (next.terminal && next.audioBytes === 0) throw ValidationError('Inworld WebSocket completed without audio.', { stage: 'tts:inworld-websocket', retryable: false })
   return next
 }
 
@@ -161,7 +162,7 @@ const waitFor = async <T>(operation: Promise<T>, signal: AbortSignal): Promise<T
 }
 
 export const createBunInworldWebSocketConnector: InworldWebSocketConnector = async ({ url, headers, signal }) => {
-  if (typeof Bun === 'undefined') throw new Error('The default Inworld WebSocket connector requires Bun; inject a connector in other runtimes.')
+  if (typeof Bun === 'undefined') throw InternalError('The default Inworld WebSocket connector requires Bun; inject a connector in other runtimes.', { stage: 'tts:inworld-websocket', retryable: false })
   const BunWebSocket = WebSocket as unknown as new (url: string, options: { headers: Readonly<Record<string, string>> }) => WebSocket
   const socket = new BunWebSocket(url, { headers })
   await waitFor(new Promise<void>((resolve, reject) => {
@@ -216,7 +217,7 @@ export const synthesizeInworldWebSocket = async (input: Readonly<{
   const contextId = input.contextId === undefined ? crypto.randomUUID() : nonempty(input.contextId, 'contextId')
   const requestId = input.requestId === undefined ? crypto.randomUUID() : nonempty(input.requestId, 'requestId')
   const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > MAX_TIMEOUT_MS) throw new Error(`Inworld WebSocket timeoutMs must be between 1 and ${MAX_TIMEOUT_MS}.`)
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > MAX_TIMEOUT_MS) throw CLIUsageError(`Inworld WebSocket timeoutMs must be between 1 and ${MAX_TIMEOUT_MS}.`)
   const requests = serializeInworldWebSocketRequests({ text: input.text, voiceId: input.voiceId, model: input.model, contextId })
   const timeout = AbortSignal.timeout(timeoutMs)
   const signal = input.abortSignal ? AbortSignal.any([input.abortSignal, timeout]) : timeout

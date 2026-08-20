@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { defaultOcrPoolLaneKey, runOcrPagePool } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool'
@@ -235,7 +236,9 @@ describe('pooled OCR page scheduler contracts', () => {
       requestedTargets: targets,
       targetsToRun: targets,
       processPage: async ({ pageNumber, target }) => {
-        if (target.service === 'openai') throw Object.assign(new Error('uncertain network result'), { ambiguous: true })
+        // `ambiguous` is a marker this test's own classifyFailure reads off the error
+        // object, so it stays an own property rather than moving into AppError metadata.
+        if (target.service === 'openai') throw Object.assign(ProviderError('uncertain network result'), { ambiguous: true })
         return {
           ...pageResult(pageNumber, target),
           requestedReasoningEffort: 'high',
@@ -284,7 +287,8 @@ describe('pooled OCR page scheduler contracts', () => {
       providerConcurrency: 3,
       processPage: async ({ pageNumber, target }) => {
         if (target.service === 'openai' && target.model === 'gpt-5.6-sol') {
-          throw Object.assign(new Error('account blocked'), { laneWide: true })
+          // Marker read directly by this test's classifyFailure; see the note above.
+          throw Object.assign(ProviderError('account blocked'), { laneWide: true })
         }
         await Bun.sleep(target.service === 'mistral' ? 1 : 3)
         return {

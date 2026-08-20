@@ -273,7 +273,7 @@ describe('logging contracts', () => {
       expect(stripAnsi(renderHumanTable(progressTable))).toContain('\u2502 deepinfra \u2502 attempt 10')
     })
 
-  test('lifted path details are redacted like table cells', () => {
+  test('lifted path details are redacted like table cells', async () => {
       const secret = 'secret-value-123'
       const longPath = `output/2026-05-13_12-34-56-789_process-video_with-a-very-long-title/OPENAI_API_KEY=${secret}/manifest.json`
       const events: LogSinkEvent[] = []
@@ -290,7 +290,7 @@ describe('logging contracts', () => {
       expect(detailValue).toBe(`output/2026-05-13_12-34-56-789_process-video_with-a-very-long-title/OPENAI_API_KEY=REDACTED`)
       expect(String(detailValue)).not.toContain(secret)
 
-      const captured = captureConsole(() => createJsonSink()(events[0] as LogSinkEvent))
+      const captured = await captureConsole(() => createJsonSink()(events[0] as LogSinkEvent))
       expect(JSON.parse(captured.stdout[0] as string).humanTable.details[0]).toEqual({
         label: 'manifest',
         value: detailValue

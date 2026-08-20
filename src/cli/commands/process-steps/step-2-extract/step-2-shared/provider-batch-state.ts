@@ -1,3 +1,4 @@
+import { AppInfrastructureError, InfraError } from '~/utils/error-handler'
 import type { ProviderCompletionStatus, ProviderIdentityLike, ProviderStateLike } from '~/types'
 
 const getProviderKey = (provider: ProviderIdentityLike): string =>
@@ -79,15 +80,40 @@ export const buildRequestedProviderList = <TTarget extends ProviderIdentityLike,
     .map(toRequestedProvider)
 }
 
-export class ProviderBatchCompletionError extends Error {
+/**
+ * The single spelling of "a batch or resume finished with work still outstanding".
+ *
+ * Exit code 2 (rather than the infrastructure default of 1) marks partial completion as
+ * distinct from an outright failure. It used to be expressed three ways — this class, an
+ * unrelated `SttBatchIncompleteError`, and eight `InfraError(..., { exitCode: 2 })` resume
+ * sites — so callers could not classify it without knowing which spelling they had.
+ */
+export const PARTIAL_COMPLETION_EXIT_CODE = 2
+
+export class ProviderBatchCompletionError extends AppInfrastructureError {
   readonly outputDir: string
   readonly completionStatus: ProviderCompletionStatus
-  readonly exitCode = 2
 
   constructor(name: string, outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
-    super(message)
+    super(message, {
+      exitCode: PARTIAL_COMPLETION_EXIT_CODE,
+      stage: 'batch:completion',
+      retryable: false,
+      metadata: { outputDir, completionStatus }
+    })
     this.name = name
     this.outputDir = outputDir
     this.completionStatus = completionStatus
   }
 }
+
+/** Non-provider partial completions (resume flows) that need the same classification. */
+export const partialCompletionError = (
+  message: string,
+  options: { stage: string, metadata?: Record<string, unknown> }
+): AppInfrastructureError => InfraError(message, {
+  stage: options.stage,
+  exitCode: PARTIAL_COMPLETION_EXIT_CODE,
+  retryable: false,
+  ...(options.metadata ? { metadata: options.metadata } : {})
+})

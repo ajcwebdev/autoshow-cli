@@ -1,6 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, dirname, resolve } from 'node:path'
 import type { DialogueWorkItem, DialogueWorkSelectorOptions } from '~/types'
+import { ValidationError } from '~/utils/error-handler'
 
 const normalizeConcurrency = (value: number): number =>
   Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
@@ -21,10 +22,10 @@ const resolveWorkspaces = <TResult>(
       && dirname(workspaceDir) === root
 
     if (!isSafeName) {
-      throw new Error(`Invalid dialogue workspace name: ${entry.workspaceName}`)
+      throw ValidationError(`Invalid dialogue workspace name: ${entry.workspaceName}`, { stage: 'tts:dialogue', retryable: false })
     }
     if (seen.has(workspaceDir)) {
-      throw new Error(`Duplicate dialogue workspace name: ${entry.workspaceName}`)
+      throw ValidationError(`Duplicate dialogue workspace name: ${entry.workspaceName}`, { stage: 'tts:dialogue', retryable: false })
     }
 
     seen.add(workspaceDir)

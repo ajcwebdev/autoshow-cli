@@ -396,7 +396,7 @@ Verification evidence recorded on 2026-08-14 using `bun run check`, `bun t --pri
 ## References
 
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state, resume, and price preflight simulation
-- Related ADR: [ADR-006](ADR-006-unify-error-handling-vocabulary.md) — Unified error handling and retry vocabulary
+- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) — Unified error handling and retry vocabulary
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — Extraction domain architecture and OCR execution contracts
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Model registry, capabilities, and provider identities
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — Multi-speaker script-to-audio contracts and generation slots

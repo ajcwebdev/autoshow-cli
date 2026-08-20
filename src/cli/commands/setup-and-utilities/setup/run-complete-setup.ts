@@ -15,7 +15,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { l as globalLogger, isJsonResultActive } from '~/utils/app-logger/app-logger'
 import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
 import { isCompactSetupMode, setCompactSetupMode } from '~/utils/setup-output-mode'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { extractErrorHints, InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import {
   RUNTIME_BIN_DIR,
   RUNTIME_BUILD_DIR,
@@ -122,12 +122,27 @@ export const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]
 
   if (failures.length === 0) return
 
-  throw new AggregateError(
-    failures.map(({ reason }) => reason),
+  // An AggregateError flattens every child's kind, hints, and exit code into one exit-1
+  // failure with no hints. Wrapping preserves them: the child hints are surfaced on the
+  // wrapper so the top-level handler still prints them, and each child is serialized into
+  // metadata so `serializeDiagnosticError` output keeps the full picture.
+  throw InfraError(
     [
       'Setup tasks failed:',
       ...failures.map(({ label, reason }) => `- ${label}: ${formatTaskFailureReason(reason)}`)
-    ].join('\n')
+    ].join('\n'),
+    {
+      stage: 'setup:tasks',
+      retryable: false,
+      hints: failures.flatMap(({ reason }) => extractErrorHints(reason)),
+      cause: new AggregateError(failures.map(({ reason }) => reason), 'Setup tasks failed'),
+      metadata: {
+        failures: failures.map(({ label, reason }) => ({
+          label,
+          error: serializeDiagnosticError(reason)
+        }))
+      }
+    }
   )
 }
 

@@ -188,3 +188,18 @@ export const formatTimedOutputPrefix = (atMs: number = Date.now()): string => {
   const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
   return `[${hours}:${minutes}:${seconds}.${milliseconds}]`
 }
+
+/**
+ * `[i/n] name` progress prefix and the tail dumps that follow a failure. Both were
+ * hand-inlined at their call sites; keeping them beside `formatTimedOutputPrefix` means the
+ * runner's line shapes are defined in one place.
+ */
+export const formatProgressCounter = (index: number, total: number): string =>
+  `[${index + 1}/${total}]`
+
+export const COMMAND_TAIL_LINES = 20
+
+export const formatOutputTail = (label: string, output: string, lineCount = COMMAND_TAIL_LINES): string | undefined => {
+  const tail = output.split('\n').slice(-lineCount).join('\n')
+  return tail.trim().length > 0 ? `  ${label} tail:\n${tail}` : undefined
+}

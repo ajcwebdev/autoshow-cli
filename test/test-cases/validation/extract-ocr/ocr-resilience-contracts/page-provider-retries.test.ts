@@ -19,7 +19,7 @@ import {
 } from './shared'
 import { runGeminiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/run-gemini-ocr'
 import { runHostedOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/hosted-ocr'
-import { AppError } from '~/utils/error-handler'
+import { AppError, ProviderError } from '~/utils/error-handler'
 import type { ExtractionOptions } from '~/types'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
 
@@ -65,9 +65,7 @@ describe('OCR resilience contracts', () => {
         'kimi-ocr page 3',
         async () => {
           attempts += 1
-          throw Object.assign(new Error('rate limited'), {
-            status: 429
-          })
+          throw ProviderError('rate limited', { status: 429 })
         },
         {
           attempts: 2,
@@ -105,9 +103,7 @@ describe('OCR resilience contracts', () => {
         'kimi-ocr page 9',
         async () => {
           attempts += 1
-          throw Object.assign(new Error('rate limited'), {
-            status: 429
-          })
+          throw ProviderError('rate limited', { status: 429 })
         },
         { timeoutMs: 1000 }
       )).rejects.toThrow(`kimi-ocr page 9 failed after ${OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS}/${OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS} attempts`)
@@ -121,15 +117,12 @@ describe('OCR resilience contracts', () => {
   test('Kimi insufficient-balance 429 is a non-retryable quota blocker', async () => {
     const previousSleep = Bun.sleep
     let attempts = 0
-    const error = Object.assign(new Error('Kimi OCR request failed (429): insufficient account balance for account acct_live_secret1234'), {
-      status: 429,
-      rawResponse: {
+    const error = ProviderError('Kimi OCR request failed (429): insufficient account balance for account acct_live_secret1234', { status: 429, metadata: { rawResponse: {
         error: {
           message: 'insufficient account balance for account acct_live_secret1234',
           request_id: 'req_secret123456789'
         }
-      }
-    })
+      } } })
 
     try {
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {
@@ -162,20 +155,13 @@ describe('OCR resilience contracts', () => {
   })
 
   test('Anthropic content-policy and no-retry responses are non-retryable blockers', () => {
-    const policyError = Object.assign(new Error('Anthropic Messages request failed (400): Output blocked by content filtering policy'), {
-      status: 400,
-      errorType: 'invalid_request_error',
-      rawResponse: {
+    const policyError = ProviderError('Anthropic Messages request failed (400): Output blocked by content filtering policy', { status: 400, metadata: { errorType: 'invalid_request_error', rawResponse: {
         error: {
           type: 'invalid_request_error',
           message: 'Output blocked by content filtering policy'
         }
-      }
-    })
-    const noRetryError = Object.assign(new Error('Anthropic Messages request failed (429): provider says do not retry'), {
-      status: 429,
-      headers: new Headers({ 'x-should-retry': 'false' })
-    })
+      } } })
+    const noRetryError = ProviderError('Anthropic Messages request failed (429): provider says do not retry', { status: 429, headers: new Headers({ 'x-should-retry': 'false' }) })
 
     expect(classifyOcrCreateRetry(policyError)).toMatchObject({
       shouldRetry: false,
@@ -199,11 +185,11 @@ describe('OCR resilience contracts', () => {
   })
 
   test('transient OCR retry classification remains retryable', () => {
-    expect(classifyOcrCreateRetry(Object.assign(new Error('try later'), { status: 429 }))).toMatchObject({
+    expect(classifyOcrCreateRetry(ProviderError('try later', { status: 429 }))).toMatchObject({
       shouldRetry: true,
       reason: 'retryable status 429'
     })
-    expect(classifyOcrCreateRetry(Object.assign(new Error('upstream unavailable'), { status: 503 }))).toMatchObject({
+    expect(classifyOcrCreateRetry(ProviderError('upstream unavailable', { status: 503 }))).toMatchObject({
       shouldRetry: true,
       reason: 'retryable status 503'
     })
@@ -227,10 +213,7 @@ describe('OCR resilience contracts', () => {
         'kimi-ocr page 3',
         async () => {
           attempts += 1
-          throw Object.assign(new Error('rate limited'), {
-            status: 429,
-            headers: new Headers({ 'retry-after': '2' })
-          })
+          throw ProviderError('rate limited', { status: 429, headers: new Headers({ 'retry-after': '2' }) })
         },
         {
           attempts: 2,
@@ -542,7 +525,7 @@ describe('OCR resilience contracts', () => {
       'Kimi OCR request failed after 6/6 attempts (retry_exhausted, 1200ms elapsed)',
       {
         kind: 'retry_exhausted',
-        cause: Object.assign(new Error('Kimi OCR request failed (503)'), { status: 503 }),
+        cause: ProviderError('Kimi OCR request failed (503)', { status: 503 }),
         metadata: { attemptsMade: 6, maxAttempts: 6 }
       }
     ))

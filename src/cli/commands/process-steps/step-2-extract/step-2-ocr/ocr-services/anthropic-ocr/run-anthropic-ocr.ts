@@ -130,7 +130,7 @@ const runMessageWithSchemaRetry = async (
             ...(typeof message.usage?.output_tokens === 'number' ? { completionTokens: message.usage.output_tokens } : {})
           }
         }
-        throw InfraError(`Anthropic OCR returned no text output for ${pageLabel}.`, { stage: 'ocr:anthropic' })
+        throw new OcrStructuredResponseError(`Anthropic OCR returned no text output for ${pageLabel}.`, rawText)
       }
 
       const pages = parseOcrResponse(rawText, expectedPageCount, pageLabel)

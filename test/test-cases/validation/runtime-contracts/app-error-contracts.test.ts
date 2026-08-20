@@ -48,7 +48,7 @@ describe('app error contracts', () => {
     const usage = new AppUsageError('Bad flags', ['Run help'])
     const legacy = CLIUsageError('Missing input', 'Run: bun autoshow help extract')
 
-    expect(usage.name).toBe('CLIUsageError')
+    expect(usage.name).toBe('AppUsageError')
     expect(usage.exitCode).toBe(2)
     expect(isUsageError(usage)).toBe(true)
     expect(isUsageError(legacy)).toBe(true)

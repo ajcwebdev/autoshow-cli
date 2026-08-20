@@ -5,7 +5,7 @@ import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordina
 import { CLIUsageError } from '~/utils/error-handler'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
-import { readContainedArtifactFile, removeContainedDirectory, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
+import { isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
 import { serializeElevenLabsSoundEffectRequest, validateElevenLabsSoundEffectTask } from './elevenlabs-sfx-adapter'
 import {
   assertAudioGenDispatchEligible,
@@ -48,8 +48,7 @@ const readPersistedProviderResponse = async (rootDir: string, root: string, ordi
       requestEvidence: evidence.requestEvidence,
     }
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
 }
@@ -81,7 +80,7 @@ const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task:
     let terminal: SoundEffectAdmissionTerminal | undefined
     try { terminal = JSON.parse((await readContainedArtifactFile(rootDir, `${relativeRoot}/${admissionOrdinal(ordinal)}-terminal.json`)).bytes.toString('utf8')) as SoundEffectAdmissionTerminal }
     catch (error) {
-      if (!(error instanceof Error && /does not exist|no such file/iu.test(error.message)) && !(error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT')) throw error
+      if (!isMissingArtifactError(error)) throw error
     }
     if (!terminal) {
       if (recovered) return { nextOrdinal: Math.max(0, ...ordinals) + 1, recovered }
@@ -242,8 +241,7 @@ const readCache = async (task: SoundEffectRenderTask, plan: SoundEffectRenderPla
     if (audio.sha256 !== entry.audio.sha256) throw CLIUsageError('Sound-effect synthesis cache audio checksum is invalid.')
     return { entry, bytes: audio.bytes }
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
 }
@@ -335,8 +333,7 @@ export const loadCompactSfx = async (rootDir: string, plan?: SoundEffectRenderPl
     if (plan && !compactSfxMatchesPlan(sfx, plan)) return undefined
     return { value: sfx, ref: { path: stored.relativePath, sha256: stored.sha256 } }
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
 }

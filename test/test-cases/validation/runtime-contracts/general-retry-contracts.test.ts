@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,7 +14,7 @@ describe('general retry-on-any-error contracts', () => {
 
   test('classifyFetchRetry still refuses deterministic 4xx client errors', () => {
     for (const status of [400, 401, 403, 404, 422]) {
-      const decision = classifyFetchRetry(Object.assign(new Error('client error'), { status }), 'runtime_http_read')
+      const decision = classifyFetchRetry(ProviderError('client error', { status }), 'runtime_http_read')
       expect(decision.shouldRetry).toBe(false)
     }
   })

@@ -5,6 +5,7 @@ import { buildSectionSlug, normalizeInlineWhitespace, splitWithHardLimit } from 
 import { isGenericTocTitle } from './toc-classification'
 import { normalizeHeadingKey, stripLeadingNumberedTitleKey } from './heading-detection'
 import { groupSectionsByTocStarts, mergeDividerSections } from './chapter-grouping'
+import { InternalError } from '~/utils/error-handler'
 
 export { splitWithHardLimit } from './text-split'
 
@@ -171,7 +172,7 @@ const buildChapterFiles = (
   return fileParts.map((filePart, index): TextArtifactFile => {
     const relativePath = relativePaths[index]
     if (relativePath === undefined) {
-      throw new Error('Missing EPUB chapter artifact relative path')
+      throw InternalError('Missing EPUB chapter artifact relative path', { stage: 'ocr:epub', retryable: false })
     }
 
     return {

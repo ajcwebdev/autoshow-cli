@@ -1,9 +1,10 @@
+import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import * as l from '~/utils/app-logger/app-logger'
 import { readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { CLIUsageError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import type { AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, GenerationResumePreparation, GenerationResumeProviderIdentity, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
 
@@ -338,15 +339,15 @@ const resumeGenerationItems = async <TTarget extends ProviderIdentity, TMetadata
     totals = addResumeTotals(totals, result)
   }
   if (totals.failed > 0) {
-    throw InfraError(
+    throw partialCompletionError(
       `${config.stepLabel} resume still has failed items`,
-      { stage: 'resume:generation', exitCode: 2 }
+      { stage: 'resume:generation', metadata: { failed: totals.failed } }
     )
   }
   if (totals.incomplete > 0) {
-    throw InfraError(
+    throw partialCompletionError(
       `${config.stepLabel} resume still has incomplete items`,
-      { stage: 'resume:generation', exitCode: 2 }
+      { stage: 'resume:generation', metadata: { incomplete: totals.incomplete } }
     )
   }
   return totals
@@ -461,9 +462,9 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     }, 'error')
     logResumeSummary(l, { full: 0, incomplete: 0, failed: 1 })
     if (displayOptions.deferItemFailure) return { full: 0, incomplete: 0, failed: 1 }
-    throw InfraError(
+    throw partialCompletionError(
       buildGenerationFailureMessage(config, 'failed', targetsToRun),
-      { stage: 'resume:generation', exitCode: 2 }
+      { stage: 'resume:generation' }
     )
   }
 
@@ -570,9 +571,9 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     }, 'warn')
     logResumeSummary(l, { full: 0, incomplete: 1, failed: 0 })
     if (displayOptions.deferItemFailure) return { full: 0, incomplete: 1, failed: 0 }
-    throw InfraError(
+    throw partialCompletionError(
       buildGenerationFailureMessage(config, 'incomplete', stillMissing),
-      { stage: 'resume:generation', exitCode: 2 }
+      { stage: 'resume:generation' }
     )
   }
 

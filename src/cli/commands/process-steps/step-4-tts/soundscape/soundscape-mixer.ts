@@ -6,7 +6,7 @@ import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
-import { readContainedArtifactFile, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
+import { isMissingArtifactError, readContainedArtifactFile, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
 import { inspectSoundscapeAudio } from './soundscape-audio'
 
 const runFfmpeg = async (args: string[], label: string, cancellation?: AbortSignal): Promise<void> => {
@@ -199,8 +199,7 @@ const loadExistingSoundscapeMix = async (input: {
   let stored: Awaited<ReturnType<typeof readContainedArtifactFile>>
   try { stored = await readContainedArtifactFile(input.rootDir, soundscapeMixPath(input.mixId)) }
   catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
   let mix: CompactMix

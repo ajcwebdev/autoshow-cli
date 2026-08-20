@@ -3,6 +3,7 @@ import { lstat, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import * as v from 'valibot'
 import { readDependencyUrlAndSha256, readDependencyVersion } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
+import { CLIUsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import {
   managedToolchainDistributionLicense,
@@ -211,7 +212,9 @@ export const managedPrebuiltPayloadManifestPath = (toolDir: string): string =>
 
 const parseSchema = <T>(schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>, value: unknown, label: string): T => {
   const result = v.safeParse(schema, value)
-  if (!result.success) throw new Error(`Invalid ${label}`)
+  if (!result.success) {
+    throw ValidationError(`Invalid ${label}`, { stage: 'setup:managed-artifact', retryable: false })
+  }
   return result.output
 }
 
@@ -254,7 +257,7 @@ export const compareMacosVersions = (left: string, right: string): number => {
 export const resolveHostMacosVersion = async (): Promise<string> => {
   const result = await runCapture('sw_vers', ['-productVersion'], { allowFailure: true })
   const version = result.exitCode === 0 ? normalizeMacosVersion(result.stdout) : undefined
-  if (!version) throw new Error('could not determine the host macOS version with sw_vers')
+  if (!version) throw InfraError('could not determine the host macOS version with sw_vers', { stage: 'setup:managed-artifact' })
   return version
 }
 
@@ -262,7 +265,9 @@ export const resolveSourceDeploymentTarget = async (): Promise<string> => {
   const configured = process.env['MACOSX_DEPLOYMENT_TARGET']
   if (configured) {
     const version = normalizeMacosVersion(configured)
-    if (!version) throw new Error(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`)
+    if (!version) {
+      throw CLIUsageError(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`, 'Use a MAJOR.MINOR macOS version, for example 15.0.')
+    }
     return version
   }
   const hostVersion = await resolveHostMacosVersion()
@@ -278,7 +283,9 @@ export const managedArtifactBuildFlags = (tool: ManagedArtifactToolId): string[]
 export const readExpectedManagedArtifactSources = async (tool: ManagedArtifactToolId): Promise<ManagedArtifactSource[]> =>
   await Promise.all(SOURCE_RECIPES[tool].sourceNames.map(async (name) => {
     const version = await readDependencyVersion(name)
-    if (!version) throw new Error(`Missing version for managed source dependency ${name}`)
+    if (!version) {
+      throw InternalError(`Missing version for managed source dependency ${name}`, { stage: 'setup:managed-artifact', retryable: false })
+    }
     const { url, sha256 } = await readDependencyUrlAndSha256(name)
     return { name, version, url, sha256 }
   }))
@@ -292,7 +299,9 @@ export const createManagedSourceArtifactManifest = async (options: {
 }): Promise<ManagedSourceArtifactManifest> => {
   const recipe = SOURCE_RECIPES[options.tool]
   const platform = options.platform ?? process.platform
-  if (platform !== 'darwin') throw new Error(`Managed source artifacts require darwin, received ${platform}`)
+  if (platform !== 'darwin') {
+    throw InfraError(`Managed source artifacts require darwin, received ${platform}`, { stage: 'setup:managed-artifact', retryable: false })
+  }
   const binaryPath = join(options.toolDir, recipe.binaryRelativePath)
   return {
     schemaVersion: MANAGED_ARTIFACT_SCHEMA_VERSION,
@@ -392,15 +401,19 @@ export const verifyManagedPrebuiltCodeSignature = async (
   expected: { signingIdentity: string, teamId: string }
 ): Promise<void> => {
   const verification = await runCapture('codesign', ['--verify', '--strict', '--verbose=2', binaryPath], { allowFailure: true })
-  if (verification.exitCode !== 0) throw new Error(`strict code-signature verification failed for ${binaryPath}`)
+  if (verification.exitCode !== 0) {
+    throw InfraError(`strict code-signature verification failed for ${binaryPath}`, { stage: 'setup:managed-artifact', retryable: false })
+  }
   const details = await runCapture('codesign', ['-d', '--verbose=4', binaryPath], { allowFailure: true })
   const output = `${details.stdout}\n${details.stderr}`
-  if (details.exitCode !== 0) throw new Error(`could not inspect code signature for ${binaryPath}`)
+  if (details.exitCode !== 0) {
+    throw InfraError(`could not inspect code signature for ${binaryPath}`, { stage: 'setup:managed-artifact' })
+  }
   if (!output.split('\n').some(line => line.trim() === `TeamIdentifier=${expected.teamId}`)) {
-    throw new Error(`code-signature Team ID mismatch for ${binaryPath}`)
+    throw InfraError(`code-signature Team ID mismatch for ${binaryPath}`, { stage: 'setup:managed-artifact', retryable: false })
   }
   if (!output.split('\n').some(line => line.trim() === `Authority=${expected.signingIdentity}`)) {
-    throw new Error(`code-signature identity mismatch for ${binaryPath}`)
+    throw InfraError(`code-signature identity mismatch for ${binaryPath}`, { stage: 'setup:managed-artifact', retryable: false })
   }
 }
 
@@ -409,11 +422,13 @@ export const verifyManagedPrebuiltArchitecture = async (
   expectedArchitecture: 'arm64' | 'x64'
 ): Promise<void> => {
   const inspected = await runCapture('lipo', ['-archs', binaryPath], { allowFailure: true })
-  if (inspected.exitCode !== 0) throw new Error(`could not inspect Mach-O architecture for ${binaryPath}`)
+  if (inspected.exitCode !== 0) {
+    throw InfraError(`could not inspect Mach-O architecture for ${binaryPath}`, { stage: 'setup:managed-artifact' })
+  }
   const architectures = inspected.stdout.trim().split(/\s+/).filter(Boolean)
   const expected = expectedArchitecture === 'x64' ? 'x86_64' : 'arm64'
   if (architectures.length !== 1 || architectures[0] !== expected) {
-    throw new Error(`Mach-O architecture mismatch for ${binaryPath}: expected thin ${expected}, got ${architectures.join(' ') || 'unknown'}`)
+    throw InfraError(`Mach-O architecture mismatch for ${binaryPath}: expected thin ${expected}, got ${architectures.join(' ') || 'unknown'}`, { stage: 'setup:managed-artifact', retryable: false })
   }
 }
 
@@ -425,17 +440,19 @@ const listRegularPackageFiles = async (toolDir: string, relativeDir = ''): Promi
     const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name
     if (relativePath === MANAGED_ARTIFACT_MANIFEST_NAME) continue
     const entryStat = await lstat(join(toolDir, relativePath))
-    if (entryStat.isSymbolicLink()) throw new Error(`package contains symbolic link ${relativePath}`)
+    if (entryStat.isSymbolicLink()) {
+      throw ValidationError(`package contains symbolic link ${relativePath}`, { stage: 'setup:managed-artifact', retryable: false })
+    }
     if (entryStat.isDirectory()) paths.push(...await listRegularPackageFiles(toolDir, relativePath))
     else if (entryStat.isFile()) paths.push(relativePath)
-    else throw new Error(`package contains unsupported file type ${relativePath}`)
+    else throw ValidationError(`package contains unsupported file type ${relativePath}`, { stage: 'setup:managed-artifact', retryable: false })
   }
   return paths.sort()
 }
 
 const readCandidateReleaseManifest = (candidate: ManagedPrebuiltCandidate): ManagedPrebuiltReleaseManifest => {
   if (sha256Bytes(candidate.releaseManifestJson) !== candidate.releaseManifestSha256) {
-    throw new Error('release manifest SHA-256 does not match candidate metadata')
+    throw ValidationError('release manifest SHA-256 does not match candidate metadata', { stage: 'setup:managed-artifact', retryable: false })
   }
   return parseManagedPrebuiltReleaseManifest(JSON.parse(candidate.releaseManifestJson) as unknown)
 }

@@ -118,7 +118,7 @@ This pass applies to:
 It does not apply to:
 
 - The inbound credential channel itself — credentials keep arriving via environment variables (Keep #1 below).
-- The error class vocabulary and rendering pipeline — `MissingCredentialError` slots into the existing `AppError` taxonomy that [ADR-006](ADR-006-unify-error-handling-vocabulary.md) owns.
+- The error class vocabulary and rendering pipeline — `MissingCredentialError` slots into the existing `AppError` taxonomy that [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) owns.
 - Docker credential delivery (`--env-file`, `-e`, mounted `/app/.env`) — [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md) owns the container credential boundary.
 - Runner-to-worker test IPC variables and the fake-binary seams, which the passes above deliberately kept.
 
@@ -248,7 +248,7 @@ Pass 5 implementation, in order:
 
 - Docker distribution and extracted container-flag decision: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
 - Retirement of PaddleOCR and OCRmyPDF engines: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
-- Error vocabulary that `MissingCredentialError` extends: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
+- Error vocabulary that `MissingCredentialError` extends: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
 - Current inventory of record: `docs/reports/00-env-vars-report-2026-08-19.md` (replaces the 2026-08-13 report this record previously cited)
 - Key modules: `src/utils/base-urls.ts`, `src/utils/runtime-paths.ts`, `src/utils/process-lock.ts`, `test/test-runner/adaptive-concurrency.ts`
 - Pass 5 key modules: `src/cli/commands/setup-and-utilities/setup/hosted-provider-config.ts`, `src/cli/commands/process-steps/step-4-tts/tts-targets/execution-preflight.ts`, `src/utils/validate/env-utils.ts`, `src/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts.ts`

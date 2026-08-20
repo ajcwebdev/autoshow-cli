@@ -15,7 +15,7 @@ import type {
 } from '~/types'
 import { readManifest } from '../../pipeline-manifest'
 import { hashCanonicalTtsValue } from '../../step-4-tts/script-to-audio/contract-identity'
-import { readContainedArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
+import { isMissingArtifactError, readContainedArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { soundscapeReportedOutputPath } from './comic-soundscape-workflow'
 import { validateComicPresentationPlan, validateResolvedPanelTimeline } from './comic-presentation-plan'
 import { PRESENTATION_ARCHIVE_PATH, validateCompactPresentation } from './comic-presentation-renderer'
@@ -244,7 +244,7 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
       return stored.bytes
     } catch (error) {
       const missing = error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT'
-        || (error instanceof Error && /does not exist|no such file/iu.test(error.message))
+        || isMissingArtifactError(error)
       fail({
         code: missing ? 'missing-artifact' : 'checksum-mismatch',
         message: `${label} ${missing ? 'is missing' : 'could not be verified'}: ${ref.path}`,
@@ -267,15 +267,21 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
 
   const verifier: LineageVerifier = { verifyRef, verifyJson, fail, verified }
 
-  let comic: CanonicalComicItemMetadata | undefined
-  try {
-    const manifest = await readManifest(sceneRunDir)
-    const item = manifest?.items[0]
-    comic = item?.metadata['comic'] as CanonicalComicItemMetadata | undefined
-    if (!manifest || manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || !item || !comic) {
-      throw new Error('unreadable')
-    }
-  } catch {
+  // Read the canonical envelope, falling back to the raw manifest when the canonical
+  // read either rejects or yields a shape that is not a single comic item. This used to
+  // be spelled as a throw-as-goto sentinel caught two lines below; the plain conditional
+  // says the same thing without putting a control-flow signal through the error vocabulary.
+  const manifest = await readManifest(sceneRunDir).catch(() => undefined)
+  const item = manifest?.items[0]
+  let comic: CanonicalComicItemMetadata | undefined = manifest
+    && manifest.command === 'comic'
+    && manifest.scope === 'single'
+    && manifest.items.length === 1
+    && item
+    ? item.metadata['comic'] as CanonicalComicItemMetadata | undefined
+    : undefined
+
+  if (!comic) {
     try {
       const raw = await Bun.file(join(sceneRunDir, 'manifest.json')).json() as { command?: unknown, items?: Array<{ metadata?: { comic?: CanonicalComicItemMetadata } }> }
       comic = raw.command === 'comic' ? raw.items?.[0]?.metadata?.comic : undefined

@@ -13,7 +13,7 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-transaction'
 import { getLocationReferencePath, getLocationSketchManifestPath, readLocationReferenceCatalog, readLocationSketchManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
 import { estimateLocationReferencePrice } from '~/cli/commands/process-steps/step-8-comic/comic-utils/price-estimate'
-import { l } from '~/utils/app-logger/app-logger'
+import { captureLogMessages } from '../../../test-utils/console-capture'
 import type { LocationViewQaResult } from '~/types'
 
 const roots: string[] = []
@@ -134,12 +134,9 @@ describe('canonical location reference registration', () => {
 
   test('price preflight estimates one initial image and one permitted repair for one view', async () => {
     await fixture()
-    const originalSinks = [...l.config.sinks]
-    const messages: string[] = []
-    l.config.sinks.length = 0
-    l.config.sinks.push(event => messages.push(event.message))
-    try { await estimateLocationReferencePrice({ location: 'cargo-bay', view: 'establishing', maxRepairs: 1 }) }
-    finally { l.config.sinks.length = 0; l.config.sinks.push(...originalSinks) }
+    const messages = await captureLogMessages(async () => {
+      await estimateLocationReferencePrice({ location: 'cargo-bay', view: 'establishing', maxRepairs: 1 })
+    })
     const output = messages.join('\n')
     expect(output).toContain('Initial location-reference image calls: 1')
     expect(output).toContain('Initial judge calls (gpt-5.6-sol): 1')

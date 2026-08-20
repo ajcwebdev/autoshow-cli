@@ -7,6 +7,7 @@ import { providerAccountScopeHash } from '../script-to-audio/advanced-provider-c
 import { recordVoiceProvisioningOutcome } from './character-voice-registry'
 import { listVoiceProvisioningAttempts, loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation } from './provisioning-journal'
 import { MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 export const AMBIGUOUS_VOICE_REDISPATCH_MESSAGE =
   'Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.'
@@ -109,11 +110,11 @@ export const finalizePendingVoiceProvisioningAttempt = async (input: {
         ? input.registration.sanitizedProviderMetadata['desiredName']
         : undefined
     if (!title) throw CLIUsageError('Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.')
-    if (!input.apiKey) throw CLIUsageError('FISH_API_KEY environment variable is required for Fish model reconciliation')
-    if (providerAccountScopeHash('fish', input.apiKey) !== attempt.accountScopeHash) {
+    const apiKey = requireProvidedApiKey(input.apiKey, 'FISH_API_KEY', 'voice:fish', 'Fish model reconciliation')
+    if (providerAccountScopeHash('fish', apiKey) !== attempt.accountScopeHash) {
       throw CLIUsageError('Fish reconciliation credentials do not match the provisioning account scope.')
     }
-    issued = await searchFishIssuedResource(attempt, input.registration as VoiceRegistration, input.apiKey)
+    issued = await searchFishIssuedResource(attempt, input.registration as VoiceRegistration, apiKey)
   }
   if (issued) {
     return await reconcileVoiceProvisioningAttempt({

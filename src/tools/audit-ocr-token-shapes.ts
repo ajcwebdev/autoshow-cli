@@ -1,4 +1,9 @@
-import { auditOcrTokenShapes } from './ocr-token-shape-audit'
+import { CLIUsageError } from '~/utils/error-handler'
+import { auditOcrTokenShapes } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-token-shape-audit'
+
+// Standalone `bun run` tool, not a CLI command: its entire stdout is the machine-readable
+// audit document, so it writes the payload directly rather than through the app logger.
+// Declared exempt from the no-raw-stdout contract alongside the other src/tools scripts.
 
 const args = Bun.argv.slice(2)
 const runDirectories: string[] = []
@@ -10,17 +15,17 @@ for (let index = 0; index < args.length; index++) {
   const arg = args[index]
   if (arg === '--run-dir') {
     const value = args[++index]
-    if (!value) throw new Error('--run-dir requires a path')
+    if (!value) throw CLIUsageError('--run-dir requires a path')
     runDirectories.push(value)
   } else if (arg === '--profile') {
     profilePath = args[++index]
-    if (!profilePath) throw new Error('--profile requires a path')
+    if (!profilePath) throw CLIUsageError('--profile requires a path')
   } else if (arg === '--all-token-providers') {
     includeAllTokenProviders = true
   } else if (arg === '--plan') {
     showPlan = true
   } else {
-    throw new Error(`Unknown argument: ${arg ?? ''}`)
+    throw CLIUsageError(`Unknown argument: ${arg ?? ''}`)
   }
 }
 

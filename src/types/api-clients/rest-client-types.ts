@@ -1,4 +1,5 @@
 import type { BoundedCaptureResult } from '~/types'
+import type { AppProviderError } from '~/utils/error-handler'
 
 export type RestClientConfigBase = {
   apiKey: string
@@ -21,7 +22,9 @@ export type RestFetchOptionsBase<TConfig extends RestClientConfigBase> = {
 }
 
 
-export type RestErrorBase = Error & {
+// Every provider REST error is an AppProviderError, so `kind: 'provider_http'` and the
+// AppError-family process handling apply uniformly instead of only on the replicate path.
+export type RestErrorBase = AppProviderError & {
   status: number
   headers: Headers
   body: string

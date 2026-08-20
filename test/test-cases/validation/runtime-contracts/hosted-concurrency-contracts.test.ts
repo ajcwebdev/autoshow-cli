@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import {
   classifyHostedRateLimitPressure,
   createHostedConcurrencyCoordinator,
@@ -127,7 +128,7 @@ describe('hosted concurrency coordinator', () => {
     let attempts = 0
     const request = runHostedConcurrencyRequest({ coordinator, admission: admission('openai', 0, 8) }, async () => {
       attempts += 1
-      if (attempts === 1) throw Object.assign(new Error('too many requests'), { status: 429, headers: new Headers({ 'retry-after': '1' }) })
+      if (attempts === 1) throw ProviderError('too many requests', { status: 429, headers: new Headers({ 'retry-after': '1' }) })
       return 'ok'
     })
     await flushMicrotasks()
@@ -152,7 +153,7 @@ describe('hosted concurrency coordinator', () => {
     const attemptTimes: number[] = []
     const request = runHostedConcurrencyRequest({ coordinator, admission: admission('openai', 0, 16) }, async () => {
       attemptTimes.push(clock.now())
-      if (attemptTimes.length <= 5) throw Object.assign(new Error('rate limited'), { status: 429 })
+      if (attemptTimes.length <= 5) throw ProviderError('rate limited', { status: 429 })
       return 'ok'
     })
     request.catch(() => undefined)
@@ -168,7 +169,7 @@ describe('hosted concurrency coordinator', () => {
     let retryAfterAttempts = 0
     const retryAfter = runHostedConcurrencyRequest({ coordinator, admission: admission('gemini', 0, 4) }, async () => {
       retryAfterAttempts += 1
-      if (retryAfterAttempts === 1) throw Object.assign(new Error('too many requests'), { status: 429, headers: { 'Retry-After': '9' } })
+      if (retryAfterAttempts === 1) throw ProviderError('too many requests', { status: 429, headers: new Headers({ 'Retry-After': '9' }) })
       return 'ok'
     })
     await flushMicrotasks()
@@ -196,7 +197,7 @@ describe('hosted concurrency coordinator', () => {
       }
     }, async () => {
       attemptTimes.push(clock.now())
-      if (attemptTimes.length === 1) throw Object.assign(new Error('too many requests'), { status: 429 })
+      if (attemptTimes.length === 1) throw ProviderError('too many requests', { status: 429 })
       return 'ok'
     }, (error) => classifyFetchRetry(error, 'runtime_http_create_retriable'))
     request.catch(() => undefined)
@@ -217,7 +218,7 @@ describe('hosted concurrency coordinator', () => {
     const ttsRun = ttsScheduler.runChunks('grok', ['chunk'], async (_chunk, _index, ttsAdmission) =>
       await withHostedTtsRetry({ operationName: 'hosted TTS exact recovery', chunkScheduler: ttsScheduler, admission: ttsAdmission, policy: { maxAttempts: 1 } }, async () => {
         ttsAttempts += 1
-        if (ttsAttempts === 1) throw Object.assign(new Error('rate limited'), { status: 429 })
+        if (ttsAttempts === 1) throw ProviderError('rate limited', { status: 429 })
         return 'tts-ok'
       })
     )
@@ -235,7 +236,7 @@ describe('hosted concurrency coordinator', () => {
     const ocrRun = ocrScheduler.run({ service: 'gemini', model: 'gemini-3.5-flash', pageNumber: 1 }, async ({ onRetryable }) =>
       await withOcrPageRequestRetry('hosted OCR exact recovery', async () => {
         ocrAttempts += 1
-        if (ocrAttempts === 1) throw Object.assign(new Error('rate limited'), { status: 429 })
+        if (ocrAttempts === 1) throw ProviderError('rate limited', { status: 429 })
         return 'ocr-ok'
       }, { attempts: 1, onRetryable })
     )
@@ -251,7 +252,7 @@ describe('hosted concurrency coordinator', () => {
     const clock = createClock()
     const coordinator = createHostedConcurrencyCoordinator({ mode: 'immediate', recoveryBudgetMs: 5_000, now: clock.now, random: () => 1, setTimer: clock.setTimer, clearTimer: clock.clearTimer })
     const exhausted = runHostedConcurrencyRequest({ coordinator, admission: admission('openai', 0, 4) }, async () => {
-      throw Object.assign(new Error('rate limited'), { status: 429 })
+      throw ProviderError('rate limited', { status: 429 })
     })
     exhausted.catch(() => undefined)
     await flushMicrotasks()
@@ -259,17 +260,17 @@ describe('hosted concurrency coordinator', () => {
     await expect(exhausted).rejects.toMatchObject({ kind: 'retry_exhausted', status: 429 })
     expect(coordinator.snapshot().lanes[0]).toMatchObject({ recoveryFailures: 1 })
 
-    const validation = Object.assign(new Error('invalid request'), { status: 400 })
+    const validation = ProviderError('invalid request', { status: 400 })
     await expect(runHostedConcurrencyRequest({ coordinator, admission: admission('gemini', 0, 4) }, async () => { throw validation })).rejects.toBe(validation)
   })
 
   test('classifies explicit rate pressure but excludes billing, quota, auth, timeout, and server failures', () => {
-    expect(classifyHostedRateLimitPressure(Object.assign(new Error('limited'), { status: 429 }))).toMatchObject({ status: 429 })
-    expect(classifyHostedRateLimitPressure(Object.assign(new Error('billing quota exhausted'), { status: 429 }))).toBeUndefined()
-    expect(classifyHostedRateLimitPressure(Object.assign(new Error('request rejected'), { status: 429, category: 'quota_exceeded' }))).toBeUndefined()
-    expect(classifyHostedRateLimitPressure(Object.assign(new Error('request rejected'), { category: 'concurrency_limit' }))).toMatchObject({ reason: 'concurrency_limit' })
-    expect(classifyHostedRateLimitPressure(Object.assign(new Error('timeout'), { status: 408 }))).toBeUndefined()
-    expect(classifyHostedRateLimitPressure(Object.assign(new Error('server error'), { status: 503 }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('limited', { status: 429 }))).toMatchObject({ status: 429 })
+    expect(classifyHostedRateLimitPressure(ProviderError('billing quota exhausted', { status: 429 }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { status: 429, metadata: { category: 'quota_exceeded' } }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { metadata: { category: 'concurrency_limit' } }))).toMatchObject({ reason: 'concurrency_limit' })
+    expect(classifyHostedRateLimitPressure(ProviderError('timeout', { status: 408 }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('server error', { status: 503 }))).toBeUndefined()
   })
 
   test('cleans up queued abort listeners and timers on cancellation and disposal', async () => {

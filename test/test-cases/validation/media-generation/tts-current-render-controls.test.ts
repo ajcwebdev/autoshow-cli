@@ -6,6 +6,7 @@ import {
 } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import type { TtsOptions, TtsTarget } from '~/types'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const dialogue = [
   'Alice: First line.',
@@ -14,9 +15,10 @@ const dialogue = [
 ].join('\n')
 
 const targetFor = (options: TtsOptions, service: TtsTarget['service']): TtsTarget => {
-  const target = collectTtsTargets(options).find((candidate) => candidate.service === service)
-  if (!target) throw new Error(`Missing ${service} target fixture`)
-  return target
+  return requireDefined(
+    collectTtsTargets(options).find((candidate) => candidate.service === service),
+    `${service} target fixture`
+  )
 }
 
 describe('current TTS render planning uses final invocation controls', () => {

@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, rename, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import type { CharacterSketchCommandDependencies, CharacterSketchCommandOptions, CharacterSketchView, ImageGenerationQuality, ImageGenerationSize } from '~/types'
-import { comicLog, err, formatCompactCost, formatDuration, suppressSharedPipelineLogs } from '../../comic-utils/comic-logger'
+import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
 import {
   CHARACTER_SKETCH_VIEWS,
   checksumFile,
@@ -56,14 +56,13 @@ const buildPrompt = (
     : 'Requirements:\n- Output black-and-white outline art only.\n- Use a plain white background.\n- Preserve identity, proportions, clothing silhouette, and distinctive features.\n- Show the full character clearly in frame.',
 ].filter(Boolean).join('\n\n')
 
-export const characterSketchCommand = async (
+const runCharacterSketchCommand = async (
   options: CharacterSketchCommandOptions = {},
   dependencies: CharacterSketchCommandDependencies = {},
 ): Promise<void> => {
   if (!options.character) throw CLIUsageError('--character is required')
   if ((options.imageModels?.length ?? 1) !== 1) throw CLIUsageError('comic reference-sketch accepts exactly one --image-model')
 
-  suppressSharedPipelineLogs()
   const catalog = loadCharacterCatalog()
   const key = catalog.requireKey(options.character)
   const character = catalog.get(key)
@@ -185,3 +184,16 @@ export const characterSketchCommand = async (
     await rm(temporaryDirectory, { recursive: true, force: true })
   }
 }
+
+/**
+ * Comic prints its own per-image output line with the real path, so the shared image
+ * services' interim `pipeline` logs (which show the throwaway scratch path) are suppressed
+ * for the duration of this run — and only this run, so a direct caller is unaffected after
+ * it returns.
+ */
+export const characterSketchCommand = async (
+  options: CharacterSketchCommandOptions,
+  dependencies: CharacterSketchCommandDependencies = {}
+): Promise<void> => await withSuppressedPipelineLogs(
+  async () => { await runCharacterSketchCommand(options, dependencies) }
+)

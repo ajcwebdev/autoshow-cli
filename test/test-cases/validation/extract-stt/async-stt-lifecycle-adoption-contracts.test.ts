@@ -6,7 +6,7 @@ import { runGladiaStt } from '~/cli/commands/process-steps/step-2-extract/step-2
 import { runSonioxStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/soniox/run-soniox-stt'
 import { ASYNC_STT_PROGRESS_METADATA_KEY, createSttProviderProgressLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-provider-progress'
 import type { AsyncSttLifecycleHooks, Step2Metadata, SttTarget, TranscriptionResult } from '~/types'
-import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { expectProviderHttpError, installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const tempDirs = setupContractSuiteLifecycle({
@@ -103,19 +103,14 @@ describe('async STT lifecycle adoption contracts', () => {
     process.env['ASSEMBLYAI_API_KEY'] = 'test-assemblyai-key'
     installMockFetch(() => jsonResponse({}))
 
-    try {
-      await runAssemblyAiTranscribe(audioPath, outputDir, {
-        model: 'universal-2',
-        segmentOffsetMinutes: 0
-      })
-      throw new Error('Expected AssemblyAI upload validation to fail')
-    } catch (error) {
-      expect(error).toMatchObject({
-        message: 'AssemblyAI upload response missing upload_url',
-        kind: 'validation',
-        stage: 'stt:assemblyai'
-      })
-    }
+    await expectProviderHttpError(async () => await runAssemblyAiTranscribe(audioPath, outputDir, {
+      model: 'universal-2',
+      segmentOffsetMinutes: 0
+    }), {
+      kind: 'validation',
+      stage: 'stt:assemblyai',
+      messageContains: 'AssemblyAI upload response missing upload_url'
+    })
   })
 
   test('AssemblyAI keeps its hand-rolled creation validation and provider stage', async () => {
@@ -127,19 +122,14 @@ describe('async STT lifecycle adoption contracts', () => {
       ? jsonResponse({ upload_url: 'https://cdn.assemblyai.test/audio-1' })
       : jsonResponse({}))
 
-    try {
-      await runAssemblyAiTranscribe(audioPath, outputDir, {
-        model: 'universal-2',
-        segmentOffsetMinutes: 0
-      })
-      throw new Error('Expected AssemblyAI creation validation to fail')
-    } catch (error) {
-      expect(error).toMatchObject({
-        message: 'AssemblyAI transcript creation response missing id',
-        kind: 'validation',
-        stage: 'stt:assemblyai'
-      })
-    }
+    await expectProviderHttpError(async () => await runAssemblyAiTranscribe(audioPath, outputDir, {
+      model: 'universal-2',
+      segmentOffsetMinutes: 0
+    }), {
+      kind: 'validation',
+      stage: 'stt:assemblyai',
+      messageContains: 'AssemblyAI transcript creation response missing id'
+    })
   })
 
   test('AssemblyAI preserves request, result, transcript, and canonical progress shapes', async () => {

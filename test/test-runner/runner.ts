@@ -34,8 +34,9 @@ import {
 import { resolvePriceSelection } from './price-commands/resolve'
 import { buildPriceReportData } from './reports/price-report'
 import { buildTestReportData } from './reports/test-report'
-import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath, parseCommandEstimatedTotal } from './utils'
+import { formatOutputTail, formatProgressCounter, formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath, parseCommandEstimatedTotal } from './utils'
 import { buildModelCalibrationReport } from './model-calibration'
+import { serializeDiagnosticError } from '~/utils/error-handler'
 import { orderTestFiles, resolveSelectedFiles } from './path-selection'
 import { withEmptyPriceConfig } from './price-command-config'
 import {
@@ -109,7 +110,7 @@ const originalConsole = {
 
 let timestampConsoleInstalled = false
 
-const installTimestampedConsole = (_startedAtMs?: number): void => {
+export const installTimestampedConsole = (): void => {
   if (timestampConsoleInstalled) {
     return
   }
@@ -137,10 +138,20 @@ const installTimestampedConsole = (_startedAtMs?: number): void => {
   }
 }
 
+let commandMetricWriteWarned = false
+
 const writeCommandMetric = async (artifacts: TestRunArtifacts, record: Record<string, unknown>): Promise<void> => {
   try {
     await appendFile(artifacts.metricsLogPath, `${JSON.stringify(record)}\n`)
-  } catch {
+  } catch (error) {
+    // Warn once: a broken metrics path otherwise produces empty pricing reports with no
+    // signal at all, but one warning per command would drown the run.
+    if (commandMetricWriteWarned) return
+    commandMetricWriteWarned = true
+    l.warn(`Could not append to the runner metrics log at ${artifacts.metricsLogPath}; pricing reports will be incomplete`, {
+      category: 'pricing',
+      metadata: { metricsLogPath: artifacts.metricsLogPath, error: serializeDiagnosticError(error) }
+    })
   }
 }
 
@@ -221,13 +232,11 @@ const buildEmptyBudgetSummary = (suiteName: string, budgetHundredthCents: number
 const logPriceCommandFailure = (executed: ExecutedPriceCommand, message: string): void => {
   l.error(message)
 
-  const stdoutTail = executed.stdout.split('\n').slice(-20).join('\n')
-  const stderrTail = executed.stderr.split('\n').slice(-20).join('\n')
-  if (stdoutTail.trim().length > 0) {
-    l.error(`  stdout tail:\n${stdoutTail}`)
-  }
-  if (stderrTail.trim().length > 0) {
-    l.error(`  stderr tail:\n${stderrTail}`)
+  for (const tail of [
+    formatOutputTail('stdout', executed.stdout),
+    formatOutputTail('stderr', executed.stderr)
+  ]) {
+    if (tail !== undefined) l.error(tail)
   }
 }
 
@@ -372,7 +381,7 @@ const runPriceSuite = async (
   const executionCommands = commands.map(withPriceExecutionConfig)
 
   if (executionCommands.length === 0) {
-    l.write('info', `No ${suiteName} pricing commands resolved; treating selection as a zero-cost price pass`)
+    l.write('info', `No ${suiteName} pricing commands resolved; treating selection as a zero-cost price pass`, { category: 'pricing' })
     return {
       exitCode: 0,
       results: [],
@@ -380,9 +389,9 @@ const runPriceSuite = async (
     }
   }
 
-  l.write('info', `Running ${suiteName} pricing preflight across ${executionCommands.length} command(s)`)
+  l.write('info', `Running ${suiteName} pricing preflight across ${executionCommands.length} command(s)`, { category: 'pricing' })
   if (budgetHundredthCents !== undefined) {
-    l.write('info', `Budget filter (per test key): ${formatBudgetHundredthCents(budgetHundredthCents)}`)
+    l.write('info', `Budget filter (per test key): ${formatBudgetHundredthCents(budgetHundredthCents)}`, { category: 'pricing' })
   }
 
   const executedResults = await runWithConcurrency(executionCommands, PRICE_CONCURRENCY, async (entry, _index) => {
@@ -395,9 +404,11 @@ const runPriceSuite = async (
   for (const [index, { entry, executed, observation }] of executedResults.entries()) {
     observations.push(observation)
     if (observation.failureMessage !== null) {
-      logPriceCommandFailure(executed, `[${index + 1}/${executionCommands.length}] ${entry.name} — FAIL exit=${executed.exitCode}`)
+      logPriceCommandFailure(executed, `${formatProgressCounter(index, executionCommands.length)} ${entry.name} — FAIL exit=${executed.exitCode}`)
     } else {
-      l.write('info', `[${index + 1}/${executionCommands.length}] ${entry.name} — cost: ${formatCost(observation.costCents as number)}`)
+      l.write('info', `${formatProgressCounter(index, executionCommands.length)} ${entry.name} — cost: ${formatCost(observation.costCents as number)}`, {
+        category: 'pricing'
+      })
     }
   }
 
@@ -570,8 +581,8 @@ const runBudgetPreflight = async (
     }
   }
 
-  l.write('info', `Running ${suiteName} budget preflight across ${groupedCommands.length} test key(s) (${executionCommands.length} command variant(s))`)
-  l.write('info', `Budget: ${formatBudgetHundredthCents(budgetHundredthCents)}`)
+  l.write('info', `Running ${suiteName} budget preflight across ${groupedCommands.length} test key(s) (${executionCommands.length} command variant(s))`, { category: 'pricing' })
+  l.write('info', `Budget: ${formatBudgetHundredthCents(budgetHundredthCents)}`, { category: 'pricing' })
 
   const allVariants = groupedCommands.flatMap((group, groupIndex) =>
     group.variants.map((entry, variantIndex) => ({ entry, groupIndex, variantIndex }))
@@ -580,7 +591,7 @@ const runBudgetPreflight = async (
   const cache = await readBudgetPreflightCache(fingerprint)
   const { hits, misses } = partitionBudgetCacheHits(allVariants, cache)
 
-  l.write('info', `Budget preflight cache: ${hits.length} hit(s), ${misses.length} miss(es)`)
+  l.write('info', `Budget preflight cache: ${hits.length} hit(s), ${misses.length} miss(es)`, { category: 'pricing' })
 
   const executedMisses = await executeMissesAndUpdateCache(misses, cache, fingerprint, artifacts)
   const observations = collectOrderedVariantObservations(groupedCommands, [...hits, ...executedMisses])
@@ -618,7 +629,7 @@ const prepareBudgetPreflight = async (
 
   const resolved = resolvePriceSelection(allFiles, args.pathFilters, { budgetSkippableOnly: true })
   if (resolved.commands.length === 0) {
-    l.write('info', 'No budget-skippable pricing commands resolved for --budget preflight; any selected budgeted tests will fail closed as unevaluated')
+    l.write('info', 'No budget-skippable pricing commands resolved for --budget preflight; any selected budgeted tests will fail closed as unevaluated', { category: 'pricing' })
     return {
       summary: buildEmptyBudgetSummary(resolved.suiteName, args.budgetHundredthCents),
       skipKeys: [],
@@ -708,7 +719,7 @@ const runPriceMode = async (
   suiteName = resolved.suiteName
 
   if (resolved.commands.length === 0) {
-    l.write('info', 'No pricing commands resolved for the selected paths; treating selection as a zero-cost price pass')
+    l.write('info', 'No pricing commands resolved for the selected paths; treating selection as a zero-cost price pass', { category: 'pricing' })
     exitCode = 0
     results = []
     budgetSummary = args.budgetHundredthCents !== undefined ? buildEmptyBudgetSummary(suiteName, args.budgetHundredthCents) : undefined
@@ -734,7 +745,7 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   const allFiles = (await Array.fromAsync(glob.scan({ dot: false }))).sort()
 
   const artifacts = await createRunArtifacts()
-  installTimestampedConsole(artifacts.startedAtMs)
+  installTimestampedConsole()
   l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`)
 
   const [, , budgetHead] = await Promise.all([
@@ -791,11 +802,14 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
         failed: 1,
         skipped: 0,
       },
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      // The message alone loses the stack, cause chain, and AppError classification that
+      // make a runner failure diagnosable from the report file after the fact.
+      errorDiagnostics: serializeDiagnosticError(error)
     }
     await writeReportJson(artifacts, fallbackReport)
 
-    l.error(error instanceof Error ? error.message : String(error))
+    l.error('Test run failed', error)
   }
 
   const latestLogPath = await writeLatestRunLog(artifacts, exitCode)

@@ -40,7 +40,7 @@ const hasExactKeys = (value: Record<string, unknown>, keys: readonly string[]): 
 export const parseComicPageQaResult = (text: string, expectedPanels: number[]): PageQaResult => {
   let value: unknown
   try { value = JSON.parse(text) } catch (error) {
-    throw ValidationError(`Page QA judge returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:page-qa' })
+    throw ValidationError(`Page QA judge returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:page-qa', ...(error instanceof Error ? { cause: error } : {}) })
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw ValidationError('Page QA result must be an object.', { stage: 'comic:page-qa' })
   if (!hasExactKeys(value as Record<string, unknown>, ['panelStructure', 'panels', 'summary'])) throw ValidationError('Page QA result has missing or unexpected top-level fields.', { stage: 'comic:page-qa' })

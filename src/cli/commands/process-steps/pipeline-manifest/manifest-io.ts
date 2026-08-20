@@ -46,7 +46,7 @@ export const readManifestUnlocked = async (
   try {
     raw = await Bun.file(manifestPath).json() as unknown
   } catch (error) {
-    throw CLIUsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`)
+    throw CLIUsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
   }
   const manifest = parseManifest(rootDir, raw, true)
   if (!manifest || !await verifyManifestProjectionArtifacts(rootDir, manifest)) {

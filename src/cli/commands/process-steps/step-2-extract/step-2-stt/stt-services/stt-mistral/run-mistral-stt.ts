@@ -11,14 +11,17 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
+import { isAppError } from '~/utils/error-handler'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const MISTRAL_RATE_LIMIT_FALLBACK_COOLDOWN_MS = 60_000
 
+// Classified on the AppError kind rather than on `withRetry`'s own exhaustion message,
+// which this repo generates: the prose can change, the kind cannot.
 const isMistralRetryWrapper = (error: unknown): error is Error & { cause: Error } =>
-  error instanceof Error
+  isAppError(error)
+  && error.kind === 'retry_exhausted'
   && error.cause instanceof Error
-  && error.message.startsWith('mistral-stt failed after ')
 
 const getErrorStatus = (error: unknown): number | undefined => {
   if (error && typeof error === 'object' && 'status' in error) {

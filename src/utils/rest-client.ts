@@ -1,4 +1,4 @@
-import { AppError } from '~/utils/error-handler'
+import { AppError, type AppProviderError, ProviderError } from '~/utils/error-handler'
 import { buildCaptureMetadata, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { BoundedCaptureResult, ProviderRestClientProfile } from '~/types'
@@ -8,15 +8,19 @@ export const trimTrailingSlashes = (value: string): string => value.replace(/\/+
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
+// Field names are unchanged from the previous plain-Error shape, so the existing call
+// sites keep working; what changes is that the result is now an AppProviderError and
+// therefore carries `kind` and survives the process-level failure handlers intact.
 export const httpResponseError = <TExtras extends object = Record<never, never>>(
   message: string,
   response: Response,
   extras?: TExtras
-): Error & { status: number, headers: Headers } & TExtras =>
-  Object.assign(new Error(message), extras, {
-    status: response.status,
-    headers: response.headers
-  })
+): AppProviderError & { status: number, headers: Headers } & TExtras =>
+  Object.assign(
+    ProviderError(message, { status: response.status, headers: response.headers }),
+    extras,
+    { status: response.status, headers: response.headers }
+  ) as AppProviderError & { status: number, headers: Headers } & TExtras
 
 export const parseJsonOrText = (rawText: string): unknown => {
   if (rawText.trim().length === 0) {

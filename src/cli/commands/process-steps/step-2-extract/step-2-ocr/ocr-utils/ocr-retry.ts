@@ -1,5 +1,6 @@
 import type { HostedOcrSchedulerRetryPressureHandler, OcrCreateRetryOptions, OcrPageRequestRetryOptions, RetryClassifier, RetryDecision, RetryPolicy } from '~/types'
-import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, isTimeoutError, parseRetryAfterMs, withRetry } from '~/utils/retries'
+import { findOcrStructuredResponseError } from '../ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { classifyOcrErrorForRetry } from './ocr-failure-classifier'
 
@@ -26,23 +27,12 @@ export const OCR_PAGE_REQUEST_RETRY_POLICY: Partial<RetryPolicy> = {
   exponential: true
 }
 
-const isTimeoutError = (error: unknown): boolean => {
-  if (error instanceof DOMException && error.name === 'TimeoutError') {
-    return true
-  }
-  if (error instanceof Error) {
-    return error.name === 'TimeoutError' || /timed out|timeout/i.test(error.message)
-  }
-  return false
-}
-
-const isStructuredOcrResponseError = (error: unknown): boolean => {
-  if (error instanceof Error) {
-    return error.name === 'OcrStructuredResponseError'
-      || /not valid json|malformed json|schema|returned \d+ pages|non-contiguous page numbers|returned no pages|returned no text output/i.test(error.message)
-  }
-  return false
-}
+// Classification, not prose: every structured-response failure is an
+// OcrStructuredResponseError, and the lookup walks the cause chain so a wrapped one still
+// matches. This replaces a regex that matched messages this repo generates itself, which
+// silently stopped classifying whenever any of that wording changed.
+const isStructuredOcrResponseError = (error: unknown): boolean =>
+  findOcrStructuredResponseError(error) !== undefined
 
 const getStatusFromError = (error: unknown): number | undefined => {
   if (error && typeof error === 'object' && 'status' in error) {

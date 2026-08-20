@@ -142,12 +142,56 @@ export const isGeminiLlmTransientUnavailable = (output: string): boolean => {
   )
 }
 
+// The transport-level alternation shared by every provider predicate below. It used to be
+// pasted into three separate copies (here, define-tts-service-test, and the TTS e2e cases
+// table), so a new spelling of a socket failure had to be added in three places.
+export const NETWORK_FAILURE_PATTERN =
+  /fetch failed|network error|econnreset|econnrefused|etimedout|socket hang up|dns/i
+
+export const isNetworkFailureOutput = (output: string): boolean =>
+  NETWORK_FAILURE_PATTERN.test(stripAnsi(output))
+
 export const isMinimaxTransientUnavailable = (output: string): boolean => {
   const clean = stripAnsi(output)
   return (
     /overloaded_error/i.test(clean) ||
     /\b529\b/.test(clean) ||
     /server is overloaded/i.test(clean) ||
-    /fetch failed|network error|econnreset|econnrefused|etimedout|socket hang up|dns/i.test(clean)
+    NETWORK_FAILURE_PATTERN.test(clean)
   )
+}
+
+export const isTransientMinimaxTtsFailure = (output: string): boolean => {
+  const clean = stripAnsi(output)
+  return (
+    /minimax-tts-chunk-\d+: deadline exceeded/i.test(clean) ||
+    /MiniMax TTS (task creation|task query|download) failed \((408|425|429|500|502|503|504)\)/i.test(clean) ||
+    NETWORK_FAILURE_PATTERN.test(clean)
+  )
+}
+
+export const isTransientMistralTtsFailure = (output: string): boolean => {
+  const clean = stripAnsi(output)
+  return (
+    /Unable to connect|Unexpected HTTP client error/i.test(clean) ||
+    NETWORK_FAILURE_PATTERN.test(clean)
+  )
+}
+
+export const isGroqTermsAcceptanceFailure = (output: string): boolean =>
+  /requires terms acceptance/i.test(stripAnsi(output))
+
+/**
+ * Terminal per-service account states: no retry inside the run can clear them, so a suite
+ * fails with the account-state message instead of a generic command failure. Adding a
+ * provider quirk is a row here, not another branch in a test body.
+ */
+export const TERMINAL_TTS_FAILURES: Record<string, {
+  matches: (output: string) => boolean
+  describe: (model: string) => string
+}> = {
+  groq: {
+    matches: isGroqTermsAcceptanceFailure,
+    describe: (model) => `Groq terms acceptance is required for ${model}`,
+  },
 }

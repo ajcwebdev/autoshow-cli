@@ -1,12 +1,6 @@
 import { lstat, realpath } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
-import { CLIUsageError } from '~/utils/error-handler'
-
-const hasErrorCode = (error: unknown, code: string): boolean =>
-  error !== null
-  && typeof error === 'object'
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
+import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
 
 // Canonicalize the longest existing prefix, then reattach an unresolved suffix. This catches an
 // overlap through a symlink even when the eventual output/store child does not exist yet.

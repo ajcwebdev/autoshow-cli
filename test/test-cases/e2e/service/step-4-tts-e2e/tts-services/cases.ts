@@ -110,5 +110,5 @@ export const cartesiaTts = {
   envVarDescription: 'Cartesia TTS',
 } as const
 
-export const isTransientMistralTtsFailure = (output: string): boolean =>
-  /Unable to connect|Unexpected HTTP client error|fetch failed|network error|econnreset|econnrefused|etimedout|socket hang up|dns/i.test(output)
+// Lives in the shared classifier registry; re-exported so existing imports keep working.
+export { isTransientMistralTtsFailure } from '../../../../../test-utils/provider-failure-classifiers'

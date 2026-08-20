@@ -20,6 +20,7 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunResult } from '~/types'
 import { DEFAULT_URL_REQUEST_TIMEOUT_MS } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
+import { writeFakeDefuddleBinIn } from '../../../../test-utils/fixtures/fake-defuddle-bin'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
 export const envKeys = [
@@ -94,25 +95,18 @@ export const buildAbortError = (message: string): Error => {
 
 export const writeFakeDefuddleBin = async (): Promise<{ bin: string, argsLog: string }> => {
   const dir = await tempDirs.make('autoshow-fake-defuddle-')
-  const bin = join(dir, 'defuddle')
   const argsLog = join(dir, 'args.log')
 
-  await writeFile(bin, [
-    '#!/usr/bin/env bun',
-    "import { appendFileSync, readFileSync } from 'node:fs'",
-    'const args = process.argv.slice(2)',
-    "if (args[0] === '--version') { console.log('0.17.0'); process.exit(0) }",
+  const bin = await writeFakeDefuddleBinIn(dir, [
     "const logPath = process.env.AUTOSHOW_DEFUDDLE_ARGS_LOG",
     "if (logPath) appendFileSync(logPath, JSON.stringify(args) + '\\n')",
-    "if (process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR) console.error(process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR)",
     "if (process.env.AUTOSHOW_FAKE_DEFUDDLE_MODE === 'nonzero') { console.log('partial stdout before failure'); console.error('fake defuddle failed'); process.exit(7) }",
     "if (process.env.AUTOSHOW_FAKE_DEFUDDLE_MODE === 'invalid-json') { console.log('{not valid json'); process.exit(0) }",
     "const sourcePath = args[1] ?? ''",
     "const html = sourcePath ? readFileSync(sourcePath, 'utf8') : ''",
     "const markdown = '# CLI Defuddle Article\\n\\nThis fake defuddle output includes enough meaningful markdown content from the CLI fixture. ' + (html.includes('Moved Backend Article') ? 'Moved Backend Article.' : 'Generic Article.')",
     "console.log(JSON.stringify({ contentMarkdown: markdown, content: 'SHOULD_NOT_USE_CONTENT', title: 'CLI Title', author: 'CLI Author', site: 'CLI Site', published: '2026-05-01T00:00:00Z', language: 'en', description: 'CLI description', wordCount: 88 }))"
-  ].join('\n'))
-  await chmod(bin, 0o755)
+  ], ["import { appendFileSync, readFileSync } from 'node:fs'"])
 
   configureBinDir(dir)
   process.env['AUTOSHOW_DEFUDDLE_ARGS_LOG'] = argsLog

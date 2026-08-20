@@ -1,54 +1,25 @@
-import { afterEach, expect } from 'bun:test'
+import { afterEach } from 'bun:test'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
-import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
-import { NativeNoSuchCommandError, NativeUnknownFlagError } from '~/cli/native/native-errors'
-import { parseCommandInvocation, parseNativeCli } from '~/cli/native/native-parser'
-import { runCommand } from '../../../../test-utils/test-helpers'
 import type { CliCommandContext, CliParseResult } from '~/types'
 
 const tempDirs: string[] = []
 const repoFixtureFiles: string[] = []
 const repoFixtureDirs: string[] = []
 
-export const parseRoot = (argv: string[]) =>
-  parseNativeCli(argv, COMMAND_DEFINITIONS, GLOBAL_FLAG_DEFINITIONS)
-
-export const commandNamed = (name: string) => {
-  const command = COMMAND_DEFINITIONS.find((entry) => entry.name === name)
-  if (!command) throw new Error(`missing command ${name}`)
-  return command
-}
-
-export const expectUnknownCommand = (argv: string[], name: string): void => {
-  expect(() => parseRoot(argv)).toThrow(NativeNoSuchCommandError)
-  expect(() => parseRoot(argv)).toThrow(`Unknown command "${name}"`)
-}
-
-export const expectUnknownFlag = (argv: string[], flag: string): void => {
-  const command = commandNamed(argv[0]!)
-  expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(NativeUnknownFlagError)
-  expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(`Unexpected flag: ${flag}`)
-}
-
-export const expectUsageMessage = (error: unknown, expected: string): void => {
-  const err = error instanceof Error ? error : new Error(String(error))
-  const hints = 'hints' in err && Array.isArray(err.hints) ? err.hints.filter((hint): hint is string => typeof hint === 'string') : []
-  expect([err.message, ...hints].join('\n')).toContain(expected)
-}
-
-export const expectUsageThrow = (fn: () => unknown, expected: string): void => {
-  try {
-    fn()
-  } catch (error) {
-    expectUsageMessage(error, expected)
-    return
-  }
-  throw new Error(`Expected usage error containing ${JSON.stringify(expected)}`)
-}
+// The CLI assertion helpers live in test-utils so every directory shares one
+// implementation; `parseRoot` stays as this suite's local spelling of `parseRootCli`.
+export {
+  commandNamed,
+  expectUnknownCommand,
+  expectUnknownFlag,
+  expectUsageMessage,
+  expectUsageExit,
+  expectUsageThrow,
+  parseRootCli as parseRoot
+} from '../../../../test-utils/cli-assertions'
 
 export const asCtx = (parsed: CliParseResult): CliCommandContext => {
   if (!parsed.command) throw new Error('parsed command is missing')
@@ -98,15 +69,6 @@ export const writeLegacyTtsManifestFixture = async (
       }]
     }]
   }, null, 2)}\n`)
-}
-
-export const expectUsageExit = async (args: string[], expectedMessage: string): Promise<void> => {
-  const result = await runCommand(['src/cli/create-cli.ts', ...args], {
-    env: { NO_COLOR: '1' }
-  })
-
-  expect(result.exitCode).toBe(2)
-  expect(`${result.stdout}\n${result.stderr}`).toContain(expectedMessage)
 }
 
 export const ensureEpisodeTwoScriptFixture = async (): Promise<void> => {

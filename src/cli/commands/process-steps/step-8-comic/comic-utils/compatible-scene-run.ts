@@ -93,7 +93,7 @@ export const resolveCompatibleComicSceneRun = async (input: {
       if (info) throw CLIUsageError('pinned path exists but is not a directory')
       return await initializeWorkspaceDir(directory, sourceIdentity, exactSourceText)
     } catch (error) {
-      throw CLIUsageError(`Pinned comic output is not compatible with the exact source and structured-script v5: ${error instanceof Error ? error.message : String(error)}`)
+      throw CLIUsageError(`Pinned comic output is not compatible with the exact source and structured-script v5: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
     }
   }
 

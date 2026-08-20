@@ -2,7 +2,7 @@ import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { InfraError, InternalError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/preparation-cache'
@@ -15,6 +15,7 @@ import {
   GEMINI_INLINE_NON_PDF_BYTES,
   GEMINI_INLINE_PDF_BYTES
 } from './gemini-ocr'
+import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 
 const GEMINI_OCR_MIN_OUTPUT_TOKENS = 24_576
 const GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS = 8_192
@@ -384,7 +385,7 @@ export const runGeminiOcr = async (
             effectiveReasoningEffort: policy.effective
           }
         }
-        throw ValidationError('Gemini OCR returned no text output.', { stage: 'ocr:gemini' })
+        throw new OcrStructuredResponseError('Gemini OCR returned no text output.', rawText)
       }
 
       const successUsage = buildGeminiOcrUsageEntry(usage, model, attempt + 1, 'success')

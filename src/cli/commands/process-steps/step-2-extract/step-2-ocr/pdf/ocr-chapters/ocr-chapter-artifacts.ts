@@ -13,6 +13,7 @@ import { resolveLlmCandidates } from './llm'
 import { parsePdfPageLabels } from './page-map'
 import { buildChapterSlug, cleanDetectedChapterTitle, cleanPageTextForExport, trimPageTextToHeading } from './text'
 import { parseTocEntriesFromPage } from './toc'
+import { InternalError } from '~/utils/error-handler'
 
 export const buildPdfChapterFiles = (
   pages: PageResult[],
@@ -94,7 +95,7 @@ export const buildPdfChapterFiles = (
   return fileParts.map((filePart, index) => {
     const relativePath = relativePaths[index]
     if (relativePath === undefined) {
-      throw new Error('Missing PDF chapter artifact relative path')
+      throw InternalError('Missing PDF chapter artifact relative path', { stage: 'ocr:chapters', retryable: false })
     }
 
     return {

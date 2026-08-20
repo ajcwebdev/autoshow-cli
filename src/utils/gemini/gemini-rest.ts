@@ -1,7 +1,7 @@
 import { basename } from 'node:path'
 import type { GeminiContent, GeminiFetchOptions, GeminiFile, GeminiGenerateContentResponse, GeminiGeneratedVideo, GeminiInlineMedia, GeminiPart, GeminiVideo, GeminiVideoImageMedia, GeminiVideoOperation, GeminiVideoReferenceImage } from '~/types'
 import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
-import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
+import { AppError, AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { createProviderRestClient, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 
@@ -9,16 +9,16 @@ const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
 const GEMINI_UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024
 
-export class GeminiRestError extends Error {
-  status: number
-  headers: Headers
+export class GeminiRestError extends AppProviderError {
+  override readonly status: number
+  override readonly headers: Headers
   body: unknown
   bodyBytes?: number | undefined
   bodyTruncated?: boolean | undefined
   bodyPreview?: string | undefined
 
   constructor(message: string, status: number, headers: Headers, body: unknown) {
-    super(message)
+    super(message, { status, headers, stage: 'gemini' })
     this.name = 'GeminiRestError'
     this.status = status
     this.headers = headers

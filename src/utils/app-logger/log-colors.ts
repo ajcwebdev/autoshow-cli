@@ -1,9 +1,13 @@
 import { paint, terminalPalette, terminalStyles } from '~/utils/terminal-colors'
 import type { LogCategory, LogLevel, TableCellColorContext } from '~/types'
+// `pipeline` is the most-used category and was the one with no entry here, so the busiest
+// log lines were the only uncolored ones.
 const CATEGORY_COLORS: Partial<Record<LogCategory, string>> = {
   command: terminalPalette.info,
   artifact: terminalPalette.path,
   pricing: terminalPalette.cost,
+  pipeline: terminalPalette.pending,
+  tts: terminalPalette.tts,
   usage: 'lightsalmon'
 }
 

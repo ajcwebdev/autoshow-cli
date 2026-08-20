@@ -1,3 +1,4 @@
+import { stripAnsi } from '~/utils/terminal-colors'
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -367,7 +368,7 @@ export const classifyAdaptivePressure = (
   if (exitCode === 0) {
     return null
   }
-  const clean = output.replace(/\x1b\[[0-9;]*m/g, '')
+  const clean = stripAnsi(output)
   if (timedOut || RATE_LIMIT_PATTERN.test(clean)) {
     return RATE_LIMIT_PATTERN.test(clean) ? 'rate-limit' : 'timeout'
   }

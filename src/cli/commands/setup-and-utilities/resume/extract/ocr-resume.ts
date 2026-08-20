@@ -1,6 +1,7 @@
+import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { DocumentMetadataSchema } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { CLIUsageError } from '~/utils/error-handler'
 import { validateData } from '~/utils/validate/validation'
 import { processOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
 import { downloadDocumentUrlToTempFile } from '~/cli/commands/process-steps/step-1-download/document/resolve-document-source'
@@ -516,7 +517,10 @@ const runResumeOcrTarget = async (
   }
 
   if (resumableStatus.resumableIncomplete > 0 || resumableStatus.resumableFailed > 0) {
-    throw InfraError(`OCR resume still has ${resumableStatus.resumableIncomplete} incomplete and ${resumableStatus.resumableFailed} failed item(s) with resumable providers`, { stage: 'resume:ocr', exitCode: 2 })
+    throw partialCompletionError(`OCR resume still has ${resumableStatus.resumableIncomplete} incomplete and ${resumableStatus.resumableFailed} failed item(s) with resumable providers`, {
+      stage: 'resume:ocr',
+      metadata: { incomplete: resumableStatus.resumableIncomplete, failed: resumableStatus.resumableFailed }
+    })
   }
   return result
 }

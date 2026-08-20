@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { DocumentMetadata, LogSinkEvent } from '~/types'
+import type { DocumentMetadata } from '~/types'
 import { runGeminiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/run-gemini-ocr'
 import { runGeminiStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gemini-stt/run-gemini-stt'
 import { runGeminiModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/run-gemini'
@@ -11,12 +11,12 @@ import { runGeminiVideoGen } from '~/cli/commands/process-steps/step-6-video/vid
 import { runGeminiMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { geminiGenerateContent, geminiGetOperation, GeminiRestError } from '~/utils/gemini/gemini-rest'
-import { l } from '~/utils/app-logger/app-logger'
 import {
   installMockFetch as installFetch,
   jsonResponse,
   setupContractSuiteLifecycle
 } from '../../../test-utils/rest-contract-helpers'
+import { captureLogEvents } from '../../../test-utils/console-capture'
 import { createMockWavBase64 } from '../../../test-utils/media-fixtures'
 
 const envKeys = ['GEMINI_API_KEY']
@@ -26,27 +26,6 @@ const withTempDir = tempDirs.withDir
 const audioBytes = new Uint8Array([1, 2, 3, 4])
 const audioBase64 = Buffer.from(audioBytes).toString('base64')
 const videoBytes = new Uint8Array([5, 4, 3, 2])
-
-const captureLogEvents = async <T>(
-  run: () => Promise<T>
-): Promise<{ result: T, events: LogSinkEvent[] }> => {
-  const originalSinks = [...l.config.sinks]
-  const events: LogSinkEvent[] = []
-  l.config.sinks.length = 0
-  l.config.sinks.push((event) => {
-    events.push(event)
-  })
-
-  try {
-    return {
-      result: await run(),
-      events
-    }
-  } finally {
-    l.config.sinks.length = 0
-    l.config.sinks.push(...originalSinks)
-  }
-}
 
 describe('Gemini REST contracts', () => {
   test('generateContent uses v1beta REST headers, generationConfig, and non-thought text extraction', async () => {

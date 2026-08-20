@@ -1,12 +1,11 @@
 import { expect } from 'bun:test'
 import { rm } from 'node:fs/promises'
 import { budgetedTest } from '../../../../../test-utils/budget'
-import { runCommand, fileExists } from '../../../../../test-utils/test-helpers'
+import { fileExists } from '../../../../../test-utils/test-helpers'
 import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import {
-  classifyLiveProviderAvailabilityFailure,
-  formatCommandFailureDiagnostics,
-  requireConfiguredEnvVar
+  requireConfiguredEnvVar,
+  runCommandAndExpectOutputDir
 } from '../../../../../test-utils/service-test-kit'
 import type { OcrE2eExtractMetadata } from '~/types'
 
@@ -19,23 +18,11 @@ budgetedTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.c
 
   try {
     const args = ['src/cli/create-cli.ts', 'extract', articleUrl, '--url-provider', 'glm-reader']
-    const result = await runCommand(
+    outputDir = await runCommandAndExpectOutputDir(
+      'GLM Reader URL extraction',
       args,
       { testName: 'bun autoshow extract https://ajcwebdev.com --url-provider glm-reader' }
     )
-    if (result.exitCode !== 0) {
-      const availabilityReason = classifyLiveProviderAvailabilityFailure(`${result.stdout}\n${result.stderr}`)
-      if (availabilityReason) {
-        throw new Error(`Live provider availability failure: ${availabilityReason}\n${formatCommandFailureDiagnostics(args, result)}`)
-      }
-      throw new Error(formatCommandFailureDiagnostics(args, result))
-    }
-    expect(result.exitCode).toBe(0)
-
-    outputDir = result.outputDir
-    if (!outputDir) {
-      throw new Error('Expected output directory for GLM Reader URL extraction')
-    }
 
     expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
 

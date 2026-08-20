@@ -204,7 +204,7 @@ bun test test/test-cases/validation/setup/
 
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
 - Docker image distribution: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
-- Error and retry vocabulary: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
+- Error and retry vocabulary: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)
 - Ingestion and ebook normalization policy: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Local OCR engine selection: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Runtime tool resolution: `src/utils/runtime-paths.ts`

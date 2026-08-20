@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import {
   classifyOcrProviderFailure,
   createOcrPdfChunkRenderError,
@@ -17,12 +18,12 @@ const withLocalTestDir = async <T>(prefix: string, run: (dir: string) => Promise
 
 describe('PDF fallback failure diagnostics contracts', () => {
   test('PDF fallback classifier splits transient and limit failures but not auth or policy failures', () => {
-    expect(shouldFallbackToOcrPdfChunks(Object.assign(new Error('provider timed out'), { status: 503 }))).toBe(true)
+    expect(shouldFallbackToOcrPdfChunks(ProviderError('provider timed out', { status: 503 }))).toBe(true)
     expect(shouldFallbackToOcrPdfChunks(new Error('Gemini OCR supports PDF inputs up to 1000 pages. Got 1200 pages.'))).toBe(true)
     expect(shouldFallbackToOcrPdfChunks(new Error('OpenAI OCR returned malformed JSON.'))).toBe(true)
     expect(shouldFallbackToOcrPdfChunks(new Error('OPENAI_API_KEY environment variable is required for OpenAI OCR'))).toBe(false)
     expect(shouldFallbackToOcrPdfChunks(new Error('Output blocked by content filtering policy'))).toBe(false)
-    expect(shouldFallbackToOcrPdfChunks(Object.assign(new Error('Kimi OCR request failed (429): insufficient balance'), { status: 429 }))).toBe(false)
+    expect(shouldFallbackToOcrPdfChunks(ProviderError('Kimi OCR request failed (429): insufficient balance', { status: 429 }))).toBe(false)
   })
 
   test('PDF chunk render failures are concise and persist raw stderr diagnostics', async () => {
@@ -62,17 +63,14 @@ describe('PDF fallback failure diagnostics contracts', () => {
       const traceparent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
       const cloudTrace = '105445aa7843bc8bf206b12000100000/123456789;o=1'
       const cfRay = '8f7b3c2d1a0e9f12-DFW'
-      const error = Object.assign(new Error('Kimi OCR request failed (429): insufficient account balance for account acct_live_secret1234'), {
-        status: 429,
-        headers: new Headers({
+      const error = ProviderError('Kimi OCR request failed (429): insufficient account balance for account acct_live_secret1234', { status: 429, headers: new Headers({
           'x-request-id': 'req_headersecret123456',
           traceparent,
           traceresponse: traceparent,
           'x-cloud-trace-context': cloudTrace,
           'cf-ray': cfRay,
           'set-cookie': 'session=secret-cookie'
-        }),
-        rawResponse: {
+        }), metadata: { rawResponse: {
           error: {
             message: 'insufficient account balance',
             account_id: 'acct_live_secret1234',
@@ -91,8 +89,7 @@ describe('PDF fallback failure diagnostics contracts', () => {
               'x-cloud-trace-context': cloudTrace
             }
           }
-        }
-      })
+        } } })
       const failure = classifyOcrProviderFailure(error)
 
       await writeOcrProviderError(dir, error, failure)

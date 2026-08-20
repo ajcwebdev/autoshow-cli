@@ -141,6 +141,9 @@ export type ProviderErrorSummaryFields = {
   retryAfterMs?: number | undefined
   errorFile?: string | undefined
   rawResponseFile?: string | undefined
+  // Set when the failure came from `requireApiKey`; lets batch scheduling recognise a
+  // missing credential structurally instead of matching the message text.
+  missingEnvVar?: string | undefined
 }
 
 

@@ -18,6 +18,7 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { DoctorCheck, DoctorProbes, RunResult } from '~/types'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const okRun = (stdout = ''): RunResult => ({ stdout, stderr: '', exitCode: 0 })
 
@@ -64,9 +65,10 @@ const findDoctorCheck = (
   report: Awaited<ReturnType<typeof collectDoctorReport>>,
   label: string
 ): DoctorCheck => {
-  const item = flattenDoctorChecks(report).find(check => check.label === label)
-  if (!item) throw new Error(`Missing doctor check: ${label}`)
-  return item
+  return requireDefined(
+    flattenDoctorChecks(report).find(check => check.label === label),
+    `doctor check: ${label}`
+  )
 }
 
 describe('setup doctor contracts', () => {

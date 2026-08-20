@@ -16,7 +16,7 @@ import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
 import { inspectSoundscapeAudio } from '../../step-4-tts/soundscape/soundscape-audio'
-import { hardlinkContainedArtifact, readContainedArtifactFile, removeContainedDirectory, writeReplaceableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
+import { hardlinkContainedArtifact, isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, writeReplaceableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 
 export const PRESENTATION_ARCHIVE_PATH = 'presentation/presentation.json'
 export const PRESENTATION_FINAL_WAV = 'presentation/final/slideshow.wav'
@@ -231,8 +231,7 @@ const existingRef = async (sceneRunDir: string, relativePath: string): Promise<{
     const stored = await readContainedArtifactFile(sceneRunDir, relativePath)
     return { path: relativePath, sha256: stored.sha256 }
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
 }
@@ -281,8 +280,7 @@ export const loadCompactPresentation = async (sceneRunDir: string, presentationI
   let stored: Awaited<ReturnType<typeof readContainedArtifactFile>>
   try { stored = await readContainedArtifactFile(sceneRunDir, PRESENTATION_ARCHIVE_PATH) }
   catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') return undefined
-    if (error instanceof Error && /does not exist|no such file/iu.test(error.message)) return undefined
+    if (isMissingArtifactError(error)) return undefined
     throw error
   }
   let presentation: CompactPresentation

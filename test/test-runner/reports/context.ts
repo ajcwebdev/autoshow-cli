@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { basename, isAbsolute, resolve } from 'node:path'
 import type { MetricContext, ParsedCommandMetric, ParsedJunitCase, ReportTestContext, ServiceModelPair, TestRunArtifacts } from '~/types'
 import { readString } from '../utils'
+import { l } from '~/utils/app-logger/app-logger'
+import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
 
 const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])
 
@@ -420,7 +422,15 @@ const getMetricMetadata = async (
         cache.set(key, record)
         return record
       }
-    } catch {
+    } catch (error) {
+      // A missing metadata file is the normal case; anything else means the report is
+      // silently losing a manifest it should have been able to read.
+      if (!hasErrorCode(error, 'ENOENT')) {
+        l.warn(`Could not read run metadata at ${metadataPath}; the report will omit it`, {
+          category: 'artifact',
+          metadata: { metadataPath, error: serializeDiagnosticError(error) }
+        })
+      }
     }
   }
 

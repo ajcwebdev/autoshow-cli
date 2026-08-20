@@ -1,3 +1,4 @@
+import { CLIUsageError } from '~/utils/error-handler'
 import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { extname } from 'node:path'
@@ -406,7 +407,7 @@ const parseScopes = (argv: string[]): AnalysisScope[] => {
     if (argv[index] !== '--scope') continue
     const scope = argv[index + 1]
     if (scope !== 'src' && scope !== 'test') {
-      throw new Error(`Expected --scope src or --scope test, received ${scope ?? '<missing>'}`)
+      throw CLIUsageError(`Expected --scope src or --scope test, received ${scope ?? '<missing>'}`)
     }
     scopes.push(scope)
     index += 1
@@ -416,5 +417,8 @@ const parseScopes = (argv: string[]): AnalysisScope[] => {
 
 if (import.meta.main) {
   const analyses = analyzeScopes(parseScopes(process.argv.slice(2)))
-  console.log(JSON.stringify(analyses.map(({ files: _files, callableMetrics: _callableMetrics, ...analysis }) => analysis), null, 2))
+  // Standalone `bun run` tool: stdout is the machine-readable report document itself,
+  // so it is written directly rather than through the app logger. Declared exempt from
+  // the no-raw-stdout contract alongside the other src/tools scripts.
+  process.stdout.write(`${JSON.stringify(analyses.map(({ files: _files, callableMetrics: _callableMetrics, ...analysis }) => analysis), null, 2)}\n`)
 }

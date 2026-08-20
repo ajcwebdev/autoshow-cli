@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { DocumentMetadata, HostedOcrRun, LogSinkEvent, OcrPreparationCache, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrRun, OcrPreparationCache, PageResult } from '~/types'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import {
   classifyOcrCreateRetry,
@@ -110,26 +110,8 @@ export const prefillRenderedPageCache = async (
   }
 }
 
-export const captureLogEvents = async <T>(
-  run: () => Promise<T>
-): Promise<{ result: T, events: LogSinkEvent[] }> => {
-  const originalSinks = [...l.config.sinks]
-  const events: LogSinkEvent[] = []
-  l.config.sinks.length = 0
-  l.config.sinks.push((event) => {
-    events.push(event)
-  })
-
-  try {
-    return {
-      result: await run(),
-      events
-    }
-  } finally {
-    l.config.sinks.length = 0
-    l.config.sinks.push(...originalSinks)
-  }
-}
+// Shared with every other suite; re-exported here so existing imports keep working.
+export { captureLogEvents } from '../../../../test-utils/console-capture'
 
 export const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {

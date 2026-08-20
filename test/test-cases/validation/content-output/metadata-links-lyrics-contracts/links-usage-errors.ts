@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runLinksWithArgv } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import type { FetchFn } from '~/types'
+import { expectUsageMessage } from '../../../../test-utils/cli-assertions'
+import { unexpectedFetch } from '../../../../test-utils/rest-contract-helpers'
 
 /**
  * Asserts `links <argv>` is rejected during validation, before it reaches the network.
@@ -19,16 +21,18 @@ import type { FetchFn } from '~/types'
  * temp path so a regression cannot write into the project tree; nothing should reach it.
  */
 export const expectLinksUsageError = async (argv: string[], message: string): Promise<void> => {
-  let fetchAttempts = 0
-  const forbiddenFetch: FetchFn = (input) => {
-    fetchAttempts += 1
-    return Promise.reject(new Error(`links validation test attempted a network fetch: ${String(input)}`))
+  const guard = unexpectedFetch('links validation')
+
+  try {
+    await runLinksWithArgv(argv, {
+      fetchImpl: guard.fetchImpl as unknown as FetchFn,
+      outputPath: join(tmpdir(), 'autoshow-links-usage-error-must-not-be-written.md')
+    })
+  } catch (error) {
+    expectUsageMessage(error, message)
+    expect(guard.attempts()).toBe(0)
+    return
   }
 
-  await expect(runLinksWithArgv(argv, {
-    fetchImpl: forbiddenFetch,
-    outputPath: join(tmpdir(), 'autoshow-links-usage-error-must-not-be-written.md')
-  })).rejects.toThrow(message)
-
-  expect(fetchAttempts).toBe(0)
+  expect.unreachable(`Expected links to reject with ${JSON.stringify(message)}`)
 }

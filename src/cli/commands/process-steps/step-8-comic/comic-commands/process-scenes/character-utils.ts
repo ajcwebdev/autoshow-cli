@@ -51,7 +51,7 @@ const assertSafeManifestPath = (root: string, path: string, label: string): void
   const absolute = resolve(root, path)
   const rel = relative(resolve(root), absolute)
   if (!rel || rel === '..' || rel.startsWith(`..${sep}`)) {
-    throw new Error(`${label} has unsafe path "${path}"`)
+    throw ValidationError(`${label} has unsafe path "${path}"`, { stage: 'comic:characters', retryable: false })
   }
 }
 
@@ -63,8 +63,8 @@ export const readCharacterSketchManifest = async (charactersRoot = getCharacters
     const keys = new Set<string>()
     const generationIds = new Set<string>()
     for (const sketch of manifest.sketches) {
-      if (keys.has(sketch.characterKey)) throw new Error(`duplicate character key "${sketch.characterKey}"`)
-      if (generationIds.has(sketch.generationId)) throw new Error(`duplicate generation ID "${sketch.generationId}"`)
+      if (keys.has(sketch.characterKey)) throw ValidationError(`duplicate character key "${sketch.characterKey}"`, { stage: 'comic:characters', retryable: false })
+      if (generationIds.has(sketch.generationId)) throw ValidationError(`duplicate generation ID "${sketch.generationId}"`, { stage: 'comic:characters', retryable: false })
       assertSafeManifestPath(charactersRoot, sketch.sourceImage, 'source image')
       assertSafeManifestPath(charactersRoot, sketch.outlineSheet, 'outline sheet')
       keys.add(sketch.characterKey)

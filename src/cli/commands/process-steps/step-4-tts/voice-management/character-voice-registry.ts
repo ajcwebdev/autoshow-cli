@@ -14,7 +14,7 @@ import type {
   CharacterVoiceRegistryPaths,
 } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, hasErrorCode, InfraError, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, encodeArtifactKey, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import {
   validateAuditActorRef,
@@ -58,9 +58,6 @@ const assertAllowedKeys = (value: Record<string, unknown>, allowed: readonly str
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object' && error !== null && 'code' in error && (error as { code?: unknown }).code === code
 
 export const resolveCharacterVoiceRegistryPaths = (charactersRoot: string): CharacterVoiceRegistryPaths => {
   const root = resolve(charactersRoot)
@@ -178,7 +175,7 @@ export const loadVoiceRegistrationCatalog = async (charactersRoot: string): Prom
   try {
     return validateVoiceRegistrationCatalog(value as VoiceRegistrationCatalog)
   } catch (error) {
-    throw ValidationError(`Invalid voice registration catalog at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry' })
+    throw ValidationError(`Invalid voice registration catalog at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry', ...(error instanceof Error ? { cause: error } : {}) })
   }
 }
 
@@ -205,7 +202,7 @@ export const loadCurrentVoiceRegistrationIndex = async (
       : value
     return validateCurrentVoiceRegistrationIndex(migrated as CurrentVoiceRegistrationIndex, catalog)
   } catch (error) {
-    throw ValidationError(`Invalid current voice index at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry' })
+    throw ValidationError(`Invalid current voice index at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry', ...(error instanceof Error ? { cause: error } : {}) })
   }
 }
 
@@ -233,7 +230,7 @@ export const loadApprovedVoiceAudition = async (
     }
     return audition
   } catch (error) {
-    throw ValidationError(`Invalid approved voice audition at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry' })
+    throw ValidationError(`Invalid approved voice audition at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry', ...(error instanceof Error ? { cause: error } : {}) })
   }
 }
 
@@ -603,6 +600,6 @@ export const loadVoiceAuditionManifestForRegistration = async (
   try {
     return validateVoiceAuditionManifest(value as VoiceAuditionManifest)
   } catch (error) {
-    throw ValidationError(`Invalid voice audition manifest at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry' })
+    throw ValidationError(`Invalid voice audition manifest at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry', ...(error instanceof Error ? { cause: error } : {}) })
   }
 }

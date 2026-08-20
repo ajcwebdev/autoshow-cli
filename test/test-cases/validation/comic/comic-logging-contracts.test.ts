@@ -4,9 +4,8 @@ import { draftScenesCommand } from '~/cli/commands/process-steps/step-8-comic/co
 import { generateImagesCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/generate-images-command'
 import { comicLog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-logger'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
+import { captureConsoleText } from '../../../test-utils/console-capture'
 import { getSceneOutputDirectory } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
-import { l } from '~/utils/app-logger/app-logger'
-import { createHumanSink } from '~/utils/app-logger/sinks/human-sink'
 import type {
   ImageRunStats,
   SourceCoverageReport,
@@ -28,43 +27,6 @@ afterAll(async () => {
   // the pinned run directory without clobbering any other real output.
   await rm(RUN_DIR, { recursive: true, force: true })
 })
-
-const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, '')
-
-const captureConsole = async (fn: () => Promise<void>): Promise<{ stdout: string; stderr: string }> => {
-  const stdout: string[] = []
-  const stderr: string[] = []
-  const originalLog = console.log
-  const originalError = console.error
-
-  console.log = (...args: unknown[]) => {
-    stdout.push(stripAnsi(args.map(String).join(' ')))
-  }
-  console.error = (...args: unknown[]) => {
-    stderr.push(stripAnsi(args.map(String).join(' ')))
-  }
-
-  // Force an interactive human sink so info-level logs route to console.log (stdout)
-  // instead of console.error; under the non-TTY test runner the default sink would
-  // otherwise send them to stderr, leaving captured.stdout empty.
-  const originalSinks = [...l.config.sinks]
-  l.config.sinks.length = 0
-  l.config.sinks.push(createHumanSink({ interactive: true }))
-
-  try {
-    await fn()
-  } finally {
-    console.log = originalLog
-    console.error = originalError
-    l.config.sinks.length = 0
-    l.config.sinks.push(...originalSinks)
-  }
-
-  return {
-    stdout: stdout.join('\n'),
-    stderr: stderr.join('\n'),
-  }
-}
 
 const imageStats = (overrides: Partial<ImageRunStats> = {}): ImageRunStats => ({
   imagesGenerated: 0,
@@ -107,6 +69,11 @@ const removedLogFragments = [
   'Skipping existing output',
 ]
 
+// Comic assertions target the stdout channel, so force an interactive human sink:
+// under the non-TTY runner the default sink would route info events to stderr.
+const captureComicOutput = (fn: () => Promise<void>) =>
+  captureConsoleText(fn, { strip: true, interactiveHumanSink: true })
+
 const expectRemovedFragmentsAbsent = (output: string): void => {
   for (const fragment of removedLogFragments) {
     expect(output).not.toContain(fragment)
@@ -115,7 +82,7 @@ const expectRemovedFragmentsAbsent = (output: string): void => {
 
 describe('comic compact logging contracts', () => {
   test('draft-scenes runs all stages with one header and final summary', async () => {
-    const captured = await captureConsole(async () => {
+    const captured = await captureComicOutput(async () => {
       await draftScenesCommand({
         scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
         sceneSlug: '01-co-work-smarter',
@@ -139,7 +106,7 @@ describe('comic compact logging contracts', () => {
   })
 
   test('generate-images target sketches logs compact prep, per-sketch output, and summary', async () => {
-    const captured = await captureConsole(async () => {
+    const captured = await captureComicOutput(async () => {
       await generateImagesCommand({
         scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
         sceneSlug: '01-co-work-smarter',
@@ -181,7 +148,7 @@ describe('comic compact logging contracts', () => {
   })
 
   test('existing-output skips stay concise', async () => {
-    const captured = await captureConsole(async () => {
+    const captured = await captureComicOutput(async () => {
       await generateImagesCommand({
         scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
         sceneSlug: '01-co-work-smarter',
@@ -213,7 +180,7 @@ describe('comic compact logging contracts', () => {
     const coverageError = 'Panel prompt source coverage incomplete: missing 1 source text item(s): beat-0001.text "Missing line"'
     let thrown: unknown
 
-    await captureConsole(async () => {
+    await captureComicOutput(async () => {
       try {
         await generateImagesCommand({
           scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',

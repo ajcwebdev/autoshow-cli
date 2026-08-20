@@ -6,6 +6,7 @@ import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-t
 import type { TtsOptions, TtsTarget, TtsTargetInvocation, TtsTargetInvocationControls, TtsVoiceMatrixEnvKey, VoiceMatrixCase } from '~/types'
 import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { requireDefined } from '../../../test-utils/value-assertions'
 
 const MATRIX_ENV_KEYS = [
   'ELEVENLABS_API_KEY',
@@ -262,8 +263,10 @@ const collectOneTarget = (
 ): { options: TtsOptions, target: TtsTarget } => {
   const options = buildOptsFromFlags(false, matrixCase.flags)
   const targets = collectTtsTargets(options)
-  const target = targets.find(candidate => candidate.service === matrixCase.provider)
-  if (!target) throw new Error(`Missing ${matrixCase.provider} TTS target`)
+  const target = requireDefined(
+    targets.find(candidate => candidate.service === matrixCase.provider),
+    `${matrixCase.provider} TTS target`
+  )
   expect(target.voice).toBe(matrixCase.capturedVoice)
   return { options, target }
 }
@@ -327,8 +330,10 @@ describe('explicit TTS target voice dispatch', () => {
       'hume-tts': 'octave-2',
       'hume-tts-voice': 'Captured Voice'
     })
-    const target = collectTtsTargets(options).find(candidate => candidate.service === 'hume')
-    if (!target) throw new Error('Missing Hume TTS target')
+    const target = requireDefined(
+      collectTtsTargets(options).find(candidate => candidate.service === 'hume'),
+      'Hume TTS target'
+    )
 
     await target.run('A named custom voice.', outputDir, options, Object.freeze({
       sourceId: 'source-turn-0',

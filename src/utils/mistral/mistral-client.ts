@@ -1,5 +1,6 @@
 import type { MistralFetchOptions, MistralJsonRequestOptions, MistralMultipartRequestOptions, MistralRestError } from '~/types'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { ProviderError } from '~/utils/error-handler'
 import { createProviderRestClient, readJsonResponse, trimTrailingSlashes } from '~/utils/rest-client'
 
 export const normalizeMistralBaseUrl = (baseURL: string): string => {
@@ -51,7 +52,11 @@ const mistralFetch = createProviderRestClient<MistralFetchOptions, MistralRestEr
     }
   },
   errorMessagePrefix: (options) => options.errorMessagePrefix,
-  createError: ({ message }) => new Error(message) as MistralRestError
+  createError: ({ message, response }) => ProviderError(message, {
+    status: response.status,
+    headers: response.headers,
+    stage: 'mistral'
+  }) as MistralRestError
 })
 
 export const mistralJsonRequest = async <T = unknown>(

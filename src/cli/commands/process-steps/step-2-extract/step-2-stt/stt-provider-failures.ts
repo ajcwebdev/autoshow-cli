@@ -1,7 +1,8 @@
 import { join } from 'node:path'
 import type { ProviderErrorLike, ProviderFailure, SttBatchBlockedProviderReason } from '~/types'
 import { classifyFetchRetry, parseRetryAfterMs } from '~/utils/retries'
-import { collectErrorChain, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
+import { collectErrorChain, extractErrorMetadata, ProviderError, serializeDiagnosticError } from '~/utils/error-handler'
+import { missingCredentialEnvVar } from '~/utils/validate/env-utils'
 
 const BATCH_BLOCKING_AUTH_STATUS_CODES = new Set([401, 403])
 const BATCH_BLOCKING_MODEL_ERROR_CODES = new Set([400, 404, 422])
@@ -10,11 +11,6 @@ const BATCH_BLOCKING_MODEL_MESSAGE_PATTERNS = [
   /\b(not found|does not exist|unsupported|not supported|unknown|invalid|unrecognized)\b.*\bmodel\b/i,
   /\bendpoint\b.*\bnot found\b/i,
   /\bspeaker reference\b.*\bnot found\b/i
-]
-const BATCH_BLOCKING_SETUP_MESSAGE_PATTERNS = [
-  /\benvironment variable\b.*\brequired\b/i,
-  /\bapi[_ -]?key\b.*\b(required|not set|missing)\b/i,
-  /\bcredentials?\b.*\b(required|missing|invalid)\b/i
 ]
 const RETRYABLE_DEADLINE_MESSAGE_PATTERN = /\bdeadline exceeded\b|\btimed out waiting for transcription completion\b/i
 
@@ -51,6 +47,7 @@ export const classifySttProviderFailure = (
   const explicitRetryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
   const skipped = chain.some((entry) => entry.skipped === true)
   const retryAfterMs = parseRetryAfterMs(headers)
+  const missingEnvVar = missingCredentialEnvVar(error)
 
   let retryable = false
   if (explicitRetryable !== undefined) {
@@ -58,20 +55,20 @@ export const classifySttProviderFailure = (
   } else if (RETRYABLE_DEADLINE_MESSAGE_PATTERN.test(message)) {
     retryable = true
   } else if (retryClass) {
-    const retryCandidate = Object.assign(
-      deepest instanceof Error ? deepest : new Error(message),
-      {
-        ...(typeof status === 'number' ? { status } : {}),
-        ...(headers instanceof Headers ? { headers } : {})
-      }
-    )
+    // Reclassifying needs an error carrying the status/headers we extracted; build a real
+    // AppProviderError rather than an Object.assign impostor, so the classifier sees the
+    // same shape production throws.
     retryable = classifyFetchRetry(
-      retryCandidate,
+      ProviderError(message, {
+        ...(typeof status === 'number' ? { status } : {}),
+        ...(headers instanceof Headers ? { headers } : {}),
+        ...(deepest instanceof Error ? { cause: deepest } : {})
+      }),
       retryClass
     ).shouldRetry
   } else if (typeof status === 'number') {
     retryable = classifyFetchRetry(
-      Object.assign(new Error(message), {
+      ProviderError(message, {
         status,
         ...(headers instanceof Headers ? { headers } : {})
       }),
@@ -85,7 +82,8 @@ export const classifySttProviderFailure = (
     ...(skipped ? { skipped: true } : {}),
     ...(stage ? { stage } : {}),
     ...(typeof status === 'number' ? { status } : {}),
-    ...(typeof retryAfterMs === 'number' ? { retryAfterMs } : {})
+    ...(typeof retryAfterMs === 'number' ? { retryAfterMs } : {}),
+    ...(missingEnvVar !== undefined ? { missingEnvVar } : {})
   }
 }
 
@@ -116,7 +114,7 @@ export const resolveTransientProviderCooldownMs = (
 }
 
 export const shouldBlockSttProviderForBatch = (
-  failure: Pick<ProviderFailure, 'message' | 'retryable' | 'stage' | 'status' | 'skipped'>
+  failure: Pick<ProviderFailure, 'message' | 'retryable' | 'stage' | 'status' | 'skipped' | 'missingEnvVar'>
 ): boolean => {
   if (failure.skipped === true) {
     return false
@@ -126,7 +124,10 @@ export const shouldBlockSttProviderForBatch = (
     return false
   }
 
-  if (BATCH_BLOCKING_SETUP_MESSAGE_PATTERNS.some((pattern) => pattern.test(failure.message))) {
+  // A missing credential blocks the whole provider for the batch. Recognised from the
+  // structural marker `requireApiKey` sets, not from its message prose — the regex list
+  // this replaced was ADR-006's retired LEGACY_ERROR_HINTS pattern under a new name.
+  if (failure.missingEnvVar !== undefined) {
     return true
   }
 
@@ -150,16 +151,25 @@ export const extractProviderRawResponse = (error: unknown): unknown => {
   return metadata['rawResponse'] ?? metadata['body']
 }
 
+// A diagnostic serializer that itself throws (circular structure, a hostile toJSON) must
+// not take the run down, but it also should not vanish: the fallback records why the
+// structured form is missing instead of silently degrading to a bare string.
 const toDiagnosticJson = (value: unknown): string => {
   try {
     const json = JSON.stringify(serializeDiagnosticError(value), null, 2)
     if (typeof json === 'string') {
       return json
     }
-  } catch {
+    return JSON.stringify({
+      value: String(value),
+      diagnosticSerializationSkipped: 'serializer returned no JSON'
+    }, null, 2)
+  } catch (error) {
+    return JSON.stringify({
+      value: String(value),
+      diagnosticSerializationFailed: error instanceof Error ? error.message : String(error)
+    }, null, 2)
   }
-
-  return JSON.stringify({ value: String(value) }, null, 2)
 }
 
 export const writeProviderFailureArtifacts = async (

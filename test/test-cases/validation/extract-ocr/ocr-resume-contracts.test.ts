@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ProviderError } from '~/utils/error-handler'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -22,8 +23,8 @@ import { resolvePrimaryOcrTarget } from '~/cli/commands/process-steps/step-2-ext
 import { runHostedOcrWithPdfChunkFallback } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback'
 import { hasResumableOcrTargetWork, resumeOcrTarget } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
 import { logIncompleteOcrRunSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-runner'
-import { l } from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, HostedOcrRun, LogSinkEvent, OcrExtractionOptions, OcrProviderState, OcrTarget, PageResult, ProcessDocumentOutput, ResumeTarget } from '~/types'
+import type { DocumentMetadata, HostedOcrRun, OcrExtractionOptions, OcrProviderState, OcrTarget, PageResult, ProcessDocumentOutput, ResumeTarget } from '~/types'
+import { captureLogEvents } from '../../../test-utils/console-capture'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const requestedTargets: OcrTarget[] = [
@@ -104,27 +105,6 @@ const providerState = (
       }
     : {})
 })
-
-const captureLogEvents = async <T>(
-  run: () => Promise<T> | T
-): Promise<{ result: T, events: LogSinkEvent[] }> => {
-  const originalSinks = [...l.config.sinks]
-  const events: LogSinkEvent[] = []
-  l.config.sinks.length = 0
-  l.config.sinks.push((event) => {
-    events.push(event)
-  })
-
-  try {
-    return {
-      result: await run(),
-      events
-    }
-  } finally {
-    l.config.sinks.length = 0
-    l.config.sinks.push(...originalSinks)
-  }
-}
 
 const ocrResumeTarget = (dir: string): ResumeTarget => ({
   kind: 'extract',
@@ -724,9 +704,7 @@ describe('OCR resume contracts', () => {
   })
 
   test('transient OCR failures are classified by category', () => {
-    const error = Object.assign(new Error('provider timed out while reading OCR response'), {
-      status: 503
-    })
+    const error = ProviderError('provider timed out while reading OCR response', { status: 503 })
 
     const failure = classifyOcrProviderFailure(error)
     expect(failure.category).toBe('timeout')

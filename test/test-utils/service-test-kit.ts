@@ -6,7 +6,7 @@ import {
   readConfiguredEnvVar,
   readConfiguredEnvVarSync
 } from './test-helpers'
-import type { RunCommandOptions } from '~/types'
+import type { RunCommandOptions, RunCommandResult } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { stripAnsi } from '~/utils/terminal-colors'
 import {
@@ -169,16 +169,46 @@ export const formatCommandFailureDiagnostics = (
   tailLines(result.stderr, lineCount)
 ].join('\n')
 
+export type RunAndExpectOutputDirOptions = {
+  // Retry a single transient provider failure before treating it as fatal.
+  transient?: {
+    isTransient: (output: string) => boolean
+    providerLabel: string
+    persistedLabel: string
+  }
+  // Runs before the generic exit-code handling, so a suite can convert a known provider
+  // account state into its own terminal message.
+  onResult?: (result: RunCommandResult) => void
+  // Set false for suites that report the raw command failure without classifying it as a
+  // live-provider availability problem. Defaults to true.
+  classifyAvailability?: boolean
+}
+
+/**
+ * Run a command, fail loudly with tail diagnostics, and return its output directory.
+ *
+ * The `transient` and `onResult` hooks exist so the LLM-write and TTS factories can reuse
+ * this instead of keeping verbatim copies of the body — the two things they varied were a
+ * single-retry transient predicate and a provider-specific terminal-failure check.
+ */
 export const runCommandAndExpectOutputDir = async (
   title: string,
   args: string[],
-  opts?: RunCommandOptions
+  opts?: RunCommandOptions,
+  extra: RunAndExpectOutputDirOptions = {}
 ): Promise<string> => {
-  const result = await runCommand(args, opts)
+  const result = extra.transient
+    ? await runCommandWithTransientRetry(args, extra.transient, opts)
+    : await runCommand(args, opts)
+
+  extra.onResult?.(result)
+
   const combinedOutput = `${result.stdout}\n${result.stderr}`
   if (result.exitCode !== 0) {
-    const availabilityReason = classifyLiveProviderAvailabilityFailure(combinedOutput)
     const diagnostics = formatCommandFailureDiagnostics(args, result)
+    const availabilityReason = extra.classifyAvailability === false
+      ? undefined
+      : classifyLiveProviderAvailabilityFailure(combinedOutput)
     if (availabilityReason) {
       throw new Error(`Live provider availability failure: ${availabilityReason}\n${diagnostics}`)
     }
@@ -203,15 +233,16 @@ export const runCommandWithTransientRetry = async (
     providerLabel: string
     persistedLabel: string
     retryDelayMs?: number
-  }
+  },
+  runOptions?: RunCommandOptions
 ): Promise<Awaited<ReturnType<typeof runCommand>>> => {
-  let result = await runCommand(commandArgs)
+  let result = await runCommand(commandArgs, runOptions)
   if (result.exitCode === 0) return result
   if (!opts.isTransient(`${result.stdout}\n${result.stderr}`)) return result
 
   l.warn(`Retrying once after ${opts.providerLabel}`)
   await Bun.sleep(opts.retryDelayMs ?? 2_000)
-  result = await runCommand(commandArgs)
+  result = await runCommand(commandArgs, runOptions)
 
   if (result.exitCode !== 0 && opts.isTransient(`${result.stdout}\n${result.stderr}`)) {
     throw new Error(`${opts.persistedLabel}\n${formatCommandFailureDiagnostics(commandArgs, result)}`)

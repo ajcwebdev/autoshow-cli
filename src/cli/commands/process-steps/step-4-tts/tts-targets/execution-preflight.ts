@@ -1,5 +1,5 @@
-import type { TtsExecutionReadinessObservation, TtsProvider, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import type { SanitizedProviderError, TtsExecutionReadinessObservation, TtsProvider, TtsTarget } from '~/types'
+import { CLIUsageError, extractErrorMetadata, ProviderError, ValidationError } from '~/utils/error-handler'
 import { readEnv } from '~/utils/validate/env-utils'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
@@ -90,12 +90,13 @@ const advancedVoiceBlockedObservation = (
   targetKey: string,
   code: string,
   message: string,
-  retryable: boolean
+  retryable: boolean,
+  detail: Partial<Pick<SanitizedProviderError, 'status' | 'stage' | 'errorName' | 'providerMessage'>> = {}
 ): TtsExecutionReadinessObservation => ({
   targetKey,
   accountState: 'unavailable',
   status: 'blocked',
-  error: { phase: 'readiness', code, message, retryable, blockedReason: code }
+  error: { phase: 'readiness', code, message, retryable, blockedReason: code, ...detail }
 })
 
 export const listHumeVoiceIdsForReadiness = async (
@@ -108,9 +109,17 @@ export const listHumeVoiceIdsForReadiness = async (
     let totalPages = 1
     do {
       const response = await fetchImpl(`https://api.hume.ai/v0/tts/voices?${new URLSearchParams({ provider, page_number: String(pageNumber), page_size: '100' })}`, { headers: { 'X-Hume-Api-Key': apiKey } })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      if (!response.ok) {
+        throw ProviderError(`Hume voice catalog request failed (HTTP ${response.status}).`, {
+          stage: 'tts:readiness',
+          status: response.status,
+          headers: response.headers
+        })
+      }
       const page = parseHumeVoiceCatalogEnvelope(await response.json())
-      if (page.pageNumber !== pageNumber) throw new Error('Hume voice catalog returned an unexpected page number.')
+      if (page.pageNumber !== pageNumber) {
+        throw ValidationError('Hume voice catalog returned an unexpected page number.', { stage: 'tts:readiness', retryable: false })
+      }
       for (const value of page.voices) {
         if (value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { id?: unknown }).id === 'string') availableIds.add((value as { id: string }).id)
       }
@@ -129,9 +138,17 @@ export const listInworldVoiceIdsForReadiness = async (
   const response = await fetchImpl('https://api.inworld.ai/voices/v1/voices?languages=EN_US', {
     headers: { Authorization: authorization }
   })
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  if (!response.ok) {
+    throw ProviderError(`Inworld voice catalog request failed (HTTP ${response.status}).`, {
+      stage: 'tts:readiness',
+      status: response.status,
+      headers: response.headers
+    })
+  }
   const payload = await response.json() as { voices?: unknown }
-  if (!Array.isArray(payload.voices)) throw new Error('Inworld voice catalog response omits voices.')
+  if (!Array.isArray(payload.voices)) {
+    throw ValidationError('Inworld voice catalog response omits voices.', { stage: 'tts:readiness', retryable: false })
+  }
   return new Set(payload.voices.flatMap(value =>
     value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voiceId?: unknown }).voiceId === 'string'
       ? [(value as { voiceId: string }).voiceId]
@@ -182,11 +199,23 @@ const checkAdvancedVoiceReadiness = async (
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_type: 'all' })
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      if (!response.ok) {
+        throw ProviderError(`MiniMax voice catalog request failed (HTTP ${response.status}).`, {
+          stage: 'tts:readiness',
+          status: response.status,
+          headers: response.headers
+        })
+      }
       const payload = await response.json() as Record<string, unknown>
       const baseResponse = payload['base_resp']
       const statusCode = baseResponse && typeof baseResponse === 'object' && !Array.isArray(baseResponse) ? (baseResponse as Record<string, unknown>)['status_code'] : undefined
-      if (typeof statusCode === 'number' && statusCode !== 0) throw new Error('MiniMax base response failed')
+      if (typeof statusCode === 'number' && statusCode !== 0) {
+        throw ValidationError(`MiniMax voice catalog returned a failed base response (status_code ${statusCode}).`, {
+          stage: 'tts:readiness',
+          retryable: false,
+          metadata: { statusCode }
+        })
+      }
       const availableIds = new Set(['system_voice', 'voice_cloning', 'voice_generation'].flatMap(key => {
         const voices = payload[key]
         return Array.isArray(voices) ? voices.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voice_id?: unknown }).voice_id === 'string' ? [(value as { voice_id: string }).voice_id] : []) : []
@@ -214,9 +243,24 @@ const checkAdvancedVoiceReadiness = async (
     }))
     if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'speechify-voice-not-ready', 'One or more approved Speechify voices are missing, inaccessible, or unavailable for the selected model.', false)
     return { targetKey, accountState: 'available', status: 'ready' }
-  } catch {
+  } catch (error) {
     const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
-    return advancedVoiceBlockedObservation(targetKey, `${target.service}-readiness-inspection-failed`, `${label} read-only voice readiness inspection failed before synthesis.`, true)
+    const metadata = extractErrorMetadata(error)
+    const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+    // A probe that failed deterministically (malformed catalog, 200-with-bad-body) is not
+    // worth retrying; only transport-level failures are.
+    const retryable = metadata['retryable'] === false ? false : true
+    return advancedVoiceBlockedObservation(
+      targetKey,
+      `${target.service}-readiness-inspection-failed`,
+      `${label} read-only voice readiness inspection failed before synthesis.`,
+      retryable,
+      {
+        ...(status !== undefined ? { status } : {}),
+        ...(typeof metadata['stage'] === 'string' ? { stage: metadata['stage'] } : {}),
+        ...(error instanceof Error ? { errorName: error.name, providerMessage: error.message } : {})
+      }
+    )
   }
 }
 

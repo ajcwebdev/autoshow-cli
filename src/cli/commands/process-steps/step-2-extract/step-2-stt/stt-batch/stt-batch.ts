@@ -10,26 +10,22 @@ import { processBatch } from '~/cli/commands/process-steps/step-1-download/downl
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { processStt } from '../process-stt'
 import { createMistralSttPassController } from '../stt-services/stt-mistral/mistral-stt-pass-controller'
+import { partialCompletionError } from '../../step-2-shared/provider-batch-state'
 
-class SttBatchIncompleteError extends Error {
-  readonly exitCode: number
-  readonly batchDir?: string
-  readonly full: number
-  readonly incomplete: number
-  readonly failed: number
-
-  constructor(result: BatchProcessResult) {
-    super(`STT batch incomplete: ${result.ok} full, ${result.incomplete} incomplete, ${result.fail} failed${result.batchDir ? `. See ${result.batchDir}` : ''}`)
-    this.name = 'SttBatchIncompleteError'
-    this.exitCode = 2
-    if (result.batchDir) {
-      this.batchDir = result.batchDir
+// Was a separate error hierarchy duplicating ProviderBatchCompletionError's job; it now
+// uses the one shared "partial completion -> exit 2" spelling, with the counts as metadata.
+const sttBatchIncompleteError = (result: BatchProcessResult) => partialCompletionError(
+  `STT batch incomplete: ${result.ok} full, ${result.incomplete} incomplete, ${result.fail} failed${result.batchDir ? `. See ${result.batchDir}` : ''}`,
+  {
+    stage: 'stt:batch',
+    metadata: {
+      ...(result.batchDir ? { batchDir: result.batchDir } : {}),
+      full: result.ok,
+      incomplete: result.incomplete,
+      failed: result.fail
     }
-    this.full = result.ok
-    this.incomplete = result.incomplete
-    this.failed = result.fail
   }
-}
+)
 
 const shouldEnableCoordinator = (
   items: string[],
@@ -111,6 +107,6 @@ export const throwIfSttBatchIncomplete = (
   result: BatchProcessResult
 ): void => {
   if (result.incomplete > 0 || result.fail > 0) {
-    throw new SttBatchIncompleteError(result)
+    throw sttBatchIncompleteError(result)
   }
 }

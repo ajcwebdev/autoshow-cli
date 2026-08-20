@@ -4,13 +4,12 @@ import { dirname, join, relative, resolve, sep } from 'node:path'
 import type { CanonicalAudioProviderProjection, CurrentTtsRecoveredGenerationSlot, ObservedAudioFormat, WrittenJson } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
+import { hasErrorCode } from '~/utils/error-handler'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from './safe-artifact-store'
-export const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object'
-  && error !== null
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
+// Canonical definition lives in error-handler; re-exported so the existing sibling
+// imports in this directory keep working.
+export { hasErrorCode }
 
 export const contained = (root: string, path: string): string => {
   const value = relative(root, path)
@@ -124,7 +123,7 @@ export const readVerifiedJson = async <T>(rootDir: string, path: string, expecte
   try {
     retained = await readContainedArtifactFile(rootDir, contained(rootDir, path))
   } catch (error) {
-    throw CLIUsageError(`${label} could not be read as a contained regular artifact: ${error instanceof Error ? error.message : String(error)}`)
+    throw CLIUsageError(`${label} could not be read as a contained regular artifact: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
   }
   if (retained.sha256 !== expectedSha256) throw CLIUsageError(`${label} checksum does not match retained canonical evidence.`)
   try {

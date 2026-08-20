@@ -6,6 +6,7 @@ import { isTokenPricedOcrProvider } from '~/types'
 import type { AuditOcrTokenShapesOptions, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageProfile, OcrTokenShapeAuditBucket, OcrTokenShapeAuditMetric, OcrTokenShapeAuditReport, PipelineManifestItem, TokenPricedOcrProvider, TokenShapeSample } from '~/types'
 import { selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 import { isRecord } from '~/utils/rest-client'
+import { CLIUsageError } from '~/utils/error-handler'
 
 const MINIMUM_HEALTHY_SAMPLES = 3
 const PROMOTION_ERROR_THRESHOLD = 20
@@ -221,7 +222,7 @@ export const auditOcrTokenShapes = async (
 ): Promise<OcrTokenShapeAuditReport> => {
   const runDirectories = [...new Set(options.runDirectories ?? [])]
   if (runDirectories.length === 0 && options.profilePath === undefined) {
-    throw new Error('OCR token-shape audit requires at least one explicit run directory or an explicit token-profile path.')
+    throw CLIUsageError('OCR token-shape audit requires at least one explicit run directory or an explicit token-profile path.')
   }
 
   const seen = new Set<string>()

@@ -3,19 +3,13 @@ import { chmod, link, lstat, mkdir, open, readFile, realpath, rm, unlink } from 
 import { createHash, randomUUID } from 'node:crypto'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { MaterializedProtectedVoiceAsset, PlannedProtectedVoiceAsset, ProtectedAssetRef, ProtectedVoiceAssetPolicy, ProtectedVoiceAssetStore, ProtectedVoiceAssetStoreConfig, ReadReferenceInput, ReadyStore, TtsCliReferenceInput, VoiceConsentRevocation } from '~/types'
-import { AppValidationError, ValidationError } from '~/utils/error-handler'
+import { AppValidationError, hasErrorCode, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 
 const SAFE_OPAQUE_ID = /^[a-z0-9][a-z0-9_-]{0,127}$/
 const SHA256 = /^[a-f0-9]{64}$/
 const DIRECTORY_MODE = 0o700
 const FILE_MODE = 0o600
-
-const hasErrorCode = (error: unknown, code: string): boolean =>
-  typeof error === 'object'
-  && error !== null
-  && 'code' in error
-  && (error as { code?: unknown }).code === code
 
 export const assertSafeProtectedVoiceOpaqueId = (value: string, label: string): void => {
   if (!SAFE_OPAQUE_ID.test(value)) {
@@ -81,8 +75,13 @@ const prepareOwnerOnlyDirectory = async (path: string, label: string): Promise<v
   try {
     await mkdir(path, { recursive: true, mode: DIRECTORY_MODE })
     await chmod(path, DIRECTORY_MODE)
-  } catch {
-    throw ValidationError(`Unable to prepare ${label.toLowerCase()}.`, { stage: 'tts:protected-assets' })
+  } catch (error) {
+    // The message stays deliberately non-specific (it must not leak the protected path),
+    // but the underlying fs error is preserved as the cause so diagnostics can see it.
+    throw ValidationError(`Unable to prepare ${label.toLowerCase()}.`, {
+      stage: 'tts:protected-assets',
+      ...(error instanceof Error ? { cause: error } : {})
+    })
   }
 
   const after = await lstatIfPresent(path)

@@ -8,7 +8,7 @@ import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateFalOcrMod
 import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrTokenUsageEstimate, TokenEstimateMetadata, TokenOcrCostEstimate, TokenPricedOcrProvider } from '~/types'
 import { resolveHostedOcrTokenUsageEstimate } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.gif', '.bmp'] as const
 const DEFAULT_EXTRACT_PAGE_COUNT = 1
@@ -132,7 +132,7 @@ const resolveExtractInputPageCountUncached = async (input: string): Promise<numb
     if (Number.isFinite(info.pageCount) && info.pageCount > 0) {
       return Math.floor(info.pageCount)
     }
-    throw new Error(`document info returned ${info.pageCount} pages`)
+    throw ValidationError(`document info returned ${info.pageCount} pages`, { stage: 'ocr:pricing', retryable: false })
   } catch (error) {
     throw CLIUsageError(`Unable to estimate hosted OCR price for "${input}": could not determine PDF page count (${formatPageCountError(error)}).`)
   } finally {
