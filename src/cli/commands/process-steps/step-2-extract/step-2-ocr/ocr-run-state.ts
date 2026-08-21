@@ -14,6 +14,7 @@ import {
   parseStoredProviderArray,
   parseStoredProviderStateMap as parseStoredProviderStateEntries,
   resolveRequestedProviderCompletionStatus,
+  parseStoredProviderStateCore,
   resolveProviderCompletionStatus
 } from '../step-2-shared/provider-batch-state'
 
@@ -162,33 +163,18 @@ export const parseStoredRequestedTargets = (
   parseStoredProviderArray(entry['requestedProviders'], parseStoredRequestedTarget)
 
 const parseStoredProviderState = (value: unknown): OcrProviderState | undefined => {
-  if (!isRecord(value)) {
+  const core = parseStoredProviderStateCore(value)
+  const target = core && isRecord(value) ? parseStoredRequestedTarget(value) : undefined
+  if (!core || !target) {
     return undefined
   }
 
-  const target = parseStoredRequestedTarget(value)
-  if (!target) {
-    return undefined
-  }
-
-  if (value['status'] !== 'running' && value['status'] !== 'succeeded' && value['status'] !== 'missing' && value['status'] !== 'failed' && value['status'] !== 'skipped') {
-    return undefined
-  }
-
-  if (typeof value['artifactDir'] !== 'string' || typeof value['attempts'] !== 'number') {
-    return undefined
-  }
-
-  const lastError = parseStoredProviderLastError(value['lastError'], target)
+  const lastError = parseStoredProviderLastError((value as Record<string, unknown>)['lastError'], target)
 
   return {
     service: target.service,
     model: target.model,
-    artifactDir: value['artifactDir'],
-    status: value['status'],
-    attempts: value['attempts'],
-    ...(isRecord(value['metadata']) ? { metadata: value['metadata'] } : {}),
-    ...(isRecord(value['result']) ? { result: value['result'] } : {}),
+    ...core,
     ...(lastError ? { lastError } : {})
   }
 }
@@ -309,7 +295,7 @@ const isNonSuccessProviderState = (
 ): boolean =>
   state === undefined || state.status === 'running' || state.status === 'missing' || state.status === 'failed'
 
-export const isBlockedOcrProviderState = (
+const isBlockedOcrProviderState = (
   state: OcrProviderState | undefined
 ): boolean =>
   state?.lastError?.retryable === false

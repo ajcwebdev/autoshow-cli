@@ -2,7 +2,7 @@ import type { ResourceGate, ResourceGateOptions } from '~/types'
 
 const DEFAULT_RESOURCE_GATE_CAPACITY = 1
 
-export const normalizeResourceGateCapacity = (
+const normalizeResourceGateCapacity = (
   value: unknown,
   fallback = DEFAULT_RESOURCE_GATE_CAPACITY
 ): number =>

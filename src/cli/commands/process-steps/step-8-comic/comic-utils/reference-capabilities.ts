@@ -2,7 +2,7 @@ import type { ImageGenerationModel, ReferenceImageCapabilities } from '~/types'
 import { getImageReferenceCapabilities } from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
 import { ValidationError } from '~/utils/error-handler'
 
-export const getReferenceImageCapabilities = (model: ImageGenerationModel): ReferenceImageCapabilities => {
+const getReferenceImageCapabilities = (model: ImageGenerationModel): ReferenceImageCapabilities => {
   return getImageReferenceCapabilities(model)
 }
 

@@ -32,7 +32,7 @@ import {
 import { locked } from './attempt-projection'
 import { promoteBatchResult } from './attempt-batches'
 
-export const slotFor = (
+const slotFor = (
   ctx: AttemptContext,
   invocation: TtsTargetInvocation | undefined,
   observation: TtsSerializedRequestObservation

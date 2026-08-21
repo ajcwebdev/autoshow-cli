@@ -1,4 +1,4 @@
-export type ExecRetryOptions = {
+type ExecRetryOptions = {
   // Human-readable label used in retry warnings (defaults to the command name).
   operationName?: string
 }

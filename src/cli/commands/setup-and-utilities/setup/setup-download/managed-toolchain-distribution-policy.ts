@@ -1,5 +1,4 @@
 import type { ManagedArtifactToolId, ManagedPrebuiltLicense, ManagedToolchainNoticePlanEntry } from '~/types'
-import { InternalError } from '~/utils/error-handler'
 
 const REVIEWED_AT = '2026-08-13'
 const REPOSITORY_REVIEWER = 'github:ajcwebdev/repository-owner'
@@ -133,30 +132,10 @@ const LICENSE_POLICY: Record<ManagedArtifactToolId, ManagedPrebuiltLicense> = {
   }
 }
 
-const SPDX_LICENSE_BY_SOURCE: Record<string, string> = {
-  mupdf: 'AGPL-3.0-or-later',
-  qpdf: 'Apache-2.0',
-  'libjpeg-turbo': 'IJG AND BSD-3-Clause'
-}
-
 const sameJson = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right)
 
 export const managedToolchainDistributionLicense = (tool: ManagedArtifactToolId): ManagedPrebuiltLicense =>
   structuredClone(LICENSE_POLICY[tool])
-
-export const managedToolchainDistributionNoticePlan = (tool: ManagedArtifactToolId): readonly ManagedToolchainNoticePlanEntry[] =>
-  NOTICE_PLAN[tool]
-
-export const managedToolchainSpdxLicense = (sourceName: string): string => {
-  const license = SPDX_LICENSE_BY_SOURCE[sourceName]
-  if (!license) {
-    throw InternalError(`no approved SPDX license for managed toolchain source ${sourceName}`, {
-      stage: 'setup:managed-artifact',
-      retryable: false
-    })
-  }
-  return license
-}
 
 export const validateManagedToolchainDistributionLicense = (
   tool: ManagedArtifactToolId,
@@ -164,33 +143,3 @@ export const validateManagedToolchainDistributionLicense = (
 ): string | undefined => sameJson(license, LICENSE_POLICY[tool])
   ? undefined
   : `distribution license inventory does not match the approved ${tool} Phase 5 review`
-
-export const createManagedToolchainDistributionNotice = (tool: ManagedArtifactToolId): string => {
-  const policy = LICENSE_POLICY[tool]
-  const title = tool === 'mupdf' ? 'MuPDF 1.27.2' : 'qpdf 12.3.2 with statically linked libjpeg-turbo 3.2.0'
-  const licenseSummary = tool === 'mupdf'
-    ? 'This executable is conveyed under AGPL-3.0-or-later. It is a separate subprocess in the AutoShow aggregate; this distribution does not relicense AutoShow.'
-    : 'This executable is conveyed under Apache-2.0, with libjpeg-turbo conveyed under its IJG and Modified BSD terms.'
-  return [
-    `AutoShow macOS toolchain distribution notice for ${title}`,
-    '',
-    licenseSummary,
-    'The executable and its bundled components are provided without warranty. Read every file in this licenses directory before redistribution.',
-    '',
-    'Exact upstream source assets offered on the same immutable GitHub release page:',
-    ...policy.correspondingSourceAssets.map(asset => `- ${asset}`),
-    '',
-    'Exact AutoShow producer source archive:',
-    `- ${policy.autoshowSourceArchive}`,
-    '',
-    tool === 'mupdf'
-      ? 'The binary and machine-readable Corresponding Source are offered by equivalent network access from the same release page under AGPL section 6(d); no written offer is used.'
-      : 'The source assets are included for provenance and rebuildability; no written offer is required by the approved permissive-license distribution.',
-    '',
-    `Distribution review: ${policy.reviewReferences.join(', ')}`,
-    `Reviewed: ${policy.reviewedAt}`,
-    `Repository reviewer: ${policy.repositoryReviewer}`,
-    `Project compliance reviewer: ${policy.complianceReviewer}`,
-    ''
-  ].join('\n')
-}

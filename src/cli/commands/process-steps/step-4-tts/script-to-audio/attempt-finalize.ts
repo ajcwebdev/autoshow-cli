@@ -71,7 +71,7 @@ import {
   publishCompactCompletion,
   publishExpandedCompletion,
 } from './attempt-success-publication'
-export const closeLocalComposition = async (
+const closeLocalComposition = async (
   ctx: AttemptContext
 ): Promise<ClosedProviderAttempt> => {
   const { purePlan, options, renderRoot, recoveredBatchFiles } = ctx
@@ -147,7 +147,7 @@ export const closeLocalComposition = async (
   return { resultFile, batchResultFiles }
 }
 
-export const closeProviderAttempt = async (
+const closeProviderAttempt = async (
   ctx: AttemptContext,
   closingError?: SanitizedProviderError | undefined
 ): Promise<ClosedProviderAttempt> => {

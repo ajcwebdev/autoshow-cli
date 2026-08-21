@@ -74,7 +74,7 @@ export type LogWriteOptions = {
  * positional parameter so error events carry a `category` like every other event; the
  * logger appends `error.message` to the line and emits the stack as a follow-up event.
  */
-export type LogErrorOptions = LogWriteOptions & {
+type LogErrorOptions = LogWriteOptions & {
   error?: unknown
 }
 
@@ -173,7 +173,7 @@ export type CompleteOptions = {
   includeOutputDir?: boolean
 }
 
-export type ReportResultOptions = {
+type ReportResultOptions = {
   message?: string
   level?: LogLevel
   category?: LogCategory

@@ -67,15 +67,15 @@ const parseDurationSeconds = (value: string): number | undefined => {
   return Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : undefined
 }
 
-export const isSupportedVideoImageDataUrl = (value: string): boolean => {
+const isSupportedVideoImageDataUrl = (value: string): boolean => {
   const mimeType = mediaEngine('image').parseDataUrl(value)?.mimeType
   return mimeType !== undefined && IMAGE_MIME_TYPES.includes(mimeType as typeof IMAGE_MIME_TYPES[number])
 }
 
-export const isSupportedVideoImageUrl = (value: string): boolean =>
+const isSupportedVideoImageUrl = (value: string): boolean =>
   mediaEngine('image').isHttpUrl(value) && IMAGE_MIME_TYPES.includes(mediaEngine('image').getUrlMimeType(value) as typeof IMAGE_MIME_TYPES[number])
 
-export const isSupportedVideoImagePathLike = (value: string): boolean =>
+const isSupportedVideoImagePathLike = (value: string): boolean =>
   IMAGE_MIME_TYPES.includes(mediaEngine('image').getLocalMimeType(value) as typeof IMAGE_MIME_TYPES[number])
 
 export const isFirstClassVideoImageInput = (value: string): boolean =>
@@ -167,11 +167,6 @@ export const tryResolveLocalAudioProbe = async (value: string): Promise<AudioPro
     ...(result.exitCode === 0 ? { durationSeconds: parseDurationSeconds(result.stdout) } : {})
   }
 }
-
-export const videoMediaReferenceToUrlOrBase64 = async (
-  value: string,
-  kind: VideoMediaKind
-): Promise<string> => await mediaEngine(kind).referenceToUrlOrBase64(value)
 
 export const videoMediaReferenceToUrlOrDataUrl = async (
   value: string,

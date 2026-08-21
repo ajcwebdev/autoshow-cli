@@ -30,7 +30,7 @@ const IsoDateSchema = v.pipe(
   v.check(isIsoDate, 'Expected an ISO calendar date in YYYY-MM-DD form.')
 )
 
-export const ModelLifecycleSchema = v.pipe(
+const ModelLifecycleSchema = v.pipe(
   v.strictObject({
     status: v.picklist(['active', 'deprecated']),
     shutdownDate: v.optional(IsoDateSchema, undefined),
@@ -116,7 +116,7 @@ export const ExtractLimitsSchema = v.object({
   notes: v.optional(v.string(), undefined)
 })
 
-export const ReasoningCapabilitiesSchema = v.pipe(
+const ReasoningCapabilitiesSchema = v.pipe(
   v.strictObject({
     support: v.picklist(['unsupported', 'optional', 'required']),
     allowDisabled: v.optional(v.boolean(), undefined),

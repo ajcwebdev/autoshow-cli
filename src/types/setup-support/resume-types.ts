@@ -76,7 +76,7 @@ export type GenerationResumeProviderIdentity = ProviderIdentity & {
   transport?: string | undefined
 }
 
-export type GenerationResumeProviderStateContext<TTarget extends ProviderIdentity, TMetadata> = {
+type GenerationResumeProviderStateContext<TTarget extends ProviderIdentity, TMetadata> = {
   currentProviders: PipelineProviderState[]
   requestedProviders: GenerationResumeProviderIdentity[]
   targetsToRun: TTarget[]

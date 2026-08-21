@@ -226,7 +226,7 @@ export const parseLocation = (raw: string, key: string): StructuredScriptData['s
 
 const LOCATION_HINT_PATTERN = /\b(?:USS|INT|EXT|BRIDGE|BAY|DECK|CORRIDOR|HALL|OFFICE|QUARTERS|ROOM|LAB|ENGINE|FABRICATION|CARGO|AIRLOCK|HULL|SHUTTLE|SHIP|STATION|PLANET|SURFACE|COLONY|VILLAGE|SQUARE|CENTER|CENTRE|DOCK|PORT|WARD|MESS|GALLEY|TRANSPORT|ARRAY)\b/i
 
-export const isSceneLocationLine = (raw: string): boolean => {
+const isSceneLocationLine = (raw: string): boolean => {
   if (
     detectSpeakerLabelCharacters(raw).length > 0
     || isUncataloguedSpokenSpeakerLabel(raw)

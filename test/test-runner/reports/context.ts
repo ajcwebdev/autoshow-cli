@@ -454,7 +454,7 @@ export const buildMetricContext = async (
   }
 }
 
-export const inferTestKind = (testCase: ParsedJunitCase): string | null => {
+const inferTestKind = (testCase: ParsedJunitCase): string | null => {
   if (testCase.file.includes('/step-7-music-gen-e2e/')) return 'music'
   if (testCase.file.includes('/step-6-video-gen-e2e/')) return 'video'
   if (testCase.file.includes('/step-5-image-gen-e2e/')) return 'image'

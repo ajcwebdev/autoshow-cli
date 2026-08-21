@@ -19,7 +19,7 @@ export type ElevenLabsNativeDialogueBatch = {
   providerText: string
 }
 
-export type ElevenLabsAlignment = {
+type ElevenLabsAlignment = {
   characters?: unknown
   character_start_times_seconds?: unknown
   character_end_times_seconds?: unknown

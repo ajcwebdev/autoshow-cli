@@ -49,7 +49,7 @@ const assTime = (seconds: number): string => {
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`
 }
 
-export const LYRICS_ASS_THEME: AssTheme = {
+const LYRICS_ASS_THEME: AssTheme = {
   horizontalMarginRatio: 0.1,
   verticalMarginRatio: 0.1,
   styles: (height) => {
@@ -74,7 +74,7 @@ export const LYRICS_ASS_THEME: AssTheme = {
   }
 }
 
-export const TRANSCRIPT_ASS_THEME: AssTheme = {
+const TRANSCRIPT_ASS_THEME: AssTheme = {
   horizontalMarginRatio: 0.085,
   verticalMarginRatio: 0.09,
   styles: (height) => {
@@ -124,7 +124,7 @@ const buildCueDialogue = (options: {
 }): string =>
   `Dialogue: ${options.layer},${assTime(options.start)},${assTime(options.end)},${options.style},,0,0,0,,{\\pos(${options.x},${options.y})\\an5\\blur0.6\\q2${options.extraTags ?? ''}}${escapeAssText(options.text)}`
 
-export const buildCueAss = (
+const buildCueAss = (
   options: { width: number, height: number, font: string, title: string },
   cues: ReadonlyArray<CaptionCue>,
   theme: AssTheme
@@ -377,7 +377,7 @@ export const findMatchingImage = async (audioPath: string, directory: string): P
 }
 
 /** Lyric lines are short and may wrap; spacing is measured from what actually rendered. */
-export const DEFAULT_OVERLAY_TEXT_LAYOUT: OverlayTextLayout = {
+const DEFAULT_OVERLAY_TEXT_LAYOUT: OverlayTextLayout = {
   activeFontScale: 0.045,
   contextFontScale: 0.038,
   wrapWidthRatio: 0.6
@@ -398,7 +398,7 @@ export const TRANSCRIPT_OVERLAY_TEXT_LAYOUT: OverlayTextLayout = {
 // whole video. Chosen to stay legible on the dark spectrogram/image backgrounds.
 const SPEAKER_COLORS = ['#4FE7FF', '#FFC24F', '#8BE77F', '#FF8FB1', '#C79BFF', '#7FD4FF'] as const
 
-export const buildSpeakerColorMap = (cues: ReadonlyArray<CaptionCue>): Map<string, string> => {
+const buildSpeakerColorMap = (cues: ReadonlyArray<CaptionCue>): Map<string, string> => {
   const colors = new Map<string, string>()
   for (const cue of cues) {
     if (cue.speaker !== undefined && !colors.has(cue.speaker)) {

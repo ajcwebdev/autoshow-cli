@@ -23,7 +23,7 @@ import { isGeminiImageModel } from './image-service'
 import { DEFAULT_IMAGE_MODEL } from './image-size'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
 
-export const selectFinalImageEstimateMode = (
+const selectFinalImageEstimateMode = (
   grid: ComicGridSpec | undefined,
   panelsPerImage: number,
 ): FinalImageEstimateRequest['mode'] => {

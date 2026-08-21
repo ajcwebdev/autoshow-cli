@@ -169,11 +169,18 @@ describe('price mode contracts', () => {
       expect(cost.pricingNote).toContain('higher context pricing')
     })
 
-  test('Grok 4.5 LLM pricing uses published short and long context bands', () => {
-      const rates = getLlmCost('grok', 'grok-4.5')
-      const entry = getModelRegistry().llm['grok']?.models['grok-4.5']
+  /** The two Grok tiers share every band except their cached-input rates and review date. */
+  const GROK_LLM_BAND_CASES = [
+    { model: 'grok-4.5', pricingCheckedAt: '2026-07-23', cachedInputCostPer1MCents: 30, longBandCachedInputCostPer1MCents: 60 },
+    { model: 'grok-4.6', pricingCheckedAt: '2026-08-18', cachedInputCostPer1MCents: 50, longBandCachedInputCostPer1MCents: 100 }
+  ]
+
+  for (const testCase of GROK_LLM_BAND_CASES) {
+    test(`Grok ${testCase.model.replace('grok-', '')} LLM pricing uses published short and long context bands`, () => {
+      const rates = getLlmCost('grok', testCase.model)
+      const entry = getModelRegistry().llm['grok']?.models[testCase.model]
       if (!rates || !entry) {
-        throw new Error('Missing Grok 4.5 LLM pricing')
+        throw new Error(`Missing ${testCase.model} LLM pricing`)
       }
 
       expect(computeTokenCost(rates, 200_000, 1000)).toMatchObject({
@@ -189,9 +196,9 @@ describe('price mode contracts', () => {
       })
       expect(computeTokenCost(rates, 200_001, 1000).totalCost).toBeCloseTo(81.2004)
       expect(entry).toMatchObject({
-        pricingCheckedAt: '2026-07-23',
+        pricingCheckedAt: testCase.pricingCheckedAt,
         inputCostPer1MCents: 200,
-        cachedInputCostPer1MCents: 30,
+        cachedInputCostPer1MCents: testCase.cachedInputCostPer1MCents,
         outputCostPer1MCents: 600,
         estimation: {
           msPer1KTokens: 11318,
@@ -199,43 +206,10 @@ describe('price mode contracts', () => {
         }
       })
       expect(entry.tokenPricingBands?.[1]).toMatchObject({
-        cachedInputCostPer1MCents: 60
+        cachedInputCostPer1MCents: testCase.longBandCachedInputCostPer1MCents
       })
     })
-
-  test('Grok 4.6 LLM pricing uses published short and long context bands', () => {
-      const rates = getLlmCost('grok', 'grok-4.6')
-      const entry = getModelRegistry().llm['grok']?.models['grok-4.6']
-      if (!rates || !entry) {
-        throw new Error('Missing Grok 4.6 LLM pricing')
-      }
-
-      expect(computeTokenCost(rates, 200_000, 1000)).toMatchObject({
-        pricingBand: 'standard-up-to-200k',
-        inputCostPer1MCents: 200,
-        outputCostPer1MCents: 600,
-        totalCost: 40.6
-      })
-      expect(computeTokenCost(rates, 200_001, 1000)).toMatchObject({
-        pricingBand: 'standard-over-200k',
-        inputCostPer1MCents: 400,
-        outputCostPer1MCents: 1200
-      })
-      expect(computeTokenCost(rates, 200_001, 1000).totalCost).toBeCloseTo(81.2004)
-      expect(entry).toMatchObject({
-        pricingCheckedAt: '2026-08-18',
-        inputCostPer1MCents: 200,
-        cachedInputCostPer1MCents: 50,
-        outputCostPer1MCents: 600,
-        estimation: {
-          msPer1KTokens: 11318,
-          costMultiplier: 1
-        }
-      })
-      expect(entry.tokenPricingBands?.[1]).toMatchObject({
-        cachedInputCostPer1MCents: 100
-      })
-    })
+  }
 
   test('Grok 4.5 OCR pricing uses published short and long context bands', () => {
       const rates = getExtractPricing('grok', 'grok-4.5')
@@ -414,10 +388,32 @@ describe('price mode contracts', () => {
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
 
-  test('token-priced OCR estimates and actuals use the shared context-tier helper', () => {
+  /**
+   * Both providers must route token-priced OCR through the same context-tier helper,
+   * so only provider identity and the published long-context cost differ.
+   */
+  const TOKEN_PRICED_OCR_CASES = [
+    {
+      name: 'token-priced OCR estimates and actuals use the shared context-tier helper',
+      provider: 'gemini' as const,
+      model: 'gemini-3.1-pro-preview',
+      extractionMethod: 'pdf+gemini-ocr' as const,
+      expectedCost: 81.8004
+    },
+    {
+      name: 'Grok 4.5 OCR estimates and actuals propagate the long-context band',
+      provider: 'grok' as const,
+      model: 'grok-4.5',
+      extractionMethod: 'pdf+grok-ocr' as const,
+      expectedCost: 81.2004
+    }
+  ]
+
+  for (const testCase of TOKEN_PRICED_OCR_CASES) {
+    test(testCase.name, () => {
       const extractTargets = [{
-        provider: 'gemini' as const,
-        model: 'gemini-3.1-pro-preview',
+        provider: testCase.provider,
+        model: testCase.model,
         pageCount: 1,
         promptTokens: 200_001,
         completionTokens: 1000,
@@ -429,7 +425,7 @@ describe('price mode contracts', () => {
       })
       const actual = computeActualCosts({
         step2: {
-          extractionMethod: 'pdf+gemini-ocr',
+          extractionMethod: testCase.extractionMethod,
           totalPages: 1,
           ocrPages: 1,
           textPages: 0,
@@ -437,75 +433,26 @@ describe('price mode contracts', () => {
           dpi: 300,
           languages: 'eng',
           tokenEstimate: 201_001,
-          ocrService: 'gemini',
-          ocrModel: 'gemini-3.1-pro-preview',
+          ocrService: testCase.provider,
+          ocrModel: testCase.model,
           promptTokens: 200_001,
           completionTokens: 1000
         }
       })
 
-      expect(estimated.steps[0]).toMatchObject({
+      const expected = {
         step: 'extract',
-        provider: 'gemini',
-        model: 'gemini-3.1-pro-preview',
+        provider: testCase.provider,
+        model: testCase.model,
         pricingBand: 'standard-over-200k'
-      })
-      expect(actual.steps[0]).toMatchObject({
-        step: 'extract',
-        provider: 'gemini',
-        model: 'gemini-3.1-pro-preview',
-        pricingBand: 'standard-over-200k'
-      })
-      expect(estimated.steps[0]?.cost).toBeCloseTo(81.8004)
-      expect(actual.steps[0]?.cost).toBeCloseTo(81.8004)
+      }
+      expect(estimated.steps[0]).toMatchObject(expected)
+      expect(actual.steps[0]).toMatchObject(expected)
+      expect(estimated.steps[0]?.cost).toBeCloseTo(testCase.expectedCost)
+      expect(actual.steps[0]?.cost).toBeCloseTo(testCase.expectedCost)
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
-
-  test('Grok 4.5 OCR estimates and actuals propagate the long-context band', () => {
-      const extractTargets = [{
-        provider: 'grok' as const,
-        model: 'grok-4.5',
-        pageCount: 1,
-        promptTokens: 200_001,
-        completionTokens: 1000,
-        estimateType: 'exact' as const
-      }]
-      const estimated = computeEstimatedCosts({
-        applyCostMultipliers: false,
-        extractTargets
-      })
-      const actual = computeActualCosts({
-        step2: {
-          extractionMethod: 'pdf+grok-ocr',
-          totalPages: 1,
-          ocrPages: 1,
-          textPages: 0,
-          processingTime: 1234,
-          dpi: 300,
-          languages: 'eng',
-          tokenEstimate: 201_001,
-          ocrService: 'grok',
-          ocrModel: 'grok-4.5',
-          promptTokens: 200_001,
-          completionTokens: 1000
-        }
-      })
-
-      expect(estimated.steps[0]).toMatchObject({
-        provider: 'grok',
-        model: 'grok-4.5',
-        cost: 81.2004,
-        pricingBand: 'standard-over-200k'
-      })
-      expect(actual.steps[0]).toMatchObject({
-        provider: 'grok',
-        model: 'grok-4.5',
-        cost: 81.2004,
-        pricingBand: 'standard-over-200k'
-      })
-      expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
-    })
-
+  }
   test('current Gemini, Claude, and Kimi additions use published flat rates without context bands', () => {
       expect(getLlmCost('gemini', 'gemini-3.7-flash')).toMatchObject({
         inputCostPer1MCents: 150,

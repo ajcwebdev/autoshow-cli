@@ -1,18 +1,13 @@
-import { extname } from 'node:path'
 import type { DocumentMetadata, PageResult } from '~/types'
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 import { isRecord } from '~/utils/rest-client'
 import { requireApiKey } from '~/utils/validate/env-utils'
+import { OCR_IMAGE_MIME_TYPES, resolveMediaMimeType } from '~/utils/media-mime-types'
 
-const imageMimeType = (filePath: string): string => {
-  const extension = extname(filePath).toLowerCase()
-  if (extension === '.png') return 'image/png'
-  if (extension === '.jpg' || extension === '.jpeg') return 'image/jpeg'
-  if (extension === '.webp') return 'image/webp'
-  return 'application/octet-stream'
-}
+const imageMimeType = (filePath: string): string =>
+  resolveMediaMimeType(filePath, OCR_IMAGE_MIME_TYPES)
 
 const pageText = (page: unknown): string | undefined => {
   if (!isRecord(page)) return undefined

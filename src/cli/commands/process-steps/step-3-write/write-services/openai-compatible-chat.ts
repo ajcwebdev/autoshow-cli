@@ -1,9 +1,11 @@
 import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
 import { isStructuredFallbackError } from '~/cli/commands/process-steps/step-3-write/write-utils/structured-error-utils'
-import type { LlmApiCallResult, OpenAIRestConfig, RunOpenAICompatibleChatModelOptions, Step3Metadata } from '~/types'
+import type { LlmApiCallResult, OpenAICompatibleChatService, OpenAIRestConfig, RunOpenAICompatibleChatModelOptions, Step3Metadata, StructuredRequestOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 import { classifyFetchRetry } from '~/utils/retries'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { resolveLlmReasoningOptions } from './llm-reasoning-options'
 
 export const runOpenAICompatibleChatModel = async ({
   prompt,
@@ -74,4 +76,45 @@ export const runOpenAICompatibleChatModel = async ({
       }
     }
   })
+}
+
+/**
+ * Builds a runner for an OpenAI-compatible provider whose only reasoning control is the
+ * named `reasoning_effort` field. Providers with richer or differently shaped reasoning
+ * payloads keep their own runner rather than passing another flag through here.
+ */
+export const createOpenAICompatibleReasoningRunner = (descriptor: {
+  service: OpenAICompatibleChatService
+  providerLabel: string
+  envVar: string
+  envPurpose: string
+  baseURL: string
+}) => {
+  const config = (): { apiKey: string, baseURL: string } => ({
+    apiKey: requireApiKey(descriptor.envVar, `write:${descriptor.service}`, descriptor.envPurpose),
+    baseURL: descriptor.baseURL
+  })
+
+  return async (
+    prompt: string,
+    model: string,
+    structuredOpts?: StructuredRequestOptions
+  ): Promise<{ result: string, metadata: Step3Metadata }> => {
+    const { policy, updatedOpts } = resolveLlmReasoningOptions(descriptor.service, model, structuredOpts)
+
+    return await runOpenAICompatibleChatModel({
+      prompt,
+      model,
+      structuredOpts: updatedOpts,
+      config,
+      service: descriptor.service,
+      providerLabel: descriptor.providerLabel,
+      operationName: `${descriptor.service}-llm`,
+      customizeRequestBody: (requestBody) => {
+        if (policy.effective === 'low' || policy.effective === 'medium' || policy.effective === 'high') {
+          requestBody['reasoning_effort'] = policy.effective
+        }
+      }
+    })
+  }
 }

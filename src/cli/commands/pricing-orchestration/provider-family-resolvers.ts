@@ -24,13 +24,13 @@ const LOCAL_ZERO_PROVIDERS = new Set([
   'tesseract'
 ])
 
-export const isPagePricedExtractProvider = (provider: string): boolean =>
+const isPagePricedExtractProvider = (provider: string): boolean =>
   PAGE_PRICED_EXTRACT_PROVIDERS.has(provider)
 
 export const zeroCostSource = (provider: string, cost: number, fallback: CostSource): CostSource =>
   cost === 0 && LOCAL_ZERO_PROVIDERS.has(provider) ? 'local_zero' : fallback
 
-export const computeActualTokenOcrCost = (
+const computeActualTokenOcrCost = (
   provider: TokenPricedOcrProvider,
   model: string,
   promptTokens: number,
@@ -45,7 +45,7 @@ export const computeActualTokenOcrCost = (
   }, promptTokens, completionTokens)
 }
 
-export const tokenUsageCostSource = (metadata: ExtractionMetadata): CostSource =>
+const tokenUsageCostSource = (metadata: ExtractionMetadata): CostSource =>
   metadata.providerCostSource === 'partial_provider_usage'
     ? 'partial_provider_usage'
     : (Array.isArray(metadata.ocrProviderUsage) && metadata.ocrProviderUsage.length > 0)

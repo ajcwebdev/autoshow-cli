@@ -26,9 +26,6 @@ export const formatTokenCount = (value: number): string => {
   return `${rounded} tok`
 }
 
-export const formatSecondsShort = (value: number): string =>
-  `${trimTrailingZeroes(value.toFixed(value >= 10 ? 0 : 1))}s`
-
 export const resolveWhisperModel = (value: string): string => {
   const primary = value.split(' | ')[0] ?? value
   const match = primary.match(WHISPER_MODEL_PATH_PATTERN)

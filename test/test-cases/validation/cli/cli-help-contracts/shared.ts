@@ -27,9 +27,9 @@ const initializeHelpGroups = (): void => {
 
 initializeHelpGroups()
 
-export const nativeRoot = createNativeRootDefinition()
-export const renderableCommands = getNativeRenderableCommands(COMMAND_DEFINITIONS)
-export const flattenCommands = (
+const nativeRoot = createNativeRootDefinition()
+const renderableCommands = getNativeRenderableCommands(COMMAND_DEFINITIONS)
+const flattenCommands = (
   commands: readonly { name: string, subcommands?: readonly CliCommandDefinition[] }[]
 ): CliCommandDefinition[] =>
   commands.flatMap((command) => [

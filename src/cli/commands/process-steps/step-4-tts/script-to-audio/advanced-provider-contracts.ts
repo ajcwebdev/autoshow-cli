@@ -1,10 +1,7 @@
 import type {
-  AccountCapabilityObservation,
   AdvancedProviderHttpRequest,
   AnyCapabilityRecord,
   CapabilityDocumentationEvidence,
-  CapabilityScope,
-  ProviderAccessRequirement,
   TtsProvider,
 } from '~/types'
 import { CLIUsageError, ProviderError } from '~/utils/error-handler'
@@ -12,9 +9,9 @@ import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestRes
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from './contract-identity'
-import { validateAccountCapabilityObservation, validateCapabilityFacetSet } from './contract-validation'
+import { validateCapabilityFacetSet } from './contract-validation'
 
-export const ADVANCED_PROVIDER_FIXTURE_CHECKED_AT = '2026-08-11T00:00:00.000Z'
+const ADVANCED_PROVIDER_FIXTURE_CHECKED_AT = '2026-08-11T00:00:00.000Z'
 
 export const createAdvancedProviderJsonRequest = (input: {
   baseUrl: string
@@ -91,50 +88,10 @@ export const buildAdvancedCapabilityFixture = <T extends readonly AnyCapabilityR
   return { ...fixture, capabilityFixtureHash: hashCanonicalTtsValue(fixture) }
 }
 
-export const capabilityScopeHash = (scope: CapabilityScope): string => hashCanonicalTtsValue(scope)
-
 export const providerAccountScopeHash = (provider: TtsProvider, credential: string): string => {
   const normalized = credential.trim()
   if (!normalized) throw CLIUsageError(`${provider} account scope requires configured credentials.`)
   return hashCanonicalTtsValue({ schemaVersion: 1, provider, credential: normalized })
-}
-
-export const buildAccountCapabilityObservation = (input: {
-  scope: CapabilityScope
-  capabilityFixtureHash: string
-  accountScopeHash: string
-  state: AccountCapabilityObservation['state']
-  requirements: readonly ProviderAccessRequirement[]
-  unmetRequirements?: readonly ProviderAccessRequirement[] | undefined
-  checkedAt?: string | undefined
-  expiresAt?: string | undefined
-  evidenceRefs: readonly string[]
-  reason?: string | undefined
-}): AccountCapabilityObservation => {
-  const unmetRequirements = [...(input.unmetRequirements ?? [])]
-  const satisfiedRequirements = input.requirements.filter(requirement =>
-    !unmetRequirements.some(unmet => hashCanonicalTtsValue(unmet) === hashCanonicalTtsValue(requirement)))
-  const base = {
-    capabilityScopeHash: capabilityScopeHash(input.scope),
-    capabilityFixtureHash: input.capabilityFixtureHash,
-    accountScopeHash: input.accountScopeHash,
-    state: input.state,
-    satisfiedRequirements,
-    unmetRequirements,
-    checkedAt: input.checkedAt ?? new Date().toISOString(),
-    ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
-    evidenceRefs: [...input.evidenceRefs],
-    ...(input.reason ? { reason: input.reason } : {})
-  }
-  const observation: AccountCapabilityObservation = {
-    ...base,
-    observationHash: hashCanonicalTtsValue(base)
-  }
-  return validateAccountCapabilityObservation(observation, {
-    capabilityScopeHash: base.capabilityScopeHash,
-    capabilityFixtureHash: input.capabilityFixtureHash,
-    accountScopeHash: input.accountScopeHash
-  })
 }
 
 export const providerSecondsToMilliseconds = (seconds: number, durationMs?: number | undefined): number => {

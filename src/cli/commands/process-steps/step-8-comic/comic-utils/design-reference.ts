@@ -12,7 +12,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const DesignReferenceSnapshotItemSchema = v.strictObject({ key: v.string(), usage: v.string(), sourcePath: v.string(), path: v.string(), sha256: v.string() })
 export const DesignReferenceSnapshotManifestSchema = v.strictObject({ schemaVersion: v.literal(1), snapshotId: v.string(), createdAt: v.string(), designs: v.array(DesignReferenceSnapshotItemSchema) })
 
-export const getDesignReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'design-references.json')
+const getDesignReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'design-references.json')
 
 const checksum = async (path: string): Promise<string> => createHash('sha256').update(Buffer.from(await Bun.file(path).arrayBuffer())).digest('hex')
 const resolveSafeSource = (sourcePath: string): string => {

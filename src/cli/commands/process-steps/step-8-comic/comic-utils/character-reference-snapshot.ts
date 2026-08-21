@@ -22,7 +22,7 @@ export const CharacterReferenceManifestSchema = v.strictObject({
   schemaVersion: v.literal(2), snapshotId: v.string(), catalogHash: v.string(), createdAt: v.string(), characters: v.array(SnapshotCharacterSchema),
 })
 
-export const getCharacterReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'character-references.json')
+const getCharacterReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'character-references.json')
 
 export const createCharacterReferenceSnapshot = async (
   runDirectory: string,

@@ -13,6 +13,7 @@ import {
   parseStoredProviderStateMap as parseStoredProviderStateEntries,
   ProviderBatchCompletionError,
   resolveRequestedProviderCompletionStatus,
+  parseStoredProviderStateCore,
   resolveProviderCompletionStatus
 } from '../../step-2-shared/provider-batch-state'
 
@@ -155,15 +156,8 @@ export const parseStoredRequestedTargets = (
   parseStoredProviderArray(entry['requestedProviders'], parseStoredRequestedTarget)
 
 const parseStoredProviderState = (value: unknown): SttProviderState | undefined => {
-  if (!isRecord(value) || !isSttService(value['service']) || typeof value['model'] !== 'string') {
-    return undefined
-  }
-
-  if (value['status'] !== 'running' && value['status'] !== 'succeeded' && value['status'] !== 'missing' && value['status'] !== 'failed' && value['status'] !== 'skipped') {
-    return undefined
-  }
-
-  if (typeof value['artifactDir'] !== 'string' || typeof value['attempts'] !== 'number') {
+  const core = parseStoredProviderStateCore(value)
+  if (!core || !isRecord(value) || !isSttService(value['service']) || typeof value['model'] !== 'string') {
     return undefined
   }
 
@@ -183,11 +177,7 @@ const parseStoredProviderState = (value: unknown): SttProviderState | undefined 
     service: value['service'],
     model: value['model'],
     local: value['local'] === true,
-    artifactDir: value['artifactDir'],
-    status: value['status'],
-    attempts: value['attempts'],
-    ...(isRecord(value['metadata']) ? { metadata: value['metadata'] } : {}),
-    ...(isRecord(value['result']) ? { result: value['result'] } : {}),
+    ...core,
     ...(lastError ? { lastError } : {})
   }
 }

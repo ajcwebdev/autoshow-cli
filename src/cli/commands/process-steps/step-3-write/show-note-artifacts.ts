@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { ShowNoteArtifactResult, Step3Metadata, StructuredRunResult } from '~/types'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
 import { isStructuredValidationFailureEnvelope } from './structured-output/validation-failure'
+import { humanizeKey } from '~/utils/text-utils'
 
 const FRONTMATTER_PATTERN = /^---\r?\n[\s\S]*?\r?\n---/
 
@@ -24,14 +25,6 @@ const fencedTextBlock = (value: string): string => {
   return `${fence}text\n${content}${fence}`
 }
 
-const humanizeKey = (value: string): string => {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/^./, (char) => char.toUpperCase())
-}
 
 
 const renderPrimitiveList = (items: unknown[]): string | undefined => {

@@ -23,7 +23,7 @@ export type SetupPerformanceOverlap = {
   overlapMs: number
 }
 
-export type SetupPerformanceEnvironment = {
+type SetupPerformanceEnvironment = {
   platform: NodeJS.Platform
   osRelease: string
   architecture: string
@@ -33,7 +33,7 @@ export type SetupPerformanceEnvironment = {
   dependencyVersions: Record<string, string>
 }
 
-export type SetupPerformanceStepTiming = {
+type SetupPerformanceStepTiming = {
   label: string
   durationMs: number
   ok: boolean

@@ -51,7 +51,7 @@ const buildSttTarget = (
   } satisfies SttTarget
 }
 
-export const resolveSttSourceEligibility = (
+const resolveSttSourceEligibility = (
   source: SttSource
 ): SttSourceEligibility => ({
   supadata: isSupadataSupportedSourceUrl(source.url),

@@ -12,7 +12,7 @@ const EOCD_SIG = 0x06054b50
 const CD_SIG = 0x02014b50
 const LFH_SIG = 0x04034b50
 
-export type ZipArchiveOptions = {
+type ZipArchiveOptions = {
   /** Error stage recorded on any ValidationError raised while parsing. */
   stage: string
   /** Applied to each central-directory entry name; EPUB uses it to normalize separators. */
@@ -27,7 +27,7 @@ const findEocd = (buffer: Buffer, stage: string): number => {
   throw ValidationError('Not a valid ZIP file: End of Central Directory not found', { stage })
 }
 
-export const readZipCentralDirectory = (buffer: Buffer, options: ZipArchiveOptions): ZipEntry[] => {
+const readZipCentralDirectory = (buffer: Buffer, options: ZipArchiveOptions): ZipEntry[] => {
   const eocd = findEocd(buffer, options.stage)
   const count = buffer.readUInt16LE(eocd + 10)
   const offset = buffer.readUInt32LE(eocd + 16)

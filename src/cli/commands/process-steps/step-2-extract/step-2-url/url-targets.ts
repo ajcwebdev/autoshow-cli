@@ -8,7 +8,7 @@ export const isLocalUrlBackend = (backend: HtmlArticleBackend): boolean =>
 export const isHtmlArticleBackend = (value: unknown): value is HtmlArticleBackend =>
   typeof value === 'string' && (URL_ARTICLE_BACKENDS as readonly string[]).includes(value)
 
-export const getUrlProviderDirectoryName = (backend: HtmlArticleBackend): string => backend
+const getUrlProviderDirectoryName = (backend: HtmlArticleBackend): string => backend
 
 export const getUrlProviderArtifactDir = (backend: HtmlArticleBackend): string =>
   `providers/${getUrlProviderDirectoryName(backend)}`
@@ -22,7 +22,7 @@ export const toUrlArticleTarget = (
 
 export const toRequestedUrlProvider = toUrlArticleTarget
 
-export const getUrlTargetBackend = (
+const getUrlTargetBackend = (
   target: UrlArticleTarget
 ): HtmlArticleBackend => target.service
 

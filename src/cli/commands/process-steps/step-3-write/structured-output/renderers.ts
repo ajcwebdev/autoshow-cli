@@ -1,13 +1,6 @@
 import { isStructuredValidationFailureEnvelope } from './validation-failure'
+import { humanizeKey } from '~/utils/text-utils'
 
-const humanizeKey = (value: string): string => {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/^./, (char) => char.toUpperCase())
-}
 
 const renderObject = (input: Record<string, unknown>, headingLevel: 2 | 3): string => {
   const headingPrefix = headingLevel === 2 ? '##' : '###'

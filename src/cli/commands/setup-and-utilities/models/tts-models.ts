@@ -14,7 +14,7 @@ export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
 ] as const satisfies readonly string[]
 
 export const ELEVENLABS_DEFAULT_VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'
-export const SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS = [
+const SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS = [
   'auto',
   'on',
   'off'
@@ -39,7 +39,7 @@ export const SUPPORTED_MINIMAX_TTS_MODELS = [
 
 export const validateMinimaxTtsModel = createModelValidator<MinimaxTtsModel>(SUPPORTED_MINIMAX_TTS_MODELS, 'minimax-tts')
 
-export const SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS = [
+const SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS = [
   'Chinese',
   'Chinese,Yue',
   'English',
@@ -134,7 +134,7 @@ export const SUPPORTED_GROQ_ENGLISH_TTS_VOICES = [
 ] as const satisfies readonly string[]
 
 const SUPPORTED_GROQ_TTS_VOICES = getGroqTtsVoices()
-export const GROQ_DEFAULT_TTS_VOICE = 'troy'
+const GROQ_DEFAULT_TTS_VOICE = 'troy'
 
 export const validateGroqTtsModel = createRetiringModelValidator<GroqTtsModel>('tts', 'groq', SUPPORTED_GROQ_TTS_MODELS, 'groq-tts')
 
@@ -171,7 +171,7 @@ export const SUPPORTED_GROK_TTS_MODELS = [
 
 export const SUPPORTED_GROK_TTS_VOICES = getGrokTtsVoices()
 export const GROK_DEFAULT_TTS_VOICE = 'eve'
-export const SUPPORTED_GROK_TTS_LANGUAGES = [
+const SUPPORTED_GROK_TTS_LANGUAGES = [
   'auto',
   'en',
   'ar-EG',
@@ -384,7 +384,7 @@ export const SUPPORTED_SPEECHIFY_TTS_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SPEECHIFY_DEFAULT_TTS_VOICE = 'geffen_32'
-export const SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES = [
+const SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES = [
   'beatrice_32',
   'dominic_32',
   'edmund_32',
@@ -394,7 +394,7 @@ export const SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES = [
   'imogen_32',
   'wyatt_32'
 ] as const satisfies readonly string[]
-export const SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES = [
+const SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES = [
   'george',
   'henry',
   'carly',
@@ -518,8 +518,6 @@ export const SUPPORTED_DEEPINFRA_TTS_MODELS = [
   'Qwen/Qwen3-TTS-VoiceDesign'
 ] as const satisfies readonly string[]
 
-export const DEEPINFRA_DEFAULT_TTS_VOICE = 'standard'
-
 export const validateDeepinfraTtsModel = createRetiringModelValidator<DeepinfraTtsModel>('tts', 'deepinfra', SUPPORTED_DEEPINFRA_TTS_MODELS, 'deepinfra-tts')
 
 export const validateDeepinfraTtsVoice = (voice: string): string => {
@@ -534,7 +532,7 @@ export const SUPPORTED_REPLICATE_TTS_MODELS = [
   'jaaari/kokoro-82m'
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_REPLICATE_TTS_VOICES = [
+const SUPPORTED_REPLICATE_TTS_VOICES = [
   'af_alloy',
   'af_aoede',
   'af_bella',

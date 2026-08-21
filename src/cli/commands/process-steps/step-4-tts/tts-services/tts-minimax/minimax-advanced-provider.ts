@@ -26,6 +26,8 @@ import {
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
+import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import { assertAdvancedVoiceCloneAuthorized, assertAdvancedVoiceDeletable, assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   catalog: 'https://platform.minimax.io/docs/api-reference/voice-management-get',
@@ -49,8 +51,8 @@ const capabilityRecords = [
 ] as const satisfies readonly AnyCapabilityRecord[]
 
 export const MINIMAX_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
-export const MINIMAX_TEMPORARY_VOICE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
-export const MINIMAX_CLONE_SAMPLE_MAX_BYTES = 20 * 1024 * 1024
+const MINIMAX_TEMPORARY_VOICE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
+const MINIMAX_CLONE_SAMPLE_MAX_BYTES = 20 * 1024 * 1024
 
 const record = createProviderRecordReader('MiniMax')
 const integer = (value: unknown): number | undefined => typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined
@@ -172,7 +174,7 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
 
   const clone: VoiceClonePort = {
     clone: async cloneRequest => {
-      if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) throw CLIUsageError('MiniMax cloning requires consent and provenance before any external upload.')
+      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'before any external upload')
       if (cloneRequest.cloneKind === 'professional') {
         const result: ProviderVoiceMutationResult = { schemaVersion: 1, provider: 'minimax', state: 'external-action-required', action: 'MiniMax does not document a separate professional-clone API; use the supported instant clone or manage any contracted workflow externally.', sanitizedMetadata: { cloneKind: 'professional', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
         return result
@@ -208,21 +210,25 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
     }
   }
 
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'minimax', label: 'MiniMax', labelWithArticle: 'a MiniMax', accountScopeHash }
   const inspect = async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-    if (voice.provider !== 'minimax' || voice.kind !== 'remote-resource') throw CLIUsageError('MiniMax inspection requires a MiniMax remote voice resource.')
-    const page = await catalog.list({ source: voice.namespace === 'account' ? 'account' : 'provider-library' })
-    const entry = page.entries.find(candidate => candidate.resourceId === voice.resourceId)
-    const expired = voice.expiresAt !== undefined && Date.parse(voice.expiresAt) <= Date.parse(page.checkedAt)
-    const state = entry ? 'available' as const : expired ? 'expired' as const : voice.expiresAt ? 'pending' as const : 'missing' as const
-    return { schemaVersion: 1, provider: 'minimax', providerVoice: voice, state, deletion: voice.deletion, sanitizedMetadata: entry?.sanitizedMetadata ?? { activationRequiredBeforeCatalogVisibility: Boolean(voice.expiresAt) }, checkedAt: page.checkedAt }
+    const remote = assertAdvancedVoiceInspectionIdentity(identity, voice)
+    const page = await catalog.list({ source: remote.namespace === 'account' ? 'account' : 'provider-library' })
+    const entry = page.entries.find(candidate => candidate.resourceId === remote.resourceId)
+    // A MiniMax clone stays invisible to the catalog until it is activated, so a missing
+    // entry with a live expiry is pending rather than gone.
+    const expired = remote.expiresAt !== undefined && Date.parse(remote.expiresAt) <= Date.parse(page.checkedAt)
+    return buildAdvancedVoiceInspection(identity, {
+      voice: remote,
+      state: entry ? 'available' : expired ? 'expired' : remote.expiresAt ? 'pending' : 'missing',
+      sanitizedMetadata: entry?.sanitizedMetadata ?? { activationRequiredBeforeCatalogVisibility: Boolean(remote.expiresAt) },
+      checkedAt: page.checkedAt
+    })
   }
   const lifecycle: VoiceLifecyclePort = {
     inspect,
     delete: async deleteRequest => {
-      const voice = deleteRequest.providerVoice
-      if (voice.provider !== 'minimax' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) throw CLIUsageError('MiniMax deletion identity does not match the registered resource.')
-      if (voice.ownership !== 'project' || voice.deletion.state !== 'eligible' || voice.namespace !== 'account') throw CLIUsageError('MiniMax deletes only eligibility-checked project-owned account voices.')
-      if (voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('MiniMax deletion credentials do not match the registered account scope.')
+      const voice = assertAdvancedVoiceDeletable(identity, { ownedResourceLabel: 'account voices' }, deleteRequest)
       const payload = assertBaseResponse(record(await request({ method: 'POST', path: '/v1/delete_voice', body: { voice_type: voiceTypeFor(voice), voice_id: voice.resourceId } }), 'voice deletion'), 'voice deletion')
       const returnedId = trimmedString(payload['voice_id'])
       if (returnedId && returnedId !== voice.resourceId) throw CLIUsageError('MiniMax deletion response identity does not match the registered resource.')

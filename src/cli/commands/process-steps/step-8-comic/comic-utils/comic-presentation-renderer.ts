@@ -154,7 +154,7 @@ export const buildPresentationAudioCommand = (input: {
 
 const ffconcatPath = (path: string): string => `'${path.replaceAll("'", "'\\''")}'`
 
-export const writePresentationConcatFile = async (path: string, sceneRunDir: string, timeline: ResolvedPanelTimeline): Promise<void> => {
+const writePresentationConcatFile = async (path: string, sceneRunDir: string, timeline: ResolvedPanelTimeline): Promise<void> => {
   const lines = ['ffconcat version 1.0']
   for (const panel of timeline.panels) {
     lines.push(`file ${ffconcatPath(resolve(sceneRunDir, panel.image.path))}`)
@@ -166,7 +166,7 @@ export const writePresentationConcatFile = async (path: string, sceneRunDir: str
   await Bun.write(path, `${lines.join('\n')}\n`)
 }
 
-export const buildPresentationVideoCommand = (input: {
+const buildPresentationVideoCommand = (input: {
   concatPath: string
   wavPath: string
   outputPath: string

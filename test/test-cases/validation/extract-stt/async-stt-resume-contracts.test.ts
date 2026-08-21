@@ -457,7 +457,7 @@ describe('async STT resume contracts', () => {
               }
             },
             buildResult: async ({ runtime, timings }) => {
-              expect(runtime.stage).toBe('completed')
+              expect(runtime?.stage).toBe('completed')
               capturedTimings = timings
               throw new Error('result build failed')
             },

@@ -2,7 +2,7 @@ import type { CanonicalAudioProviderProjection, ImageProvider, MusicProvider, Pr
 
 type GenerationProviderCostSource = 'provider_usage' | 'provider_quote' | 'registry_fallback'
 
-export type TtsMetadataBase<TService extends string = string> = {
+type TtsMetadataBase<TService extends string = string> = {
   ttsService: TService
   ttsModel: string
   speaker?: string

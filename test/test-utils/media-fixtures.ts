@@ -1,4 +1,3 @@
-import { writeFile } from 'node:fs/promises'
 import type { MockWavOptions, ResolvedWavHeaderOptions, SyntheticWavOptions } from '~/types'
 
 export const pngSignature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -70,11 +69,4 @@ export const createSyntheticWavBytes = (options: SyntheticWavOptions): Buffer =>
   }
 
   return buffer
-}
-
-export const writeSyntheticWav = async (
-  path: string,
-  options: SyntheticWavOptions
-): Promise<void> => {
-  await writeFile(path, createSyntheticWavBytes(options))
 }

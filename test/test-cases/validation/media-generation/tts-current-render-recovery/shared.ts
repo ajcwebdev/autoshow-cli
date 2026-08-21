@@ -1,5 +1,4 @@
 import { join } from 'node:path'
-import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import type {
   CanonicalAudioProviderProjection,
   PipelineProviderState,
@@ -7,9 +6,8 @@ import type {
   TtsOptions,
   TtsTarget
 } from '~/types'
-import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import { ProviderError } from '~/utils/error-handler'
 import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
+import { createTtsFixtureTarget } from '../../../../test-utils/tts-fixture-target'
 import { requireDefined } from '../../../../test-utils/value-assertions'
 
 export const DIALOGUE_OPTIONS: TtsOptions = {
@@ -30,194 +28,47 @@ export const syntheticRecoveryAudio = (
 export const createFixtureTarget = (
   onRun: () => void,
   mode: 'success' | 'accepted-error'
-): TtsTarget => {
-  const operation = 'tts-synthesis' as const
-  const transport = 'hosted-api'
-  const model = 'fixture-recovery-model'
-  return {
-    service: 'openai',
-    model,
-    operation,
-    transport,
-    targetKey: canonicalTargetKey(operation, 'openai', model, transport),
-    voice: 'alloy',
-    run: async (text, outputDir, _options, _invocation, requestEvidence) => {
-      onRun()
-      const audioPath = join(outputDir, 'speech.wav')
-      const bytes = syntheticRecoveryAudio(0, 0.15)
-      await requestEvidence?.dispatch({
-        chunkIndex: 1,
-        endpointKind: 'speech-synthesis',
-        serializerVersion: 'openai.tts.phase-0-v1',
-        serializedRequest: { body: { input: text, voice: 'alloy', response_format: 'wav' } },
-        providerText: text,
-        voiceField: 'voice',
-        voices: [{ kind: 'provider-id', value: 'alloy' }],
-        requestControls: { responseFormat: 'wav' },
-        continuation: { kind: 'none' }
-      }, { attempt: 1 }, async ({ accepted }) => {
-        await accepted({ providerRequestId: 'local-recovery-fixture' })
-        if (mode === 'accepted-error') throw new Error('fixture failed after provider acceptance')
-        await Bun.write(audioPath, bytes)
-      })
-      if (!requestEvidence) await Bun.write(audioPath, bytes)
-      await requestEvidence?.recordOutput({ chunkIndex: 1, path: audioPath })
-      await requestEvidence?.complete({ chunkIndex: 1 })
-      return {
-        audioPath,
-        metadata: {
-          ttsService: 'openai',
-          ttsModel: model,
-          speaker: 'alloy',
-          processingTime: 1,
-          audioFileName: 'speech.wav',
-          audioFileSize: bytes.byteLength,
-          chunkCount: 1
-        }
-      }
-    }
-  }
-}
+): TtsTarget => createTtsFixtureTarget({
+  mode: mode === 'success' ? { kind: 'success' } : { kind: 'failAfterAdmission' },
+  model: 'fixture-recovery-model',
+  voice: 'alloy',
+  onRun: () => onRun(),
+  providerRequestId: () => 'local-recovery-fixture',
+  audioBytes: () => syntheticRecoveryAudio(0, 0.15)
+})
 
-export const createAmbiguousAdmissionFixtureTarget = (attempts: number[]): TtsTarget => {
-  const operation = 'tts-synthesis' as const
-  const transport = 'hosted-api'
-  const model = 'fixture-ambiguous-admission-model'
-  return {
-    service: 'openai',
-    model,
-    operation,
-    transport,
-    targetKey: canonicalTargetKey(operation, 'openai', model, transport),
-    voice: 'alloy',
-    run: async (text, outputDir, _options, _invocation, requestEvidence) => {
-      if (!requestEvidence) throw new Error('Missing retry fixture request evidence')
-      const audioPath = join(outputDir, 'speech.wav')
-      const bytes = syntheticRecoveryAudio(0, 0.15)
-      await withHostedTtsRetry({
-        operationName: 'fixture-ambiguous-admission',
-        policy: { maxAttempts: 4, baseDelayMs: 0, maxDelayMs: 0, jitter: false, exponential: false }
-      }, async (_signal, requestAttempt) => await requestEvidence.dispatch({
-        chunkIndex: 1,
-        endpointKind: 'speech-synthesis',
-        serializerVersion: 'openai.tts.phase-0-v1',
-        serializedRequest: { body: { input: text, voice: 'alloy', response_format: 'wav' } },
-        providerText: text,
-        voiceField: 'voice',
-        voices: [{ kind: 'provider-id', value: 'alloy' }],
-        requestControls: { responseFormat: 'wav' },
-        continuation: { kind: 'none' }
-      }, requestAttempt, async ({ accepted }) => {
-        attempts.push(requestAttempt.attempt)
-        await accepted({ providerRequestId: `authorized-retry-${requestAttempt.attempt}` })
-        if (requestAttempt.attempt < 3) {
-          throw ProviderError('fixture inference failed', { status: 500, retryable: true })
-        }
-        await Bun.write(audioPath, bytes)
-      }))
-      await requestEvidence.recordOutput({ chunkIndex: 1, path: audioPath })
-      await requestEvidence.complete({ chunkIndex: 1 })
-      return {
-        audioPath,
-        metadata: {
-          ttsService: 'openai',
-          ttsModel: model,
-          speaker: 'alloy',
-          processingTime: 1,
-          audioFileName: 'speech.wav',
-          audioFileSize: bytes.byteLength,
-          chunkCount: 1
-        }
-      }
-    }
-  }
-}
+export const createAmbiguousAdmissionFixtureTarget = (attempts: number[]): TtsTarget => createTtsFixtureTarget({
+  mode: { kind: 'ambiguousRetry', attempts, succeedOnAttempt: 3, maxAttempts: 4 },
+  model: 'fixture-ambiguous-admission-model',
+  voice: 'alloy',
+  providerRequestId: (_sourceIndex, attempt) => `authorized-retry-${attempt}`,
+  audioBytes: () => syntheticRecoveryAudio(0, 0.15)
+})
 
 export const createDialogueFixtureTarget = (
   calls: number[],
   model = 'fixture-dialogue-recovery-model',
   acceptedErrorSourceIndex?: number
-): TtsTarget => {
-  const operation = 'tts-synthesis' as const
-  const transport = 'hosted-api'
-  return {
-    service: 'openai',
-    model,
-    operation,
-    transport,
-    targetKey: canonicalTargetKey(operation, 'openai', model, transport),
-    multiSpeakerStrategy: 'segment-and-concat',
-    run: async (text, outputDir, _options, invocation, requestEvidence) => {
-      const sourceIndex = invocation?.sourceIndex ?? -1
-      const voice = invocation?.voice.value ?? 'alloy'
-      const audioPath = join(outputDir, 'speech.wav')
-      const bytes = syntheticRecoveryAudio(sourceIndex)
-      calls.push(sourceIndex)
-      await requestEvidence?.dispatch({
-        chunkIndex: 1,
-        endpointKind: 'speech-synthesis',
-        serializerVersion: 'openai.tts.phase-0-v1',
-        serializedRequest: { body: { input: text, voice, response_format: 'wav' } },
-        providerText: text,
-        voiceField: 'voice',
-        voices: [{ kind: 'provider-id', value: voice }],
-        requestControls: { responseFormat: 'wav' },
-        continuation: { kind: 'none' }
-      }, { attempt: 1 }, async ({ accepted }) => {
-        await accepted({ providerRequestId: `dialogue-${sourceIndex}` })
-        if (sourceIndex === acceptedErrorSourceIndex) throw new Error(`fixture failed after accepting source ${sourceIndex}`)
-        await Bun.write(audioPath, bytes)
-      })
-      if (!requestEvidence) await Bun.write(audioPath, bytes)
-      await requestEvidence?.recordOutput({ chunkIndex: 1, path: audioPath })
-      await requestEvidence?.complete({ chunkIndex: 1 })
-      return {
-        audioPath,
-        metadata: {
-          ttsService: 'openai',
-          ttsModel: model,
-          speaker: voice,
-          processingTime: 1,
-          audioFileName: 'speech.wav',
-          audioFileSize: bytes.byteLength,
-          chunkCount: 1
-        }
-      }
-    }
-  }
-}
+): TtsTarget => createTtsFixtureTarget({
+  mode: acceptedErrorSourceIndex === undefined
+    ? { kind: 'success' }
+    : { kind: 'failAfterAdmission', sourceIndex: acceptedErrorSourceIndex },
+  model,
+  multiSpeakerStrategy: 'segment-and-concat',
+  onRun: (sourceIndex) => { calls.push(sourceIndex) },
+  providerRequestId: (sourceIndex) => `dialogue-${sourceIndex}`,
+  audioBytes: (sourceIndex) => syntheticRecoveryAudio(sourceIndex)
+})
 
 export const createRejectedDialogueFixtureTarget = (
   calls: number[],
   model = 'fixture-dialogue-recovery-model'
-): TtsTarget => ({
-  service: 'openai',
+): TtsTarget => createTtsFixtureTarget({
+  mode: { kind: 'reject' },
   model,
-  operation: 'tts-synthesis',
-  transport: 'hosted-api',
-  targetKey: canonicalTargetKey('tts-synthesis', 'openai', model, 'hosted-api'),
   multiSpeakerStrategy: 'segment-and-concat',
-  run: async (text, _outputDir, _options, invocation, requestEvidence) => {
-    const sourceIndex = invocation?.sourceIndex ?? -1
-    const voice = invocation?.voice.value ?? 'alloy'
-    calls.push(sourceIndex)
-    await requestEvidence?.dispatch({
-      chunkIndex: 1,
-      endpointKind: 'speech-synthesis',
-      serializerVersion: 'openai.tts.phase-0-v1',
-      serializedRequest: { body: { input: text, voice, response_format: 'wav' } },
-      providerText: text,
-      voiceField: 'voice',
-      voices: [{ kind: 'provider-id', value: voice }],
-      requestControls: { responseFormat: 'wav' },
-      continuation: { kind: 'none' }
-    }, { attempt: 1 }, async () => {
-      const error = new Error('fixture provider rejected request')
-      Object.defineProperty(error, 'status', { value: 400, configurable: true })
-      throw error
-    })
-    throw new Error('fixture rejection unexpectedly returned')
-  }
+  onRun: (sourceIndex) => { calls.push(sourceIndex) },
+  audioBytes: (sourceIndex) => syntheticRecoveryAudio(sourceIndex)
 })
 
 export const crashAfterPromotedResult = (state: PipelineProviderState): PipelineProviderState => {

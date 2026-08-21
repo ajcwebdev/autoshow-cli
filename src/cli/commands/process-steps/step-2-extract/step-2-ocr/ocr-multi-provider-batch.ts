@@ -32,7 +32,7 @@ import { ProviderBatchCompletionError } from '../step-2-shared/provider-batch-st
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { serializeDiagnosticError } from '~/utils/error-handler'
 
-export class OcrBatchCompletionError extends ProviderBatchCompletionError {
+class OcrBatchCompletionError extends ProviderBatchCompletionError {
   constructor(outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
     super('OcrBatchCompletionError', outputDir, completionStatus, message)
   }

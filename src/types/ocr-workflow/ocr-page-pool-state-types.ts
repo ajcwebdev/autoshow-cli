@@ -1,6 +1,6 @@
 import type { OcrPoolLaneState, OcrPoolLedger, OcrPoolPageAttempt, OcrPoolPageLedgerEntry, OcrPoolTargetState, OcrTarget, RunOcrPagePoolOptions } from '~/types'
 
-export type AcceptedRunState = {
+type AcceptedRunState = {
   count: number
   lastAcceptedAtMs: number
 }

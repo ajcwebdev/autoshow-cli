@@ -3,7 +3,7 @@ import type { WhisperModelIntegrity } from '~/types'
 // Any real ggml whisper weight file is tens of megabytes. The previous 1000-byte
 // floor accepted a truncated transfer as a complete model, so a partial download
 // could be cached and treated as ready by every existence-based guard.
-export const WHISPER_MODEL_MIN_BYTES = 10_000_000
+const WHISPER_MODEL_MIN_BYTES = 10_000_000
 
 // Checksums for the models `bun autoshow setup` installs by default, so the two
 // largest downloads in setup are verified like every pinned system dependency.

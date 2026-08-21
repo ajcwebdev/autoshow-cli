@@ -1,28 +1,17 @@
 import { basename } from 'node:path'
-import type { AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, DiarizationOptions, SpeechmaticsJob, SpeechmaticsTranscriptResponse, Step2Metadata, SttRequestMetrics, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { SpeechmaticsJob, SpeechmaticsTranscriptResponse, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import {
   SpeechmaticsCreateJobResponseSchema,
   SpeechmaticsJobResponseSchema,
   SpeechmaticsTranscriptResponseSchema
 } from '~/types'
-import {
-  appendToken,
-  buildTranscriptionOutputBase,
-  countTokens,
-  formatTranscriptText,
-  resolveTranscriptionOutput,
-  toTimestamp
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
-import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, deleteSttRemoteResource, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
-import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
+import { appendToken, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
+import type { HttpAsyncSttRunOptions } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/http-async-stt-provider'
+import { runHttpAsyncSttProvider } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/http-async-stt-provider'
 import { getSpeechmaticsBaseUrl } from './speechmatics'
-import { requireApiKey } from '~/utils/validate/env-utils'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
 const MAX_POLL_INTERVAL_MS = 10000
-const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
-const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
 
 const buildSpeechmaticsUrl = (baseURL: string, path: string): string =>
   new URL(path, baseURL).toString()
@@ -62,41 +51,6 @@ const buildRejectedJobMessage = (job: SpeechmaticsJob): string => {
 
   return 'Speechmatics transcription failed: job was rejected'
 }
-
-const getTranscript = async (
-  baseURL: string,
-  apiKey: string,
-  jobId: string,
-  metrics?: SttRequestMetrics | undefined
-): Promise<SpeechmaticsTranscriptResponse> => await sttStageRequest({
-  operationName: 'speechmatics-get-transcript',
-  stage: 'transcript',
-  retryClass: 'runtime_http_read',
-  timeoutMs: POLL_REQUEST_TIMEOUT_MS,
-  errorPrefix: 'Speechmatics',
-  schema: SpeechmaticsTranscriptResponseSchema,
-  schemaLabel: 'Speechmatics transcript response',
-  metrics,
-  doFetch: (signal) => fetch(buildSpeechmaticsUrl(baseURL, `/v2/jobs/${jobId}/transcript?format=json-v2`), {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${apiKey}`
-    },
-    signal: signal ?? null
-  })
-})
-
-const deleteJob = async (
-  baseURL: string,
-  apiKey: string,
-  jobId: string
-): Promise<boolean> => await deleteSttRemoteResource({
-  url: buildSpeechmaticsUrl(baseURL, `/v2/jobs/${jobId}`),
-  apiKey,
-  provider: 'speechmatics',
-  artifact: 'job',
-  id: jobId
-})
 
 const toTranscriptOutput = (
   transcript: SpeechmaticsTranscriptResponse,
@@ -212,148 +166,36 @@ const evidenceWordsFromTranscript = (
   })
   .filter((word): word is NonNullable<typeof word> => word !== null)
 
-const createSpeechmaticsJob = async (
-  baseURL: string,
-  apiKey: string,
-  audioPath: string,
-  modelName: string,
-  metrics: AsyncSttLifecycleMetrics
-): Promise<{ jobId: string, status?: SpeechmaticsJob | undefined }> => {
-  const createResponse = await sttStageRequest({
-    operationName: 'speechmatics-create-job',
-    stage: 'create',
-    retryClass: 'runtime_http_create_retriable',
-    timeoutMs: REQUEST_TIMEOUT_MS,
-    errorPrefix: 'Speechmatics',
-    schema: SpeechmaticsCreateJobResponseSchema,
-    schemaLabel: 'Speechmatics create job response',
-    metrics: lifecycleMetricsToCallbacks(metrics),
-    doFetch: (signal) => fetch(buildSpeechmaticsUrl(baseURL, '/v2/jobs'), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: buildCreateForm(audioPath, modelName),
-      signal: signal ?? null
-    })
-  })
-
-  return {
-    jobId: 'job' in createResponse ? createResponse.job.id : createResponse.id,
-    ...('job' in createResponse ? { status: createResponse.job } : {})
-  }
-}
-
-const pollSpeechmaticsJob = async (
-  baseURL: string,
-  apiKey: string,
-  jobId: string,
-  metrics: AsyncSttLifecycleMetrics
-): Promise<{ status: SpeechmaticsJob, retryAfterMs: number | null }> => {
-  const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
-    operationName: 'speechmatics-poll-job',
-    stage: 'poll',
-    retryClass: 'runtime_http_read',
-    timeoutMs: POLL_REQUEST_TIMEOUT_MS,
-    errorPrefix: 'Speechmatics',
-    schema: SpeechmaticsJobResponseSchema,
-    schemaLabel: 'Speechmatics job status response',
-    metrics: lifecycleMetricsToCallbacks(metrics),
-    doFetch: (signal) => fetch(buildSpeechmaticsUrl(baseURL, `/v2/jobs/${jobId}`), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${apiKey}`
-      },
-      signal: signal ?? null
-    })
-  })
-
-  return { status: value.job, retryAfterMs }
-}
-
 export const runSpeechmaticsStt = async (
   audioPath: string,
   outputDir: string,
-  options: {
-    model: string
-    segmentOffsetMinutes: number
-    segmentNumber?: number | undefined
-    totalSegments?: number | undefined
-    diarizationOptions?: DiarizationOptions | undefined
-    audioDurationSeconds?: number | undefined
-    runMode?: 'initial' | 'backfill' | undefined
-    lifecycle?: AsyncSttLifecycleHooks | undefined
-  }
-): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireApiKey('SPEECHMATICS_API_KEY', 'stt:speechmatics', 'Speechmatics transcription')
-
-  const {
-    model: modelName,
-    segmentOffsetMinutes = 0,
-    segmentNumber,
-    totalSegments,
-    audioDurationSeconds,
-    runMode,
-    lifecycle
-  } = options
-  const baseURL = getSpeechmaticsBaseUrl()
-  const startTime = Date.now()
-  const offsetSeconds = segmentOffsetMinutes * 60
-  const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
-
-  return await runAsyncSttJobLifecycle<SpeechmaticsJob, SpeechmaticsTranscriptResponse>({
-    outputDir,
-    providerService: 'speechmatics',
-    providerLogLabel: 'speechmatics',
-    providerDisplayName: 'Speechmatics',
-    modelName,
-    startTime,
-    runMode,
-    lifecycle,
-    audioDurationSeconds,
-    initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
-    maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
-    segment: { segmentNumber, totalSegments },
-    createJob: async (metrics) => await createSpeechmaticsJob(baseURL, apiKey, audioPath, modelName, metrics),
-    pollJob: async (jobId, metrics) => await pollSpeechmaticsJob(baseURL, apiKey, jobId, metrics),
-    getTranscript: async (jobId, metrics) => await getTranscript(baseURL, apiKey, jobId, lifecycleMetricsToCallbacks(metrics)),
-    isComplete: (status) => status.status === 'done',
-    isFailed: (status) => status.status === 'rejected' ? buildRejectedJobMessage(status) : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Speechmatics', jobId, pollDeadlineMs, cause),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Speechmatics', 'job', jobId, probeCount, totalWaitMs, cause),
-    cleanup: {
-      deleteJob: async (jobId) => await deleteJob(baseURL, apiKey, jobId),
-      shouldDelete: ({ metadata, lastKnownStatus }) =>
-        metadata !== undefined || lastKnownStatus?.status === 'done' || lastKnownStatus?.status === 'rejected'
-    },
-    buildResult: async ({ transcript, runtime, processingTime, timings }) => {
-      const transcriptOutput = toTranscriptOutput(transcript, offsetSeconds)
-      const evidenceWords = evidenceWordsFromTranscript(transcript, offsetSeconds)
-      const { finalSegments, finalText } = resolveTranscriptionOutput(
-        transcriptOutput.segments,
-        transcriptOutput.text,
-        offsetSeconds
-      )
-
-      await Bun.write(`${outputBase}.txt`, formatTranscriptText(finalSegments))
-
-      const metadata: Step2Metadata = {
-        transcriptionService: 'speechmatics',
-        transcriptionModel: modelName,
-        processingTime,
-        tokenCount: countTokens(finalText),
-        runtime,
-        ...(timings ? { timings } : {})
-      }
-
-      return {
-        result: {
-          text: finalText,
-          segments: finalSegments,
-          evidence: buildTranscriptionWordEvidence({ words: evidenceWords, segments: finalSegments, rawResponse: transcript })
-        },
-        metadata
-      }
-    }
-  })
-}
+  options: HttpAsyncSttRunOptions
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => await runHttpAsyncSttProvider({
+  service: 'speechmatics',
+  displayName: 'Speechmatics',
+  credential: { envVar: 'SPEECHMATICS_API_KEY', stage: 'stt:speechmatics', purpose: 'Speechmatics transcription' },
+  baseUrl: getSpeechmaticsBaseUrl,
+  resolveUrl: buildSpeechmaticsUrl,
+  endpoints: {
+    createJob: '/v2/jobs',
+    job: (jobId) => `/v2/jobs/${jobId}`,
+    transcript: (jobId) => `/v2/jobs/${jobId}/transcript?format=json-v2`
+  },
+  buildCreateForm,
+  pollIntervals: { initialMs: INITIAL_POLL_INTERVAL_MS, maxMs: MAX_POLL_INTERVAL_MS },
+  schemas: {
+    create: SpeechmaticsCreateJobResponseSchema,
+    poll: SpeechmaticsJobResponseSchema,
+    transcript: SpeechmaticsTranscriptResponseSchema
+  },
+  readCreateResponse: (response) => ({
+    jobId: 'job' in response ? response.job.id : response.id,
+    ...('job' in response ? { status: response.job } : {})
+  }),
+  readPollResponse: (response) => response.job,
+  isComplete: (status) => status.status === 'done',
+  failureMessage: (status) => status.status === 'rejected' ? buildRejectedJobMessage(status) : undefined,
+  isTerminal: (status) => status.status === 'done' || status.status === 'rejected',
+  normalizeTranscript: toTranscriptOutput,
+  evidenceWords: evidenceWordsFromTranscript
+}, audioPath, outputDir, options)

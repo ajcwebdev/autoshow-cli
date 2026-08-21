@@ -8,7 +8,7 @@ export const SOURCE_VOCABULARY_TEST_ROOT = join(PROJECT_ROOT, 'test')
 
 export const toSourceVocabularyRepoPath = (file: string): string => relative(PROJECT_ROOT, file)
 
-export type SourceVocabularyViolation = { file: string, line: number, text: string }
+type SourceVocabularyViolation = { file: string, line: number, text: string }
 
 export const listSourceVocabularyFiles = async (root: string): Promise<string[]> => {
   const files: string[] = []

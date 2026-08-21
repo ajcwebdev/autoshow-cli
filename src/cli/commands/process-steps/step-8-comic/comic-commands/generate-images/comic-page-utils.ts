@@ -221,7 +221,7 @@ export const getComicGridCapacity = (grid: ComicGridSpec): number => {
   return capacity
 }
 
-export const COMIC_STYLE_GUIDANCE = [
+const COMIC_STYLE_GUIDANCE = [
   'Treat the canonical character and location references as the authority for the comic\'s visual style as well as its depicted content.',
   'Match their linework, rendering medium, shape language, anatomy, palette, lighting, texture, and level of detail consistently across every panel.',
   'Do not introduce a different visual medium or degree of realism unless the canonical references explicitly establish it.',

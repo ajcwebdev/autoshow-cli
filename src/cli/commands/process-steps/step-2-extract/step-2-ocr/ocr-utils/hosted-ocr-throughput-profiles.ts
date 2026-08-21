@@ -1,11 +1,9 @@
 import { isRecord } from '~/utils/rest-client'
-import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import type { HostedOcrProfileDisqualificationReason, HostedOcrProfileEstimate, HostedOcrSchedulerTelemetry, HostedOcrThroughputProfile, HostedOcrThroughputProfileStore, OcrConcurrencyMode, PersistHostedOcrProfilesOptions } from '~/types'
-import { withProcessLock } from '~/utils/process-lock'
 import { roundMetric } from '~/utils/value-helpers'
-import { createJsonProfileStore } from '~/utils/json-profile-store'
+import { createJsonProfileStore, selectBestScoredProfile } from '~/utils/json-profile-store'
 
 const PROFILE_STORE_VERSION = 2
 const MAX_PROFILE_ENTRIES = 500
@@ -13,7 +11,7 @@ const MAX_PROFILE_SAMPLES = 100
 const HOSTED_OCR_PROFILE_MAX_CAP_CEILING = 48
 const PROFILE_LOCK_NAME = 'ocr-throughput-profiles-v1'
 
-export const resolveHostedOcrThroughputProfilePath = (): string =>
+const resolveHostedOcrThroughputProfilePath = (): string =>
   join(homedir(), '.cache', 'autoshow-cli', 'ocr-throughput-profiles-v1.json')
 
 export const resolveHostedOcrPageCountBand = (pageCount: number): string => {
@@ -96,16 +94,17 @@ const parseProfile = (value: unknown): HostedOcrThroughputProfile | undefined =>
 }
 
 const throughputProfileStore = createJsonProfileStore({
+  publishPolicy: {
+    lockName: PROFILE_LOCK_NAME,
+    maxEntries: MAX_PROFILE_ENTRIES,
+    compareForRetention: (left, right) => Date.parse(right.lastSeenAt) - Date.parse(left.lastSeenAt)
+  },
   version: PROFILE_STORE_VERSION,
   parseEntry: parseProfile,
   resolvePath: resolveHostedOcrThroughputProfilePath
 })
 
-export const readHostedOcrThroughputProfiles: (
-  profilePath?: string | undefined
-) => Promise<HostedOcrThroughputProfileStore> = throughputProfileStore.read
-
-export const readHostedOcrThroughputProfilesSync: (
+const readHostedOcrThroughputProfilesSync: (
   profilePath?: string | undefined
 ) => HostedOcrThroughputProfileStore = throughputProfileStore.readSync
 
@@ -128,7 +127,7 @@ const weightedAverage = (
 
 const mergeProfiles = (
   existing: HostedOcrThroughputProfile[],
-  samples: HostedOcrThroughputProfile[]
+  samples: readonly HostedOcrThroughputProfile[]
 ): HostedOcrThroughputProfile[] => {
   const byKey = new Map(existing.map((profile) => [profileKey(profile), profile]))
 
@@ -167,8 +166,6 @@ const mergeProfiles = (
   }
 
   return [...byKey.values()]
-    .sort((left, right) => Date.parse(right.lastSeenAt) - Date.parse(left.lastSeenAt))
-    .slice(0, MAX_PROFILE_ENTRIES)
 }
 
 const buildProfileSamples = (
@@ -245,18 +242,7 @@ export const persistHostedOcrThroughputProfiles = async (
     return
   }
 
-  const profilePath = options.profilePath ?? resolveHostedOcrThroughputProfilePath()
-  await withProcessLock(PROFILE_LOCK_NAME, async () => {
-    const store = await readHostedOcrThroughputProfiles(profilePath)
-    const nextStore: HostedOcrThroughputProfileStore = {
-      version: PROFILE_STORE_VERSION,
-      profiles: mergeProfiles(store.profiles, samples)
-    }
-    await mkdir(dirname(profilePath), { recursive: true })
-    const tempPath = `${profilePath}.${process.pid}.${Date.now()}.tmp`
-    await writeFile(tempPath, JSON.stringify(nextStore, null, 2) + '\n')
-    await rename(tempPath, profilePath)
-  })
+  await throughputProfileStore.publish(samples, mergeProfiles, options.profilePath)
 }
 
 const scoreProfile = (
@@ -299,24 +285,14 @@ export const findHostedOcrThroughputProfile = (
   const scopeClass = input.scopeClass ?? 'env-api-key'
   const pageCountBand = resolveHostedOcrPageCountBand(input.pageCount)
   const profiles = readHostedOcrThroughputProfilesSync(input.profilePath).profiles
-  const match = profiles
-    .map((profile) => ({
-      profile,
-      score: scoreProfile(profile, {
-        provider: input.provider,
-        model: input.model,
-        scopeClass,
-        pageCountBand,
-        ocrConcurrencyMode: input.ocrConcurrencyMode,
-        laneTargetCount: input.laneTargetCount
-      })
-    }))
-    .filter((entry) => entry.score >= 0)
-    .sort((left, right) =>
-      right.score - left.score
-      || right.profile.sampleCount - left.profile.sampleCount
-      || Date.parse(right.profile.lastSeenAt) - Date.parse(left.profile.lastSeenAt)
-    )[0]?.profile
+  const match = selectBestScoredProfile(profiles, (profile) => scoreProfile(profile, {
+    provider: input.provider,
+    model: input.model,
+    scopeClass,
+    pageCountBand,
+    ocrConcurrencyMode: input.ocrConcurrencyMode,
+    laneTargetCount: input.laneTargetCount
+  }))
 
   if (!match) {
     return undefined

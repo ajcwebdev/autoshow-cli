@@ -61,7 +61,7 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 
-export const resolveSetupSourceBuildParallelJobs = (): number => Math.max(1, Math.min(cpus().length, 8))
+const resolveSetupSourceBuildParallelJobs = (): number => Math.max(1, Math.min(cpus().length, 8))
 const leptonicaCmakeConfigDir = join(leptonicaToolDir, 'lib/cmake/leptonica')
 const leptonicaCmakeConfigPath = join(leptonicaCmakeConfigDir, 'LeptonicaConfig.cmake')
 const leptonicaManagedBuildStampPath = join(leptonicaToolDir, '.autoshow-managed-build')
@@ -213,7 +213,7 @@ const downloadSource = async (
 
 // Source and object trees are inputs to the installed artifacts under
 // runtime/tools; once an install validates, keeping them only costs disk.
-export const discardBuildTree = async (buildDir: string): Promise<void> => {
+const discardBuildTree = async (buildDir: string): Promise<void> => {
   await rm(buildDir, { recursive: true, force: true })
 }
 
@@ -232,7 +232,7 @@ export const installManagedYtDlpMacos = async (): Promise<void> => {
 
 const lameStaticLibPath = join(lameToolDir, 'lib/libmp3lame.a')
 
-export const installManagedLameMacos = async (): Promise<void> => {
+const installManagedLameMacos = async (): Promise<void> => {
   if (await pathExists(lameStaticLibPath)) return
   await downloadSource('lame', lameBuildDir, 'lame-source')
   await recreateDir(lameToolDir)
@@ -359,7 +359,7 @@ exec "${ebookConvertInstalledBinaryPath}" "$@"
 `)
 }
 
-export const installManagedTessdataEng = async (): Promise<void> => {
+const installManagedTessdataEng = async (): Promise<void> => {
   if (!await pathExists(englishTrainedDataPath)) {
     const { url, sha256 } = await readDependencyUrlAndSha256('tessdataEng')
     await mkdir(tessdataDir, { recursive: true })

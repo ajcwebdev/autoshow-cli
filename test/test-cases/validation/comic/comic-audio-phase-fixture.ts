@@ -1,9 +1,14 @@
 import { join } from 'node:path'
-import type { StructuredScriptData, VoiceReferenceManifest } from '~/types'
+import type { ApprovedVoiceSnapshotEntry, ComicDialoguePlan, SoundscapePlan, TtsProvider, StructuredScriptData, VoiceReferenceManifest } from '~/types'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
+import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
+import { createSoundEffectRenderPlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/sound-effect-execution'
 import { createSoundscapePlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
-import { createComicSourceIdentity, createStructuredScriptArtifactRef, computeSceneRunIdentity, validateVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
+import { createApprovedVoiceSnapshotEntry, createComicSourceIdentity, createStructuredScriptArtifactRef, computeSceneRunIdentity, validateVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
+import { createLocalSilentDialogueRun, runComicSoundscape } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-soundscape-workflow'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
+import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 
 export const COMIC_AUDIO_PHASE_CREATED_AT = '2026-08-14T00:00:00.000Z'
 export const COMIC_AUDIO_PHASE_HASH_A = 'a'.repeat(64)
@@ -47,4 +52,90 @@ export const buildComicAudioPhaseFixture = async (root: string, voiceEntries: Vo
   const snapshotBase = { schemaVersion: 1 as const, sceneRunIdentity, dialoguePlanId: dialoguePlan.dialoguePlanId, catalogHash: COMIC_AUDIO_PHASE_HASH_A, briefSetHash: COMIC_AUDIO_PHASE_HASH_B, createdAt: COMIC_AUDIO_PHASE_CREATED_AT, entries }
   const snapshot = validateVoiceReferenceManifest({ ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) })
   return { structured, structuredRef, dialoguePlan, soundscapePlan, snapshot }
+}
+
+/**
+ * Every phase suite approves the same shaped stock-voice registration and varies only
+ * the provider identity, so the identity fields are required and everything the
+ * snapshot contract fixes stays here.
+ */
+export const buildApprovedVoiceEntry = (input: {
+  subjectKey: string
+  resourceId: string
+  provider: TtsProvider
+  providerModel: string
+  settingsSchema: string
+  profileKey?: string | undefined
+  /** Suites pinned to an earlier scene clock pass their own approval timestamp. */
+  approvedAt?: string | undefined
+}): ApprovedVoiceSnapshotEntry => createApprovedVoiceSnapshotEntry({
+  registrationId: `registration-${input.subjectKey}`,
+  generationId: hashCanonicalTtsValue({ subjectKey: input.subjectKey, generation: 1 }),
+  subjectKey: input.subjectKey,
+  profileKey: input.profileKey ?? 'default',
+  provider: input.provider,
+  providerVoice: {
+    kind: 'remote-resource',
+    provider: input.provider,
+    resourceId: input.resourceId,
+    namespace: 'provider',
+    origin: 'provider-stock',
+    ownership: 'provider',
+    deletion: { state: 'provider-managed', checkedAt: input.approvedAt ?? COMIC_AUDIO_PHASE_CREATED_AT }
+  },
+  providerModel: input.providerModel,
+  settingsSchema: input.settingsSchema,
+  synthesisSettings: { schemaVersion: 1, settingsSchema: input.settingsSchema, values: {} },
+  sanitizedProviderMetadata: {},
+  briefHash: COMIC_AUDIO_PHASE_HASH_A,
+  auditionManifestHash: COMIC_AUDIO_PHASE_HASH_B,
+  approvedAudition: { storeId: 'voice-store', assetId: `audition-${input.subjectKey}`, sha256: COMIC_AUDIO_PHASE_HASH_A },
+  provenanceRef: `provenance:${input.subjectKey}`,
+  capabilityFixtureHash: COMIC_AUDIO_PHASE_HASH_B,
+  registrationStateAtSnapshot: 'approved-ready',
+  externallyMutable: true,
+  registrationApprovedAt: input.approvedAt ?? COMIC_AUDIO_PHASE_CREATED_AT,
+})
+
+/**
+ * Runs the local dialogue + ElevenLabs sound-effect mix each phase suite ends with.
+ * The sound-effect requests are served from synthetic WAV bytes and the call count is
+ * returned so suites keep asserting their own expected frequency.
+ */
+export const runMockComicSoundscape = async (input: {
+  rootDir: string
+  plan: SoundscapePlan
+  dialoguePlan: ComicDialoguePlan
+  target: { service: TtsProvider, model: string, transport: string }
+  sfxModel?: string | undefined
+}) => {
+  const dialogue = await createLocalSilentDialogueRun({ rootDir: input.rootDir, plan: input.plan, target: input.target })
+  const renderPlan = createSoundEffectRenderPlan({
+    plan: input.plan,
+    target: resolveSoundEffectTarget(`elevenlabs=${input.sfxModel ?? 'eleven_text_to_sound_v2'}`, { outputFormat: 'wav_48000' })
+  })
+  let sfxCalls = 0
+  const adapter = createElevenLabsSoundEffectAdapter({
+    apiKey: 'fixture',
+    request: async () => {
+      sfxCalls++
+      return {
+        status: 200,
+        headers: { 'content-type': 'audio/wav', 'request-id': `sfx-${sfxCalls}` },
+        body: createSyntheticWavBytes({ durationSeconds: 0.5, amplitude: 0.2, frequencyHz: 220 + sfxCalls * 110 })
+      }
+    },
+    now: () => COMIC_AUDIO_PHASE_CREATED_AT
+  })
+  const mixed = await runComicSoundscape({
+    rootDir: input.rootDir,
+    plan: input.plan,
+    renderPlan,
+    dialoguePlan: input.dialoguePlan,
+    dialogueRuns: [dialogue.binding],
+    adapter,
+    concurrency: 2,
+    hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' })
+  })
+  return { mixed, renderPlan, dialogue, soundscapeRun: mixed.soundscapeRuns[0], sfxCalls: () => sfxCalls }
 }

@@ -23,7 +23,7 @@ import { DEFAULT_URL_REQUEST_TIMEOUT_MS } from '~/cli/commands/process-steps/ste
 import { writeFakeDefuddleBinIn } from '../../../../test-utils/fixtures/fake-defuddle-bin'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
-export const envKeys = [
+const envKeys = [
   'FIRECRAWL_API_KEY',
   'GLM_API_KEY',
   'SPIDER_API_KEY',
@@ -33,8 +33,8 @@ export const envKeys = [
   'AUTOSHOW_FAKE_DEFUDDLE_MODE',
   'AUTOSHOW_FAKE_DEFUDDLE_STDERR'
 ] as const
-export const originalBinDir = getConfiguredBinDir()
-export const originalAdapterRuns = new Map<HtmlArticleBackend, UrlArticleProviderAdapter['run']>(
+const originalBinDir = getConfiguredBinDir()
+const originalAdapterRuns = new Map<HtmlArticleBackend, UrlArticleProviderAdapter['run']>(
   URL_ARTICLE_BACKENDS.map((backend) => [backend, URL_ARTICLE_PROVIDER_ADAPTERS[backend].run])
 )
 const tempDirs = setupContractSuiteLifecycle({

@@ -30,7 +30,7 @@ export const groupCommandsByKey = <T extends PriceCommandKeyedEntry>(commands: T
   return Array.from(grouped.entries()).map(([key, variants]) => ({ key, variants }))
 }
 
-export const evaluatePriceObservationGroup = (
+const evaluatePriceObservationGroup = (
   key: string,
   observations: PriceCommandObservation[],
   budgetHundredthCents?: number

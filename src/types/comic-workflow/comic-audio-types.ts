@@ -89,7 +89,7 @@ export type VoiceReferenceSnapshotIndex = {
 
 export type ComicStageArtifactRef = { path: string, sha256: string }
 
-export type ComicStageRecord =
+type ComicStageRecord =
   | {
       requirement: 'not-requested'
       status: 'skipped'

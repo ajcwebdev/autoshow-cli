@@ -27,9 +27,9 @@ import {
 import { isRecord } from '~/utils/value-helpers'
 import { atomicWriteJson } from '~/utils/filesystem'
 
-export const CHARACTER_VOICES_FILENAME = 'character-voices.json'
-export const CHARACTER_VOICE_REGISTRATIONS_FILENAME = 'character-voice-registrations.json'
-export const CHARACTER_VOICE_CURRENT_FILENAME = 'character-voice-current.json'
+const CHARACTER_VOICES_FILENAME = 'character-voices.json'
+const CHARACTER_VOICE_REGISTRATIONS_FILENAME = 'character-voice-registrations.json'
+const CHARACTER_VOICE_CURRENT_FILENAME = 'character-voice-current.json'
 
 const SAFE_KEY = /^[a-z0-9][a-z0-9_-]{0,127}$/
 const LOGICAL_SUBJECT_KEY = /^(?:[a-z0-9][a-z0-9_-]{0,127}|(?:role|voice):[a-z0-9][a-z0-9_-]{0,127})$/
@@ -47,7 +47,7 @@ const assertSubjectKey = (value: string, label: string): void => {
   if (!LOGICAL_SUBJECT_KEY.test(value)) throw CLIUsageError(`${label} must be a safe character key or an explicit role:/voice: logical key.`)
 }
 
-export const voiceSubjectArtifactKey = (subjectKey: string): string => {
+const voiceSubjectArtifactKey = (subjectKey: string): string => {
   assertSubjectKey(subjectKey, 'Voice subject key')
   return SAFE_KEY.test(subjectKey) ? subjectKey : encodeArtifactKey(subjectKey)
 }
@@ -100,7 +100,7 @@ const readJson = async (path: string, missingValue?: unknown): Promise<unknown> 
   }
 }
 
-export const validateCharacterVoiceBrief = (brief: CharacterVoiceBrief): CharacterVoiceBrief => {
+const validateCharacterVoiceBrief = (brief: CharacterVoiceBrief): CharacterVoiceBrief => {
   if (!isRecord(brief)) throw CLIUsageError('Character voice brief must be an object.')
   assertAllowedKeys(brief, [
     'subjectKey', 'profileKey', 'language', 'locale', 'accent', 'apparentAgeRange', 'genderPresentation',
@@ -229,7 +229,7 @@ export const loadApprovedVoiceAudition = async (
 const registryLockName = (charactersRoot: string): string =>
   `comic-voice-registry-${createHash('sha256').update(resolve(charactersRoot)).digest('hex').slice(0, 24)}`
 
-export const withCharacterVoiceRegistryLock = async <T>(charactersRoot: string, run: () => Promise<T>): Promise<T> =>
+const withCharacterVoiceRegistryLock = async <T>(charactersRoot: string, run: () => Promise<T>): Promise<T> =>
   await withProcessLock(registryLockName(charactersRoot), run)
 
 const appendRegistrationUnlocked = async (

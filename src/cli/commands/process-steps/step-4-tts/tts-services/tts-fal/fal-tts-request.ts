@@ -7,7 +7,7 @@ export const FAL_SEED_SPEECH_MODEL = 'fal-ai/bytedance/seed-speech/tts/v2' as co
 export const FAL_MAYA_MODEL = 'fal-ai/maya' as const
 export const FAL_ASYNC_TTS_PRO_MODEL = 'async/tts-pro/v1.0' as const
 
-export const FAL_SEED_SPEECH_VOICES = [
+const FAL_SEED_SPEECH_VOICES = [
   'vivi_mixed_en_zh_ja_es_id',
   'mindy_en_es_id_pt_zh',
   'stokie_en',
@@ -51,9 +51,9 @@ export const FAL_SEED_SPEECH_VOICES = [
   'monkey_king_zh',
 ] as const
 
-export const FAL_SEED_DEFAULT_VOICE = 'stokie_en'
-export const FAL_ASYNC_DEFAULT_VOICE = 'Jennie'
-export const FAL_MAYA_DEFAULT_VOICE_PROMPT = 'Realistic narrator voice in the 30s with american accent. Normal pitch, warm timbre, conversational pacing, neutral tone delivery at med intensity.'
+const FAL_SEED_DEFAULT_VOICE = 'stokie_en'
+const FAL_ASYNC_DEFAULT_VOICE = 'Jennie'
+const FAL_MAYA_DEFAULT_VOICE_PROMPT = 'Realistic narrator voice in the 30s with american accent. Normal pitch, warm timbre, conversational pacing, neutral tone delivery at med intensity.'
 
 export const resolveFalTtsDefaultVoice = (model: FalTtsModel): string => {
   switch (model) {

@@ -42,23 +42,6 @@ const loadAttemptPath = async (path: string): Promise<VoiceProvisioningAttempt> 
 const lockName = (root: string, registrationDraftId: string): string =>
   `voice-provision-${createHash('sha256').update(`${resolve(root)}\0${registrationDraftId}`).digest('hex').slice(0, 32)}`
 
-export const createVoiceProvisioningAttempt = async (
-  journalRoot: string,
-  attempt: VoiceProvisioningAttempt
-): Promise<VoiceProvisioningAttempt> => {
-  validateVoiceProvisioningAttempt(attempt)
-  const path = attemptPath(journalRoot, attempt.registrationDraftId, attempt.attemptId)
-  return await withProcessLock(lockName(journalRoot, attempt.registrationDraftId), async () => {
-    if (existsSync(path)) {
-      const existing = await loadAttemptPath(path)
-      if (canonicalTtsJson(existing) !== canonicalTtsJson(attempt)) throw ValidationError('Provisioning attempt identity already has different bytes.', { stage: 'voice:provisioning' })
-      return existing
-    }
-    await atomicWriteJson(path, attempt)
-    return attempt
-  })
-}
-
 export const loadVoiceProvisioningAttempt = async (
   journalRoot: string,
   registrationDraftId: string,
@@ -107,30 +90,6 @@ const assertAppendPreservingUpdate = (
     if (!isReconciliation) throw CLIUsageError('Provisioning outcome is immutable except through an explicit reconciliation transition.')
   }
 }
-
-const updateAttemptUnlocked = async (
-  path: string,
-  expectedVersion: number,
-  update: (current: VoiceProvisioningAttempt) => VoiceProvisioningAttempt
-): Promise<VoiceProvisioningAttempt> => {
-  const current = await loadAttemptPath(path)
-  if (current.compareAndSwapVersion !== expectedVersion) throw CLIUsageError(`Provisioning attempt changed; expected version ${expectedVersion}, found ${current.compareAndSwapVersion}.`)
-  const next = update(current)
-  assertAppendPreservingUpdate(current, next)
-  validateVoiceProvisioningAttempt(next)
-  await atomicWriteJson(path, next)
-  return next
-}
-
-export const updateVoiceProvisioningAttempt = async (
-  journalRoot: string,
-  registrationDraftId: string,
-  attemptId: string,
-  expectedVersion: number,
-  update: (current: VoiceProvisioningAttempt) => VoiceProvisioningAttempt
-): Promise<VoiceProvisioningAttempt> => await withProcessLock(lockName(journalRoot, registrationDraftId), async () =>
-  await updateAttemptUnlocked(attemptPath(journalRoot, registrationDraftId, attemptId), expectedVersion, update)
-)
 
 const transition = (
   attempt: VoiceProvisioningAttempt,

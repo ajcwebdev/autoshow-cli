@@ -12,7 +12,7 @@ type SelectorExpectation = {
   outputFileName?: string | undefined
 }
 
-export type ProviderSelectorCase = {
+type ProviderSelectorCase = {
   name: string
   provider: string
   all?: { expected: string[], outputFileName?: string | undefined } | undefined

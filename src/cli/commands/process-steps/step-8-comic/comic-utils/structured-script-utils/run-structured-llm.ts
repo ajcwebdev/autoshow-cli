@@ -24,7 +24,7 @@ const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
 
 // Resolves a single central LLM model id to one shared dispatch target. Validation
 // against the central registry replaces comic's removed per-provider type guards.
-export const resolveComicLlmTarget = (modelId: string): LLMTarget => {
+const resolveComicLlmTarget = (modelId: string): LLMTarget => {
   const service = findRegistryServiceForModel('llm', modelId)
   if (!service) {
     throw CLIUsageError(`Unknown LLM model "${modelId}". It is not present in the central LLM registry.`)

@@ -8,7 +8,7 @@ import { loadCharacterCatalog } from '../../comic-utils/character-reference-conf
 import { InfraError, ValidationError } from '~/utils/error-handler'
 
 export const CHARACTER_SKETCH_VIEWS = ['front', 'three-quarter', 'profile'] as const
-export const CHARACTER_SKETCH_MANIFEST_FILENAME = 'character-sketches.json'
+const CHARACTER_SKETCH_MANIFEST_FILENAME = 'character-sketches.json'
 
 export const CharacterSketchRegistrationSchema = v.strictObject({
   characterKey: v.pipe(v.string(), v.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)),
@@ -82,7 +82,7 @@ export const readCharacterSketchManifest = async (charactersRoot = getCharacters
   }
 }
 
-export const readRegisteredCharacterSketch = async (
+const readRegisteredCharacterSketch = async (
   key: CharacterKey,
   character?: CharacterCatalogEntry,
 ): Promise<CharacterSketchRegistration | null> => {

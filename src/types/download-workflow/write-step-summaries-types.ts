@@ -1,6 +1,6 @@
 import type { ActualCostBreakdown, ProcessingOptions, Step2Metadata, Step3Metadata } from '~/types'
 
-export type ActualCostSteps = ActualCostBreakdown['steps']
+type ActualCostSteps = ActualCostBreakdown['steps']
 
 export type BuildWriteStepSummariesContext = {
   processingOptions: ProcessingOptions

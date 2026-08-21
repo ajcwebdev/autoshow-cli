@@ -2,8 +2,8 @@ import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, Normal
 
 export type HostedOcrTokenReasoningPolicy = NormalizedReasoningEffort | 'unspecified'
 
-export type HostedOcrTokenEstimateSource = 'profile' | 'blended-profile' | 'registry'
-export type HostedOcrTokenDisqualificationReason = 'partial' | 'failed' | 'incomplete' | 'missing-usage'
+type HostedOcrTokenEstimateSource = 'profile' | 'blended-profile' | 'registry'
+type HostedOcrTokenDisqualificationReason = 'partial' | 'failed' | 'incomplete' | 'missing-usage'
 
 export type HostedOcrTokenUsageEstimate = {
   promptTokens: number

@@ -23,7 +23,7 @@ import { createHostedConcurrencyCoordinator, recoverHostedConcurrencyRequest } f
 import { InternalError, ProviderError } from '~/utils/error-handler'
 
 const DEFAULT_RATE_LIMIT_PAUSE_MS = 2_000
-export const HOSTED_TTS_DEFAULT_SCOPE_LABEL = DEFAULT_PROVIDER_LANE_SCOPE_LABEL
+const HOSTED_TTS_DEFAULT_SCOPE_LABEL = DEFAULT_PROVIDER_LANE_SCOPE_LABEL
 
 export const normalizeHostedTtsChunkConcurrency = (concurrency: number | undefined): number => {
   if (typeof concurrency !== 'number' || !Number.isFinite(concurrency)) {
@@ -76,7 +76,7 @@ const compareJobPriority = (
   return (left.originalOrder ?? left.internalId) - (right.originalOrder ?? right.internalId)
 }
 
-export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
+class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   readonly #maxLimit: number
   readonly #maxActiveChunksPerJob: number | undefined
   readonly #defaultRateLimitPauseMs: number

@@ -31,10 +31,10 @@ import { verifyManifestProjectionArtifacts } from './projection-artifact-graph'
 
 export const PIPELINE_MANIFEST_FILE = 'manifest.json'
 
-export const invalidManifestError = (manifestPath: string): Error =>
+const invalidManifestError = (manifestPath: string): Error =>
   CLIUsageError(`Invalid canonical manifest at ${manifestPath}. Re-run the pipeline to regenerate this output.`)
 
-export const readManifestUnlocked = async (
+const readManifestUnlocked = async (
   rootDir: string
 ): Promise<PipelineManifest | undefined> => {
   const manifestPath = join(rootDir, PIPELINE_MANIFEST_FILE)
@@ -55,9 +55,9 @@ export const readManifestUnlocked = async (
   return manifest
 }
 
-export const manifestQueues = new Map<string, Promise<void>>()
+const manifestQueues = new Map<string, Promise<void>>()
 
-export const withManifestLock = async <T>(
+const withManifestLock = async <T>(
   rootDir: string,
   action: () => Promise<T>
 ): Promise<T> => {
@@ -80,7 +80,7 @@ export const withManifestLock = async <T>(
   }
 }
 
-export const writeManifestUnlocked = async (
+const writeManifestUnlocked = async (
   rootDir: string,
   manifest: PipelineManifest,
   previous?: PipelineManifest | undefined

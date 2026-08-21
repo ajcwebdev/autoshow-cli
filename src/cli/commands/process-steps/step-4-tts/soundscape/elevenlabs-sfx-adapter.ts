@@ -38,7 +38,7 @@ const fixtureBase = {
   },
 }
 
-export const ELEVENLABS_SFX_CAPABILITY_FIXTURE: SoundEffectCapabilityFixture = {
+const ELEVENLABS_SFX_CAPABILITY_FIXTURE: SoundEffectCapabilityFixture = {
   ...fixtureBase,
   capabilityFixtureHash: hashCanonicalTtsValue(fixtureBase),
 }

@@ -6,7 +6,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
-export const CEREBRAS_MODEL_BY_SELECTOR = {
+const CEREBRAS_MODEL_BY_SELECTOR = {
   'gpt-oss-120b': 'gpt-oss-120b',
   'zai-glm-4.7': 'zai-glm-4.7'
 } as const
@@ -21,7 +21,7 @@ const CEREBRAS_UNSUPPORTED_SCHEMA_KEYS = new Set([
 ])
 
 
-export const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
+const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
   const sanitize = (node: unknown): unknown => {
     if (Array.isArray(node)) {
       return node.map((entry) => sanitize(entry))
@@ -49,7 +49,7 @@ const ensureCerebrasApiKey = (): string => {
   return apiKey
 }
 
-export const resolveCerebrasApiModel = (model: string): string => {
+const resolveCerebrasApiModel = (model: string): string => {
   if (!(model in CEREBRAS_MODEL_BY_SELECTOR)) {
     throw CLIUsageError(
       `Unsupported Cerebras model selector "${model}". Allowed values: ${Object.keys(CEREBRAS_MODEL_BY_SELECTOR).join(', ')}`

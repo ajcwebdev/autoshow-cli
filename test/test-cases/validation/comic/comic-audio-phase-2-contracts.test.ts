@@ -7,7 +7,7 @@ import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue, sha256Byte
 import { planCurrentTtsReadiness, planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { validateTtsTargetsForExecution } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import { createApprovedVoiceSnapshotEntry, createComicSourceIdentity, createStructuredScriptArtifactRef, computeSceneRunIdentity, validateVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
+import { createComicSourceIdentity, createStructuredScriptArtifactRef, computeSceneRunIdentity, validateVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
 import { updateComicAudioManifest, updateComicImageManifest, writeInitialComicStructureManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest'
 import { resolveCompatibleComicSceneRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run'
@@ -21,6 +21,7 @@ import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../test-utils/value-assertions'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { buildApprovedVoiceEntry } from './comic-audio-phase-fixture'
 
 const HASH_A = 'a'.repeat(64)
 const HASH_B = 'b'.repeat(64)
@@ -52,25 +53,13 @@ const snapshotEntry = (
   resourceId: string,
   provider: 'gemini' | 'inworld' | 'openai' = 'gemini',
   providerModel = provider === 'gemini' ? 'gemini-2.5-pro-preview-tts' : provider === 'inworld' ? 'realtime-tts-2' : 'gpt-4o-mini-tts-2025-12-15'
-) => createApprovedVoiceSnapshotEntry({
-  registrationId: `registration-${subjectKey}`,
-  generationId: hashCanonicalTtsValue({ subjectKey, generation: 1 }),
+) => buildApprovedVoiceEntry({
   subjectKey,
-  profileKey: 'default',
+  resourceId,
   provider,
-  providerVoice: { kind: 'remote-resource', provider, resourceId, namespace: 'provider', origin: 'provider-stock', ownership: 'provider', deletion: { state: 'provider-managed', checkedAt: CREATED_AT } },
   providerModel,
   settingsSchema: `${provider}.tts.phase-2-v1`,
-  synthesisSettings: { schemaVersion: 1, settingsSchema: `${provider}.tts.phase-2-v1`, values: {} },
-  sanitizedProviderMetadata: {},
-  briefHash: HASH_A,
-  auditionManifestHash: HASH_B,
-  approvedAudition: { storeId: 'voice-store', assetId: `audition-${subjectKey}`, sha256: HASH_A },
-  provenanceRef: `provenance:${subjectKey}`,
-  capabilityFixtureHash: HASH_B,
-  registrationStateAtSnapshot: 'approved-ready',
-  externallyMutable: true,
-  registrationApprovedAt: CREATED_AT,
+  approvedAt: CREATED_AT,
 })
 
 describe('comic audio phase 2 contracts', () => {

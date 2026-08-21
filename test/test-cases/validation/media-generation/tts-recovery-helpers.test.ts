@@ -90,7 +90,7 @@ describe('TTS recovery helper modules', () => {
       'src/cli/commands/process-steps/step-4-tts/script-to-audio/recovery-finalization.ts'
     ), 'utf8')
     const publisherSource = finalizationSource.slice(
-      finalizationSource.indexOf('export const publishCompletedRenderRecovery')
+      finalizationSource.indexOf('const publishCompletedRenderRecovery')
     )
     const orderedMarkers = [
       'materializeRecoveredBatch',

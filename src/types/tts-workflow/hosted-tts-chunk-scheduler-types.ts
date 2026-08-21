@@ -15,7 +15,7 @@ export type HostedTtsProviderChunkState = {
   stats: HostedTtsProviderStats
 }
 
-export type HostedTtsProviderStats = {
+type HostedTtsProviderStats = {
   startedChunks: number
   completedChunks: number
   failedChunks: number

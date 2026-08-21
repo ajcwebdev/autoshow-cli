@@ -8,14 +8,6 @@ export const exact = (selector: string, entries: PriceCommandSpec[]): PriceSelec
   }))
 }
 
-export const prefix = (selector: string, entries: PriceCommandSpec[]): PriceSelectionEntry[] => {
-  return entries.map(entry => ({
-    ...entry,
-    selector,
-    selectorKind: 'prefix',
-  }))
-}
-
 export const command = (
   name: string,
   key: string,

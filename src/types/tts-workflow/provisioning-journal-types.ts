@@ -1,6 +1,6 @@
 import type { VoiceIssuedResource, VoiceProvisioningAttempt, VoiceProvisioningState } from '~/types'
 
-export type VoiceProvisioningProviderResponse = {
+type VoiceProvisioningProviderResponse = {
   state: VoiceProvisioningState
   issuedResources: VoiceIssuedResource[]
   evidenceHash: string

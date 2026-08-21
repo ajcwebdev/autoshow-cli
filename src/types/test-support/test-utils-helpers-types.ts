@@ -36,7 +36,7 @@ export type RunCommandResult = CommandResultBase & {
   outputRoot: string
 }
 
-export type RunCommandAttemptInput = {
+type RunCommandAttemptInput = {
   args: string[]
   env: Record<string, string | undefined>
   attempt: number

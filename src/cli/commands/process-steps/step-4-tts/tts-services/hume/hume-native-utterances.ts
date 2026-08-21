@@ -20,8 +20,8 @@ import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { providerMilliseconds } from '../../script-to-audio/advanced-provider-contracts'
 
-export const HUME_NATIVE_UTTERANCE_MAX_CHARACTERS = 5000
-export const HUME_NATIVE_MAX_TAKES = 5
+const HUME_NATIVE_UTTERANCE_MAX_CHARACTERS = 5000
+const HUME_NATIVE_MAX_TAKES = 5
 
 export const planHumeNativeUtteranceBatches = (
   turns: readonly HumeNativeUtteranceTurn[],

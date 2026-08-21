@@ -79,7 +79,7 @@ const hashFileContents = async (paths: readonly string[]): Promise<string> => {
       return 'missing'
     }
   }))
-  const hasher = createHash('sha256Bytes')
+  const hasher = createHash('sha256')
   for (const [index, path] of paths.entries()) {
     hasher.update(path)
     hasher.update('\0')

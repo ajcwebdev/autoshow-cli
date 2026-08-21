@@ -169,7 +169,7 @@ export const normalizeExtractGenericSelectorFlags = (
   })
 }
 
-export const describeRoutes = (routes: ExtractSelectorInputRoutes): string => {
+const describeRoutes = (routes: ExtractSelectorInputRoutes): string => {
   if (routes.media && routes.document) return 'mixed media and document/image'
   if (routes.media) return 'media'
   if (routes.document) return 'document/image'

@@ -17,7 +17,7 @@ export const toTimestamp = (seconds: number): string => {
 }
 
 /** Convert seconds to a whole-second HH:MM:SS timestamp, for surfaces that require exactly that shape. */
-export const toWholeSecondTimestamp = (seconds: number): string => {
+const toWholeSecondTimestamp = (seconds: number): string => {
   const s = Math.max(0, Math.floor(seconds))
   const hh = Math.floor(s / 3600)
   const mm = Math.floor((s % 3600) / 60)

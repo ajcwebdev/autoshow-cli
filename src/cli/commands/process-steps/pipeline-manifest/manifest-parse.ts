@@ -26,7 +26,7 @@ import {
 } from './guards'
 import { parseAudioProjectionStatus } from './audio-projection-structure'
 
-export const parseChildLink = (
+const parseChildLink = (
   rootDir: string,
   value: unknown
 ): PipelineManifestChildLink | undefined => {
@@ -49,7 +49,7 @@ export const parseChildLink = (
   }
 }
 
-export const parseProviderState = (
+const parseProviderState = (
   rootDir: string,
   value: unknown
 ): PipelineProviderState | undefined => {
@@ -199,7 +199,7 @@ export const parseManifestItem = (
   }
 }
 
-export const attachLegacyTtsProviderIdentity = (
+const attachLegacyTtsProviderIdentity = (
   item: PipelineManifestItem,
   provider: PipelineProviderState
 ): void => {
@@ -258,7 +258,7 @@ export const expectedTtsItemStatus = (providers: readonly PipelineProviderState[
   return 'incomplete'
 }
 
-export const parseComicStageRecord = (
+const parseComicStageRecord = (
   value: unknown,
   providers: readonly PipelineProviderState[],
   operations: readonly string[]
@@ -295,7 +295,7 @@ export const parseComicStageRecord = (
   return { requirement: value['requirement'], status: value['status'] as PipelineManifestItem['status'] }
 }
 
-export const expectedComicItemStatus = (
+const expectedComicItemStatus = (
   item: PipelineManifestItem
 ): PipelineManifestItem['status'] | undefined => {
   const metadata = item.metadata['comic']

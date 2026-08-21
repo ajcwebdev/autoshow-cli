@@ -10,13 +10,6 @@ export const parseIntWithDefault = (value: string | undefined, fallback: number)
   return fallback
 }
 
-export const parseFloatWithDefault = (value: string | undefined, fallback: number): number => {
-  if (!value) return fallback
-  const parsed = Number.parseFloat(value)
-  if (Number.isFinite(parsed)) return parsed
-  return fallback
-}
-
 export const parseOptionalPositiveIntFlag = (
   value: string | undefined,
   flagName: string

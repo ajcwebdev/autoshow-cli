@@ -343,6 +343,3 @@ export const provisionAdvancedVoiceClone = async (input: {
   await appendVoiceRegistration(input.charactersRoot, registration)
   return { registration, ...(attempt ? { attempt } : {}) }
 }
-
-export const computeAdvancedProviderFixtureHash = (provider: Pick<TtsVoiceProvider, 'getDeclaredCapabilities'>): string =>
-  hashCanonicalRecordWithout({ schemaVersion: 1, records: provider.getDeclaredCapabilities() }, [])

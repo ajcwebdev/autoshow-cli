@@ -4,7 +4,7 @@ export type OcrPdfChunkRange = {
   endPage: number
 }
 
-export type PdfChunkCommandResult = CommandResultBase
+type PdfChunkCommandResult = CommandResultBase
 
 export type PdfChunkSplitTool = 'qpdf' | 'mutool'
 

@@ -161,7 +161,7 @@ const HELP_FLAGS = new Set(['--help', '-h'])
 
 export const CLI_SOURCE_ENTRY = 'src/cli/create-cli.ts'
 
-export const resolveCliSpawnArgs = (args: string[], forceSource = false): string[] => {
+const resolveCliSpawnArgs = (args: string[], forceSource = false): string[] => {
   const bundle = process.env['AUTOSHOW_TEST_CLI_BUNDLE']?.trim()
   if (!forceSource && bundle && args[0] === CLI_SOURCE_ENTRY) {
     return [bundle, ...args.slice(1)]

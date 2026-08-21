@@ -1,4 +1,4 @@
-export type RunnerLogWriter = ReturnType<ReturnType<typeof Bun.file>['writer']>
+type RunnerLogWriter = ReturnType<ReturnType<typeof Bun.file>['writer']>
 
 export type RunnerLogHandle = {
   writer: RunnerLogWriter

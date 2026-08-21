@@ -73,7 +73,7 @@ const applyUniversalHelpDescriptionColors = (): void => {
   helpDescriptionColorsApplied = true
 }
 
-export const runCliInProcess = async (argv: string[]): Promise<void> => {
+const runCliInProcess = async (argv: string[]): Promise<void> => {
   applyUniversalHelpDescriptionColors()
   await dispatchNativeCli(argv, createNativeRootDefinition(), COMMAND_DEFINITIONS)
 }

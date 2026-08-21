@@ -7,7 +7,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { CLIUsageError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { withProcessLock } from '~/utils/process-lock'
-import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
 import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
 import { loadVoiceConsentRecord, revokeVoiceConsentRecord, storeVoiceConsentRecord } from './voice-consent-store'
@@ -905,8 +905,6 @@ export const VOICE_SUBCOMMAND_DEFINITIONS = [listCommand, consentCommand, revoke
 export const voiceActionName = (commandName: string): string =>
   commandName.startsWith('voice ') ? commandName.slice('voice '.length) : commandName
 
-export const VOICE_ACTIONS = VOICE_SUBCOMMAND_DEFINITIONS.map((entry) => voiceActionName(entry.name))
-
 export const VOICE_PUBLIC_ACTIONS = VOICE_SUBCOMMAND_DEFINITIONS
   .filter((entry) => entry.help?.hidden !== true)
   .map((entry) => voiceActionName(entry.name))
@@ -939,6 +937,3 @@ export const voiceCommand = defineCliCommand({
     ]
   }
 }, async () => {})
-
-export const voiceManagementCapabilityFixtureHash = (provider: TtsProvider, model: string): string =>
-  hashCanonicalRecordWithout({ schemaVersion: 1, provider, model, phase: 'adr-020-phase-1', checkedAt: '2026-08-11' }, [])

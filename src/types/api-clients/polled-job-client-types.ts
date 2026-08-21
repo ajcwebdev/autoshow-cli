@@ -1,8 +1,8 @@
 import type * as v from 'valibot'
 
-export type PolledJobSchema<T> = v.BaseSchema<unknown, T, v.BaseIssue<unknown>>
+type PolledJobSchema<T> = v.BaseSchema<unknown, T, v.BaseIssue<unknown>>
 
-export type PolledJobHttpStep<T> = {
+type PolledJobHttpStep<T> = {
   url: string
   init: RequestInit
   schema: PolledJobSchema<T>

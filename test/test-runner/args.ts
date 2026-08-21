@@ -4,7 +4,7 @@ import { VALIDATION_TEST_TIMEOUT_MS } from '../test-utils/timeouts'
 
 export const DEFAULT_TEST_RUNNER_CONCURRENCY = Math.max(1, availableParallelism())
 export const E2E_TEST_RUNNER_PARALLEL = 32
-export const E2E_TEST_CASE_PREFIX = 'test/test-cases/e2e/'
+const E2E_TEST_CASE_PREFIX = 'test/test-cases/e2e/'
 
 const BUN_TEST_MAX_CONCURRENCY_FLAG = '--max-concurrency'
 const BUN_TEST_PARALLEL_FLAG = '--parallel'
@@ -25,7 +25,7 @@ const hasMaxConcurrencyFlag = (args: string[]): boolean =>
 const hasParallelFlag = (args: string[]): boolean =>
   args.some(arg => arg === BUN_TEST_PARALLEL_FLAG || arg.startsWith(`${BUN_TEST_PARALLEL_FLAG}=`))
 
-export const resolveDefaultParallel = (e2eOnly: boolean): number =>
+const resolveDefaultParallel = (e2eOnly: boolean): number =>
   e2eOnly ? E2E_TEST_RUNNER_PARALLEL : DEFAULT_TEST_RUNNER_CONCURRENCY
 
 export const withDefaultTestConcurrency = (
@@ -42,7 +42,7 @@ export const withDefaultTestConcurrency = (
   return defaultArgs.length === 0 ? args : [...defaultArgs, ...args]
 }
 
-export const isE2ETestCasePath = (path: string): boolean =>
+const isE2ETestCasePath = (path: string): boolean =>
   path.replace(/\\/g, '/').startsWith(E2E_TEST_CASE_PREFIX)
 
 export const isE2EOnlyTestSelection = (files: string[]): boolean =>

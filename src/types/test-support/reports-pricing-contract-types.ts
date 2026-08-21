@@ -26,7 +26,7 @@ export type TtsRankingEntry = {
   label: string
 }
 
-export type ArtifactRankingEntry = {
+type ArtifactRankingEntry = {
   rank: number
   providerKey: string
   provider: string
@@ -34,7 +34,7 @@ export type ArtifactRankingEntry = {
   composite: number
 }
 
-export type ArtifactTierProvider = {
+type ArtifactTierProvider = {
   providerKey: string
   provider: string
   display?: string
@@ -42,7 +42,7 @@ export type ArtifactTierProvider = {
   qualityCostComposite: number
 }
 
-export type ArtifactTiering = {
+type ArtifactTiering = {
   method: string
   ranking: string
   providerCount: number

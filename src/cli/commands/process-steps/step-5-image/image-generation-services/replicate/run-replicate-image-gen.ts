@@ -9,18 +9,18 @@ import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
 import { downloadImageUrl, getImageFileNames } from '../../image-utils/image-output'
 import { ensureReplicateImageGenSetup, getReplicateBaseUrl } from './replicate-image-gen'
 
-export const REPLICATE_SEEDREAM_MODELS = new Set<ReplicateImageModel>([
+const REPLICATE_SEEDREAM_MODELS = new Set<ReplicateImageModel>([
   'bytedance/seedream-4.5',
   'bytedance/seedream-5-lite',
   'bytedance/seedream-5-pro'
 ])
 
-export const REPLICATE_QWEN_MODELS = new Set<ReplicateImageModel>([
+const REPLICATE_QWEN_MODELS = new Set<ReplicateImageModel>([
   'qwen/qwen-image-2-pro',
   'qwen/qwen-image-2'
 ])
 
-export const REPLICATE_WAN_MODELS = new Set<ReplicateImageModel>([
+const REPLICATE_WAN_MODELS = new Set<ReplicateImageModel>([
   'wan-video/wan-2.7-image-pro',
   'wan-video/wan-2.7-image'
 ])

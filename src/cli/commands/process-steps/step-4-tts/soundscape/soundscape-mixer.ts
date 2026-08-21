@@ -177,9 +177,9 @@ const compactTransforms = (transforms: SoundscapeTransform[]): CompactMix['trans
     ...(transform.cueId ? { cueId: transform.cueId } : {}),
   }))
 
-export const soundscapeMixPath = (mixId: string): string => `audio/soundscape/${mixId}/mix.json`
+const soundscapeMixPath = (mixId: string): string => `audio/soundscape/${mixId}/mix.json`
 
-export const soundscapeMixIdFor = (input: {
+const soundscapeMixIdFor = (input: {
   mixIdentity: string
   dialogueAudioRunId: string
   sfxId?: string | undefined

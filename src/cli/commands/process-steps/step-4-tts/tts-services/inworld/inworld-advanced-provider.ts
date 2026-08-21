@@ -1,4 +1,4 @@
-import type { AnyCapabilityRecord, CreateInworldAdvancedProviderOptions, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceDesignResult, ProviderVoiceInspection, ProviderVoiceMutationResult, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort, VoiceLifecyclePort } from '~/types'
+import type { AnyCapabilityRecord, CreateInworldAdvancedProviderOptions, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceDesignResult, ProviderVoiceMutationResult, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import {
@@ -8,6 +8,8 @@ import {
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
+import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import { assertAdvancedVoiceCloneAuthorized, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   synthesis: 'https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech',
@@ -152,7 +154,7 @@ export const createInworldAdvancedProvider = (
 
   const clone: VoiceClonePort = {
     clone: async cloneRequest => {
-      if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) throw CLIUsageError('Inworld cloning requires consent and provenance references before any provider or external action.')
+      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'references before any provider or external action')
       if (cloneRequest.cloneKind === 'professional') {
         const result: ProviderVoiceMutationResult = { schemaVersion: 1, provider: 'inworld', state: 'external-action-required', action: 'Complete the Inworld Professional Voice Cloning beta workflow in Portal, then import the resulting stable voice ID.', sanitizedMetadata: { cloneKind: 'professional', cloneChannel: 'inworld-portal', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
         return result
@@ -181,22 +183,18 @@ export const createInworldAdvancedProvider = (
     }
   }
 
-  const lifecycle: VoiceLifecyclePort = {
-    inspect: async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-      if (voice.provider !== 'inworld' || voice.kind !== 'remote-resource') throw CLIUsageError('Inworld inspection requires an Inworld remote voice resource.')
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'inworld', label: 'Inworld', labelWithArticle: 'an Inworld', accountScopeHash }
+  const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'account voices' }, {
+    fetchVoice: async voice => {
       const entry = mapInworldVoice(await request({ method: 'GET', path: `/voices/v1/voices/${encodeURIComponent(voice.resourceId)}` }))
       if (entry.resourceId !== voice.resourceId) throw CLIUsageError('Inworld inspection response identity does not match the registered resource.')
-      return { schemaVersion: 1, provider: 'inworld', providerVoice: voice, state: entry.state === 'unavailable' ? 'missing' : entry.state, deletion: voice.deletion, sanitizedMetadata: entry.sanitizedMetadata, checkedAt: now() }
+      return { state: entry.state === 'unavailable' ? 'missing' : entry.state, sanitizedMetadata: entry.sanitizedMetadata }
     },
-    delete: async deleteRequest => {
-      const voice = deleteRequest.providerVoice
-      if (voice.provider !== 'inworld' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) throw CLIUsageError('Inworld deletion identity does not match the registered resource.')
-      if (voice.namespace !== 'account' || voice.ownership !== 'project' || voice.deletion.state !== 'eligible') throw CLIUsageError('Inworld deletes only eligibility-checked project-owned account voices.')
-      if (voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('Inworld deletion credentials do not match the registered account scope.')
+    deleteVoice: async voice => {
       await request({ method: 'DELETE', path: `/voices/v1/voices/${encodeURIComponent(voice.resourceId)}` })
-      return { deletedAt: now() }
-    }
-  }
+    },
+    now
+  })
   return {
     provider: 'inworld',
     accountScopeHash,

@@ -7,12 +7,6 @@ export const KIMI_OCR_LIMIT_SOURCE = 'project/links/kimi-general-ocr-text-links.
 export const resolveKimiBaseUrl = (): string =>
   KIMI_DEFAULT_BASE_URL.trim().replace(/\/+$/, '')
 
-// Kimi K3 runs with always-on thinking, rejects the `thinking` field, and accepts named effort
-// through `reasoning_effort`. The K2.x line exposes only the binary `thinking` switch.
-// See docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md.
-export const acceptsKimiThinkingField = (model: string): boolean =>
-  !/^kimi-k3(?:[.-]|$)/i.test(model)
-
 // The stage comes from the call site: write and OCR callers share this helper,
 // and a hardcoded stage made write failures report `ocr:kimi`.
 export const ensureKimiApiKey = (serviceName: string, stage: string): string =>

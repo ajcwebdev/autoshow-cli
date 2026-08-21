@@ -55,7 +55,7 @@ export const collectGenerationTargetsForProviders = <TTarget extends ProviderIde
     )
   })
 
-export const buildGenerationPriceOptions = <TOptions extends object>(
+const buildGenerationPriceOptions = <TOptions extends object>(
   targets: ProviderIdentity[],
   opts: TOptions,
   fields: GenerationModelFieldTable

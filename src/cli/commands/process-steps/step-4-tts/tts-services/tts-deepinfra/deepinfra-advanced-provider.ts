@@ -1,4 +1,4 @@
-import type { AnyCapabilityRecord, CreateDeepinfraAdvancedProviderOptions, DeepinfraDesignSynthesis, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceCloneRequest, ProviderVoiceDesignResult, ProviderVoiceInspection, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort, VoiceLifecyclePort } from '~/types'
+import type { AnyCapabilityRecord, CreateDeepinfraAdvancedProviderOptions, DeepinfraDesignSynthesis, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceCloneRequest, ProviderVoiceDesignResult, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort } from '~/types'
 import { CLIUsageError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
@@ -16,6 +16,8 @@ import {
   isDeepinfraVoiceDesignModel,
 } from './deepinfra-tts-request'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
+import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import { assertAdvancedVoiceCloneAuthorized, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   api: 'https://docs.deepinfra.com/apis/text-to-speech',
@@ -211,7 +213,7 @@ export const createDeepinfraAdvancedProvider = (
 
   const clone: VoiceClonePort = {
     clone: async cloneRequest => {
-      if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) throw CLIUsageError('DeepInfra cloning requires consent and provenance references before any provider action.')
+      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'references before any provider action')
       if (cloneRequest.cloneKind === 'professional') {
         throw CLIUsageError('DeepInfra does not document a professional voice-clone workflow.')
       }
@@ -232,22 +234,18 @@ export const createDeepinfraAdvancedProvider = (
     }
   }
 
-  const lifecycle: VoiceLifecyclePort = {
-    inspect: async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-      if (voice.provider !== 'deepinfra' || voice.kind !== 'remote-resource') throw CLIUsageError('DeepInfra inspection requires a DeepInfra remote voice resource.')
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'deepinfra', label: 'DeepInfra', labelWithArticle: 'a DeepInfra', accountScopeHash }
+  const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'account voices' }, {
+    fetchVoice: async voice => {
       const entry = mapDeepinfraVoice(await request({ method: 'GET', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` }))
       if (entry.resourceId !== voice.resourceId) throw CLIUsageError('DeepInfra inspection response identity does not match the registered resource.')
-      return { schemaVersion: 1, provider: 'deepinfra', providerVoice: voice, state: entry.state === 'unavailable' ? 'missing' : entry.state, deletion: voice.deletion, sanitizedMetadata: entry.sanitizedMetadata, checkedAt: now() }
+      return { state: entry.state === 'unavailable' ? 'missing' : entry.state, sanitizedMetadata: entry.sanitizedMetadata }
     },
-    delete: async deleteRequest => {
-      const voice = deleteRequest.providerVoice
-      if (voice.provider !== 'deepinfra' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) throw CLIUsageError('DeepInfra deletion identity does not match the registered resource.')
-      if (voice.namespace !== 'account' || voice.ownership !== 'project' || voice.deletion.state !== 'eligible') throw CLIUsageError('DeepInfra deletes only eligibility-checked project-owned account voices.')
-      if (voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('DeepInfra deletion credentials do not match the registered account scope.')
+    deleteVoice: async voice => {
       await request({ method: 'DELETE', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` })
-      return { deletedAt: now() }
-    }
-  }
+    },
+    now
+  })
 
   return {
     provider: 'deepinfra',

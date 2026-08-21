@@ -13,7 +13,7 @@ export const chunkLimit = (target: TtsTarget): number =>
     ?? TTS_CHUNK_CHARACTER_LIMITS[target.service]
     ?? 2000
 
-export const preparedText = (text: string) => ({
+const preparedText = (text: string) => ({
   schemaVersion: 1 as const,
   canonicalText: text,
   providerText: text,
@@ -41,7 +41,7 @@ export const localVoiceEffectFilter = (turn: CanonicalDialogueTurn): string | un
   return 'highpass=f=250,lowpass=f=3500,acompressor=threshold=-18dB:ratio=3:attack=10:release=100'
 }
 
-export const splitCanonicalTextAtTimingCues = (turn: CanonicalDialogueTurn): string[] => {
+const splitCanonicalTextAtTimingCues = (turn: CanonicalDialogueTurn): string[] => {
   const scalars = [...turn.canonicalText]
   const offsets = [...new Set((turn.timingCues ?? []).map(cue => cue.afterTextOffset))].sort((left, right) => left - right)
   const parts: string[] = []

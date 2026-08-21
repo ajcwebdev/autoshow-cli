@@ -57,7 +57,7 @@ export type DownloadRuntimeOptions = {
   ytDlpPassthroughArgs: string[] | undefined
 }
 
-export type PromptRuntimeOptions = {
+type PromptRuntimeOptions = {
   prompts: string[]
   promptFile: string | undefined
   textInput: boolean

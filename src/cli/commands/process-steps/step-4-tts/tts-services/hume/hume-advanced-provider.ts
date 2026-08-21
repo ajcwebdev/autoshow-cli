@@ -8,6 +8,8 @@ import {
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
+import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import { assertAdvancedVoiceCloneAuthorized, assertAdvancedVoiceDeletable, assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   overview: 'https://dev.hume.ai/docs/text-to-speech-tts/overview',
@@ -167,7 +169,7 @@ export const createHumeAdvancedProvider = (options: HumeAdvancedProviderOptions)
 
   const clone: VoiceClonePort = {
     clone: async cloneRequest => {
-      if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) throw CLIUsageError('Hume cloning requires consent and provenance before any external upload.')
+      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'before any external upload')
       const result: ProviderVoiceMutationResult = {
         schemaVersion: 1, provider: 'hume', state: 'external-action-required',
         action: 'Create the subscription-gated clone in the Hume platform, then import its CUSTOM_VOICE ID with voice import.',
@@ -177,20 +179,22 @@ export const createHumeAdvancedProvider = (options: HumeAdvancedProviderOptions)
     }
   }
 
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'hume', label: 'Hume', labelWithArticle: 'a Hume', accountScopeHash }
   const inspect = async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-    if (voice.provider !== 'hume' || voice.kind !== 'remote-resource') throw CLIUsageError('Hume inspection requires a Hume remote voice resource.')
-    const entries = await listAllVoices(voice.namespace === 'account' ? 'account' : 'provider-library')
-    const matching = entries.filter(entry => entry.resourceId === voice.resourceId)
-    if (matching.length === 0) return { schemaVersion: 1, provider: 'hume', providerVoice: voice, state: 'missing', deletion: voice.deletion, sanitizedMetadata: {}, checkedAt: now() }
-    return { schemaVersion: 1, provider: 'hume', providerVoice: voice, state: 'available', deletion: voice.deletion, sanitizedMetadata: matching[0]?.sanitizedMetadata ?? {}, checkedAt: now() }
+    const remote = assertAdvancedVoiceInspectionIdentity(identity, voice)
+    const entries = await listAllVoices(remote.namespace === 'account' ? 'account' : 'provider-library')
+    const matching = entries.filter(entry => entry.resourceId === remote.resourceId)
+    return buildAdvancedVoiceInspection(identity, {
+      voice: remote,
+      state: matching.length === 0 ? 'missing' : 'available',
+      sanitizedMetadata: matching.length === 0 ? {} : matching[0]?.sanitizedMetadata ?? {},
+      checkedAt: now()
+    })
   }
   const lifecycle: VoiceLifecyclePort = {
     inspect,
     delete: async deleteRequest => {
-      const voice = deleteRequest.providerVoice
-      if (voice.provider !== 'hume' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) throw CLIUsageError('Hume deletion identity does not match the registered resource.')
-      if (voice.ownership !== 'project' || voice.deletion.state !== 'eligible' || voice.namespace !== 'account') throw CLIUsageError('Hume deletes only eligibility-checked project-owned custom voices.')
-      if (voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('Hume deletion credentials do not match the registered account scope.')
+      const voice = assertAdvancedVoiceDeletable(identity, { ownedResourceLabel: 'custom voices' }, deleteRequest)
       const expectedName = deleteRequest.expectedName?.trim()
       if (!expectedName) throw CLIUsageError('Hume deletion requires the expected mutable name for a fresh unique proof.')
       const custom = await listAllVoices('account')

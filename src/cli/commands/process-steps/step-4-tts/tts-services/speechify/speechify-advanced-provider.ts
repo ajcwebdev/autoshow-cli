@@ -4,14 +4,11 @@ import type {
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
   ProviderVoiceCloneRequest,
-  ProviderVoiceInspection,
   ProviderVoiceMutationResult,
-  ProviderVoiceRef,
   SpeechifyAdvancedProviderOptions,
   TtsVoiceProvider,
   VoiceCatalogPort,
   VoiceClonePort,
-  VoiceLifecyclePort,
 } from '~/types'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -22,6 +19,8 @@ import {
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
+import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import { assertAdvancedVoiceCloneAuthorized, buildClonedProviderVoiceRef, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   catalog: 'https://docs.speechify.ai/build/api-reference/v1/voices/get',
@@ -45,7 +44,7 @@ const capabilityRecords = [
 ] as const satisfies readonly AnyCapabilityRecord[]
 
 export const SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
-export const SPEECHIFY_CLONE_SAMPLE_MAX_BYTES = 5 * 1024 * 1024
+const SPEECHIFY_CLONE_SAMPLE_MAX_BYTES = 5 * 1024 * 1024
 
 const record = createProviderRecordReader('Speechify')
 
@@ -94,7 +93,7 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
 
   const clone: VoiceClonePort = {
     clone: async cloneRequest => {
-      if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) throw CLIUsageError('Speechify cloning requires consent and provenance before any external upload.')
+      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'before any external upload')
       if (cloneRequest.cloneKind === 'professional') {
         const result: ProviderVoiceMutationResult = { schemaVersion: 1, provider: 'speechify', state: 'external-action-required', action: 'Speechify does not document a separate professional-clone API; use the supported personal-voice clone workflow or manage any contracted workflow externally.', sanitizedMetadata: { cloneKind: 'professional', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
         return result
@@ -121,32 +120,28 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
       form.append('consent', JSON.stringify({ fullName, email }))
       const entry = mapVoice(await request({ method: 'POST', path: '/v1/voices', headers: { 'Idempotency-Key': cloneRequest.localAttemptId }, body: form }) as unknown)
       const checkedAt = now()
-      const providerVoice: ProviderVoiceRef = {
-        kind: 'remote-resource', provider: 'speechify', resourceId: entry.resourceId, namespace: 'account', accountScopeHash,
-        origin: 'instant-clone', ownership: 'project', deletion: { state: 'eligible', checkedAt },
-        derivedFrom: { sourceRef: cloneRequest.protectedSamples[0]!.assetId, sourceIdentityHash: cloneRequest.protectedSamples[0]!.sha256, operation: 'cloned-from', localAttemptId: cloneRequest.localAttemptId }
-      }
+      const providerVoice = buildClonedProviderVoiceRef(identity, {
+        resourceId: entry.resourceId,
+        sample: cloneRequest.protectedSamples[0]!,
+        localAttemptId: cloneRequest.localAttemptId,
+        checkedAt
+      })
       return { schemaVersion: 1, provider: 'speechify', state: 'ready', providerVoice, sanitizedMetadata: { cloneKind: 'instant', sampleCount: 1, sampleDurationMs: resolved.durationMs, locale, gender }, checkedAt }
     }
   }
 
-  const inspect = async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-    if (voice.provider !== 'speechify' || voice.kind !== 'remote-resource') throw CLIUsageError('Speechify inspection requires a Speechify remote voice resource.')
-    const entry = mapVoice(await request({ method: 'GET', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` }) as unknown)
-    if (entry.resourceId !== voice.resourceId) throw CLIUsageError('Speechify inspection response identity does not match the registered resource.')
-    return { schemaVersion: 1, provider: 'speechify', providerVoice: voice, state: 'available', deletion: voice.deletion, sanitizedMetadata: entry.sanitizedMetadata, checkedAt: now() }
-  }
-  const lifecycle: VoiceLifecyclePort = {
-    inspect,
-    delete: async deleteRequest => {
-      const voice = deleteRequest.providerVoice
-      if (voice.provider !== 'speechify' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) throw CLIUsageError('Speechify deletion identity does not match the registered resource.')
-      if (voice.ownership !== 'project' || voice.deletion.state !== 'eligible' || voice.namespace !== 'account') throw CLIUsageError('Speechify deletes only eligibility-checked project-owned personal voices.')
-      if (voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('Speechify deletion credentials do not match the registered account scope.')
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'speechify', label: 'Speechify', labelWithArticle: 'a Speechify', accountScopeHash }
+  const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'personal voices' }, {
+    fetchVoice: async voice => {
+      const entry = mapVoice(await request({ method: 'GET', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` }) as unknown)
+      if (entry.resourceId !== voice.resourceId) throw CLIUsageError('Speechify inspection response identity does not match the registered resource.')
+      return { state: 'available', sanitizedMetadata: entry.sanitizedMetadata }
+    },
+    deleteVoice: async voice => {
       await request({ method: 'DELETE', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` })
-      return { deletedAt: now() }
-    }
-  }
+    },
+    now
+  })
 
   return { provider: 'speechify', accountScopeHash, getDeclaredCapabilities: () => SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.records, catalog, clone, lifecycle }
 }

@@ -83,7 +83,7 @@ export const resolveStandaloneMistralTtsSpeakerReferenceInputs = (
   })
 }
 
-export const TTS_MODEL_KEYS = [
+const TTS_MODEL_KEYS = [
   'elevenlabsTtsModels', 'elevenlabsTtsModel', 'minimaxTtsModels', 'minimaxTtsModel',
   'groqTtsModels', 'groqTtsModel', 'grokTtsModels', 'grokTtsModel',
   'mistralTtsModels', 'mistralTtsModel', 'openaiTtsModels', 'openaiTtsModel',

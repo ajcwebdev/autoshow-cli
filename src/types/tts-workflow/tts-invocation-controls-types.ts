@@ -1,8 +1,8 @@
 import type { TtsProvider } from '~/types'
 
-export type OptionalControl<T> = T | null | undefined
+type OptionalControl<T> = T | null | undefined
 
-export type TtsInvocationControlsByProvider = {
+type TtsInvocationControlsByProvider = {
   openai: Readonly<{
     instructions?: OptionalControl<string>
     speed?: OptionalControl<number>
@@ -53,19 +53,19 @@ export type TtsInvocationControlsByProvider = {
   fal: Readonly<{ voiceInstruction?: OptionalControl<string> }>
 }
 
-export type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]
+type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]
 export type TtsEffectiveInvocationControlsFor<P extends TtsProvider> = Readonly<{
   [K in keyof TtsInvocationControlsFor<P>]?: Exclude<TtsInvocationControlsFor<P>[K], null | undefined> | undefined
 }>
 
-export type StringControlSpec = Readonly<{
+type StringControlSpec = Readonly<{
   kind: 'string'
   normalize?: ((value: string) => string) | undefined
   preserveWhitespace?: boolean | undefined
   allowedValues?: readonly string[] | undefined
 }>
 
-export type NumberControlSpec = Readonly<{
+type NumberControlSpec = Readonly<{
   kind: 'number'
   min?: number | undefined
   max?: number | undefined

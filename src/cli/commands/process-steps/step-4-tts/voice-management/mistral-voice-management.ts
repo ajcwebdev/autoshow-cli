@@ -118,17 +118,6 @@ export const inspectMistralSavedVoice = async (input: {
   }
 }
 
-export const inspectMistralSavedVoiceIfPresent = async (
-  input: Parameters<typeof inspectMistralSavedVoice>[0]
-): Promise<MistralSavedVoiceObservation | undefined> => {
-  try {
-    return await inspectMistralSavedVoice(input)
-  } catch (error) {
-    if (typeof error === 'object' && error !== null && 'status' in error && (error as { status?: unknown }).status === 404) return undefined
-    throw error
-  }
-}
-
 export const findMistralSavedVoiceBySlug = async (input: {
   apiKey: string
   slug: string

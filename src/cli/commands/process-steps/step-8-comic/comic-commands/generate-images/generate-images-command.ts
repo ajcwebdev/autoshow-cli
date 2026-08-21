@@ -18,6 +18,7 @@ import { generateComicGridPages } from './generate-comic-grid-pages'
 import { generateComicPages } from './generate-comic-pages'
 import { generatePanelImages } from './generate-panel-images'
 import { getImagePromptVariationLabel } from './prompt-variations'
+import { createImageRunStats } from '../../comic-image-services/image-costs'
 import { readManifest } from '../../../pipeline-manifest'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { canonicalTargetKey, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
@@ -38,20 +39,6 @@ const panelPromptsExist = async (sceneSlug: string): Promise<boolean> => {
   return entries.some(entry => entry.isDirectory() && !entry.name.startsWith('.'))
 }
 
-const createEmptyImageStats = (): ImageRunStats => ({
-  imagesGenerated: 0,
-  imagesSkipped: 0,
-  totalInputTokens: 0,
-  totalInputTextTokens: 0,
-  totalInputImageTokens: 0,
-  totalInputUnattributedTokens: 0,
-  totalOutputTokens: 0,
-  totalOutputTextTokens: 0,
-  totalOutputImageTokens: 0,
-  totalOutputUnattributedTokens: 0,
-  totalCost: 0,
-  totalDurationMs: 0,
-})
 
 const mergeImageStats = (target: ImageRunStats, source: ImageRunStats | void): void => {
   if (!source) return
@@ -220,7 +207,7 @@ const runGenerateImagesCommand = async (
   const concurrency = options.concurrency ?? DEFAULT_CLI_CONCURRENCY
   const runId = createComicRunId()
   const startedAt = Date.now()
-  const totals = createEmptyImageStats()
+  const totals = createImageRunStats()
 
   validateImageSizeForModels(size, models)
   validateComicGridOptions(options.grid, {

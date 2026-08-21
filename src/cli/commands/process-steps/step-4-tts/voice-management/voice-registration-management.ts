@@ -23,8 +23,8 @@ import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-ou
 import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { appendVoiceRegistration, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
 import { assertVoiceConsentAllows, computeVoiceAuditionId, validateVoiceAuditionManifest, validateVoiceConsentRecord, validateVoiceRegistration } from './voice-management-contracts'
-import { createMistralSavedVoice, findMistralSavedVoiceBySlug, inspectMistralSavedVoice, mistralAccountScopeHash } from './mistral-voice-management'
-import { loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation, runCrashSafeVoiceProvisioning } from './provisioning-journal'
+import { createMistralSavedVoice, inspectMistralSavedVoice, mistralAccountScopeHash } from './mistral-voice-management'
+import { runCrashSafeVoiceProvisioning } from './provisioning-journal'
 import { atomicWriteJson } from '~/utils/filesystem'
 
 export const DEFAULT_VOICE_RETENTION_POLICY: VoiceRetentionPolicy = {
@@ -267,7 +267,7 @@ export const importExistingVoiceRegistration = async (input: {
   return registration
 }
 
-export const planMistralSavedReferenceRegistration = async (input: {
+const planMistralSavedReferenceRegistration = async (input: {
   protectedStore: ProtectedVoiceAssetStore
   subjectKey: string
   profileKey: string
@@ -434,63 +434,6 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
     generationId: pending.generationId,
     provisioning: attempt.outcome,
     sanitizedProviderMetadata: { provisioningAttemptId: plan.attemptId, sourceAssetSha256: materialized.protectedAsset.sha256 }
-  })
-}
-
-export const reconcileMistralSavedReferenceRegistration = async (input: {
-  charactersRoot: string
-  registration: VoiceRegistration
-  apiKey: string
-  baseURL?: string | undefined
-  request?: MistralVoiceManagementRequest | undefined
-}): Promise<VoiceRegistration> => {
-  const registration = input.registration
-  if (registration.provider !== 'mistral') throw CLIUsageError('Only Mistral saved-reference reconciliation is implemented in Phase 1.')
-  const attemptId = typeof registration.sanitizedProviderMetadata['provisioningAttemptId'] === 'string'
-    ? registration.sanitizedProviderMetadata['provisioningAttemptId']
-    : registration.provisioning.state === 'pending'
-      ? registration.provisioning.operationId
-      : undefined
-  if (!attemptId) throw CLIUsageError('Mistral registration does not identify its provisioning attempt.')
-  const journalRoot = `${input.charactersRoot}/voice-provisioning`
-  let attempt = await loadVoiceProvisioningAttempt(journalRoot, registration.registrationId, attemptId)
-  if (mistralAccountScopeHash(input.apiKey) !== attempt.accountScopeHash) throw CLIUsageError('Mistral reconciliation credentials do not match the provisioning account scope.')
-  if (attempt.outcome === undefined) attempt = await requireVoiceProvisioningReconciliation(journalRoot, registration.registrationId, attemptId)
-  if (attempt.outcome?.state === 'reconciliation-required') {
-    let issued = attempt.issuedResources.find(resource => resource.providerVoice.provider === 'mistral')
-    if (!issued) {
-      const slug = attempt.reconciliation?.strategy === 'provider-search' ? attempt.reconciliation.providerHandle : undefined
-      if (!slug) throw CLIUsageError('Mistral provisioning journal has no safe reconciliation lookup handle.')
-      const observed = await findMistralSavedVoiceBySlug({ apiKey: input.apiKey, slug, baseURL: input.baseURL, request: input.request })
-      if (observed) issued = { providerVoice: observed.providerVoice, observedAt: observed.observedAt, sanitizedResponseHash: observed.sanitizedResponseHash }
-    }
-    if (issued) {
-      attempt = await reconcileVoiceProvisioningAttempt({
-        journalRoot,
-        registrationDraftId: registration.registrationId,
-        attemptId,
-        outcome: { state: 'ready', providerVoice: issued.providerVoice },
-        issuedResources: [issued],
-        evidenceHash: issued.sanitizedResponseHash
-      })
-    } else {
-      const evidenceHash = hashCanonicalTtsValue({ provider: 'mistral', attemptId, result: 'not-found' })
-      attempt = await reconcileVoiceProvisioningAttempt({
-        journalRoot,
-        registrationDraftId: registration.registrationId,
-        attemptId,
-        outcome: { state: 'failed', code: 'reconciliation-not-found', message: 'No Mistral saved voice matched the durable provisioning handle.' },
-        evidenceHash
-      })
-    }
-  }
-  if (!attempt.outcome) throw CLIUsageError('Mistral reconciliation did not produce a durable outcome.')
-  return await recordVoiceProvisioningOutcome({
-    charactersRoot: input.charactersRoot,
-    registrationId: registration.registrationId,
-    generationId: registration.generationId,
-    provisioning: attempt.outcome,
-    sanitizedProviderMetadata: { provisioningAttemptId: attemptId, reconciliationState: attempt.outcome.state, sourceAssetSha256: attempt.protectedRequestEvidence.sha256 }
   })
 }
 

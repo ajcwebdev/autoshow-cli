@@ -26,23 +26,23 @@ import { parseSoundEffectLicenseUseClassification } from '../../comic-utils/comi
 
 const DEFAULT_PROFILE = 'default'
 
-export const repeatableStrings = (value: unknown): string[] => Array.isArray(value)
+const repeatableStrings = (value: unknown): string[] => Array.isArray(value)
   ? value.filter((entry): entry is string => typeof entry === 'string')
   : typeof value === 'string' ? [value] : []
 
-export const parseInteger = (value: unknown, fallback: number, label: string): number => {
+const parseInteger = (value: unknown, fallback: number, label: string): number => {
   if (value === undefined) return fallback
   if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0) throw CLIUsageError(`${label} must be a positive integer.`)
   return Number(value)
 }
 
-export const parseOptionalPositiveInteger = (value: unknown, label: string): number | undefined => {
+const parseOptionalPositiveInteger = (value: unknown, label: string): number | undefined => {
   if (value === undefined) return undefined
   if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0 || !Number.isSafeInteger(Number(value))) throw CLIUsageError(`${label} must be a positive safe integer.`)
   return Number(value)
 }
 
-export const parseRolePolicies = (values: readonly string[]): ComicAudioRolePolicy[] => values.map((value) => {
+const parseRolePolicies = (values: readonly string[]): ComicAudioRolePolicy[] => values.map((value) => {
   const separator = value.indexOf('=')
   const speakerLabel = value.slice(0, separator).trim()
   const subjectKey = value.slice(separator + 1).trim()
@@ -50,25 +50,25 @@ export const parseRolePolicies = (values: readonly string[]): ComicAudioRolePoli
   return { speakerLabel, subjectKey }
 })
 
-export const parseMode = (value: unknown): ComicAudioMode => {
+const parseMode = (value: unknown): ComicAudioMode => {
   const mode = value ?? 'auto'
   if (mode !== 'auto' && mode !== 'native' && mode !== 'segmented') throw CLIUsageError('--mode must be auto, native, or segmented.')
   return mode
 }
 
-export const parseDeliveryPolicy = (value: unknown): ComicAudioDeliveryPolicy => {
+const parseDeliveryPolicy = (value: unknown): ComicAudioDeliveryPolicy => {
   const policy = value ?? 'strict'
   if (policy !== 'strict' && policy !== 'best-effort') throw CLIUsageError('--delivery-policy must be strict or best-effort.')
   return policy
 }
 
-export const parsePacingProfile = (value: unknown): ComicAudioPacingProfile => {
+const parsePacingProfile = (value: unknown): ComicAudioPacingProfile => {
   const profile = value ?? 'none'
   if (profile !== 'none' && profile !== 'loose-comedy') throw CLIUsageError('--pacing-profile must be none or loose-comedy.')
   return profile
 }
 
-export const parseSoundscapeTimingPolicy = (value: unknown): ComicAudioSoundscapeTimingPolicy => {
+const parseSoundscapeTimingPolicy = (value: unknown): ComicAudioSoundscapeTimingPolicy => {
   const policy = value ?? 'strict'
   if (policy !== 'strict' && policy !== 'proportional') throw CLIUsageError('--soundscape-timing-policy must be strict or proportional.')
   return policy
@@ -77,7 +77,7 @@ export const parseSoundscapeTimingPolicy = (value: unknown): ComicAudioSoundscap
 export const flattenTurns = (plan: Awaited<ReturnType<typeof createComicDialoguePlan>>) =>
   plan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
 
-export const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
+const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   ...options,
   ttsDialogueFormat: undefined,
   ttsSpeakers: undefined,

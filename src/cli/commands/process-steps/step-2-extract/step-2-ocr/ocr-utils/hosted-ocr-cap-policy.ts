@@ -21,7 +21,7 @@ export const HOSTED_OCR_AUTO_MAX_CAP_CEILING = 32
 export const HOSTED_OCR_LARGE_DOCUMENT_THRESHOLD = 200
 export const HOSTED_OCR_PROFILE_MAX_CAP_CEILING = 48
 export const HOSTED_OCR_DEFAULT_SCOPE_LABEL = 'env-api-key'
-export const HOSTED_OCR_RETRY_EVENT_LIMIT = 50
+const HOSTED_OCR_RETRY_EVENT_LIMIT = 50
 
 const KIMI_PROFILE_HIGH_CAP_THRESHOLD = 13
 const KIMI_PROFILE_HIGH_CAP_MIN_CLEAN_SAMPLES = 3
@@ -140,7 +140,7 @@ const kimiProfileDisqualification = (
   return undefined
 }
 
-export const resolveHostedOcrLaneCaps = (input: {
+const resolveHostedOcrLaneCaps = (input: {
   admission: HostedOcrSchedulerAdmission
   mode: OcrConcurrencyMode
   fixedCap?: number | undefined

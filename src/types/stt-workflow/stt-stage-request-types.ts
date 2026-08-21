@@ -3,7 +3,7 @@ import type { RetryClass, SttRequestMetrics } from '~/types'
 
 export type SttStageSchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
-export type SttStageFailure = {
+type SttStageFailure = {
   message: string
   rawResponse: unknown
 }

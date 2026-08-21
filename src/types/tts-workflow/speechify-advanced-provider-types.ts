@@ -1,6 +1,6 @@
 import type { AdvancedProviderHttpRequest, ProviderVoiceCloneRequest } from '~/types'
 
-export type SpeechifyCloneConsent = {
+type SpeechifyCloneConsent = {
   fullName: string
   email: string
   locale?: string | undefined

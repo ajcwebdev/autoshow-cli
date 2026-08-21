@@ -28,9 +28,9 @@ import { pathExists } from '~/utils/filesystem'
 import { mupdfToolDir, qpdfToolDir } from '~/utils/runtime-paths'
 import { sha256Bytes } from '~/utils/value-helpers'
 
-export const MANAGED_ARTIFACT_MANIFEST_NAME = '.autoshow-managed-artifact.json'
-export const MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME = '.autoshow-payload-manifest.json'
-export const MANAGED_ARTIFACT_SCHEMA_VERSION = 1
+const MANAGED_ARTIFACT_MANIFEST_NAME = '.autoshow-managed-artifact.json'
+const MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME = '.autoshow-payload-manifest.json'
+const MANAGED_ARTIFACT_SCHEMA_VERSION = 1
 
 const Sha256Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))
 const MacosVersionSchema = v.pipe(v.string(), v.regex(/^\d+(?:\.\d+){1,2}$/))
@@ -87,7 +87,7 @@ const PrebuiltLicenseSchema = v.strictObject({
   userNoticePath: SafeRelativePathSchema
 })
 
-export const ManagedSourceArtifactManifestSchema = v.strictObject({
+const ManagedSourceArtifactManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   tool: v.picklist(['mupdf', 'qpdf']),
   version: NonEmptyStringSchema,
@@ -100,7 +100,7 @@ export const ManagedSourceArtifactManifestSchema = v.strictObject({
   payload: v.array(ArtifactPayloadFileSchema)
 })
 
-export const ManagedPrebuiltPayloadManifestSchema = v.strictObject({
+const ManagedPrebuiltPayloadManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   tool: v.picklist(['mupdf', 'qpdf']),
   version: NonEmptyStringSchema,
@@ -119,7 +119,7 @@ export const ManagedPrebuiltPayloadManifestSchema = v.strictObject({
   license: PrebuiltLicenseSchema
 })
 
-export const ManagedPrebuiltReleaseManifestSchema = v.strictObject({
+const ManagedPrebuiltReleaseManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   identity: NonEmptyStringSchema,
   tool: v.picklist(['mupdf', 'qpdf']),
@@ -149,7 +149,7 @@ export const ManagedPrebuiltReleaseManifestSchema = v.strictObject({
   licenseReviewReferences: v.array(NonEmptyStringSchema)
 })
 
-export const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
+const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
   tool: v.picklist(['mupdf', 'qpdf']),
   version: NonEmptyStringSchema,
@@ -182,7 +182,7 @@ export const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
   })
 })
 
-export const ManagedArtifactManifestSchema = v.union([
+const ManagedArtifactManifestSchema = v.union([
   ManagedSourceArtifactManifestSchema,
   ManagedPrebuiltArtifactManifestSchema
 ])
@@ -208,7 +208,7 @@ const MANAGED_TOOL_DIRS: Record<ManagedArtifactToolId, string> = {
 export const managedArtifactManifestPath = (toolDir: string): string =>
   join(toolDir, MANAGED_ARTIFACT_MANIFEST_NAME)
 
-export const managedPrebuiltPayloadManifestPath = (toolDir: string): string =>
+const managedPrebuiltPayloadManifestPath = (toolDir: string): string =>
   join(toolDir, MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME)
 
 const parseSchema = <T>(schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>, value: unknown, label: string): T => {
@@ -222,19 +222,16 @@ const parseSchema = <T>(schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>, 
 export const parseManagedSourceArtifactManifest = (value: unknown): ManagedSourceArtifactManifest =>
   parseSchema(ManagedSourceArtifactManifestSchema, value, 'managed source artifact manifest')
 
-export const parseManagedPrebuiltPayloadManifest = (value: unknown): ManagedPrebuiltPayloadManifest =>
+const parseManagedPrebuiltPayloadManifest = (value: unknown): ManagedPrebuiltPayloadManifest =>
   parseSchema(ManagedPrebuiltPayloadManifestSchema, value, 'managed prebuilt payload manifest')
 
-export const parseManagedPrebuiltReleaseManifest = (value: unknown): ManagedPrebuiltReleaseManifest =>
+const parseManagedPrebuiltReleaseManifest = (value: unknown): ManagedPrebuiltReleaseManifest =>
   parseSchema(ManagedPrebuiltReleaseManifestSchema, value, 'managed prebuilt release manifest')
 
-export const parseManagedPrebuiltArtifactManifest = (value: unknown): ManagedPrebuiltArtifactManifest =>
-  parseSchema(ManagedPrebuiltArtifactManifestSchema, value, 'managed prebuilt artifact manifest')
-
-export const parseManagedArtifactManifest = (value: unknown): ManagedArtifactManifest =>
+const parseManagedArtifactManifest = (value: unknown): ManagedArtifactManifest =>
   parseSchema(ManagedArtifactManifestSchema, value, 'managed artifact manifest')
 
-export const sha256File = async (path: string): Promise<string> =>
+const sha256File = async (path: string): Promise<string> =>
   sha256Bytes(await readFile(path))
 
 const normalizeMacosVersion = (value: string): string | undefined => {
@@ -242,7 +239,7 @@ const normalizeMacosVersion = (value: string): string | undefined => {
   return match ? `${Number(match[1])}.${Number(match[2])}` : undefined
 }
 
-export const compareMacosVersions = (left: string, right: string): number => {
+const compareMacosVersions = (left: string, right: string): number => {
   const leftParts = left.split('.').map(Number)
   const rightParts = right.split('.').map(Number)
   for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
@@ -252,7 +249,7 @@ export const compareMacosVersions = (left: string, right: string): number => {
   return 0
 }
 
-export const resolveHostMacosVersion = async (): Promise<string> => {
+const resolveHostMacosVersion = async (): Promise<string> => {
   const result = await runCapture('sw_vers', ['-productVersion'], { allowFailure: true })
   const version = result.exitCode === 0 ? normalizeMacosVersion(result.stdout) : undefined
   if (!version) throw InfraError('could not determine the host macOS version with sw_vers', { stage: 'setup:managed-artifact' })
@@ -272,13 +269,13 @@ export const resolveSourceDeploymentTarget = async (): Promise<string> => {
   return `${hostVersion.split('.')[0]}.0`
 }
 
-export const managedArtifactBinaryRelativePath = (tool: ManagedArtifactToolId): string =>
+const managedArtifactBinaryRelativePath = (tool: ManagedArtifactToolId): string =>
   SOURCE_RECIPES[tool].binaryRelativePath
 
-export const managedArtifactBuildFlags = (tool: ManagedArtifactToolId): string[] =>
+const managedArtifactBuildFlags = (tool: ManagedArtifactToolId): string[] =>
   [...SOURCE_RECIPES[tool].buildFlags]
 
-export const readExpectedManagedArtifactSources = async (tool: ManagedArtifactToolId): Promise<ManagedArtifactSource[]> =>
+const readExpectedManagedArtifactSources = async (tool: ManagedArtifactToolId): Promise<ManagedArtifactSource[]> =>
   await Promise.all(SOURCE_RECIPES[tool].sourceNames.map(async (name) => {
     const version = await readDependencyVersion(name)
     if (!version) {
@@ -394,7 +391,7 @@ const validateManagedSourceManifest = async (
   }
 }
 
-export const verifyManagedPrebuiltCodeSignature = async (
+const verifyManagedPrebuiltCodeSignature = async (
   binaryPath: string,
   expected: { signingIdentity: string, teamId: string }
 ): Promise<void> => {
@@ -415,7 +412,7 @@ export const verifyManagedPrebuiltCodeSignature = async (
   }
 }
 
-export const verifyManagedPrebuiltArchitecture = async (
+const verifyManagedPrebuiltArchitecture = async (
   binaryPath: string,
   expectedArchitecture: 'arm64' | 'x64'
 ): Promise<void> => {
@@ -490,7 +487,7 @@ const validatePayloadManifestAgainstCandidate = async (
   return undefined
 }
 
-export const validateManagedPrebuiltArtifact = async (
+const validateManagedPrebuiltArtifact = async (
   tool: ManagedArtifactToolId,
   options: {
     toolDir?: string

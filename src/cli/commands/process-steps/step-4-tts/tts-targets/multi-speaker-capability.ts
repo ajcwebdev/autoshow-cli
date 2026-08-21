@@ -32,7 +32,7 @@ export const getMultiSpeakerStrategy = (
   return MULTI_SPEAKER_CAPABILITY[provider]
 }
 
-export const supportsRefAudioMultiSpeaker = (provider: TtsProvider): boolean =>
+const supportsRefAudioMultiSpeaker = (provider: TtsProvider): boolean =>
   REF_AUDIO_PROVIDERS.has(provider)
 
 export const resolveTtsTargetInvocationVoice = (

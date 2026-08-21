@@ -27,7 +27,7 @@ export type OutputMetadataSummary = {
   actualProcessingTimeMs: number | null
 }
 
-export type MusicExpectedLyricsSource = 'provided' | 'generated' | 'none'
+type MusicExpectedLyricsSource = 'provided' | 'generated' | 'none'
 
 export type MusicServiceModelCase = {
   model: string
@@ -40,9 +40,9 @@ export type MusicServiceModelCase = {
 
 export type TtsExtraArgs = readonly string[] | ((model: string) => readonly string[] | Promise<readonly string[]>)
 
-export type VideoTestService = 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+type VideoTestService = 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 
-export type GenerationCommand = 'image' | 'video' | 'music'
+type GenerationCommand = 'image' | 'video' | 'music'
 
 export type GenerationServiceModelCase = { model: string, extraArgs?: string[] | undefined }
 
@@ -53,7 +53,7 @@ export type GenerationServiceOptions<TModel extends GenerationServiceModelCase> 
   envVarKey: string
 }
 
-export type GenerationArtifact = { fileName: string, fileSize: number }
+type GenerationArtifact = { fileName: string, fileSize: number }
 
 export type GenerationServiceProfile<
   TModel extends GenerationServiceModelCase,
@@ -110,7 +110,7 @@ export type MusicServiceTestOptions = {
 
 export type MusicGenerationOptions = MusicServiceTestOptions & GenerationServiceOptions<MusicServiceModelCase>
 
-export type MultiProviderManifestFixtureProvider = {
+type MultiProviderManifestFixtureProvider = {
   dir: string
   provider: string
   model: string

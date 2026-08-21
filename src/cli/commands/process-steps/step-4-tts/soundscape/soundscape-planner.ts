@@ -33,7 +33,7 @@ const finite = (value: number | undefined, label: string): void => {
   if (value !== undefined && !Number.isFinite(value)) throw CLIUsageError(`${label} must be finite.`)
 }
 
-export const validateSoundscapeMixProfile = (profile: SoundscapeMixProfile): SoundscapeMixProfile => {
+const validateSoundscapeMixProfile = (profile: SoundscapeMixProfile): SoundscapeMixProfile => {
   if (profile.schemaVersion !== 1 || !profile.profileKey.trim()) throw CLIUsageError('Soundscape mix profile requires schemaVersion 1 and a stable profile key.')
   const buses = ['dialogue', 'vocal-reaction', 'action-sfx', 'ambience']
   if (Object.keys(profile.busGainDb).sort().join('\0') !== buses.slice().sort().join('\0')) throw CLIUsageError('Soundscape mix profile requires exactly the four semantic bus gains.')

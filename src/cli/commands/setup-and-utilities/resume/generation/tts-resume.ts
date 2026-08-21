@@ -88,7 +88,7 @@ const reduceTtsResumeItemStatus = (
   return 'incomplete'
 }
 
-export const commitTtsResumeProviderState = async (
+const commitTtsResumeProviderState = async (
   rootDir: string,
   incoming: PipelineProviderState,
   providerOrder: readonly string[],
@@ -97,7 +97,7 @@ export const commitTtsResumeProviderState = async (
   await commitTtsResumePreparedStates(rootDir, [incoming], providerOrder, itemIndex)
 }
 
-export const commitTtsResumePreparedStates = async (
+const commitTtsResumePreparedStates = async (
   rootDir: string,
   incomingStates: readonly PipelineProviderState[],
   providerOrder: readonly string[],
@@ -154,7 +154,7 @@ export const commitTtsResumePreparedStates = async (
   })
 }
 
-export const reconcileTtsResumeProviderStates = (
+const reconcileTtsResumeProviderStates = (
   context: {
     currentProviders: PipelineProviderState[]
     requestedProviders: GenerationResumeProviderIdentity[]

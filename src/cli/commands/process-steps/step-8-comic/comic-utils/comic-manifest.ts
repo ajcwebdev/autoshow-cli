@@ -19,7 +19,7 @@ import { computeSceneRunIdentity } from './comic-audio-contracts'
 import { appendCurrentTtsProviderState } from '../../step-4-tts/script-to-audio/current-render-artifacts'
 import { aggregateComicStageStatus } from '../../pipeline-manifest/comic-stage-status'
 
-export const notRequestedComicStage = () => ({
+const notRequestedComicStage = () => ({
   requirement: 'not-requested' as const,
   status: 'skipped' as const,
   execution: { kind: 'none' as const, reason: 'not-requested' as const },

@@ -141,7 +141,7 @@ const snapshotEntrySortKey = (entry: ApprovedVoiceSnapshotEntry): string => [
   entry.entryId,
 ].join('\0')
 
-export const validateApprovedVoiceSnapshotEntry = (entry: ApprovedVoiceSnapshotEntry): ApprovedVoiceSnapshotEntry => {
+const validateApprovedVoiceSnapshotEntry = (entry: ApprovedVoiceSnapshotEntry): ApprovedVoiceSnapshotEntry => {
   if (entry.registrationStateAtSnapshot !== 'approved-ready' || entry.providerVoice.provider !== entry.provider || !entry.subjectKey || !entry.profileKey) {
     throw CLIUsageError('Voice snapshot entry must retain one approved-ready provider-qualified registration.')
   }

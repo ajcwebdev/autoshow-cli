@@ -25,9 +25,9 @@ import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from '.
 import { AppError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
 import { normalizePositiveInt } from '~/utils/value-helpers'
 
-export const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
-export const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
-export const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
+const DEFAULT_HOSTED_CONCURRENCY_MODE: HostedConcurrencyMode = 'ramp'
+const HOSTED_CONCURRENCY_RAMP_INTERVAL_MS = 5_000
+const HOSTED_CONCURRENCY_RECOVERY_BUDGET_MS = 5 * 60_000
 
 const RATE_LIMIT_BACKOFF_MS = [2_000, 4_000, 8_000, 16_000, 30_000] as const
 const EVENT_HISTORY_LIMIT = 100

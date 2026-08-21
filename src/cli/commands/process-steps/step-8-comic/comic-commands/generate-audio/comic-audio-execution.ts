@@ -23,7 +23,7 @@ import { appendComicAudioProviderState, updateComicAudioManifest } from '../../c
 import { flattenTurns } from './comic-audio-invocation'
 import { providerStageStatus } from './comic-audio-staging'
 
-export const voiceLocator = (entry: ApprovedVoiceSnapshotEntry): { value: string, protectedAsset?: ProtectedAssetRef | undefined } => {
+const voiceLocator = (entry: ApprovedVoiceSnapshotEntry): { value: string, protectedAsset?: ProtectedAssetRef | undefined } => {
   const voice = entry.providerVoice
   if (voice.kind === 'remote-resource') return { value: voice.resourceId }
   if (voice.kind === 'reference-asset') return { value: `ref_audio:${voice.protectedAsset.assetId}`, protectedAsset: voice.protectedAsset }

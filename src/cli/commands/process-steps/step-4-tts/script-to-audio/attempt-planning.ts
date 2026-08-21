@@ -91,7 +91,7 @@ import {
   prepareSegmentedTurnText,
   segmentedSlotGroup,
 } from './comic-segmented-audio'
-export const typedSettings = (
+const typedSettings = (
   target: TtsTarget,
   effectiveControls: Readonly<Record<string, unknown>>,
   protectedAsset?: ProtectedAssetRef | undefined
@@ -106,13 +106,13 @@ export const typedSettings = (
   return { schemaVersion: 1, settingsSchema: `${target.service}.tts.${SCHEMA_VERSION}`, values }
 }
 
-export const requestSettings = (settings: TypedProviderSynthesisSettings): TypedProviderRequestSettings => ({
+const requestSettings = (settings: TypedProviderSynthesisSettings): TypedProviderRequestSettings => ({
   schemaVersion: 1,
   settingsSchema: settings.settingsSchema.replace('.tts.', '.tts.request.'),
   values: { ...settings.values }
 })
 
-export const resolveEffectiveInvocationControls = (
+const resolveEffectiveInvocationControls = (
   target: TtsTarget,
   invocation: TtsTargetInvocation,
   selection: TtsTargetSelection
@@ -197,7 +197,7 @@ export const resolveEffectiveInvocationControls = (
   }
 }
 
-export const serializerContract = (
+const serializerContract = (
   target: TtsTarget,
   voiceValue: string,
   effectiveControls: Readonly<Record<string, unknown>>,
@@ -291,7 +291,7 @@ export const serializerContract = (
   }
 }
 
-export const serializerVoiceField = (
+const serializerVoiceField = (
   target: TtsTarget,
   strategy: ProviderRenderStrategy,
   voiceKind: AttemptTurn['voice']['kind']
@@ -358,7 +358,7 @@ export const sanitizeError = (error: unknown, phase: SanitizedProviderError['pha
   }
 }
 
-export const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean): PlannedCost => {
+const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean): PlannedCost => {
   const pricing = getTtsPricing(target.service, target.model)
   const cents = pricing.costPerRequestCents !== undefined
     ? pricing.costPerRequestCents
@@ -369,7 +369,7 @@ export const plannedCost = (target: TtsTarget, characters: number, includeSetup:
   return totalCents === 0 ? { amounts: [] } : { amounts: [{ amount: totalCents / 100, currency: 'USD' }] }
 }
 
-export const buildCapabilityFixture = (
+const buildCapabilityFixture = (
   target: TtsTarget,
   transport: string,
   strategy: ProviderRenderStrategy
@@ -415,7 +415,7 @@ export const buildCapabilityFixture = (
   }
 }
 
-export const voiceBinding = (target: TtsTarget, kind: AttemptTurn['voice']['kind'], value: string, settings: TypedProviderSynthesisSettings, capabilityFixtureHash: string, protectedAsset?: ProtectedAssetRef | undefined): { voice: AttemptTurn['voice'], binding: Extract<ResolvedVoiceBinding, { kind: 'transient-provider-voice' }> } => {
+const voiceBinding = (target: TtsTarget, kind: AttemptTurn['voice']['kind'], value: string, settings: TypedProviderSynthesisSettings, capabilityFixtureHash: string, protectedAsset?: ProtectedAssetRef | undefined): { voice: AttemptTurn['voice'], binding: Extract<ResolvedVoiceBinding, { kind: 'transient-provider-voice' }> } => {
   const activeProtectedAsset = protectedAsset ?? target.protectedVoiceAsset
   const valueHash = kind === 'reference-asset' ? activeProtectedAsset?.sha256 ?? sha256Bytes(value) : sha256Bytes(value)
   const voice = { kind, ...(kind === 'reference-asset' ? {} : { value }), valueHash }
@@ -433,7 +433,7 @@ export const voiceBinding = (target: TtsTarget, kind: AttemptTurn['voice']['kind
   }
 }
 
-export const flattenPlanTurns = (plan: GenericTtsDialoguePlan | ComicDialoguePlan): CanonicalDialogueTurn[] =>
+const flattenPlanTurns = (plan: GenericTtsDialoguePlan | ComicDialoguePlan): CanonicalDialogueTurn[] =>
   plan.nodes.flatMap((node) => node.kind === 'turn' ? [node.turn] : node.turns)
 
 export const bindingIdentityHash = (binding: ResolvedVoiceBinding): string =>
@@ -448,7 +448,7 @@ export const requestedOutput = (options: Pick<CreateCurrentTtsRenderAttemptOptio
     }
   : REQUESTED_OUTPUT
 
-export const defaultVoiceValue = (target: TtsTarget): string => {
+const defaultVoiceValue = (target: TtsTarget): string => {
   switch (target.service) {
     case 'openai': return 'alloy'
     case 'gemini': return 'Kore'
@@ -552,7 +552,7 @@ const resolveComicNativeGroups = (
   return []
 }
 
-export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _capabilityFixtureHash?: string): PlannedInputs => {
+const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _capabilityFixtureHash?: string): PlannedInputs => {
   const context = options.comicContext!
   if (context.operation !== 'comic-audio') throw CLIUsageError('Comic render context requires operation comic-audio.')
   if (canonicalTtsJson(context.sourceIdentity) !== canonicalTtsJson(context.dialoguePlan.sourceIdentity)) throw CLIUsageError('Comic dialogue plan does not bind the exact source identity.')
@@ -712,7 +712,7 @@ const resolveGenericNativeGroups = (
   return []
 }
 
-export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string): PlannedInputs => {
+const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string): PlannedInputs => {
   const fallbackSource = createInlineTtsSourceIdentity(options.sourceText)
   const sourceIdentity = options.sourceIdentity ?? fallbackSource
   if (sourceIdentity.sourceKind === 'inline' && sourceIdentity.contentSha256 !== sha256Bytes(options.sourceText)) {
@@ -783,7 +783,7 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
   return { sourceIdentity, dialoguePlan, turns, batches, slots, strategy, normalizedText: normalizedDialogue?.normalizedText ?? options.sourceText }
 }
 
-export const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string): PlannedInputs => {
+const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string): PlannedInputs => {
   return options.comicContext
     ? planComicInputs(options, capabilityFixtureHash)
     : planGenericInputs(options, capabilityFixtureHash)

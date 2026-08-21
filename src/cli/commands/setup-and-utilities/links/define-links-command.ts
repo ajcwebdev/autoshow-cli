@@ -158,7 +158,7 @@ const linksFlags = {
   ...linksProviderFlags
 } as const satisfies CliFlagsDefinition
 
-export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
+const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
   const serviceSelections = new Map<string, string[]>()
   const globalSections: string[] = []
   let currentService: string | null = null
@@ -624,7 +624,7 @@ const buildLinksRefreshMetadata = (
   }
 }
 
-export const runLinks = async (
+const runLinks = async (
   selection: LinksSelection,
   options: RunLinksOptions = {}
 ): Promise<{ outputPath: string, urlCount: number, lineCount: number, refreshMetadataPath?: string }> => {

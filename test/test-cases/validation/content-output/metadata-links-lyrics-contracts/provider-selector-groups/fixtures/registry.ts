@@ -35,7 +35,7 @@ export const DISK_MANIFESTS = readManifestsFromDisk()
 
 // `collectLinks` walks providers in the merged registry's key order, which is the order
 // `model-links.ts` lists them in — not the alphabetical file order used above.
-export const REGISTRY_PROVIDER_ORDER = Object.keys(modelLinks as Record<string, ProviderSections>)
+const REGISTRY_PROVIDER_ORDER = Object.keys(modelLinks as Record<string, ProviderSections>)
 
 const sectionsFor = (provider: string): ProviderSections => {
   const sections = DISK_MANIFESTS.get(provider)

@@ -63,12 +63,3 @@ export const assertProtectedStoreOutputDisjoint = async (
     )
   }
 }
-
-export const assertProtectedStoresOutputDisjoint = async (
-  outputPath: string,
-  protectedStoreRoots: readonly string[]
-): Promise<void> => {
-  for (const protectedStoreRoot of protectedStoreRoots) {
-    await assertProtectedStoreOutputDisjoint(outputPath, protectedStoreRoot)
-  }
-}

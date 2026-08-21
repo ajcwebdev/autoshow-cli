@@ -15,7 +15,7 @@ export const isExtractionMetadata = (value: unknown): value is ExtractionMetadat
   && typeof value['extractionMethod'] === 'string'
   && typeof value['processingTime'] === 'number'
 
-export const isPartialExtractionMetadata = (value: unknown): value is PartialExtractionMetadata => {
+const isPartialExtractionMetadata = (value: unknown): value is PartialExtractionMetadata => {
   if (!isRecord(value)) {
     return false
   }

@@ -100,7 +100,7 @@ export class AppInfrastructureError extends AppError {
   }
 }
 
-export class AppInternalError extends AppError {
+class AppInternalError extends AppError {
   constructor(message: string, options: Omit<AppErrorOptions, 'kind'> = {}) {
     super(message, { ...options, kind: 'internal' })
     this.name = 'AppInternalError'

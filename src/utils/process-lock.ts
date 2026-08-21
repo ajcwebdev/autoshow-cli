@@ -47,7 +47,7 @@ const sanitizeLockName = (lockName: string): string => {
 const getDefaultProcessStateDir = (): string =>
   join(homedir(), '.cache', 'autoshow-cli')
 
-export const resolveProcessLockRoot = (options: ProcessLockOptions = {}): string =>
+const resolveProcessLockRoot = (options: ProcessLockOptions = {}): string =>
   options.lockRoot ?? join(getDefaultProcessStateDir(), 'process-locks')
 
 const getLockOwnerPath = (lockDir: string): string => join(lockDir, LOCK_OWNER_FILE)

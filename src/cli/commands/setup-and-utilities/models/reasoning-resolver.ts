@@ -27,7 +27,7 @@ export const parseReasoningEffort = (value: string | undefined): NormalizedReaso
   throw CLIUsageError(`Invalid --reasoning-effort value "${value}". Expected ${formatQuotedChoiceList(NORMALIZED_REASONING_EFFORTS)}.`)
 }
 
-export const getReasoningCapabilities = (
+const getReasoningCapabilities = (
   step: 'llm' | 'extract',
   service: string,
   model: string
@@ -46,7 +46,7 @@ export const getReasoningCapabilities = (
   return { support: 'unsupported' }
 }
 
-export const getAdapterDefaultReasoningEffort = (
+const getAdapterDefaultReasoningEffort = (
   step: 'llm' | 'extract',
   service: string,
   model: string

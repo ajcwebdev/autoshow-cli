@@ -92,7 +92,7 @@ export const resolveUrlArticleResumePlan = (
   }
 }
 
-export const resumeUrlArticleProviders = async (
+const resumeUrlArticleProviders = async (
   outputDir: string,
   opts: UrlExtractionOptions,
   selectedTargets?: readonly UrlArticleTarget[] | undefined

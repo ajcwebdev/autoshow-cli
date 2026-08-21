@@ -5,13 +5,11 @@ import type {
   ProviderVoiceCatalogEntry,
   ProviderVoiceCatalogPage,
   ProviderVoiceDesignResult,
-  ProviderVoiceInspection,
   ProviderVoiceRef,
   TtsVoiceProvider,
   VoiceCatalogPort,
   VoiceClonePort,
   VoiceDesignPort,
-  VoiceLifecyclePort,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
@@ -22,6 +20,8 @@ import {
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
+import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import { assertAdvancedVoiceCloneAuthorized, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   voices: 'https://elevenlabs.io/docs/api-reference/voices/search',
@@ -213,7 +213,7 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
 
   const clone: VoiceClonePort = {
     clone: async cloneRequest => {
-      if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) throw CLIUsageError('ElevenLabs cloning requires consent and provenance references before any provider or external action.')
+      assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'references before any provider or external action')
       if (cloneRequest.cloneKind === 'professional') {
         return { schemaVersion: 1, provider: 'elevenlabs', state: 'verification-required', action: 'Complete Professional Voice Clone verification and plan checks, then import the resulting voice ID.', sanitizedMetadata: { cloneKind: 'professional' }, checkedAt: now() }
       }
@@ -250,22 +250,17 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
     }
   }
 
-  const inspect = async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-    if (voice.provider !== 'elevenlabs' || voice.kind !== 'remote-resource') throw CLIUsageError('ElevenLabs inspection requires an ElevenLabs remote voice resource.')
-    const entry = mapVoice(await request({ method: 'GET', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` }), voice.namespace === 'account' ? 'account' : 'provider-library')
-    return { schemaVersion: 1, provider: 'elevenlabs', providerVoice: voice, state: entry.state === 'unavailable' ? 'missing' : entry.state, deletion: voice.deletion, sanitizedMetadata: entry.sanitizedMetadata, checkedAt: now() }
-  }
-  const lifecycle: VoiceLifecyclePort = {
-    inspect,
-    delete: async deleteRequest => {
-      const voice = deleteRequest.providerVoice
-      if (voice.provider !== 'elevenlabs' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) throw CLIUsageError('ElevenLabs deletion identity does not match the registered resource.')
-      if (voice.ownership !== 'project' || voice.deletion.state !== 'eligible') throw CLIUsageError('ElevenLabs deletes only eligibility-checked project-owned account resources.')
-      if (voice.namespace !== 'account' || voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('ElevenLabs deletion credentials do not match the registered account scope.')
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'elevenlabs', label: 'ElevenLabs', labelWithArticle: 'an ElevenLabs', accountScopeHash }
+  const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'account resources', namespaceCheck: 'account-scope' }, {
+    fetchVoice: async voice => {
+      const entry = mapVoice(await request({ method: 'GET', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` }), voice.namespace === 'account' ? 'account' : 'provider-library')
+      return { state: entry.state === 'unavailable' ? 'missing' : entry.state, sanitizedMetadata: entry.sanitizedMetadata }
+    },
+    deleteVoice: async voice => {
       await request({ method: 'DELETE', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` })
-      return { deletedAt: now() }
-    }
-  }
+    },
+    now
+  })
 
   return {
     provider: 'elevenlabs',

@@ -7,6 +7,7 @@ import { downloadGeneratedImage, extractImageErrorMessage, readJsonOrText, runPo
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
 import { ensureBflImageGenSetup, getBflBaseUrl } from './bfl-image-gen'
+import { normalizeImageOutputFormat } from '../../image-utils/image-target-validation'
 const POLL_INTERVAL_MS = 5_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 
@@ -50,18 +51,13 @@ export const normalizeBflImageSize = (
   return { width, height }
 }
 
-export const normalizeBflImageOutputFormat = (format: string | undefined): BflOutputFormat => {
-  if (format === undefined || format.length === 0) {
-    return 'jpeg'
-  }
-
-  const normalized = format.toLowerCase()
-  if ((BFL_OUTPUT_FORMATS as readonly string[]).includes(normalized)) {
-    return normalized as BflOutputFormat
-  }
-
-  throw CLIUsageError(`Invalid --image-format value "${format}" for BFL. Expected jpeg, png, or webp.`)
-}
+export const normalizeBflImageOutputFormat = (format: string | undefined): BflOutputFormat =>
+  normalizeImageOutputFormat(format, {
+    allowed: BFL_OUTPUT_FORMATS,
+    fallback: 'jpeg',
+    providerLabel: 'BFL',
+    expected: 'jpeg, png, or webp'
+  })
 
 export const getBflImageExtension = (format: string | undefined): string => {
   const outputFormat = normalizeBflImageOutputFormat(format)

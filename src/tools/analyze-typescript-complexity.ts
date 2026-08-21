@@ -345,7 +345,7 @@ const analyzeExecutableFile = (filePath: string, source: string): {
   }
 }
 
-export const analyzeScope = (scope: AnalysisScope): ScopeAnalysis => {
+const analyzeScope = (scope: AnalysisScope): ScopeAnalysis => {
   const repositoryPaths = listRepositoryFiles(scope)
   const files: FileMetric[] = []
   const callableMetrics: CallableMetric[] = []
@@ -399,7 +399,7 @@ export const analyzeScope = (scope: AnalysisScope): ScopeAnalysis => {
   }
 }
 
-export const analyzeScopes = (scopes: AnalysisScope[]): ScopeAnalysis[] => scopes.map(analyzeScope)
+const analyzeScopes = (scopes: AnalysisScope[]): ScopeAnalysis[] => scopes.map(analyzeScope)
 
 const parseScopes = (argv: string[]): AnalysisScope[] => {
   const scopes: AnalysisScope[] = []

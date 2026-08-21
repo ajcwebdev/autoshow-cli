@@ -3,7 +3,7 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { findHostedOcrThroughputProfile } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-throughput-profiles'
 import { roundMetric } from '~/utils/value-helpers'
 
-export const OCR_HOSTED_PROVIDERS = new Set([
+const OCR_HOSTED_PROVIDERS = new Set([
   'mistral',
   'glm',
   'kimi',
@@ -14,7 +14,7 @@ export const OCR_HOSTED_PROVIDERS = new Set([
   'deepinfra',
   'replicate'
 ])
-export const OCR_LOCAL_PROVIDERS = new Set(['tesseract'])
+const OCR_LOCAL_PROVIDERS = new Set(['tesseract'])
 export const RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER = 2
 
 export const roundMs = (value: number): number => Math.max(0, Math.round(value))

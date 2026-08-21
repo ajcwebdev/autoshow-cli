@@ -14,7 +14,7 @@ const readMetadataPath = (value: unknown, path: string): unknown => path.split('
   typeof current === 'object' && current !== null ? (current as Record<string, unknown>)[part] : undefined,
 value)
 
-export const defineGenerationServiceTest = <
+const defineGenerationServiceTest = <
   TModel extends GenerationServiceModelCase,
   TOptions extends GenerationServiceOptions<TModel>
 >(options: TOptions, profile: GenerationServiceProfile<TModel, TOptions>): void => {

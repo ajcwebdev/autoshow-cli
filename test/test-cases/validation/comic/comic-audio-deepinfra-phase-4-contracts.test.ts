@@ -2,20 +2,17 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { TtsTarget, VoiceReferenceManifest } from '~/types'
-import { canonicalTargetKey, hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
+import { canonicalTargetKey } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
-import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
+import { resolveSoundEffectTarget } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
 import { createSoundEffectRenderPlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/sound-effect-execution'
 import { runDeepinfraTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepinfra/run-deepinfra-tts'
 import { validateTtsTargetsForExecution } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
-import { createApprovedVoiceSnapshotEntry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { buildTargetExecution } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
-import { createLocalSilentDialogueRun, runComicSoundscape } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-soundscape-workflow'
-import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 import { createResourceGate } from '~/utils/resource-gate'
-import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
-import { buildComicAudioPhaseFixture, COMIC_AUDIO_PHASE_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_HASH_A as HASH_A, COMIC_AUDIO_PHASE_HASH_B as HASH_B } from './comic-audio-phase-fixture'
+import { buildApprovedVoiceEntry, buildComicAudioPhaseFixture, runMockComicSoundscape } from './comic-audio-phase-fixture'
 
 const DEEPINFRA_MODELS = [
   'ResembleAI/chatterbox-turbo',
@@ -26,25 +23,12 @@ const DEEPINFRA_MODELS = [
 ] as const
 const tempDirs = setupContractSuiteLifecycle({ envKeys: ['DEEPINFRA_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-deepinfra-soundscape-' })
 
-const voiceEntry = (subjectKey: string, resourceId: string, providerModel: typeof DEEPINFRA_MODELS[number]) => createApprovedVoiceSnapshotEntry({
-  registrationId: `registration-${subjectKey}`,
-  generationId: hashCanonicalTtsValue({ subjectKey, generation: 1 }),
+const voiceEntry = (subjectKey: string, resourceId: string, providerModel: typeof DEEPINFRA_MODELS[number]) => buildApprovedVoiceEntry({
   subjectKey,
-  profileKey: 'default',
+  resourceId,
   provider: 'deepinfra',
-  providerVoice: { kind: 'remote-resource', provider: 'deepinfra', resourceId, namespace: 'provider', origin: 'provider-stock', ownership: 'provider', deletion: { state: 'provider-managed', checkedAt: CREATED_AT } },
   providerModel,
   settingsSchema: 'deepinfra.tts.phase-4-v2',
-  synthesisSettings: { schemaVersion: 1, settingsSchema: 'deepinfra.tts.phase-4-v2', values: {} },
-  sanitizedProviderMetadata: {},
-  briefHash: HASH_A,
-  auditionManifestHash: HASH_B,
-  approvedAudition: { storeId: 'voice-store', assetId: `audition-${subjectKey}`, sha256: HASH_A },
-  provenanceRef: `provenance:${subjectKey}`,
-  capabilityFixtureHash: HASH_B,
-  registrationStateAtSnapshot: 'approved-ready',
-  externallyMutable: true,
-  registrationApprovedAt: CREATED_AT,
 })
 
 const fixture = async (root: string, providerModel: typeof DEEPINFRA_MODELS[number] = 'ResembleAI/chatterbox-turbo') => {
@@ -101,16 +85,13 @@ describe('ADR-017 Phase 4E DeepInfra soundscape acceptance', () => {
     expect(calls[0]?.bodyJson).toMatchObject({ text: 'Ready?', response_format: 'wav', voice_id: 'Ryan' })
 
     await mkdir(join(root, 'audio', 'final'), { recursive: true })
-    const dialogue = await createLocalSilentDialogueRun({ rootDir: root, plan: soundscapePlan, target: { service: 'deepinfra', model: 'ResembleAI/chatterbox-turbo', transport: 'hosted-api' } })
-    const renderPlan = createSoundEffectRenderPlan({ plan: soundscapePlan, target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2', { outputFormat: 'wav_48000' }) })
-    let sfxCalls = 0
-    const adapter = createElevenLabsSoundEffectAdapter({ apiKey: 'fixture', request: async () => {
-      sfxCalls++
-      return { status: 200, headers: { 'content-type': 'audio/wav', 'request-id': `sfx-${sfxCalls}` }, body: createSyntheticWavBytes({ durationSeconds: 0.5, amplitude: 0.2, frequencyHz: 220 + sfxCalls * 110 }) }
-    }, now: () => CREATED_AT })
-    const mixed = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [dialogue.binding], adapter, concurrency: 2, hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' }) })
-    const soundscapeRun = mixed.soundscapeRuns[0]
-    expect([0, 2]).toContain(sfxCalls)
+    const { soundscapeRun, sfxCalls } = await runMockComicSoundscape({
+      rootDir: root,
+      plan: soundscapePlan,
+      dialoguePlan,
+      target: { service: 'deepinfra', model: 'ResembleAI/chatterbox-turbo', transport: 'hosted-api' }
+    })
+    expect([0, 2]).toContain(sfxCalls())
     expect(soundscapeRun?.binding.targetKey).toBe(canonicalTargetKey('comic-audio', 'deepinfra', 'ResembleAI/chatterbox-turbo', 'hosted-api'))
     expect(soundscapeRun?.mix.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
     expect(await Bun.file(join(root, soundscapeRun?.ref.path as string)).exists()).toBe(true)

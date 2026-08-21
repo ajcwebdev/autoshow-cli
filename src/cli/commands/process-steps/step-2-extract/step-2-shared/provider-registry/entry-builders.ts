@@ -81,7 +81,7 @@ export const booleanProvider = <
   flag: createBooleanFlag(entry.description)
 })
 
-export const modelProvider = <
+const modelProvider = <
   const FlagName extends string,
   const RuntimeModelsKey extends keyof Step2ProviderOptionSurface,
   const RuntimeModelKey extends keyof Step2ProviderOptionSurface

@@ -37,7 +37,7 @@ export type StructuredScriptParserState = {
   pendingSoundDirectivePrompt: boolean
 }
 
-export type StructuredScriptMention = StructuredScriptBeat['rawMentions'][number]
+type StructuredScriptMention = StructuredScriptBeat['rawMentions'][number]
 
 export type StructuredScriptBeatInput = Omit<StructuredScriptBeat, 'index' | 'location' | 'sourceSpans'>
 
@@ -69,7 +69,7 @@ export type BoldLabelClassification = {
   role: 'uncatalogued-speaker' | 'caption'
 }
 
-export type TextBlockClassification = {
+type TextBlockClassification = {
   kind: 'location-transition' | 'caption' | 'labelled-action-fragment' | 'dialogue' | 'direction'
   text: string
 }

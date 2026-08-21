@@ -12,7 +12,7 @@ const SHA256 = /^[a-f0-9]{64}$/
 const DIRECTORY_MODE = 0o700
 const FILE_MODE = 0o600
 
-export const assertSafeProtectedVoiceOpaqueId = (value: string, label: string): void => {
+const assertSafeProtectedVoiceOpaqueId = (value: string, label: string): void => {
   if (!SAFE_OPAQUE_ID.test(value)) {
     throw ValidationError(`${label} must be an opaque lowercase identifier containing only letters, numbers, underscores, or hyphens.`, { stage: 'tts:protected-assets' })
   }
@@ -205,7 +205,7 @@ const buildPlannedBinding = (
   }
 }
 
-export const planProtectedVoiceAsset = async (
+const planProtectedVoiceAsset = async (
   storeId: string,
   input: TtsCliReferenceInput
 ): Promise<PlannedProtectedVoiceAsset> => {
@@ -298,7 +298,7 @@ const atomicallyStoreBytes = async (
   await assertStoredAsset(canonicalAssetsRoot, assetPath, protectedAsset.sha256)
 }
 
-export const ingestProtectedVoiceAsset = async (
+const ingestProtectedVoiceAsset = async (
   config: ProtectedVoiceAssetStoreConfig,
   input: TtsCliReferenceInput,
   expected?: ProtectedAssetRef | undefined
@@ -391,7 +391,7 @@ const writePolicy = async (
   }
 }
 
-export const ingestManagedProtectedVoiceAsset = async (
+const ingestManagedProtectedVoiceAsset = async (
   config: ProtectedVoiceAssetStoreConfig,
   input: TtsCliReferenceInput,
   policy: ProtectedVoiceAssetPolicy,
@@ -412,7 +412,7 @@ export const ingestManagedProtectedVoiceAsset = async (
   return materialized
 }
 
-export const storeManagedProtectedVoiceBytes = async (
+const storeManagedProtectedVoiceBytes = async (
   config: ProtectedVoiceAssetStoreConfig,
   bytes: Uint8Array,
   policy: ProtectedVoiceAssetPolicy,
@@ -431,7 +431,7 @@ export const storeManagedProtectedVoiceBytes = async (
   return asset
 }
 
-export const readProtectedVoiceAssetPolicies = async (
+const readProtectedVoiceAssetPolicies = async (
   config: ProtectedVoiceAssetStoreConfig,
   asset: ProtectedAssetRef
 ): Promise<ProtectedVoiceAssetPolicy[]> => {
@@ -484,7 +484,7 @@ const validateConsentRevocation = (revocation: VoiceConsentRevocation): void => 
   }
 }
 
-export const readProtectedVoiceConsentRevocations = async (
+const readProtectedVoiceConsentRevocations = async (
   config: ProtectedVoiceAssetStoreConfig,
   asset: ProtectedAssetRef
 ): Promise<VoiceConsentRevocation[]> => {
@@ -515,7 +515,7 @@ export const readProtectedVoiceConsentRevocations = async (
   return revocations
 }
 
-export const recordProtectedVoiceConsentRevocation = async (
+const recordProtectedVoiceConsentRevocation = async (
   config: ProtectedVoiceAssetStoreConfig,
   asset: ProtectedAssetRef,
   revocation: VoiceConsentRevocation
@@ -552,7 +552,7 @@ export const recordProtectedVoiceConsentRevocation = async (
   await readProtectedVoiceConsentRevocations(config, asset)
 }
 
-export const withProtectedVoiceWorkspace = async <T>(
+const withProtectedVoiceWorkspace = async <T>(
   config: ProtectedVoiceAssetStoreConfig,
   attemptId: string,
   run: (workspace: string) => Promise<T>
@@ -601,33 +601,3 @@ export const createProtectedVoiceAssetStore = (
   readConsentRevocations: asset => readProtectedVoiceConsentRevocations(config, asset),
   withWorkspace: (attemptId, run) => withProtectedVoiceWorkspace(config, attemptId, run)
 })
-
-export class ProtectedVoiceAssetStoreRegistry {
-  readonly #stores = new Map<string, ProtectedVoiceAssetStore>()
-
-  register(config: ProtectedVoiceAssetStoreConfig): ProtectedVoiceAssetStore {
-    assertSafeProtectedVoiceOpaqueId(config.storeId, 'Protected store ID')
-    if (this.#stores.has(config.storeId)) {
-      throw ValidationError(`Protected store ${config.storeId} is already registered.`, { stage: 'tts:protected-assets' })
-    }
-    const store = createProtectedVoiceAssetStore(config)
-    this.#stores.set(config.storeId, store)
-    return store
-  }
-
-  require(storeId: string): ProtectedVoiceAssetStore {
-    assertSafeProtectedVoiceOpaqueId(storeId, 'Protected store ID')
-    const store = this.#stores.get(storeId)
-    if (!store) throw ValidationError(`Protected store ${storeId} is not registered.`, { stage: 'tts:protected-assets' })
-    return store
-  }
-
-  async resolve(asset: ProtectedAssetRef): Promise<string> {
-    assertValidProtectedAssetRef(asset)
-    return await this.require(asset.storeId).resolve(asset)
-  }
-
-  roots(): string[] {
-    return [...this.#stores.values()].flatMap(store => store.root ? [store.root] : [])
-  }
-}

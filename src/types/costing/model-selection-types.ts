@@ -1,8 +1,8 @@
-export type StringArrayKey<T extends object> = {
+type StringArrayKey<T extends object> = {
   [K in keyof T]-?: Exclude<T[K], undefined> extends readonly string[] ? K : never
 }[keyof T] & string
 
-export type StringKey<T extends object> = {
+type StringKey<T extends object> = {
   [K in keyof T]-?: Exclude<T[K], undefined> extends string ? K : never
 }[keyof T] & string
 

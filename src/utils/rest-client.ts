@@ -59,7 +59,7 @@ export const extractRestErrorMessage = (payload: unknown, rawText: string, statu
 // Normalizes both abort spellings to a single `AbortError` the retry classifier can read.
 // `cause` is preserved so `collectErrorChain` still reaches the original DOMException /
 // TimeoutError instead of bottoming out at this re-wrap.
-export const normalizeFetchAbortError = (error: unknown): unknown => {
+const normalizeFetchAbortError = (error: unknown): unknown => {
   const isAbortShaped = (error instanceof DOMException || error instanceof Error)
     && (error.name === 'AbortError' || error.name === 'TimeoutError')
 

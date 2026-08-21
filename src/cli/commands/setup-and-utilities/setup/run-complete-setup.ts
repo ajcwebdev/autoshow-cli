@@ -106,12 +106,12 @@ const formatTaskFailureReason = (reason: unknown): string =>
 // hang. Recording per-task durations at least makes the cost visible afterwards.
 const setupStepTimings: { label: string, durationMs: number, ok: boolean }[] = []
 
-export const getSetupStepTimings = (): readonly { label: string, durationMs: number, ok: boolean }[] =>
+const getSetupStepTimings = (): readonly { label: string, durationMs: number, ok: boolean }[] =>
   setupStepTimings
 
 // Runs tasks concurrently and aggregates every failure instead of surfacing only
 // the first. Shared with nested groups that must not record their own timings.
-export const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]): Promise<void> => {
+const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]): Promise<void> => {
   const results = await Promise.allSettled(tasks.map(async (task) => await task.run()))
   const failures = results.flatMap((result, index) => {
     if (result.status === 'fulfilled') return []
@@ -215,14 +215,8 @@ export const detectPlatform = (): SetupPlatform => {
   return 'unknown'
 }
 
-export const detectArchitecture = (): string => {
-  if (process.arch === 'x64') return 'x86_64'
-  if (process.arch === 'arm64') return 'arm64'
-  return process.arch
-}
-
 export const defaultWhisperModel = 'tiny'
-export const defaultMusicWhisperModel = 'large-v3-turbo'
+const defaultMusicWhisperModel = 'large-v3-turbo'
 
 const withCompactSetup = async (fn: () => Promise<void>): Promise<void> => {
   const previous = isCompactSetupMode()

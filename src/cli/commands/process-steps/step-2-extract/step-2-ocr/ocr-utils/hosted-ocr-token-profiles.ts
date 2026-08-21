@@ -1,11 +1,9 @@
 import { isRecord } from '~/utils/rest-client'
-import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { isTokenPricedOcrProvider } from '~/types'
 import type { ExtractionMetadata, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, HostedOcrTokenUsageProfileStore, PartialExtractionMetadata, PersistHostedOcrProfilesOptions, TokenPricedOcrProvider } from '~/types'
-import { withProcessLock } from '~/utils/process-lock'
 import { projectHostedOcrTokenUsageEstimate, selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 import { roundMetric } from '~/utils/value-helpers'
 import { createJsonProfileStore } from '~/utils/json-profile-store'
@@ -17,7 +15,7 @@ const TOKEN_PROFILE_LOCK_NAME = 'ocr-token-usage-profiles-v1'
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
 const DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE = 1000
 
-export const resolveHostedOcrTokenUsageProfilePath = (): string =>
+const resolveHostedOcrTokenUsageProfilePath = (): string =>
   join(homedir(), '.cache', 'autoshow-cli', 'ocr-token-usage-profiles-v1.json')
 
 export const resolveHostedOcrTokenPageCountBand = (pageCount: number): string => {
@@ -118,6 +116,11 @@ const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined =>
 }
 
 const tokenUsageProfileStore = createJsonProfileStore({
+  publishPolicy: {
+    lockName: TOKEN_PROFILE_LOCK_NAME,
+    maxEntries: MAX_TOKEN_PROFILE_ENTRIES,
+    compareForRetention: (left, right) => Date.parse(right.lastSeenAt) - Date.parse(left.lastSeenAt)
+  },
   version: TOKEN_PROFILE_STORE_VERSION,
   acceptVersions: [1],
   parseEntry: parseProfile,
@@ -128,7 +131,7 @@ export const readHostedOcrTokenUsageProfiles: (
   profilePath?: string | undefined
 ) => Promise<HostedOcrTokenUsageProfileStore> = tokenUsageProfileStore.read
 
-export const readHostedOcrTokenUsageProfilesSync: (
+const readHostedOcrTokenUsageProfilesSync: (
   profilePath?: string | undefined
 ) => HostedOcrTokenUsageProfileStore = tokenUsageProfileStore.readSync
 
@@ -147,7 +150,7 @@ const weightedAverage = (oldValue: number, oldSamples: number, newValue: number)
 
 const mergeProfiles = (
   existing: HostedOcrTokenUsageProfile[],
-  samples: HostedOcrTokenUsageProfile[]
+  samples: readonly HostedOcrTokenUsageProfile[]
 ): HostedOcrTokenUsageProfile[] => {
   const byKey = new Map(existing.map((profile) => [profileKey(profile), profile]))
 
@@ -179,8 +182,6 @@ const mergeProfiles = (
   }
 
   return [...byKey.values()]
-    .sort((left, right) => Date.parse(right.lastSeenAt) - Date.parse(left.lastSeenAt))
-    .slice(0, MAX_TOKEN_PROFILE_ENTRIES)
 }
 
 const buildProfileSample = (
@@ -243,21 +244,10 @@ export const persistHostedOcrTokenUsageProfiles = async (
     return
   }
 
-  const profilePath = options.profilePath ?? resolveHostedOcrTokenUsageProfilePath()
-  await withProcessLock(TOKEN_PROFILE_LOCK_NAME, async () => {
-    const store = await readHostedOcrTokenUsageProfiles(profilePath)
-    const nextStore: HostedOcrTokenUsageProfileStore = {
-      version: TOKEN_PROFILE_STORE_VERSION,
-      profiles: mergeProfiles(store.profiles, samples)
-    }
-    await mkdir(dirname(profilePath), { recursive: true })
-    const tempPath = `${profilePath}.${process.pid}.${Date.now()}.tmp`
-    await writeFile(tempPath, JSON.stringify(nextStore, null, 2) + '\n')
-    await rename(tempPath, profilePath)
-  })
+  await tokenUsageProfileStore.publish(samples, mergeProfiles, options.profilePath)
 }
 
-export const findHostedOcrTokenUsageProfile = (
+const findHostedOcrTokenUsageProfile = (
   input: {
     provider: TokenPricedOcrProvider
     model: string

@@ -6,12 +6,8 @@ import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { materializeMediaInput } from '~/utils/media-url'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
-import type { SpeechifyTtsCustomVoiceContext, SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
+import type { SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
 import { httpResponseError } from '~/utils/rest-client'
-
-export const SPEECHIFY_TTS_CUSTOM_VOICE_COST_CENTS = 0
-export const SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS = 10_000
-export const SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_NOTE = 'Speechify custom voice creation setup'
 
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_LOCALE = 'en-US'
 const SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_GENDER = 'notSpecified'
@@ -40,14 +36,12 @@ const SpeechifyVoiceResponseSchema = v.object({
 
 export const SPEECHIFY_CUSTOM_VOICE_GENDERS = ['male', 'female', 'notSpecified'] as const
 
-export const createSpeechifyTtsCustomVoiceContext = (): SpeechifyTtsCustomVoiceContext => ({})
-
 const defaultSpeechifyTtsCustomVoiceName = (): string => `AutoShow_${Date.now()}`
 
 const isSpeechifyCustomVoiceGender = (value: string): value is SpeechifyTtsCustomVoiceGender =>
   (SPEECHIFY_CUSTOM_VOICE_GENDERS as readonly string[]).includes(value)
 
-export const validateSpeechifyTtsCustomVoiceGender = (
+const validateSpeechifyTtsCustomVoiceGender = (
   value: string | undefined
 ): SpeechifyTtsCustomVoiceGender => {
   const normalized = value?.trim() || SPEECHIFY_TTS_DEFAULT_CUSTOM_VOICE_GENDER

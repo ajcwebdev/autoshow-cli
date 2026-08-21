@@ -49,7 +49,7 @@ const getSources = (runDirectory: string, character: CharacterReferenceManifest[
   return { sheetPath: resolve(runDirectory, sheet.path), sourcePath: resolve(runDirectory, source.path) }
 }
 
-export const getCharacterIdentityCardPath = (
+const getCharacterIdentityCardPath = (
   runDirectory: string,
   manifest: CharacterReferenceManifest,
   characterKey: string,
@@ -66,7 +66,7 @@ export const getCharacterIdentityCardPath = (
   )
 }
 
-export const ensureCharacterIdentityCardSync = (
+const ensureCharacterIdentityCardSync = (
   runDirectory: string,
   manifest: CharacterReferenceManifest,
   characterKey: string,

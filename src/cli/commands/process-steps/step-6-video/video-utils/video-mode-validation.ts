@@ -70,7 +70,7 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
   }
 }
 
-export const rejectUnsupportedMode = (
+const rejectUnsupportedMode = (
   provider: string,
   model: string,
   mode: VideoMode,

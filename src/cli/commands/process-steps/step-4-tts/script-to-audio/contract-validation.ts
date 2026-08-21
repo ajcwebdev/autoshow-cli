@@ -6,18 +6,14 @@ import type {
   HybridRepairDependencies,
   GenericTtsDialoguePlan,
   GenericTtsSourceIdentity,
-  NormalizedTiming,
   PreparedProviderText,
   PreparedProviderTextSpan,
-  ProviderQualifiedCast,
   ProviderRenderPlan,
   ProviderBatchResult,
   ProviderRenderResult,
   ObservedProviderRequest,
   RenderAdmissionJournalSnapshot,
   ProviderVoiceRef,
-  TimedToken,
-  TimingClock,
   VoiceCapabilityFeature,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -156,7 +152,7 @@ export const validateProviderVoiceRef = (voice: ProviderVoiceRef): ProviderVoice
   return voice
 }
 
-export const validateCapabilityRecord = (record: AnyCapabilityRecord): AnyCapabilityRecord => {
+const validateCapabilityRecord = (record: AnyCapabilityRecord): AnyCapabilityRecord => {
   if (record.channel === 'unsupported') {
     if (record.maturity !== 'not-applicable' || record.adapterSupport !== 'unsupported') {
       throw CLIUsageError('Unsupported capability channel requires not-applicable maturity and unsupported adapter support.')
@@ -209,26 +205,6 @@ export const validateAccountCapabilityObservation = (
     }
   }
   return observation
-}
-
-export const validateProviderQualifiedCast = (cast: ProviderQualifiedCast): ProviderQualifiedCast => {
-  if (cast.schemaVersion !== 1 || cast.targets.length === 0) {
-    throw CLIUsageError('Provider-qualified cast must use schemaVersion 1 and contain at least one target.')
-  }
-  const targetKeys = cast.targets.map((target) => canonicalTargetKey('tts-synthesis', target.provider, target.model, target.transport))
-  assertUnique(targetKeys, 'Provider-qualified cast targets')
-  for (const target of cast.targets) {
-    if (target.bindings.length === 0) throw CLIUsageError('Every provider-qualified cast target requires bindings.')
-    assertUnique(target.bindings.map((binding) => binding.speakerKey), 'Provider-qualified cast speaker keys')
-    for (const binding of target.bindings) {
-      if (!binding.speakerKey.trim()) throw CLIUsageError('Cast speaker key must not be empty.')
-      if (binding.locator.provider !== target.provider) {
-        throw CLIUsageError(`Voice locator provider ${binding.locator.provider} does not match cast target ${target.provider}.`)
-      }
-      if (binding.locator.kind === 'reference-asset') assertSha256(binding.locator.protectedAsset.sha256, 'Cast protected asset checksum')
-    }
-  }
-  return cast
 }
 
 export const validateGenericTtsSourceIdentity = (
@@ -315,54 +291,6 @@ export const validatePreparedProviderText = (text: PreparedProviderText): Prepar
   assertGapFreePartition(text.spans, 'canonical', indexLength(text.canonicalText, 'unicode-scalar-value'))
   assertGapFreePartition(text.spans, 'provider', indexLength(text.providerText, text.providerIndexUnit))
   return text
-}
-
-const validateTimedToken = (token: TimedToken, durationMs: number | undefined): void => {
-  if (!token.turnId.trim() || !token.subjectKey.trim() || !Number.isInteger(token.startMs) || !Number.isInteger(token.endMs)) {
-    throw CLIUsageError('Timed token identity and millisecond boundaries are required.')
-  }
-  if (token.startMs < 0 || token.endMs < token.startMs || (durationMs !== undefined && token.endMs > durationMs)) {
-    throw CLIUsageError('Timed token boundaries are outside the selected audio clock.')
-  }
-}
-
-export const validateNormalizedTiming = <Clock extends TimingClock>(
-  timing: NormalizedTiming<Clock>,
-  durationMs?: number | undefined
-): NormalizedTiming<Clock> => {
-  assertUnique(timing.turns.map((turn) => turn.turnId), 'Timing turn IDs')
-  if (timing.availability === 'unavailable') {
-    if (!timing.reason.trim()) throw CLIUsageError('Unavailable timing requires a reason.')
-    return timing
-  }
-  let previousStart = -1
-  for (const turn of timing.turns) {
-    if (!Number.isInteger(turn.startMs) || !Number.isInteger(turn.endMs) || turn.startMs < 0 || turn.endMs < turn.startMs) {
-      throw CLIUsageError('Timing turn ranges must be valid integer millisecond intervals.')
-    }
-    if (turn.startMs < previousStart || (durationMs !== undefined && turn.endMs > durationMs)) {
-      throw CLIUsageError('Timing turn ranges must be ordered and contained by the audio duration.')
-    }
-    previousStart = turn.startMs
-  }
-  for (const token of [...(timing.words ?? []), ...(timing.phonemes ?? []), ...(timing.characters ?? [])]) {
-    validateTimedToken(token, durationMs)
-    if (!timing.turns.some((turn) => turn.turnId === token.turnId)) throw CLIUsageError('Timed token references an unknown turn.')
-  }
-  return timing
-}
-
-export const providerTimeToMilliseconds = (
-  value: number,
-  unitMilliseconds: number,
-  audioDurationMs: number
-): number => {
-  if (!Number.isFinite(value) || !Number.isFinite(unitMilliseconds) || value < 0 || unitMilliseconds <= 0) {
-    throw CLIUsageError('Provider time conversion requires finite non-negative time and a positive unit.')
-  }
-  const raw = value * unitMilliseconds
-  const rounded = raw >= 0 ? Math.floor(raw + 0.5) : Math.ceil(raw - 0.5)
-  return Math.min(audioDurationMs, Math.max(0, rounded))
 }
 
 const capabilityFeatureForStrategy = (strategy: ProviderRenderPlan['strategy']): VoiceCapabilityFeature => {
@@ -993,7 +921,7 @@ export const validateCacheMaterializationPlan = (
   return plan
 }
 
-export const validateHybridRepairDependencies = (
+const validateHybridRepairDependencies = (
   repair: HybridRepairDependencies
 ): HybridRepairDependencies => {
   if (repair.schemaVersion !== 1 || repair.reusedOutputs.length === 0 || repair.resubmittedTurnIds.length === 0) {

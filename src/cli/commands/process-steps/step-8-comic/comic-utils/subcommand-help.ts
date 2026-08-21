@@ -29,11 +29,11 @@ const SCRIPT_PATH_PARAMETER = {
 
 const ARTIFACT_NOTE = 'Comic artifacts are read from input and written under output.'
 
-export const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to scene JSON to panel prompt bundles'
-export const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
-export const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
-export const GENERATE_AUDIO_DESCRIPTION = 'Render approved character voices from an existing compatible structured comic scene'
-export const GENERATE_SLIDESHOW_DESCRIPTION = 'Synchronize canonical still panels with one complete manifest-backed audio run using local FFmpeg'
+const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to scene JSON to panel prompt bundles'
+const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
+const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
+const GENERATE_AUDIO_DESCRIPTION = 'Render approved character voices from an existing compatible structured comic scene'
+const GENERATE_SLIDESHOW_DESCRIPTION = 'Synchronize canonical still panels with one complete manifest-backed audio run using local FFmpeg'
 
 export const draftScenesCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_SCENES_COMMAND}`,

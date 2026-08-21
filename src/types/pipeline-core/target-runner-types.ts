@@ -8,7 +8,7 @@ export type BuildSingleArtifactMapOptions<T> = {
   getFileName: (item: T) => string
 }
 
-export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConcurrencyRuntimeOptions & {
+type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConcurrencyRuntimeOptions & {
   targets: TTarget[]
   outputDir: string
   stepLabel: string

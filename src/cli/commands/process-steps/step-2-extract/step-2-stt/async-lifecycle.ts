@@ -1,6 +1,6 @@
 import { isRecord } from '~/utils/rest-client'
 import { pollUntil } from '~/utils/retries'
-import type { AsyncSttActiveJobContext, PollStats, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
+import type { AsyncSttActiveJobContext, AsyncSttCreationOutcome, PollStats, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { AppError, extractErrorMetadata, InfraError, InternalError, isRetryExhaustedError, ProviderError } from '~/utils/error-handler'
 import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
@@ -435,7 +435,7 @@ const createAsyncSttLifecycleContext = <TStatus, TTranscript, TUpload>(
 
 const createFreshAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>
-): Promise<AsyncSttActiveJobContext<TStatus, TTranscript, TUpload>> => {
+): Promise<AsyncSttCreationOutcome<TStatus, TTranscript, TUpload>> => {
   const { cleanupState, metrics, notifyJobReady, options, persistProgressMetadata } = context
   let uploadedAsset: AsyncSttUploadAssetResult<TUpload> | undefined
 
@@ -450,6 +450,13 @@ const createFreshAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   const createResponse = await options.createJob(metrics, uploadedAsset)
   metrics.createMs += Date.now() - createStartedAt
   metrics.createCount += 1
+
+  // Some providers answer a small request synchronously; there is no remote job to
+  // poll, persist, or clean up, so the lifecycle jumps straight to result assembly.
+  if (createResponse.kind === 'completed') {
+    return { kind: 'completed', transcript: createResponse.transcript }
+  }
+
   cleanupState.setJob(createResponse.jobId, createResponse.status)
 
   const runtime = buildAsyncSttRuntime(
@@ -464,14 +471,17 @@ const createFreshAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   await notifyJobReady(runtime)
 
   return {
-    ...context,
-    activeJob: {
-      jobId: createResponse.jobId,
-      resumedExistingJob: false,
-      ...(createResponse.status === undefined ? {} : { initialStatus: createResponse.status })
-    },
-    runtime,
-    ...(uploadedAsset ? { uploadedAsset } : {})
+    kind: 'job',
+    context: {
+      ...context,
+      activeJob: {
+        jobId: createResponse.jobId,
+        resumedExistingJob: false,
+        ...(createResponse.status === undefined ? {} : { initialStatus: createResponse.status })
+      },
+      runtime,
+      ...(uploadedAsset ? { uploadedAsset } : {})
+    }
   }
 }
 
@@ -498,9 +508,9 @@ const resumeAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   }
 }
 
-export const resumeOrCreateAsyncSttJob = async <TStatus, TTranscript, TUpload>(
+const resumeOrCreateAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>
-): Promise<AsyncSttActiveJobContext<TStatus, TTranscript, TUpload>> => {
+): Promise<AsyncSttCreationOutcome<TStatus, TTranscript, TUpload>> => {
   const { options } = context
   const persistedRuntime = await readPersistedAsyncSttRuntime(options.lifecycle, {
     transcriptionService: options.providerService,
@@ -517,9 +527,13 @@ export const resumeOrCreateAsyncSttJob = async <TStatus, TTranscript, TUpload>(
       model: options.modelName
     })
   }
-  const activeContext = persistedRuntime && (persistedRuntime.stage === 'created' || persistedRuntime.stage === 'polling')
-    ? await resumeAsyncSttJob(context, persistedRuntime)
+  const outcome = persistedRuntime && (persistedRuntime.stage === 'created' || persistedRuntime.stage === 'polling')
+    ? { kind: 'job' as const, context: await resumeAsyncSttJob(context, persistedRuntime) }
     : await createFreshAsyncSttJob(context)
+  if (outcome.kind === 'completed') {
+    return outcome
+  }
+  const activeContext = outcome.context
   const { activeJob } = activeContext
 
   if (!activeJob.jobId) {
@@ -535,10 +549,10 @@ export const resumeOrCreateAsyncSttJob = async <TStatus, TTranscript, TUpload>(
     remoteId: activeJob.jobId,
     state: 'polling'
   })
-  return activeContext
+  return { kind: 'job', context: activeContext }
 }
 
-export const pollAndPersistAsyncSttJob = async <TStatus, TTranscript, TUpload>(
+const pollAndPersistAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   context: AsyncSttActiveJobContext<TStatus, TTranscript, TUpload>
 ): Promise<AsyncSttPolledJobContext<TStatus, TTranscript, TUpload>> => {
   const { activeJob, cleanupState, metrics, options, persistProgressMetadata, uploadedAsset } = context
@@ -598,23 +612,22 @@ export const pollAndPersistAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   }
 }
 
-export const constructAsyncSttResult = async <TStatus, TTranscript, TUpload>(
-  context: AsyncSttPolledJobContext<TStatus, TTranscript, TUpload>
-): Promise<AsyncSttCompletedJobContext<TStatus, TTranscript, TUpload>> => {
-  const { activeJob, completedRuntime, metrics, options } = context
-  const transcriptStartedAt = Date.now()
-  const transcript = await options.getTranscript(activeJob.jobId, metrics, context.finalStatus)
-  metrics.transcriptMs += Date.now() - transcriptStartedAt
-
-  if (options.persistCompletedProgress) {
-    await context.persistProgressMetadata(completedRuntime)
-  }
-
+/**
+ * Shared tail for both completion paths: stamp timings against the run clock, hand the
+ * transcript to the provider's result builder, record it for cleanup, and close out the
+ * segment log. `runtime` is absent when creation returned the transcript directly.
+ */
+const finalizeAsyncSttBuiltResult = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>,
+  transcript: TTranscript,
+  runtime: Step2RuntimeMetadata | undefined
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  const { metrics, options } = context
   const processingTime = Date.now() - options.startTime
   const remoteProcessingMs = Math.max(0, processingTime - metrics.uploadMs - metrics.createMs - metrics.pollMs - metrics.transcriptMs)
   const built = await options.buildResult({
     transcript,
-    runtime: completedRuntime,
+    runtime,
     processingTime,
     timings: context.buildTimingMetadata(remoteProcessingMs)
   })
@@ -633,7 +646,22 @@ export const constructAsyncSttResult = async <TStatus, TTranscript, TUpload>(
     })
   }
 
-  return { ...context, built }
+  return built
+}
+
+const constructAsyncSttResult = async <TStatus, TTranscript, TUpload>(
+  context: AsyncSttPolledJobContext<TStatus, TTranscript, TUpload>
+): Promise<AsyncSttCompletedJobContext<TStatus, TTranscript, TUpload>> => {
+  const { activeJob, completedRuntime, metrics, options } = context
+  const transcriptStartedAt = Date.now()
+  const transcript = await options.getTranscript(activeJob.jobId, metrics, context.finalStatus)
+  metrics.transcriptMs += Date.now() - transcriptStartedAt
+
+  if (options.persistCompletedProgress) {
+    await context.persistProgressMetadata(completedRuntime)
+  }
+
+  return { ...context, built: await finalizeAsyncSttBuiltResult(context, transcript, completedRuntime) }
 }
 
 const buildAsyncSttCleanupRuntime = <TStatus, TUpload>(
@@ -706,7 +734,7 @@ const applyAsyncSttCleanupMetadata = <TStatus, TUpload>(
   }
 }
 
-export const finalizeAsyncSttCleanup = async <TStatus, TTranscript, TUpload>(
+const finalizeAsyncSttCleanup = async <TStatus, TTranscript, TUpload>(
   context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>
 ): Promise<void> => {
   const { cleanup } = context.options
@@ -757,8 +785,11 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript, TUpload = un
   const context = createAsyncSttLifecycleContext(options)
 
   try {
-    const activeJob = await resumeOrCreateAsyncSttJob(context)
-    const polledJob = await pollAndPersistAsyncSttJob(activeJob)
+    const created = await resumeOrCreateAsyncSttJob(context)
+    if (created.kind === 'completed') {
+      return await finalizeAsyncSttBuiltResult(context, created.transcript, undefined)
+    }
+    const polledJob = await pollAndPersistAsyncSttJob(created.context)
     return (await constructAsyncSttResult(polledJob)).built
   } finally {
     await finalizeAsyncSttCleanup(context)

@@ -3,7 +3,7 @@ import { CLIUsageError, InfraError, InternalError, ProviderError, ValidationErro
 import { normalizeInworldTimestampInfo, resolveInworldTtsApiModelId } from './inworld-tts-request'
 
 export const INWORLD_TTS_WEBSOCKET_URL = 'wss://api.inworld.ai/tts/v1/voice:streamBidirectional'
-export const INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH = 1000
+const INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH = 1000
 
 const DEFAULT_TIMEOUT_MS = 30_000
 const MAX_TIMEOUT_MS = 120_000
@@ -161,7 +161,7 @@ const waitFor = async <T>(operation: Promise<T>, signal: AbortSignal): Promise<T
   })
 }
 
-export const createBunInworldWebSocketConnector: InworldWebSocketConnector = async ({ url, headers, signal }) => {
+const createBunInworldWebSocketConnector: InworldWebSocketConnector = async ({ url, headers, signal }) => {
   if (typeof Bun === 'undefined') throw InternalError('The default Inworld WebSocket connector requires Bun; inject a connector in other runtimes.', { stage: 'tts:inworld-websocket', retryable: false })
   const BunWebSocket = WebSocket as unknown as new (url: string, options: { headers: Readonly<Record<string, string>> }) => WebSocket
   const socket = new BunWebSocket(url, { headers })

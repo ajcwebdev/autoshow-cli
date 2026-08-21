@@ -393,7 +393,7 @@ export const geminiUploadFile = async (
   throw ValidationError('Gemini Files API upload did not return file metadata.', { stage: 'gemini:rest' })
 }
 
-export const getGeminiFileState = (file: unknown): string | undefined => {
+const getGeminiFileState = (file: unknown): string | undefined => {
   if (!isObjectLike(file)) {
     return undefined
   }
@@ -407,7 +407,7 @@ export const getGeminiFileState = (file: unknown): string | undefined => {
   return undefined
 }
 
-export const geminiGetFile = async (
+const geminiGetFile = async (
   apiKey: string,
   name: string
 ): Promise<GeminiFile> => {
@@ -417,7 +417,7 @@ export const geminiGetFile = async (
   return isObjectLike(json) ? json as GeminiFile : {}
 }
 
-export const GEMINI_FILE_ACTIVATION_DEADLINE_MS = 120_000
+const GEMINI_FILE_ACTIVATION_DEADLINE_MS = 120_000
 const GEMINI_FILE_ACTIVATION_INTERVAL_MS = 1_000
 
 /**

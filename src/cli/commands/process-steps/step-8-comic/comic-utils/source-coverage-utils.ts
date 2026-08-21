@@ -123,7 +123,7 @@ const LETTERED_SOURCE_SEGMENT_GUIDANCE: Partial<Record<StructuredScriptSourceSeg
 
 const STAGING_SOURCE_SEGMENT_GUIDANCE = 'Staging direction. Draw what it describes. Never letter any of this text in the image.'
 
-export const getSourceSegmentLetteringGuidance = (
+const getSourceSegmentLetteringGuidance = (
   type: StructuredScriptSourceSegment['type']
 ): string => {
   return LETTERED_SOURCE_SEGMENT_GUIDANCE[type] ?? STAGING_SOURCE_SEGMENT_GUIDANCE

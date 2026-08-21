@@ -1,7 +1,7 @@
 import type { ActualPipelineInputsBase, CostEstimateBase, CostSource, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, NormalizedReasoningEffort, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
 
 // The token-profile provenance fields carried by every extract estimate/cost surface.
-export type TokenProfileEstimateFields = {
+type TokenProfileEstimateFields = {
   tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
   tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy'
   tokenProfileSampleCount?: number
@@ -10,7 +10,7 @@ export type TokenProfileEstimateFields = {
   tokenProfileEffectiveReasoningEffort?: HostedOcrTokenReasoningPolicy
 }
 
-export type ReasoningEstimateFields = {
+type ReasoningEstimateFields = {
   requestedReasoningEffort?: NormalizedReasoningEffort
   effectiveReasoningEffort?: NormalizedReasoningEffort
 }
@@ -275,7 +275,7 @@ export type StepCostEntry = TokenProfileEstimateFields & {
   pricingNote?: string
 }
 
-export type CostBreakdown<TStep> = {
+type CostBreakdown<TStep> = {
   totalCost: number
   steps: TStep[]
 }

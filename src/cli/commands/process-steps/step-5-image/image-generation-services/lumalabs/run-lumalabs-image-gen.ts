@@ -6,6 +6,7 @@ import { downloadGeneratedImage, extractImageErrorMessage, LumalabsGenerationSch
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToInlineDataPart, isHttpUrl } from '../../image-utils/image-inputs'
 import { ensureLumalabsImageGenSetup, getLumalabsBaseUrl } from './lumalabs-image-gen'
+import { normalizeImageOutputFormat } from '../../image-utils/image-target-validation'
 const POLL_INTERVAL_MS = 5_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 
@@ -24,18 +25,13 @@ export const normalizeLumalabsAspectRatio = (aspectRatio: string | undefined): s
   throw CLIUsageError(`Invalid --image-aspect-ratio value "${aspectRatio}" for Luma Labs. Supported values: ${LUMALABS_ASPECT_RATIOS.join(', ')}.`)
 }
 
-export const normalizeLumalabsImageOutputFormat = (format: string | undefined): LumalabsOutputFormat => {
-  if (format === undefined || format.length === 0) {
-    return 'png'
-  }
-
-  const normalized = format.toLowerCase()
-  if ((LUMALABS_OUTPUT_FORMATS as readonly string[]).includes(normalized)) {
-    return normalized as LumalabsOutputFormat
-  }
-
-  throw CLIUsageError(`Invalid --image-format value "${format}" for Luma Labs. Expected png or jpeg.`)
-}
+export const normalizeLumalabsImageOutputFormat = (format: string | undefined): LumalabsOutputFormat =>
+  normalizeImageOutputFormat(format, {
+    allowed: LUMALABS_OUTPUT_FORMATS,
+    fallback: 'png',
+    providerLabel: 'Luma Labs',
+    expected: 'png or jpeg'
+  })
 
 export const getLumalabsImageExtension = (format: string | undefined): string => {
   const outputFormat = normalizeLumalabsImageOutputFormat(format)

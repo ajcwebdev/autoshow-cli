@@ -12,10 +12,6 @@ import type { ElevenLabsTtsIvcContext, ElevenLabsTtsIvcOptions, ElevenLabsTtsIvc
 import { httpResponseError } from '~/utils/rest-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
-export const ELEVENLABS_TTS_IVC_COST_CENTS = 0
-export const ELEVENLABS_TTS_IVC_SETUP_MS = 10_000
-export const ELEVENLABS_TTS_IVC_SETUP_NOTE = 'ElevenLabs instant voice clone setup'
-
 const ELEVENLABS_IVC_BEST_PRACTICE_MIN_SECONDS = 10
 const ELEVENLABS_IVC_BEST_PRACTICE_MAX_SECONDS = 2 * 60
 

@@ -9,7 +9,7 @@ import { downloadImageUrl } from '../../image-utils/image-output'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
 import { ensureFalImageGenSetup } from './fal-image-gen'
 
-export const FAL_IMAGE_FORMATS = ['png', 'jpeg', 'webp'] as const
+const FAL_IMAGE_FORMATS = ['png', 'jpeg', 'webp'] as const
 export const FAL_IMAGE_COUNT_RANGE = [1, 4] as const
 export const FAL_REVE_ASPECT_RATIOS = ['4:1', '3:1', '21:9', '2:1', '17:9', '16:9', '3:2', '4:3', '5:4', '1:1', '4:5', '3:4', '2:3', '9:16', '1:2', '1:3', '1:4', 'auto'] as const
 

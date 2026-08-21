@@ -156,7 +156,7 @@ export type HostedOcrSchedulerOptions = {
   setTimer?: HostedOcrSchedulerSetTimer | undefined
 }
 
-export type HostedOcrSchedulerTimer = ReturnType<typeof setTimeout> | number
+type HostedOcrSchedulerTimer = ReturnType<typeof setTimeout> | number
 
 export type HostedOcrSchedulerSetTimer = (
   callback: () => void,

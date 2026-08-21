@@ -8,8 +8,8 @@ import { CharacterReferenceSchema } from '../schemas/schemas'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 
-export const CHARACTER_REFERENCE_FILENAME = 'characters-reference.json'
-export const CHARACTER_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const CHARACTER_REFERENCE_FILENAME = 'characters-reference.json'
+const CHARACTER_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SUPPORTED_SOURCE_EXTENSIONS = /\.(?:png|webp|jpe?g)$/i
 const catalogContext = new AsyncLocalStorage<CharacterCatalogService>()
 
@@ -21,7 +21,7 @@ export const normalizeCharacterLookup = (value: string): string => value
   .replace(/\s+/g, ' ')
   .toLocaleUpperCase('en-US')
 
-export const asCharacterKey = (value: string): CharacterKey => {
+const asCharacterKey = (value: string): CharacterKey => {
   if (!CHARACTER_KEY_PATTERN.test(value)) {
     throw ValidationError(
       `Invalid character key "${value}". Character keys must use lowercase kebab-case.`,
@@ -31,7 +31,7 @@ export const asCharacterKey = (value: string): CharacterKey => {
   return value as CharacterKey
 }
 
-export const resolveCharacterReferenceConfigPath = (charactersRoot = getCharactersRoot()): string =>
+const resolveCharacterReferenceConfigPath = (charactersRoot = getCharactersRoot()): string =>
   join(charactersRoot, CHARACTER_REFERENCE_FILENAME)
 
 const fail = (configPath: string, detail: string): never => {

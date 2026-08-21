@@ -1,6 +1,6 @@
 import type { PipelineManifest, ProcessCommand } from '~/types'
 
-export type OcrBatchDiagnosticTrigger = 'repeated_blocker' | 'partial_provider_usage' | 'missing_actual_cost' | 'material_estimate_drift'
+type OcrBatchDiagnosticTrigger = 'repeated_blocker' | 'partial_provider_usage' | 'missing_actual_cost' | 'material_estimate_drift'
 
 export type OcrBatchDiagnosticTarget = {
   provider: string

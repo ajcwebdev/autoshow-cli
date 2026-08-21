@@ -26,6 +26,7 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { PROCESS_COMMANDS } from '~/types'
 import type { PipelineManifest, PipelineProviderState, ProjectionArtifactReference } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { policySkippedTtsProviderStateFrom } from '../../../test-utils/tts-provider-state-fixtures'
 
 const ARTIFACT_HASHES = {
   branch: '1'.repeat(64),
@@ -119,40 +120,15 @@ const artifactCollectorProjection = (): Record<string, unknown> => ({
   }]
 })
 
-const policySkippedState = (targetKey: string, artifactDir = `providers/${targetKey}`): PipelineProviderState => {
-  const actor = { namespace: 'local-user' as const, actorId: 'agreement-harness' }
-  const at = new Date(0).toISOString()
-  const evidence = {
-    schemaVersion: 1 as const,
-    skipId: `skip-${targetKey}`,
-    targetKey,
-    reasonCode: 'user-requested' as const,
-    reason: 'agreement fixture skip',
-    actor,
-    at
-  }
-  const projection = {
-    activeWork: { kind: 'policy-skip' as const, evidence },
-    branchHistory: [],
-    readinessAttempts: [],
-    renderHistory: [],
-    pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
-  }
-  return {
-    service: 'openai',
-    model: 'fixture-tts',
-    local: false,
-    operation: 'tts-synthesis',
-    targetKey,
-    transport: 'hosted-api',
+const policySkippedState = (targetKey: string, artifactDir = `providers/${targetKey}`): PipelineProviderState =>
+  policySkippedTtsProviderStateFrom({
+    target: { service: 'openai', model: 'fixture-tts', transport: 'hosted-api', targetKey },
     artifactDir,
-    status: 'skipped',
-    attempts: 0,
-    options: {},
-    metadata: { ttsAudio: projection },
-    result: { ttsAudio: projection }
-  }
-}
+    skipId: `skip-${targetKey}`,
+    actorId: 'agreement-harness',
+    reason: 'agreement fixture skip',
+    local: false
+  })
 
 describe('manifest validator agreement harness', () => {
   test('manifest write, read, and mutation parity across commands and scopes', async () => {

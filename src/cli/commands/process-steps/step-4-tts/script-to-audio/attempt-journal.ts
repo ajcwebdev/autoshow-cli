@@ -34,7 +34,7 @@ export const journalEventFields = (ctx: AttemptContext): {
   }
 }
 
-export const writeJournalLine = async (
+const writeJournalLine = async (
   ctx: AttemptContext,
   snapshot: RenderAdmissionJournalSnapshot
 ): Promise<WrittenJson<RenderAdmissionJournalSnapshot>> => {
@@ -84,7 +84,7 @@ export const ensureJournalStarted = async (ctx: AttemptContext): Promise<void> =
   ctx.journalFile = await writeJournalLine(ctx, ctx.journal)
 }
 
-export const publishJournalState = async (ctx: AttemptContext): Promise<void> => {
+const publishJournalState = async (ctx: AttemptContext): Promise<void> => {
   const at = ctx.now()
   requireJournalFile(ctx)
   const retainedProgress = buildBatchProgress(ctx, [...ctx.recoveredBatchFiles, ...ctx.promotedBatchFiles.values()])

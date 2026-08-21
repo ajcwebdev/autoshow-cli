@@ -34,12 +34,12 @@ export type RestErrorBase = AppProviderError & {
   bodyPreview?: string | undefined
 }
 
-export type ProviderRestRequest = {
+type ProviderRestRequest = {
   url: string
   init: RequestInit
 }
 
-export type ProviderRestErrorContext<TOptions> = {
+type ProviderRestErrorContext<TOptions> = {
   options: TOptions
   response: Response
   captured: BoundedCaptureResult

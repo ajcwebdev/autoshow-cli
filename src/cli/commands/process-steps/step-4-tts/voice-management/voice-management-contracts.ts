@@ -301,9 +301,6 @@ export const validateVoiceAuditionManifest = (manifest: VoiceAuditionManifest): 
   return manifest
 }
 
-export const computeVoiceGenerationId = (registration: Omit<VoiceRegistration, 'generationId'>): string =>
-  hashCanonicalRecordWithout(registration as unknown as Record<string, unknown>, [])
-
 export const validateVoiceRegistration = (registration: VoiceRegistration): VoiceRegistration => {
   assertAllowedKeys(registration, ['schemaVersion', 'registrationId', 'generationId', 'priorGenerationId', 'subjectKey', 'profileKey', 'provider', 'providerModel', 'creationModel', 'briefHash', 'provenanceRef', 'consentRecordRef', 'settingsSchema', 'synthesisSettings', 'capabilityFixtureHash', 'accountCapabilityObservationHash', 'sanitizedProviderMetadata', 'retention', 'cleanupState', 'createdAt', 'updatedAt', 'approval', 'provisioning', 'approvedAuditionId'], 'Voice registration')
   if (registration.schemaVersion !== 1) throw CLIUsageError('Voice registration requires schemaVersion 1.')

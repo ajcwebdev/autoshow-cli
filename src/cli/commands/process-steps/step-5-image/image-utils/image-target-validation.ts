@@ -68,7 +68,7 @@ export const validateImageCount = (
 // Pipeline spellings, which `write`, `config`, and `resume` register verbatim. The standalone
 // `image` command drops the `image-` prefix, so it retargets these through
 // `imageCommandOptionNames` on the way out; write messages here in the `--image-*` form.
-export const IMAGE_OPTION_LABELS = {
+const IMAGE_OPTION_LABELS = {
   geminiImageModels: '--gemini-image',
   geminiImageModel: '--gemini-image',
   openaiImageModels: '--openai-image',
@@ -99,4 +99,25 @@ export const IMAGE_OPTION_LABELS = {
   concurrencyMode: '--concurrency-mode',
   hostedConcurrencyCoordinator: 'hosted concurrency coordinator',
   generationResourceGate: 'generation resource gate'
+}
+
+/**
+ * Validates an `--image-format` value against one provider's supported set. The allowed
+ * list, default, and provider label are explicit because each provider publishes its own
+ * format support and its own error wording.
+ */
+export const normalizeImageOutputFormat = <TFormat extends string>(
+  format: string | undefined,
+  policy: { allowed: readonly TFormat[], fallback: TFormat, providerLabel: string, expected: string }
+): TFormat => {
+  if (format === undefined || format.length === 0) {
+    return policy.fallback
+  }
+
+  const normalized = format.toLowerCase()
+  if ((policy.allowed as readonly string[]).includes(normalized)) {
+    return normalized as TFormat
+  }
+
+  throw CLIUsageError(`Invalid --image-format value "${format}" for ${policy.providerLabel}. Expected ${policy.expected}.`)
 }

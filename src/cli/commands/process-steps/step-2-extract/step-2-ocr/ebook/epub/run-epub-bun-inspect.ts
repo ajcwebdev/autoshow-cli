@@ -28,7 +28,7 @@ const createZipReader = async (filePath: string): Promise<EpubContentReader> => 
   }
 }
 
-export const runEpubZipInspect = async (
+const runEpubZipInspect = async (
   filePath: string,
   engine: EpubInspectEngine
 ): Promise<EpubInspectOutput> => {

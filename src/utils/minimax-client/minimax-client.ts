@@ -29,13 +29,6 @@ export const MinimaxQueryResponseSchema = v.object({
   base_resp: v.optional(MinimaxBaseRespSchema, undefined)
 })
 
-const MinimaxRetrieveFileResponseSchema = v.object({
-  file: v.object({
-    download_url: v.string()
-  }),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
-
 export const minimaxJsonRequestInit = (
   apiKey: string,
   method: 'GET' | 'POST',
@@ -51,7 +44,7 @@ export const minimaxJsonRequestInit = (
   ...(signal ? { signal } : {})
 })
 
-export const ensureMinimaxBaseRespSuccess = (
+const ensureMinimaxBaseRespSuccess = (
   baseResp: { status_code?: number | undefined, status_msg?: string | undefined } | undefined,
   context: string,
   stage: string
@@ -103,26 +96,6 @@ export const minimaxFetchJson = async <TSchema extends v.BaseSchema<unknown, unk
     options.stage
   )
   return parsed
-}
-
-export const retrieveMinimaxFileUrl = async (
-  baseURL: string,
-  apiKey: string,
-  fileId: string,
-  stage: string
-): Promise<string> => {
-  const data = await minimaxFetchJson(
-    `${baseURL}/v1/files/retrieve?file_id=${encodeURIComponent(fileId)}`,
-    {
-      init: minimaxJsonRequestInit(apiKey, 'GET'),
-      schema: MinimaxRetrieveFileResponseSchema,
-      responseContext: 'MiniMax video file retrieve response',
-      baseRespContext: 'MiniMax video file retrieve',
-      stage,
-      httpErrorMessage: 'MiniMax file retrieve failed'
-    }
-  )
-  return data.file.download_url
 }
 
 export const readMinimaxTaskStatus = (query: MinimaxQueryResponse): string | number | undefined =>

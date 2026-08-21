@@ -218,7 +218,7 @@ export const writeCachedFallbackPage = async (
   await Bun.write(getFallbackPageResultPath(fallbackDir, pageNumber), JSON.stringify(payload, null, 2) + '\n')
 }
 
-export const writeFallbackPageText = async (
+const writeFallbackPageText = async (
   fallbackDir: string | undefined,
   pageNumber: number,
   run: HostedOcrRun
@@ -321,7 +321,7 @@ export const buildMalformedFallbackPageRun = (
   )
 }
 
-export const hasMatchingFallbackState = async (
+const hasMatchingFallbackState = async (
   fallbackDir: string | undefined,
   sourceFile: string,
   identity?: HostedOcrIdentity | undefined

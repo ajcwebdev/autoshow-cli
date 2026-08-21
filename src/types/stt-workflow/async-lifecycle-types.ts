@@ -20,20 +20,25 @@ export type AsyncSttUploadAssetResult<TUpload> = {
   remoteAssetUrl?: string | undefined
 }
 
-export type AsyncSttCreateJobResult<TStatus> = {
-  jobId: string
-  status?: TStatus | undefined
-}
+/**
+ * Creation either hands back a job to poll, or — for providers that can answer a small
+ * request synchronously — the finished transcript itself. `kind` is optional on the job
+ * branch so adapters that can only ever return a job stay unchanged.
+ */
+type AsyncSttCreateJobResult<TStatus, TTranscript> =
+  | { kind?: 'job' | undefined, jobId: string, status?: TStatus | undefined }
+  | { kind: 'completed', transcript: TTranscript }
 
-export type AsyncSttActiveJob<TStatus> = {
+type AsyncSttActiveJob<TStatus> = {
   jobId: string
   resumedExistingJob: boolean
   initialStatus?: TStatus | undefined
 }
 
-export type AsyncSttLifecycleResultBuilderParams<TTranscript> = {
+type AsyncSttLifecycleResultBuilderParams<TTranscript> = {
   transcript: TTranscript
-  runtime: Step2RuntimeMetadata
+  /** Absent when creation returned the transcript directly, so no remote job exists. */
+  runtime: Step2RuntimeMetadata | undefined
   processingTime: number
   timings?: Step2Metadata['timings'] | undefined
 }
@@ -60,7 +65,7 @@ export type AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload = unknown> = 
   createJob: (
     metrics: AsyncSttLifecycleMetrics,
     upload: AsyncSttUploadAssetResult<TUpload> | undefined
-  ) => Promise<AsyncSttCreateJobResult<TStatus>>
+  ) => Promise<AsyncSttCreateJobResult<TStatus, TTranscript>>
   pollJob: (jobId: string, metrics: AsyncSttLifecycleMetrics) => Promise<{ status: TStatus, retryAfterMs: number | null }>
   getTranscript: (jobId: string, metrics: AsyncSttLifecycleMetrics, finalStatus: TStatus) => Promise<TTranscript>
   isComplete: (status: TStatus) => boolean
@@ -127,7 +132,12 @@ export type AsyncSttCompletedJobContext<TStatus, TTranscript, TUpload = unknown>
     built: { result: TranscriptionResult, metadata: Step2Metadata }
   }
 
-export type AsyncSttPollMode = 'fresh' | 'resume-probe'
+/** Creation resolved a job to poll, or already produced the transcript. */
+export type AsyncSttCreationOutcome<TStatus, TTranscript, TUpload = unknown> =
+  | { kind: 'job', context: AsyncSttActiveJobContext<TStatus, TTranscript, TUpload> }
+  | { kind: 'completed', transcript: TTranscript }
+
+type AsyncSttPollMode = 'fresh' | 'resume-probe'
 
 export type AsyncSttPollLoopOptions<TStatus> = {
   jobId: string

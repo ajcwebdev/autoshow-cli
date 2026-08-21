@@ -61,7 +61,7 @@ export const readHostedOcrImageDataUrl = async (
   return `data:${getHostedOcrImageMimeType(format, options.providerLabel, options.supportedMimeTypes)};base64,${base64}`
 }
 
-export const isPageResult = (value: unknown): value is PageResult =>
+const isPageResult = (value: unknown): value is PageResult =>
   isRecord(value)
   && typeof value['pageNumber'] === 'number'
   && (value['method'] === 'text' || value['method'] === 'ocr' || value['method'] === 'skipped')

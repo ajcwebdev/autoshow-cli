@@ -5,7 +5,7 @@ import { prepareDeepinfraChatterboxText } from './deepinfra-text-preparation'
 
 export const DEEPINFRA_TTS_SERIALIZER_VERSION = 'deepinfra.tts.phase-4-v2'
 
-export const DEEPINFRA_DEFAULT_VOICE_DESCRIPTION = 'A warm, clear, expressive English narrator with natural pacing.'
+const DEEPINFRA_DEFAULT_VOICE_DESCRIPTION = 'A warm, clear, expressive English narrator with natural pacing.'
 
 export const DEEPINFRA_VOICE_DESIGN_MODELS = [
   'XiaomiMiMo/MiMo-V2.5-tts-voicedesign',

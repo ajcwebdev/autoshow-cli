@@ -3,7 +3,7 @@ import type { ProviderLaneIdentity } from '~/types'
 
 export const DEFAULT_PROVIDER_LANE_SCOPE_LABEL = 'configured-account'
 
-export const normalizeProviderLaneScopeLabel = (
+const normalizeProviderLaneScopeLabel = (
   scopeLabel: string | undefined,
   fallback = DEFAULT_PROVIDER_LANE_SCOPE_LABEL
 ): string => {

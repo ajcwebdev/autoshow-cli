@@ -22,19 +22,3 @@ export const expectArtifact = async (path: string, label = path): Promise<void> 
     expect.unreachable(`Missing ${label} at ${path}`)
   }
 }
-
-/** Asserts every listed artifact exists, reporting all misses rather than only the first. */
-export const expectArtifacts = async (
-  paths: readonly string[],
-  labelFor: (path: string) => string = (path) => path
-): Promise<void> => {
-  const missing: string[] = []
-  for (const path of paths) {
-    if (!await fileExists(path)) {
-      missing.push(`${labelFor(path)} (${path})`)
-    }
-  }
-  if (missing.length > 0) {
-    expect.unreachable(`Missing artifacts:\n- ${missing.join('\n- ')}`)
-  }
-}

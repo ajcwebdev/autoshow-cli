@@ -28,13 +28,13 @@ export const TIMEOUT_PATTERN = /\b(?:timed?\s*out|timeout|abort\/timeout|timeout
  * `(?<!non-)` matters: "non-retryable status 500" is production refusing to retry, and the
  * old pattern read the tail of that phrase as a retryable status.
  */
-export const TRANSIENT_SIGNAL_PATTERN = new RegExp(
+const TRANSIENT_SIGNAL_PATTERN = new RegExp(
   `\\(5\\d\\d\\)|\\b(?:(?<!non-)retryable status (?:${SERVER_ERROR_STATUS_GROUP})|service unavailable|bad gateway|gateway timeout|internal server error|backend error|econnaborted|connection reset|max attempts reached|retry_exhausted|retry attempts? (?:were )?exhausted|${NETWORK_FAILURE_SPELLINGS.map(escapeForRegex).join('|')})\\b`,
   'i'
 )
 
 /** The stop reasons `withRetry` prints when it refused to retry rather than ran out of budget. */
-export const TERMINAL_STOP_REASON_PATTERN =
+const TERMINAL_STOP_REASON_PATTERN =
   /^(?:non-retryable status \d{3}|unexpected status \d{3}|error marked non-retryable|paid create outcome is ambiguous|paid create status \d{3} is not safe to redispatch|deterministic \w+ error|provider admission outcome is ambiguous|operation cancelled|non-schema failure)/i
 
 const RETRY_EXHAUSTION_PATTERN = /failed after \d+\/\d+ attempts \(([^),]+)/gi
@@ -190,7 +190,7 @@ export const isGeminiLlmTransientUnavailable = (output: string): boolean => {
 
 // The transport-level alternation shared by every provider predicate below, built from
 // production's own list so a spelling cannot exist on one side and not the other.
-export const NETWORK_FAILURE_PATTERN = new RegExp(
+const NETWORK_FAILURE_PATTERN = new RegExp(
   NETWORK_FAILURE_SPELLINGS.map(escapeForRegex).join('|'),
   'i'
 )
@@ -231,7 +231,7 @@ export const isTransientMinimaxTtsFailure = (output: string): boolean => {
   )
 }
 
-export const isGroqTermsAcceptanceFailure = (output: string): boolean =>
+const isGroqTermsAcceptanceFailure = (output: string): boolean =>
   /requires terms acceptance/i.test(stripAnsi(output))
 
 /**

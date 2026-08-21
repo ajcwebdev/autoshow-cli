@@ -32,12 +32,12 @@ export type ArtifactFileDescriptor = Readonly<{
   scope?: ProjectionArtifactReference['scope']
 }>
 
-export type ArchiveProjectionShape = {
+type ArchiveProjectionShape = {
   kind: 'archive'
   archive: Record<string, unknown>
 }
 
-export type ActiveProjectionShape = {
+type ActiveProjectionShape = {
   kind: 'active'
   branchHistory: unknown[]
   readinessAttempts: unknown[]
@@ -63,7 +63,7 @@ export type EventReferenceListDescriptor = Readonly<{
   scope?: ProjectionArtifactReference['scope']
 }>
 
-export type NestedCollectorContext = {
+type NestedCollectorContext = {
   reference: ProjectionArtifactReference
   value: Record<string, unknown>
   renderDir: string | undefined

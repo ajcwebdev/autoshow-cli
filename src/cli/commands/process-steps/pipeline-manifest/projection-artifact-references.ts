@@ -26,7 +26,7 @@ export const resolveArtifactRelativePath = (
 export const projectionArtifactReferenceKey = (reference: Pick<ProjectionArtifactReference, 'path' | 'scope'>): string =>
   `${reference.scope ?? 'provider-artifact'}\0${reference.path}`
 
-export const createNestedArtifactReference = (
+const createNestedArtifactReference = (
   record: Record<string, unknown>,
   pathKey: string,
   shaKey: string,

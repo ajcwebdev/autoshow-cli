@@ -21,7 +21,7 @@ export const readString = (record: Record<string, unknown>, key: string): string
   return typeof value === 'string' ? value : null
 }
 
-export const prepareCommandOutputForParse = (text: string): string => {
+const prepareCommandOutputForParse = (text: string): string => {
   if (text.length <= COMMAND_OUTPUT_PARSE_TAIL_CHARS) {
     return stripAnsi(text)
   }
@@ -176,7 +176,7 @@ export const formatTimestampForDir = (date: Date): string => {
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
 }
 
-export const TIMED_OUTPUT_PREFIX_PATTERN = /^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/
+const TIMED_OUTPUT_PREFIX_PATTERN = /^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/
 
 export const lineHasTimedOutputPrefix = (line: string): boolean => TIMED_OUTPUT_PREFIX_PATTERN.test(line)
 
@@ -197,7 +197,7 @@ export const formatTimedOutputPrefix = (atMs: number = Date.now()): string => {
 export const formatProgressCounter = (index: number, total: number): string =>
   `[${index + 1}/${total}]`
 
-export const COMMAND_TAIL_LINES = 20
+const COMMAND_TAIL_LINES = 20
 
 export const formatOutputTail = (label: string, output: string, lineCount = COMMAND_TAIL_LINES): string | undefined => {
   const tail = output.split('\n').slice(-lineCount).join('\n')

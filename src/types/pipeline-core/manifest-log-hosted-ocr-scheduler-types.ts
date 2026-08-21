@@ -1,6 +1,6 @@
 import type { ManifestLogSection } from '~/types'
 
-export type HostedOcrSchedulerSummaryRow = {
+type HostedOcrSchedulerSummaryRow = {
   lane: string
   status: string
   cap: string

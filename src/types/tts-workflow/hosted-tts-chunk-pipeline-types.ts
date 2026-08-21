@@ -1,6 +1,6 @@
 import type { HostedTtsChunkJobContext, HostedTtsChunkScheduler, RetryPolicy, Step4Metadata, TtsProvider, TtsRequestEvidenceScope, TtsTimingFactory } from '~/types'
 
-export type HostedTtsChunkFetchContext = {
+type HostedTtsChunkFetchContext = {
   chunk: string
   chunkIndex: number
   signal: AbortSignal | undefined
@@ -8,7 +8,7 @@ export type HostedTtsChunkFetchContext = {
   retryReasonCode?: string | undefined
 }
 
-export type HostedTtsChunkFetchResult = Uint8Array | Readonly<{
+type HostedTtsChunkFetchResult = Uint8Array | Readonly<{
   audio: Uint8Array
   timing?: TtsTimingFactory | undefined
 }>

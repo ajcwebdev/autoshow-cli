@@ -220,23 +220,6 @@ export const buildSttCleanupArtifactsTable = (
 ): HumanLogTable =>
   createHumanTable(rows, ['artifact', 'path'])
 
-export const logSttCleanupArtifacts = (
-  logger: TableLogger,
-  message: string,
-  rows: ReadonlyArray<{ artifact: string, path: string }>,
-  level: LogLevel = 'info'
-): void => {
-  if (rows.length === 0) {
-    return
-  }
-
-  logger.write(level, message, {
-    category: 'artifact',
-    humanTable: buildSttCleanupArtifactsTable(rows),
-    metadata: { artifacts: rows }
-  })
-}
-
 type SttCleanupFailureSummary = {
   provider: string
   artifact: string

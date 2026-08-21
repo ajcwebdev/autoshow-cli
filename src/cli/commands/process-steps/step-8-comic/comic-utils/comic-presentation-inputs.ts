@@ -226,7 +226,7 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
   }
 }
 
-export const readReviewedPresentationScene = async (sceneRunDir: string): Promise<{ scene: ScenePromptData, ref: ArtifactRef }> => {
+const readReviewedPresentationScene = async (sceneRunDir: string): Promise<{ scene: ScenePromptData, ref: ArtifactRef }> => {
   const path = 'metadata/scene.json'
   let bytes: Uint8Array
   try { bytes = new Uint8Array(await readFile(join(sceneRunDir, path))) }

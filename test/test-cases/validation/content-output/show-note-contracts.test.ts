@@ -11,19 +11,12 @@ import { buildExpectedFilesList } from '~/cli/commands/process-steps/step-1-down
 import { renderToPlainText } from '~/cli/commands/process-steps/step-3-write/structured-output/renderers'
 import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/process-steps/step-3-write/structured-output/validation-failure'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
+import { buildStep3Metadata as buildSharedStep3Metadata } from './shared'
 
-const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
-  llmService: 'openai',
-  llmModel: 'gpt-5.5',
-  processingTime: 1,
-  inputTokenCount: 1,
-  outputTokenCount: 1,
-  outputFileName: 'text.json',
-  outputFormat: 'json',
-  structuredMode: 'native',
-  structuredPresetNames: ['shortSummary'],
-  ...overrides
-})
+const LLM_FIXTURE = { llmService: 'openai' as const, llmModel: 'gpt-5.5', structuredPresetNames: ['shortSummary'] }
+
+const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata =>
+  buildSharedStep3Metadata(LLM_FIXTURE, overrides)
 
 const buildResult = (overrides: Partial<Step3Metadata> = {}, renderedText = '## Summary\n\nRendered JSON markdown'): StructuredRunResult => ({
   metadata: buildStep3Metadata(overrides),

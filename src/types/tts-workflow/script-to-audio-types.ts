@@ -1,8 +1,8 @@
 import type { PipelineProviderStatus, TtsProvider } from '~/types'
 
-export type CapabilityMaturity = 'stable' | 'preview' | 'deprecated' | 'not-applicable'
-export type CapabilityChannel = 'api' | 'ui-only' | 'external-import' | 'unsupported'
-export type AdapterSupport = 'implemented' | 'planned' | 'unsupported'
+type CapabilityMaturity = 'stable' | 'preview' | 'deprecated' | 'not-applicable'
+type CapabilityChannel = 'api' | 'ui-only' | 'external-import' | 'unsupported'
+type AdapterSupport = 'implemented' | 'planned' | 'unsupported'
 
 export type VoiceCapabilityFeature =
   | 'turn-synthesis'
@@ -41,39 +41,39 @@ export type CapabilityScope = {
   transport?: string | undefined
 }
 
-export type TurnSynthesisConstraints = {
+type TurnSynthesisConstraints = {
   voiceKinds: ProviderVoiceLocator['kind'][]
   maxCharacters?: number | undefined
   supportedOutputFormats?: string[] | undefined
 }
 
-export type NativeDialogueConstraints = TurnSynthesisConstraints & {
+type NativeDialogueConstraints = TurnSynthesisConstraints & {
   minSpeakers: number
   maxSpeakers: number
   maxTurns?: number | undefined
 }
 
-export type NativeUtteranceConstraints = TurnSynthesisConstraints & {
+type NativeUtteranceConstraints = TurnSynthesisConstraints & {
   maxUtterances?: number | undefined
   maxTakesPerRequest?: number | undefined
 }
 
-export type VoiceCatalogConstraints = {
+type VoiceCatalogConstraints = {
   paginated: boolean
   stableResourceIds: boolean
 }
 
-export type VoiceManagementConstraints = {
+type VoiceManagementConstraints = {
   requiresConsent: boolean
   createsRemoteResource: boolean
 }
 
-export type TimingConstraints = {
+type TimingConstraints = {
   providerTimeUnit: string
   providerIndexUnit?: PreparedProviderText['providerIndexUnit'] | undefined
 }
 
-export type CapabilityConstraintsByFeature = {
+type CapabilityConstraintsByFeature = {
   'turn-synthesis': TurnSynthesisConstraints
   'native-dialogue': NativeDialogueConstraints
   'native-utterances': NativeUtteranceConstraints
@@ -97,7 +97,7 @@ export type CapabilityDocumentationEvidence = {
   evidenceHash: string
 }
 
-export type CapabilityRecord<F extends VoiceCapabilityFeature> = {
+type CapabilityRecord<F extends VoiceCapabilityFeature> = {
   scope: CapabilityScope & { feature: F }
   maturity: CapabilityMaturity
   channel: CapabilityChannel
@@ -138,7 +138,7 @@ export type TtsCliReferenceInput = {
   authorizationRef: string
 }
 
-export type VoiceOrigin =
+type VoiceOrigin =
   | 'provider-stock'
   | 'community-library'
   | 'designed'
@@ -150,12 +150,12 @@ export type VoiceOrigin =
   | 'request-reference-audio'
   | 'local-model-voice'
 
-export type VoiceDeletionEligibility =
+type VoiceDeletionEligibility =
   | { state: 'unknown' | 'not-owned' | 'provider-managed' | 'notice-active' | 'external-only', reason?: string | undefined, checkedAt: string }
   | { state: 'eligible', checkedAt: string, eligibilityExpiresAt?: string | undefined }
   | { state: 'deletion-pending', requestedAt: string, effectiveAt?: string | undefined }
 
-export type ProviderVoiceLineage = {
+type ProviderVoiceLineage = {
   sourceRef: string
   sourceIdentityHash: string
   operation: 'imported' | 'designed-from' | 'remixed-from' | 'cloned-from'
@@ -200,7 +200,7 @@ export type ProviderVoiceRef =
       origin: 'local-model-voice'
     }
 
-export type ProviderVoiceLocator =
+type ProviderVoiceLocator =
   | { kind: 'provider-id', provider: TtsProvider, resourceId: string }
   | { kind: 'display-name', provider: TtsProvider, name: string }
   | { kind: 'reference-asset', provider: TtsProvider, protectedAsset: ProtectedAssetRef, authorizationRef: string }
@@ -212,7 +212,7 @@ export type TypedProviderSynthesisSettings = {
   values: Record<string, string | number | boolean | null | string[]>
 }
 
-export type TypedProviderDeliverySettings = {
+type TypedProviderDeliverySettings = {
   schemaVersion: 1
   settingsSchema: string
   values: Record<string, string | number | boolean | null>
@@ -264,24 +264,24 @@ export type ProviderQualifiedCast = {
   }>
 }
 
-export type DeliveryPlan = {
+type DeliveryPlan = {
   kind: 'source' | 'reviewed-default'
   description: string
 }
 
-export type VoiceEffectPlan = {
+type VoiceEffectPlan = {
   kind: string
   settingsHash: string
 }
 
-export type DialogueTimingCue = {
+type DialogueTimingCue = {
   kind: 'beat' | 'pause' | 'long-pause'
   afterTextOffset: number
   durationMs: number
   sourceSpan: CanonicalDialogueSourceSpan
 }
 
-export type CanonicalDialogueSourceSpan = {
+type CanonicalDialogueSourceSpan = {
   kind: 'spoken-text' | 'delivery' | 'stage-direction' | 'timing' | 'voice-effect' | 'simultaneous-speech' | 'scene-boundary'
   start: number
   end: number
@@ -358,7 +358,7 @@ export type ObservedAudioFormat = RequestedAudioFormat & {
   channels: number
 }
 
-export type CurrencyAmount = {
+type CurrencyAmount = {
   amount: number
   currency: string
 }
@@ -367,7 +367,7 @@ export type PlannedCost = {
   amounts: CurrencyAmount[]
 }
 
-export type PlannedAndObservedCost = {
+type PlannedAndObservedCost = {
   planned: PlannedCost
   observed: CurrencyAmount[]
 }
@@ -386,7 +386,7 @@ export type SanitizedProviderError = {
   retryAfterMs?: number | undefined
 }
 
-export type ProviderResolvedDialogueTurn = CanonicalDialogueTurn & {
+type ProviderResolvedDialogueTurn = CanonicalDialogueTurn & {
   providerText: PreparedProviderText
   voice: ResolvedVoiceBinding
   providerControls: TypedProviderSynthesisSettings
@@ -394,16 +394,16 @@ export type ProviderResolvedDialogueTurn = CanonicalDialogueTurn & {
 }
 
 export type ProviderRenderStrategy = 'native-dialogue' | 'native-utterances' | 'segmented' | 'hybrid'
-export type ProviderRenderModePreference = 'auto' | 'native' | 'segmented' | 'repair'
+type ProviderRenderModePreference = 'auto' | 'native' | 'segmented' | 'repair'
 
-export type ProviderGenerationSlotPlan = {
+type ProviderGenerationSlotPlan = {
   generationSlotId: string
   slotIndex: number
   requestedTakeCount: number
   plannedCost: PlannedCost
 }
 
-export type IncomingContinuationBinding = {
+type IncomingContinuationBinding = {
   checkpointId: string
   checkpointRef: string
   checkpointSha256: string
@@ -418,12 +418,12 @@ export type IncomingContinuationBinding = {
   continuationStateHash: string
 }
 
-export type ProviderBatchContinuationPlan =
+type ProviderBatchContinuationPlan =
   | { kind: 'none' }
   | { kind: 'external-checkpoint', binding: IncomingContinuationBinding }
   | { kind: 'prior-batch-selection', predecessorBatchId: string }
 
-export type ProviderBatchPlan = {
+type ProviderBatchPlan = {
   batchId: string
   orderedTurnIds: string[]
   requestControls: TypedProviderRequestSettings
@@ -466,7 +466,7 @@ export type HybridRepairDependencies = {
   resubmittedTurnIds: string[]
 }
 
-export type ProviderRenderBranchCandidateBase = {
+type ProviderRenderBranchCandidateBase = {
   candidateId: string
   requiredCapabilityScopeHashes: string[]
   batchSketches: Array<{
@@ -505,11 +505,11 @@ export type ProviderRenderBranchPlan = {
   capabilityFixtureHash: string
 }
 
-export type ProviderRenderVoiceContext =
+type ProviderRenderVoiceContext =
   | { kind: 'approved-snapshot', snapshotId: string }
   | { kind: 'transient', bindingIdentityHashes: string[] }
 
-export type ProviderRenderPlanBase = {
+type ProviderRenderPlanBase = {
   schemaVersion: 1
   branchPlanId: string
   branchCandidateId: string
@@ -583,7 +583,7 @@ export type ProviderBatchInvocationPlan = {
   createdAt: string
 }
 
-export type ExplicitVoiceSynthesisRequest = {
+type ExplicitVoiceSynthesisRequest = {
   schemaVersion: 1
   invocationId: string
   renderPlanId: string
@@ -607,7 +607,7 @@ export type ExplicitVoiceSynthesisRequest = {
   cancellation: AbortSignal
 }
 
-export type SanitizedSerializedVoiceIdentity = {
+type SanitizedSerializedVoiceIdentity = {
   kind: 'provider-id' | 'reference-asset' | 'local-model-voice'
   valueHash: string
   provider: TtsProvider
@@ -639,28 +639,28 @@ export type ObservedProviderRequest = {
   acceptedAt?: string | undefined
 }
 
-export type EphemeralProviderAudioOutput = {
+type EphemeralProviderAudioOutput = {
   outputId: string
   path: string
   format: ObservedAudioFormat
   durationMs?: number | undefined
 }
 
-export type EphemeralProviderTake = {
+type EphemeralProviderTake = {
   takeId: string
   output: EphemeralProviderAudioOutput
   timing?: NormalizedTiming<'take-audio-ms'> | undefined
   providerGenerationId?: string | undefined
 }
 
-export type ProviderBatchTurnOutcome = {
+type ProviderBatchTurnOutcome = {
   turnId: string
   status: 'succeeded' | 'failed' | 'ambiguous' | 'unstarted'
   outputIds: string[]
   error?: SanitizedProviderError | undefined
 }
 
-export type ProviderBatchSynthesisResponse = {
+type ProviderBatchSynthesisResponse = {
   batchId: string
   generationSlotId: string
   batchInvocationPlanId: string
@@ -673,20 +673,20 @@ export type ProviderBatchSynthesisResponse = {
   error?: SanitizedProviderError | undefined
 }
 
-export type LocalVoiceLocatorResult =
+type LocalVoiceLocatorResult =
   | { status: 'valid', locator: ProviderVoiceLocator }
   | { status: 'invalid', error: SanitizedProviderError }
 
-export type ProviderPreflightRequest = {
+type ProviderPreflightRequest = {
   branchPlan: ProviderRenderBranchPlan
   locators: ProviderVoiceLocator[]
 }
 
-export type LocalPreflightResult =
+type LocalPreflightResult =
   | { status: 'valid', candidateIds: string[] }
   | { status: 'invalid', errors: SanitizedProviderError[] }
 
-export type ProviderReadinessRequest = ProviderPreflightRequest & {
+type ProviderReadinessRequest = ProviderPreflightRequest & {
   accountScopeHash: string
   cancellation: AbortSignal
 }
@@ -751,7 +751,7 @@ export type ProviderVoiceDesignRequest = {
   seed?: number | undefined
 }
 
-export type ProviderVoiceDesignPreview = {
+type ProviderVoiceDesignPreview = {
   providerCandidateId: string
   providerOperationId?: string | undefined
   audioBase64: string
@@ -770,7 +770,7 @@ export type ProviderVoiceDesignResult = {
   checkedAt: string
 }
 
-export type ProviderVoiceMaterializationRequest = {
+type ProviderVoiceMaterializationRequest = {
   providerCandidateId: string
   desiredName: string
   localAttemptId: string
@@ -811,7 +811,7 @@ export type ProviderVoiceInspection = {
   checkedAt: string
 }
 
-export type ProviderVoiceDeleteRequest = {
+type ProviderVoiceDeleteRequest = {
   providerVoice: ProviderVoiceRef
   expectedResourceId: string
   expectedName?: string | undefined
@@ -829,9 +829,9 @@ export type VoiceLifecyclePort = {
   inspect: (voice: ProviderVoiceRef) => Promise<ProviderVoiceInspection>
   delete: (request: ProviderVoiceDeleteRequest) => Promise<{ deletedAt: string }>
 }
-export type VoiceAuditionPort = { audition: (request: ExplicitVoiceSynthesisRequest) => Promise<ProviderBatchSynthesisResponse> }
-export type NativeDialoguePort = { render: (request: ExplicitVoiceSynthesisRequest) => Promise<ProviderBatchSynthesisResponse> }
-export type ContinuationPort = { validate: (continuation: ResolvedContinuationInput) => LocalPreflightResult }
+type VoiceAuditionPort = { audition: (request: ExplicitVoiceSynthesisRequest) => Promise<ProviderBatchSynthesisResponse> }
+type NativeDialoguePort = { render: (request: ExplicitVoiceSynthesisRequest) => Promise<ProviderBatchSynthesisResponse> }
+type ContinuationPort = { validate: (continuation: ResolvedContinuationInput) => LocalPreflightResult }
 
 export interface TtsVoiceProvider {
   readonly provider: TtsProvider
@@ -849,10 +849,10 @@ export interface TtsVoiceProvider {
   continuation?: ContinuationPort | undefined
 }
 
-export type RenderRelativeArtifactPath = string
-export type AttemptRelativeArtifactPath = string
-export type ProviderBatchResultRelativeArtifactPath = string
-export type AudioRunRelativeArtifactPath = string
+type RenderRelativeArtifactPath = string
+type AttemptRelativeArtifactPath = string
+type ProviderBatchResultRelativeArtifactPath = string
+type AudioRunRelativeArtifactPath = string
 
 export type ProviderBatchResultRef = {
   batchId: string
@@ -870,7 +870,7 @@ export type ProviderBatchOutput = {
   durationMs?: number | undefined
 }
 
-export type ProviderBatchOutputRef = ProviderBatchOutput & { batchResultId: string }
+type ProviderBatchOutputRef = ProviderBatchOutput & { batchResultId: string }
 
 export type ProviderRetryRecord = {
   invocationId: string
@@ -880,7 +880,7 @@ export type ProviderRetryRecord = {
   cost?: CurrencyAmount[] | undefined
 }
 
-export type SanitizedProviderCostEvidence = {
+type SanitizedProviderCostEvidence = {
   evidenceHash: string
   scope: 'request' | 'generation-slot' | 'batch'
   amount: number
@@ -921,7 +921,7 @@ export type NormalizedTiming<Clock extends TimingClock> =
       reason: string
     }
 
-export type RenderTake = {
+type RenderTake = {
   takeId: string
   generationSlotId: string
   providerRequestId?: string | undefined
@@ -938,7 +938,7 @@ export type RenderTake = {
   warnings: string[]
 }
 
-export type GeneratedProviderBatch = {
+type GeneratedProviderBatch = {
   batchId: string
   generationSlotId: string
   takes: RenderTake[]
@@ -950,7 +950,7 @@ export type GeneratedProviderBatch = {
   | { source: 'slot-reuse', slotHash: string, observedRequestOrdinals: [] }
 )
 
-export type SynthesisCacheObjectRef = {
+type SynthesisCacheObjectRef = {
   cacheNamespace: string
   cacheKey: string
   objectId: string
@@ -958,7 +958,7 @@ export type SynthesisCacheObjectRef = {
   sha256: string
 }
 
-export type ProviderContinuationSemanticFingerprint =
+type ProviderContinuationSemanticFingerprint =
   | { schemaVersion: 1, kind: 'none', fingerprintHash: string }
   | {
       schemaVersion: 1
@@ -986,7 +986,7 @@ export type CacheMaterializationPlan = {
   cacheEntry: SynthesisCacheObjectRef
 }
 
-export type ProviderBatchResultBase = {
+type ProviderBatchResultBase = {
   schemaVersion: 1
   batchResultId: string
   renderPlanId: string
@@ -1029,7 +1029,7 @@ export type ProviderBatchResult = ProviderBatchResultBase & (
     }
 )
 
-export type ProviderRenderCostSummary = {
+type ProviderRenderCostSummary = {
   currentComposition: PlannedAndObservedCost
   closingAttempt: PlannedAndObservedCost
   cumulativeRenderHistory: PlannedAndObservedCost
@@ -1065,9 +1065,9 @@ export type ProviderRenderResult = {
   error?: SanitizedProviderError | undefined
 }
 
-export type AdmissionProofKind = 'acceptance' | 'completion' | 'rejection' | 'ambiguity' | 'not-admitted'
+type AdmissionProofKind = 'acceptance' | 'completion' | 'rejection' | 'ambiguity' | 'not-admitted'
 
-export type AdmissionProofRef<Kind extends AdmissionProofKind> = {
+type AdmissionProofRef<Kind extends AdmissionProofKind> = {
   journalId: string
   invocationId: string
   requestOrdinal: number
@@ -1078,7 +1078,7 @@ export type AdmissionProofRef<Kind extends AdmissionProofKind> = {
   | { kind: 'protected-asset', asset: ProtectedAssetRef }
 )
 
-export type ProviderRequestAdmissionTransition =
+type ProviderRequestAdmissionTransition =
   | { sequence: number, state: 'prepared', at: string, requestBodyHash: string }
   | { sequence: number, state: 'dispatch-started', at: string, transportEvidenceHash: string }
   | { sequence: number, state: 'provider-accepted', at: string, providerRequestId?: string | undefined, evidence: AdmissionProofRef<'acceptance'> }
@@ -1087,7 +1087,7 @@ export type ProviderRequestAdmissionTransition =
   | { sequence: number, state: 'ambiguous', at: string, evidence?: AdmissionProofRef<'ambiguity'> | undefined }
   | { sequence: number, state: 'confirmed-not-admitted', at: string, method: 'local-before-dispatch' | 'provider-idempotency-query' | 'provider-request-lookup', evidence: AdmissionProofRef<'not-admitted'> }
 
-export type ConsumedSelectionRebuildJournalBinding = {
+type ConsumedSelectionRebuildJournalBinding = {
   authorizationId: string
   artifactRef: RenderRelativeArtifactPath
   sha256: string
@@ -1136,7 +1136,7 @@ export type AuditActorRef = {
   actorId: string
 }
 
-export type ProviderPolicySkipEvidence = {
+type ProviderPolicySkipEvidence = {
   schemaVersion: 1
   skipId: string
   targetKey: string
@@ -1166,7 +1166,7 @@ export type CanonicalBatchProgress = {
   continuationCheckpoint?: { checkpointId: string, path: string, sha256: string } | undefined
 }
 
-export type CanonicalRenderEvent = {
+type CanonicalRenderEvent = {
   sequence: number
   status: PipelineProviderStatus
   at: string
@@ -1198,7 +1198,7 @@ export type CanonicalRenderEvent = {
   error?: SanitizedProviderError | undefined
 }
 
-export type CanonicalRenderRecord = {
+type CanonicalRenderRecord = {
   renderIdentity: string
   renderPlanId: string
   renderPlanRef: string

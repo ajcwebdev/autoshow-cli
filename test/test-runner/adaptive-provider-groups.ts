@@ -198,7 +198,7 @@ const firstPositionalAfterCommand = (args: string[]): string | null => {
   return null
 }
 
-export const parseProviderName = (token: string | null | undefined): string | null => {
+const parseProviderName = (token: string | null | undefined): string | null => {
   const trimmed = token?.trim()
   if (!trimmed) {
     return null

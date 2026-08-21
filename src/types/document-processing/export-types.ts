@@ -17,7 +17,7 @@ export type HeadingCandidate = {
   kind?: string
 }
 
-export type EpubExportPlan = {
+type EpubExportPlan = {
   files: TextArtifactFile[]
   summary: {
     sourceFormat: 'epub'

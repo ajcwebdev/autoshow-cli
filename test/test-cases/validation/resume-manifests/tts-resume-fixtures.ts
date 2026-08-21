@@ -6,8 +6,9 @@ import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from 
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import type { CanonicalAudioProviderProjection, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PipelineProviderState, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
-import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { unexpectedCall } from '../../../test-utils/rest-contract-helpers'
+import { createTtsFixtureTarget } from '../../../test-utils/tts-fixture-target'
+import { policySkippedTtsProviderStateFrom } from '../../../test-utils/tts-provider-state-fixtures'
 
 export const ttsTarget = (transport = 'hosted-api'): TtsTarget => {
   const operation = 'tts-synthesis' as const
@@ -38,42 +39,17 @@ export const succeededMetadata = async (
     dialoguePlan: GenericTtsDialoguePlan
   } | undefined
 ): Promise<Step4Metadata> => {
-  const bytes = createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 })
   const runnableTarget: TtsTarget = {
     ...target,
-    voice: 'alloy',
-    run: async (text, outputDir, _opts, _invocation, requestEvidence) => {
-      const audioPath = join(outputDir, 'speech.wav')
-      await requestEvidence?.dispatch({
-        chunkIndex: 1,
-        endpointKind: 'speech-synthesis',
-        serializerVersion: 'openai.tts.phase-0-v1',
-        serializedRequest: { text, voice: 'alloy' },
-        providerText: text,
-        voiceField: 'voice',
-        voices: [{ kind: 'provider-id', value: 'alloy' }],
-        requestControls: { responseFormat: 'wav' },
-        continuation: { kind: 'none' }
-      }, { attempt: 1 }, async (lifecycle) => {
-        await lifecycle.accepted({ providerRequestId: 'local-contract-fixture' })
-        await Bun.write(audioPath, bytes)
-      })
-      if (!requestEvidence) await Bun.write(audioPath, bytes)
-      await requestEvidence?.recordOutput({ chunkIndex: 1, path: audioPath })
-      await requestEvidence?.complete({ chunkIndex: 1 })
-      return {
-        audioPath,
-        metadata: {
-          ttsService: target.service,
-          ttsModel: target.model,
-          speaker: 'alloy',
-          processingTime: 1,
-          audioFileName: 'speech.wav',
-          audioFileSize: bytes.byteLength,
-          chunkCount: 1
-        }
-      }
-    }
+    ...createTtsFixtureTarget({
+      mode: { kind: 'success' },
+      service: target.service,
+      model: target.model,
+      transport: target.transport as string,
+      voice: 'alloy',
+      requestShape: 'flat'
+    }),
+    ...(target.targetKey ? { targetKey: target.targetKey } : {})
   }
   const sourceText = source?.text ?? `Fixture render ${label}.`
   const result = await runTtsForTargets(
@@ -89,46 +65,18 @@ export const succeededMetadata = async (
 export const successfulTarget = (
   target: TtsTarget,
   onRun: () => void = () => {}
-): TtsTarget => {
-  const bytes = createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 })
-  return {
-    ...target,
+): TtsTarget => ({
+  ...createTtsFixtureTarget({
+    mode: { kind: 'success' },
+    service: target.service,
+    model: target.model,
+    transport: target.transport as string,
     voice: target.voice ?? 'alloy',
-    run: async (text, outputDir, _opts, _invocation, requestEvidence) => {
-      onRun()
-      const audioPath = join(outputDir, 'speech.wav')
-      await requestEvidence?.dispatch({
-        chunkIndex: 1,
-        endpointKind: 'speech-synthesis',
-        serializerVersion: 'openai.tts.phase-0-v1',
-        serializedRequest: { text, voice: target.voice ?? 'alloy' },
-        providerText: text,
-        voiceField: 'voice',
-        voices: [{ kind: 'provider-id', value: target.voice ?? 'alloy' }],
-        requestControls: { responseFormat: 'wav' },
-        continuation: { kind: 'none' }
-      }, { attempt: 1 }, async (lifecycle) => {
-        await lifecycle.accepted({ providerRequestId: 'local-contract-fixture' })
-        await Bun.write(audioPath, bytes)
-      })
-      if (!requestEvidence) await Bun.write(audioPath, bytes)
-      await requestEvidence?.recordOutput({ chunkIndex: 1, path: audioPath })
-      await requestEvidence?.complete({ chunkIndex: 1 })
-      return {
-        audioPath,
-        metadata: {
-          ttsService: target.service,
-          ttsModel: target.model,
-          speaker: target.voice ?? 'alloy',
-          processingTime: 1,
-          audioFileName: 'speech.wav',
-          audioFileSize: bytes.byteLength,
-          chunkCount: 1
-        }
-      }
-    }
-  }
-}
+    requestShape: 'flat',
+    onRun: () => onRun()
+  }),
+  ...(target.targetKey ? { targetKey: target.targetKey } : {})
+})
 
 export const materializeFailedProviderState = async (options: {
   rootDir: string
@@ -142,25 +90,15 @@ export const materializeFailedProviderState = async (options: {
   let latest: PipelineProviderState | undefined
   const runnable: TtsTarget = {
     ...options.target,
-    voice: options.target.voice ?? 'alloy',
-    run: async (text, _outputDir, _opts, _invocation, requestEvidence): Promise<never> => {
-      if (options.admitted) {
-        await requestEvidence?.dispatch({
-          chunkIndex: 1,
-          endpointKind: 'speech-synthesis',
-          serializerVersion: 'openai.tts.phase-0-v1',
-          serializedRequest: { text, voice: options.target.voice ?? 'alloy' },
-          providerText: text,
-          voiceField: 'voice',
-          voices: [{ kind: 'provider-id', value: options.target.voice ?? 'alloy' }],
-          requestControls: { responseFormat: 'wav' },
-          continuation: { kind: 'none' }
-        }, { attempt: 1 }, async () => {
-          throw new Error('ambiguous fixture failure after provider admission')
-        })
-      }
-      throw new Error('fixture failure before provider dispatch')
-    }
+    ...createTtsFixtureTarget({
+      mode: options.admitted ? { kind: 'failAfterAdmission' } : { kind: 'failBeforeDispatch' },
+      service: options.target.service,
+      model: options.target.model,
+      transport: options.target.transport as string,
+      voice: options.target.voice ?? 'alloy',
+      requestShape: 'flat'
+    }),
+    ...(options.target.targetKey ? { targetKey: options.target.targetKey } : {})
   }
   await runTtsForTargets(options.text, options.rootDir, {}, [runnable], {
     sourceIdentity: options.sourceIdentity,
@@ -208,32 +146,12 @@ export const materializeBlockedReadinessProviderState = async (options: {
   await materializeTtsDialoguePlanArtifact(options.rootDir, options.dialoguePlan)
 )
 
-export const policySkippedState = (target: TtsTarget, artifactRoot: string): PipelineProviderState => {
-  const targetKey = target.targetKey as string
-  const actor = { namespace: 'local-user' as const, actorId: 'fixture' }
-  const at = new Date(0).toISOString()
-  const evidence = { schemaVersion: 1 as const, skipId: `skip-${artifactRoot.replace(/\//g, '-')}`, targetKey, reasonCode: 'user-requested' as const, reason: 'fixture skip', actor, at }
-  const projection = {
-    activeWork: { kind: 'policy-skip' as const, evidence },
-    branchHistory: [],
-    readinessAttempts: [],
-    renderHistory: [],
-    pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
-  }
-  return {
-    service: target.service,
-    model: target.model,
-    operation: 'tts-synthesis',
-    targetKey,
-    transport: target.transport as string,
-    artifactDir: `${artifactRoot}/${targetKey}`,
-    status: 'skipped',
-    attempts: 0,
-    options: {},
-    metadata: { ttsAudio: projection },
-    result: { ttsAudio: projection }
-  }
-}
+export const policySkippedState = (target: TtsTarget, artifactRoot: string): PipelineProviderState =>
+  policySkippedTtsProviderStateFrom({
+    target,
+    artifactDir: `${artifactRoot}/${target.targetKey as string}`,
+    skipId: `skip-${artifactRoot.replace(/\//g, '-')}`
+  })
 
 export const findRecoverableCompletedState = async (
   rootDir: string,

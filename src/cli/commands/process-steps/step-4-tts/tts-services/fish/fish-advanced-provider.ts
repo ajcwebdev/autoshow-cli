@@ -22,6 +22,8 @@ import {
 } from '../../script-to-audio/advanced-provider-contracts'
 
 import { FISH_VOICE_DESIGN_MODEL } from './fish-tts-request'
+import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import { assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
 
 const DOCS = {
   catalog: 'https://docs.fish.audio/api-reference/endpoint/model/list-models',
@@ -213,23 +215,19 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
     },
   }
 
+  const identity: AdvancedVoiceProviderIdentity = { provider: 'fish', label: 'Fish', labelWithArticle: 'a Fish', accountScopeHash }
   const inspect = async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
-    if (voice.provider !== 'fish' || voice.kind !== 'remote-resource') {
-      throw CLIUsageError('Fish inspection requires a Fish remote voice resource.')
-    }
-    const item = await client.getModel(voice.resourceId)
-    return {
-      schemaVersion: 1,
-      provider: 'fish',
-      providerVoice: voice,
+    const remote = assertAdvancedVoiceInspectionIdentity(identity, voice)
+    const item = await client.getModel(remote.resourceId)
+    return buildAdvancedVoiceInspection(identity, {
+      voice: remote,
       state: item.state === 'ready' || !item.state ? 'available' : 'missing',
-      deletion: voice.deletion,
       sanitizedMetadata: {
         ...(item.description ? { description: item.description } : {}),
         ...(item.created_at ? { createdAt: item.created_at } : {}),
       },
       checkedAt: now(),
-    }
+    })
   }
 
   const lifecycle: VoiceLifecyclePort = {

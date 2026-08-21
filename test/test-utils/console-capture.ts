@@ -8,7 +8,7 @@ export type ConsoleCapture = {
   stderr: string[]
 }
 
-export type CaptureConsoleOptions = {
+type CaptureConsoleOptions = {
   // Strip ANSI before recording, so assertions do not depend on the color regime.
   strip?: boolean
   // Swap in an interactive human sink for the duration. Under the non-TTY test
@@ -116,11 +116,6 @@ export const captureLogEvents = async <T>(
     l.config.suppressedCategories.push(...originalSuppressed)
   }
 }
-
-/** Collect only the rendered messages, for tests that assert on prose alone. */
-export const captureLogMessages = async (
-  run: () => Promise<void> | void
-): Promise<string[]> => (await captureLogEvents(run)).events.map((event) => event.message)
 
 /**
  * In-memory `Logger` for the many modules that accept an injected `TableLogger`.

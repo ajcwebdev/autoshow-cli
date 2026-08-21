@@ -21,7 +21,7 @@ export const commandNamed = (name: string): CliCommandDefinition => {
  * stdout), so assertions read the pair as one string. Kept here rather than hand-written
  * per site so the joining rule has exactly one definition.
  */
-export const combinedOutput = (result: Pick<CommandResultBase, 'stdout' | 'stderr'>): string =>
+const combinedOutput = (result: Pick<CommandResultBase, 'stdout' | 'stderr'>): string =>
   `${result.stdout}\n${result.stderr}`
 
 /**
@@ -87,7 +87,7 @@ export const expectUnknownFlag = (argv: string[], flag: string): void => {
   expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(`Unexpected flag: ${flag}`)
 }
 
-export type CommandFailureExpectation = {
+type CommandFailureExpectation = {
   // Defaults to 2: the usage exit code, which is what nearly every caller means.
   exitCode?: number
   contains?: string | readonly string[]
@@ -100,7 +100,7 @@ export type CommandFailureExpectation = {
  * content. `not.toBe(0)` is deliberately not offered — an exact code is what distinguishes
  * a usage rejection (2) from an execution failure (1).
  */
-export const expectCommandFailure = async (
+const expectCommandFailure = async (
   args: string[],
   expectation: CommandFailureExpectation = {}
 ): Promise<RunCommandResult> => {

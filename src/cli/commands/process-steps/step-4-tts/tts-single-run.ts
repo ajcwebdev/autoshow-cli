@@ -185,7 +185,7 @@ export const synthesizePreparedTtsInputForTargets = async (
   return { metadata, cost, timing }
 }
 
-export const runPreparedTtsInput = async (
+const runPreparedTtsInput = async (
   prepared: PreparedTtsInput,
   outputDir: string,
   ttsOptions: TtsOptions,

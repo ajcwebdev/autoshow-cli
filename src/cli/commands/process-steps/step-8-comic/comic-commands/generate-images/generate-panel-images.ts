@@ -20,7 +20,6 @@ import {
 } from '../../comic-utils/panel-prompt-utils'
 import { buildComicPagePrompt, selectComicPanels } from './comic-page-utils'
 import { getPanelComicImagePath, loadPromptsConfig } from '../../comic-utils/scene-utils'
-import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import {
   applyImagePromptVariation,
   getImagePromptVariationLabel,
@@ -34,13 +33,14 @@ import type {
   PanelRenderContext,
   PanelRenderResult,
 } from '~/types'
-import { judgeComicPage, writePageQaReports } from './comic-page-qa'
+import { judgeComicPage } from './comic-page-qa'
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 import { generateWithQaRepair } from './panel-qa-pipeline'
+import { runComicImageWorkItems } from './comic-image-work-items'
 
-export const renderSinglePanel = async (
+const renderSinglePanel = async (
   panelEntry: Dirent,
   ctx: PanelRenderContext
 ): Promise<PanelRenderResult> => {
@@ -254,35 +254,12 @@ export const generatePanelImages = async (
     nextHostedIndex,
   }
 
-  const results = await mapWithConcurrency(options.concurrency, panelDirectories, async panelEntry => await renderSinglePanel(panelEntry, renderContext))
-
-  const qaEntriesByDirectory = new Map<string, PageQaEntry[]>()
-  let errorCount = 0
-
-  for (const res of results) {
-    if (res.error) errorCount++
-    stats.imagesGenerated += res.stats.imagesGenerated
-    stats.imagesSkipped += res.stats.imagesSkipped
-    stats.totalDurationMs += res.stats.totalDurationMs
-    stats.totalInputTokens += res.stats.totalInputTokens
-    stats.totalOutputTokens += res.stats.totalOutputTokens
-    stats.totalCost += res.stats.totalCost
-    for (const { directory, entry } of res.qaEntries) {
-      const entries = qaEntriesByDirectory.get(directory) ?? []
-      entries.push(entry)
-      qaEntriesByDirectory.set(directory, entries)
-    }
-  }
-
-  if (qaEnabled) {
-    for (const [directory, entries] of qaEntriesByDirectory) {
-      await writePageQaReports(directory, entries)
-    }
-  }
-
-  if (errorCount > 0) {
-    throw InfraError(`${errorCount} image generation task(s) failed`, { stage: 'comic:generate-images' })
-  }
-
-  return stats
+  return await runComicImageWorkItems({
+    concurrency: options.concurrency,
+    items: panelDirectories,
+    render: async panelEntry => await renderSinglePanel(panelEntry, renderContext),
+    stats,
+    qaEnabled,
+    itemFailure: { message: count => `${count} image generation task(s) failed`, stage: 'comic:generate-images' }
+  })
 }

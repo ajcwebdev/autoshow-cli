@@ -8,7 +8,7 @@ import type {
   SoundscapeMixProfile,
 } from '~/types'
 
-export type ComicPresentationArtifactRef = ComicStageArtifactRef
+type ComicPresentationArtifactRef = ComicStageArtifactRef
 
 export type ComicPresentationPanelInput = {
   panelNumber: number

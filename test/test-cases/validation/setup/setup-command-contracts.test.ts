@@ -108,7 +108,7 @@ describe('setup command contracts', () => {
   test('full setup covers doctor-managed local OCR runtimes and Whisper models without CoreML conversion', async () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts').text()
 
-    expect(source).toContain("export const defaultMusicWhisperModel = 'large-v3-turbo'")
+    expect(source).toContain("const defaultMusicWhisperModel = 'large-v3-turbo'")
     expect(source).toContain('await downloadWhisperModel(defaultWhisperModel)')
     expect(source).toContain('await downloadWhisperModel(defaultMusicWhisperModel)')
     expect(source).not.toContain('convertWhisperModelToCoreml')

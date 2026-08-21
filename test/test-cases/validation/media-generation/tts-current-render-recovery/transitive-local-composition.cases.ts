@@ -53,7 +53,7 @@ const settlePhaseTwo = async (
   }
 }
 
-export const runTransitiveRecoveryPhases = async (dir: string) => {
+const runTransitiveRecoveryPhases = async (dir: string) => {
   const text = 'Host: First retained turn.\nGuest: Second retained turn.'
   const sourceIdentity = createInlineTtsSourceIdentity(text)
   const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, DIALOGUE_OPTIONS, new Date(0).toISOString())
@@ -136,7 +136,7 @@ export const runTransitiveRecoveryPhases = async (dir: string) => {
   }
 }
 
-export const readLocalCompositionEvidence = async (
+const readLocalCompositionEvidence = async (
   dir: string,
   terminalState: PipelineProviderState | undefined
 ) => {
@@ -152,7 +152,7 @@ export const readLocalCompositionEvidence = async (
   return { terminalState, projection, render, event, renderPlan, providerResult, resultPath }
 }
 
-export const assertLocalCompositionEvidence = async (
+const assertLocalCompositionEvidence = async (
   phases: Awaited<ReturnType<typeof runTransitiveRecoveryPhases>>,
   evidence: Awaited<ReturnType<typeof readLocalCompositionEvidence>>
 ): Promise<void> => {
@@ -209,7 +209,7 @@ const failedAssemblyError = {
   retryable: true
 }
 
-export const buildFailedLocalResultManifest = (manifest: PipelineManifest) => {
+const buildFailedLocalResultManifest = (manifest: PipelineManifest) => {
   const mutated = structuredClone(manifest)
   const item = mutated.items[0]
   const provider = item?.providers[0]

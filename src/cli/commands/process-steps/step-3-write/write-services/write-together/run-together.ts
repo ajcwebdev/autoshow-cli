@@ -5,7 +5,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
-export const TOGETHER_MODEL_BY_SELECTOR = {
+const TOGETHER_MODEL_BY_SELECTOR = {
   'kimi-k2.6': 'moonshotai/Kimi-K2.6',
   'glm-5.1': 'zai-org/GLM-5.1'
 } as const
@@ -15,7 +15,7 @@ const ensureTogetherApiKey = (): string => {
   return apiKey
 }
 
-export const resolveTogetherApiModel = (model: string): string => {
+const resolveTogetherApiModel = (model: string): string => {
   if (!(model in TOGETHER_MODEL_BY_SELECTOR)) {
     throw CLIUsageError(`Unsupported Together model selector "${model}". Allowed values: kimi-k2.6, glm-5.1`)
   }

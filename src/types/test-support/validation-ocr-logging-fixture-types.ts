@@ -29,7 +29,7 @@ export type OcrCostStepFixture = {
   estimateType?: 'heuristic'
 }
 
-export type OcrCostInputsFixture = {
+type OcrCostInputsFixture = {
   costCents: number
   pageCount: number
   inputMetric?: 'tokens'

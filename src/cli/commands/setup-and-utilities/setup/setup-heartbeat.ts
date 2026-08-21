@@ -4,7 +4,7 @@ import * as l from '~/utils/app-logger/app-logger'
 
 // Subprocess output is suppressed in compact mode, so a source build that takes
 // minutes is otherwise indistinguishable from a hang.
-export const SETUP_HEARTBEAT_INTERVAL_MS = 30_000
+const SETUP_HEARTBEAT_INTERVAL_MS = 30_000
 
 const HEARTBEAT_SEPARATOR = ' · '
 
@@ -68,17 +68,6 @@ const startTicker = (): void => {
 }
 
 const taskContext = new AsyncLocalStorage<{ label: string }>()
-
-/**
- * Lets in-task progress renderers mark themselves alive without knowing which
- * setup task they belong to; the label comes from the surrounding context.
- */
-export const noteSetupTaskActivity = (): void => {
-  const label = taskContext.getStore()?.label
-  if (label === undefined) return
-  const entry = inFlight.get(label)
-  if (entry) entry.lastActivityAtMs = Date.now()
-}
 
 export const runWithSetupHeartbeat = async <T>(
   label: string,

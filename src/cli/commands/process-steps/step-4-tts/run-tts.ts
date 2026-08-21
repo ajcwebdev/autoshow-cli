@@ -15,6 +15,7 @@ import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
+import { buildWorkingTtsResult } from './working-tts-result'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
   `${outputDir}/${metadata.audioFileName}`
@@ -346,28 +347,14 @@ export const runTtsTargets = async (
       const recovery = recoveries.get(target)
       if (recovery) {
         const startedAt = Date.now()
-        const renderArtifacts = await recovery.finalize(workspaceDir, reportedOutput.path)
-        return {
-          ttsService: target.service,
-          ttsModel: target.model,
-          speaker: target.voice ?? 'retained-voice-binding',
-          processingTime: Date.now() - startedAt,
-          audioFileName: reportedOutput.fileName,
-          audioFileSize: Bun.file(reportedOutput.path).size,
+        return buildWorkingTtsResult({
+          mode: 'local-finalize',
+          target,
+          reportedOutput,
+          startedAt,
           chunkCount: recovery.chunkCount,
-          operation: renderArtifacts.operation,
-          targetKey: renderArtifacts.targetKey,
-          transport: renderArtifacts.transport,
-          artifactDir: renderArtifacts.artifactDir,
-          renderIdentity: renderArtifacts.renderIdentity,
-          resultIdentity: renderArtifacts.resultIdentity,
-          audioRunId: renderArtifacts.audioRunId,
-          renderStrategy: renderArtifacts.strategy,
-          ...(renderArtifacts.operation === 'comic-audio'
-            ? { comicAudio: renderArtifacts.projection }
-            : { ttsAudio: renderArtifacts.projection }),
-          _renderArtifacts: renderArtifacts
-        } as WorkingTtsResult
+          renderArtifacts: await recovery.finalize(workspaceDir, reportedOutput.path)
+        })
       }
       const attempt = attempts.get(target)
       if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
@@ -376,28 +363,14 @@ export const runTtsTargets = async (
         if (!attempt.providerDispatchRequired) {
           providerRunCompleted = true
           const startedAt = Date.now()
-          const renderArtifacts = await attempt.finalizeSuccess('', reportedOutput.path)
-          return {
-            ttsService: target.service,
-            ttsModel: target.model,
-            speaker: target.voice ?? 'retained-voice-binding',
-            processingTime: Date.now() - startedAt,
-            audioFileName: reportedOutput.fileName,
-            audioFileSize: Bun.file(reportedOutput.path).size,
+          return buildWorkingTtsResult({
+            mode: 'local-finalize',
+            target,
+            reportedOutput,
+            startedAt,
             chunkCount: attempt.plannedChunkCount,
-            operation: renderArtifacts.operation,
-            targetKey: renderArtifacts.targetKey,
-            transport: renderArtifacts.transport,
-            artifactDir: renderArtifacts.artifactDir,
-            renderIdentity: renderArtifacts.renderIdentity,
-            resultIdentity: renderArtifacts.resultIdentity,
-            audioRunId: renderArtifacts.audioRunId,
-            renderStrategy: renderArtifacts.strategy,
-            ...(renderArtifacts.operation === 'comic-audio'
-              ? { comicAudio: renderArtifacts.projection }
-              : { ttsAudio: renderArtifacts.projection }),
-            _renderArtifacts: renderArtifacts
-          } as WorkingTtsResult
+            renderArtifacts: await attempt.finalizeSuccess('', reportedOutput.path)
+          })
         }
         const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
         const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler
@@ -417,44 +390,20 @@ export const runTtsTargets = async (
         providerRunCompleted = true
         const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
         if (attempt.executionSelection) {
-          const checkpoint = await attempt.finalizeCheckpoint()
-          return {
-            ...metadata,
+          return buildWorkingTtsResult({
+            mode: 'generation-checkpoint',
+            metadata,
+            audioPath,
             audioFileName: rawMetadata.audioFileName,
-            audioFileSize: Bun.file(audioPath).size,
-            operation: checkpoint.operation,
-            targetKey: checkpoint.targetKey,
-            transport: checkpoint.transport,
-            artifactDir: checkpoint.artifactDir,
-            renderIdentity: checkpoint.renderIdentity,
-            renderStrategy: checkpoint.strategy,
-            generationCheckpoint: {
-              completedGenerationSlotIds: checkpoint.completedGenerationSlotIds,
-              remainingGenerationSlotCount: checkpoint.remainingGenerationSlotCount
-            },
-            ...(checkpoint.operation === 'comic-audio'
-              ? { comicAudio: checkpoint.projection }
-              : { ttsAudio: checkpoint.projection })
-          } as WorkingTtsResult
+            checkpoint: await attempt.finalizeCheckpoint()
+          })
         }
-        const renderArtifacts = await attempt.finalizeSuccess(audioPath, reportedOutput.path)
-        return {
-          ...metadata,
-          audioFileName: reportedOutput.fileName,
-          audioFileSize: Bun.file(reportedOutput.path).size,
-          operation: renderArtifacts.operation,
-          targetKey: renderArtifacts.targetKey,
-          transport: renderArtifacts.transport,
-          artifactDir: renderArtifacts.artifactDir,
-          renderIdentity: renderArtifacts.renderIdentity,
-          resultIdentity: renderArtifacts.resultIdentity,
-          audioRunId: renderArtifacts.audioRunId,
-          renderStrategy: renderArtifacts.strategy,
-          ...(renderArtifacts.operation === 'comic-audio'
-            ? { comicAudio: renderArtifacts.projection }
-            : { ttsAudio: renderArtifacts.projection }),
-          _renderArtifacts: renderArtifacts
-        } as WorkingTtsResult
+        return buildWorkingTtsResult({
+          mode: 'provider-render',
+          metadata,
+          reportedOutput,
+          renderArtifacts: await attempt.finalizeSuccess(audioPath, reportedOutput.path)
+        })
       } catch (error) {
         const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
         const sanitized = failure.error as SanitizedProviderError | undefined

@@ -125,9 +125,16 @@ test('process lock serializes concurrent contenders', async () => {
   expect(events).toEqual(['first-enter', 'first-exit', 'second-enter'])
 })
 
-test('process lock serializes separate processes', async () => {
-  const lockRoot = await makeTempRoot()
-  const first = spawnLockChild('first', 60, lockRoot)
+/**
+ * Both cross-process serialization contracts wait for the first child to publish the
+ * lock owner, then assert the second child only entered after the first exited. The
+ * options differ (a late heartbeat still counts as a live owner), so they stay explicit.
+ */
+const expectSerializedLockChildren = async (
+  lockRoot: string,
+  options?: { blockHeartbeat?: boolean, staleMs?: number } | undefined
+): Promise<void> => {
+  const first = options ? spawnLockChild('first', 150, lockRoot, options) : spawnLockChild('first', 60, lockRoot)
   const lockOwnerPath = join(lockRoot, 'cross-process-lock', 'owner.json')
 
   for (let attempt = 0; attempt < 400 && !await pathExists(lockOwnerPath); attempt += 1) {
@@ -135,7 +142,7 @@ test('process lock serializes separate processes', async () => {
   }
   expect(await pathExists(lockOwnerPath)).toBe(true)
 
-  const second = spawnLockChild('second', 0, lockRoot)
+  const second = options ? spawnLockChild('second', 0, lockRoot, options) : spawnLockChild('second', 0, lockRoot)
   const [firstResult, secondResult] = await Promise.all([
     collectChild(first),
     collectChild(second)
@@ -152,36 +159,14 @@ test('process lock serializes separate processes', async () => {
 
   expect(firstExit).toBeGreaterThan(0)
   expect(secondEnter).toBeGreaterThanOrEqual(firstExit)
+}
+
+test('process lock serializes separate processes', async () => {
+  await expectSerializedLockChildren(await makeTempRoot())
 })
 
 test('process lock keeps a live same-host owner when its heartbeat is late', async () => {
-  const lockRoot = await makeTempRoot()
-  const options = { blockHeartbeat: true, staleMs: 50 }
-  const first = spawnLockChild('first', 150, lockRoot, options)
-  const lockOwnerPath = join(lockRoot, 'cross-process-lock', 'owner.json')
-
-  for (let attempt = 0; attempt < 400 && !await pathExists(lockOwnerPath); attempt += 1) {
-    await Bun.sleep(2)
-  }
-  expect(await pathExists(lockOwnerPath)).toBe(true)
-
-  const second = spawnLockChild('second', 0, lockRoot, options)
-  const [firstResult, secondResult] = await Promise.all([
-    collectChild(first),
-    collectChild(second)
-  ])
-
-  expect(firstResult.exitCode).toBe(0)
-  expect(secondResult.exitCode).toBe(0)
-  expect(firstResult.stderr).toBe('')
-  expect(secondResult.stderr).toBe('')
-
-  const combined = `${firstResult.stdout}\n${secondResult.stdout}`
-  const firstExit = readChildLifecycleTimestamp(combined, 'first', 'exit')
-  const secondEnter = readChildLifecycleTimestamp(combined, 'second', 'enter')
-
-  expect(firstExit).toBeGreaterThan(0)
-  expect(secondEnter).toBeGreaterThanOrEqual(firstExit)
+  await expectSerializedLockChildren(await makeTempRoot(), { blockHeartbeat: true, staleMs: 50 })
 })
 
 test('process lock finishes an in-flight heartbeat before release', async () => {

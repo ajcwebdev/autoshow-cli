@@ -5,12 +5,12 @@ import type { ExtractRoute, InputFamily, ProcessCommand } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 
-export const PROCESS_COMMAND_SET = new Set<string>(PROCESS_COMMANDS)
+const PROCESS_COMMAND_SET = new Set<string>(PROCESS_COMMANDS)
 export const ITEM_STATUS_SET = new Set<string>(PIPELINE_ITEM_STATUSES)
 export const PROVIDER_STATUS_SET = new Set<string>(PIPELINE_PROVIDER_STATUSES)
-export const INPUT_FAMILY_SET = new Set(['media', 'document', 'html_article', 'x_space', 'unsupported'])
-export const EXTRACT_ROUTE_SET = new Set(['media', 'document', 'article', 'x-space'])
-export const SHA256_PATTERN = /^[a-f0-9]{64}$/
+const INPUT_FAMILY_SET = new Set(['media', 'document', 'html_article', 'x_space', 'unsupported'])
+const EXTRACT_ROUTE_SET = new Set(['media', 'document', 'article', 'x-space'])
+const SHA256_PATTERN = /^[a-f0-9]{64}$/
 
 export const hasOnlyKeys = (
   value: Record<string, unknown>,

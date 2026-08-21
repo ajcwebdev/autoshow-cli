@@ -84,7 +84,7 @@ export const installMockFetch = (handler: MockFetchHandler): MockFetchCall[] => 
 export const snapshotEnv = (keys: readonly string[]): EnvSnapshot =>
   Object.fromEntries(keys.map((key) => [key, process.env[key]]))
 
-export const clearEnv = (keys: readonly string[]): void => {
+const clearEnv = (keys: readonly string[]): void => {
   for (const key of keys) {
     delete process.env[key]
   }
@@ -173,7 +173,7 @@ export const setupContractSuiteLifecycle = (
   return tempDirs
 }
 
-export type ProviderHttpErrorExpectation = {
+type ProviderHttpErrorExpectation = {
   status?: number
   kind?: AppErrorKind
   stage?: string

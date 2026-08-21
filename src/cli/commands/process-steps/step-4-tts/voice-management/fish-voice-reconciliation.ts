@@ -15,7 +15,7 @@ export const AMBIGUOUS_VOICE_REDISPATCH_MESSAGE =
 const journalRootFor = (journalRoot?: string): string =>
   journalRoot ?? join(MANAGED_VOICE_STORE_ROOT, 'journals')
 
-export const resolveFishProvisioningAttemptId = (registration: VoiceRegistration): string | undefined => {
+const resolveFishProvisioningAttemptId = (registration: VoiceRegistration): string | undefined => {
   if (typeof registration.sanitizedProviderMetadata['attemptId'] === 'string') return registration.sanitizedProviderMetadata['attemptId']
   if (registration.provisioning.state === 'pending') return registration.provisioning.operationId
   if (typeof registration.sanitizedProviderMetadata['provisioningAttemptId'] === 'string') return registration.sanitizedProviderMetadata['provisioningAttemptId']
@@ -29,7 +29,7 @@ export const classifyProvisioningJournal = (attempt: VoiceProvisioningAttempt): 
   return 'none'
 }
 
-export const loadPendingVoiceProvisioningAttempt = async (
+const loadPendingVoiceProvisioningAttempt = async (
   registration: VoiceRegistration,
   journalRoot?: string
 ): Promise<VoiceProvisioningAttempt | undefined> => {
@@ -160,26 +160,4 @@ export const completePendingVoiceProvisioning = async (input: {
     provisioning: attempt.outcome,
     sanitizedProviderMetadata: { attemptId: attempt.attemptId, reconciliationState: attempt.outcome.state },
   })
-}
-
-export const reconcileFishModelRegistration = async (input: {
-  charactersRoot: string
-  registration: VoiceRegistration
-  apiKey: string
-  journalRoot?: string | undefined
-}): Promise<VoiceRegistration> => {
-  if (input.registration.provider !== 'fish') throw CLIUsageError('Only Fish model-creation reconciliation is implemented for this provider path.')
-  const reconciled = await completePendingVoiceProvisioning({ ...input, allowAmbiguous: true })
-  if (reconciled) return reconciled
-  const attempt = await loadPendingVoiceProvisioningAttempt(input.registration, input.journalRoot)
-  if (attempt?.outcome) {
-    return await recordVoiceProvisioningOutcome({
-      charactersRoot: input.charactersRoot,
-      registrationId: input.registration.registrationId,
-      generationId: input.registration.generationId,
-      provisioning: attempt.outcome,
-      sanitizedProviderMetadata: { attemptId: attempt.attemptId, reconciliationState: attempt.outcome.state },
-    })
-  }
-  throw CLIUsageError('Fish registration does not identify its provisioning attempt.')
 }

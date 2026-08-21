@@ -29,7 +29,7 @@ const pronunciationPassage = (brief: CharacterVoiceBrief): string => {
     : 'Names and places should remain clear, deliberate, and easy to understand.'
 }
 
-export const buildCanonicalVoiceAuditionPassages = (
+const buildCanonicalVoiceAuditionPassages = (
   brief: CharacterVoiceBrief,
   representativeLine: string
 ): CanonicalVoiceAuditionPassage[] => {

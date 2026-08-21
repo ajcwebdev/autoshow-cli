@@ -1,14 +1,21 @@
 import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { DocumentMetadata } from '~/types'
 import { runDeepinfraOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runGrokOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/grok-ocr/run-grok-ocr'
 import { runKimiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr'
 import { runOpenAIOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/openai-ocr/run-openai-ocr'
-import { installFetch, installOpenAIRestContractHooks, jsonResponse, withTempDir } from './shared'
+import { installFetch, installOpenAIRestContractHooks, jsonResponse, withOcrDocumentFixture } from './shared'
 
 installOpenAIRestContractHooks()
+
+const OPENAI_BASE = { baseUrl: 'https://mock.openai.local/v1' }
+const CHAT_OCR_OPTIONS = { dpi: 300, password: undefined, outputDir: '', ocrPreparationCache: undefined }
+const dataUrl = (mime: string, bytes: Uint8Array): string =>
+  `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`
+
+/** Both OpenAI reasoning tiers must request the same native `ocr_pages` schema. */
+const STRUCTURED_OUTPUT_MODELS = ['gpt-5.5', 'gpt-5.4-mini'] as const
 
 describe('OpenAI REST OCR contracts', () => {
   test('OpenAI OCR sends data URLs and returns response usage token metadata', async () => {
@@ -18,17 +25,8 @@ describe('OpenAI REST OCR contracts', () => {
       usage: { input_tokens: 123, output_tokens: 45 }
     }))
 
-    await withTempDir(async (dir) => {
-      const imagePath = join(dir, 'page.png')
-      await writeFile(imagePath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'page',
-        pageCount: 1,
-        format: 'png',
-        fileSize: 3
-      }
-
-      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
+    await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ path, bytes, metadata }) => {
+      const result = await runOpenAIOcr(path, metadata, 'gpt-5.5', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
       expect(result.promptTokens).toBe(123)
@@ -39,92 +37,44 @@ describe('OpenAI REST OCR contracts', () => {
       expect(content[1]).toMatchObject({
         type: 'input_image',
         detail: 'high',
-        image_url: `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`
+        image_url: dataUrl('image/png', bytes)
       })
     })
   })
 
-  test('OpenAI OCR uses native structured output for gpt-5.5 multi-page OCR', async () => {
-    process.env['OPENAI_API_KEY'] = 'openai-key'
-    const calls = installFetch(() => jsonResponse({
-      output_text: JSON.stringify({
-        pages: [
-          { pageNumber: 1, text: 'First page' },
-          { pageNumber: 2, text: 'Second page' }
-        ]
-      }),
-      usage: { input_tokens: 234, output_tokens: 56 }
-    }))
+  for (const model of STRUCTURED_OUTPUT_MODELS) {
+    test(`OpenAI OCR uses native structured output for ${model} multi-page OCR`, async () => {
+      process.env['OPENAI_API_KEY'] = 'openai-key'
+      const calls = installFetch(() => jsonResponse({
+        output_text: JSON.stringify({
+          pages: [
+            { pageNumber: 1, text: 'First page' },
+            { pageNumber: 2, text: 'Second page' }
+          ]
+        }),
+        usage: { input_tokens: 234, output_tokens: 56 }
+      }))
 
-    await withTempDir(async (dir) => {
-      const imagePath = join(dir, 'document.png')
-      await writeFile(imagePath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'document',
-        pageCount: 2,
-        format: 'png',
-        fileSize: 3
-      }
+      await withOcrDocumentFixture({ slug: 'document', format: 'png', pageCount: 2 }, async ({ path, metadata }) => {
+        const result = await runOpenAIOcr(path, metadata, model, OPENAI_BASE)
 
-      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
-
-      expect(result.pages).toEqual([
-        { pageNumber: 1, method: 'ocr', text: 'First page' },
-        { pageNumber: 2, method: 'ocr', text: 'Second page' }
-      ])
-      const body = calls[0]?.bodyJson
-      expect(body?.['model']).toBe('gpt-5.5')
-      expect(body?.['text']).toMatchObject({
-        verbosity: 'low',
-        format: {
-          type: 'json_schema',
-          name: 'ocr_pages',
-          strict: true
-        }
+        expect(result.pages).toEqual([
+          { pageNumber: 1, method: 'ocr', text: 'First page' },
+          { pageNumber: 2, method: 'ocr', text: 'Second page' }
+        ])
+        const body = calls[0]?.bodyJson
+        expect(body?.['model']).toBe(model)
+        expect(body?.['text']).toMatchObject({
+          verbosity: 'low',
+          format: {
+            type: 'json_schema',
+            name: 'ocr_pages',
+            strict: true
+          }
+        })
       })
     })
-  })
-
-  test('OpenAI OCR uses native structured output for gpt-5.4-mini multi-page OCR', async () => {
-    process.env['OPENAI_API_KEY'] = 'openai-key'
-    const calls = installFetch(() => jsonResponse({
-      output_text: JSON.stringify({
-        pages: [
-          { pageNumber: 1, text: 'First page' },
-          { pageNumber: 2, text: 'Second page' }
-        ]
-      }),
-      usage: { input_tokens: 234, output_tokens: 56 }
-    }))
-
-    await withTempDir(async (dir) => {
-      const imagePath = join(dir, 'document.png')
-      await writeFile(imagePath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'document',
-        pageCount: 2,
-        format: 'png',
-        fileSize: 3
-      }
-
-      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.4-mini', { baseUrl: 'https://mock.openai.local/v1' })
-
-      expect(result.pages).toEqual([
-        { pageNumber: 1, method: 'ocr', text: 'First page' },
-        { pageNumber: 2, method: 'ocr', text: 'Second page' }
-      ])
-      const body = calls[0]?.bodyJson
-      expect(body?.['model']).toBe('gpt-5.4-mini')
-      expect(body?.['text']).toMatchObject({
-        verbosity: 'low',
-        format: {
-          type: 'json_schema',
-          name: 'ocr_pages',
-          strict: true
-        }
-      })
-    })
-  })
+  }
 
   test('Grok and DeepInfra OCR preserve their provider-specific chat image payloads', async () => {
     process.env['XAI_API_KEY'] = 'xai-key'
@@ -134,21 +84,10 @@ describe('OpenAI REST OCR contracts', () => {
       usage: { prompt_tokens: 4000, completion_tokens: 1000 }
     }))
 
-    await withTempDir(async (dir) => {
-      const imagePath = join(dir, 'page.png')
-      await writeFile(imagePath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'page',
-        pageCount: 1,
-        format: 'png',
-        fileSize: 3
-      }
-
-      const result = await runGrokOcr(imagePath, metadata, 'grok-4.20-0309-non-reasoning', {
-        dpi: 300,
-        password: undefined,
-        outputDir: dir,
-        ocrPreparationCache: undefined
+    await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ dir, path, bytes, metadata }) => {
+      const result = await runGrokOcr(path, metadata, 'grok-4.20-0309-non-reasoning', {
+        ...CHAT_OCR_OPTIONS,
+        outputDir: dir
       }, 'https://mock.x.ai/v1/chat/completions')
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'Grok OCR text' }])
@@ -167,18 +106,15 @@ describe('OpenAI REST OCR contracts', () => {
       expect(content[0]?.['type']).toBe('text')
       expect(content[1]).toMatchObject({
         type: 'image_url',
-        image_url: {
-          url: `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`
-        }
+        image_url: { url: dataUrl('image/png', bytes) }
       })
 
+      const webpBytes = new Uint8Array([4, 5, 6])
       const webpPath = join(dir, 'page.webp')
-      await writeFile(webpPath, new Uint8Array([4, 5, 6]))
+      await writeFile(webpPath, webpBytes)
       await runDeepinfraOcr(webpPath, { ...metadata, format: 'webp' }, 'Qwen/Qwen3-VL-8B-Instruct', {
-        dpi: 300,
-        password: undefined,
-        outputDir: dir,
-        ocrPreparationCache: undefined
+        ...CHAT_OCR_OPTIONS,
+        outputDir: dir
       })
       expect(calls[1]?.bodyJson?.['max_tokens']).toBe(4092)
       expect(calls[1]?.bodyJson).not.toHaveProperty('max_completion_tokens')
@@ -186,7 +122,7 @@ describe('OpenAI REST OCR contracts', () => {
       const deepinfraContent = deepinfraMessages[0]?.['content'] as Array<Record<string, unknown>>
       expect(deepinfraContent[1]).toEqual({
         type: 'image_url',
-        image_url: { url: `data:image/webp;base64,${Buffer.from(new Uint8Array([4, 5, 6])).toString('base64')}` }
+        image_url: { url: dataUrl('image/webp', webpBytes) }
       })
     })
   })
@@ -198,28 +134,13 @@ describe('OpenAI REST OCR contracts', () => {
       usage: { prompt_tokens: 4232, completion_tokens: 2068 }
     }))
 
-    await withTempDir(async (dir) => {
-      const imagePath = join(dir, 'page.png')
-      await writeFile(imagePath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'page',
-        pageCount: 1,
-        format: 'png',
-        fileSize: 3
-      }
-      const result = await runKimiOcr(imagePath, metadata, 'kimi-k2.6', {
-        dpi: 300,
-        password: undefined,
-        outputDir: dir,
-        ocrPreparationCache: undefined
-      })
+    await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ dir, path, metadata }) => {
+      const result = await runKimiOcr(path, metadata, 'kimi-k2.6', { ...CHAT_OCR_OPTIONS, outputDir: dir })
       expect(result.promptTokens).toBe(4232)
       expect(result.completionTokens).toBe(2068)
-      await runKimiOcr(imagePath, metadata, 'kimi-k2.6', {
-        dpi: 300,
-        password: undefined,
+      await runKimiOcr(path, metadata, 'kimi-k2.6', {
+        ...CHAT_OCR_OPTIONS,
         outputDir: dir,
-        ocrPreparationCache: undefined,
         reasoningEffort: 'default'
       })
 
@@ -240,27 +161,11 @@ describe('OpenAI REST OCR contracts', () => {
       choices: [{ message: { content: 'Kimi K3 OCR text' }, finish_reason: 'stop' }]
     }))
 
-    await withTempDir(async (dir) => {
-      const imagePath = join(dir, 'page.png')
-      await writeFile(imagePath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'page',
-        pageCount: 1,
-        format: 'png',
-        fileSize: 3
-      }
-
-      await runKimiOcr(imagePath, metadata, 'kimi-k3', {
-        dpi: 300,
-        password: undefined,
+    await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ dir, path, metadata }) => {
+      await runKimiOcr(path, metadata, 'kimi-k3', { ...CHAT_OCR_OPTIONS, outputDir: dir })
+      await runKimiOcr(path, metadata, 'kimi-k3', {
+        ...CHAT_OCR_OPTIONS,
         outputDir: dir,
-        ocrPreparationCache: undefined
-      })
-      await runKimiOcr(imagePath, metadata, 'kimi-k3', {
-        dpi: 300,
-        password: undefined,
-        outputDir: dir,
-        ocrPreparationCache: undefined,
         reasoningEffort: 'high'
       })
 
@@ -278,17 +183,8 @@ describe('OpenAI REST OCR contracts', () => {
       usage: { input_tokens: 12, output_tokens: 3 }
     }))
 
-    await withTempDir(async (dir) => {
-      const pdfPath = join(dir, 'page.pdf')
-      await writeFile(pdfPath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'page',
-        pageCount: 1,
-        format: 'pdf',
-        fileSize: 3
-      }
-
-      const result = await runOpenAIOcr(pdfPath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
+    await withOcrDocumentFixture({ slug: 'page', format: 'pdf' }, async ({ path, metadata }) => {
+      const result = await runOpenAIOcr(path, metadata, 'gpt-5.5', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'Plain OCR text' }])
       const body = calls[0]?.bodyJson
@@ -311,17 +207,8 @@ describe('OpenAI REST OCR contracts', () => {
       usage: { input_tokens: 9, output_tokens: 0 }
     }))
 
-    await withTempDir(async (dir) => {
-      const pdfPath = join(dir, 'blank.pdf')
-      await writeFile(pdfPath, new Uint8Array([1, 2, 3]))
-      const metadata: DocumentMetadata = {
-        slug: 'blank',
-        pageCount: 1,
-        format: 'pdf',
-        fileSize: 3
-      }
-
-      const result = await runOpenAIOcr(pdfPath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
+    await withOcrDocumentFixture({ slug: 'blank', format: 'pdf' }, async ({ path, metadata }) => {
+      const result = await runOpenAIOcr(path, metadata, 'gpt-5.5', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: '' }])
       expect(result.promptTokens).toBe(9)

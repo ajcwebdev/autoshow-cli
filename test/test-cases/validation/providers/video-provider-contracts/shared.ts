@@ -14,7 +14,7 @@ import {
   setupContractSuiteLifecycle
 } from '../../../../test-utils/rest-contract-helpers'
 
-export const envKeys = ['GEMINI_API_KEY', 'XAI_API_KEY', 'LTXV_API_KEY', 'REPLICATE_API_TOKEN', 'LUMA_AGENTS_API_KEY']
+const envKeys = ['GEMINI_API_KEY', 'XAI_API_KEY', 'LTXV_API_KEY', 'REPLICATE_API_TOKEN', 'LUMA_AGENTS_API_KEY']
 const tempDirs = setupContractSuiteLifecycle({
   envKeys,
   tempPrefix: 'autoshow-video-provider-contracts-',
@@ -29,16 +29,6 @@ export const defaultImageVideoPrompt = 'Animate the provided image with natural,
 
 export const videoResponse = (): Response =>
   bytesResponse(videoBytes, { headers: { 'content-type': 'video/mp4' } })
-
-export const transientVideoReadFailureResponse = (): Response => {
-  const response = videoResponse()
-  Object.defineProperty(response, 'arrayBuffer', {
-    value: async () => {
-      throw new TypeError('socket connection was closed unexpectedly')
-    }
-  })
-  return response
-}
 
 export const withTempDir = tempDirs.withDir
 

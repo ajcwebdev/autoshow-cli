@@ -5,7 +5,7 @@ import type { FileTimingsCacheFile, FileTimingsLookup, ParsedJunitCase } from '~
 const CACHE_VERSION = 1
 const MAX_SAMPLES = 20
 
-export const FILE_TIMINGS_CACHE_PATH = resolve(process.cwd(), 'project/test-output/.test-cache/file-timings.json')
+const FILE_TIMINGS_CACHE_PATH = resolve(process.cwd(), 'project/test-output/.test-cache/file-timings.json')
 
 export const medianDuration = (values: readonly number[]): number | null => {
   if (values.length === 0) {

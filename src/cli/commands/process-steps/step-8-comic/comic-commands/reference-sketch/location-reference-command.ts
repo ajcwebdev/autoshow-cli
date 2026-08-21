@@ -37,7 +37,7 @@ const collectMarkdown = async (directory: string): Promise<string[]> => {
   }))).flat().sort()
 }
 
-export const collectLocationSourceScripts = async (key: string): Promise<Array<{ path: string; content: string }>> => {
+const collectLocationSourceScripts = async (key: string): Promise<Array<{ path: string; content: string }>> => {
   const inputRoot = dirname(getLocationsRoot())
   const paths = await collectMarkdown(join(inputRoot, 'scripts'))
   const scripts = await Promise.all(paths.map(async path => ({ path, content: await Bun.file(path).text() })))
@@ -91,7 +91,7 @@ const validateQaResult = (value: LocationViewQaResult): LocationViewQaResult => 
 
 const uniquePaths = (paths: Array<string | undefined>): string[] => Array.from(new Set(paths.filter((path): path is string => !!path)))
 
-export const resolveLocationReferenceRequest = (options: ReferenceSketchCommandOptions): ResolvedLocationReferenceRequest => {
+const resolveLocationReferenceRequest = (options: ReferenceSketchCommandOptions): ResolvedLocationReferenceRequest => {
   if (!options.location || !LOCATION_KEY_PATTERN.test(options.location)) throw CLIUsageError('--location must be a lowercase kebab-case key')
   const key = options.location
   const view = options.view ?? 'establishing'
@@ -118,7 +118,7 @@ export const resolveLocationReferenceRequest = (options: ReferenceSketchCommandO
   }
 }
 
-export const loadLocationReferenceContext = async (
+const loadLocationReferenceContext = async (
   request: ResolvedLocationReferenceRequest,
   dependencies: LocationReferenceCommandDependencies = {},
 ): Promise<LocationReferencePreparation> => {
@@ -196,7 +196,7 @@ const locationRepairPrompt = (attempt: number, retryMode: 'fresh' | 'edit', last
   return `Edit the first image only. Failed checks: ${lastQa?.failedChecks.join('; ')}. ${lastQa?.editInstructions} Preserve everything already correct.`
 }
 
-export const runLocationViewGeneration = async (
+const runLocationViewGeneration = async (
   request: ResolvedLocationReferenceRequest,
   context: LocationReferenceContext,
   dependencies: LocationReferenceCommandDependencies = {},

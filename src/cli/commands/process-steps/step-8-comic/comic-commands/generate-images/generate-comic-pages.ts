@@ -33,7 +33,6 @@ import {
 } from '../../comic-utils/panel-prompt-utils'
 import { getPagesDirectory, getPanelPromptsDirectory } from '../../comic-utils/project-paths'
 import { getPageComicImagePath, loadPromptsConfig } from '../../comic-utils/scene-utils'
-import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import {
   buildComicPagePrompt,
   buildComicPagePromptData,
@@ -44,11 +43,12 @@ import {
   applyImagePromptVariation,
   getImagePromptVariationLabel,
 } from './prompt-variations'
-import { judgeComicPage, writePageQaReports } from './comic-page-qa'
+import { judgeComicPage } from './comic-page-qa'
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 import { generateWithQaRepair } from './panel-qa-pipeline'
+import { runComicImageWorkItems } from './comic-image-work-items'
 
 const readComicPagePanelSource = async (
   sceneDirectory: string,
@@ -98,7 +98,7 @@ const resolvePageReferences = async (
   return resolved
 }
 
-export const renderSinglePage = async (
+const renderSinglePage = async (
   item: PageWorkItem,
   ctx: PageRenderContext
 ): Promise<PageRenderResult> => {
@@ -311,39 +311,16 @@ export const generateComicPages = async (
     pageChunks.map(pageChunk => ({ variation, model, pageChunk }))
   )
 
-  const results = await mapWithConcurrency(options.concurrency, workList, async item => await renderSinglePage(item, renderContext))
-
-  const qaEntriesByDirectory = new Map<string, PageQaEntry[]>()
-  let errorCount = 0
-
-  for (const res of results) {
-    if (res.error) errorCount++
-    stats.imagesGenerated += res.stats.imagesGenerated
-    stats.imagesSkipped += res.stats.imagesSkipped
-    stats.totalDurationMs += res.stats.totalDurationMs
-    stats.totalInputTokens += res.stats.totalInputTokens
-    stats.totalOutputTokens += res.stats.totalOutputTokens
-    stats.totalCost += res.stats.totalCost
-    for (const { directory, entry } of res.qaEntries) {
-      const entries = qaEntriesByDirectory.get(directory) ?? []
-      entries.push(entry)
-      qaEntriesByDirectory.set(directory, entries)
-    }
-  }
-
-  if (qaEnabled) {
-    for (const [directory, entries] of qaEntriesByDirectory) {
-      await writePageQaReports(directory, entries)
-    }
-    const hardFailures = Array.from(qaEntriesByDirectory.values()).flat().filter(entry => entry.hardFailure)
-    if (hardFailures.length > 0) {
-      throw ValidationError(`${hardFailures.length} comic page QA hard failure(s); generated artifacts and QA reports were preserved.`, { stage: 'comic:page-qa' })
-    }
-  }
-
-  if (errorCount > 0) {
-    throw InfraError(`${errorCount} comic page generation task(s) failed`, { stage: 'comic:pages' })
-  }
-
-  return stats
+  return await runComicImageWorkItems({
+    concurrency: options.concurrency,
+    items: workList,
+    render: async item => await renderSinglePage(item, renderContext),
+    stats,
+    qaEnabled,
+    qaHardFailure: {
+      message: count => `${count} comic page QA hard failure(s); generated artifacts and QA reports were preserved.`,
+      stage: 'comic:page-qa'
+    },
+    itemFailure: { message: count => `${count} comic page generation task(s) failed`, stage: 'comic:pages' }
+  })
 }

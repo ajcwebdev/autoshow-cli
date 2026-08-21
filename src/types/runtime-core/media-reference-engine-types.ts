@@ -1,4 +1,4 @@
-export type MediaReferencePolicy =
+type MediaReferencePolicy =
   | { mode: 'strict' }
   | { mode: 'lenient', contentTypePrefix: string, fallbackMimeType: string }
 

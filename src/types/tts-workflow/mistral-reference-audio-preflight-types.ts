@@ -1,4 +1,4 @@
-export type ProbeResult = Readonly<{ exitCode: number, stdout: string, stderr: string }>
+type ProbeResult = Readonly<{ exitCode: number, stdout: string, stderr: string }>
 
 export type MistralReferenceAudioProbeRunner = (
   command: string,

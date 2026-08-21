@@ -85,7 +85,7 @@ export const createModelValidator = <T extends string>(
   }
 }
 
-export const throwRetiredModelSelection = (
+const throwRetiredModelSelection = (
   model: string,
   flag: string,
   replacement: string

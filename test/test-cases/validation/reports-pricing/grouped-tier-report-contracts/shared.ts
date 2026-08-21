@@ -6,8 +6,6 @@ import type { MetricName, MetricRankingEntry, RankingSurfaceName, TtsRankingEntr
 import { createTempDirTracker } from '../../../../test-utils/temp-dirs'
 import { readBunSpawnStreamText as readStreamText } from '../../../../test-utils/stream-text'
 
-export { readStreamText }
-
 export const setupTempRoots = (): ((prefix: string) => Promise<string>) => {
   const tracker = createTempDirTracker('autoshow-grouped-tier-')
   afterEach(tracker.cleanup)

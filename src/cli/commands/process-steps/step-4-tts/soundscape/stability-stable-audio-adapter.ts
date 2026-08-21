@@ -18,10 +18,10 @@ const DOCS = [
 ]
 
 export const STABILITY_STABLE_AUDIO_MODEL_ID = 'stable-audio-3'
-export const STABILITY_STABLE_AUDIO_SERIALIZER_VERSION = 'stability.stable-audio-3.v1'
+const STABILITY_STABLE_AUDIO_SERIALIZER_VERSION = 'stability.stable-audio-3.v1'
 export const STABILITY_STABLE_AUDIO_ENDPOINT = '/v2beta/audio/stable-audio-3/text-to-audio'
 export const STABILITY_STABLE_AUDIO_SELECTOR = `stability=${STABILITY_STABLE_AUDIO_MODEL_ID}`
-export const STABILITY_API_BASE_URL = 'https://api.stability.ai'
+const STABILITY_API_BASE_URL = 'https://api.stability.ai'
 
 const fixtureBase = {
   schemaVersion: 1 as const,
@@ -46,7 +46,7 @@ const fixtureBase = {
   },
 }
 
-export const STABILITY_STABLE_AUDIO_SFX_CAPABILITY_FIXTURE: SoundEffectCapabilityFixture = {
+const STABILITY_STABLE_AUDIO_SFX_CAPABILITY_FIXTURE: SoundEffectCapabilityFixture = {
   ...fixtureBase,
   capabilityFixtureHash: hashCanonicalTtsValue(fixtureBase),
 }

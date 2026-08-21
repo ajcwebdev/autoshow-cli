@@ -10,7 +10,7 @@ export type WhisperCppTranscribeOptions = {
   preserveJson?: boolean | undefined
 }
 
-export type WhisperCppInvocation = {
+type WhisperCppInvocation = {
   command: string
   args: string[]
   modelDescriptor: string

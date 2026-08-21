@@ -340,7 +340,7 @@ const createAdaptivePdfPageChunk = async (
   recordAdaptiveDirectFailure(state, options.range, direct.result, options.onDirectSplittingDisabled)
 }
 
-export const createAdaptiveOcrPdfPageChunkCreator = (options: {
+const createAdaptiveOcrPdfPageChunkCreator = (options: {
   dpi?: number | undefined
   tools?: PdfChunkLocalTools | undefined
   logLabel?: string | undefined

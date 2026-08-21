@@ -282,7 +282,7 @@ const compactSfxEntry = (entry: SoundEffectRenderResultEntry): CompactSfxEntry =
   ...(entry.omissionReason ? { omissionReason: entry.omissionReason } : {}),
 })
 
-export const compactSoundEffectResult = (plan: SoundEffectRenderPlan, result: SoundEffectRenderResult): CompactSfx => {
+const compactSoundEffectResult = (plan: SoundEffectRenderPlan, result: SoundEffectRenderResult): CompactSfx => {
   const base = {
     schemaVersion: 1 as const,
     renderPlanId: plan.renderPlanId,

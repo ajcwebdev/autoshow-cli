@@ -23,7 +23,7 @@ const getReplicateSupportedVideoModes = (model: ReplicateVideoModel): readonly V
   return ['text']
 }
 
-export const hasReplicateSpecificOptions = (options: VideoGenOptions): boolean =>
+const hasReplicateSpecificOptions = (options: VideoGenOptions): boolean =>
   options.replicateVideoSeed !== undefined
   || hasValue(options.replicateVideoNegativePrompt)
   || hasValue(options.replicateVideoMultiPrompt)

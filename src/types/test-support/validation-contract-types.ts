@@ -41,7 +41,7 @@ export type ResumeFakeMetadata = ProviderIdentityBase & { processingTime: number
 
 export type ResumeFakeProviderResumeEntry = ProviderResumeEntry<ProviderIdentity, Record<string, never>>
 
-export type HelperBudgetKeySpecBase = {
+type HelperBudgetKeySpecBase = {
   callName: string
   prefix: string
   modelMode: 'strings' | 'objects'
@@ -87,7 +87,7 @@ export type MatrixStatus = {
   state: 'queued' | 'completed'
 }
 
-export type MatrixTranscript = {
+type MatrixTranscript = {
   text: string
 }
 

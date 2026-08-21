@@ -21,6 +21,43 @@ import {
 } from './shared'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
+/**
+ * Token-priced OCR providers all report the same estimate and timing shape for a
+ * two-page heuristic run; only provider identity varies, so the shared prelude lives
+ * here and each suite keeps its own provider-specific follow-up assertions.
+ */
+const expectTokenPricedOcrEstimate = (target: { provider: 'deepinfra' | 'kimi', model: string }): void => {
+  const extractTargets = [{
+    provider: target.provider,
+    model: target.model,
+    pageCount: 2,
+    promptTokens: 8000,
+    completionTokens: 2000,
+    estimateType: 'heuristic' as const
+  }]
+  const cost = computeEstimatedCosts({ extractTargets })
+  const timing = computeEstimatedProcessingTimes({
+    extractTargets: extractTargets.map(({ provider, model, pageCount }) => ({ provider, model, pageCount })),
+    concurrencyMode: 'immediate',
+    hostedOcrProfilePath: missingHostedOcrProfilePath()
+  })
+
+  expect(cost.steps[0]).toMatchObject({
+    step: 'extract',
+    provider: target.provider,
+    model: target.model,
+    promptTokens: 8000,
+    completionTokens: 2000,
+    pageCount: 2
+  })
+  expect(cost.totalCost).toBeGreaterThan(0)
+  expect(timing.steps[0]).toMatchObject({
+    provider: target.provider,
+    model: target.model,
+    processingTimeMs: expectedOcrProcessingMs(target.provider, target.model, 2)
+  })
+}
+
 describe('price mode contracts', () => {
   test('URL article extract estimates use Firecrawl and glm-reader page rates without fetching', () => {
       const firecrawl = estimateFirecrawlScrapeCost()
@@ -154,35 +191,7 @@ describe('price mode contracts', () => {
     })
 
   test('DeepInfra OCR estimates include token cost and page timing', () => {
-      const extractTargets = [{
-        provider: 'deepinfra' as const,
-        model: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
-        pageCount: 2,
-        promptTokens: 8000,
-        completionTokens: 2000,
-        estimateType: 'heuristic' as const
-      }]
-      const cost = computeEstimatedCosts({ extractTargets })
-      const timing = computeEstimatedProcessingTimes({
-        extractTargets: extractTargets.map(({ provider, model, pageCount }) => ({ provider, model, pageCount })),
-        concurrencyMode: 'immediate',
-        hostedOcrProfilePath: missingHostedOcrProfilePath()
-      })
-
-      expect(cost.steps[0]).toMatchObject({
-        step: 'extract',
-        provider: 'deepinfra',
-        model: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
-        promptTokens: 8000,
-        completionTokens: 2000,
-        pageCount: 2
-      })
-      expect(cost.totalCost).toBeGreaterThan(0)
-      expect(timing.steps[0]).toMatchObject({
-        provider: 'deepinfra',
-        model: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
-        processingTimeMs: expectedOcrProcessingMs('deepinfra', 'Qwen/Qwen3-VL-30B-A3B-Instruct', 2)
-      })
+      expectTokenPricedOcrEstimate({ provider: 'deepinfra', model: 'Qwen/Qwen3-VL-30B-A3B-Instruct' })
 
       const actualMetadata: ExtractionMetadata = {
         extractionMethod: 'pdf+deepinfra-ocr',
@@ -217,36 +226,7 @@ describe('price mode contracts', () => {
     })
 
   test('Kimi OCR estimates include token cost and page timing', () => {
-      const extractTargets = [{
-        provider: 'kimi' as const,
-        model: 'kimi-k2.6',
-        pageCount: 2,
-        promptTokens: 8000,
-        completionTokens: 2000,
-        estimateType: 'heuristic' as const
-      }]
-      const cost = computeEstimatedCosts({ extractTargets })
-      const timing = computeEstimatedProcessingTimes({
-        extractTargets: extractTargets.map(({ provider, model, pageCount }) => ({ provider, model, pageCount })),
-        concurrencyMode: 'immediate',
-        hostedOcrProfilePath: missingHostedOcrProfilePath()
-      })
-
-      expect(cost.steps[0]).toMatchObject({
-        step: 'extract',
-        provider: 'kimi',
-        model: 'kimi-k2.6',
-        promptTokens: 8000,
-        completionTokens: 2000,
-        pageCount: 2
-      })
-      expect(cost.totalCost).toBeGreaterThan(0)
-      const pageCount = extractTargets[0]?.pageCount ?? 0
-      expect(timing.steps[0]).toMatchObject({
-        provider: 'kimi',
-        model: 'kimi-k2.6',
-        processingTimeMs: expectedOcrProcessingMs('kimi', 'kimi-k2.6', pageCount)
-      })
+      expectTokenPricedOcrEstimate({ provider: 'kimi', model: 'kimi-k2.6' })
     })
 
   test('Grok OCR estimates and actuals use provisional token pricing', () => {

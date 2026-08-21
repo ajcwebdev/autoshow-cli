@@ -33,7 +33,7 @@ const DOCS = [
 
 export const REPLICATE_AUDIOGEN_PINNED_VERSION = '154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8'
 export const REPLICATE_AUDIOGEN_MODEL_ID = 'sepal/audiogen'
-export const REPLICATE_AUDIOGEN_OWNER = 'sepal'
+const REPLICATE_AUDIOGEN_OWNER = 'sepal'
 export const REPLICATE_AUDIOGEN_SERIALIZER_VERSION = 'replicate.audiogen.v1'
 export const REPLICATE_AUDIOGEN_SELECTOR = `replicate=${REPLICATE_AUDIOGEN_MODEL_ID}@${REPLICATE_AUDIOGEN_PINNED_VERSION}`
 
@@ -126,7 +126,7 @@ export const registerHistoricalAudioGenFixture = (fixture: SoundEffectCapability
 export const readAudioGenCapabilityFixture = (capabilityFixtureHash: string): SoundEffectCapabilityFixture | undefined =>
   historicalFixtures.get(capabilityFixtureHash)
 
-export const isAudioGenDispatchAvailable = (fixture: SoundEffectCapabilityFixture): boolean =>
+const isAudioGenDispatchAvailable = (fixture: SoundEffectCapabilityFixture): boolean =>
   (fixture.dispatchAvailability ?? 'available') === 'available'
 
 export const createSoundEffectLicenseUse = (input: {

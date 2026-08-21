@@ -74,7 +74,7 @@ export const withProviderResumeOutputDir = (
   outputDir
 })
 
-export const readProviderResumeSnapshot = async (
+const readProviderResumeSnapshot = async (
   target: ResumeTarget,
   readItemRecord: (outputDir: string) => Promise<PipelineItemRecord>
 ): Promise<ProviderResumeSnapshot | undefined> => {

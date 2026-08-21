@@ -7,18 +7,16 @@ import { buildOcrCostDiagnostics, collectEstimatedExtractTargets, resolveDocumen
 import { buildDocumentPrompt } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write-prompt'
 import { processOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
 import { runLLM } from '~/cli/commands/process-steps/step-3-write/run-llm'
-import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
-import { writeRenderedTextArtifacts } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentExtractionOptions, ExtractionMetadata, ExtractionOptions, PreparedDocument, ResolvedLLMModelOptions, RunExtractedDocumentWriteOptions, Step1SourceRef, Step3Metadata, TranscriptionResult, VideoMetadata, WriteDocumentOutputMetadataOptions, WriteRuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentExtractionOptions, ExtractionMetadata, ExtractionOptions, PreparedDocument, ResolvedLLMModelOptions, RunExtractedDocumentWriteOptions, Step1SourceRef, TranscriptionResult, VideoMetadata, WriteDocumentOutputMetadataOptions, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
-import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { buildAggregateTiming } from '~/cli/commands/pricing-orchestration/aggregate-pricing/timing'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
+import { applySummaryArtifactNames, serializeStep3Results, writeWriteFlowArtifacts } from '~/cli/commands/process-steps/step-3-write/write-artifact-finalization'
 
 const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
   [
@@ -369,30 +367,17 @@ export const runExtractedDocumentWrite = async ({
     throw InternalError('No LLM outputs generated for document write', { stage: 'write:document' })
   }
 
-  const renderedArtifacts = await writeRenderedTextArtifacts({
+  const { renderedArtifacts, showNoteArtifacts } = await writeWriteFlowArtifacts({
     outputDir: extraction.outputDir,
     results: step3Runs,
-    writeInternal: opts.renderedText,
+    showNoteResults: step3Runs,
+    sourceText: extraction.result.text,
     sourcePath: sourceRef?.filePath ?? target,
-    trackListPath: opts.trackList,
-    externalDir: opts.renderedOutDir,
-    externalBaseName: extraction.step1Metadata.slug
-  })
-  if (renderedArtifacts.externalFiles.length > 0) {
-    logLocationsTable(l, [{
-      artifact: 'renderedOutDir',
-      path: opts.renderedOutDir,
-      detail: `${renderedArtifacts.externalFiles.length} file${renderedArtifacts.externalFiles.length === 1 ? '' : 's'}`
-    }])
-  }
-
-  const showNoteArtifacts = await writeShowNoteArtifacts({
-    outputDir: extraction.outputDir,
-    results: step3Runs,
-    sourceText: extraction.result.text
+    externalBaseName: extraction.step1Metadata.slug,
+    opts
   })
 
-  const step3Serialized: Step3Metadata | Step3Metadata[] = step3Results.length === 1 ? step3Results[0]! : step3Results
+  const step3Serialized = serializeStep3Results(step3Results)
   const llmInputTokenCount = step3Results.reduce((sum, item) => sum + item.inputTokenCount, 0)
   const llmOutputTokenCount = step3Results.reduce((sum, item) => sum + item.outputTokenCount, 0)
   const llmService = step3Results[0]?.llmService ?? llmConfig.llmService ?? 'unknown'
@@ -406,14 +391,7 @@ export const runExtractedDocumentWrite = async ({
     ...showNoteArtifacts.internalArtifacts
   }
   await appendChapterExportArtifacts(artifactFiles, extraction.step2Metadata, extraction.outputDir)
-  if (step3Results.length === 1) {
-    artifactFiles['summary'] = step3Results[0]?.outputFileName ?? 'text.json'
-  } else {
-    for (const step3 of step3Results) {
-      const summaryKey = step3.outputFileName.replace(/\.json$/u, '').replace(/^text-/u, 'summary-')
-      artifactFiles[summaryKey] = step3.outputFileName
-    }
-  }
+  applySummaryArtifactNames(artifactFiles, step3Results)
 
   const priceAlignedEstimate = preflightEstimate ?? await buildAggregatedPriceEstimate('write', target, opts)
 

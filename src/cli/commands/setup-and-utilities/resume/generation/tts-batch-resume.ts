@@ -7,7 +7,7 @@ import type { AggregatedPriceEstimate, PipelineManifest, ResumeResult, ResumeTar
 import { CLIUsageError } from '~/utils/error-handler'
 import { resolveUserPath } from '~/utils/runtime-paths'
 
-export const createTtsBatchResumeTarget = (batchDir: string): ResumeTarget => ({
+const createTtsBatchResumeTarget = (batchDir: string): ResumeTarget => ({
   kind: 'tts',
   scope: 'batch',
   dir: batchDir,

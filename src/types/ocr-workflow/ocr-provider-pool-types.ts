@@ -4,9 +4,9 @@ export type IndexedOcrTarget = Indexed<OcrTarget>
 
 export type OcrProviderMode = 'fanout' | 'pool'
 
-export type OcrPoolAttemptStatus = 'running' | 'accepted' | 'failed' | 'ambiguous' | 'interrupted'
+type OcrPoolAttemptStatus = 'running' | 'accepted' | 'failed' | 'ambiguous' | 'interrupted'
 
-export type OcrPoolFailureScope = 'page' | 'target' | 'lane'
+type OcrPoolFailureScope = 'page' | 'target' | 'lane'
 
 export type OcrPoolAttemptUsage = {
   requestedReasoningEffort?: string | undefined
@@ -35,7 +35,7 @@ export type OcrPoolPageAttempt = OcrPoolAttemptUsage & {
   failure?: Record<string, unknown> | undefined
 }
 
-export type OcrPoolAcceptedPage = OcrPoolAttemptUsage & {
+type OcrPoolAcceptedPage = OcrPoolAttemptUsage & {
   provider: OcrTarget['service']
   model: string
   requestedReasoningEffort?: string | undefined
@@ -86,7 +86,7 @@ export type OcrPoolLaneState = {
   lastFailure?: Record<string, unknown> | undefined
 }
 
-export type OcrPoolSchedulerTelemetry = {
+type OcrPoolSchedulerTelemetry = {
   queueDepth: number
   queueDepthPeak: number
   claims: number

@@ -4,7 +4,6 @@ import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, Step
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
@@ -16,7 +15,6 @@ import {
   formatTextInputRenderedText,
   getTextInputTitle,
   resolveTextInputSongTitle,
-  writeRenderedTextArtifacts,
 } from './text-input-utils'
 import { buildProviderStepSummaries } from '~/cli/commands/process-steps/generation-command-utils'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
@@ -27,7 +25,7 @@ import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
 import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { writeShowNoteArtifacts } from './show-note-artifacts'
+import { applySummaryArtifactNames, serializeStep3Results, writeWriteFlowArtifacts } from './write-artifact-finalization'
 
 const buildTextInputMetadata = (inputPath: string): VideoMetadata => {
   const title = getTextInputTitle(inputPath)
@@ -118,24 +116,6 @@ export const runTextWrite = async (
     throw InfraError('No LLM outputs generated for text input write', { stage: 'write:text' })
   }
 
-  const renderedArtifacts = await writeRenderedTextArtifacts({
-    outputDir,
-    results: step3RunResults,
-    writeInternal: opts.renderedText,
-    sourcePath: inputPath,
-    trackListPath: opts.trackList,
-    externalDir: opts.renderedOutDir,
-    externalBaseName: title
-  })
-
-  if (renderedArtifacts.externalFiles.length > 0) {
-    logLocationsTable(l, [{
-      artifact: 'renderedOutDir',
-      path: opts.renderedOutDir,
-      detail: `${renderedArtifacts.externalFiles.length} file${renderedArtifacts.externalFiles.length === 1 ? '' : 's'}`
-    }])
-  }
-
   const showNoteRunResults = await Promise.all(step3RunResults.map(async (result) => ({
     ...result,
     renderedText: await formatTextInputRenderedText({
@@ -146,15 +126,17 @@ export const runTextWrite = async (
     })
   })))
 
-  const showNoteArtifacts = await writeShowNoteArtifacts({
+  const { renderedArtifacts, showNoteArtifacts } = await writeWriteFlowArtifacts({
     outputDir,
-    results: showNoteRunResults,
-    sourceText
+    results: step3RunResults,
+    showNoteResults: showNoteRunResults,
+    sourceText,
+    sourcePath: inputPath,
+    externalBaseName: title,
+    opts
   })
 
-  const step3Serialized = step3Results.length === 1
-    ? step3Results[0]
-    : step3Results
+  const step3Serialized = serializeStep3Results(step3Results)
 
   const llmTargets = step3Results.map((item) => ({
     service: item.llmService,
@@ -219,14 +201,7 @@ export const runTextWrite = async (
     ...showNoteArtifacts.internalArtifacts
   }
 
-  if (step3Results.length === 1) {
-    artifactFiles['summary'] = step3Results[0]?.outputFileName ?? 'text.json'
-  } else {
-    for (const step3 of step3Results) {
-      const summaryKey = step3.outputFileName.replace(/\.json$/u, '').replace(/^text-/u, 'summary-')
-      artifactFiles[summaryKey] = step3.outputFileName
-    }
-  }
+  applySummaryArtifactNames(artifactFiles, step3Results)
 
   l.report.complete(outputDir, artifactFiles, {
     steps: buildStepSummaries(step3Results, actual.steps),

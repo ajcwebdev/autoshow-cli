@@ -16,6 +16,7 @@ import type { CanonicalAudioProviderProjection, CompactTargetRender, FinalTimeli
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { createTtsFixtureTarget } from '../../../test-utils/tts-fixture-target'
 import { requireDefined } from '../../../test-utils/value-assertions'
 
 const MODEL = 'fixture-compact-archive-model'
@@ -23,53 +24,14 @@ const MODEL = 'fixture-compact-archive-model'
 const relativeNames = async (root: string): Promise<string[]> =>
   (await readdir(root, { recursive: true })).map(String).map(name => name.replaceAll('\\', '/'))
 
-const createFixtureTarget = (calls: number[]): TtsTarget => {
-  const operation = 'tts-synthesis' as const
-  const transport = 'hosted-api'
-  const targetKey = canonicalTargetKey(operation, 'openai', MODEL, transport)
-  return {
-    service: 'openai',
-    model: MODEL,
-    operation,
-    transport,
-    targetKey,
-    voice: 'alloy',
-    run: async (text, outputDir, _opts, _invocation, requestEvidence) => {
-      calls.push(calls.length)
-      const audioPath = join(outputDir, 'speech.wav')
-      const bytes = createSyntheticWavBytes({ durationSeconds: 0.2, amplitude: 0.25, frequencyHz: 440 })
-      await requestEvidence?.dispatch({
-        chunkIndex: 1,
-        endpointKind: 'speech-synthesis',
-        serializerVersion: 'openai.tts.phase-0-v1',
-        serializedRequest: { body: { input: text, voice: 'alloy', response_format: 'wav' } },
-        providerText: text,
-        voiceField: 'voice',
-        voices: [{ kind: 'provider-id', value: 'alloy' }],
-        requestControls: { responseFormat: 'wav' },
-        continuation: { kind: 'none' }
-      }, { attempt: 1 }, async ({ accepted }) => {
-        await accepted({ providerRequestId: `compact-archive-${calls.length}` })
-        await Bun.write(audioPath, bytes)
-      })
-      if (!requestEvidence) await Bun.write(audioPath, bytes)
-      await requestEvidence?.recordOutput({ chunkIndex: 1, path: audioPath })
-      await requestEvidence?.complete({ chunkIndex: 1 })
-      return {
-        audioPath,
-        metadata: {
-          ttsService: 'openai',
-          ttsModel: MODEL,
-          speaker: 'alloy',
-          processingTime: 1,
-          audioFileName: 'speech.wav',
-          audioFileSize: bytes.byteLength,
-          chunkCount: 1
-        }
-      }
-    }
-  }
-}
+const createFixtureTarget = (calls: number[]): TtsTarget => createTtsFixtureTarget({
+  mode: { kind: 'success' },
+  model: MODEL,
+  voice: 'alloy',
+  onRun: () => { calls.push(calls.length) },
+  providerRequestId: () => `compact-archive-${calls.length}`,
+  audioBytes: () => createSyntheticWavBytes({ durationSeconds: 0.2, amplitude: 0.25, frequencyHz: 440 })
+})
 
 const sfxPlan = (prompt: string): SoundscapePlan => {
   const cueId = hashCanonicalTtsValue({ prompt })

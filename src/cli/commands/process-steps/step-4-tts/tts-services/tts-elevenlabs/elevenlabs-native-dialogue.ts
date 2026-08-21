@@ -22,9 +22,10 @@ import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { providerSecondsToMilliseconds } from '../../script-to-audio/advanced-provider-contracts'
 import { ELEVENLABS_TTS_OUTPUT_FORMAT, readElevenLabsError } from './elevenlabs-utils'
+import { canonicalOffsetForProviderOffset } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-timing-mapping'
 
-export const ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS = 2000
-export const ELEVENLABS_NATIVE_DIALOGUE_MAX_VOICES = 10
+const ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS = 2000
+const ELEVENLABS_NATIVE_DIALOGUE_MAX_VOICES = 10
 
 const ELEVENLABS_DOCUMENTED_ACTION_TAGS = [
   { tag: 'whispers', pattern: /\b(?:whisper(?:s|ed|ing)?|softly|quiet(?:ly)?|under (?:his|her|their) breath)\b/i },
@@ -106,17 +107,6 @@ export const planElevenLabsNativeDialogueBatches = (
 
 const numberAt = (value: unknown, index: number): number | undefined => Array.isArray(value) && typeof value[index] === 'number' ? value[index] : undefined
 
-const canonicalOffsetForProviderOffset = (prepared: PreparedProviderText, providerOffset: number): number | undefined => {
-  for (const span of prepared.spans) {
-    if (span.kind !== 'mapped' || span.providerStart === undefined || span.providerEnd === undefined || span.canonicalStart === undefined || span.canonicalEnd === undefined) continue
-    if (providerOffset < span.providerStart || providerOffset >= span.providerEnd) continue
-    const providerWidth = span.providerEnd - span.providerStart
-    const canonicalWidth = span.canonicalEnd - span.canonicalStart
-    if (providerWidth !== canonicalWidth) return undefined
-    return span.canonicalStart + (providerOffset - span.providerStart)
-  }
-  return undefined
-}
 
 export const normalizeElevenLabsDialogueTiming = (input: {
   response: ElevenLabsDialogueTimingResponse

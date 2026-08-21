@@ -1,10 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
-import type { AsyncSttLifecycleHooks, Step2Metadata, Step2RuntimeMetadata, SupadataJobStatus, SupadataTranscriptPayload, TranscriptionResult } from '~/types'
-import {
-  logSttAsyncJobLifecycle,
-  logSttSegmentLifecycle,
-  logSttTranscriptOutput
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
+import type { AsyncSttLifecycleHooks, Step2Metadata, SupadataJobStatus, SupadataTranscriptPayload, TranscriptionResult } from '~/types'
+import { logSttTranscriptOutput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
   buildTranscriptionOutputBase,
   countTokens,
@@ -13,16 +9,13 @@ import {
 import {
   buildAsyncSttPollingDeadlineError,
   buildAsyncSttResumeProbeError,
-  createAsyncSttJobReadyNotifier,
-  createAsyncSttProgressMetadataPersister,
-  parseStep2RuntimeMetadata,
-  pollAsyncSttJobUntilComplete,
   readPersistedAsyncSttProgressMetadata,
+  runAsyncSttJobLifecycle
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
-import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
+import { lifecycleMetricsToCallbacks } from '../stt-stage-request'
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ProviderError } from '~/utils/error-handler'
+import { InfraError, ProviderError } from '~/utils/error-handler'
 import { getSupadataCreditRateCents } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import {
   fetchSupadataTranscript,
@@ -71,33 +64,23 @@ export const runSupadataStt = async (
     lifecycle
   } = options
 
+  // Supadata only transcribes supported remote sources; a local file can never be routed
+  // here, so this is a skip decision rather than a provider failure.
   if (typeof sourceUrl !== 'string' || sourceUrl.length === 0 || sourceUrl.startsWith('file:')) {
     throw buildSupadataUnsupportedSourceError(sourceUrl)
   }
-
   if (!isSupadataSupportedSourceUrl(sourceUrl)) {
     throw buildSupadataUnsupportedSourceError(sourceUrl)
   }
 
   const apiKey = requireApiKey('SUPADATA_API_KEY', 'stt:supadata', 'Supadata transcription')
-
-  if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'supadata', action: 'started', segmentNumber, totalSegments, model: modelName })
-  }
-
-  const startTime = Date.now()
+  const baseURL = getSupadataBaseUrl()
   const offsetSeconds = segmentOffsetMinutes * 60
   const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
-  const baseURL = getSupadataBaseUrl()
-  const backfillCount = runMode === 'backfill' ? 1 : 0
-  let createMs = 0
-  let pollMs = 0
-  let pollSleepMs = 0
-  let createCount = 0
-  let pollCount = 0
-  let requestCount = 0
-  let retryCount = 0
-  let rateLimitCount = 0
+
+  // Credits are reported in the creation response headers, so they are observed once and
+  // then carried into every persisted progress write and the final metadata. A resumed
+  // run reloads what the interrupted attempt was already billed rather than re-counting.
   const persistedProgressMetadata = await readPersistedAsyncSttProgressMetadata(lifecycle, {
     transcriptionService: 'supadata',
     transcriptionModel: modelName
@@ -105,291 +88,151 @@ export const runSupadataStt = async (
   const persistedBilling = persistedProgressMetadata
     ? parsePersistedSupadataBilling(persistedProgressMetadata)
     : undefined
-  let runtime = parseStep2RuntimeMetadata(persistedProgressMetadata?.['runtime'])
   let billedCredits = persistedBilling?.creditsUsed
   let creditRateCents = persistedBilling?.creditRateCents ?? getSupadataCreditRateCents()
   let billingSource = persistedBilling?.source
-  let jobId = runtime?.remoteJobId
-  let resumedExistingJob = false
-  const requestMetrics = {
-    onRequest: () => {
-      requestCount += 1
-    },
-    onRetry: (status: number | undefined) => {
-      retryCount += 1
-      if (status === 429) {
-        rateLimitCount += 1
-      }
-    }
-  }
-
-  const buildBillingMetadata = (): Step2Metadata['billing'] | undefined => {
-    if (typeof billedCredits !== 'number' && !billingSource) {
-      return undefined
-    }
-
-    const billing: NonNullable<Step2Metadata['billing']> = {
-      ...(typeof creditRateCents === 'number' ? { creditRateCents } : {}),
-      ...(typeof billedCredits === 'number' ? { creditsUsed: billedCredits } : {}),
-      ...(billingSource ? { source: billingSource } : {})
-    }
-
-    return Object.keys(billing).length > 0 ? billing : undefined
-  }
 
   const captureCreateBilling = (headers: Headers): void => {
     const credits = parseSupadataBillableRequests(headers)
-    if (credits === undefined) {
-      return
-    }
-
+    if (credits === undefined) return
     billedCredits = credits
     creditRateCents = getSupadataCreditRateCents()
     billingSource = 'response_header'
   }
 
-  const buildTimingMetadata = (): Step2Metadata['timings'] =>
-    buildStep2TimingMetadata({
-      createMs,
-      createCount,
-      pollMs,
-      pollSleepMs,
-      pollCount,
-      requestCount,
-      retryCount,
-      rateLimitCount,
-      backfillCount
-    })
-
-  const buildProgressMetadata = (nextRuntime: Step2RuntimeMetadata): Step2Metadata => ({
-    transcriptionService: 'supadata',
-    transcriptionModel: modelName,
-    processingTime: Date.now() - startTime,
-    tokenCount: 0,
-    timings: buildTimingMetadata() ?? {},
-    runtime: nextRuntime,
-    ...(buildBillingMetadata() ? { billing: buildBillingMetadata() } : {})
-  })
-
-  const persistProgressMetadata = createAsyncSttProgressMetadataPersister(
-    lifecycle,
-    segmentNumber,
-    buildProgressMetadata,
-    (nextRuntime) => { runtime = nextRuntime }
-  )
-  const notifyJobReady = createAsyncSttJobReadyNotifier(lifecycle?.onJobReady)
-
-  let finalPayload: SupadataTranscriptPayload | undefined
-
-  if (runtime && (runtime.stage === 'created' || runtime.stage === 'polling')) {
-    resumedExistingJob = true
-    const resumedRuntime: Step2RuntimeMetadata = {
-      ...runtime,
-      mode: 'resumed',
-      stage: 'polling'
+  const buildBillingMetadata = (): Step2Metadata['billing'] | undefined => {
+    if (typeof billedCredits !== 'number' && !billingSource) return undefined
+    const billing: NonNullable<Step2Metadata['billing']> = {
+      ...(typeof creditRateCents === 'number' ? { creditRateCents } : {}),
+      ...(typeof billedCredits === 'number' ? { creditsUsed: billedCredits } : {}),
+      ...(billingSource ? { source: billingSource } : {})
     }
-    jobId = resumedRuntime.remoteJobId
-    await persistProgressMetadata(resumedRuntime)
-    await notifyJobReady(resumedRuntime)
-    logSttAsyncJobLifecycle(l, {
-      provider: `supadata/${modelName}`,
-      action: 'resumed',
-      remoteId: jobId,
-      state: 'polling'
-    })
-  } else {
-    let createResult: Awaited<ReturnType<typeof fetchSupadataTranscript>> | undefined
-    try {
-      const createStartedAt = Date.now()
-      createResult = await fetchSupadataTranscript({
-        baseURL,
-        apiKey,
-        sourceUrl,
-        modelName,
-        language,
-        metrics: requestMetrics
-      })
-      createMs += Date.now() - createStartedAt
-      createCount += 1
-    } catch (error) {
-      attachSupadataErrorContext(error, 'create', 'runtime_http_create_retriable')
-    }
-    if (!createResult) {
-      throw InfraError('Supadata transcript request did not return a response', { stage: 'stt:supadata' })
-    }
-
-    if (createResult.status === 202) {
-      captureCreateBilling(createResult.headers)
-      const jobPayload = parseSupadataJobPayload(createResult.payload)
-      if (!jobPayload) {
-        throw Object.assign(
-          ProviderError('Supadata returned 202 without a jobId', {
-            stage: 'create',
-            retryClass: 'runtime_http_create_retriable'
-          }),
-          {
-            stage: 'create',
-            retryClass: 'runtime_http_create_retriable' as const,
-            rawResponse: createResult.payload
-          }
-        )
-      }
-
-      const nextRuntime: Step2RuntimeMetadata = {
-        mode: 'fresh',
-        stage: 'created',
-        remoteJobId: jobPayload.jobId,
-        createCompletedAt: new Date().toISOString()
-      }
-      jobId = jobPayload.jobId
-      await persistProgressMetadata(nextRuntime)
-      await notifyJobReady(nextRuntime)
-      await persistProgressMetadata({
-        ...nextRuntime,
-        stage: 'polling'
-      })
-      logSttAsyncJobLifecycle(l, {
-        provider: `supadata/${modelName}`,
-        action: 'created',
-        remoteId: jobPayload.jobId,
-        state: 'polling'
-      })
-    } else {
-      captureCreateBilling(createResult.headers)
-      const transcriptPayload = parseSupadataTranscriptPayload(createResult.payload)
-      if (!transcriptPayload) {
-        throw Object.assign(
-          ProviderError('Supadata returned an invalid transcript payload', {
-            stage: 'create',
-            retryClass: 'runtime_http_create_retriable',
-            retryable: false
-          }),
-          {
-            stage: 'create',
-            retryClass: 'runtime_http_create_retriable' as const,
-            retryable: false,
-            rawResponse: createResult.payload
-          }
-        )
-      }
-      finalPayload = transcriptPayload
-    }
+    return Object.keys(billing).length > 0 ? billing : undefined
   }
 
-  if (jobId && finalPayload === undefined) {
-    const pollMode = resumedExistingJob ? 'resume-probe' : 'fresh'
+  const providerPayloadError = (
+    message: string,
+    stage: 'create' | 'poll',
+    retryClass: 'runtime_http_create_retriable' | 'runtime_http_read',
+    rawResponse: unknown,
+    retryable?: false | undefined
+  ): Error => Object.assign(
+    ProviderError(message, { stage, retryClass, ...(retryable === false ? { retryable } : {}) }),
+    { stage, retryClass, ...(retryable === false ? { retryable } : {}), rawResponse }
+  )
 
-    let completedStatus: SupadataJobStatus | undefined
-    try {
-      const pollStartedAt = Date.now()
-      const pollResult = await pollAsyncSttJobUntilComplete({
-        jobId,
-        initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
-        maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
-        audioDurationSeconds,
-        pollMode,
-        poll: async () => await pollSupadataTranscriptJob({
+  return await runAsyncSttJobLifecycle<SupadataJobStatus, SupadataTranscriptPayload>({
+    outputDir,
+    providerService: 'supadata',
+    providerLogLabel: 'supadata',
+    providerDisplayName: 'Supadata',
+    jobNoun: 'transcript job',
+    guardStage: 'stt:supadata',
+    modelName,
+    startTime: Date.now(),
+    runMode,
+    lifecycle,
+    audioDurationSeconds,
+    initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
+    maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
+    segment: { segmentNumber, totalSegments },
+    persistCompletedProgress: true,
+    extendProgressMetadata: () => {
+      const billing = buildBillingMetadata()
+      return billing ? { billing } : {}
+    },
+    createJob: async (metrics) => {
+      let createResult: Awaited<ReturnType<typeof fetchSupadataTranscript>> | undefined
+      try {
+        createResult = await fetchSupadataTranscript({
+          baseURL,
+          apiKey,
+          sourceUrl,
+          modelName,
+          language,
+          metrics: lifecycleMetricsToCallbacks(metrics)
+        })
+      } catch (error) {
+        attachSupadataErrorContext(error, 'create', 'runtime_http_create_retriable')
+      }
+      if (!createResult) {
+        throw InfraError('Supadata transcript request did not return a response', { stage: 'stt:supadata' })
+      }
+      captureCreateBilling(createResult.headers)
+
+      // 202 hands back a job to poll; any other success returns the transcript inline.
+      if (createResult.status === 202) {
+        const jobPayload = parseSupadataJobPayload(createResult.payload)
+        if (!jobPayload) {
+          throw providerPayloadError('Supadata returned 202 without a jobId', 'create', 'runtime_http_create_retriable', createResult.payload)
+        }
+        return { jobId: jobPayload.jobId }
+      }
+
+      const transcriptPayload = parseSupadataTranscriptPayload(createResult.payload)
+      if (!transcriptPayload) {
+        throw providerPayloadError('Supadata returned an invalid transcript payload', 'create', 'runtime_http_create_retriable', createResult.payload, false)
+      }
+      return { kind: 'completed', transcript: transcriptPayload }
+    },
+    pollJob: async (jobId, metrics) => {
+      let polled: Awaited<ReturnType<typeof pollSupadataTranscriptJob>> | undefined
+      try {
+        polled = await pollSupadataTranscriptJob({
           baseURL,
           apiKey,
           jobId,
-          metrics: requestMetrics
-        }),
-        isComplete: (status) => status.status === 'completed',
-        isFailed: (status) => {
-          if (status.status !== 'failed') {
-            return undefined
-          }
-          return extractSupadataErrorMessage(status.error) ?? extractSupadataErrorMessage(status.message) ?? 'Supadata transcription failed'
-        },
-        buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Supadata', jobId, pollDeadlineMs, cause),
-        buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Supadata', 'transcript job', jobId, probeCount, totalWaitMs, cause),
-        onProgress: async () => {
-          if (!runtime || runtime.remoteJobId !== jobId) {
-            return
-          }
-
-          await persistProgressMetadata({
-            ...runtime,
-            mode: runtime.mode === 'fresh' ? 'fresh' : 'resumed',
-            stage: 'polling',
-            lastPollAt: new Date().toISOString()
-          })
-        },
-        withPollSlot: lifecycle?.withPollSlot
+          metrics: lifecycleMetricsToCallbacks(metrics)
+        })
+      } catch (error) {
+        attachSupadataErrorContext(error, 'poll', 'runtime_http_read')
+      }
+      if (!polled) {
+        throw InfraError('Supadata polling did not return a job status', { stage: 'stt:supadata' })
+      }
+      return polled
+    },
+    isComplete: (status) => status.status === 'completed',
+    isFailed: (status) => {
+      if (status.status !== 'failed') return undefined
+      return extractSupadataErrorMessage(status.error) ?? extractSupadataErrorMessage(status.message) ?? 'Supadata transcription failed'
+    },
+    buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Supadata', jobId, pollDeadlineMs, cause),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Supadata', 'transcript job', jobId, probeCount, totalWaitMs, cause),
+    // The completed poll payload already carries the transcript, so no extra fetch runs.
+    getTranscript: async (_jobId, _metrics, finalStatus) => {
+      const transcriptPayload = parseSupadataTranscriptPayload({
+        content: finalStatus.content ?? '',
+        ...(finalStatus.lang ? { lang: finalStatus.lang } : {}),
+        ...(finalStatus.availableLangs ? { availableLangs: finalStatus.availableLangs } : {})
       })
-      pollMs += Date.now() - pollStartedAt
-      pollCount += pollResult.pollCount
-      pollSleepMs += pollResult.pollSleepMs
-      completedStatus = pollResult.status
-    } catch (error) {
-      attachSupadataErrorContext(error, 'poll', 'runtime_http_read')
-    }
+      if (!transcriptPayload) {
+        throw providerPayloadError('Supadata completed job without transcript content', 'poll', 'runtime_http_read', finalStatus)
+      }
+      return transcriptPayload
+    },
+    buildResult: async ({ transcript, runtime, processingTime, timings }) => {
+      const result = normalizeSupadataTranscript(transcript, offsetSeconds)
+      await Bun.write(`${outputBase}.txt`, formatTranscriptText(result.segments))
+      logSttTranscriptOutput(l, {
+        provider: 'supadata',
+        path: `${outputBase}.txt`,
+        characters: result.text.length
+      })
 
-    if (!runtime) {
-      throw InternalError('Supadata runtime was not initialized before polling', { stage: 'stt:supadata' })
-    }
-
-    if (!completedStatus) {
-      throw InfraError('Supadata polling completed without a terminal status payload', { stage: 'stt:supadata' })
-    }
-
-    const transcriptPayload = parseSupadataTranscriptPayload({
-      content: completedStatus.content ?? '',
-      ...(completedStatus.lang ? { lang: completedStatus.lang } : {}),
-      ...(completedStatus.availableLangs ? { availableLangs: completedStatus.availableLangs } : {})
-    })
-    if (!transcriptPayload) {
-      throw Object.assign(
-        ProviderError('Supadata completed job without transcript content', {
-          stage: 'poll',
-          retryClass: 'runtime_http_read'
-        }),
-        {
-          stage: 'poll',
-          retryClass: 'runtime_http_read' as const,
-          rawResponse: completedStatus
+      const billing = buildBillingMetadata()
+      return {
+        result,
+        metadata: {
+          transcriptionService: 'supadata',
+          transcriptionModel: modelName,
+          processingTime,
+          tokenCount: countTokens(result.text),
+          ...(timings ? { timings } : {}),
+          ...(runtime ? { runtime } : {}),
+          ...(billing ? { billing } : {})
         }
-      )
+      }
     }
-
-    const completedRuntime: Step2RuntimeMetadata = {
-      ...runtime,
-      stage: 'completed',
-      completedAt: new Date().toISOString(),
-      lastPollAt: new Date().toISOString()
-    }
-    await persistProgressMetadata(completedRuntime)
-    finalPayload = transcriptPayload
-    runtime = completedRuntime
-  }
-
-  if (!finalPayload) {
-    throw InfraError('Supadata did not return a transcript payload', { stage: 'stt:supadata' })
-  }
-
-  const result = normalizeSupadataTranscript(finalPayload, offsetSeconds)
-  await Bun.write(`${outputBase}.txt`, formatTranscriptText(result.segments))
-  logSttTranscriptOutput(l, {
-    provider: 'supadata',
-    path: `${outputBase}.txt`,
-    characters: result.text.length
   })
-
-  const processingTime = Date.now() - startTime
-  const timings = buildTimingMetadata()
-  const metadata: Step2Metadata = {
-    transcriptionService: 'supadata',
-    transcriptionModel: modelName,
-    processingTime,
-    tokenCount: countTokens(result.text),
-    ...(timings ? { timings } : {}),
-    ...(runtime ? { runtime } : {}),
-    ...(buildBillingMetadata() ? { billing: buildBillingMetadata() } : {})
-  }
-
-  if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'supadata', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
-  }
-
-  return { result, metadata }
 }

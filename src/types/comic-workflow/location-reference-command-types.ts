@@ -40,7 +40,7 @@ export type ResolvedLocationReferenceRequest = {
   hostedConcurrencyCoordinator?: ReferenceSketchCommandOptions['hostedConcurrencyCoordinator']
 }
 
-export type ExistingLocationView = LocationSketchViewRegistration & { imagePath: string }
+type ExistingLocationView = LocationSketchViewRegistration & { imagePath: string }
 
 export type LocationReferenceContext = {
   kind: 'ready'

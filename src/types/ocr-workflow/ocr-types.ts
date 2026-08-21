@@ -223,7 +223,7 @@ export type OcrProviderState = ProviderRunStateBase<OcrTarget['service'], OcrRec
 export type OcrProviderSuccess = ProviderSuccess<OcrTarget, ExtractionMetadata, ExtractionResult>
 
 
-export type OcrFallbackPageCounts = {
+type OcrFallbackPageCounts = {
   cached: number
   resumed: number
   succeeded: number

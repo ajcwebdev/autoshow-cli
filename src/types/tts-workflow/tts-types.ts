@@ -100,7 +100,7 @@ export type TtsTargetInvocation = Readonly<{
   signal?: AbortSignal | undefined
 }>
 
-export type TtsSerializedVoiceObservation = Readonly<{
+type TtsSerializedVoiceObservation = Readonly<{
   kind: 'provider-id' | 'reference-asset' | 'local-model-voice'
   value?: string | undefined
   valueHash?: string | undefined
@@ -124,7 +124,7 @@ export type TtsProviderRequestAttempt = Readonly<{
   retryReasonCode?: string | undefined
 }>
 
-export type TtsProviderRequestAcceptance = Readonly<{
+type TtsProviderRequestAcceptance = Readonly<{
   providerRequestId?: string | undefined
   fields?: Readonly<Record<string, string | number | boolean | null>> | undefined
 }>

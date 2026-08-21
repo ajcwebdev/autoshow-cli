@@ -1,6 +1,6 @@
 import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, OcrConcurrencyMode } from '~/types'
 
-export type HostedOcrProfileCapSource = 'exact-clean-sample' | 'sparse-observation'
+type HostedOcrProfileCapSource = 'exact-clean-sample' | 'sparse-observation'
 export type HostedOcrProfileDisqualificationReason =
   | 'retry-pressure'
   | 'paused'

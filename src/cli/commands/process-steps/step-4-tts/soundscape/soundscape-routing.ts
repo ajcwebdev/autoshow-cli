@@ -1,7 +1,7 @@
 import type { SoundEffectSynthesisTask, SoundEffectTarget, SoundscapeCueRoutingDecision } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
-export const soundEffectTargetSupportsKind = (target: SoundEffectTarget, kind: SoundEffectSynthesisTask['kind']): boolean =>
+const soundEffectTargetSupportsKind = (target: SoundEffectTarget, kind: SoundEffectSynthesisTask['kind']): boolean =>
   (target.provider !== 'replicate' && target.provider !== 'stability') || kind !== 'vocal-reaction'
 
 const unsupportedReason = (target: SoundEffectTarget, kind: SoundEffectSynthesisTask['kind']): string =>

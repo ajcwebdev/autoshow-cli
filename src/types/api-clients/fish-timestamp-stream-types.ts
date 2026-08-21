@@ -4,7 +4,7 @@ export type FishAlignmentSegment = Readonly<{
   end: number
 }>
 
-export type FishTimestampAlignment = Readonly<{
+type FishTimestampAlignment = Readonly<{
   audio_duration?: number | undefined
   segments: readonly FishAlignmentSegment[]
 }>

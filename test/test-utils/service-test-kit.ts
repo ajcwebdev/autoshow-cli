@@ -99,7 +99,7 @@ export const defineBudgetedLiveServiceTest = (
   budgetedTest(budgetKey, name, fn, timeoutMs)
 }
 
-export const requireConfiguredValue = <T>(
+const requireConfiguredValue = <T>(
   value: T | null | undefined,
   message: string
 ): NonNullable<T> => {
@@ -169,7 +169,7 @@ export const formatCommandFailureDiagnostics = (
   tailLines(result.stderr, lineCount)
 ].join('\n')
 
-export type RunAndExpectOutputDirOptions = {
+type RunAndExpectOutputDirOptions = {
   // Retry a single transient provider failure before treating it as fatal.
   transient?: {
     isTransient: (output: string) => boolean
@@ -226,7 +226,7 @@ export const runCommandAndExpectOutputDir = async (
 // waits, and retries a single time. Throws if the transient failure persists; otherwise returns
 // the result for the caller to handle (success or a non-transient failure). Any factory can opt
 // in by passing the relevant provider predicate from `./provider-failure-classifiers`.
-export const runCommandWithTransientRetry = async (
+const runCommandWithTransientRetry = async (
   commandArgs: string[],
   opts: {
     isTransient: (output: string) => boolean

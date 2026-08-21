@@ -6,57 +6,6 @@ import type {
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTtsJson } from './contract-identity'
 import { projectCanonicalAudioProviderStatus } from './contract-validation'
-const rebaseArtifactPath = (prefix: string, path: string): string =>
-  path === '.' ? prefix : `${prefix}/${path}`
-
-export const rebaseCurrentTtsProjectionArtifactRefs = (
-  projection: CanonicalAudioProviderProjection,
-  prefix: string
-): CanonicalAudioProviderProjection => ({
-  ...projection,
-  branchHistory: projection.branchHistory.map((entry) => ({
-    ...entry,
-    branchPlanRef: rebaseArtifactPath(prefix, entry.branchPlanRef)
-  })),
-  readinessAttempts: projection.readinessAttempts.map((entry) => ({
-    ...entry,
-    readinessResultRef: rebaseArtifactPath(prefix, entry.readinessResultRef)
-  })),
-  renderHistory: projection.renderHistory.map((render) => ({
-    ...render,
-    renderPlanRef: rebaseArtifactPath(prefix, render.renderPlanRef),
-    renderDir: rebaseArtifactPath(prefix, render.renderDir),
-    events: render.events.map((event) => ({
-      ...event,
-      ...(event.readinessAuthorization ? { readinessAuthorization: { ...event.readinessAuthorization, readinessResultRef: rebaseArtifactPath(prefix, event.readinessAuthorization.readinessResultRef) } } : {}),
-      ...(event.admissionJournalRef ? { admissionJournalRef: rebaseArtifactPath(prefix, event.admissionJournalRef) } : {}),
-      ...(event.providerRenderResultRef ? { providerRenderResultRef: rebaseArtifactPath(prefix, event.providerRenderResultRef) } : {}),
-      ...(event.outputRefs ? { outputRefs: event.outputRefs.map((ref) => ({ ...ref, path: rebaseArtifactPath(prefix, ref.path) })) } : {}),
-      ...(event.takeSelections ? { takeSelections: event.takeSelections.map((ref) => ({ ...ref, path: rebaseArtifactPath(prefix, ref.path) })) } : {}),
-      ...(event.continuationCheckpoints ? { continuationCheckpoints: event.continuationCheckpoints.map((ref) => ({ ...ref, path: rebaseArtifactPath(prefix, ref.path) })) } : {}),
-      ...(event.cacheEvidenceRefs ? { cacheEvidenceRefs: event.cacheEvidenceRefs.map((ref) => ({ ...ref, path: rebaseArtifactPath(prefix, ref.path) })) } : {}),
-      ...(event.consumedSelectionRebuild ? {
-        consumedSelectionRebuild: {
-          ...event.consumedSelectionRebuild,
-          path: rebaseArtifactPath(prefix, event.consumedSelectionRebuild.path)
-        }
-      } : {}),
-      ...(event.audioRunRef ? { audioRunRef: rebaseArtifactPath(prefix, event.audioRunRef) } : {}),
-      ...(event.batchProgress ? { batchProgress: event.batchProgress.map((batch) => ({
-        ...batch,
-        generationSlots: batch.generationSlots.map((slot) => slot.source === 'provider-dispatch'
-          ? {
-              ...slot,
-              batchInvocationPlan: { ...slot.batchInvocationPlan, path: rebaseArtifactPath(prefix, slot.batchInvocationPlan.path) },
-              ...(slot.batchResult ? { batchResult: { ...slot.batchResult, path: rebaseArtifactPath(prefix, slot.batchResult.path) } } : {})
-            }
-          : slot),
-        ...(batch.currentTakeSelection ? { currentTakeSelection: { ...batch.currentTakeSelection, path: rebaseArtifactPath(prefix, batch.currentTakeSelection.path) } } : {}),
-        ...(batch.continuationCheckpoint ? { continuationCheckpoint: { ...batch.continuationCheckpoint, path: rebaseArtifactPath(prefix, batch.continuationCheckpoint.path) } } : {})
-      })) } : {})
-    }))
-  }))
-})
 
 export const buildCurrentTtsProviderState = (
   metadata: Step4Metadata

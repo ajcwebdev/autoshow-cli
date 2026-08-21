@@ -69,7 +69,7 @@ export const invalidPageResponsePath = (dir: string, pageNumber: number): string
 export const pageInputPath = (dir: string, pageNumber: number): string =>
   join(dir, 'page-inputs', `page-${String(pageNumber).padStart(6, '0')}.pdf`)
 
-export const renderedPageCacheKey = (
+const renderedPageCacheKey = (
   filePath: string,
   page: number,
   dpi: number,

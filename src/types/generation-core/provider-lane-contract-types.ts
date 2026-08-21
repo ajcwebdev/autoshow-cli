@@ -4,7 +4,7 @@ export type ProviderLaneIdentity<TService extends string = string> = Readonly<{
   laneKey: string
 }>
 
-export type ProviderLaneWorkContext = Readonly<object>
+type ProviderLaneWorkContext = Readonly<object>
 
 export type ProviderLaneAdmissionToken<
   TService extends string = string,

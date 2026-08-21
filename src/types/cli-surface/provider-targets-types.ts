@@ -1,4 +1,4 @@
-export type GenerationSelectionField = {
+type GenerationSelectionField = {
   readonly modelsKey: string
   readonly modelKey: string
 }

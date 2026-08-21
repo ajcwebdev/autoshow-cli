@@ -1,16 +1,11 @@
-import { extname } from 'node:path'
 import type { FalFlorenceOcrOutput, FalGotOcrOutput, PageResult } from '~/types'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
 import { ValidationError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
+import { OCR_IMAGE_MIME_TYPES, resolveMediaMimeType } from '~/utils/media-mime-types'
 
-const imageMimeType = (filePath: string): string => {
-  const extension = extname(filePath).toLowerCase()
-  if (extension === '.png') return 'image/png'
-  if (extension === '.jpg' || extension === '.jpeg') return 'image/jpeg'
-  if (extension === '.webp') return 'image/webp'
-  return 'application/octet-stream'
-}
+const imageMimeType = (filePath: string): string =>
+  resolveMediaMimeType(filePath, OCR_IMAGE_MIME_TYPES)
 
 export const runFalOcr = async (
   filePath: string,

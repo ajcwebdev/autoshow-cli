@@ -170,7 +170,7 @@ const wasHistoricallyAttempted = (page: OcrPoolPageLedgerEntry, targetKey: strin
     && targetKeyFromAttempt(attempt) === targetKey
   )
 
-export const isOcrPoolTargetEligibleForPage = (
+const isOcrPoolTargetEligibleForPage = (
   state: OcrPoolState,
   page: OcrPoolPageLedgerEntry,
   targetKey: string
@@ -200,7 +200,7 @@ const assertPageInvariant = (page: OcrPoolPageLedgerEntry): void => {
   }
 }
 
-export const assertOcrPoolStateInvariants = (state: OcrPoolState): void => {
+const assertOcrPoolStateInvariants = (state: OcrPoolState): void => {
   for (const page of state.ledger.pages) assertPageInvariant(page)
   for (const lane of state.ledger.lanes) {
     const targetActive = state.ledger.targets

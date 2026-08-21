@@ -41,7 +41,7 @@ export const pickCleanString = (
   return undefined
 }
 
-export const byteLength = (value: string): number =>
+const byteLength = (value: string): number =>
   new TextEncoder().encode(value).byteLength
 
 export const isRemoteSource = (source: string): boolean =>
@@ -263,7 +263,7 @@ export const fetchRemoteHtml = async (
   }
 }
 
-export const tryFetchRemoteHtml = async (
+const tryFetchRemoteHtml = async (
   source: string
 ): Promise<RemoteHtmlFetchResult | null> => {
   try {
@@ -273,7 +273,7 @@ export const tryFetchRemoteHtml = async (
   }
 }
 
-export const finalizeUrlArticleResult = async (
+const finalizeUrlArticleResult = async (
   source: string,
   sourceUrl: string | undefined,
   backend: HtmlArticleBackend,

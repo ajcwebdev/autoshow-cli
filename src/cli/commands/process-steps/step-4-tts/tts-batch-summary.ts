@@ -8,7 +8,7 @@ const normalizePositiveInteger = (value: number | undefined): number =>
     ? Math.max(1, Math.floor(value))
     : 1
 
-export const simulateBatchWorkerPool = (
+const simulateBatchWorkerPool = (
   itemProcessingTimesMs: number[],
   batchConcurrency: number
 ): number => {

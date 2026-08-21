@@ -46,7 +46,7 @@ export const createStandardEpubReader = (
   packagePath = 'OEBPS/content.opf'
 ): EpubContentReader => createReader(withStandardEpubContainer(files, packagePath))
 
-export const EXAMPLE_EPUB_PATH = resolve('input/examples/document/1-epub.epub')
+const EXAMPLE_EPUB_PATH = resolve('input/examples/document/1-epub.epub')
 
 export const withFakeEbookConvert = async <T>(
   fn: (root: string) => Promise<T>
@@ -178,7 +178,7 @@ export const writeStoredZip = async (
   await writeFile(filePath, Buffer.concat([...localParts, centralDirectory, endOfCentralDirectory]))
 }
 
-export const WINDOWS_1252_TEST_BYTES: Record<string, number> = {
+const WINDOWS_1252_TEST_BYTES: Record<string, number> = {
   '‘': 0x91,
   '’': 0x92,
   '“': 0x93,

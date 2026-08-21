@@ -16,7 +16,7 @@ import {
   PROVIDER_STATUS_SET
 } from './guards'
 
-export const resolveRenderEvent = (
+const resolveRenderEvent = (
   projection: Record<string, unknown>,
   renderIdentity: unknown,
   eventSequence: unknown
@@ -409,7 +409,7 @@ const PROJECTION_VALIDATION_STEPS: readonly ((ctx: AudioProjectionValidationCont
   validateActiveWork
 ]
 
-export const validateAudioProjectionStructure = (
+const validateAudioProjectionStructure = (
   projection: Record<string, unknown>,
   targetKey: string
 ): boolean => {

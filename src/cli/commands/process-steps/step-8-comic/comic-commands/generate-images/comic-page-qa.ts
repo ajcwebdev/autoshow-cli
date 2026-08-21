@@ -112,7 +112,7 @@ export const createPageQaRepairStagnationState = (): PageQaRepairStagnationState
   restartedFromCanonicalReferences: false,
 })
 
-export const getPageQaHardFailureKeys = (entry: PageQaEntry): string[] => {
+const getPageQaHardFailureKeys = (entry: PageQaEntry): string[] => {
   if (!entry.hardFailure) return []
   const failures: string[] = []
   if (!entry.result.panelStructure.pass) failures.push('page:panelStructure')

@@ -9,9 +9,9 @@ import { join } from 'node:path'
  * swallowed — and differ only in how they render the document. Keeping the handshake in
  * one place means a change to the real CLI contract is made once.
  */
-export const FAKE_DEFUDDLE_VERSION = '0.17.0'
+const FAKE_DEFUDDLE_VERSION = '0.17.0'
 
-export const FAKE_DEFUDDLE_PREAMBLE: readonly string[] = [
+const FAKE_DEFUDDLE_PREAMBLE: readonly string[] = [
   '#!/usr/bin/env bun',
   'const args = process.argv.slice(2)',
   `if (args[0] === '--version') { console.log('${FAKE_DEFUDDLE_VERSION}'); process.exit(0) }`,

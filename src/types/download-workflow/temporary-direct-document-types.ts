@@ -1,4 +1,4 @@
-export type TemporaryDirectDocument = {
+type TemporaryDirectDocument = {
   filePath: string
   cleanup: () => Promise<void>
 }

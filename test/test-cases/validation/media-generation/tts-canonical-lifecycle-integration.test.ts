@@ -5,12 +5,13 @@ import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process
 import { createManifest, createManifestItem, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
-import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState, TtsTarget } from '~/types'
+import type { CanonicalAudioProviderProjection, PipelineManifest, TtsTarget } from '~/types'
 import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { policySkippedTtsProviderStateFrom } from '../../../test-utils/tts-provider-state-fixtures'
 
 const options = (): Parameters<typeof runSingleTtsInput>[1] => ({
   batchConcurrency: 2,
@@ -199,37 +200,12 @@ describe('canonical standalone TTS lifecycle persistence', () => {
         await Bun.write(inputPath, text)
         const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
         const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text, createdAt)
-        const actor = { namespace: 'local-user' as const, actorId: 'fixture' }
-        const at = createdAt
-        const evidence = {
-          schemaVersion: 1 as const,
+        const skipped = policySkippedTtsProviderStateFrom({
+          target,
+          artifactDir: `items/${label}/providers/${target.targetKey as string}`,
           skipId: `skip-${label}`,
-          targetKey: target.targetKey as string,
-          reasonCode: 'user-requested' as const,
-          reason: 'fixture skip',
-          actor,
-          at
-        }
-        const projection = {
-          activeWork: { kind: 'policy-skip' as const, evidence },
-          branchHistory: [],
-          readinessAttempts: [],
-          renderHistory: [],
-          pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
-        }
-        const skipped: PipelineProviderState = {
-          service: target.service,
-          model: target.model,
-          operation: 'tts-synthesis',
-          targetKey: target.targetKey,
-          transport: target.transport as string,
-          artifactDir: `items/${label}/providers/${target.targetKey}`,
-          status: 'skipped',
-          attempts: 0,
-          options: {},
-          metadata: { ttsAudio: projection },
-          result: { ttsAudio: projection }
-        }
+          at: createdAt
+        })
         return createManifestItem(outputDir, {
           input: sourceIdentity.sourceLocator.kind === 'file' ? sourceIdentity.sourceLocator.canonicalPath : inputPath,
           status: 'skipped',

@@ -46,7 +46,7 @@ import { buildTtsEstimateForInput, enforceTtsBatchBudget, mergeActualCostBreakdo
 import { buildTtsBatchSource, createTtsBatchAccumulators, createTtsBatchPlanItems, getInputStem, getTtsBatchAudioFileName } from './tts-batch-plan'
 import { orderedTtsProviderStates, prepareTtsInput, reduceTtsProviderStates, requestedTtsProviders, synthesizePreparedTtsInputForTargets, writeInitialTtsManifest } from './tts-single-run'
 
-export const buildTtsBatchInitialRecords = (
+const buildTtsBatchInitialRecords = (
   preparedInputs: PreparedTtsInput[],
   targets: TtsTarget[],
   accumulators: TtsBatchItemAccumulator[]
@@ -73,7 +73,7 @@ const getTargetOrderKey = (
     ? `${target.service}\0${target.model}`
     : `${target.ttsService}\0${target.ttsModel}`
 
-export const sortTtsMetadataByTargetOrder = (
+const sortTtsMetadataByTargetOrder = (
   metadata: Step4Metadata[],
   targets: TtsTarget[]
 ): Step4Metadata[] => {
@@ -91,7 +91,7 @@ export const sortTtsMetadataByTargetOrder = (
   })
 }
 
-export const mergePreparedTtsRuns = (
+const mergePreparedTtsRuns = (
   runs: PreparedTtsRun[],
   metadata: Step4Metadata[]
 ): PreparedTtsRun => ({
@@ -107,7 +107,7 @@ export const mergePreparedTtsRuns = (
   }
 })
 
-export const countExpectedHostedChunkJobs = (
+const countExpectedHostedChunkJobs = (
   plans: TtsBatchPlanItem[],
   hostedTargets: TtsTarget[]
 ): number =>
@@ -123,7 +123,7 @@ export const countExpectedHostedChunkJobs = (
     }, 0)
   , 0)
 
-export const logHostedTtsSchedulerSummary = (
+const logHostedTtsSchedulerSummary = (
   telemetry: HostedTtsSchedulerTelemetry | undefined
 ): void => {
   if (!telemetry || telemetry.providers.length === 0) {
@@ -149,7 +149,7 @@ export const logHostedTtsSchedulerSummary = (
   })
 }
 
-export const createTtsBatchLifecycleCoordinator = (options: {
+const createTtsBatchLifecycleCoordinator = (options: {
   batchDir: string
   createdAt: string
   preparedInputs: PreparedTtsInput[]
@@ -241,7 +241,7 @@ export const createTtsBatchLifecycleCoordinator = (options: {
   }
 }
 
-export const runTtsBatchPlanForTargets = async (
+const runTtsBatchPlanForTargets = async (
   plan: TtsBatchPlanItem,
   accumulator: TtsBatchItemAccumulator,
   batchDir: string,

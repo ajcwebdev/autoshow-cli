@@ -36,7 +36,7 @@ export const genericTtsOptionFlags = {
   'tts-chunk-concurrency': strFlag('Hosted TTS chunk starts allowed in parallel per provider across the current run (Grok-only uses 50)', DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE),
 } as const satisfies CliFlagsDefinition
 
-export const standaloneTtsOnlyFlags = {
+const standaloneTtsOnlyFlags = {
   'tts-ref-audio': strListFlag('Explicit one-off Mistral TTS reference audio path')
 } as const satisfies CliFlagsDefinition
 

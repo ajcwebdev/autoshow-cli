@@ -1,6 +1,6 @@
 import type { FileFingerprint } from '~/types'
 
-export type MetadataTopLevelTargetKind = 'directory' | 'input_list' | 'single'
+type MetadataTopLevelTargetKind = 'directory' | 'input_list' | 'single'
 
 export type MetadataTopLevelTargetInfo = {
   kind: MetadataTopLevelTargetKind

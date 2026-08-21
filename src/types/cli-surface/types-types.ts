@@ -97,7 +97,7 @@ export type CliRootDefinition = {
 }
 
 
-export type CostEstimation = {
+type CostEstimation = {
   costMultiplier: number
 }
 

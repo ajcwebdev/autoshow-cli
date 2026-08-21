@@ -7,7 +7,7 @@ export type ManagedArtifactSource = {
   sha256: string
 }
 
-export type ManagedArtifactPayloadFile = {
+type ManagedArtifactPayloadFile = {
   path: string
   sha256: string
 }
@@ -25,11 +25,11 @@ export type ManagedSourceArtifactManifest = {
   payload: ManagedArtifactPayloadFile[]
 }
 
-export type ManagedPrebuiltPayloadFile = ManagedArtifactPayloadFile & {
+type ManagedPrebuiltPayloadFile = ManagedArtifactPayloadFile & {
   kind: 'executable' | 'library'
 }
 
-export type ManagedPrebuiltProducer = {
+type ManagedPrebuiltProducer = {
   repository: 'ajcwebdev/autoshow-cli'
   commit: string
   workflowName: string
@@ -122,7 +122,7 @@ export type ManagedPrebuiltCandidate = {
   expectedTeamId: string
 }
 
-export type ManagedPrebuiltInstalledRelease = {
+type ManagedPrebuiltInstalledRelease = {
   revision: string
   url: string
   archiveName: string

@@ -1,6 +1,6 @@
 import type { ComicGridSpec, ComicPanelSelection, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, LlmModel } from '~/types'
 
-export type FinalImageQaRequest =
+type FinalImageQaRequest =
   | { enabled: false }
   | { enabled: true; judgeModel: LlmModel; maxRepairs: number }
 

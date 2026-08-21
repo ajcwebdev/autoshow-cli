@@ -1,8 +1,8 @@
-export type SttModelMatch =
+type SttModelMatch =
   | { equals: string, contains?: never }
   | { equals?: never, contains: string }
 
-export type ExpectedProvider = {
+type ExpectedProvider = {
   service: string
   model: string
   local: boolean

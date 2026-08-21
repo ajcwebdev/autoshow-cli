@@ -15,8 +15,8 @@ export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
 
 export const LOCATION_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
-export const LOCATION_REFERENCE_FILENAME = 'locations-reference.json'
-export const LOCATION_SKETCH_MANIFEST_FILENAME = 'location-sketches.json'
+const LOCATION_REFERENCE_FILENAME = 'locations-reference.json'
+const LOCATION_SKETCH_MANIFEST_FILENAME = 'location-sketches.json'
 export const LOCATION_SNAPSHOTS_FILENAME = 'location-references.json'
 
 export const getLocationsRoot = (): string => join(dirname(getCharactersRoot()), 'locations')

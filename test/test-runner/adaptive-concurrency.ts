@@ -289,7 +289,7 @@ export const acquireAdaptiveProviderLease = async (
   }
 }
 
-export const releaseAdaptiveProviderLease = async (
+const releaseAdaptiveProviderLease = async (
   leaseId: string,
   groups: AdaptiveProviderGroup[],
   config: AdaptiveConcurrencyConfig

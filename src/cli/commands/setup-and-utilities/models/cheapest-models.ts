@@ -70,6 +70,34 @@ const sttHourlyCost = (model: {
   costPerHourCents: number
 }): number => model.costPerHourCents
 
+/**
+ * The one ordering every cheapest-model selection uses: lowest cost wins, then any
+ * family-specific dimensions in the order given (shorter runtime, lower quality tier),
+ * then the faster-sounding model name, then stable lexical identity so ties never depend
+ * on registry iteration order.
+ */
+const beatsCurrentBest = <TCandidate>(
+  candidate: TCandidate,
+  best: NoInfer<TCandidate> | null | undefined,
+  dimensions: {
+    cost: (value: TCandidate) => number
+    ordered?: ReadonlyArray<(value: TCandidate) => number> | undefined
+    runtimeRank: (value: TCandidate) => number
+    identity: (value: TCandidate) => string
+  }
+): boolean => {
+  if (!best) return true
+
+  const keys = [dimensions.cost, ...(dimensions.ordered ?? []), dimensions.runtimeRank]
+  for (const key of keys) {
+    const candidateValue = key(candidate)
+    const bestValue = key(best)
+    if (candidateValue !== bestValue) return candidateValue < bestValue
+  }
+
+  return dimensions.identity(candidate).localeCompare(dimensions.identity(best)) < 0
+}
+
 const qualityRank = (selection: { size?: string | undefined, resolution?: string | undefined }): number => {
   if (selection.size === '1024x1792' || selection.size === '1792x1024') return 2
   if (selection.resolution === '1080p') return 2
@@ -227,14 +255,11 @@ export const selectCheapestVideoSelection = (
         totalCost: estimate.totalCost
       }
 
-      if (
-        !best
-        || candidate.totalCost < best.totalCost
-        || (candidate.totalCost === best.totalCost && runtimeRank(candidate.model) < runtimeRank(best.model))
-        || (candidate.totalCost === best.totalCost
-          && runtimeRank(candidate.model) === runtimeRank(best.model)
-          && candidate.model.localeCompare(best.model) < 0)
-      ) {
+      if (beatsCurrentBest(candidate, best, {
+        cost: entry => entry.totalCost,
+        runtimeRank: entry => runtimeRank(entry.model),
+        identity: entry => entry.model
+      })) {
         best = candidate
       }
     }
@@ -278,22 +303,12 @@ export const selectCheapestVideoSelection = (
             continue
           }
 
-          const candidateWinsByCost = candidate.totalCost < best.totalCost
-          const candidateWinsByDuration = candidate.totalCost === best.totalCost && candidate.duration < best.duration
-          const candidateWinsByQuality = candidate.totalCost === best.totalCost
-            && candidate.duration === best.duration
-            && qualityRank(candidate) < qualityRank(best)
-          const candidateWinsBySpeedHint = candidate.totalCost === best.totalCost
-            && candidate.duration === best.duration
-            && qualityRank(candidate) === qualityRank(best)
-            && runtimeRank(candidate.model) < runtimeRank(best.model)
-          const candidateWinsByName = candidate.totalCost === best.totalCost
-            && candidate.duration === best.duration
-            && qualityRank(candidate) === qualityRank(best)
-            && runtimeRank(candidate.model) === runtimeRank(best.model)
-            && candidate.model.localeCompare(best.model) < 0
-
-          if (candidateWinsByCost || candidateWinsByDuration || candidateWinsByQuality || candidateWinsBySpeedHint || candidateWinsByName) {
+          if (beatsCurrentBest(candidate, best, {
+            cost: entry => entry.totalCost,
+            ordered: [entry => entry.duration, qualityRank],
+            runtimeRank: entry => runtimeRank(entry.model),
+            identity: entry => entry.model
+          })) {
             best = candidate
           }
         }
@@ -357,17 +372,12 @@ export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelectio
         continue
       }
 
-      const candidateWinsByCost = candidate.totalCost < best.totalCost
-      const candidateWinsByDuration = candidate.totalCost === best.totalCost && candidate.duration < best.duration
-      const candidateWinsBySpeedHint = candidate.totalCost === best.totalCost
-        && candidate.duration === best.duration
-        && runtimeRank(candidate.model) < runtimeRank(best.model)
-      const candidateWinsByName = candidate.totalCost === best.totalCost
-        && candidate.duration === best.duration
-        && runtimeRank(candidate.model) === runtimeRank(best.model)
-        && `${candidate.provider}/${candidate.model}`.localeCompare(`${best.provider}/${best.model}`) < 0
-
-      if (candidateWinsByCost || candidateWinsByDuration || candidateWinsBySpeedHint || candidateWinsByName) {
+      if (beatsCurrentBest(candidate, best, {
+        cost: entry => entry.totalCost,
+        ordered: [entry => entry.duration],
+        runtimeRank: entry => runtimeRank(entry.model),
+        identity: entry => `${entry.provider}/${entry.model}`
+      })) {
         best = candidate
       }
     }
@@ -401,14 +411,11 @@ export const selectCheapestDefaultHostedTtsSelection = (): CheapestTtsSelection 
         totalCost
       }
 
-      if (
-        !best
-        || candidate.totalCost < best.totalCost
-        || (candidate.totalCost === best.totalCost && runtimeRank(candidate.model) < runtimeRank(best.model))
-        || (candidate.totalCost === best.totalCost
-          && runtimeRank(candidate.model) === runtimeRank(best.model)
-          && `${candidate.provider}/${candidate.model}`.localeCompare(`${best.provider}/${best.model}`) < 0)
-      ) {
+      if (beatsCurrentBest(candidate, best, {
+        cost: entry => entry.totalCost,
+        runtimeRank: entry => runtimeRank(entry.model),
+        identity: entry => `${entry.provider}/${entry.model}`
+      })) {
         best = candidate
       }
     }
@@ -447,14 +454,11 @@ export const selectCheapestDefaultLlmSelection = (): CheapestLlmSelection => {
         totalCost
       }
 
-      if (
-        !best
-        || candidate.totalCost < best.totalCost
-        || (candidate.totalCost === best.totalCost && runtimeRank(candidate.model) < runtimeRank(best.model))
-        || (candidate.totalCost === best.totalCost
-          && runtimeRank(candidate.model) === runtimeRank(best.model)
-          && `${candidate.provider}/${candidate.model}`.localeCompare(`${best.provider}/${best.model}`) < 0)
-      ) {
+      if (beatsCurrentBest(candidate, best, {
+        cost: entry => entry.totalCost,
+        runtimeRank: entry => runtimeRank(entry.model),
+        identity: entry => `${entry.provider}/${entry.model}`
+      })) {
         best = candidate
       }
     }

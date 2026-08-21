@@ -8,7 +8,7 @@ import { getTtsArtifactFileName } from './tts-targets'
 export const getInputStem = (inputPath: string): string =>
   basename(inputPath, extname(inputPath)) || 'tts'
 
-export const buildTtsBatchItemStem = (inputPath: string, fallbackLabel: string): string => {
+const buildTtsBatchItemStem = (inputPath: string, fallbackLabel: string): string => {
   const slug = sanitizeTitleSlug(getInputStem(inputPath), 180)
   return slug.length > 0 ? slug : fallbackLabel
 }
@@ -29,7 +29,7 @@ export const getTtsBatchAudioFileName = (
     : `${itemStem}-${metadata.ttsService}-${sanitizeTitleSlug(metadata.ttsModel, 120)}${extension}`
 }
 
-export const targetOutputFileNamesForStem = (
+const targetOutputFileNamesForStem = (
   itemStem: string,
   targets: TtsTarget[]
 ): string[] => targets.map((target) =>
@@ -44,7 +44,7 @@ export const targetOutputFileNamesForStem = (
   )
 )
 
-export const reserveTtsBatchItemStem = async (
+const reserveTtsBatchItemStem = async (
   batchDir: string,
   preferredStem: string,
   targets: TtsTarget[],

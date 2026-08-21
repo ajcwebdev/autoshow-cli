@@ -25,7 +25,7 @@ export const normalizeOpenAIImageExtension = (format: string | undefined): strin
 }
 
 export const OPENAI_FIXED_IMAGE_SIZE_VALUES = ['auto', '1024x1024', '1536x1024', '1024x1536'] as const
-export const OPENAI_IMAGE_QUALITY_VALUES = ['auto', 'low', 'medium', 'high'] as const
+const OPENAI_IMAGE_QUALITY_VALUES = ['auto', 'low', 'medium', 'high'] as const
 export const OPENAI_IMAGE_FORMAT_VALUES = ['png', 'jpeg', 'webp'] as const
 export const OPENAI_IMAGE_BACKGROUND_VALUES = ['auto', 'transparent', 'opaque'] as const
 export const OPENAI_IMAGE_COUNT_RANGE = [1, 10] as const

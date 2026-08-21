@@ -33,9 +33,9 @@ const readErrorBody = async (response: Response): Promise<string> => {
   return body.trim().length > 0 ? body : 'No response body'
 }
 
-export const getFalQueueBaseUrl = (): string => FAL_QUEUE_DEFAULT_BASE_URL.replace(/\/+$/, '')
+const getFalQueueBaseUrl = (): string => FAL_QUEUE_DEFAULT_BASE_URL.replace(/\/+$/, '')
 
-export const cancelFalQueueRequest = async (apiKey: string, cancelUrl: string): Promise<void> => {
+const cancelFalQueueRequest = async (apiKey: string, cancelUrl: string): Promise<void> => {
   try {
     await fetch(cancelUrl, { method: 'PUT', headers: headersFor(apiKey) })
   } catch {

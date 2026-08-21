@@ -1,5 +1,6 @@
 import type { FishGlobalTimelineSegment, FishNativeDialogueBatch, FishNativeDialogueTurn, FishPreparedDialogueTurn, FishTtsModel, NormalizedTiming, PreparedProviderText, TimedToken, TtsTimingIdentity } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { canonicalOffsetForProviderOffset } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-timing-mapping'
 
 export {
   buildFishGlobalTimeline,
@@ -13,7 +14,7 @@ export {
 export const FISH_TTS_SERIALIZER_VERSION = 'fish.tts.phase-0-v1'
 export const FISH_TIMESTAMP_SERIALIZER_VERSION = 'fish.tts.timestamp.phase-6-v1'
 export const FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION = 'fish.dialogue.phase-6-v1'
-export const FISH_NATIVE_DIALOGUE_MAX_CHARACTERS = 4000
+const FISH_NATIVE_DIALOGUE_MAX_CHARACTERS = 4000
 export const FISH_S21_PRO_MODEL = 's2.1-pro'
 export const FISH_VOICE_DESIGN_MODEL = 'voice-design-1'
 
@@ -113,17 +114,6 @@ export const planFishNativeDialogueBatches = (
 
 const milliseconds = (seconds: number): number => Math.round(seconds * 1000)
 
-const canonicalOffsetForProviderOffset = (prepared: PreparedProviderText, providerOffset: number): number | undefined => {
-  for (const span of prepared.spans) {
-    if (span.kind !== 'mapped' || span.providerStart === undefined || span.providerEnd === undefined || span.canonicalStart === undefined || span.canonicalEnd === undefined) continue
-    if (providerOffset < span.providerStart || providerOffset >= span.providerEnd) continue
-    const providerWidth = span.providerEnd - span.providerStart
-    const canonicalWidth = span.canonicalEnd - span.canonicalStart
-    if (providerWidth !== canonicalWidth) return undefined
-    return span.canonicalStart + (providerOffset - span.providerStart)
-  }
-  return undefined
-}
 
 export const normalizeFishTimestampAlignment = (input: Readonly<{
   text: string

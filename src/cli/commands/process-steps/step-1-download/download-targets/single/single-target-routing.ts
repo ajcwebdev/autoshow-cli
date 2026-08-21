@@ -210,7 +210,7 @@ export const classifySingleTargetInput = async (
   }
 }
 
-export const singleTargetInputCategory = (
+const singleTargetInputCategory = (
   input: SingleTargetClassifiedInput
 ): SingleTargetInputCategory => {
   switch (input.kind) {

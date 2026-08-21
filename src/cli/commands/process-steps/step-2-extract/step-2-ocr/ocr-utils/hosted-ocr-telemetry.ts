@@ -70,7 +70,7 @@ const schedulerStatus = (
   return 'pending'
 }
 
-export const projectHostedOcrTargetTelemetry = (
+const projectHostedOcrTargetTelemetry = (
   target: HostedOcrSchedulerTargetStats,
   totalCompletedPages: number
 ): HostedOcrSchedulerTargetTelemetry => {
@@ -112,7 +112,7 @@ export const projectHostedOcrTargetTelemetry = (
   }
 }
 
-export const projectHostedOcrLaneTelemetry = (
+const projectHostedOcrLaneTelemetry = (
   lane: HostedOcrSchedulerLaneState,
   hostedConcurrency?: HostedConcurrencyTelemetry | undefined
 ): HostedOcrSchedulerLaneTelemetry => {

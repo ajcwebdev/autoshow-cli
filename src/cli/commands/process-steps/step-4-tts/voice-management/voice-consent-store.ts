@@ -5,10 +5,10 @@ import { validateAuditActorRef, validateVoiceConsentRecord } from './voice-manag
 
 const CONSENT_REF_PREFIX = 'protected-consent:v1:'
 
-export const encodeVoiceConsentRecordRef = (asset: ProtectedAssetRef): string =>
+const encodeVoiceConsentRecordRef = (asset: ProtectedAssetRef): string =>
   `${CONSENT_REF_PREFIX}${asset.storeId}:${asset.assetId}:${asset.sha256}`
 
-export const parseVoiceConsentRecordRef = (value: string): ProtectedAssetRef => {
+const parseVoiceConsentRecordRef = (value: string): ProtectedAssetRef => {
   const parts = value.split(':')
   if (parts.length !== 5 || `${parts[0]}:${parts[1]}:` !== CONSENT_REF_PREFIX) throw CLIUsageError('Consent record reference is not a protected consent v1 locator.')
   const [, , storeId, assetId, sha256] = parts

@@ -44,7 +44,7 @@ import {
   EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING,
 } from '../step-2-shared/inactive-flag-warnings'
 
-export const allInspectedEpubChaptersAreEmpty = (chapters: Array<{ text: string }>): boolean =>
+const allInspectedEpubChaptersAreEmpty = (chapters: Array<{ text: string }>): boolean =>
   chapters.length > 0 && chapters.every((chapter) => chapter.text.trim().length === 0)
 
 export const extractHtmlFormat = (opts: ExtractionOptions): FormatExtractionResult => ({

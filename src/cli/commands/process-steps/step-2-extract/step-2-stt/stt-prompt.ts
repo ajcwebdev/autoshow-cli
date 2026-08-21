@@ -62,7 +62,7 @@ export const buildPromptFile = async (
   }
 }
 
-export const scorePromptSelectionCandidate = (
+const scorePromptSelectionCandidate = (
   candidate: PromptSelectionCandidate
 ): number => {
   const hasSpeakerLabels = candidate.result.segments.some((segment) =>

@@ -4,7 +4,7 @@ import type {
   ProviderRenderStrategy,
 } from '~/types'
 
-export type CurrentTtsObservedVoice = {
+type CurrentTtsObservedVoice = {
   kind: 'provider-id' | 'reference-asset' | 'local-model-voice'
   value?: string | undefined
   valueHash: string

@@ -1,6 +1,6 @@
 import type { TtsProvider } from '~/types'
 
-export type CharacterVoiceOrigin =
+type CharacterVoiceOrigin =
   | 'provider-stock'
   | 'community-library'
   | 'designed'

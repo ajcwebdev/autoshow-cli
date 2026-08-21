@@ -1,6 +1,6 @@
 import type { ProtectedAssetRef } from '~/types'
 
-export type PlannedMistralProtectedReferenceBinding = Readonly<{
+type PlannedMistralProtectedReferenceBinding = Readonly<{
   materialization: 'non-materialized'
   protectedAsset: ProtectedAssetRef
   sourceExtension: string
@@ -23,7 +23,7 @@ export type PlannedMistralProtectedSpeakerReference = Readonly<{
   sourceExtension: string
 }>
 
-export type MaterializedMistralProtectedSpeakerReference = PlannedMistralProtectedSpeakerReference & Readonly<{
+type MaterializedMistralProtectedSpeakerReference = PlannedMistralProtectedSpeakerReference & Readonly<{
   resolve: () => Promise<string>
 }>
 

@@ -81,7 +81,7 @@ const findAggregateProviderResult = async (
   return aggregate
 }
 
-export const buildRecoveredProviderResult = (input: {
+const buildRecoveredProviderResult = (input: {
   pure: ReturnType<typeof buildPureCurrentTtsRenderPlan>
   renderRoot: string
   orderedBatches: LoadedRecoveryBatch[]
@@ -138,7 +138,7 @@ export const buildRecoveredProviderResult = (input: {
   return { compositionId, value }
 }
 
-export const buildRecoveryMixPlan = (input: {
+const buildRecoveryMixPlan = (input: {
   options: PureCurrentTtsRenderPlanOptions
   pure: ReturnType<typeof buildPureCurrentTtsRenderPlan>
   result: ProviderRenderResult
@@ -191,7 +191,7 @@ const buildRecoveryTiming = (
       reason: 'Recovered provider timing was not exposed at exact turn boundaries.'
     }
 
-export const buildRecoveryTerminalEvent = (input: {
+const buildRecoveryTerminalEvent = (input: {
   rootDir: string
   pure: ReturnType<typeof buildPureCurrentTtsRenderPlan>
   retainedRender: CanonicalAudioProviderProjection['renderHistory'][number]
@@ -262,7 +262,7 @@ export const buildRecoveryTerminalEvent = (input: {
   }
 }
 
-export const buildRecoveryProjection = (input: {
+const buildRecoveryProjection = (input: {
   resultProjection: CanonicalAudioProviderProjection
   renderIdentity: string
   terminalEvent: ReturnType<typeof buildRecoveryTerminalEvent>
@@ -384,7 +384,7 @@ const ensureAggregateProviderResult = async (
   }
 }
 
-export const publishCompletedRenderRecovery = async (
+const publishCompletedRenderRecovery = async (
   input: RecoveryFinalizationInput,
   workspaceDir: string,
   reportedOutputPath: string

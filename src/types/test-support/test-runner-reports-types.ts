@@ -2,7 +2,7 @@ import type { ParsedCommandMetric, ParsedJunitCase, ProviderIdentityBase } from 
 
 export type MatchProvenance = 'name-file' | 'name-global' | 'line-unique' | 'group-order' | 'heuristic'
 
-export type MetricMatchEntry = { metrics: ParsedCommandMetric[]; matchedBy: MatchProvenance }
+type MetricMatchEntry = { metrics: ParsedCommandMetric[]; matchedBy: MatchProvenance }
 
 export type MetricMatchResult = Map<string, MetricMatchEntry>
 

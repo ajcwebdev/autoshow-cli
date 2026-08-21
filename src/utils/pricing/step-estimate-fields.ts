@@ -1,6 +1,6 @@
 import type { AnyReportField, EstimatedCopiedFields, EstimatedStepEntry, ReportFieldRegistry, ReportStepIdentity, ReportValue, StepEstimate, StepFieldRegistry } from '~/types'
 
-export const STEP_FIELDS = {
+const STEP_FIELDS = {
   stt: ['costMultiplier', 'durationSeconds', 'estimateType'],
   extract: [
     'costMultiplier',
@@ -75,7 +75,7 @@ export const stepEstimateToEstimated = (estimate: StepEstimate): EstimatedStepEn
   ...pickDefined<EstimatedCopiedFields>(estimate, STEP_FIELDS[estimate.step])
 })
 
-export const STEP_REPORT_FIELDS = {
+const STEP_REPORT_FIELDS = {
   stt: [],
   extract: [
     'costPer1kPagesCents',

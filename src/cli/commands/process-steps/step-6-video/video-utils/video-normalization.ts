@@ -43,7 +43,7 @@ export const isReplicateKlingOmniVideoModel = (model: ReplicateVideoModel): bool
 export const isReplicatePixVerseVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'pixverse/pixverse-v6'
 
-export const isReplicateSeedanceFastVideoModel = (model: ReplicateVideoModel): boolean =>
+const isReplicateSeedanceFastVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'bytedance/seedance-2.0-fast'
 
 export const REPLICATE_HAPPYHORSE_DURATION_RANGE = [3, 15] as const
@@ -231,7 +231,7 @@ export const normalizeLumaVideoAspectRatio = (aspectRatio: string | undefined): 
 
 export const LTX_DURATION_SECONDS = [6, 8, 10] as const
 export const LTX_FAST_1080P_DURATION_SECONDS = [6, 8, 10, 12, 14, 16, 18, 20] as const
-export const LTX_EXTEND_DURATION_RANGE = [2, 20] as const
+const LTX_EXTEND_DURATION_RANGE = [2, 20] as const
 export const LTX_RESOLUTIONS = ['1080p', '4k'] as const
 export const LTX_ASPECT_RATIOS = ['16:9', '9:16'] as const
 
