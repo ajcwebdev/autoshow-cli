@@ -12,7 +12,8 @@ import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
-import { createOptionsAssertion, type OptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
+import type { OptionsAssertion } from '~/types'
+import { createOptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
 
 const assertExtractCommandOptions: OptionsAssertion<BatchCommandOptions, ExtractCommandOptions> =
   createOptionsAssertion('Extract command options are incomplete', ['whisperModel', 'step2SelectionOrigins'])

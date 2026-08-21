@@ -1,22 +1,10 @@
-import type { PipelineProviderState, TtsTarget } from '~/types'
-
-type PolicySkipIdentity = Pick<TtsTarget, 'service' | 'model' | 'transport' | 'targetKey'>
+import type { PipelineProviderState, PolicySkippedTtsProviderStateOptions, TtsTarget } from '~/types'
 
 /**
  * The distinguishing dimensions of a policy-skipped provider state are its target
  * identity, where the artifacts live, and which skip evidence the manifest carries.
  * Those are required; the harness-labelling fields have fixture defaults.
  */
-export type PolicySkippedTtsProviderStateOptions = {
-  target: PolicySkipIdentity
-  artifactDir: string
-  skipId: string
-  actorId?: string | undefined
-  reason?: string | undefined
-  at?: string | undefined
-  local?: boolean | undefined
-}
-
 export const policySkippedTtsProviderStateFrom = (
   options: PolicySkippedTtsProviderStateOptions
 ): PipelineProviderState => {

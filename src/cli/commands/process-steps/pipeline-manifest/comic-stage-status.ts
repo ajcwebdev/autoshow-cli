@@ -1,6 +1,4 @@
-import type { PipelineManifestItem } from '~/types'
-
-type ComicStageStatus = Extract<PipelineManifestItem['status'], 'full' | 'skipped' | 'failed' | 'incomplete'>
+import type { ComicStageStatus } from '~/types'
 
 export const aggregateComicStageStatus = (
   stages: readonly { status: ComicStageStatus }[]

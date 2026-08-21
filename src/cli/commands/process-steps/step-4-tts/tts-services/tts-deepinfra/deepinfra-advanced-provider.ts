@@ -16,7 +16,7 @@ import {
   isDeepinfraVoiceDesignModel,
 } from './deepinfra-tts-request'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
-import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceCloneAuthorized, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
 
 const DOCS = {

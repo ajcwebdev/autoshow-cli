@@ -4,6 +4,11 @@ export type ImageGenOptions = Partial<ImageRuntimeOptions> & HostedConcurrencyRu
   generationResourceGate?: ResourceGate | undefined
 }
 
+export type UnsupportedImageFlagSpec = keyof ImageGenOptions | {
+  key: keyof ImageGenOptions
+  when: (value: ImageGenOptions[keyof ImageGenOptions]) => boolean
+}
+
 export type ImageResult = {
   imagePaths: string[]
   metadata: Step5Metadata

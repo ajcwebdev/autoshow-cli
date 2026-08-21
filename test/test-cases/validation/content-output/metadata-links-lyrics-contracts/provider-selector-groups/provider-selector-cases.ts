@@ -1,25 +1,11 @@
 import { expect, test } from 'bun:test'
+import type { ProviderSelectorCase, SelectorExpectation } from '~/types'
 import {
   collectLinks,
   getDefaultLinksOutputFileName,
   parseLinksArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { expectLinksUsageError } from '../links-usage-errors'
-
-type SelectorExpectation = {
-  sections: readonly string[]
-  expected: string[]
-  outputFileName?: string | undefined
-}
-
-type ProviderSelectorCase = {
-  name: string
-  provider: string
-  all?: { expected: string[], outputFileName?: string | undefined } | undefined
-  selections: readonly SelectorExpectation[]
-  invalid?: { sections: readonly string[], message: string } | undefined
-  additionalAssertions?: (() => Promise<void> | void) | undefined
-}
 
 const parseProviderSelection = (provider: string, sections: readonly string[]) => parseLinksArgv([
   'bun',

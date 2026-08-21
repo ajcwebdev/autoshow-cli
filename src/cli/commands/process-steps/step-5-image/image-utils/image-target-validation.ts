@@ -1,4 +1,4 @@
-import type { ImageGenOptions } from '~/types'
+import type { ImageGenOptions, UnsupportedImageFlagSpec } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
 export const hasEditInputs = (options: Pick<ImageGenOptions, 'imageInputs' | 'imageMask'>): boolean =>
@@ -12,11 +12,6 @@ export const unsupportedFlagError = (
 ): Error => CLIUsageError(
   `${flags.join(', ')} ${flags.length === 1 ? 'is' : 'are'} not supported by ${provider}/${model}. ${alternatives}`
 )
-
-type UnsupportedImageFlagSpec = keyof ImageGenOptions | {
-  key: keyof ImageGenOptions
-  when: (value: ImageGenOptions[keyof ImageGenOptions]) => boolean
-}
 
 export const assertNoUnsupportedFlags = (
   options: ImageGenOptions,

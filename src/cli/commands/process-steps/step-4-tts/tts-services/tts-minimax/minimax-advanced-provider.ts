@@ -26,7 +26,7 @@ import {
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
-import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceCloneAuthorized, assertAdvancedVoiceDeletable, assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
 
 const DOCS = {

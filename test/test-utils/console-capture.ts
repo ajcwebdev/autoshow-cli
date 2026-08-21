@@ -1,21 +1,7 @@
-import type { ConsoleMethod, Logger, LogSink, LogSinkEvent, LogWriteOptions } from '~/types'
+import type { CaptureConsoleOptions, ConsoleCapture, ConsoleMethod, Logger, LogSink, LogSinkEvent, LogWriteOptions } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { createHumanSink } from '~/utils/app-logger/sinks/human-sink'
 import { stripAnsi } from '~/utils/terminal-colors'
-
-export type ConsoleCapture = {
-  stdout: string[]
-  stderr: string[]
-}
-
-type CaptureConsoleOptions = {
-  // Strip ANSI before recording, so assertions do not depend on the color regime.
-  strip?: boolean
-  // Swap in an interactive human sink for the duration. Under the non-TTY test
-  // runner the default sink routes info-level events to stderr, which leaves
-  // `stdout` empty for tests that mean to assert on the stdout channel.
-  interactiveHumanSink?: boolean
-}
 
 const CAPTURED_METHODS: readonly ConsoleMethod[] = ['log', 'warn', 'error', 'info', 'debug']
 

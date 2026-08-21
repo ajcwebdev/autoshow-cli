@@ -1,14 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
+import type { JsonProfileStore } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import { withProcessLock } from '~/utils/process-lock'
 import { isRecord } from '~/utils/value-helpers'
-
-type JsonProfileStore<TVersion extends number, TEntry> = {
-  version: TVersion
-  profiles: TEntry[]
-}
 
 export const createJsonProfileStore = <const TVersion extends number, TEntry>(options: {
   version: TVersion

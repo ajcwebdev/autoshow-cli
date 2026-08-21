@@ -1,13 +1,7 @@
-import type { ImageRunStats, PageQaEntry } from '~/types'
+import type { ComicImageWorkItemResult, ImageRunStats, PageQaEntry } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { writePageQaReports } from './comic-page-qa'
-
-export type ComicImageWorkItemResult = {
-  stats: ImageRunStats
-  qaEntries: Array<{ directory: string, entry: PageQaEntry }>
-  error?: unknown | undefined
-}
 
 /**
  * Runs one comic image work list concurrently, folds each item's counters into the run

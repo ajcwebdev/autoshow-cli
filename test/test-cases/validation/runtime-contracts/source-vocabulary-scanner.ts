@@ -1,14 +1,13 @@
 import { readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { Glob } from 'bun'
+import type { SourceVocabularyViolation } from '~/types'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 
 export const SOURCE_VOCABULARY_SRC_ROOT = join(PROJECT_ROOT, 'src')
 export const SOURCE_VOCABULARY_TEST_ROOT = join(PROJECT_ROOT, 'test')
 
 export const toSourceVocabularyRepoPath = (file: string): string => relative(PROJECT_ROOT, file)
-
-type SourceVocabularyViolation = { file: string, line: number, text: string }
 
 export const listSourceVocabularyFiles = async (root: string): Promise<string[]> => {
   const files: string[] = []

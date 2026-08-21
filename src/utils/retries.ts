@@ -1,4 +1,4 @@
-import type { HumanLogTable, PollFailure, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy } from '~/types'
+import type { HumanLogTable, PollFailure, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy, RetrySignals } from '~/types'
 import { AppError, extractErrorMetadata } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
@@ -172,12 +172,6 @@ export const isTimeoutError = (error: unknown): boolean => {
     return name === 'TimeoutError' || (typeof message === 'string' && /timed out|timeout/i.test(message))
   }
   return false
-}
-
-type RetrySignals = {
-  status: number | undefined
-  retryable: boolean | undefined
-  headers: Headers | undefined
 }
 
 /**

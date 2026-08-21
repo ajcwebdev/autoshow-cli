@@ -5,7 +5,7 @@ import {
   RevTranscriptResponseSchema
 } from '~/types'
 import { formatSpeakerLabel, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { HttpAsyncSttRunOptions } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/http-async-stt-provider'
+import type { HttpAsyncSttRunOptions } from '~/types'
 import { runHttpAsyncSttProvider } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/http-async-stt-provider'
 import { getRevBaseUrl } from './rev'
 import { resolveRestPath } from '~/utils/rest-client'

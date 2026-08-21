@@ -36,7 +36,8 @@ import type {
 } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
-import { createOptionsAssertion, type OptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
+import type { OptionsAssertion } from '~/types'
+import { createOptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
 import { throwUnrecognizedExtractInput } from './single-target-errors'
 
 const METADATA_ROUTES = {

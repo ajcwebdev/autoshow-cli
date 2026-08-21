@@ -6,7 +6,7 @@ import {
   readConfiguredEnvVar,
   readConfiguredEnvVarSync
 } from './test-helpers'
-import type { RunCommandOptions, RunCommandResult } from '~/types'
+import type { RunAndExpectOutputDirOptions, RunCommandOptions } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { stripAnsi } from '~/utils/terminal-colors'
 import {
@@ -168,21 +168,6 @@ export const formatCommandFailureDiagnostics = (
   `--- stderr tail (${lineCount} lines) ---`,
   tailLines(result.stderr, lineCount)
 ].join('\n')
-
-type RunAndExpectOutputDirOptions = {
-  // Retry a single transient provider failure before treating it as fatal.
-  transient?: {
-    isTransient: (output: string) => boolean
-    providerLabel: string
-    persistedLabel: string
-  }
-  // Runs before the generic exit-code handling, so a suite can convert a known provider
-  // account state into its own terminal message.
-  onResult?: (result: RunCommandResult) => void
-  // Set false for suites that report the raw command failure without classifying it as a
-  // live-provider availability problem. Defaults to true.
-  classifyAvailability?: boolean
-}
 
 /**
  * Run a command, fail loudly with tail diagnostics, and return its output directory.

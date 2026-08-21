@@ -5,7 +5,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import { writeFakeDefuddleBinIn } from '../../../../test-utils/fixtures/fake-defuddle-bin'
-import type { ConsoleCapture } from '../../../../test-utils/console-capture'
+import type { ConsoleCapture } from '~/types'
 import { captureConsole } from '../../../../test-utils/console-capture'
 import { BLOB_PREFIXED_DOC_FETCH_LINK, BLOB_PREFIXED_DOC_LINK, linksTestOutputPath } from './shared'
 import { withEnv } from '../../../../test-utils/rest-contract-helpers'

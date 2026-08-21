@@ -1,13 +1,6 @@
-import type { HostedConcurrencyCoordinator, ProviderIdentity, ResourceGate, RunSingleFileTargetsOptions, SingleFileRunResult } from '~/types'
+import type { HostedConcurrencyCoordinator, MediaFileTargetDescriptor, ProviderIdentity, ResourceGate } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { runSingleFileTargets } from './target-runner'
-
-type MediaFileTargetDescriptor<TTarget extends ProviderIdentity, TMetadata, TPrompt> = Pick<
-  RunSingleFileTargetsOptions<TTarget, TMetadata>,
-  'stepLabel' | 'noProviderMessage' | 'workspacePrefix' | 'hostedWorkClass' | 'getArtifactFileName' | 'finalizeMetadata'
-> & {
-  runTarget: (target: TTarget, prompt: TPrompt, workspaceDir: string) => Promise<SingleFileRunResult<TMetadata>>
-}
 
 export const runMediaFileTargets = async <TTarget extends ProviderIdentity, TMetadata, TPrompt>(input: {
   descriptor: MediaFileTargetDescriptor<TTarget, TMetadata, TPrompt>

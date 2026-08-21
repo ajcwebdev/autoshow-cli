@@ -1,4 +1,4 @@
-import type { GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageRunStats, SourceCoverageReport } from '~/types'
+import type { GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageRunStats, PageQaEntry, SourceCoverageReport } from '~/types'
 
 // Resolved options for the final-image stage: the command computes a single
 // per-run timestamp and concurrency value and threads them through.
@@ -13,4 +13,10 @@ export type GenerateImagesWorkflowDependencies = {
   checkScenesExist?: (sceneSlug: string) => Promise<boolean>
   checkPromptsExist?: (sceneSlug: string) => Promise<boolean>
   checkPanelPromptSourceCoverage?: (sceneSlug: string) => Promise<SourceCoverageReport>
+}
+
+export type ComicImageWorkItemResult = {
+  stats: ImageRunStats
+  qaEntries: Array<{ directory: string, entry: PageQaEntry }>
+  error?: unknown | undefined
 }

@@ -20,6 +20,11 @@ export type AsyncSttUploadAssetResult<TUpload> = {
   remoteAssetUrl?: string | undefined
 }
 
+export type AsyncSttPoll<TStatus> = {
+  status: TStatus
+  retryAfterMs: number | null
+}
+
 /**
  * Creation either hands back a job to poll, or — for providers that can answer a small
  * request synchronously — the finished transcript itself. `kind` is optional on the job
@@ -66,7 +71,7 @@ export type AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload = unknown> = 
     metrics: AsyncSttLifecycleMetrics,
     upload: AsyncSttUploadAssetResult<TUpload> | undefined
   ) => Promise<AsyncSttCreateJobResult<TStatus, TTranscript>>
-  pollJob: (jobId: string, metrics: AsyncSttLifecycleMetrics) => Promise<{ status: TStatus, retryAfterMs: number | null }>
+  pollJob: (jobId: string, metrics: AsyncSttLifecycleMetrics) => Promise<AsyncSttPoll<TStatus>>
   getTranscript: (jobId: string, metrics: AsyncSttLifecycleMetrics, finalStatus: TStatus) => Promise<TTranscript>
   isComplete: (status: TStatus) => boolean
   isFailed: (status: TStatus) => string | undefined
@@ -145,7 +150,7 @@ export type AsyncSttPollLoopOptions<TStatus> = {
   maxPollIntervalMs: number
   audioDurationSeconds?: number | undefined
   pollMode?: AsyncSttPollMode | undefined
-  poll: () => Promise<{ status: TStatus, retryAfterMs: number | null }>
+  poll: () => Promise<AsyncSttPoll<TStatus>>
   isComplete: (status: TStatus) => boolean
   isFailed: (status: TStatus) => string | undefined
   buildDeadlineError: (jobId: string, pollDeadlineMs: number, cause?: unknown) => never

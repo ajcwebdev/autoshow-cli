@@ -1,4 +1,4 @@
-import type { Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
+import type { Step2Metadata, SttDispatchContext, SttDispatcher, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import { runWhisperTranscribe } from '../stt-local/whisper/run-whisper'
 import { runWhisperfileTranscribe } from '../stt-local/whisperfile/run-whisperfile'
@@ -17,21 +17,6 @@ import { runSonioxStt } from '../stt-services/soniox/run-soniox-stt'
 import { runSpeechmaticsStt } from '../stt-services/speechmatics/run-speechmatics-stt'
 import { runSupadataStt } from '../stt-services/stt-supadata/run-supadata-stt'
 import { runTogetherStt } from '../stt-services/together/run-together-stt'
-
-type SttDispatchContext = {
-  target: SttTarget
-  audioPath: string
-  outputDir: string
-  segmentOffsetMinutes: number
-  options: SttTargetOptions
-  segmentNumber?: number | undefined
-  totalSegments?: number | undefined
-  whisperProgress?: WhisperProgressWindow | undefined
-}
-
-type SttDispatcher = (
-  context: SttDispatchContext
-) => Promise<{ result: TranscriptionResult, metadata: Step2Metadata }>
 
 const minimalOptions = (context: SttDispatchContext) => ({
   model: context.target.model,

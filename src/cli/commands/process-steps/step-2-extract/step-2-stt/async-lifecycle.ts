@@ -1,6 +1,6 @@
 import { isRecord } from '~/utils/rest-client'
 import { pollUntil } from '~/utils/retries'
-import type { AsyncSttActiveJobContext, AsyncSttCreationOutcome, PollStats, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
+import type { AsyncSttActiveJobContext, AsyncSttCreationOutcome, PollStats, AsyncSttCompletedJobContext, AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleCleanupState, AsyncSttLifecycleContext, AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPoll, AsyncSttPolledJobContext, AsyncSttPollLoopOptions, AsyncSttUploadAssetResult, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { AppError, extractErrorMetadata, InfraError, InternalError, isRetryExhaustedError, ProviderError } from '~/utils/error-handler'
 import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
@@ -149,10 +149,8 @@ const resolveAsyncSttPollDeadlineMs = (
 export const pollAsyncSttJobUntilComplete = async <TStatus>(
   options: AsyncSttPollLoopOptions<TStatus>
 ): Promise<{ status: TStatus, pollCount: number, pollSleepMs: number }> => {
-  type AsyncSttPoll = { status: TStatus, retryAfterMs: number | null }
-
-  const pollOnce = async (): Promise<AsyncSttPoll> => {
-    const runPoll = async (): Promise<AsyncSttPoll> => await options.poll()
+  const pollOnce = async (): Promise<AsyncSttPoll<TStatus>> => {
+    const runPoll = async (): Promise<AsyncSttPoll<TStatus>> => await options.poll()
     const pollResult = options.withPollSlot
       ? await options.withPollSlot(runPoll)
       : await runPoll()
@@ -177,7 +175,7 @@ export const pollAsyncSttJobUntilComplete = async <TStatus>(
   const stats: PollStats = { pollCount: 0, pollSleepMs: 0 }
 
   try {
-    const pollResult = await pollUntil<AsyncSttPoll>({
+    const pollResult = await pollUntil<AsyncSttPoll<TStatus>>({
       operationName: `async-stt-poll-${options.jobId}`,
       pollFn: pollOnce,
       isDone: (result) => options.isComplete(result.status),

@@ -22,7 +22,7 @@ import {
 } from '../../script-to-audio/advanced-provider-contracts'
 
 import { FISH_VOICE_DESIGN_MODEL } from './fish-tts-request'
-import type { AdvancedVoiceProviderIdentity } from '../advanced-voice-provider-shell'
+import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
 
 const DOCS = {

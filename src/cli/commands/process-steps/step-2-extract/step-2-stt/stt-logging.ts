@@ -1,6 +1,6 @@
 import { createHumanTable, createKeyValueTable, createSingleRowTable } from '~/utils/app-logger/human-table/human-table'
 import { defineTableLog } from '~/utils/app-logger/table-log-definition'
-import type { AudioSegmentDescriptor, EffectiveSttProviderConcurrency, HumanLogTable, LogLevel, ProviderFailure, SplitPolicyTarget, SttAcquireSummary, SttAsyncJobLifecycle, ProviderCompletionStatus, SttProviderConcurrencySummary, SttProviderSlotSummary, SttProviderState, SttRunStatusSummary, SttSegmentLifecycle, SttSplitDecision, SttSplitDecisionReason, SttSplitRetryReason, TableLogger } from '~/types'
+import type { AudioSegmentDescriptor, EffectiveSttProviderConcurrency, HumanLogTable, LogLevel, ProviderFailure, SplitPolicyTarget, SttAcquireSummary, SttAsyncJobLifecycle, SttCleanupFailureSummary, SttDiarizationConfigSummary, ProviderCompletionStatus, SttProviderConcurrencySummary, SttProviderSlotSummary, SttProviderState, SttRecoveryPassSummary, SttRunStatusSummary, SttSegmentLifecycle, SttSplitDecision, SttSplitDecisionReason, SttSplitRetryReason, SttSplitSummary, SttTranscriptOutputSummary, TableLogger } from '~/types'
 import { formatSttTargetLabel } from './stt-targets'
 const formatBytes = (bytes: number | undefined): string => {
   if (bytes === undefined) return ''
@@ -49,15 +49,6 @@ const getSplitReasonInputDuration = (reason: SttSplitDecisionReason): string =>
   reason.kind === 'duration_cap' || reason.kind === 'request_budget'
     ? formatSeconds(reason.audioDurationSeconds)
     : ''
-
-type SttDiarizationConfigSummary = {
-  provider: string
-  model?: string | undefined
-  enabled?: boolean | undefined
-  speakerCount?: number | undefined
-  maxSpeakers?: number | undefined
-  detail?: string | undefined
-}
 
 const buildSttDiarizationConfigTableValue = (
   summary: SttDiarizationConfigSummary
@@ -142,13 +133,6 @@ export const logSttSplitDecision = (
   })
 }
 
-type SttSplitSummary = {
-  input: string
-  segmentDurationMinutes: number
-  totalDurationSeconds: number
-  totalSegments: number
-}
-
 const buildSttSplitSummaryTableValue = (
   summary: SttSplitSummary
 ): HumanLogTable =>
@@ -190,13 +174,6 @@ const sttSplitSegmentsLog = defineTableLog<readonly AudioSegmentDescriptor[]>({
 
 export const logSttSplitSegments = sttSplitSegmentsLog.log
 
-type SttTranscriptOutputSummary = {
-  provider: string
-  path: string
-  characters: number
-  speakers?: number | undefined
-}
-
 const buildSttTranscriptOutputTableValue = (
   summary: SttTranscriptOutputSummary
 ): HumanLogTable =>
@@ -219,13 +196,6 @@ export const buildSttCleanupArtifactsTable = (
   rows: ReadonlyArray<{ artifact: string, path: string }>
 ): HumanLogTable =>
   createHumanTable(rows, ['artifact', 'path'])
-
-type SttCleanupFailureSummary = {
-  provider: string
-  artifact: string
-  id: string
-  detail: string
-}
 
 const buildSttCleanupFailureTableValue = (
   summary: SttCleanupFailureSummary
@@ -258,13 +228,6 @@ export const logSttProviderSpeakerCountHints = (
     humanTable: buildSttProviderSpeakerCountHintsTable(rows),
     metadata: { rows }
   })
-}
-
-type SttRecoveryPassSummary = {
-  pass: number
-  maxPasses: number
-  failures: number
-  providers: string
 }
 
 const buildSttRecoveryPassTableValue = (

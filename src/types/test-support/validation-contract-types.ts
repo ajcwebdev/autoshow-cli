@@ -104,3 +104,24 @@ export type E2eTestSource = {
   file: string
   source: string
 }
+
+export type SelectorExpectation = {
+  sections: readonly string[]
+  expected: string[]
+  outputFileName?: string | undefined
+}
+
+export type ProviderSelectorCase = {
+  name: string
+  provider: string
+  all?: { expected: string[], outputFileName?: string | undefined } | undefined
+  selections: readonly SelectorExpectation[]
+  invalid?: { sections: readonly string[], message: string } | undefined
+  additionalAssertions?: (() => Promise<void> | void) | undefined
+}
+
+export type SourceVocabularyViolation = {
+  file: string
+  line: number
+  text: string
+}

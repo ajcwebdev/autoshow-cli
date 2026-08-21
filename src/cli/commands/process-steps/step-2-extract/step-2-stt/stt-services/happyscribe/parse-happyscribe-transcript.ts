@@ -1,4 +1,4 @@
-import type { TranscriptionEvidenceSegment, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { TimeFieldCandidate, TranscriptionEvidenceSegment, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
 import {
   buildSegmentsFromWords,
   formatSpeakerLabel,
@@ -39,8 +39,6 @@ const parseTimestampToSeconds = (value: string): number | undefined => {
 
   return (numeric[0] as number) * 60 + (numeric[1] as number)
 }
-
-type TimeFieldCandidate = { key: string, unit: 'seconds' | 'milliseconds' | 'auto' }
 
 const START_TIME_FIELDS = [
   { key: 'start_seconds', unit: 'seconds' },

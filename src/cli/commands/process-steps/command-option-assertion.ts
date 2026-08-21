@@ -1,8 +1,6 @@
 import { ValidationError } from '~/utils/error-handler'
 
-export type OptionsAssertion<TOptions extends object, TNarrowed extends TOptions> = (
-  options: TOptions
-) => asserts options is TNarrowed
+import type { OptionsAssertion } from '~/types'
 
 export const createOptionsAssertion = <TOptions extends object, TNarrowed extends TOptions>(
   message: string,

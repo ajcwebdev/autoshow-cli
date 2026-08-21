@@ -1,5 +1,5 @@
 import { expect } from 'bun:test'
-import type { CliCommandDefinition, CommandResultBase, RunCommandOptions, RunCommandResult } from '~/types'
+import type { CliCommandDefinition, CommandFailureExpectation, CommandResultBase, RunCommandResult } from '~/types'
 import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { NativeNoSuchCommandError, NativeUnknownFlagError } from '~/cli/native/native-errors'
@@ -85,14 +85,6 @@ export const expectUnknownFlag = (argv: string[], flag: string): void => {
   const command = commandNamed(argv[0] as string)
   expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(NativeUnknownFlagError)
   expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(`Unexpected flag: ${flag}`)
-}
-
-type CommandFailureExpectation = {
-  // Defaults to 2: the usage exit code, which is what nearly every caller means.
-  exitCode?: number
-  contains?: string | readonly string[]
-  notContains?: string | readonly string[]
-  env?: RunCommandOptions['env']
 }
 
 /**

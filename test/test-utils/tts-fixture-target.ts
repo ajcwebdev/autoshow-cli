@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
-import type { MultiSpeakerStrategy, TtsTarget } from '~/types'
+import type { TtsFixtureTargetOptions, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { ProviderError } from '~/utils/error-handler'
 import { createSyntheticWavBytes } from './media-fixtures'
@@ -11,41 +11,6 @@ import { createSyntheticWavBytes } from './media-fixtures'
  * failure decides which recovery branch the lifecycle must take, so the mode is a
  * required discriminated union rather than a set of optional flags.
  */
-export type TtsFixtureTargetMode =
-  /** Provider accepts, writes audio, and completes. */
-  | { kind: 'success' }
-  /** Provider rejects the request before admission, so no work was authorized. */
-  | { kind: 'reject' }
-  /** The fixture throws before it ever dispatches, so no request evidence exists. */
-  | { kind: 'failBeforeDispatch' }
-  /**
-   * The provider admitted the request and the fixture then failed, leaving an
-   * ambiguous in-flight slot. `sourceIndex` narrows the failure to one dialogue
-   * source; omit it to fail on every invocation.
-   */
-  | { kind: 'failAfterAdmission', sourceIndex?: number | undefined }
-  /**
-   * Repeated admitted-then-failed attempts until `succeedOnAttempt`, recording
-   * each attempt number so redispatch accounting can be asserted.
-   */
-  | { kind: 'ambiguousRetry', attempts: number[], succeedOnAttempt: number, maxAttempts: number }
-
-export type TtsFixtureTargetOptions = {
-  mode: TtsFixtureTargetMode
-  model: string
-  service?: TtsTarget['service'] | undefined
-  transport?: string | undefined
-  voice?: string | undefined
-  multiSpeakerStrategy?: MultiSpeakerStrategy | undefined
-  /** `nested` mirrors the OpenAI speech body; `flat` mirrors the phase-0 resume evidence. */
-  requestShape?: 'flat' | 'nested' | undefined
-  providerRequestId?: ((sourceIndex: number, attempt: number) => string) | undefined
-  /** Records every invocation; dialogue suites use it to assert which sources ran. */
-  onRun?: ((sourceIndex: number) => void) | undefined
-  /** Materializes the audio bytes for an invocation, keyed by dialogue source index. */
-  audioBytes?: ((sourceIndex: number) => Uint8Array) | undefined
-}
-
 const DEFAULT_VOICE = 'alloy'
 
 const defaultAudioBytes = (): Uint8Array =>

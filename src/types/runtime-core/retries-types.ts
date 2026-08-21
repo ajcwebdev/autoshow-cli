@@ -2,6 +2,12 @@ import type { RetryClass, RetryDecision, RetryPolicy } from '~/types'
 
 export type RetryClassifier = (error: unknown) => RetryDecision
 
+export type RetrySignals = {
+  status: number | undefined
+  retryable: boolean | undefined
+  headers: Headers | undefined
+}
+
 export type PollFailure =
   | {
     failed: true

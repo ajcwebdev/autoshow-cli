@@ -1,5 +1,5 @@
 import { inflateRawSync } from 'node:zlib'
-import type { ZipEntry } from '~/types'
+import type { ZipArchiveOptions, ZipEntry } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 
 /**
@@ -11,13 +11,6 @@ import { ValidationError } from '~/utils/error-handler'
 const EOCD_SIG = 0x06054b50
 const CD_SIG = 0x02014b50
 const LFH_SIG = 0x04034b50
-
-type ZipArchiveOptions = {
-  /** Error stage recorded on any ValidationError raised while parsing. */
-  stage: string
-  /** Applied to each central-directory entry name; EPUB uses it to normalize separators. */
-  normalizeEntryName?: ((name: string) => string) | undefined
-}
 
 const findEocd = (buffer: Buffer, stage: string): number => {
   const limit = Math.max(0, buffer.length - 65557)

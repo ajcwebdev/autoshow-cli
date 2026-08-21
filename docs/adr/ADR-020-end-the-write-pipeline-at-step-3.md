@@ -123,7 +123,6 @@ bun test test/test-cases/validation/reports-pricing/price-mode-contracts/
 
 ## References
 
-- Plan: [`docs/report/write-generation-removal-plan.md`](../report/write-generation-removal-plan.md)
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
 - Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
 - `src/cli/flags/write-flags.ts`

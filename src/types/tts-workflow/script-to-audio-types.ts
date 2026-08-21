@@ -21,7 +21,7 @@ export type VoiceCapabilityFeature =
   | 'continuation'
   | 'speech-to-speech'
 
-export type ProviderAccessRequirement =
+type ProviderAccessRequirement =
   | { kind: 'plan', tier?: string | undefined }
   | { kind: 'approval', approvalKind?: string | undefined }
   | { kind: 'verification', verificationKind?: string | undefined }
@@ -34,7 +34,7 @@ export type AccountCapabilityState =
   | 'external-action-required'
   | 'unknown'
 
-export type CapabilityScope = {
+type CapabilityScope = {
   provider: TtsProvider
   feature: VoiceCapabilityFeature
   model?: string | undefined
@@ -248,21 +248,6 @@ export type ResolvedVoiceBinding =
       synthesisSettings: TypedProviderSynthesisSettings
       capabilityFixtureHash: string
     }
-
-export type ProviderQualifiedCast = {
-  schemaVersion: 1
-  targets: Array<{
-    provider: TtsProvider
-    model: string
-    transport: string
-    bindings: Array<{
-      speakerKey: string
-      locator: ProviderVoiceLocator
-      settingsSchema: string
-      synthesisSettings: TypedProviderSynthesisSettings
-    }>
-  }>
-}
 
 type DeliveryPlan = {
   kind: 'source' | 'reviewed-default'
@@ -901,7 +886,7 @@ export type TimedToken = {
   providerEnd?: number | undefined
 }
 
-export type TimingClock = 'take-audio-ms' | 'final-audio-ms'
+type TimingClock = 'take-audio-ms' | 'final-audio-ms'
 
 export type NormalizedTiming<Clock extends TimingClock> =
   | {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect } from 'bun:test'
-import type { AppErrorKind, EnvSnapshot, MockFetchCall, MockFetchHandler } from '~/types'
+import type { EnvSnapshot, MockFetchCall, MockFetchHandler, ProviderHttpErrorExpectation } from '~/types'
 import { extractErrorMetadata, isAppError } from '~/utils/error-handler'
 import { createTempDirTracker } from './temp-dirs'
 
@@ -171,17 +171,6 @@ export const setupContractSuiteLifecycle = (
   })
 
   return tempDirs
-}
-
-type ProviderHttpErrorExpectation = {
-  status?: number
-  kind?: AppErrorKind
-  stage?: string
-  retryable?: boolean
-  headers?: Readonly<Record<string, string>>
-  messageContains?: string | readonly string[]
-  instanceOf?: new (...args: never[]) => Error
-  name?: string
 }
 
 /**

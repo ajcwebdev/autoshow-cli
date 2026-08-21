@@ -5,6 +5,11 @@ export type HappyScribePollResult<TStatus> = {
   retryAfterMs: number | null
 }
 
+export type TimeFieldCandidate = {
+  key: string
+  unit: 'seconds' | 'milliseconds' | 'auto'
+}
+
 export type HappyScribeApiClientOptions = {
   apiKey: string
   baseURL: string
