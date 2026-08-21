@@ -16,11 +16,11 @@ bun autoshow voice list [registration-id] [flags]
 
 `list` has three read modes. With no arguments it prints the append-preserved registration catalog and the current approved pointer for each `(subject, provider, provider model, profile)`. That local dump never calls a provider.
 
-With a registration id it inspects that generation. `--generation-id` is optional unless more than one generation could match. `--live` opts into a read-only provider readiness check for a ready resource. `--price` stays static-only and never implies `--live`. If that registration has an unambiguous Fish provisioning journal, `list <id>` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--tts-allow-ambiguous-redispatch`. Bare `voice list` never completes a journal.
+With a registration id it inspects that generation. `--generation-id` is optional unless more than one generation could match. `--live` opts into a read-only provider readiness check for a ready resource. `--price` stays static-only and never implies `--live`. If that registration has an unambiguous Fish provisioning journal, `list <id>` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--allow-ambiguous-redispatch`. Bare `voice list` never completes a journal.
 
 With `--provider` it pages a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog operation and reports the dated capability fixture without reading the provider.
 
-`status`, `inspect`, and `discover` remain hidden aliases. `voice inspect <id>` still performs today's live provider GET.
+`list` is the whole read surface: bare `list` prints the catalog and current index, `list <id>` inspects one generation, `list <id> --live` performs the live provider GET, and `list --provider <p>` reads a provider catalog. The former `status`, `inspect`, and `discover` subcommands were removed.
 
 ### Options
 

@@ -108,18 +108,6 @@ bun autoshow setup --step whisperfile
 # Step 2 extract: download large-v3-turbo
 bun autoshow setup --step transcription
 
-# Step 3 write: check hosted LLM API-key readiness
-bun autoshow setup --step write
-
-# Step 4 TTS: check hosted TTS API-key readiness
-bun autoshow setup --step tts
-
-# Step 5 image: check hosted provider API-key readiness
-bun autoshow setup --step image
-
-# Step 6 video: check hosted provider API-key readiness
-bun autoshow setup --step video
-
 # Step 7 music: check hosted music API-key readiness, verify ffmpeg/ffprobe, ensure whisper-cli, and download large-v3-turbo for lyric-video rendering
 bun autoshow setup --step music
 ```

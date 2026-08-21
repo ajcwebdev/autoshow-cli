@@ -111,13 +111,17 @@ describe('comic character handling flat-reference contracts', () => {
     expect(Bun.file(alien.sourcePath).size).toBe(0)
   })
 
-  test('character sketch manifests preserve checksum-registered legacy imports', async () => {
+  test('character sketch manifests accept only generated and revision origins', async () => {
     const root = await makeCatalog()
-    await writeFile(getCharacterSketchManifestPath(root), JSON.stringify({ schemaVersion: 1, sketches: [{
-      characterKey: 'hero', generationId: 'legacy-hero', origin: 'legacy-import', sourceImage: 'hero.webp', outlineSheet: 'hero--outline-sheet.png',
+    const sketch = (origin: string) => ({
+      characterKey: 'hero', generationId: 'hero-1', origin, sourceImage: 'hero.webp', outlineSheet: 'hero--outline-sheet.png',
       sourceSha256: 'a'.repeat(64), sheetSha256: 'b'.repeat(64), model: null, createdAt: '2026-01-01T00:00:00.000Z',
-    }] }))
-    expect((await readCharacterSketchManifest(root)).sketches[0]?.origin).toBe('legacy-import')
+    })
+    await writeFile(getCharacterSketchManifestPath(root), JSON.stringify({ schemaVersion: 1, sketches: [sketch('generated')] }))
+    expect((await readCharacterSketchManifest(root)).sketches[0]?.origin).toBe('generated')
+
+    await writeFile(getCharacterSketchManifestPath(root), JSON.stringify({ schemaVersion: 1, sketches: [sketch('legacy-import')] }))
+    await expect(readCharacterSketchManifest(root)).rejects.toThrow()
   })
 
   test('panel-prompt preflight aggregates every unregistered visible character', async () => {

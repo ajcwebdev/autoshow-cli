@@ -80,7 +80,6 @@ export const verifyManifestProjectionArtifacts = async (
   const verifyTtsItemDialoguePlan = async (item: PipelineManifestItem, itemIndex: number): Promise<boolean> => {
     const synthesisProviders = item.providers.filter((provider) =>
       provider.operation === 'tts-synthesis'
-      && !provider.legacyRenderIdentity?.startsWith('legacy:')
       && provider.status !== 'skipped'
     )
     if (synthesisProviders.length === 0) return true

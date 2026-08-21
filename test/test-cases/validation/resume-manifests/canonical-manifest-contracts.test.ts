@@ -461,40 +461,26 @@ describe('canonical pipeline manifest', () => {
     })
   })
 
-  test('legacy TTS identity uses only canonical options and recorded output checksum pairs', async () => {
-    await withTempDir('autoshow-tts-legacy-identity-', async (dir) => {
-      const legacy: PipelineProviderState = {
+  test('a pre-canonical TTS provider state is unreadable and unwritable', async () => {
+    await withTempDir('autoshow-tts-precanonical-', async (dir) => {
+      const preCanonical: PipelineProviderState = {
         service: 'openai',
-        model: 'legacy-model',
+        model: 'tts-1',
         artifactDir: '.',
         status: 'succeeded',
         attempts: 1,
         options: { language: 'en' },
         metadata: { audioFileName: 'speech.wav', audioFileSize: 10, processingTime: 1 }
       }
-      const legacyManifest = createManifest('tts', 'single', [createManifestItem(dir, {
-        input: 'legacy input',
+      const preCanonicalManifest = createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'inline input',
         status: 'full',
         metadata: {},
-        providers: [legacy]
+        providers: [preCanonical]
       })])
-      await expect(writeManifest(dir, legacyManifest)).rejects.toThrow('Invalid canonical manifest')
-      await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify(legacyManifest, null, 2)}\n`)
-      const first = (await readManifest(dir))?.items[0]?.providers[0]
-      const firstIdentity = first?.legacyRenderIdentity
-      expect(firstIdentity).toMatch(/^legacy:[a-f0-9]{64}$/)
-      expect(JSON.stringify(first)).not.toContain('legacyRenderIdentity')
-
-      const manifestPath = join(dir, PIPELINE_MANIFEST_FILE)
-      const raw = await Bun.file(manifestPath).json() as { items: Array<{ providers: Array<{ metadata: Record<string, unknown> }> }> }
-      raw.items[0]!.providers[0]!.metadata['audioFileSize'] = 99
-      raw.items[0]!.providers[0]!.metadata['processingTime'] = 999
-      await Bun.write(manifestPath, `${JSON.stringify(raw, null, 2)}\n`)
-      expect((await readManifest(dir))?.items[0]?.providers[0]?.legacyRenderIdentity).toBe(firstIdentity)
-
-      raw.items[0]!.providers[0]!.metadata['audioFileName'] = 'another.wav'
-      await Bun.write(manifestPath, `${JSON.stringify(raw, null, 2)}\n`)
-      expect((await readManifest(dir))?.items[0]?.providers[0]?.legacyRenderIdentity).not.toBe(firstIdentity)
+      await expect(writeManifest(dir, preCanonicalManifest)).rejects.toThrow('Invalid canonical manifest')
+      await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify(preCanonicalManifest, null, 2)}\n`)
+      await expect(readManifest(dir)).rejects.toThrow('Invalid canonical manifest')
     })
   })
 })

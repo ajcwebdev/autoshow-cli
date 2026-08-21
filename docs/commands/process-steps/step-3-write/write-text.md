@@ -36,8 +36,8 @@ Run the full download plus transcription or extraction pipeline, then generate s
 # full setup
 bun autoshow setup
 
-# check hosted write API-key readiness
-bun autoshow setup --step write
+# check hosted LLM API-key readiness
+bun autoshow setup --doctor
 ```
 
 Write has no local LLM. Step 3 always uses a hosted provider. Omitting `--llm` selects the cheapest hosted model.

@@ -114,21 +114,6 @@ export const computePaidSpeechSlotHash = (input: {
   serializerVersion: input.serializerVersion,
 })
 
-export const computeLegacySingleRenderIdentity = (input: {
-  itemInput: string
-  targetKey: string
-  service: string
-  model: string | null | undefined
-  canonicalLegacyOptions: Record<string, unknown>
-  artifactDir: string
-  outputs: Array<{ path: string, sha256: string | 'unverified' }>
-}): string => `legacy:${hashCanonicalTtsValue({
-  schemaVersion: 1,
-  kind: 'pre-adr-single',
-  ...input,
-  outputs: input.outputs.slice().sort((left, right) => left.path.localeCompare(right.path))
-})}`
-
 const ENCODED_PATH_SEPARATOR_OR_DOT = /%(?:2e|2f|5c)/i
 
 export const assertSafeArtifactRelativePath = (

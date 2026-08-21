@@ -11,6 +11,8 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
+import { VOICE_PUBLIC_ACTIONS } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
+import { SETUP_STEP_IDS } from '~/types'
 
 const removedSetupCommand = ['so', 'ck'].join('')
 
@@ -95,6 +97,9 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['config', '--prompt-md'], flag: '--prompt-md' },
   { argv: ['config', '--allow-ambiguous-redispatch'], flag: '--allow-ambiguous-redispatch' },
   { argv: ['config', '--tts-allow-ambiguous-redispatch'], flag: '--tts-allow-ambiguous-redispatch' },
+  { argv: ['tts', 'input/examples/tts/1-tts.md', '--tts-allow-ambiguous-redispatch'], flag: '--tts-allow-ambiguous-redispatch' },
+  { argv: ['resume', 'output/x', '--tts-allow-ambiguous-redispatch'], flag: '--tts-allow-ambiguous-redispatch' },
+  { argv: ['comic', 'generate-audio', 'input/scripts/example.md', '--panel-video'], flag: '--panel-video' },
   { argv: ['tts', 'input/examples/tts/1-tts.md', '--local-concurrency', '1'], flag: '--local-concurrency' },
   { argv: ['comic', 'generate-audio', 'input/scripts/example.md', '--local-concurrency', '1'], flag: '--local-concurrency' },
   { argv: ['tts', 'input/examples/tts/1-tts.md', '--minimax-tts-language-boost', 'English'], flag: '--minimax-tts-language-boost' },
@@ -146,6 +151,26 @@ describe('removed CLI spellings', () => {
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS
     )).toThrow('Unknown provider "minimax" for --provider. Expected gemini|grok|ltx|replicate|lumalabs|fal.')
+  })
+
+  // `voice list` absorbed every one of these; the aliases are gone rather than hidden.
+  test('retired voice subcommand aliases are not registered', () => {
+    for (const action of ['discover', 'materialize', 'revoke-consent', 'reconcile', 'revoke', 'status', 'inspect']) {
+      const voice = commandNamed('voice')
+      expect(voice.subcommands?.some((entry) => entry.name === `voice ${action}`)).toBe(false)
+      expect(VOICE_PUBLIC_ACTIONS).not.toContain(action)
+    }
+  })
+
+  test('voice clone no longer accepts the retired --kind selector', () => {
+    expectUnknownFlag(['voice', 'clone', 'hero', '--kind', 'professional'], '--kind')
+  })
+
+  // These steps installed nothing; `setup --doctor` is the surviving way to see key presence.
+  test('setup rejects the retired install-nothing step values', () => {
+    for (const step of ['write', 'tts', 'image', 'video']) {
+      expect(SETUP_STEP_IDS as readonly string[]).not.toContain(step)
+    }
   })
 
   test('comic subcommands reject removed option spellings', () => {

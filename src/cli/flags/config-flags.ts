@@ -40,8 +40,7 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
   'batch-concurrency',
   'price',
   'tts-ref-audio',
-  'allow-ambiguous-redispatch',
-  'tts-allow-ambiguous-redispatch'
+  'allow-ambiguous-redispatch'
 ])
 const configOcrInputFlags = omitFlags(ocrInputFlags, ['password'])
 const configPromptFlags = omitFlags(promptFlag, ['prompt-md'])

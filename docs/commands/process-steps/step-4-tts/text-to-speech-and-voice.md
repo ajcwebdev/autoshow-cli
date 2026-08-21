@@ -42,7 +42,7 @@ Durable voice registrations are documented separately in [`voice`](../step-9-voi
 bun autoshow setup
 
 # check hosted TTS API-key readiness
-bun autoshow setup --step tts
+bun autoshow setup --doctor
 ```
 
 ### Environment

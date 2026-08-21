@@ -259,7 +259,6 @@ export const verifyProviderProjectionArtifacts = async (
   rootDir: string,
   provider: PipelineProviderState
 ): Promise<boolean> => {
-  if (provider.legacyRenderIdentity?.startsWith('legacy:')) return true
   if (
     (provider.operation !== 'tts-synthesis' && provider.operation !== 'comic-audio')
     || !provider.targetKey

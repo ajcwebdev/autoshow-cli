@@ -16,7 +16,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 bun autoshow comic reference-voice <subcommand> [flags]
 ```
 
-Actions match `voice`: `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `comic reference-voice` runs `list`. Hidden aliases such as `status`, `inspect`, `discover`, `revoke-consent`, `revoke`, `materialize`, and `reconcile` still dispatch. Clone is instant only; providers without an instant API use the provider console, then `voice import --voice-id`.
+Actions match `voice`: `list`, `consent`, `import`, `design`, `clone`, `audition`, `approve`, `retire`, and `delete`. Bare `comic reference-voice` runs `list`. That list is the whole surface — the former `status`, `inspect`, `discover`, `revoke-consent`, `revoke`, `materialize`, and `reconcile` aliases were removed here and on `voice`. Clone is instant only; providers without an instant API use the provider console, then `voice import --voice-id`.
 
 Each child has the same flags as the sibling `voice` command. Run `bun autoshow comic reference-voice <action> --help` for the exact flags. Full voice docs live in [`voice`](../step-9-voice/00-voice-overview.md).
 

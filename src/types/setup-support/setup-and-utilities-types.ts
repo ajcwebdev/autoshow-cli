@@ -143,7 +143,7 @@ export type SetupToolStatus = {
 export const SETUP_STEP_IDS = [
   'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
   'calibre', 'all',
-  'transcription', 'write', 'tts', 'image', 'video', 'music'
+  'transcription', 'music'
 ] as const
 
 export type SetupStepId = typeof SETUP_STEP_IDS[number]

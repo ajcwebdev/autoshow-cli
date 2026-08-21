@@ -466,9 +466,6 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
       }
     }
   }
-  const cloneKind = optionalFlag(ctx, 'kind') ?? 'instant'
-  if (cloneKind === 'professional') throw CLIUsageError(`${provider} professional clone is a verification-gated external workflow; finish it in the provider console, then import the approved ID with voice import --voice-id.`)
-  if (cloneKind !== 'instant') throw CLIUsageError('--kind must be instant.')
   const samplePaths = repeatableFlag(ctx, 'sample')
   if (samplePaths.length === 0) throw CLIUsageError(`${provider} instant voice clone requires at least one --sample.`)
   if ((provider === 'cartesia' || provider === 'speechify') && samplePaths.length !== 1) throw CLIUsageError(`${provider} instant voice clone requires exactly one --sample.`)
@@ -491,7 +488,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const authorizationRef = requiredFlag(ctx, 'authorization-ref')
   const planned = await Promise.all(samplePaths.map(sourcePath => managedVoiceAssetStore.plan({ sourcePath, authorizationRef, speakerKey: subjectKey })))
   const request = {
-    cloneKind,
+    cloneKind: 'instant',
     desiredName: requiredFlag(ctx, 'voice-name'),
     localAttemptId: 'price-plan',
     protectedSamples: planned.map(item => item.protectedAsset),
@@ -501,7 +498,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   } as const
   if (ctx.flags['price'] === true) {
     const estimate = planAdvancedClone(request)
-    reportVoicePrice('Voice clone estimate', { operation: 'voice-clone', provider, providerModel, cloneKind, sampleCount: samplePaths.length, ...estimate, mutation: false, providerCalls: 0 })
+    reportVoicePrice('Voice clone estimate', { operation: 'voice-clone', provider, providerModel, cloneKind: 'instant', sampleCount: samplePaths.length, ...estimate, mutation: false, providerCalls: 0 })
     return
   }
   const brief = await requireBrief(subjectKey, profileKey)
@@ -524,7 +521,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   }
   const adapter = provider === 'elevenlabs'
     ? advancedProvider('elevenlabs', {
-        elevenLabsApiKey: cloneKind === 'instant' ? requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs instant voice clone') : 'external-professional-clone-no-provider-call',
+        elevenLabsApiKey: requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs instant voice clone'),
         resolveElevenLabsProtectedAsset: resolveProtectedAsset,
       })
     : provider === 'fish'
@@ -542,7 +539,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
               }),
             })
           : advancedProvider('inworld', {
-              inworldApiKey: cloneKind === 'instant' ? requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld instant voice clone') : 'external-professional-clone-no-provider-call',
+              inworldApiKey: requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld instant voice clone'),
               resolveInworldProtectedAsset: resolveProtectedAsset,
             })
   const { localAttemptId: _planningId, ...cloneRequest } = request
@@ -551,10 +548,6 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     request: { ...cloneRequest, protectedSamples }, capabilityFixtureHash: advancedCapabilityFixtureHash(provider),
   })
   reportVoiceResult('Voice clone provisioned', { registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state })
-}
-
-const handleRevokeConsentAlias = async (ctx: CliCommandContext): Promise<void> => {
-  await handleRevokeConsent(ctx, parameter(ctx, 'consentRef'))
 }
 
 const findRegistration = async (registrationId: string, generationId?: string) =>
@@ -676,20 +669,12 @@ const handleList = async (ctx: CliCommandContext): Promise<void> => {
   await handleStatus()
 }
 
-const handleReconcile = async (ctx: CliCommandContext): Promise<void> => {
-  await handleList({
-    ...ctx,
-    flags: { ...ctx.flags, reconcile: true }
-  })
-}
-
-const handleLifecycle = async (ctx: CliCommandContext, action: 'retire' | 'revoke' = 'retire'): Promise<void> => {
+const handleLifecycle = async (ctx: CliCommandContext): Promise<void> => {
   const registrationId = parameter(ctx, 'registrationId')
   const registration = await findRegistration(registrationId, optionalFlag(ctx, 'generation-id'))
   const generationId = registration.generationId
   const reason = optionalFlag(ctx, 'reason')
-  const resolved = action === 'revoke' || Boolean(reason) ? 'revoke' : 'retire'
-  if (resolved === 'revoke' && !reason) throw CLIUsageError('--reason is required for voice revocation.')
+  const resolved = reason ? 'revoke' : 'retire'
   const transitioned = await transitionVoiceRegistrationLifecycle({
     charactersRoot: getCharactersRoot(), registrationId, generationId, action: resolved, ...(reason ? { reason } : {})
   })
@@ -752,17 +737,6 @@ const importCommand = defineCliCommand({
   }
 }, handleImport)
 
-const discoverCommand = defineCliCommand({
-  name: 'voice discover', description: 'Read provider/account voice catalogs without creating or changing resources',
-  flags: {
-    provider: commonRegistrationFlags.provider,
-    source: strFlag('Catalog source: account|provider-library|shared-library', 'account'),
-    cursor: strFlag('Opaque provider pagination cursor'),
-    price: commonRegistrationFlags.price
-  },
-  help: { hidden: true }
-}, handleDiscover)
-
 const designCommand = defineCliCommand({
   name: 'voice design', description: 'Generate bounded protected advanced-provider voice candidates or save one selected candidate',
   parameters: [{ key: '[subject-key]', description: 'Canonical character or role key' }],
@@ -781,25 +755,12 @@ const designCommand = defineCliCommand({
   }
 }, handleDesign)
 
-const materializeCommand = defineCliCommand({
-  name: 'voice materialize', description: 'Materialize exactly one selected advanced-provider candidate through a durable provisioning journal',
-  parameters: [{ key: '<candidate-id>', description: 'Create-only local voice candidate ID' }],
-  flags: {
-    provider: commonRegistrationFlags.provider, 'subject-key': strFlag('Canonical character or role key'), profile: commonRegistrationFlags.profile,
-    'voice-name': strFlag('Desired provider account voice name'), 'provenance-ref': commonRegistrationFlags['provenance-ref'],
-    'consent-ref': commonRegistrationFlags['consent-ref'],
-    reconcile: boolFlag('Complete an ambiguous Fish provisioning journal without recreating the voice'),
-    price: commonRegistrationFlags.price
-  },
-  help: { hidden: true }
-}, handleMaterialize)
-
 const cloneCommand = defineCliCommand({
   name: 'voice clone', description: 'Create a protected consent-gated instant provider voice clone',
   parameters: [{ key: '<subject-key>', description: 'Canonical character or role key' }],
   flags: {
     provider: commonRegistrationFlags.provider, model: commonRegistrationFlags.model, profile: commonRegistrationFlags.profile,
-    kind: { ...strFlag('Hidden leftover clone workflow: instant|professional'), help: { hidden: true } }, 'voice-name': strFlag('Desired provider account voice name'),
+    'voice-name': strFlag('Desired provider account voice name'),
     sample: strListFlag('Authorized local clone sample; repeatable for instant cloning'), 'authorization-ref': strFlag('Opaque authorization record for the clone samples'),
     description: strFlag('Optional provider-safe voice description'), 'consent-ref': commonRegistrationFlags['consent-ref'],
     'consent-name': strFlag('Speechify clone consent full name'), 'consent-email': strFlag('Speechify clone consent email'),
@@ -809,17 +770,6 @@ const cloneCommand = defineCliCommand({
     price: commonRegistrationFlags.price,
   },
 }, handleClone)
-
-const revokeConsentCommand = defineCliCommand({
-  name: 'voice revoke-consent', description: 'Append a protected revocation marker that denies all use of a consent record',
-  parameters: [{ key: '<consent-ref>', description: 'Protected consent-record locator' }],
-  flags: {
-    reason: strFlag('Required non-sensitive revocation reason'),
-    'actor-namespace': strFlag('Audit actor namespace: local-user|project-role|automation', 'local-user'),
-    'actor-id': strFlag('Opaque audit actor ID')
-  },
-  help: { hidden: true }
-}, handleRevokeConsentAlias)
 
 const auditionCommand = defineCliCommand({
   name: 'voice audition', description: 'Synthesize and protect the canonical pre-approval audition set',
@@ -840,13 +790,6 @@ const approveCommand = defineCliCommand({
   flags: { 'generation-id': strFlag('Auditioned registration generation SHA-256'), 'actor-id': strFlag('Opaque approving actor ID') }
 }, handleApprove)
 
-const reconcileCommand = defineCliCommand({
-  name: 'voice reconcile', description: 'Resolve an ambiguous Fish provisioning attempt without repeating creation',
-  parameters: [{ key: '<registration-id>', description: 'Pending voice registration ID' }],
-  flags: { 'generation-id': strFlag('Pending registration generation SHA-256'), price: commonRegistrationFlags.price },
-  help: { hidden: true }
-}, handleReconcile)
-
 const retireCommand = defineCliCommand({
   name: 'voice retire', description: 'Retire or revoke a registration generation and remove it from the current index',
   parameters: [{ key: '<registration-id>', description: 'Voice registration ID' }],
@@ -855,13 +798,6 @@ const retireCommand = defineCliCommand({
     reason: strFlag('Revoke instead of retire and record a non-sensitive reason')
   }
 }, handleLifecycle)
-
-const revokeCommand = defineCliCommand({
-  name: 'voice revoke', description: 'Revoke a registration and enforce its protected-asset cleanup policy',
-  parameters: [{ key: '<registration-id>', description: 'Voice registration ID' }],
-  flags: { 'generation-id': strFlag('Registration generation SHA-256'), reason: strFlag('Required non-sensitive revocation reason') },
-  help: { hidden: true }
-}, async ctx => await handleLifecycle(ctx, 'revoke'))
 
 const deleteCommand = defineCliCommand({
   name: 'voice delete', description: 'Explicitly delete an eligible project-owned managed voice and tombstone its registration',
@@ -873,18 +809,6 @@ const deleteCommand = defineCliCommand({
     price: commonRegistrationFlags.price
   }
 }, handleDelete)
-
-const statusCommand = defineCliCommand({
-  name: 'voice status', description: 'Inspect append-preserved registrations and current selections',
-  help: { hidden: true }
-}, handleStatus)
-
-const inspectCommand = defineCliCommand({
-  name: 'voice inspect', description: 'Inspect one registration with optional read-only provider readiness',
-  parameters: [{ key: '<registration-id>', description: 'Voice registration ID' }],
-  flags: { 'generation-id': strFlag('Registration generation SHA-256'), price: commonRegistrationFlags.price },
-  help: { hidden: true }
-}, async ctx => await handleInspect(ctx, { live: true }))
 
 const listCommand = defineCliCommand({
   name: 'voice list', description: 'List the local catalog, one registration, or a provider catalog',
@@ -900,14 +824,12 @@ const listCommand = defineCliCommand({
   }
 }, handleList)
 
-export const VOICE_SUBCOMMAND_DEFINITIONS = [listCommand, consentCommand, revokeConsentCommand, importCommand, designCommand, materializeCommand, cloneCommand, auditionCommand, approveCommand, reconcileCommand, retireCommand, revokeCommand, deleteCommand, discoverCommand, inspectCommand, statusCommand] as const satisfies readonly CliCommandDefinition[]
+export const VOICE_SUBCOMMAND_DEFINITIONS = [listCommand, consentCommand, importCommand, designCommand, cloneCommand, auditionCommand, approveCommand, retireCommand, deleteCommand] as const satisfies readonly CliCommandDefinition[]
 
 export const voiceActionName = (commandName: string): string =>
   commandName.startsWith('voice ') ? commandName.slice('voice '.length) : commandName
 
-export const VOICE_PUBLIC_ACTIONS = VOICE_SUBCOMMAND_DEFINITIONS
-  .filter((entry) => entry.help?.hidden !== true)
-  .map((entry) => voiceActionName(entry.name))
+export const VOICE_PUBLIC_ACTIONS = VOICE_SUBCOMMAND_DEFINITIONS.map((entry) => voiceActionName(entry.name))
 
 export const voiceCommand = defineCliCommand({
   name: 'voice', description: 'Manage durable provider voice registrations separately from speech synthesis',

@@ -296,7 +296,6 @@ export const resolveTtsResumeSourceContext = async (
   const dialoguePlanArtifacts = providers
     .filter((provider) =>
       provider.operation === 'tts-synthesis'
-      && provider.legacyRenderIdentity === undefined
       && provider.status !== 'skipped'
     )
     .map(parseTtsDialoguePlanArtifactRef)

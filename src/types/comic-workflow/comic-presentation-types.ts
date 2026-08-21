@@ -25,23 +25,14 @@ export type ComicPresentationDialogueBinding = {
   subjectKey: string
   speakerLabel: string
   canonicalText: string
-  evidence:
-    | {
-        kind: 'source-segment-id'
-        sourceSegmentId: string
-        panelSourceSegmentIds: string[]
-        speechOrdinal: number
-        textMatch?: 'exact' | 'exact-after-source-cue-elision' | undefined
-        panelText?: string | undefined
-      }
-    | {
-        kind: 'exact-content-ordinal'
-        speaker: string
-        text: string
-        occurrence: number
-        speechOrdinal: number
-        textMatch?: 'exact' | 'exact-after-source-cue-elision' | undefined
-      }
+  evidence: {
+    kind: 'source-segment-id'
+    sourceSegmentId: string
+    panelSourceSegmentIds: string[]
+    speechOrdinal: number
+    textMatch?: 'exact' | 'exact-after-source-cue-elision' | undefined
+    panelText?: string | undefined
+  }
 }
 
 export type ComicPresentationSoundBinding = {

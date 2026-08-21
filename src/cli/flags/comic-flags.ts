@@ -114,10 +114,6 @@ const comicAudioContractFlags = {
   'max-generation-slots': strFlag(colorizeHelpDescription('Generate at most this many unresolved immutable slots, checkpoint, and exit without a final WAV')),
   role: strListFlag(colorizeHelpDescription('Map an uncatalogued or compound speaker label to a logical voice subject, LABEL=role:key or LABEL=voice:key; repeatable')),
   slideshow: boolFlag(colorizeHelpDescription('Automatically render the synchronized still-panel MP4 video upon audio completion')),
-  'panel-video': {
-    ...boolFlag(colorizeHelpDescription('Alias for --slideshow')),
-    help: { hidden: true }
-  },
 } as const satisfies CliFlagsDefinition
 
 export const comicGenerateAudioFlags = {

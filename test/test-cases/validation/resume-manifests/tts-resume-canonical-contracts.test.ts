@@ -15,87 +15,6 @@ import { canonicalFileInput, findRecoverableCompletedState, localTtsResumeConfig
 import { withEnv } from '../../../test-utils/rest-contract-helpers'
 
 describe('canonical TTS resume', () => {
-  test('prices and appends a canonical model to an unambiguous legacy inline run', async () => {
-    await withTempDir('autoshow-tts-resume-legacy-inline-', async (dir) => {
-      const input = 'Legacy inline narration remains exact for additive resume.'
-      const legacyMetadata: Step4Metadata = {
-        ttsService: 'openai',
-        ttsModel: 'tts-1',
-        speaker: 'alloy',
-        processingTime: 1,
-        audioFileName: 'speech-openai-tts-1.wav',
-        audioFileSize: 1,
-        chunkCount: 1
-      }
-      const legacyProvider: PipelineProviderState = {
-        service: 'openai',
-        model: 'tts-1',
-        artifactDir: '.',
-        status: 'succeeded',
-        attempts: 1,
-        options: {},
-        metadata: {}
-      }
-      await Bun.write(join(dir, legacyMetadata.audioFileName), new Uint8Array([0]))
-      await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify({
-        command: 'tts',
-        scope: 'single',
-        createdAt: '2026-06-15T18:24:36.993Z',
-        updatedAt: '2026-06-15T18:24:36.993Z',
-        items: [{
-          input,
-          status: 'full',
-          metadata: { tts: [legacyMetadata] },
-          providers: [legacyProvider]
-        }]
-      }, null, 2)}\n`)
-      const beforeManifest = await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()
-      const beforeFiles = await readdir(dir)
-
-      const estimate = await priceGenerationTarget(
-        resumeTarget(dir),
-        ttsResumeConfig,
-        { deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] } as TtsOptions,
-        new Set(['deepinfra-tts'])
-      )
-
-      expect(estimate.steps.map((step) => [step.provider, step.model])).toEqual([
-        ['deepinfra', 'ResembleAI/chatterbox-turbo']
-      ])
-      expect(await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()).toBe(beforeManifest)
-      expect(await readdir(dir)).toEqual(beforeFiles)
-
-      const target = ttsTarget()
-      const runnable = successfulTarget(target)
-      const runtimeOptions = { openaiTtsModels: [target.model] } as TtsOptions
-      await withEnv({ OPENAI_API_KEY: 'configured-for-local-legacy-resume-fixture' }, () => resumeGenerationTarget(
-        resumeTarget(dir),
-        {
-          ...ttsResumeConfig,
-          collectTargets: () => [runnable],
-          resolveStoredTargets: async () => [runnable]
-        },
-        runtimeOptions,
-        new Set(['openai-tts'])
-      ))
-
-      const updated = await readManifest(dir)
-      expect(updated?.items[0]?.providers).toHaveLength(2)
-      expect(updated?.items[0]?.providers[0]?.legacyRenderIdentity).toBeDefined()
-      expect(updated?.items[0]?.providers[1]?.targetKey).toBe(target.targetKey)
-
-      const mixedStateEstimate = await priceGenerationTarget(
-        resumeTarget(dir),
-        ttsResumeConfig,
-        { deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] } as TtsOptions,
-        new Set(['deepinfra-tts'])
-      )
-      expect(mixedStateEstimate.steps.map((step) => [step.provider, step.model])).toEqual([
-        ['deepinfra', 'ResembleAI/chatterbox-turbo']
-      ])
-    })
-  })
-
   test('reactivates one retained blocked branch and freezes its render only after fresh readiness', async () => {
     await withTempDir('autoshow-tts-resume-readiness-ready-', async (dir) => {
       const text = 'Retry this exact readiness-blocked branch.'
@@ -318,8 +237,8 @@ describe('canonical TTS resume', () => {
     })
   })
 
-  test('rejects unfinished pre-ADR TTS state before reconstructing a target', async () => {
-    await withTempDir('autoshow-tts-resume-legacy-', async (dir) => {
+  test('rejects a pre-canonical TTS manifest instead of reconstructing a target from it', async () => {
+    await withTempDir('autoshow-tts-resume-precanonical-', async (dir) => {
       const target = ttsTarget()
       const at = new Date(0).toISOString()
       await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify({
@@ -344,11 +263,20 @@ describe('canonical TTS resume', () => {
       }, null, 2)}\n`)
       const ranTargetKeys: string[] = []
 
+      // A provider state with no operation/targetKey is not readable at all now; the
+      // manifest is rejected before resume can see it, and nothing is dispatched.
+      await expect(readManifest(dir)).rejects.toThrow('Invalid canonical manifest')
       await expect(resumeGenerationTarget(
         resumeTarget(dir),
         localTtsResumeConfig([target], new Map(), ranTargetKeys),
         {} as TtsOptions
-      )).rejects.toThrow('predates operation-scoped render evidence')
+      )).rejects.toThrow('Invalid canonical manifest')
+      await expect(priceGenerationTarget(
+        resumeTarget(dir),
+        ttsResumeConfig,
+        { deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] } as TtsOptions,
+        new Set(['deepinfra-tts'])
+      )).rejects.toThrow('Invalid canonical manifest')
       expect(ranTargetKeys).toEqual([])
     })
   })

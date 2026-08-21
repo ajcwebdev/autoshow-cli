@@ -48,7 +48,7 @@ const readManifestUnlocked = async (
   } catch (error) {
     throw CLIUsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
   }
-  const manifest = parseManifest(rootDir, raw, true)
+  const manifest = parseManifest(rootDir, raw)
   if (!manifest || !await verifyManifestProjectionArtifacts(rootDir, manifest)) {
     throw invalidManifestError(manifestPath)
   }
@@ -90,11 +90,7 @@ const writeManifestUnlocked = async (
     ...manifest,
     updatedAt: new Date().toISOString()
   }
-  const retainsLegacyTts = previous?.command === 'tts'
-    && previous.items.some((item) => item.providers.some((provider) =>
-      provider.legacyRenderIdentity?.startsWith('legacy:')
-    ))
-  const parsed = parseManifest(rootDir, next, retainsLegacyTts === true)
+  const parsed = parseManifest(rootDir, next)
   if (!parsed || !await verifyManifestProjectionArtifacts(rootDir, parsed)) {
     throw invalidManifestError(manifestPath)
   }

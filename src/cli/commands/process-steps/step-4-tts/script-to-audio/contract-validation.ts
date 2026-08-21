@@ -313,7 +313,7 @@ export const validateProviderRenderPlanIdentity = (plan: ProviderRenderPlan): Pr
     synthesisSettingsHash: plan.synthesisSettingsHash,
     outputProfileHash: plan.outputProfileHash
   })
-  if (plan.renderIdentity !== expectedRenderIdentity || plan.renderIdentity.startsWith('legacy:')) {
+  if (plan.renderIdentity !== expectedRenderIdentity) {
     throw CLIUsageError('Provider render plan has an invalid voice-aware renderIdentity.')
   }
   const feature = capabilityFeatureForStrategy(plan.strategy)

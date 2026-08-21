@@ -1,6 +1,5 @@
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { isRecord } from '~/utils/rest-client'
-import { computeLegacySingleRenderIdentity } from '../step-4-tts/script-to-audio/contract-identity'
 import { validateComicSourceIdentity } from '../step-8-comic/comic-utils/comic-audio-contracts'
 import { aggregateComicStageStatus } from './comic-stage-status'
 import type {
@@ -199,55 +198,6 @@ export const parseManifestItem = (
   }
 }
 
-const attachLegacyTtsProviderIdentity = (
-  item: PipelineManifestItem,
-  provider: PipelineProviderState
-): void => {
-  if (provider.operation !== undefined || provider.targetKey !== undefined || provider.transport !== undefined) return
-  const model = typeof provider.model === 'string' ? provider.model : ''
-  const operation = 'tts-synthesis'
-  const transport = 'legacy-single'
-  const targetKey = canonicalTargetKey(operation, provider.service, model, transport)
-  const outputByPath = new Map<string, string | 'unverified'>()
-  for (const record of [provider.metadata, provider.result]) {
-    if (!isRecord(record)) continue
-    for (const pathKey of ['audioFileName', 'audioPath', 'outputPath'] as const) {
-      const path = record[pathKey]
-      if (typeof path !== 'string' || path.length === 0) continue
-      const checksum = [
-        record[`${pathKey}Sha256`],
-        record['audioFileSha256'],
-        record['audioSha256'],
-        record['sha256'],
-        record['checksum']
-      ].find(isSha256) ?? 'unverified'
-      const current = outputByPath.get(path)
-      if (current === undefined || (current === 'unverified' && checksum !== 'unverified')) {
-        outputByPath.set(path, checksum)
-      }
-    }
-  }
-  const legacyRenderIdentity = computeLegacySingleRenderIdentity({
-    itemInput: item.input ?? '',
-    targetKey,
-    service: provider.service,
-    model: provider.model ?? null,
-    canonicalLegacyOptions: provider.options,
-    artifactDir: provider.artifactDir,
-    outputs: [...outputByPath].map(([path, sha256]) => ({ path, sha256 }))
-  })
-  Object.defineProperties(provider, {
-    operation: { value: operation, enumerable: false, configurable: true },
-    targetKey: { value: targetKey, enumerable: false, configurable: true },
-    transport: { value: transport, enumerable: false, configurable: true },
-    legacyRenderIdentity: {
-      value: legacyRenderIdentity,
-      enumerable: false,
-      configurable: true
-    }
-  })
-}
-
 export const expectedTtsItemStatus = (providers: readonly PipelineProviderState[]): PipelineManifestItem['status'] | undefined => {
   if (providers.length === 0) return undefined
   const statuses = providers.map((provider) => provider.status)
@@ -300,12 +250,11 @@ const expectedComicItemStatus = (
 ): PipelineManifestItem['status'] | undefined => {
   const metadata = item.metadata['comic']
   if (!isRecord(metadata) || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio', 'presentation']) || metadata['schemaVersion'] !== 1 || !isRecord(metadata['stages']) || !isRecord(metadata['audio']) || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio', 'presentation'])) return undefined
-  const historicalPresentationStage = { requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] }
   const stages = [
     parseComicStageRecord(metadata['stages']['structure'], item.providers, ['comic-structure']),
     parseComicStageRecord(metadata['stages']['image'], item.providers, ['comic-image']),
     parseComicStageRecord(metadata['stages']['audio'], item.providers, ['comic-audio', 'sound-effect-generation']),
-    parseComicStageRecord(metadata['stages']['presentation'] ?? historicalPresentationStage, item.providers, []),
+    parseComicStageRecord(metadata['stages']['presentation'], item.providers, []),
   ]
   if (stages.some(stage => stage === undefined)) return undefined
   const audio = metadata['audio']
@@ -336,7 +285,7 @@ const expectedComicItemStatus = (
     if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
   }
   if (presentation['finalOutputRefs'] !== undefined && (!Array.isArray(presentation['finalOutputRefs']) || presentation['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
-  const presentationStageValue = metadata['stages']['presentation'] ?? historicalPresentationStage
+  const presentationStageValue = metadata['stages']['presentation']
   if (metadata['presentation'] !== undefined && Object.keys(presentation).length > 0) {
     if (!isRecord(presentationStageValue) || presentationStageValue['status'] !== 'full' || !Array.isArray(presentationStageValue['artifactRefs'])) return undefined
     const stageRefs = presentationStageValue['artifactRefs'] as unknown[]
@@ -350,8 +299,7 @@ const expectedComicItemStatus = (
 
 export const parseManifest = (
   rootDir: string,
-  value: unknown,
-  allowLegacyTts: boolean
+  value: unknown
 ): PipelineManifest | undefined => {
   if (
     !isRecord(value)
@@ -394,7 +342,7 @@ export const parseManifest = (
   if (value['command'] === 'tts') {
     for (const item of items) {
       if (!item) return undefined
-      if (!allowLegacyTts && item.providers.some((provider) => provider.operation === undefined)) {
+      if (item.providers.some((provider) => provider.operation === undefined)) {
         return undefined
       }
       if (item.providers.some((provider) => provider.operation !== undefined && provider.operation !== 'tts-synthesis')) {
@@ -402,7 +350,6 @@ export const parseManifest = (
       }
       const expectedStatus = expectedTtsItemStatus(item.providers)
       if (expectedStatus === undefined || item.status !== expectedStatus) return undefined
-      for (const provider of item.providers) attachLegacyTtsProviderIdentity(item, provider)
     }
   }
 

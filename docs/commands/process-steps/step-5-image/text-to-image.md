@@ -27,7 +27,7 @@ Generate images from a text prompt with hosted image providers.
 Image providers are hosted API services.
 
 ```bash
-bun autoshow setup --step image
+bun autoshow setup --doctor
 ```
 
 ### Environment

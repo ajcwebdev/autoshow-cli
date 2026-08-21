@@ -66,7 +66,12 @@ export const writeSingleManifestFixture = async (
   await writePipelineItemRecords(rootDir, command, 'single', [record], options)
 }
 
-export const writeLegacyTtsManifestFixture = async (
+// Report-tool input only. The consensus report script reads manifest.json directly, so this
+// writes the raw item/metadata shape it consumes rather than a canonical manifest: the provider
+// states carry no operation-scoped identity, dialogue-plan artifact, or audio projection, and
+// `readManifest` rejects the result on purpose. Anything exercising the CLI resume or manifest
+// contract must build a real render instead (see tts-resume-fixtures.ts).
+export const writeReportInputTtsManifestFixture = async (
   rootDir: string,
   record: Record<string, unknown>
 ): Promise<void> => {
@@ -77,7 +82,7 @@ export const writeLegacyTtsManifestFixture = async (
     && typeof entry['ttsModel'] === 'string'
   )
   if (entries.length === 0) {
-    throw new Error('A legacy TTS manifest fixture requires at least one TTS metadata entry.')
+    throw new Error('A report-input TTS manifest fixture requires at least one TTS metadata entry.')
   }
 
   const metadata = { ...record }

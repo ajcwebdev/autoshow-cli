@@ -18,7 +18,7 @@ Advanced Voice Design is a two-step operation for ElevenLabs, Fish, and Inworld.
 
 `--save` cannot be combined with preview flags (`--description`, `--preview-text`, `--candidates`, `--seed`, `--source-voice-id`, `--creation-model`). Fish materialization resolves the selected protected preview and supplies those exact non-empty bytes to the documented create-model endpoint; a candidate ID alone is never treated as a remote voice. A saved registration must still pass [audition](./06-audition.md) and [approve](./07-approve.md) before comic rendering can use it.
 
-If a Fish provisioning journal for that candidate is unambiguous, the next `--save` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--tts-allow-ambiguous-redispatch`. `materialize` remains a hidden alias.
+If a Fish provisioning journal for that candidate is unambiguous, the next `--save` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--allow-ambiguous-redispatch`. `design --save <candidate-id>` is the only spelling; the former `materialize` subcommand was removed.
 
 Remove `--price` only when you intend to purchase provider previews or save one candidate. Candidate audio stays in the owner-only protected store.
 

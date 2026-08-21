@@ -36,7 +36,12 @@ import { installMockFetch, jsonResponse, restoreEnv, snapshotEnv } from '../../.
 import type { CliFlagOccurrence, ResumeTarget, Step3Metadata } from '~/types'
 import { flagOccurrencesFromValues } from '../../../test-utils/flag-occurrences'
 import { withTempDir } from '../../../test-utils/temp-dirs'
-import { writeLegacyTtsManifestFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
+import { createManifest, createManifestItem, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
+import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { canonicalFileInput, succeededMetadata, ttsTarget } from './tts-resume-fixtures'
 
 const hasResumableTtsWork = getResumeHandler('tts')!.hasResumableWork
 const writeResumeHandler = getResumeHandler('write')!
@@ -253,7 +258,6 @@ describe('resume provider flag surface', () => {
     expectResumeHasFlags(Object.keys(allArticleFlags))
     expectResumeHasFlags(Object.keys(genericTtsOptionFlags))
     expect(buildOptsFromFlags(false, { 'allow-ambiguous-redispatch': true }).ttsAllowAmbiguousRedispatch).toBe(true)
-    expect(buildOptsFromFlags(false, { 'tts-allow-ambiguous-redispatch': true }).ttsAllowAmbiguousRedispatch).toBe(true)
     expectResumeHasFlags(dialogueTtsCommandOptionNames)
     expectResumeHasFlags([
       ...imageGenerationOptionNames,
@@ -662,20 +666,6 @@ describe('resume all-shortcut additive selection', () => {
     await withTempDir('autoshow-resume-all-shortcuts-', async (dir) => {
       const cases = [
         {
-          kind: 'tts' as const,
-          metadataKey: 'tts',
-          requestedProvider: { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' },
-          metadata: {
-            ttsService: 'openai',
-            ttsModel: 'gpt-4o-mini-tts-2025-12-15',
-            processingTime: 1,
-            audioFileName: 'speech.wav',
-            audioFileSize: 1,
-            chunkCount: 1
-          },
-          hasWork: hasResumableTtsWork
-        },
-        {
           kind: 'image' as const,
           metadataKey: 'image',
           requestedProvider: { service: 'gemini', model: 'gemini-3.1-flash-lite-image' },
@@ -723,11 +713,44 @@ describe('resume all-shortcut additive selection', () => {
         }
       ]
 
+      const ttsRunDir = join(dir, 'tts')
+      await mkdir(ttsRunDir, { recursive: true })
+      const ttsText = 'Prompt text for a canonical completed render.'
+      const ttsInputPath = join(ttsRunDir, 'source.txt')
+      await Bun.write(ttsInputPath, ttsText)
+      const ttsSourceIdentity = await createFileTtsSourceIdentity(ttsInputPath, ttsText)
+      const ttsDialoguePlan = createSingleTurnTtsDialoguePlan(ttsSourceIdentity, ttsText)
+      const completedTts = await succeededMetadata(ttsRunDir, ttsTarget(), 'all-shortcuts', {
+        text: ttsText,
+        sourceIdentity: ttsSourceIdentity,
+        dialoguePlan: ttsDialoguePlan
+      })
+      await writeManifest(ttsRunDir, createManifest('tts', 'single', [createManifestItem(ttsRunDir, {
+        input: canonicalFileInput(ttsSourceIdentity),
+        status: 'full',
+        metadata: { tts: [completedTts] },
+        providers: [bindTtsDialoguePlanArtifact(
+          buildCurrentTtsProviderState(completedTts),
+          await materializeTtsDialoguePlanArtifact(ttsRunDir, ttsDialoguePlan)
+        )]
+      })]))
+      const ttsNormalized = normalizeResumeSelectorFlagsForTarget(
+        target('tts', ttsRunDir),
+        { 'all-providers': true },
+        new Set(['all-providers']),
+        ['resume', ttsRunDir, '--all-providers']
+      )
+      await expect(hasResumableTtsWork(
+        target('tts', ttsRunDir),
+        buildOpts(ttsNormalized.flags, ttsNormalized.explicitFlags, ttsNormalized.flagOccurrences),
+        ttsNormalized.explicitFlags
+      )).resolves.toBe(true)
+
       for (const entry of cases) {
         const runDir = join(dir, entry.kind)
         await mkdir(runDir, { recursive: true })
         const record = {
-          input: 'Legacy prompt text.',
+          input: 'Prompt text.',
           completionStatus: 'full',
           requestedProviders: [entry.requestedProvider],
           providerStates: [{
@@ -738,8 +761,7 @@ describe('resume all-shortcut additive selection', () => {
           }],
           [entry.metadataKey]: [entry.metadata]
         }
-        if (entry.kind === 'tts') await writeLegacyTtsManifestFixture(runDir, record)
-        else await writeSingleManifestFixture(runDir, entry.kind, record)
+        await writeSingleManifestFixture(runDir, entry.kind, record)
         const explicit = new Set(['all-providers'])
         const normalized = normalizeResumeSelectorFlagsForTarget(
           target(entry.kind, runDir),

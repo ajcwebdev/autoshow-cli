@@ -270,14 +270,6 @@ const validateBinary = async (name: string, path: string, args: string[]): Promi
 
 const TRANSCRIPTION_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.extract.stt.')
 
-const WRITE_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.llm.')
-
-const TTS_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.tts.')
-
-const IMAGE_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.image.')
-
-const VIDEO_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.video.')
-
 const MUSIC_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.music.')
 
 const ALL_PROVIDER_ENV_KEYS = HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar)
@@ -576,26 +568,6 @@ const runSetupTranscription = async (): Promise<void> => {
   l.write('success', 'Transcription setup complete', { category: 'command' })
 }
 
-const runSetupWrite = async (): Promise<void> => {
-  logSetupProviderConfiguration('Write Provider Configuration', WRITE_PROVIDER_ENV_KEYS)
-  l.write('success', 'Write setup complete (all write providers are API-based)', { category: 'command' })
-}
-
-const runSetupTts = async (): Promise<void> => {
-  logSetupProviderConfiguration('TTS Provider Configuration', TTS_PROVIDER_ENV_KEYS)
-  l.write('success', 'TTS setup complete (all TTS providers are API-based)', { category: 'command' })
-}
-
-const runSetupImage = async (): Promise<void> => {
-  logSetupProviderConfiguration('Image Provider Configuration', IMAGE_PROVIDER_ENV_KEYS)
-  l.write('success', 'Image setup complete (all image providers are API-based)', { category: 'command' })
-}
-
-const runSetupVideo = async (): Promise<void> => {
-  logSetupProviderConfiguration('Video Provider Configuration', VIDEO_PROVIDER_ENV_KEYS)
-  l.write('success', 'Video setup complete (all video providers are API-based)', { category: 'command' })
-}
-
 const runSetupMusic = async (): Promise<void> => {
   logSetupProviderConfiguration('Music Provider Configuration', MUSIC_PROVIDER_ENV_KEYS)
   const requiredTools = ['ffmpeg', 'ffprobe'] as const
@@ -661,8 +633,7 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
     ]
     case 'yt-dlp': return [ytDlpManagedBinaryPath, ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegBuildDir, ffmpegToolDir, lameBuildDir, lameToolDir]
     case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir]
-    case 'tts': return []
-    case 'transcription': case 'write': case 'image': case 'video': return []
+    case 'transcription': return []
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }
 }
@@ -690,10 +661,6 @@ const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
     case 'defuddle': await setupDefuddleCli(); return true
     case 'calibre': await setupCalibreDocumentTools(); return true
     case 'transcription': await runSetupTranscription(); return true
-    case 'write': await runSetupWrite(); return true
-    case 'tts': await runSetupTts(); return true
-    case 'image': await runSetupImage(); return true
-    case 'video': await runSetupVideo(); return true
     case 'music': await runSetupMusic(); return true
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }

@@ -28,9 +28,7 @@ import {
 } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-protected-reference-binding'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { normalizeDialogueSpeakerKey } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
-import { isMultiSpeakerRequested } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
-import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
-import { buildTtsDialoguePlanArtifactRef, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 
 const TTS_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
   TTS_GENERATION_SELECTION,
@@ -53,20 +51,6 @@ const getTtsResumeProviderKey = (
     throw CLIUsageError(`TTS resume target ${provider.service}/${provider.model} is missing its operation-scoped targetKey.`)
   }
   return provider.targetKey
-}
-
-const validateTtsManifestForResume = (
-  item: PipelineManifestItem
-): string | undefined => {
-  const unfinishedLegacy = item.providers.find((provider) =>
-    provider.legacyRenderIdentity !== undefined
-    && provider.status !== 'succeeded'
-    && provider.status !== 'skipped'
-  )
-  if (unfinishedLegacy) {
-    return `Stored TTS target ${unfinishedLegacy.service}/${unfinishedLegacy.model ?? ''} predates operation-scoped render evidence and cannot authorize new synthesis. Re-run the tts command with an explicit voice to rebuild this output before resuming it.`
-  }
-  return undefined
 }
 
 const reduceTtsResumeItemStatus = (
@@ -184,13 +168,6 @@ const resolveStoredTtsResumeInput = async (
   if (!item || typeof item.input !== 'string' || item.input.trim().length === 0) {
     throw CLIUsageError('TTS resume is missing its canonical source path. Rebuild this output with the current tts command.')
   }
-  const isLegacyInlineInput = item.providers.some((provider) => provider.legacyRenderIdentity !== undefined)
-    && /\s/u.test(item.input)
-    && !item.input.startsWith('.')
-    && !item.input.startsWith('~')
-    && !item.input.includes('/')
-    && !item.input.includes('\\')
-  if (isLegacyInlineInput) return item.input
   const sourcePath = resolveUserPath(item.input)
   let sourceExists = false
   let source: ReturnType<typeof Bun.file>
@@ -461,38 +438,17 @@ const resolveExactTtsResumeSourceContext = async (
 ) => {
   const canonicalProviderStates = context.currentProviderStates.filter((provider) =>
     provider.operation === 'tts-synthesis'
-    && provider.legacyRenderIdentity === undefined
     && provider.status !== 'skipped'
   )
-  const sourceContext = canonicalProviderStates.length > 0
-    ? await resolveTtsResumeSourceContext(
-        context.outputDir,
-        input,
-        context.currentProviderStates,
-        new Set(targets.flatMap((target) => target.targetKey ? [target.targetKey] : []))
-      )
-    : await (async () => {
-        const manifest = await readManifest(context.outputDir)
-        if (
-          !manifest
-          || manifest.command !== 'tts'
-          || manifest.scope !== 'single'
-          || context.currentProviderStates.length === 0
-          || context.currentProviderStates.some((provider) => provider.legacyRenderIdentity === undefined)
-        ) {
-          throw CLIUsageError('TTS resume has no retained active source/dialogue evidence and cannot authorize synthesis. Rebuild this output with the current tts command.')
-        }
-        const sourceIdentity = createInlineTtsSourceIdentity(input)
-        const dialoguePlan = isMultiSpeakerRequested(opts)
-          ? createGenericTtsDialoguePlan(sourceIdentity, input, opts, manifest.createdAt)
-          : createSingleTurnTtsDialoguePlan(sourceIdentity, input, manifest.createdAt)
-        return {
-          sourceIdentity,
-          dialoguePlan,
-          dialoguePlanArtifact: buildTtsDialoguePlanArtifactRef(dialoguePlan),
-          retainedPlanIdentities: new Map()
-        }
-      })()
+  if (canonicalProviderStates.length === 0) {
+    throw CLIUsageError('TTS resume has no retained active source/dialogue evidence and cannot authorize synthesis. Rebuild this output with the current tts command.')
+  }
+  const sourceContext = await resolveTtsResumeSourceContext(
+    context.outputDir,
+    input,
+    context.currentProviderStates,
+    new Set(targets.flatMap((target) => target.targetKey ? [target.targetKey] : []))
+  )
   const currentByTargetKey = new Map(context.currentProviderStates.flatMap((provider) =>
     provider.targetKey ? [[provider.targetKey, provider] as const] : []
   ))
@@ -584,7 +540,6 @@ export const ttsResumeConfig = {
   providerFlags: TTS_PROVIDER_FLAGS,
   selectionMode: 'additive-stored' as const,
   modelFields: TTS_MODEL_FIELDS,
-  validateManifestForResume: validateTtsManifestForResume,
   getProviderKey: getTtsResumeProviderKey,
   resolveInput: async (target, _metadata, item) => await resolveStoredTtsResumeInput(target.dir, item),
   getInitialCompletedProviderKeys: (item: PipelineManifestItem) =>

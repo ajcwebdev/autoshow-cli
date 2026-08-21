@@ -111,10 +111,6 @@ test('voice rejects providers outside the managed five-model surface', async () 
     'Unknown voice provider openai. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
   )
   await rejectVoice(
-    ['voice', 'discover', '--provider', 'hume', '--price'],
-    'Unknown voice provider hume. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
-  )
-  await rejectVoice(
     ['voice', 'list', '--provider', 'hume', '--price'],
     'Unknown voice provider hume. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
   )
@@ -127,7 +123,7 @@ test('voice rejects providers outside the managed five-model surface', async () 
     'Unknown voice provider minimax. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
   )
   await rejectVoice(
-    ['voice', 'clone', 'hero', '--provider', 'deepinfra', '--model', 'Qwen/Qwen3-TTS', '--kind', 'instant', '--voice-name', 'Hero', '--sample', 'input/examples/audio/anthony-voice.mp3', '--authorization-ref', 'project:casting', '--consent-ref', 'protected-consent:v1:ID', '--provenance-ref', 'project:casting', '--price'],
+    ['voice', 'clone', 'hero', '--provider', 'deepinfra', '--model', 'Qwen/Qwen3-TTS', '--voice-name', 'Hero', '--sample', 'input/examples/audio/anthony-voice.mp3', '--authorization-ref', 'project:casting', '--consent-ref', 'protected-consent:v1:ID', '--provenance-ref', 'project:casting', '--price'],
     'Unknown voice provider deepinfra. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
   )
   expectUnknownCommand(
@@ -161,13 +157,9 @@ test('bare voice runs list and help stays help', () => {
   expect(help.mode).toBe('help')
   expect(help.command?.name).toBe('voice')
   expect(parseRoot(['voice', 'help']).mode).toBe('help')
-  expect(parseRoot(['voice', 'inspect', 'vr_123']).command?.name).toBe('voice inspect')
-  expect(parseRoot(['voice', 'status']).command?.name).toBe('voice status')
-  expect(parseRoot(['voice', 'discover', '--provider', 'elevenlabs']).command?.name).toBe('voice discover')
-  expect(parseRoot(['voice', 'revoke-consent', 'protected-consent:v1:x']).command?.name).toBe('voice revoke-consent')
-  expect(parseRoot(['voice', 'revoke', 'vr_123']).command?.name).toBe('voice revoke')
-  expect(parseRoot(['voice', 'materialize', 'candidate-1']).command?.name).toBe('voice materialize')
-  expect(parseRoot(['voice', 'reconcile', 'vr_123']).command?.name).toBe('voice reconcile')
+  for (const action of ['inspect', 'status', 'discover', 'revoke-consent', 'revoke', 'materialize', 'reconcile']) {
+    expectUnknownCommand(['voice', action], `voice ${action}`)
+  }
 })
 
 test('voice list inspects one generation without a live provider call', async () => {
@@ -184,7 +176,7 @@ test('voice list inspects one generation without a live provider call', async ()
   expect(payload.networkAccess).toBe('none')
 })
 
-test('voice inspect still live-checks a ready resource', async () => {
+test('voice list --live still live-checks a ready resource', async () => {
   const root = await makeTempRoot('autoshow-voice-inspect-')
   configureCharactersRoot(root)
   const draft = await writeDraft(root, 'voice-1', { registrationId: 'vr_hero' })
@@ -192,7 +184,7 @@ test('voice inspect still live-checks a ready resource', async () => {
   delete process.env['ELEVENLABS_API_KEY']
   try {
     await rejectVoice(
-      ['voice', 'inspect', draft.registrationId],
+      ['voice', 'list', draft.registrationId, '--live'],
       'ELEVENLABS_API_KEY environment variable is required'
     )
   } finally {
@@ -320,7 +312,7 @@ test('voice consent grant stays deny-by-default and revoke uses --revoke', async
     '--revoke cannot be combined with a subject key.'
   )
   await rejectVoice(
-    ['voice', 'revoke-consent', 'protected-consent:v1:STORE:ASSET:SHA256'],
+    ['voice', 'consent', '--revoke', 'protected-consent:v1:STORE:ASSET:SHA256', '--reason', 'Authorization withdrawn'],
     '--actor-id is required.'
   )
 })
@@ -355,7 +347,7 @@ test('voice retire without reason does not revoke, and --reason matches revoke',
   expect(revokedPayload.state).toBe('revoked')
   expect(revokedPayload.cleanupState).toBe('deletion-required')
 
-  await rejectVoice(['voice', 'revoke', 'vr_missing'], 'Voice registration generation was not found.')
+  await rejectVoice(['voice', 'retire', 'vr_missing', '--reason', 'Casting changed'], 'Voice registration generation was not found.')
   const retireCommand = parseRoot(['voice', 'retire', 'vr_retire']).command!
   expect(() => parseCommandInvocation(
     [retireCommand.name, 'vr_retire', '--delete'],
@@ -382,10 +374,6 @@ test('voice design --save requires a candidate and rejects preview flags', async
   await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [brief] })
   await rejectVoice(
     ['voice', 'design', '--save', 'candidate-missing', '--provider', 'elevenlabs', '--subject-key', 'hero', '--voice-name', 'HeroGuide', '--provenance-ref', 'project:casting', '--price'],
-    'Voice candidate candidate-missing was not found or is corrupt.'
-  )
-  await rejectVoice(
-    ['voice', 'materialize', 'candidate-missing', '--provider', 'elevenlabs', '--subject-key', 'hero', '--voice-name', 'HeroGuide', '--provenance-ref', 'project:casting', '--price'],
     'Voice candidate candidate-missing was not found or is corrupt.'
   )
 })
@@ -507,17 +495,15 @@ test('voice list completes an unambiguous journal and refuses an ambiguous one u
   }
 })
 
-test('voice clone is instant and rejects --kind professional with import guidance', async () => {
-  await rejectVoice(
-    ['voice', 'clone', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_v3', '--kind', 'professional', '--voice-name', 'Hero', '--consent-ref', 'protected-consent:v1:ID', '--provenance-ref', 'project:casting', '--price'],
-    'elevenlabs professional clone is a verification-gated external workflow; finish it in the provider console, then import the approved ID with voice import --voice-id.'
-  )
+test('voice clone is instant-only and no longer accepts a clone-kind selector', async () => {
+  const cloneCommand = parseRoot(['voice', 'clone', 'hero']).command!
+  expect(() => parseCommandInvocation(
+    [cloneCommand.name, 'hero', '--kind', 'professional'],
+    cloneCommand,
+    GLOBAL_FLAG_DEFINITIONS
+  )).toThrow('Unexpected flag: --kind')
   await rejectVoice(
     ['voice', 'clone', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_v3', '--voice-name', 'Hero', '--consent-ref', 'protected-consent:v1:ID', '--provenance-ref', 'project:casting', '--price'],
-    'elevenlabs instant voice clone requires at least one --sample.'
-  )
-  await rejectVoice(
-    ['voice', 'clone', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_v3', '--kind', 'instant', '--voice-name', 'Hero', '--consent-ref', 'protected-consent:v1:ID', '--provenance-ref', 'project:casting', '--price'],
     'elevenlabs instant voice clone requires at least one --sample.'
   )
 })

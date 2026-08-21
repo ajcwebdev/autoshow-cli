@@ -653,15 +653,6 @@ export const assertAppendOnlyManifestAudioState = (
       throw CLIUsageError('A canonical audio manifest cannot reorder or replace an existing item.')
     }
     for (const oldProvider of oldItem.providers) {
-      if (oldProvider.legacyRenderIdentity?.startsWith('legacy:')) {
-        const retainedLegacy = nextItem.providers.filter((provider) =>
-          provider.legacyRenderIdentity === oldProvider.legacyRenderIdentity
-        )
-        if (retainedLegacy.length !== 1) {
-          throw CLIUsageError(`Legacy audio target ${oldProvider.targetKey ?? oldProvider.service} cannot be removed, duplicated, or rewritten.`)
-        }
-        continue
-      }
       if (
         (oldProvider.operation !== 'tts-synthesis' && oldProvider.operation !== 'comic-audio')
       ) continue
@@ -670,14 +661,6 @@ export const assertAppendOnlyManifestAudioState = (
         throw CLIUsageError(`Canonical audio target ${oldProvider.targetKey ?? oldProvider.service} cannot be removed or duplicated.`)
       }
       assertAppendOnlyAudioProjection(oldProvider, nextMatches[0] as PipelineProviderState)
-    }
-    for (const nextProvider of nextItem.providers) {
-      if (
-        nextProvider.legacyRenderIdentity?.startsWith('legacy:')
-        && !oldItem.providers.some((provider) => provider.legacyRenderIdentity === nextProvider.legacyRenderIdentity)
-      ) {
-        throw CLIUsageError(`A canonical audio manifest cannot introduce legacy provider state for ${nextProvider.service}/${nextProvider.model ?? ''}.`)
-      }
     }
   }
 }

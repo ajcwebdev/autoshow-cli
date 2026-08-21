@@ -560,14 +560,12 @@ describe('comic native parser definitions', () => {
     expect(parsed.flags).toMatchObject({ 'audio-target': 'elevenlabs=eleven_v3', 'untimed-panel-ms': '2500', fps: '24', price: true })
   })
 
-  test('parses comic generate-audio --slideshow and the hidden --panel-video alias', () => {
+  test('parses comic generate-audio --slideshow and rejects the retired --panel-video alias', () => {
     const slideshow = parseSubcommandArgs(['script.md', '--slideshow'], generateAudioCommandDefinition)
     expect(slideshow.flags['slideshow']).toBe(true)
-    expect(slideshow.flags['panel-video']).toBe(false)
 
-    const alias = parseSubcommandArgs(['script.md', '--panel-video'], generateAudioCommandDefinition)
-    expect(alias.flags['panel-video']).toBe(true)
-    expect(alias.flags['slideshow']).toBe(false)
+    expect(() => parseSubcommandArgs(['script.md', '--panel-video'], generateAudioCommandDefinition))
+      .toThrow('--panel-video')
   })
 
   test('uses native inline assignment, separator, last-wins, and positional rules', () => {

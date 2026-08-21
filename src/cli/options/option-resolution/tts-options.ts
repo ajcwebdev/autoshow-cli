@@ -128,7 +128,7 @@ export const buildTtsOptions = (
 
   const options: TtsRuntimeOptions = {
     ...pick(modelOptions, TTS_MODEL_KEYS),
-    ttsAllowAmbiguousRedispatch: readBooleanFlag(flags, 'allow-ambiguous-redispatch') || readBooleanFlag(flags, 'tts-allow-ambiguous-redispatch'),
+    ttsAllowAmbiguousRedispatch: readBooleanFlag(flags, 'allow-ambiguous-redispatch'),
     grokTtsVoice: (() => {
       const value = readOptionalStringFlag(flags, 'grok-tts-voice')
       if (value === undefined) return undefined

@@ -33,33 +33,33 @@ const dialoguePlan = (turns: CanonicalDialogueTurn[]): ComicDialoguePlan => ({
 })
 
 describe('comic presentation reconciliation', () => {
-  test('prefers exact source IDs and reconciles legacy panels by exact content ordinal', () => {
+  test('binds every turn through exact panel source provenance', () => {
     const reviewed = scene([
       panel(1, ['action-1']),
-      panel(2, ['dialogue-current'], [characterSpeech('pilot', 'Ready now.')]),
-      panel(3, ['legacy-id'], [characterSpeech('pilot', 'Same line.')]),
-      panel(4, ['legacy-id-2'], [characterSpeech('pilot', 'Same line.')]),
+      panel(2, ['dialogue-1'], [characterSpeech('pilot', 'Ready now.')]),
+      panel(3, ['dialogue-2'], [characterSpeech('pilot', 'Same line.')]),
+      panel(4, ['dialogue-3'], [characterSpeech('pilot', 'Same line.')]),
     ])
     const plan = dialoguePlan([
-      { turnId: 'turn-1', sourceSegmentId: 'dialogue-current', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Ready now.' },
-      { turnId: 'turn-2', sourceSegmentId: 'old-dialogue-1', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Same line.' },
-      { turnId: 'turn-3', sourceSegmentId: 'old-dialogue-2', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Same line.' },
+      { turnId: 'turn-1', sourceSegmentId: 'dialogue-1', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Ready now.' },
+      { turnId: 'turn-2', sourceSegmentId: 'dialogue-2', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Same line.' },
+      { turnId: 'turn-3', sourceSegmentId: 'dialogue-3', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Same line.' },
     ])
     const bindings = reconcilePresentationDialogue({ scene: reviewed, dialoguePlan: plan })
     expect(bindings.map(binding => [binding.panelNumber, binding.evidence.kind])).toEqual([
-      [2, 'source-segment-id'], [3, 'exact-content-ordinal'], [4, 'exact-content-ordinal'],
+      [2, 'source-segment-id'], [3, 'source-segment-id'], [4, 'source-segment-id'],
     ])
-    expect(bindings[2]?.evidence).toMatchObject({ occurrence: 2 })
   })
 
-  test('rejects source/content disagreement and legacy ambiguity without fuzzy matching', () => {
+  test('rejects source/content disagreement and unowned turns without fuzzy matching', () => {
     const exactMismatch = scene([panel(1, ['turn-source'], [characterSpeech('pilot', 'Different words.')])])
     const plan = dialoguePlan([{ turnId: 'turn-1', sourceSegmentId: 'turn-source', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Exact words.' }])
     expect(() => reconcilePresentationDialogue({ scene: exactMismatch, dialoguePlan: plan })).toThrow('no exact speaker-and-text entry matches')
 
-    const ambiguousLegacy = scene([panel(1, ['old'], [characterSpeech('pilot', 'Repeated.'), characterSpeech('pilot', 'Repeated.')])])
-    const legacyPlan = dialoguePlan([{ turnId: 'turn-1', sourceSegmentId: 'new', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Repeated.' }])
-    expect(() => reconcilePresentationDialogue({ scene: ambiguousLegacy, dialoguePlan: legacyPlan })).toThrow('Legacy dialogue ownership is ambiguous')
+    // Content that matches by text alone is no longer enough; the turn needs panel provenance.
+    const unowned = scene([panel(1, ['old'], [characterSpeech('pilot', 'Repeated.'), characterSpeech('pilot', 'Repeated.')])])
+    const unownedPlan = dialoguePlan([{ turnId: 'turn-1', sourceSegmentId: 'new', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Repeated.' }])
+    expect(() => reconcilePresentationDialogue({ scene: unowned, dialoguePlan: unownedPlan })).toThrow('is not assigned to any panel')
   })
 
   test('elides only exact source-backed parenthetical cues when matching panel speech', () => {
@@ -277,8 +277,8 @@ describe('comic presentation audio selection', () => {
   })
 })
 
-describe('comic presentation manifest migration', () => {
-  test('treats historical absence as not requested and writes the new optional local stage', async () => {
+describe('comic presentation manifest stage', () => {
+  test('requires an explicit presentation stage and writes the optional local stage', async () => {
     const root = await makeTempDir('autoshow-presentation-manifest-')
     try {
       const source = '# Episode\n\n## Scene: "Room"\n\n**INT. ROOM**\n\nA quiet beat.\n'
@@ -292,14 +292,19 @@ describe('comic presentation manifest migration', () => {
       await Bun.write(join(root, structuredRef.path), structuredBytes)
       await writeInitialComicStructureManifest({ sceneRunDir: root, createdAt: '2026-08-13T00:00:00.000Z', sourceIdentity: structured.sourceIdentity, structuredScript: structuredRef })
 
-      const historical = await Bun.file(join(root, 'manifest.json')).json() as { items: Array<{ metadata: { comic: { stages: Record<string, unknown>, presentation?: unknown } } }> }
-      delete historical.items[0]?.metadata.comic.stages['presentation']
-      delete historical.items[0]?.metadata.comic.presentation
-      await Bun.write(join(root, 'manifest.json'), `${JSON.stringify(historical, null, 2)}\n`)
-      const migrated = await readManifest(root)
-      const migratedComic = migrated?.items[0]?.metadata['comic'] as unknown as CanonicalComicItemMetadata
-      expect(migratedComic.stages.presentation).toEqual({ requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] })
-      expect(migratedComic.presentation).toEqual({})
+      const written = await Bun.file(join(root, 'manifest.json')).json() as { items: Array<{ metadata: { comic: { stages: Record<string, unknown>, presentation?: unknown } } }> }
+      const initial = await readManifest(root)
+      const initialComic = initial?.items[0]?.metadata['comic'] as unknown as CanonicalComicItemMetadata
+      expect(initialComic.stages.presentation).toEqual({ requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] })
+      expect(initialComic.presentation).toEqual({})
+
+      // A manifest predating the presentation stage is no longer defaulted into shape.
+      const withoutStage = JSON.parse(JSON.stringify(written)) as typeof written
+      delete withoutStage.items[0]?.metadata.comic.stages['presentation']
+      delete withoutStage.items[0]?.metadata.comic.presentation
+      await Bun.write(join(root, 'manifest.json'), `${JSON.stringify(withoutStage, null, 2)}\n`)
+      await expect(readManifest(root)).rejects.toThrow('Invalid canonical manifest')
+      await Bun.write(join(root, 'manifest.json'), `${JSON.stringify(written, null, 2)}\n`)
 
       const plan = await writeImmutableArtifactFile(root, 'presentation/runs/test/plan.json', '{}\n')
       const timeline = await writeImmutableArtifactFile(root, 'presentation/runs/test/timeline.json', '{}\n')

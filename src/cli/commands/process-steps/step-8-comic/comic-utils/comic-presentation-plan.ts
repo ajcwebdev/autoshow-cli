@@ -43,12 +43,6 @@ const speechTextMatch = (turn: ComicDialogueTurn, speech: PanelSpeech): SpeechTe
   return canonical === elideExactSourceCues(turn, speech.line) ? 'exact-after-source-cue-elision' : undefined
 }
 
-const panelSpeechLabel = (speech: PanelSpeech['speaker']): string => {
-  if (speech.kind === 'character') return speech.characterKey
-  if (speech.kind === 'voice') return speech.label
-  return 'NARRATOR'
-}
-
 const speakerMatches = (turn: ComicDialogueTurn, speech: PanelSpeech['speaker']): boolean => {
   if (speech.kind === 'character') return turn.subjectKey === speech.characterKey || exactLabel(turn.originalSpeakerLabel) === exactLabel(speech.characterKey)
   if (speech.kind === 'voice') return exactLabel(turn.originalSpeakerLabel) === exactLabel(speech.label) || turn.subjectKey === `voice:${speech.label}`
@@ -72,7 +66,6 @@ export const reconcilePresentationDialogue = (input: {
     line: speech.line,
   })))
   const turns = flattenDialogueTurns(input.dialoguePlan)
-  const legacyOccurrence = new Map<string, number>()
 
   return turns.map((turn) => {
     const provenancePanels = input.scene.panels.filter(panel => panel.sourceSegmentIds.includes(turn.sourceSegmentId))
@@ -101,35 +94,7 @@ export const reconcilePresentationDialogue = (input: {
     if (provenancePanels.length > 0) {
       throw CLIUsageError(`Dialogue ownership is inconsistent for ${describeTurn(turn)}: source segment ${turn.sourceSegmentId} is assigned to panel(s) ${provenancePanels.map(panel => panel.number).join(', ')}, but no exact speaker-and-text entry matches.`)
     }
-
-    const signature = `${exactLabel(turn.originalSpeakerLabel)}\0${exactText(turn.canonicalText)}`
-    const occurrence = (legacyOccurrence.get(signature) ?? 0) + 1
-    legacyOccurrence.set(signature, occurrence)
-    const contentMatches = speeches.filter(speech => speechMatches(turn, speech))
-    const match = contentMatches[occurrence - 1]
-    if (!match) {
-      throw CLIUsageError(`Dialogue ownership is missing for ${describeTurn(turn)}: no exact source-segment match exists and legacy exact content occurrence ${occurrence} is unavailable.`)
-    }
-    const matchingTurns = turns.filter(candidate => exactLabel(candidate.originalSpeakerLabel) === exactLabel(turn.originalSpeakerLabel) && exactText(candidate.canonicalText) === exactText(turn.canonicalText))
-    if (contentMatches.length !== matchingTurns.length) {
-      throw CLIUsageError(`Legacy dialogue ownership is ambiguous for ${describeTurn(turn)}: found ${contentMatches.length} exact panel speech occurrence(s) for ${matchingTurns.length} canonical turn(s).`)
-    }
-    return {
-      turnId: turn.turnId,
-      sourceSegmentId: turn.sourceSegmentId,
-      panelNumber: match.panelNumber,
-      subjectKey: turn.subjectKey,
-      speakerLabel: turn.originalSpeakerLabel,
-      canonicalText: turn.canonicalText,
-      evidence: {
-        kind: 'exact-content-ordinal',
-        speaker: panelSpeechLabel(match.speaker),
-        text: exactText(match.line),
-        occurrence,
-        speechOrdinal: match.speechOrdinal,
-        textMatch: speechTextMatch(turn, match) as SpeechTextMatch,
-      },
-    }
+    throw CLIUsageError(`Dialogue ownership is missing for ${describeTurn(turn)}: source segment ${turn.sourceSegmentId} is not assigned to any panel. Redraft the scene so every dialogue turn carries panel provenance.`)
   })
 }
 

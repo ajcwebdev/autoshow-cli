@@ -180,19 +180,7 @@ export const loadCurrentVoiceRegistrationIndex = async (
   if (!isRecord(value)) throw ValidationError(`Invalid current voice index at ${path}.`, { stage: 'comic:voice-registry' })
   assertAllowedKeys(value, ['schemaVersion', 'revision', 'selections'], 'Current voice index')
   try {
-    const migrated = value['schemaVersion'] === 1 && Array.isArray(value['selections'])
-      ? {
-          schemaVersion: 2 as const,
-          revision: typeof value['revision'] === 'number' ? value['revision'] : 0,
-          selections: value['selections'].map((selection) => {
-            if (!isRecord(selection)) return selection
-            const registration = catalog?.registrations.find(candidate => candidate.registrationId === selection['registrationId'] && candidate.generationId === selection['generationId'])
-            if (!registration) throw CLIUsageError('Legacy current voice selection cannot resolve its provider model during migration.')
-            return { ...selection, providerModel: registration.providerModel }
-          })
-        }
-      : value
-    return validateCurrentVoiceRegistrationIndex(migrated as CurrentVoiceRegistrationIndex, catalog)
+    return validateCurrentVoiceRegistrationIndex(value as CurrentVoiceRegistrationIndex, catalog)
   } catch (error) {
     throw ValidationError(`Invalid current voice index at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry', ...(error instanceof Error ? { cause: error } : {}) })
   }

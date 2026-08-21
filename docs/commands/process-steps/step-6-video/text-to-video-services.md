@@ -25,7 +25,7 @@ Generate a video from a text prompt or input image with one or more hosted video
 Video providers are hosted API services.
 
 ```bash
-bun autoshow setup --step video
+bun autoshow setup --doctor
 ```
 
 ### Environment

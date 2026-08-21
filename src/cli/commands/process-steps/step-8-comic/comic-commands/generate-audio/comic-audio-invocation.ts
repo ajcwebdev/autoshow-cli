@@ -153,7 +153,7 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
     pacingProfile,
     rolePolicies,
   })
-  const presentationRequested = Boolean(flags['slideshow']) || Boolean(flags['panel-video'])
+  const presentationRequested = Boolean(flags['slideshow'])
   if (presentationRequested) {
     const visualInputs = await resolvePresentationVisualInputs(compatible)
     reconcilePresentationDialogue({ scene: visualInputs.scene, dialoguePlan })
