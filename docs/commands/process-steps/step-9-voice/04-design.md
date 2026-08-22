@@ -1,6 +1,6 @@
 # voice design
 
-Generate bounded protected advanced-provider voice candidates, or save exactly one selected candidate through a durable provisioning journal.
+Generate bounded protected advanced-provider voice candidates, or save exactly one selected candidate.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
@@ -14,11 +14,11 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice design [subject-key] [flags]
 ```
 
-Advanced Voice Design is a two-step operation for ElevenLabs, Fish, and Inworld. Without `--save`, `design` creates a bounded set of protected, unapproved candidates. `--save <candidate-id>` creates exactly one selected provider resource. Never infer `--save` from `--candidates 1`. ElevenLabs remix requires both the stable source ID and a dated eligibility snapshot hash before any provider call. Cartesia and Speechify do not expose text-prompt design.
+Voice design is a two-step operation for ElevenLabs, Fish, and Inworld. Without `--save`, `design` creates a bounded set of protected, unapproved candidates. `--save <candidate-id>` creates exactly one selected provider resource. Never infer `--save` from `--candidates 1`. ElevenLabs remix requires `--source-voice-id` and `--eligibility-snapshot-hash`. Cartesia and Speechify do not expose text-prompt design.
 
-`--save` cannot be combined with preview flags (`--description`, `--preview-text`, `--candidates`, `--seed`, `--source-voice-id`, `--creation-model`). Fish materialization resolves the selected protected preview and supplies those exact non-empty bytes to the documented create-model endpoint; a candidate ID alone is never treated as a remote voice. A saved registration must still pass [audition](./06-audition.md) and [approve](./07-approve.md) before comic rendering can use it.
+`--save` cannot be combined with preview flags (`--description`, `--preview-text`, `--candidates`, `--seed`, `--source-voice-id`, `--creation-model`). A saved registration must still pass [audition](./06-audition.md) and [approve](./07-approve.md) before comic rendering can use it.
 
-If a Fish provisioning journal for that candidate is unambiguous, the next `--save` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--allow-ambiguous-redispatch`. `design --save <candidate-id>` is the only spelling; the former `materialize` subcommand was removed.
+If a Fish provisioning journal for that candidate is unambiguous, the next `--save` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`.
 
 Remove `--price` only when you intend to purchase provider previews or save one candidate. Candidate audio stays in the owner-only protected store.
 
@@ -36,7 +36,7 @@ Remove `--price` only when you intend to purchase provider previews or save one 
 | `--seed <n>` | Optional non-negative deterministic seed |
 | `--source-voice-id <id>` | ElevenLabs remix source voice ID |
 | `--eligibility-snapshot-hash <sha>` | Dated ElevenLabs remix eligibility proof SHA-256 |
-| `--save <candidate-id>` | Candidate ID to materialize as a durable provider voice |
+| `--save <candidate-id>` | Candidate ID to save as a durable provider voice |
 | `--subject-key <key>` | Canonical character or role key when `--save` is set |
 | `--voice-name <name>` | Desired provider account voice name when `--save` is set |
 | `--provenance-ref <ref>` | Opaque non-secret provenance record reference when `--save` is set |

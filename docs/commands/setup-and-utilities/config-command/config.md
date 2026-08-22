@@ -2,8 +2,6 @@
 
 View or set persistent CLI defaults saved to `config/autoshow.json`.
 
-`bun autoshow` is the canonical command used throughout this guide. `bun as` is an equivalent shorthand, so `bun as config --help` and `bun autoshow config --help` invoke the same command.
-
 ## Outline
 
 - [Usage](#usage)
@@ -24,13 +22,13 @@ bun autoshow config --show
 bun autoshow config --reset
 ```
 
-No input argument is required. Flags explicitly passed to `config` are persisted to `config/autoshow.json` when they map to reusable defaults.
+No input argument is required. Flags passed to `config` are written to `config/autoshow.json` when they map to reusable defaults.
 
-`--show`, `--reset`, and `--config-path` are accepted but never persisted. Per-run inputs are not accepted by `config` at all and fail as unexpected flags — `--price`, `--password`, `--prompt-md`, `--tts-ref-audio`, `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, `--image-compression`, `--replicate-video-multi-prompt`, `--replicate-video-multi-clip`, and `--music-lyrics-file` — so pass those on the command that uses them. A flag `config` does accept but has no config destination is named in a warning and left unsaved.
+`--show`, `--reset`, and `--config-path` are accepted but never persisted. Per-run inputs such as `--price`, `--password`, `--prompt-md`, and one-shot file, mask, or lyrics flags are rejected as unexpected flags — pass those on the command that uses them. A flag `config` accepts but cannot save is named in a warning and left unsaved.
 
 ## Config File Location
 
-Default path: `config/autoshow.json` in the project root, located by walking up to the nearest `package.json`.
+Default path: `config/autoshow.json` in the project root (the directory that contains `package.json`).
 
 Override with `--config-path <path>`:
 
@@ -43,22 +41,11 @@ bun autoshow write input/examples/audio/1-audio.mp3 --config-path ./input/my-aut
 
 ```bash
 bun autoshow config --llm openai=gpt-5.4-mini
-bun autoshow config --llm glm=glm-5.1
-bun autoshow config --llm kimi=kimi-k2.6
 bun autoshow config --stt whisper=large-v3-turbo
 bun autoshow config --stt happyscribe=auto --stt-happyscribe-organization-id org_123
-bun autoshow config --stt supadata=auto --stt-supadata-lang en
 bun autoshow config --ocr tesseract
 bun autoshow config --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
 bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice voice_123
-bun autoshow config --tts minimax=speech-2.8-hd --tts-language English --tts-speed 1.15
-bun autoshow config --tts grok=grok-tts --tts-language auto --tts-text-normalization true
-bun autoshow config --tts mistral=voxtral-mini-tts-2603 --tts-voice voice_existing
-bun autoshow config --tts openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1
-bun autoshow config --tts deepgram=aura-2-thalia-en --tts-voice aura-2-andromeda-en --tts-speed 1.1
-bun autoshow config --tts speechify=simba-3.2 --tts-voice george --tts-language en-US
-bun autoshow config --tts hume=octave-2 --tts-voice "Male English Actor"
-bun autoshow config --tts cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 bun autoshow config --tts gemini=gemini-3.1-flash-tts-preview --tts-speaker Host=Kore --tts-speaker Guest=Puck --tts-chunk-concurrency 3
 bun autoshow config --image openai=gpt-image-2 --image-size 1024x1024 --image-count 2
 bun autoshow config --video ltx=ltx-2-3-fast --video-duration 8 --video-resolution 1080p
@@ -91,145 +78,39 @@ Representative JSON shape:
     "extract": {
       "stt": {
         "whisper": ["large-v3-turbo"],
-        "youtubeCaptions": true,
-        "deepinfraStt": ["openai/whisper-large-v3-turbo"],
-        "groqStt": ["whisper-large-v3-turbo"],
-        "grokStt": ["speech-to-text"],
-        "deepgramStt": ["nova-3"],
-        "sonioxStt": ["stt-async-v5"],
-        "speechmaticsStt": ["enhanced"],
-        "revStt": ["machine"],
-        "mistralStt": ["voxtral-mini-2602"],
-        "assemblyaiStt": ["universal-3-5-pro"],
-        "gladiaStt": ["solaria-1"],
-        "happyscribeStt": ["auto"],
-        "supadataStt": ["auto"],
-        "scrapecreatorsStt": ["youtube-transcript"],
-        "geminiStt": ["gemini-3.6-flash"],
-        "happyscribeOrganizationId": "org_123",
-        "supadataLang": "en",
-        "scrapecreatorsLang": "en",
-        "speakerCount": 2,
-        "split": true,
-        "providerConcurrency": 2,
-        "localConcurrency": 1,
-        "segmentConcurrency": 2,
-        "preflightConcurrency": 4
+        "speakerCount": 2
       },
       "ocr": {
-        "lang": "eng",
-        "out": "text",
         "tesseract": true,
+        "lang": "eng",
         "dpi": 300,
-        "mistralOcr": ["mistral-ocr-2512"],
-        "glmOcr": ["glm-ocr"],
-        "kimiOcr": ["kimi-k2.6"],
-        "openaiOcr": ["gpt-5.4-nano"],
-        "grokOcr": ["grok-4.3"],
-        "anthropicOcr": ["claude-haiku-4-5"],
-        "geminiOcr": ["gemini-3.5-flash-lite"],
-        "deepinfraOcr": ["Qwen/Qwen3-VL-30B-A3B-Instruct"],
-        "replicateOcr": ["datalab-to/ocr"],
-        "falOcr": ["fal-ai/got-ocr/v2"],
         "chapters": true,
         "length": 50,
         "pdfChapterMode": "auto"
       }
     },
     "llm": {
-      "openai": ["gpt-5.5", "gpt-5.4-mini"],
-      "groq": ["openai/gpt-oss-20b"],
-      "gemini": ["gemini-3.5-flash-lite"],
-      "anthropic": ["claude-haiku-4-5"],
-      "minimax": ["MiniMax-M3"],
-      "grok": ["grok-4.3"],
-      "glm": ["glm-5.1"],
-      "kimi": ["kimi-k2.6"],
-      "together": ["kimi-k2.6"],
-      "cerebras": ["gpt-oss-120b"],
-      "providerConcurrency": 2,
-      "localConcurrency": 1
+      "openai": ["gpt-5.4-mini"]
     },
     "post": {
       "tts": {
         "elevenlabsTts": ["eleven_v3"],
-        "minimaxTts": ["speech-2.8-turbo"],
-        "minimaxTtsLanguageBoost": "English",
-        "minimaxTtsSpeed": 1.1,
-        "minimaxTtsEnglishNormalization": true,
-        "groqTts": ["canopylabs/orpheus-v1-english"],
-        "groqVoice": "troy",
-        "grokTts": ["grok-tts"],
-        "grokTtsLanguage": "auto",
-        "grokTtsTextNormalization": true,
-        "mistralTts": ["voxtral-mini-tts-2603"],
-        "mistralTtsVoice": "voice_existing",
-        "ttsDialogueFormat": "screenplay",
-        "ttsSpeakers": ["Host=Kore", "Guest=Puck"],
-        "openaiTts": ["gpt-4o-mini-tts-2025-12-15"],
-        "openaiTtsInstructions": "Warm documentary narration",
-        "openaiTtsSpeed": 1.1,
-        "geminiTts": ["gemini-3.1-flash-tts-preview"],
-        "geminiVoice": "Kore",
-        "deepgramTts": ["aura-2-thalia-en"],
-        "deepgramVoice": "aura-2-andromeda-en",
-        "deepgramTtsSpeed": 1.1,
-        "speechifyTts": ["simba-3.2"],
-        "speechifyVoice": "george",
-        "speechifyTtsLanguage": "en-US",
-        "humeTts": ["octave-2"],
-        "humeTtsVoice": "Male English Actor",
-        "cartesiaTts": ["sonic-3.5-2026-05-04"],
-        "cartesiaTtsVoice": "f786b574-daa5-4673-aa0c-cbe3e8534c02",
-        "cartesiaTtsLanguage": "en",
-        "fishTts": ["s2.1-pro"],
-        "inworldTts": ["realtime-tts-2"],
-        "deepinfraTts": ["ResembleAI/chatterbox-turbo"],
-        "replicateTts": ["jaaari/kokoro-82m"],
-        "falTts": ["fal-ai/bytedance/seed-speech/tts/v2"],
-        "providerConcurrency": 2,
-        "localConcurrency": 1,
-        "chunkConcurrency": 3
+        "elevenlabsVoice": "voice_123",
+        "ttsSpeakers": ["Host=Kore", "Guest=Puck"]
       },
       "image": {
-        "geminiImage": ["gemini-3.1-flash-lite-image"],
         "openaiImage": ["gpt-image-2"],
-        "grokImage": ["grok-imagine-image-quality"],
-        "bflImage": ["flux-2-pro"],
-        "falImage": ["fal-ai/hidream-o1-image"],
-        "imageAspectRatio": "16:9",
         "imageSize": "1024x1024",
-        "imageQuality": "low",
-        "imageFormat": "png",
-        "imageBackground": "auto",
-        "imageCount": 1,
-        "providerConcurrency": 2,
-        "localConcurrency": 1
+        "imageCount": 2
       },
       "video": {
-        "geminiVideo": ["veo-3.1-fast-generate-preview"],
-        "grokVideo": ["grok-imagine-video"],
         "ltxVideo": ["ltx-2-3-fast"],
-        "falVideo": ["minimax/h3"],
         "videoDuration": 8,
-        "videoAspectRatio": "16:9",
-        "videoResolution": "720p",
-        "videoMode": "text",
-        "videoInputImage": "input/reference.png",
-        "videoLastFrame": "input/last-frame.png",
-        "videoReferenceImages": ["input/reference-1.png"],
-        "videoInputVideo": "input/source.mp4",
-        "providerConcurrency": 2,
-        "localConcurrency": 1
+        "videoResolution": "1080p"
       },
       "music": {
-        "elevenlabsMusic": ["music_v2"],
         "minimaxMusic": ["music-3.0"],
-        "geminiMusic": ["lyria-3-pro-preview"],
-        "musicDuration": 30,
-        "musicInstrumental": true,
-        "providerConcurrency": 2,
-        "localConcurrency": 1
+        "musicInstrumental": true
       }
     },
     "batch": {
@@ -249,9 +130,9 @@ Representative JSON shape:
 }
 ```
 
-## Persisted Defaults
+Model-selecting fields are arrays of models, not single strings. Use `bun autoshow config --show` to inspect the file `config` actually writes.
 
-Model-selecting fields are arrays of models, not single strings.
+## Persisted Defaults
 
 ### defaults.concurrency
 
@@ -259,101 +140,91 @@ Model-selecting fields are arrays of models, not single strings.
 | ------ | ------------------------------------ |
 | `mode` | `--concurrency-mode ramp\|immediate` |
 
-The default mode is `ramp`. It starts each hosted provider/account lane at one logical request and adds one slot every five seconds while queued demand exists. `immediate` starts at the applicable configured cap. Both modes retain rate-limit pressure recovery, and neither mode changes local provider, rendering, preparation, or preflight scheduling.
+The default mode is `ramp`, which starts hosted provider traffic gradually up to the configured cap. `immediate` starts at that cap. Local engines stay immediate.
 
 ### defaults.extract.stt
 
-| Field                                                             | Flag                                                                                    |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `whisper` and hosted STT model fields                             | `--stt provider[=model]`                                                                |
-| `youtubeCaptions`                                                 | `--youtube-captions`                                                                    |
-| `happyscribeOrganizationId`, `supadataLang`, `scrapecreatorsLang` | `--stt-happyscribe-organization-id`, `--stt-supadata-lang`, `--stt-scrapecreators-lang` |
-| `speakerCount`, `split`                                           | `--speaker-count`, `--split`                                                            |
-| `providerConcurrency`, `localConcurrency`                         | `--provider-concurrency`, `--local-concurrency`                                         |
-| `segmentConcurrency`, `preflightConcurrency`                      | `--stt-segment-concurrency`, `--stt-preflight-concurrency`                              |
+| Flag family | Examples |
+| ----------- | -------- |
+| Model selectors | `--stt provider[=model]`, `--youtube-captions` |
+| Provider options | `--stt-happyscribe-organization-id`, `--stt-supadata-lang`, `--stt-scrapecreators-lang` |
+| Diarization | `--speaker-count`, `--split` |
+| Concurrency | `--provider-concurrency`, `--local-concurrency`, `--stt-segment-concurrency`, `--stt-preflight-concurrency` |
 
 ### defaults.extract.ocr
 
-| Field                                               | Flag                                                                   |
-| --------------------------------------------------- | ---------------------------------------------------------------------- |
-| Local OCR engine field                              | `--ocr tesseract`                                                      |
-| Hosted OCR model fields                             | `--ocr provider[=model]`                                               |
-| `lang`, `out`, `dpi`                                | `--ocr-language`, `--format`, `--ocr-dpi`                              |
-| `pageConcurrency`                                   | `--ocr-concurrency`                                                    |
-| `providerConcurrency`, `localConcurrency`           | `--provider-concurrency`, `--local-concurrency`                        |
-| `chapters`, `length`, `pdfChapterMode`, `providerMode` | `--chapters`, `--length`, `--pdf-chapter-mode`, `--ocr-provider-mode` |
+| Flag family | Examples |
+| ----------- | -------- |
+| Engine and models | `--ocr tesseract`, `--ocr provider[=model]` |
+| Tuning | `--ocr-language`, `--format`, `--ocr-dpi`, `--ocr-concurrency`, `--ocr-provider-mode` |
+| Chapters | `--chapters`, `--length`, `--pdf-chapter-mode` |
+| Concurrency | `--provider-concurrency`, `--local-concurrency` |
+
+`--ocr-language` is saved as `lang`, `--format` as `out`, and `--ocr-dpi` as `dpi`.
 
 ### defaults.extract.url
 
-| Field      | Flag                                                                     |
-| ---------- | ------------------------------------------------------------------------ |
-| `provider` | `--url-provider defuddle\|firecrawl\|glm-reader\|spider\|supadata\|zyte` |
-
-`config` has no `--url-provider` flag, so this default has to be written into `config/autoshow.json` by hand. Once saved, `extract` and `write` inherit it like any other default.
+`config` has no `--url-provider` flag, so this default has to be written into `config/autoshow.json` by hand as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). Once saved, `extract` and `write` inherit it like any other default.
 
 ### defaults.llm
 
-| Field                                                                                             | Flag                                            |
-| ------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` | `--llm provider[=model]`                        |
-| `providerConcurrency`, `localConcurrency`                                                         | `--provider-concurrency`, `--local-concurrency` |
+| Flag family | Examples |
+| ----------- | -------- |
+| Model selectors | `--llm provider[=model]` |
+| Concurrency | `--provider-concurrency`, `--local-concurrency` |
 
 ### defaults.post.tts
 
-| Field                                                                                                                                                                                                                                                                                                                                                             | Flag                                                                       |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts`, `fishTts`, `inworldTts`, `deepinfraTts`, `replicateTts`, `falTts`                                                                                                                                           | `--tts provider[=model]`                                                   |
-| `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice`                                                                                                                                                                                                                                                       | `--tts-voice`, `--tts-language`, `--tts-text-normalization`                |
-| `ttsDialogueFormat`, `ttsSpeakers`                                                                                                                                                                                                                                                                                                                                | `--tts-dialogue-format`, `--tts-speaker`                                   |
-| `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed`                                                                                                                                                                                                                                                                                                          | `--tts-voice`, `--tts-instructions`, `--tts-speed`                         |
-| `geminiVoice`                                                                                                                                                                                                                                                                                                                                                     | `--tts-voice`                                                              |
-| `elevenlabsVoice`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators` | `--tts-voice`, `--tts-language`, `--tts-speed`, `--tts-text-normalization`, and the `--elevenlabs-tts-*` synthesis flags |
-| `minimaxTtsVoice`, `minimaxTtsLanguageBoost`, `minimaxTtsSpeed`, `minimaxTtsVolume`, `minimaxTtsPitch`, `minimaxTtsEmotion`, `minimaxTtsEnglishNormalization`, `minimaxTtsPronunciations`                                                                                                                                                                         | `--tts-voice`, `--tts-language`, `--tts-speed`, `--tts-text-normalization`, and the `--minimax-tts-*` synthesis flags |
-| `deepgramVoice`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsLanguage`, `humeTtsVoice`, `cartesiaTtsVoice`, `cartesiaTtsLanguage`                                                                                               | `--tts-voice`, `--tts-speed`, `--tts-language`                              |
-| `providerConcurrency`, `localConcurrency`, `chunkConcurrency`                                                                                                                                                                                                                                                                                                     | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
+| Flag family | Examples |
+| ----------- | -------- |
+| Model selectors | `--tts provider[=model]` |
+| Shared synthesis | `--tts-voice`, `--tts-language`, `--tts-speed`, `--tts-text-normalization`, `--tts-instructions`, `--tts-dialogue-format`, `--tts-speaker` |
+| Provider synthesis | `--elevenlabs-tts-*`, `--minimax-tts-*` |
+| Concurrency | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
 
-The generic `--tts-*` options resolve to the selected provider's field, so they take a bare value when one provider is selected and `provider=value` when several are. One-off custom-voice provisioning and clone creation audio files are runtime-only options managed via `voice` and cannot be persisted as defaults. Synthesis defaults require an existing provider voice ID.
+Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Custom-voice provisioning and clone-creation audio files are runtime-only and managed via `voice`; synthesis defaults require an existing provider voice ID.
 
 `ttsSpeakers` is what selects multi-speaker TTS, so a saved `ttsDialogueFormat` with no saved `ttsSpeakers` is inert: runs that inherit it log a warning and continue as single-speaker.
 
 ### defaults.post.image
 
-| Field                                                                                                                | Flag                                            |
-| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `geminiImage`, `openaiImage`, `grokImage`, `bflImage`, `replicateImage`, `lumalabsImage`, `falImage` | `--image provider[=model]`                      |
-| `imageAspectRatio`, `imageSize`, `imageQuality`, `imageFormat`, `imageBackground`, `imageCount`                      | matching reusable image option flags            |
-| `providerConcurrency`, `localConcurrency`                                                                            | `--provider-concurrency`, `--local-concurrency` |
+| Flag family | Examples |
+| ----------- | -------- |
+| Model selectors | `--image provider[=model]` |
+| Reusable options | `--image-aspect-ratio`, `--image-size`, `--image-quality`, `--image-format`, `--image-background`, `--image-count` |
+| Concurrency | `--provider-concurrency`, `--local-concurrency` |
 
 One-shot image inputs, masks, and edit controls are per-generation flags accepted by processing commands and rejected by `config`.
 
 ### defaults.post.video
 
-| Field                                                                                                                                                                                                                        | Flag                                            |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `geminiVideo`, `grokVideo`, `ltxVideo`, `replicateVideo`, `lumalabsVideo`, `falVideo`                                                                                                             | `--video provider[=model]`                      |
-| `videoDuration`, `videoAspectRatio`, `videoResolution`, `videoMode`, `videoInputImage`, `videoLastFrame`, `videoReferenceImages`, `videoInputVideo`, `videoGenerateAudio`, `videoReferenceVideos`, `videoReferenceAudios` | matching video option flags                     |
-| `replicateVideoSeed`, `replicateVideoNegativePrompt`                | `--replicate-video-*` option flags              |
-| `providerConcurrency`, `localConcurrency`                                                                                                                                                                                    | `--provider-concurrency`, `--local-concurrency` |
+| Flag family | Examples |
+| ----------- | -------- |
+| Model selectors | `--video provider[=model]` |
+| Reusable options | `--video-duration`, `--video-aspect-ratio`, `--video-resolution`, `--video-mode`, `--video-generate-audio` |
+| Reference inputs | `--video-input-image`, `--video-last-frame`, `--video-reference-image`, `--video-input-video`, `--video-reference-video`, `--video-reference-audio` |
+| Replicate options | `--replicate-video-seed`, `--replicate-video-negative-prompt` |
+| Concurrency | `--provider-concurrency`, `--local-concurrency` |
 
 ### defaults.post.music
 
-| Field                                            | Flag                                            |
-| ------------------------------------------------ | ----------------------------------------------- |
-| `elevenlabsMusic`, `minimaxMusic`, `geminiMusic` | `--music provider[=model]`                      |
-| `musicDuration`, `musicInstrumental`             | `--music-duration`, `--music-instrumental`      |
-| `providerConcurrency`, `localConcurrency`        | `--provider-concurrency`, `--local-concurrency` |
+| Flag family | Examples |
+| ----------- | -------- |
+| Model selectors | `--music provider[=model]` |
+| Reusable options | `--music-duration`, `--music-instrumental` |
+| Concurrency | `--provider-concurrency`, `--local-concurrency` |
 
 One-shot lyrics files describe single generations and are not persisted defaults.
 
 ### defaults.batch, defaults.prompts, pricing, auth
 
-| Field                                                                        | Flag                                                    |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Field | Flag |
+| ----- | ---- |
 | `defaults.batch.limit`, `defaults.batch.order`, `defaults.batch.concurrency` | `--batch-limit`, `--batch-order`, `--batch-concurrency` |
-| `defaults.prompts`                                                           | repeated `--prompt`                                     |
-| `pricing.maxCents`                                                           | `--max-cents`                                           |
-| `auth.cookies`                                                               | `--cookies`                                             |
-| `auth.cookiesFromBrowser`                                                    | `--cookies-from-browser`                                |
+| `defaults.prompts` | repeated `--prompt` |
+| `pricing.maxCents` | `--max-cents` |
+| `auth.cookies` | `--cookies` |
+| `auth.cookiesFromBrowser` | `--cookies-from-browser` |
 
 Cookie auth persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
 
@@ -367,7 +238,7 @@ Explicit CLI flags > config file defaults > native CLI defaults
 
 Only flags explicitly typed on the command line override config values. Native CLI defaults do not overwrite saved config defaults.
 
-For hosted concurrency, an explicit `--concurrency-mode` overrides `defaults.concurrency.mode`; otherwise the saved value overrides the native `ramp` default. `config --reset` removes the persisted value with the rest of the config.
+An explicit `--concurrency-mode` overrides `defaults.concurrency.mode`; otherwise the saved value overrides the native `ramp` default.
 
 If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured `defaults.llm.gemini` and `defaults.llm.groq` entries for that run.
 
@@ -415,7 +286,7 @@ bun autoshow config \
 
 ## Flags
 
-`bun autoshow config --help` is the authoritative generated flag list for this command. It includes config controls, pricing controls, YouTube cookie auth, batch defaults, concurrency defaults, Step 2 STT/OCR defaults, Step 3 LLM defaults, and post-processing defaults for TTS, image, video, and music.
+`bun autoshow config --help` is the authoritative generated flag list for this command.
 
 Command flags:
 

@@ -14,9 +14,9 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice clone <subject-key> [flags]
 ```
 
-Store [consent](./02-consent.md) first. The consent command prints an opaque `protected-consent:v1:...` locator. Use that locator here. Remove `--price` only when you intend to execute the provider mutation. A provisioning journal is written before dispatch, records issued provider resources before the terminal outcome, and never automatically repeats an ambiguous create. Unambiguous journals complete on the next `clone` without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--allow-ambiguous-redispatch`.
+Store [consent](./02-consent.md) first. The consent command prints an opaque `protected-consent:v1:...` locator. Use that locator as `--consent-ref`. Remove `--price` only when you intend to execute the provider mutation.
 
-Clone is instant clone only. Providers without an instant API use the provider console, then [import](./03-import.md) the approved ID with `voice import --voice-id`.
+Clone is instant clone only. Providers without an instant API use the provider console, then [import](./03-import.md) the approved ID with `voice import --voice-id`. If a Fish provisioning journal is unambiguous, the next `clone` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`.
 
 ### Options
 

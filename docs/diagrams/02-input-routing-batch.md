@@ -13,19 +13,19 @@ How targets become single runs, source-backed batches, route-aware extract batch
 ## Target Planning
 
 ```
-handleProcessTarget(command, target, flags)
+command + target + flags
         |
         v
-resolveProcessTargetDoubleDash()
+resolve `--` passthrough
         |
         +--> download after "--" with leading dash args keeps raw yt-dlp passthrough
         +--> otherwise one target can come after "--"
         |
         v
-load config + merge config flags + compose command/domain option slices
+load config, merge defaults, apply command flags
         |
-        +--> extract: normalize generic provider flags after preliminary route checks
-        +--> write: normalize step selectors (STT, OCR, LLM)
+        +--> extract: map generic --provider flags after route checks
+        +--> write: normalize STT, OCR, LLM selectors
         +--> write text project defaults:
              <project>/text with prompt.md -> --text-input mode,
              plus tracks.md and lyrics render defaults when present
@@ -34,51 +34,54 @@ load config + merge config flags + compose command/domain option slices
              -> --text-input mode
         |
         v
-resolveProcessTargetPlan(command, resolvedTarget, opts)
+plan the run
 ```
 
-`resolveProcessTargetPlan()` is the single top-level planner:
+Write `--text-input` planning:
 
 ```
-write && opts.textInput?
+write && --text-input?
   |
   +--> URL target: usage error
-  +--> directory: collectTextInputFiles(.md/.txt) -> batch
+  +--> directory: collect .md/.txt files -> batch
   +--> .md/.txt file: single text-input item
   +--> otherwise: usage error
+```
 
+Normal target planning:
+
+```
 normal target
   |
   +--> directory:
-  |      collectInputFiles()
-  |      if basename is input, also read input/2-urls.md
+  |      collect input files
+  |      if the directory basename is input, also read input/2-urls.md
   |      -> batch
   |
   +--> .md/.txt input list:
-  |      readInputList() -> resolve relative paths and markdown links -> batch
+  |      resolve relative paths and markdown links -> batch
   |
   +--> batch source:
-  |      tryResolveBatchSource()
   |      podcast feed or YouTube source -> source-backed batch
   |
   +--> YouTube collection:
-  |      resolveYoutubeCollectionItems() -> batch
+  |      playlist/channel expansion -> batch
   |
   +--> fallback:
          single target
 ```
 
-After planning, `planProcessTargetBatchExecution()` converts directory/list/source/collection plans to a `BatchExecutionPlan`. Single plans go directly to `handleSingleTarget()`.
+Directory, list, source, and collection plans run as batches. Everything else is a single-item run.
 
 ## Input Routing
 
-Extract and write inputs call `resolveInputRoutingForCommand()`, both for a single target and for each planned batch item:
+Extract and write classify each single target and each planned batch item:
 
 ```
 target
   |
   v
-classifyInputFamily()
+input family
   |
   +--> media        local media, direct media URL, streaming URL
   +--> document     PDF, EPUB, image, Office, ODF, ebook, archive, RTF, CSV
@@ -87,10 +90,10 @@ classifyInputFamily()
   +--> unsupported  unsupported extension, missing file, invalid route
   |
   v
-resolveDocumentFormatHint() when needed
+document format hint when needed
   |
   v
-resolvedStep2 + extractRoute + supported/skipReason
+Step 2 route + extract route + supported/skipReason
 ```
 
 Extract route mapping:
@@ -103,7 +106,7 @@ Extract route mapping:
 | `x_space`      | none; dedicated X Space route     | `x-space`                                |
 | `unsupported`  | none                              | skipped in batch, usage error for single |
 
-The document family includes `.pdf`, `.epub`, `.docx`, `.pptx`, `.xlsx`, `.odt`, `.ods`, `.odp`, `.mobi`, `.prc`, `.azw3`, `.azw`, `.fb2`, `.lit`, `.cbz`, `.rtf`, `.csv`, and image files `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`. Local `.html`/`.htm` files classify as `html_article`. `.acsm` follows the ordinary unsupported route.
+The document family includes `.pdf`, `.epub`, `.docx`, `.pptx`, `.xlsx`, `.odt`, `.ods`, `.odp`, `.mobi`, `.prc`, `.azw3`, `.azw`, `.fb2`, `.lit`, `.cbz`, `.rtf`, `.csv`, and image files `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`. Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported.
 
 ## Command Matrix
 
@@ -115,11 +118,11 @@ The document family includes `.pdf`, `.epub`, `.docx`, `.pptx`, `.xlsx`, `.odt`,
 | X Space        | X API metadata lookup | Space audio download           | X Space route             | X Space report + LLM                      |
 | Text input     | unsupported           | unsupported                    | unsupported               | `--text-input`, project, or auto-detected |
 
-Unsupported batch items are kept in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`. They are not sent to child batch execution.
+Unsupported batch items stay in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`. They are not sent to child batch execution.
 
 ## Batch Manifests
 
-Every batch root writes the same unversioned canonical `manifest.json` used by a single run. Source-backed batch data is the optional top-level `source` object; it is not duplicated in a companion file.
+Every batch root writes the same `manifest.json` used by a single run. Source-backed batch data is the optional top-level `source` object.
 
 ```json
 {
@@ -197,17 +200,15 @@ output/YYYY-MM-DD_HH-MM-SS_<batch-label>/
 }
 ```
 
-`executeExtractBatchPlan()` writes the initial parent manifest, partitions runnable items by extract route, executes each child plan, then updates the parent items with their final status and containment-checked relative output directories. Each runnable parent item links to its child through `{ route, index, manifestDir }`; `manifestDir` names the child directory relative to the parent root, never a manifest filename.
-
-The media child uses the STT batch coordinator and records caption-backed or STT routing in ordinary item metadata. Counts and resume views are derived from canonical item and provider states rather than persisted in a second summary artifact.
+Each runnable parent item links to its child through `{ route, index, manifestDir }`. `manifestDir` names the child directory relative to the parent root, never a manifest filename.
 
 ## Entry Points
 
-| Source                    | Planner/handler                                                     | Item discovery                                                                               |
-| ------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Directory                 | `resolveProcessTargetPlan()` -> `planProcessTargetBatchExecution()` | `collectInputFiles()` plus optional `input/2-urls.md`.                                       |
-| Input list                | `resolveInputListBatch()`                                           | Line parser for `.md`/`.txt`, markdown links, bullets, and relative paths.                   |
-| Podcast or YouTube source | `tryResolveBatchSource()`                                           | Feed/channel/source enumeration stored in the canonical manifest's optional `source` object. |
-| YouTube collection        | `resolveYoutubeCollectionItems()`                                   | Playlist/channel collection expansion.                                                       |
-| Text-input write          | `collectTextInputFiles()` or single `.md`/`.txt`                    | Raw text source files for `write --text-input`.                                              |
-| Single item               | `handleSingleTarget()`                                              | Route resolved by `resolveInputRoutingForCommand()`.                                         |
+| Source                    | Item discovery                                                                               |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| Directory                 | Input files in the directory, plus optional `input/2-urls.md`.                               |
+| Input list                | Line parser for `.md`/`.txt`, markdown links, bullets, and relative paths.                   |
+| Podcast or YouTube source | Feed/channel/source enumeration stored in the canonical manifest's optional `source` object. |
+| YouTube collection        | Playlist/channel collection expansion.                                                       |
+| Text-input write          | Raw text source files for `write --text-input`.                                              |
+| Single item               | Route resolved from the input family.                                                        |

@@ -9,36 +9,36 @@
 
 ## Context
 
-The `write` command historically orchestrated steps 0 through 7: metadata inspection, download/staging, STT/OCR/URL extraction, LLM text writing, TTS audio synthesis (step 4), image generation (step 5), video generation (step 6), and music generation (step 7). To support this, `write` exposed an extensive flag surface comprising over 130 options across multiple generation provider groups (Text to Speech, MiniMax/Speechify/Hume/ElevenLabs TTS, Multi-Speaker / Dialogue, Image Options, Video Options, Hosted Music) plus step selectors (`--tts`, `--image`, `--video`, `--music`) and the `tts|image|video|music` arguments for `--all-providers`.
+The `write` command used to run steps 0 through 7: metadata inspection, download, STT/OCR/URL extraction, LLM writing, then TTS, image, video, and music generation. That meant `write` advertised more than 130 generation flags, the step selectors `--tts`, `--image`, `--video`, and `--music`, and `tts|image|video|music` arguments for `--all-providers`.
 
-This coupling introduced significant architectural and operational issues:
+The coupling caused four problems:
 
-1. **Config Default Auto-Spend Footgun:** Saved configuration defaults (e.g. `config --tts elevenlabs`) persisted into `defaults.post.tts.elevenlabsTts`. Because `mergeConfigIntoRawFlags` injected these defaults into every `write` invocation unless explicitly overridden, users who configured TTS or image defaults for standalone commands inadvertently triggered and paid for generation on every subsequent `write` run.
-2. **Single-Summary Execution Gating:** Step 4–7 generation stages silently skipped whenever `write` produced multiple LLM outputs (e.g. via repeatable `--llm`) or when structured validation produced multiple variants, making multi-stage generation inherently fragile and restricted to single-summary runs.
-3. **Pricing Over-Estimation:** `write --price` estimated generation stages across document inputs (PDF, EPUB, articles) even though document write flows never executed generation stages.
-4. **Resume Divergence:** `write-resume` rebuilt cost and timing from steps 1–3 only and omitted step 4–7 metadata, silently dropping generation cost rows and asset sections when resuming previous write runs.
+1. **Config-default auto-spend:** Saved generation defaults such as `config --tts elevenlabs` applied to every later `write` run. Users who set TTS or image defaults for the standalone commands then paid for generation on writes they never requested.
+2. **Silent skip on multi-summary writes:** Generation after write ran only for a single LLM summary. Repeatable `--llm` or multiple text variants skipped TTS, image, video, and music without a clear failure.
+3. **Price over-estimation:** `write --price` included generation stages even on document routes (PDF, EPUB, articles) that never ran them.
+4. **Resume cost drop:** Resuming a write run rebuilt cost and timing from steps 1–3 only, so previously billed generation costs and assets disappeared from the resumed report.
+
+Why now: saved `config` generation defaults were charging users on `write` runs that should have stopped at text.
 
 ## Options Considered
 
 **Option 1 (selected)**
 
-- **Option:** Decouple generation from `write` completely; end `write` at step 3 (text generation) and require follow-on execution via standalone commands (`tts`, `image`, `video`, `music`).
-- **Pros:** Eliminates config-default auto-spend risk; removes over 130 generation flags and selectors from `write` help; eliminates single-summary execution gates; simplifies `ProcessingOptions` and write runtime types; aligns `--price` on `write` with actual execution.
-- **Cons:** Workflows that previously ran write + TTS in a single command invocation now require two discrete CLI commands.
-- **Quantitative Notes:** Removed 132 flag occurrences from write resolution tests; narrowed `WriteRuntimeOptions` and `ProcessingOptions` by dropping 5 generation type intersections.
+- **Option:** End `write` at step 3 (text generation) and run TTS, image, video, and music through the standalone commands
+- **Pros:** Stops config-default auto-spend; drops 130+ generation flags from `write` help; generation no longer depends on a single summary; `write --price` matches what `write` actually runs
+- **Cons:** Write-plus-generation workflows need two CLI commands instead of one
+- **Quantitative Notes:** Removed 132 generation flags from the `write` surface
 
 **Option 2**
 
-- **Option:** Keep generation flags on `write` but fix config injection and multi-summary gating.
-- **Pros:** Preserves single-command write + generation invocations.
-- **Cons:** Retains massive CLI flag surface; maintains redundant stage orchestration code; perpetuates complex option bag coupling.
-- **Quantitative Notes:** Rejected.
+- **Option:** Keep generation flags on `write` and patch config injection plus multi-summary gating
+- **Pros:** Preserves one-command write + generation
+- **Cons:** Leaves the large `write` flag surface and dual write-versus-standalone generation paths
+- **Quantitative Notes:** Rejected; the auto-spend and gating bugs can be patched without shrinking the `write` surface, so the coupling remains
 
 ## Decision
 
-The `write` command is bounded strictly to steps 0–3: metadata inspection, source download/staging, STT/OCR/URL extraction, and LLM text writing. All step 4 (TTS), step 5 (image), step 6 (video), and step 7 (music) execution, pricing, flags, selectors, and type interfaces are severed from `write`.
-
-Follow-on generation is performed by invoking the standalone commands against `write` outputs:
+The `write` command runs only steps 0–3: metadata inspection, source download, STT/OCR/URL extraction, and LLM text writing. TTS, image, video, and music are not executed, priced, selected, or flagged from `write`. Run those standalone commands against `write` output:
 
 ```bash
 # 1. Run write to produce rendered markdown
@@ -53,52 +53,53 @@ bun autoshow video "$(cat output/<run-dir>/text.md)" --provider grok
 
 With a single `--llm` target the rendered file is `text.md`; multiple targets write one `text-<model>.md` per model. Lyric drafts from project lyric draft mode land under `./output/<name>/lyrics` and pair with `music --lyrics-file`.
 
-Relationship to existing ADRs:
+This applies to:
 
-- **[ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md):** The six resume domains (`extract`, `write`, `tts`, `image`, `video`, `music`) remain intact. Generation resume was already keyed to standalone manifests, so narrowing `write`'s execution surface to LLM preserves the rule that every model selectable by an execution command is resume-selectable, while eliminating dead write-generation resume code paths.
-- **[ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md):** `WriteRuntimeOptions`, `ExpectedOutputOptions`, and `ProcessingOptions` are narrowed to reflect actual runtime consumption, dropping generation option intersections.
-- **`config` and `resume`:** Retain their generation option flags. `config` keeps the prefixed generation flags and the step selectors (`--tts`, `--image`, `--video`, `--music`) that persist defaults for the standalone commands, while `resume` keeps provider-neutral generation options and selects providers through repeatable `--provider provider[=model]`.
+- The `write` command's execution, help, flags, and `--price` estimates.
+- `--all-providers` and `--all-local` on `write`, which select only `stt`, `ocr`, `url`, or `llm`.
+- Follow-on generation from write artifacts via `tts`, `image`, `video`, and `music`.
+- Resume of write runs, which covers steps 0–3 only.
+
+It does not apply to:
+
+- The six resume domains (`extract`, `write`, `tts`, `image`, `video`, `music`), which remain independent ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
+- `config` generation defaults and step selectors (`--tts`, `--image`, `--video`, `--music`), which still persist defaults for the standalone commands.
+- `resume` provider-neutral generation options and repeatable `--provider provider[=model]` selection.
+- Type-file layout and export cleanup ([ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)).
 
 ## Rationale
 
-- **Decoupling and Predictability:** Users have full control over when expensive generation steps execute without unexpected billing from saved config defaults.
-- **Surface Area Reduction:** Simplifies the `write` CLI interface, documentation, and option resolution contracts.
-- **Clean Parity:** Standalone generation commands already support complete file/directory inputs (`tts`), prompt strings (`image`, `video`), lyrics files (`music`), and independent price estimation.
+- Saved generation defaults must not bill users during `write`.
+- `write` help and `--price` should describe only the work `write` performs.
+- The standalone `tts`, `image`, `video`, and `music` commands already accept write artifacts (files, directories, prompt strings, lyrics files) and have their own `--price` estimates.
 
 ## Consequences
 
 Positive outcomes:
 
-- Saved `config` generation defaults cannot trigger paid synthesis or generation during `write` commands.
-- `write` help displays only relevant pipeline, extraction, writing, batch, and pricing flags.
-- `write --price` accurately reflects steps 0–3 costs across all input routes.
-- Removed dead `generation-stage-runner.ts` and associated glue code.
+- Saved `config` generation defaults cannot trigger paid generation during `write`.
+- `write` help shows pipeline, extraction, writing, batch, and pricing flags only.
+- `write --price` estimates steps 0–3 for every input route.
 
 Negative outcomes:
 
-- Users executing combined write and media generation workflows must chain two CLI commands.
+- Combined write and media generation takes two CLI commands.
 
 ## Trade-offs
 
 **Trade-off 1**
 
-- **Gain:** Elimination of config-default auto-spend and clean separation of concerns.
-- **Sacrifice:** Single-command write-plus-generation invocation is no longer supported.
+- **Gain:** No config-default auto-spend, and write stays separate from generation
+- **Sacrifice:** Single-command write-plus-generation is gone
 
 **Trade-off 2**
 
-- **Gain:** Precise pricing estimates and streamlined option types.
-- **Sacrifice:** Unified single-command pricing for write + downstream media generation now requires running `--price` on the respective standalone generation commands.
+- **Gain:** `write --price` matches write execution
+- **Sacrifice:** A combined write + generation estimate requires `--price` on each standalone command
 
 ## Implementation Note
 
-Implemented across five phases:
-
-1. Severed generation stage runners, resource gating, and post-generation pricing branches from the write runtime (`single/process-video.ts`, `step-3-write/run-text-write.ts`, `aggregate-pricing.ts`).
-2. Removed write generation flags, step selectors (`--tts`, `--image`, `--video`, `--music`), and TTS normalization from `write-flags.ts` and the step-selector normalizer (`service-selector-normalization/step-selectors.ts`, which now exposes separate write and config entry points), while preserving selectors on `config-flags.ts`.
-3. Narrowed `WriteRuntimeOptions`, `ExpectedOutputOptions`, and `ProcessingOptions`, and swept dead runner types in `src/types/`.
-4. Reconciled test catalogs, price registries, and budget preflight contracts.
-5. Updated documentation, architecture diagrams, selection guides, and decision records.
+`write` no longer runs or prices generation stages. Generation flags and selectors remain on `config` and on `tts`, `image`, `video`, and `music`. The write flag surface lives in `src/cli/flags/write-flags.ts`; step-3 execution lives in `src/cli/commands/process-steps/step-3-write/run-text-write.ts`.
 
 ## Test Plan
 
@@ -107,19 +108,14 @@ bun run check
 bun t --price
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
 bun test test/test-cases/validation/cli/help-flag-groups.test.ts
-bun test test/test-cases/validation/cli/doc-command-flags-contract.test.ts
 bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
-bun test test/test-cases/validation/providers/provider-selection-contracts/generic-selector-normalization.test.ts
-bun test test/test-cases/validation/runtime-contracts/adaptive-concurrency-contracts.test.ts
-bun test test/test-cases/validation/content-output/show-note-contracts.test.ts
-bun test test/test-cases/validation/reports-pricing/price-mode-contracts/
 ```
 
-1. Typecheck and unique source check pass cleanly.
-2. All 139 mapped price commands pass with zero failures.
-3. Help and flag group contracts verify that `write` advertises only step 0–3 flags and rejects generation flags with unknown-flag usage errors.
-4. Option resolution contracts confirm preserved behavior for STT, OCR, URL, LLM, batch, and pricing.
+1. Typecheck and unique source check pass.
+2. `write --price` cases estimate steps 0–3 only.
+3. Help and usage-error contracts show `write` advertising step 0–3 flags and rejecting generation flags.
+4. Option resolution keeps STT, OCR, URL, LLM, batch, and pricing behavior.
 
 ## References
 
@@ -127,3 +123,4 @@ bun test test/test-cases/validation/reports-pricing/price-mode-contracts/
 - Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
 - `src/cli/flags/write-flags.ts`
 - `src/cli/commands/process-steps/step-3-write/run-text-write.ts`
+- `docs/commands/process-steps/step-3-write/write-text.md`

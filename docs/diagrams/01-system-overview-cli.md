@@ -1,11 +1,11 @@
 # System Overview & CLI Surface
 
-Architecture overview for the native CLI, command routing, global flags, provider selectors, and current process command surface.
+Architecture overview for the CLI, command routing, global flags, provider selectors, and the process command surface.
 
 ## Outline
 
 - [System Layers](#system-layers)
-- [Native Dispatch](#native-dispatch)
+- [Dispatch](#dispatch)
 - [Command Surface](#command-surface)
 - [Flag System](#flag-system)
 - [Provider Selectors](#provider-selectors)
@@ -18,51 +18,41 @@ bun autoshow <command> [<subcommand>] <target> [flags]
             v
 +------------------+     +------------------+     +------------------+     +------------------+
 | CLI layer        | --> | Target layer     | --> | Processing layer | --> | Output layer     |
-| native parser    |     | plan + routing   |     | steps 0-8        |     | manifest + files |
+| parse + dispatch |     | plan + routing   |     | steps 0-8        |     | manifest + files |
 +------------------+     +------------------+     +------------------+     +------------------+
 ```
 
-1. CLI layer: `src/cli/create-cli.ts` registers the root definition, global flags, command groups, and per-command definitions. `src/cli/native/*` parses argv, renders help/version output, rejects unknown flags where appropriate, and builds the command context.
-2. Target layer: `handleProcessTarget()` resolves the target, merges config defaults, normalizes selectors, composes only the domain option slices required by the selected command, calls `resolveProcessTargetPlan()`, and for single extract/write items calls `resolveInputRoutingForCommand()`.
+1. CLI layer: parse arguments, render help and version, reject unknown flags, and apply global runtime settings.
+2. Target layer: resolve the target, merge config defaults, normalize provider selectors, and plan a single run or batch.
 3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 standalone TTS/image/video/music generation, and Step 8 comic utilities.
-4. Output layer: every run or batch root owns one unversioned `manifest.json` with the same canonical shape. Provider lifecycle state is stored in that manifest through the serialized atomic writer; provider directories contain generated artifacts and optional raw domain `result.json` payloads, never another control artifact.
+4. Output layer: every run or batch root owns one `manifest.json`. Provider directories hold generated artifacts and optional raw `result.json` payloads, not a second control file.
 
-## Native Dispatch
+## Dispatch
 
 ```
-src/cli/create-cli.ts
+bun autoshow <command> ...
         |
-        v
-dispatchNativeCli(argv, root, commands)
-        |
-        v
-parseNativeCli()
-        |
-        +--> one registered subcommand level? -> resolve the final command definition once
-        +--> help?    -> renderRootHelp() or renderCommandHelp()
+        +--> help?    -> root or command help
         +--> version? -> print package version
         |
         v
-unknown global/command flags?
+unknown flags?
         |
-        +--> reject through the native usage-error path
+        +--> usage error
         |
         v
 apply global runtime settings
         |
-        +--> --verbose / --quiet / --json / --log-level / --log-format -> logger
-        +--> --output-root                -> base output directory
-        +--> --output-dir                 -> pinned run directory for this invocation
-        +--> --characters-root            -> comic/voice character reference directory
-        +--> --bin-dir                    -> external tool binary lookup
-        +--> --color / --no-color          -> ANSI color handling
-        +--> config auth.cookies / auth.cookiesFromBrowser -> yt-dlp auth
+        +--> --verbose / --quiet / --json / --log-level / --log-format
+        +--> --output-root
+        +--> --output-dir
+        +--> --characters-root
+        +--> --bin-dir
+        +--> --color / --no-color
+        +--> config cookies for yt-dlp
         |
         v
-run command handler under log context
-        |
-        v
-debug log elapsed time
+run the selected command
 ```
 
 Global flags:
@@ -76,7 +66,7 @@ Global flags:
 | `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, `resume`, `voice`, and `comic reference-voice`, which do not create run directories. |
 | `--characters-root`     | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only.                                                                                                                                                                                    |
 | `--bin-dir`             | Directory of external tool binaries checked before the managed install and PATH.                                                                                                                                                                                                                        |
-| `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget. Accepted on priced pipeline and generation commands only; rejected on unbudgeted commands (`config`, `setup`, `links`, `voice`, `comic reference-voice`). |
+| `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget. Accepted on priced pipeline and generation commands only; rejected on unbudgeted commands (`config`, `setup`, `links`, `voice`, `comic reference-voice`).                                                                                  |
 | `--verbose`             | Enable debug logging.                                                                                                                                                                                                                                                                                   |
 | `--quiet`, `-q`         | Suppress non-error output.                                                                                                                                                                                                                                                                              |
 | `--json`                | Emit logs as JSON.                                                                                                                                                                                                                                                                                      |
@@ -84,14 +74,11 @@ Global flags:
 | `--log-format`          | Log output format: `human`, `json`, or `both`.                                                                                                                                                                                                                                                          |
 | `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY.                                                                                                                                                                                                                                          |
 
-Comic's public `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
+Comic subcommands (`draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice`) are first-class children of `comic`.
 
 ## Command Surface
 
 ```
-Core:
-  help/version behavior is native to the root parser.
-
 Setup and utilities:
   config    read/write persisted defaults
   setup     install local tools and report provider env readiness
@@ -111,11 +98,11 @@ Processing and generation:
   comic     nested draft-scenes, generate-images, generate-audio, generate-slideshow, reference-sketch, and reference-voice workflows
 ```
 
-Process commands enter the shared target layer except for special standalone generation modes. `extract --transcript-video` is handled before normal target processing and renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
+Help and version are built into the root command. Process commands share the same target planning except for standalone generation modes. `extract --transcript-video` runs before normal target processing and renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
 
 ## Flag System
 
-Command groups share the same normalized selector model but expose it through different flags:
+Command groups share the same selector model but expose it through different flags:
 
 ```
 extract/resume
@@ -147,8 +134,6 @@ config pipeline defaults
   --music provider[=model]
 ```
 
-Flag/config resolution is command-neutral, but processing is not built around an all-command option bag. STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing consumers accept their own option slices plus explicitly named shared controls. Write composes the STT/OCR/URL/LLM slices it actually runs, while standalone generation commands consume their respective generation option slices.
-
 `extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections are normalized before execution.
 
 ## Provider Selectors
@@ -163,7 +148,7 @@ Current selector families:
 | LLM         | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`.                                                                                                                                                                |
 | TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                                                                          |
 | Image       | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                                                |
-| Video       | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is fully retired; `--provider minimax` is rejected, and a model-qualified selector such as `--provider minimax=MiniMax-Hailuo-2.3` still reports its `MiniMax-H3` retired-model replacement.                                                                                         |
+| Video       | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is retired; `--provider minimax` is rejected.                                                                                                                                               |
 | Music       | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                                                                |
 
 Command-to-flag mapping:
@@ -176,6 +161,6 @@ Command-to-flag mapping:
 | `write`                       | Step selectors for STT/OCR/URL/LLM, prompt/text-input flags, rendered text flags, batch flags, pricing flags.                          |
 | `resume`                      | target-aware provider selectors for missing or failed providers.                                                                       |
 | `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors.                                                                                    |
-| `voice`                       | standalone voice registration, audition, approval, consent, listing, retirement, and deletion flags.                                             |
+| `voice`                       | standalone voice registration, audition, approval, consent, listing, retirement, and deletion flags.                                   |
 | `comic`                       | comic drafting, panel image generation, audio rendering, local slideshow presentation, and reference flags.                            |
 | `config`                      | persisted defaults for supported selectors and options; runtime-only flags are ignored.                                                |

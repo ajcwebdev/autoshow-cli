@@ -1,6 +1,6 @@
 # resume
 
-Backfill missing provider outputs in an existing run, child batch, or parent `extract` batch directory.
+Backfill missing provider outputs in an existing run or batch directory.
 
 ## Usage
 
@@ -8,20 +8,16 @@ Backfill missing provider outputs in an existing run, child batch, or parent `ex
 bun autoshow resume <outputDirs...> [flags]
 ```
 
-`resume` does not accept a new source input. It works against one or more existing output directories, each containing the one canonical file:
+`resume` does not accept a new source input. Point it at one or more existing output directories that contain `manifest.json`.
 
-- `manifest.json` with `scope: "single"` or `scope: "batch"`; route-aware extract parents use ordinary item child links in this same shape
+## Behavior
 
-## Target Resolution
-
-- `resume` supports `extract`, write LLM, TTS, image, video, and music manifests.
-- With no provider flags, it reads each canonical item’s `providers` entries and reruns only entries whose status is `missing` or `failed`. Write LLM resume requires explicit provider selection by policy.
-- Explicit provider flags are additive: selected provider/models are appended to the set derived from canonical provider entries and skipped if they already succeeded.
-- When multiple directories are provided, `resume` processes them sequentially with the same flags, continues after per-directory failures, and reports any failures together at the end.
-- Parent `extract` batch resumes follow containment-checked `{ route, index, manifestDir }` child links and route selections to the linked `media`, `document`, or `article` canonical child manifest. `x-space` runs are not resumable and are rejected with a usage error.
-- TTS/image/video/music resumes require a canonical item with an input and provider entries.
-- Write resumes require a canonical single-run manifest with `command: "write"`, `prompt.md`, and item `metadata.step3`.
-- `--price` resolves the same missing or additive providers and prints a dry-run cost estimate without calling providers or writing manifests/artifacts.
+- Supported targets: `extract` (STT, OCR, URL article), write LLM, TTS, image, video, and music.
+- With no provider flags, `resume` retries providers that are still missing or failed. Write LLM resume requires explicit `--provider` or `--all-providers`.
+- Provider flags are additive: selected provider/models are added to the retry set, and already-successful providers are skipped.
+- Multiple directories are processed sequentially with the same flags. Per-directory failures do not stop later directories; all failures are reported at the end.
+- Parent `extract` batch directories resume their linked media, document, or article children. X Space runs are not resumable.
+- `--price` estimates the same missing or additive work without calling providers or writing files.
 
 ## Provider Selection
 
@@ -35,7 +31,7 @@ Use the target-aware generic selector:
 
 `--provider` is repeatable. For `extract` resumes, the target route decides whether a provider name maps to STT, OCR, or URL article extraction.
 
-For OCR resumes, automatic mode derives blocked providers from canonical provider `error` data (non-retryable failures such as quota, billing, account suspension, content policy, or auth). When only blocked providers remain, `resume` reports "only blocked OCR providers remain" instead of rerunning them. Explicit `--provider provider=model` opts back into a blocked provider after the underlying cause is fixed or the provider/model/policy context intentionally changes.
+Automatic OCR resume skips providers that failed with a non-retryable error such as quota, billing, account suspension, content policy, or auth. If only those providers remain, it reports `only blocked OCR providers remain` instead of rerunning them. Pass `--provider provider=model` to retry a blocked provider after the cause is fixed.
 
 Examples of provider names:
 
@@ -59,7 +55,7 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_item
 # Resume a batch directory or extract parent batch in place
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch
 
-# Resume multiple explicit output directories sequentially with the current Gemini Flash-Lite target
+# Resume multiple output directories sequentially
 bun autoshow resume ./output/run-a ./output/run-b ./output/run-c --provider gemini=gemini-3.5-flash-lite
 
 # Estimate missing or additive providers without changing output directories
@@ -68,63 +64,47 @@ bun autoshow resume ./output/run-a ./output/run-b --provider deepinfra --price
 # Resume shell-expanded output directory globs
 bun autoshow resume ./output/2026-04-22_*_run --all-providers
 
-# Add every local provider for the resolved target
+# Add every local provider for an extract target
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-local
 
 # Append write LLM providers to an existing write run
-bun autoshow resume ./docs/benchmarks/write/2026-06-10_16-33-20-777_1-audio \
+bun autoshow resume ./output/2026-06-10_16-33-20-777_write \
   --provider together=kimi-k2.6 \
-  --provider together=glm-5.1 \
-  --provider cerebras=gpt-oss-120b \
-  --provider cerebras=zai-glm-4.7
+  --provider cerebras=gpt-oss-120b
 
-# Retry or append route-aware extract providers
+# Retry or append extract providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-ocr
-bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider kimi=kimi-k2.6
-bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider deepgram=nova-3
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider deepinfra
-bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider happyscribe=auto
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --url-provider supadata
 
-# Retry or append TTS providers
+# Retry or append TTS, image, video, and music providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider hume=octave-2 --tts-voice "Male English Actor"
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
-
-# Retry or append image, video, and music providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-lite-image
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider ltx=ltx-2-3-fast
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider grok=grok-imagine-video-1.5
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=music-3.0
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria-3-pro-preview
-
-# Add every supported provider for the resolved target
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-providers
 ```
 
 ## Shared Flags
 
 | Flag                                   | Description                                                                                                                                                                       |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--prompt <name...>`                   | Named prompt presets discovered under `src/prompts/entries/`                                                                                                                      |
-| `--prompt-md`                          | Save a second prompt file with Markdown examples when a resumed path rebuilds prompt output                                                                                       |
 | `--price`                              | Estimate the providers resume would run and exit without provider calls or writes                                                                                                 |
 | `--batch-concurrency <n>`              | Number of batch items to process concurrently                                                                                                                                     |
 | `--provider-concurrency <n>`           | Max hosted providers/models running in parallel for one item                                                                                                                      |
 | `--local-concurrency <n>`              | Max local providers/models running in parallel for one item                                                                                                                       |
 | `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--stt-segment-concurrency <n>`        | Max split STT segments in flight per provider                                                                                                                                     |
-| `--stt-preflight-concurrency <n>`      | Max STT duration probes running in parallel during preflight                                                                                                                      |
 
-Resume preserves accepted artifacts and other canonical work state, but it creates a fresh run-scoped hosted coordinator. The new process therefore starts a fresh ramp using the current explicit or configured mode; concurrency policy is not part of cache or content identity.
+Resume keeps completed artifacts. Hosted concurrency always starts a new ramp from the current `--concurrency-mode` or configured default.
 
 ## Write Options
 
-Write resumes reuse the stored `prompt.md` and run only selected LLM providers that do not already have matching `step3` metadata. They preserve short model selectors in metadata, so `--provider together=kimi-k2.6` records `llmService: "together"` and `llmModel: "kimi-k2.6"`, while `--provider cerebras=gpt-oss-120b` records `llmService: "cerebras"` and `llmModel: "gpt-oss-120b"`. If a provider call fails, resume records any successful providers and exits incomplete for the missing targets.
+Write resumes reuse the stored `prompt.md` and run only the selected LLM providers that do not already have matching output. If a provider fails, successful outputs are kept and the command exits incomplete for the missing targets.
 
-| Flag                 | Description                                                                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--prompt <name...>` | Override the structured schema used to validate new LLM outputs. If omitted, resume uses the `structuredPresetNames` from existing `step3` metadata. |
+| Flag                 | Description                                                                                                           |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `--prompt <name...>` | Override the structured schema used to validate new LLM outputs. If omitted, resume uses the schema from the original run. |
+| `--prompt-md`        | Save a second prompt file (`prompt-md.md`) with Markdown examples alongside the JSON prompt                           |
 
 ## Extract Options
 
@@ -133,12 +113,14 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 | `--youtube-captions`                | Prefer English YouTube captions before STT when available                                                                         |
 | `--speaker-count <n>`               | Diarization speaker-count hint                                                                                                    |
 | `--split`                           | Split audio into 30-minute segments before transcription                                                                          |
+| `--stt-segment-concurrency <n>`     | Max split STT segments in flight per provider                                                                                     |
+| `--stt-preflight-concurrency <n>`   | Max STT duration probes running in parallel during preflight                                                                      |
 | `--format <format>`                 | OCR output format: `text` or `json`                                                                                               |
 | `--password <value>`                | Password for encrypted PDFs                                                                                                       |
 | `--ocr-language <codes>`            | Tesseract language codes such as `eng` or `eng+fra`                                                                               |
 | `--ocr-dpi <n>`                     | Render DPI for OCR pages                                                                                                          |
 | `--ocr-concurrency <n>`             | Page-level OCR concurrency cap; local OCR defaults to `10`, hosted OCR defaults to auto, and explicit values are hosted hard caps |
-| `--ocr-provider-mode <fanout|pool>` | Optional stored-mode assertion for OCR resume; omission preserves the mode in `manifest.json`, and a mismatch is rejected         |
+| `--ocr-provider-mode <fanout|pool>` | Require this OCR execution mode. If omitted, resume keeps the mode from the original run. A different value is rejected.          |
 | `--reasoning-effort <policy>`       | Reasoning effort policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max` (default delegates to the provider)  |
 | `--chapters`, `--no-chapters`       | Write or suppress EPUB/PDF chapter files when rebuilding extraction artifacts                                                     |
 | `--length <thousands>`              | Hard export limit in thousands of characters for EPUB/PDF chunking                                                                |
@@ -150,27 +132,27 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 
 ## TTS Options
 
-Resume accepts only provider-neutral TTS options. Provider-named tuning flags such as `--elevenlabs-tts-stability`, `--minimax-tts-emotion`, `--minimax-tts-pitch`, and `--minimax-tts-volume` are not part of the resume surface.
+Resume accepts only provider-neutral TTS options. Provider-named tuning flags such as `--elevenlabs-tts-stability` are rejected.
 
-| Flag                                                            | Description                                                                                                                     |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `--allow-ambiguous-redispatch`                                  | Authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                               |
-| `--tts-voice <provider=value|value>`                            | Generic TTS voice selector                                                                                                      |
-| `--tts-speed <provider=value|value>`                            | Generic TTS speed                                                                                                               |
-| `--tts-language <provider=value|value>`                         | Generic TTS language                                                                                                            |
-| `--tts-text-normalization <provider=value|value>`               | Generic text normalization                                                                                                      |
-| `--tts-instructions <provider=value|value>`                     | Generic voice/style instructions                                                                                                |
-| `--tts-chunk-concurrency <n>`                                   | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, or `50` for Grok-only hosted TTS |
-| `--tts-dialogue-format <screenplay\|labeled>`                   | Dialogue input format for multi-speaker TTS                                                                                     |
-| `--tts-speaker <SPEAKER=VOICE\|path>`                           | Multi-speaker TTS voice mapping; repeatable                                                                                     |
+| Flag                                              | Description                                                                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--allow-ambiguous-redispatch`                    | Authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                               |
+| `--tts-voice <provider=value|value>`              | Generic TTS voice selector                                                                                                      |
+| `--tts-speed <provider=value|value>`              | Generic TTS speed                                                                                                               |
+| `--tts-language <provider=value|value>`           | Generic TTS language                                                                                                            |
+| `--tts-text-normalization <provider=value|value>` | Generic text normalization                                                                                                      |
+| `--tts-instructions <provider=value|value>`       | Generic voice/style instructions                                                                                                |
+| `--tts-chunk-concurrency <n>`                     | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, or `50` for Grok-only hosted TTS |
+| `--tts-dialogue-format <screenplay\|labeled>`     | Dialogue input format for multi-speaker TTS                                                                                     |
+| `--tts-speaker <SPEAKER=VOICE\|path>`             | Multi-speaker TTS voice mapping; repeatable                                                                                     |
 
-Use `--tts-speaker SPEAKER=VOICE` for multi-speaker resumes instead of provider-specific speaker flags. To change provider tuning on a resumed run, set it under `defaults` in `autoshow.config` or rerun the original `tts` command.
+Use `--tts-speaker SPEAKER=VOICE` for multi-speaker resumes. To change provider-specific tuning, set it under `defaults` in `autoshow.config` or rerun the original `tts` command.
 
-Resume never creates, imports, saves, verifies, approves, reconciles, or deletes provider voices. Complete those operations through `bun autoshow voice ...` before starting or resuming synthesis.
+Voice create, import, approve, and delete operations belong to `bun autoshow voice`, not `resume`.
 
 ## Image, Video, And Music Options
 
-Resume keeps the pipeline/config option names for media generation options, because one flag set serves image, video, music, and OCR at once and the short `image`/`video`/`music` command names would collide. Provider-named options such as `--replicate-video-seed` and `--replicate-video-negative-prompt` are not part of the resume surface.
+Image, video, and music resume use the prefixed option names (`--image-size`, `--video-duration`, `--music-duration`) rather than the short names on the standalone commands. Provider-named options such as `--replicate-video-seed` are rejected.
 
 | Target | Option flags                                                                                                                                                                                                                    |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -181,7 +163,7 @@ Resume keeps the pipeline/config option names for media generation options, beca
 ## Notes
 
 - `resume` updates the existing output directory in place.
-- `resume --price` leaves `manifest.json`, raw provider artifacts, and generated media/text files unchanged.
-- Write LLM resume is additive and writes service-qualified files when needed to avoid overwriting existing short-model outputs, such as `text-together-glm-5.1.json` beside an existing `text-glm-5.1.json`.
-- No `resume` flag is named after a provider. Provider-named option flags such as `--elevenlabs-tts-stability`, `--replicate-video-seed`, and `--stt-happyscribe-organization-id` exit with their exact typed spelling, for example `Unexpected flag: --elevenlabs-tts-stability`. A provider entry's `options` object is the only persisted option slot; when a domain cannot reconstruct a tuning value from canonical state, its option slice resolves that value from `autoshow.config` or the provider default.
+- `resume --price` does not write manifests or artifacts.
+- Write LLM resume is additive. When a new provider would collide with an existing short-model filename, it writes a service-qualified file instead, such as `text-together-glm-5.1.json` beside `text-glm-5.1.json`.
+- Provider-named option flags such as `--elevenlabs-tts-stability` or `--replicate-video-seed` are rejected as `Unexpected flag: <name>`. Set those knobs under `defaults` in `autoshow.config`, or rerun the original command.
 - `resume` exits with code `2` when items are still incomplete or failed after the backfill attempt.

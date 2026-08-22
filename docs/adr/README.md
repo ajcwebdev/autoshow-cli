@@ -34,7 +34,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **ADR:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
 - **Status:** Accepted · Passed
-- **Decision:** Owns the command-neutral batch work plan, sole unversioned canonical pipeline manifest including the pooled OCR page ledger, canonical execution-to-resume selection parity, the narrow immutable completed-legacy-TTS additive bridge, provider-neutral non-mutating `resume --price`, and clean-ramp no-cost price verification.
+- **Decision:** Owns the command-neutral batch work plan, the sole unversioned canonical pipeline `manifest.json` including the pooled OCR page ledger, execution-to-resume selection parity, provider-neutral non-mutating `resume --price`, and a clean-break reader that rejects superseded formats.
 - **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 
 **ADR 3: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
@@ -48,7 +48,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **ADR:** [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
 - **Status:** Accepted · Passed
-- **Decision:** Owns the host setup lifecycle: managed tools, resumable integrity-checked acquisition, transfer admission, provenance, staging, promotion, truthful health/reporting, cleanup, and performance evidence. MuPDF and qpdf remain hermetic source builds.
+- **Decision:** Owns the host setup lifecycle: managed macOS tools under `runtime/`, resumable integrity-checked downloads, bounded transfer concurrency, truthful setup and doctor reporting, cleanup, and hermetic MuPDF and qpdf source builds.
 - **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-005](ADR-005-reduce-environment-variable-surface-area.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
 
 **ADR 5: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)**
@@ -90,7 +90,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **ADR:** [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - **Status:** Accepted · Passed
-- **Decision:** Owns durable cross-modality hosted-model policy: fixed selector identity, lifecycle/default/all eligibility, typed canonical provider/model descriptors shared with resume, complete capability validation and routing, normalized reasoning, pricing provenance, calibration promotion, historical readability, and no silent substitution or coercion. Dated refresh chronology lives in the 2026 hosted-model refresh reports under [docs/reports](../reports/).
+- **Decision:** Owns durable cross-modality hosted-model policy: fixed selector identity, lifecycle/default/all eligibility, typed canonical provider/model descriptors shared with resume, complete capability validation and routing, normalized reasoning, pricing provenance, calibration promotion, historical readability, and no silent substitution or coercion. Dated refresh chronology lives in the 2026 hosted-model refresh reports under [docs/models](../models/).
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 
 **ADR 11: [ADR-011](ADR-011-add-refresh-metadata-to-links.md)**
@@ -104,7 +104,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **ADR:** [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - **Status:** Superseded · Passed
-- **Decision:** Owns benchmark evidence from primary-source refresh through local checks, price-only preflight, exact paid approval, validation, repair, compaction, and regeneration, including the retained four-run TTS cohort's `$1.09022` initial preflight, 34 successful first-pass outputs, 17 successful corrected follow-up outputs, preserved DeepInfra hard-input failure, and final 51-of-52 current-model result, plus self-contained JSON/Markdown/offline-HTML reports with weighted rankings and deterministic quality-cost terciles. Retained as historical authority after CLI benchmark command removal.
+- **Decision:** Owns historical benchmark evidence from primary-source refresh through local checks, price-only preflight, exact paid approval, validation, repair, compaction, and regeneration, plus self-contained JSON, Markdown, and offline HTML combined reports with weighted rankings and deterministic quality-cost terciles. Retained as historical authority after CLI `benchmark` command removal.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 
 **ADR 13: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)**
@@ -139,7 +139,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **ADR:** [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 - **Status:** Accepted · Passed
-- **Decision:** Adds provider-neutral sound intent, strict cue-to-dialogue timeline resolution, reusable sound-effect generation with durable admission and shared hosted lane recovery, a deterministic four-bus mixer, and evidence-gated seven-phase delivery across ElevenLabs, Cartesia/Hume/MiniMax, Inworld, DeepInfra, Replicate, Fish Audio, and Meta AudioGen.
+- **Decision:** Adds provider-neutral sound intent, strict cue-to-dialogue timeline resolution, reusable dedicated sound-effect generation, a deterministic four-bus mixer, and three dedicated SFX targets (ElevenLabs, pinned Replicate AudioGen, and Stability `stable-audio-3`).
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)
 
 **ADR 18: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md)**
@@ -165,7 +165,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 ## Consolidation Analysis
 
-The remaining analysis covers the current set of 20 records; the unified credential registry, `doctor --strict`, spawn environment allowlist, and versioned `accountScopeHash` derivation belong to the completed ADR-005 Pass 5, while ADR-006 owns the shared missing-credential error contract and exit code. Durable hosted-model policy belongs to ADR-010, benchmark proof belongs to ADR-012, dated provider/model changes belong to the 2026 hosted-model refresh reports under `docs/reports/`, voice-resource/runtime architecture remains independently findable in ADR-013, Docker distribution belongs to ADR-014 rather than the host setup authority, pooled OCR policy belongs to ADR-015 while persistence, scheduling mechanics, and artifact contracts remain in ADR-002, ADR-008, and ADR-009, whole-documentation command governance belongs to ADR-016 as a cross-command verification contract, provider-neutral soundscape intent and source mixes belong to ADR-017, derived panel synchronization and still-image presentation belongs to ADR-018, test-console quiet-on-pass policy belongs to ADR-019, write pipeline boundaries at step 3 belong to ADR-020, and the logging and error vocabulary belongs to ADR-006 together with the standing contracts that enforce it.
+The remaining analysis covers the current set of 20 records; the unified credential registry, `doctor --strict`, spawn environment allowlist, and versioned `accountScopeHash` derivation belong to the completed ADR-005 Pass 5, while ADR-006 owns the shared missing-credential error contract and exit code. Durable hosted-model policy belongs to ADR-010, benchmark proof belongs to ADR-012, dated provider/model changes belong to the 2026 hosted-model refresh reports under `docs/models/`, voice-resource/runtime architecture remains independently findable in ADR-013, Docker distribution belongs to ADR-014 rather than the host setup authority, pooled OCR policy belongs to ADR-015 while persistence, scheduling mechanics, and artifact contracts remain in ADR-002, ADR-008, and ADR-009, whole-documentation command governance belongs to ADR-016 as a cross-command verification contract, provider-neutral soundscape intent and source mixes belong to ADR-017, derived panel synchronization and still-image presentation belongs to ADR-018, test-console quiet-on-pass policy belongs to ADR-019, write pipeline boundaries at step 3 belong to ADR-020, and the logging and error vocabulary belongs to ADR-006 together with the standing contracts that enforce it.
 
 ### Remaining Boundaries
 
@@ -225,17 +225,17 @@ The remaining analysis covers the current set of 20 records; the unified credent
 
 ### Recommended Order of Work
 
-No further consolidation is currently recommended. Preserve the boundary between ADR-010 policy, ADR-012 evidence, and the dated refresh history in the reports under `docs/reports/`, keep host setup mechanics in ADR-004 and Docker distribution in ADR-014, keep source ingestion, extract execution, pipeline state, and the explicit pooled OCR decision in ADR-001/ADR-009/ADR-002/ADR-015 respectively, implement ADR-016 as a cross-command verification layer rather than absorbing it into any one workflow authority, keep ADR-017's soundscape authority downstream of ADR-013's durable voice and dialogue contracts, maintain ADR-017's seven-phase provider delivery without unverified capability expansion, and keep ADR-018 as the derived presentation consumer of both audio authorities.
+No further consolidation is currently recommended. Preserve the boundary between ADR-010 policy, ADR-012 evidence, and the dated refresh history in the reports under `docs/models/`, keep host setup mechanics in ADR-004 and Docker distribution in ADR-014, keep source ingestion, extract execution, pipeline state, and the explicit pooled OCR decision in ADR-001/ADR-009/ADR-002/ADR-015 respectively, implement ADR-016 as a cross-command verification layer rather than absorbing it into any one workflow authority, keep ADR-017's soundscape authority downstream of ADR-013's durable voice and dialogue contracts, add further SFX targets only against documented non-speech APIs, and keep ADR-018 as the derived presentation consumer of both audio authorities.
 
 ## Next Steps
 
-This section lists every ADR or refresh report with unfinished work: pending or reopened implementation, partial phase gates, work blocked on an explicit paid-run approval, and deliberately deferred follow-ups. Never-ending "Ongoing" and "Ongoing guardrail" maintenance items (ADR-002, ADR-008, ADR-009, ADR-010, ADR-012, and the refresh reports) are excluded because they have no completion state. Each row summarizes the source record's Follow-up Actions; the ADR or report remains the authority for exact scope and evidence requirements.
+This section lists every ADR or refresh report with unfinished work: pending or reopened implementation, partial phase gates, work blocked on an explicit paid-run approval, and deliberately deferred follow-ups. Never-ending "Ongoing" and "Ongoing guardrail" maintenance items (ADR-010, ADR-012, and the refresh reports) are excluded because they have no completion state. Each row summarizes the source record's Follow-up Actions; the ADR or report remains the authority for exact scope and evidence requirements.
 
 **Item 1: [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)**
 
 - **Record:** [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)
 - **Priority:** High
-- **Next step:** Work the pending P0–P3 backlog in order: P0 fail-closed provider/network guards, filesystem/config isolation, and config-plus-price mutation rejection; P1 whole-docs occurrence inventory, structured price envelopes, offline fixtures, and quiet-price/end-of-options/EPUB-planning/article-route corrections; P2 static risk policies and parser/registry cross-checks; P3 occurrence/cost reports and gated documentation-example updates.
+- **Next step:** Implement fail-closed provider/network guards and isolated documentation-test harnesses, then the typed occurrence inventory, structured `--price` envelopes, committed offline fixtures, static risk policies, parser/registry cross-checks, and occurrence-based cost reports.
 
 **Item 2: [2026 Hosted-Model Refresh Report: LLMs](../models/04-llm-model-report.md)**
 
@@ -253,7 +253,7 @@ This section lists every ADR or refresh report with unfinished work: pending or 
 
 - **Record:** [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - **Priority:** Medium
-- **Next step:** Collect reasoning-qualified token samples so provisional OCR registry shapes can become promotion-eligible; blocked on explicit approval for each paid provider run.
+- **Next step:** Collect reasoning-qualified token samples so OCR registry shapes can become promotion-eligible; blocked on explicit approval for paid provider runs.
 
 **Item 5: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 

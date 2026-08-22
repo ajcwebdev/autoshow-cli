@@ -4,17 +4,13 @@ Synthesize and protect the canonical pre-approval audition set.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
-## Outline
-
-- [audition](#audition)
-
 ## audition
 
 ```bash
 bun autoshow voice audition <registration-id> [flags]
 ```
 
-Auditioning synthesizes a protected canonical set containing neutral, representative, emotional contrast, pronunciation, and comparison passages. It is a provider-backed action unless `--price` is supplied.
+The set includes a neutral sample, the required representative line, emotional-contrast lines, a pronunciation sample, and a comparison passage. Remove `--price` only when you intend to purchase the synthesis.
 
 ### Options
 

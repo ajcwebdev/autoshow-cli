@@ -12,34 +12,29 @@ Provider selection, LLM fan-out, setup flow, and dependency/env readiness refere
 
 ## LLM Provider Fan-Out
 
+`write` fans out `--llm` selections (plus config defaults) across the hosted LLM pool:
+
 ```
-runLLM()
+write --llm
   |
   v
-collectLlmTargets(--llm and defaults)
+hosted LLM pool
+concurrency: --provider-concurrency
+default 7
+  |
+  +--> openai
+  +--> groq
+  +--> gemini
+  +--> anthropic
+  +--> minimax
+  +--> grok
+  +--> glm
+  +--> kimi
+  +--> together
+  +--> cerebras
   |
   v
-runLlmProviderTargetPools()
-   |
-   v
-   hosted pool
-   concurrency: --provider-concurrency
-   default 7
-   |
-   +--> openai
-   +--> groq
-   +--> gemini
-   +--> anthropic
-   +--> minimax
-   +--> grok
-   +--> glm
-   +--> kimi
-   +--> together
-   +--> cerebras
-   |
-   v
 text.json or text-<model>.json
-Step3Metadata in items[].metadata
 ```
 
 Current LLM models:
@@ -78,37 +73,30 @@ Current hosted/local provider families:
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
 | TTS   | Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                         |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
-| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is fully retired; `--provider minimax` is rejected as an unknown provider, and a model-qualified selector such as `--provider minimax=MiniMax-Hailuo-2.3` reports `MiniMax-H3` as the replacement identity.                                                                    |
+| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is retired; `--provider minimax` is rejected on `video`.                                                                                           |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
 
 ## Setup Pipeline
 
-`bun autoshow setup` runs `runCompleteSetup()`:
+`bun autoshow setup` installs local tools and reports hosted provider API-key readiness:
 
 ```
-log pinned versions, ensure runtime directories
+create runtime/ if needed
   |
   v
-log hosted provider configuration
+report which hosted API keys are set
   |
   v
-concurrent setup tasks
+install local tools in parallel
   |
-  +--> setupYtDependencies()        ffmpeg, ffprobe, yt-dlp
-  +--> setupDefuddleCli()           HTML/article extraction helper
-  +--> setupWhisper()               whisper.cpp binary
-  |    downloadWhisperModel()       tiny and large-v3-turbo models
-  +--> setupCalibreDocumentTools()  mutool, qpdf, ebook-convert
-  +--> setupTesseractOcr()
-  |
-  v
-validate whisper-cli --help
+  +--> ffmpeg, ffprobe, yt-dlp
+  +--> Defuddle CLI for HTML/article extraction
+  +--> whisper.cpp binary and Whisper models (tiny, large-v3-turbo)
+  +--> mutool, qpdf, ebook-convert
+  +--> Tesseract OCR
   |
   v
-prune build trees, report reclaimable artifacts, log step timings
-  |
-  v
-log setup summary (local tools, local models, hosted providers)
+print setup summary (local tools, local models, hosted providers)
 ```
 
 `--step` runs one piece of that pipeline in isolation and assumes the other prerequisites are already installed:
@@ -117,17 +105,17 @@ log setup summary (local tools, local models, hosted providers)
 | ---------------- | ------------------------------------------------------------------------------------------------- |
 | `all` (default)  | The full pipeline above.                                                                          |
 | `yt-dlp`         | ffmpeg, ffprobe, and yt-dlp.                                                                      |
-| `defuddle`       | Managed Defuddle CLI for HTML/article extraction.                                                 |
+| `defuddle`       | Defuddle CLI for HTML/article extraction.                                                         |
 | `whisper-binary` | Build the whisper.cpp `whisper-cli` binary.                                                       |
 | `whisper-model`  | Download the default Whisper model (`tiny`).                                                      |
 | `whisperfile`    | Download the default whisperfile model (`tiny`) into `runtime/bin/whisperfile/`.                  |
 | `calibre`        | mutool, qpdf, and Calibre `ebook-convert`.                                                        |
-| `transcription`  | Download the Whisper `large-v3-turbo` model, then log hosted STT env checks.                      |
-| `music`          | Hosted music env checks, ffmpeg/ffprobe plus subtitle-renderer validation, Whisper `large-v3-turbo`. |
+| `transcription`  | Download the Whisper `large-v3-turbo` model, then report hosted STT env checks.                   |
+| `music`          | Check music API keys, verify ffmpeg/ffprobe (including subtitle rendering), and download Whisper `large-v3-turbo`. |
 
 ## Hosted Provider Env Checks
 
-These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
+Hosted commands require the matching environment variable:
 
 | Env var                  | Provider coverage                          |
 | ------------------------ | ------------------------------------------ |
@@ -173,19 +161,19 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 
 | Command/route                | Local dependencies                                                                           | Hosted/config dependencies                                                                                                                                                |
 | ---------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `metadata` media             | ffprobe for local files, yt-dlp metadata for streaming URLs.                                 | Configured cookies for authenticated downloads when needed.                                                                                                               |
-| `metadata` X Space           | none beyond normal runtime.                                                                  | `X_BEARER_TOKEN`.                                                                                                                                                         |
-| `download` media             | ffmpeg/ffprobe, yt-dlp.                                                                      | Same auth/cookies support.                                                                                                                                                |
-| `download` X Space           | ffmpeg/ffprobe, yt-dlp.                                                                      | `X_BEARER_TOKEN` for post URL lookup; same auth/cookies support for playback when needed.                                                                                 |
-| `extract` media              | ffmpeg/ffprobe, yt-dlp, `whisper-cli` for `whisper`, prebuilt whisperfile for `whisperfile`. | Selected hosted STT key.                                                                                                                                                  |
-| `extract` document OCR       | MuPDF/Tesseract as selected; Calibre/native extractors for conversion/native routes.         | Selected hosted OCR key.                                                                                                                                                  |
+| `metadata` media             | ffprobe for local files, yt-dlp metadata for streaming URLs.                                 | Cookies for authenticated downloads when needed.                                                                                                                          |
+| `metadata` X Space           | none                                                                                         | `X_BEARER_TOKEN`.                                                                                                                                                         |
+| `download` media             | ffmpeg/ffprobe, yt-dlp.                                                                      | Same cookie support.                                                                                                                                                      |
+| `download` X Space           | ffmpeg/ffprobe, yt-dlp.                                                                      | `X_BEARER_TOKEN` for post URL lookup; cookies for playback when needed.                                                                                                   |
+| `extract` media              | ffmpeg/ffprobe, yt-dlp, `whisper-cli` for `whisper`, whisperfile for `whisperfile`.          | Selected hosted STT key.                                                                                                                                                  |
+| `extract` document OCR       | MuPDF/Tesseract as selected; Calibre for conversion.                                         | Selected hosted OCR key.                                                                                                                                                  |
 | `extract` article            | Defuddle for local/default article extraction.                                               | Firecrawl, GLM, Spider, Supadata, or Zyte keys for hosted URL backends.                                                                                                   |
-| `extract` X Space            | none beyond normal runtime.                                                                  | `X_BEARER_TOKEN`.                                                                                                                                                         |
-| `extract --transcript-video` | ffmpeg render stack and source audio/result files.                                           | No provider call when using existing results/text.                                                                                                                        |
-| `write`                      | Route-specific extract dependencies. Write has no local LLM.                                 | Selected hosted LLM key.                                                                                                                   |
-| `write --text-input`         | local `.md`/`.txt` files.                                                                    | Selected hosted LLM key.                                                                                                                   |
-| `tts`                        | none for hosted-only providers.                                                              | Selected hosted TTS key.                                                                                                                   |
-| `image`                      | none for hosted-only providers.                                                              | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.                                         |
-| `video`                      | local input media/image validation where used.                                               | `GEMINI_API_KEY`, `XAI_API_KEY`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
-| `music` hosted               | none for hosted-only generation.                                                             | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`.                                                                                                             |
-| `music --audio`/`--batch`    | ffmpeg, ffprobe, `whisper-cli`, local Whisper `large-v3-turbo`.                              | No hosted music key required for local lyric-video rendering.                                                                                                             |
+| `extract` X Space            | none                                                                                         | `X_BEARER_TOKEN`.                                                                                                                                                         |
+| `extract --transcript-video` | ffmpeg plus source audio and transcript files.                                               | none                                                                                                                                                                      |
+| `write`                      | Same extract dependencies as the chosen route. Write has no local LLM.                       | Selected hosted LLM key.                                                                                                                                                  |
+| `write --text-input`         | local `.md`/`.txt` files.                                                                    | Selected hosted LLM key.                                                                                                                                                  |
+| `tts`                        | none                                                                                         | Selected hosted TTS key.                                                                                                                                                  |
+| `image`                      | none                                                                                         | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.                                         |
+| `video`                      | source image or video when required.                                                         | `GEMINI_API_KEY`, `XAI_API_KEY`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.                                                           |
+| `music` hosted               | none                                                                                         | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`.                                                                                                             |
+| `music --audio`/`--batch`    | ffmpeg, ffprobe, `whisper-cli`, local Whisper `large-v3-turbo`.                              | none                                                                                                                                                                      |

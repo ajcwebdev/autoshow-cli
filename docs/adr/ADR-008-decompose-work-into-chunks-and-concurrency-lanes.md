@@ -9,13 +9,13 @@
 
 ## Context
 
-AutoShow splits pipeline work into smaller units in eleven distinct ways and bounds concurrent execution with nine separate controls. `--batch-concurrency` governs batch-capable commands, `--ocr-concurrency` drives an adaptive page scheduler, `--split` produces STT time segments bounded by `--stt-segment-concurrency`, while `--provider-concurrency` and `--local-concurrency` manage target fan-out across providers. Each control is documented on its own command page, but the cross-cutting relationships between them were previously undocumented.
+AutoShow splits pipeline work into smaller units and bounds concurrent execution with nested flags. `--batch-concurrency` governs batch-capable commands, `--ocr-concurrency` drives page work, `--split` produces STT time segments bounded by `--stt-segment-concurrency`, and `--provider-concurrency` / `--local-concurrency` fan out provider targets. Each flag is documented on its command page, but the flags **nest and multiply**.
 
-These controls **nest and multiply**. A command combining `--batch-concurrency 10`, `--provider-concurrency 10`, and an OCR page cap of 32 can produce far more concurrent remote requests than any single number indicates. Unbounded nesting previously caused severe head-of-line blocking: on 2026-07-10, `bun autoshow tts "input/text" --provider grok` over 16 inputs (721 chunks, batch concurrency 10, hosted TTS chunk concurrency 30) took 14m 45s against a 4m 57s estimate. Small 3-chunk and 5-chunk files took nearly 14 minutes to complete because early large files dominated the shared provider gate and later files waited for entire file jobs to finish.
+A command combining `--batch-concurrency 10`, `--provider-concurrency 10`, and an OCR page cap of 32 can issue far more concurrent remote requests than any one number suggests. Unbounded nesting previously caused head-of-line blocking: on 2026-07-10, `bun autoshow tts "input/text" --provider grok` over 16 inputs (721 chunks, batch concurrency 10, hosted TTS chunk concurrency 30) took 14m 45s against a 4m 57s estimate. Small 3-chunk and 5-chunk files took nearly 14 minutes because early large files held the shared provider gate until their whole-file jobs finished.
 
-This failure revealed a recurring architectural requirement across TTS, OCR, STT, and generic target scheduling: provider-wide pressure management must be decoupled from domain work selection, and outer batch loops must not starve smaller work units or multiply account-level rate limits.
+Provider-wide pressure must be decoupled from domain work selection. Outer batch loops must not starve smaller work units or multiply account-level rate limits.
 
-Why now: establishing a shared provider-lane concurrency architecture requires explicitly defining how work decomposition, lane scopes, dynamic fair scheduling, and rate-limit recovery interact across all pipeline commands.
+Why now: a shared provider-lane architecture needs an explicit record of how work decomposition, lane scope, fair scheduling, and rate-limit recovery interact across pipeline commands.
 
 ## Options Considered
 
@@ -37,7 +37,7 @@ Why now: establishing a shared provider-lane concurrency architecture requires e
 
 - **Option:** Raise default `--tts-chunk-concurrency` globally
 - **Pros:** Improves best-case throughput on high-tier provider accounts
-- **Cons:** Increases risk of 429 rate-limit exhaustion; masks underlying scheduling starvation by spending more concurrency
+- **Cons:** Increases risk of 429 rate-limit exhaustion; masks scheduling starvation by spending more concurrency
 - **Quantitative Notes:** The failing run already used 30 in-flight provider chunks
 
 **Option 4**
@@ -45,7 +45,7 @@ Why now: establishing a shared provider-lane concurrency architecture requires e
 - **Option:** Lower `--batch-concurrency` for multi-chunk batches
 - **Pros:** Reduces early queue domination by large files
 - **Cons:** Underutilizes available provider capacity; forces manual multi-flag tuning; slows large jobs
-- **Quantitative Notes:** Setting `--batch-concurrency 1` eliminates cross-file head-of-line blocking but eliminates batch parallelism
+- **Quantitative Notes:** `--batch-concurrency 1` eliminates cross-file head-of-line blocking but eliminates batch parallelism
 
 **Option 5**
 
@@ -66,263 +66,155 @@ Why now: establishing a shared provider-lane concurrency architecture requires e
 - **Option:** One universal monolithic scheduler for TTS, OCR, and STT
 - **Pros:** Single scheduler implementation to maintain
 - **Cons:** The domains require incompatible fairness, polling, chunking, and failure semantics
-- **Quantitative Notes:** Domain-specific selectors share a common lane vocabulary and admission coordinator instead
+- **Quantitative Notes:** Rejected; domain selectors share a lane vocabulary and admission coordinator instead
 
 ## Decision
 
-Adopt a two-layer concurrency architecture: a shared, run-scoped hosted admission and pressure coordinator (`HostedConcurrencyCoordinator`) that governs provider/account lane rate limits, ramp-up, and 429 recovery, combined with domain-specific work selectors (hosted TTS work queue, pooled/fan-out OCR scheduler, STT batch coordinator, and dialogue turn selector) that manage unit decomposition, ordering guarantees, and fair work dispatch.
+Adopt a two-layer concurrency architecture: a run-scoped hosted admission coordinator that governs provider/account rate limits, ramp-up, and 429 recovery, plus domain-specific work selectors that decompose units, preserve output order, and dispatch fairly.
 
 This applies to:
 
-- Every work decomposition mechanism: batch items, provider targets, STT time segments, hosted TTS text chunks, OCR pages and PDF chunks, comic panel groups, multi-speaker dialogue turns, and chapter/length splits.
-- Every concurrency control: `--batch-concurrency`, `--provider-concurrency`, `--local-concurrency`, `--ocr-concurrency`, `--stt-segment-concurrency`, `--stt-preflight-concurrency`, `--tts-chunk-concurrency`, `--url-provider-concurrency`, comic `--concurrency`, and `--concurrency-mode ramp|immediate`.
-- The run-scoped hosted admission coordinator and the four domain work selectors: `runProviderTargetScheduler`, `HostedTtsBatchCoordinatorImpl`, `HostedOcrSchedulerImpl`, and `SttBatchCoordinator`.
-- Output ordering guarantees, failure policies, and lifecycle scope (run-scoped vs document/batch-scoped).
+- Work decomposition: batch items, provider targets, STT time segments, hosted TTS text chunks, OCR pages, comic panel groups, multi-speaker dialogue turns, and chapter/length splits.
+- Public concurrency controls: `--batch-concurrency`, `--provider-concurrency`, `--local-concurrency`, `--ocr-concurrency`, `--stt-segment-concurrency`, `--tts-chunk-concurrency`, comic `--concurrency`, and `--concurrency-mode ramp|immediate`.
+- Hidden sibling caps: `--stt-preflight-concurrency` and `--url-provider-concurrency`.
+- Output ordering, failure policy, and run-scoped lane lifetime (one command execution, including batch children).
 
-It explicitly does not cover:
+It does not apply to:
 
-- Provider billing or pricing calculations beyond feeding accurate queue models into wall-time estimates.
-- Provider registry definitions (ADR-010) or error classification taxonomies (ADR-006).
-- Paid-provider live verification. Verification relies on deterministic local tests and mocked network calls.
+- Provider billing beyond feeding queue models into wall-time estimates.
+- Provider registry definitions ([ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)) or error classification taxonomies ([ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)).
+- Explicit TTS duplicate-spend authorization (`--allow-ambiguous-redispatch`), owned by [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) and [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md). Lane pressure recovery does not itself re-authorize duplicate spend.
+- Pooled OCR claim, resume, and artifact contracts, owned by [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md).
+- Video scene splitting, music segmentation, or write-prompt chunking: those domains send one request per target.
+- Paid-provider live verification. Verification uses deterministic local tests and mocked network calls.
 
-### Decomposition Inventory
+### Nested controls
 
-The records below catalog every mechanism that decomposes work into smaller execution units:
-
-**Mechanism 1: Batch item fan-out**
-
-- **Mechanism:** Batch item fan-out
-- **Unit Produced:** Single input file/URL through full pipeline
-- **Control:** `--batch-concurrency`
-- **Default:** `7`
-- **Implementation:** `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`
-
-**Mechanism 2: Provider target fan-out**
-
-- **Mechanism:** Provider target fan-out
-- **Unit Produced:** One `(service, model)` target per item
-- **Control:** `--provider-concurrency`, `--local-concurrency`
-- **Default:** `7` / `7`
-- **Implementation:** `src/cli/commands/process-steps/provider-target-scheduler.ts`
-
-**Mechanism 3: STT audio splitting**
-
-- **Mechanism:** STT audio splitting
-- **Unit Produced:** Contiguous time segment
-- **Control:** `--split` + automatic policy triggers
-- **Default:** 30 min (shrunk per provider limits)
-- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter.ts`
-
-**Mechanism 4: STT segment execution**
-
-- **Mechanism:** STT segment execution
-- **Unit Produced:** Single audio segment request
-- **Control:** `--stt-segment-concurrency`
-- **Default:** `7` (local and Mistral clamp to `1`)
-- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts`
-
-**Mechanism 5: Hosted TTS text chunking**
-
-- **Mechanism:** Hosted TTS text chunking
-- **Unit Produced:** Text chunk
-- **Control:** `--tts-chunk-concurrency`
-- **Default:** `30` (`50` for Grok-only hosted TTS)
-- **Implementation:** `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`
-
-**Mechanism 6: OCR page processing**
-
-- **Mechanism:** OCR page processing
-- **Unit Produced:** Single document page
-- **Control:** `--ocr-concurrency`
-- **Default:** Local `10`; hosted `auto`
-- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`
-
-**Mechanism 7: Pooled multi-provider OCR**
-
-- **Mechanism:** Pooled multi-provider OCR
-- **Unit Produced:** Dynamically claimed document page
-- **Control:** `--ocr-provider-mode pool`, target & OCR caps
-- **Default:** Mode `fanout`; target caps `10`/`10`; OCR cap `auto`
-- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`
-
-**Mechanism 8: PDF page-chunk fallback**
-
-- **Mechanism:** PDF page-chunk fallback
-- **Unit Produced:** Single-page PDF or rendered PNG
-- **Control:** Inherits OCR page cap
-- **Default:** Forced per-page above 20 pages
-- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback.ts`
-
-**Mechanism 9: Chapter/export splitting**
-
-- **Mechanism:** Chapter/export splitting
-- **Unit Produced:** Chapter text file
-- **Control:** `--chapters`, `--length`, `--pdf-chapter-mode`
-- **Default:** `--pdf-chapter-mode local`
-- **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
-
-**Mechanism 10: Comic panel grouping**
-
-- **Mechanism:** Comic panel grouping
-- **Unit Produced:** N panels per generated image
-- **Control:** `--panels-per-image`, comic `--concurrency`
-- **Default:** Panels per image `1` final / `6` sketch; comic concurrency `7`
-- **Implementation:** `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils.ts`
-
-**Mechanism 11: Multi-speaker TTS turns**
-
-- **Mechanism:** Multi-speaker TTS turns
-- **Unit Produced:** Single dialogue turn
-- **Control:** `--tts-chunk-concurrency`
-- **Default:** `30`
-- **Implementation:** `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`, `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`
-
-Output ordering and failure semantics differ deliberately per mechanism:
-
-**Mechanism 1: Batch items**
-
-- **Mechanism:** Batch items
-- **Output Ordering:** Re-associated by array index; manifest order is preserved regardless of completion order
-- **Failure Policy:** Never fails fast; tallies outcomes into `ok`/`partial`/`incomplete`/`fail`; throws only when `ok === 0 && fail > 0`
-
-**Mechanism 2: Provider targets**
-
-- **Mechanism:** Provider targets
-- **Output Ordering:** Results written back by original index; output matches target input order
-- **Failure Policy:** Per-target `try`/`catch`; a failing target never aborts siblings
-
-**Mechanism 3: STT segments**
-
-- **Mechanism:** STT segments
-- **Output Ordering:** Merged by sorting on `segmentIndex`
-- **Failure Policy:** First error aborts scheduling and rethrows
-
-**Mechanism 4: Hosted TTS chunks**
-
-- **Mechanism:** Hosted TTS chunks
-- **Output Ordering:** Concatenated in chunk order per file
-- **Failure Policy:** A failed chunk cancels only its owning file job
-
-**Mechanism 5: Multi-speaker TTS turns**
-
-- **Mechanism:** Multi-speaker TTS turns
-- **Output Ordering:** Written back by source index before concatenation
-- **Failure Policy:** First failure aborts shared signal, drains active turns, cleans all `.work-*` directories, and rethrows
-
-**Mechanism 6: OCR pages**
-
-- **Mechanism:** OCR pages
-- **Output Ordering:** Written into pre-sized results array by page index
-- **Failure Policy:** First error stops scheduling, in-flight work drains, remaining pages marked `canceled` in audit
-
-**Mechanism 7: Pooled OCR pages**
-
-- **Mechanism:** Pooled OCR pages
-- **Output Ordering:** Assembled by original page number into composite result
-- **Failure Policy:** Page failure requeues to another target; target/lane blockers retire target/lane; pages become exhausted only when no eligible target remains
-
-*Deliberately absent:* There is no video scene/shot splitting (one clip per target), no music generation segmentation (one request per target), and no prompt chunking in `step-3-write` (whole prompts sent).
-
-### Concurrency Layer Model
-
-The controls nest from outermost to innermost:
+Flags nest from outermost to innermost. Independent provider/account lanes multiply; models that share an account share one cap.
 
 ```text
---batch-concurrency            items in flight              processBatch / createResourceGate
-  └─ --provider-concurrency    hosted targets per item      runProviderTargetScheduler (hosted pool)
-     --local-concurrency       local targets per item       runProviderTargetScheduler (local pool)
-        └─ pooled OCR shared page queue   one claim per page  runOcrPagePool
-           ├─ independent OCR lane A      up to lane cap      adaptive/fixed hosted scheduler
-           ├─ independent OCR lane B      up to lane cap      adaptive/fixed hosted scheduler
-           └─ same-account models         share one lane cap  service:scopeLabel identity
-        └─ generation resource gate  cross-step 4/5/6/7 cap  createResourceGate (FIFO semaphore)
-           ├─ dialogue turn selector    tts chunk cap per turn  runDialogueWorkSelector
-           ├─ --tts-chunk-concurrency   class cap; shared hosted lane        HostedTtsBatchCoordinatorImpl
-           ├─ --ocr-concurrency         auto/fixed cap; shared hosted lane   HostedOcrSchedulerImpl
-           ├─ STT slot profiles         launch 1-4, poll min(8, batchConc)  SttBatchCoordinator
-           └─ --stt-segment-concurrency split segments per provider         split-execution.ts
-              └─ withRetry              per-request backoff and jitter      retries.ts
+--batch-concurrency                 files/URLs in flight
+  └─ --provider-concurrency         hosted targets per item
+     --local-concurrency            local targets per item
+        └─ pooled OCR pages         one page claimed at a time; independent lanes multiply, same-account lanes share
+        └─ inner hosted work        one shared provider/account lane
+           ├─ --tts-chunk-concurrency
+           ├─ --ocr-concurrency
+           ├─ --stt-segment-concurrency
+           └─ dialogue turns        same TTS chunk cap
 ```
 
-- **Layer 1 (Batch Items):** `--batch-concurrency` bounds active file/URL pipelines in `processBatch`. Standalone `image`, `video`, and `music` have no batch path; `comic` uses its own `--concurrency`.
-- **Layer 2 (Provider Targets):** `runProviderTargetScheduler` splits targets into concurrent hosted and local pools, sorting by priority then index to start slower engines earlier. An optional `resourceGate` caps concurrent work across steps 4–7.
-- **Layer 3 (Provider Lanes & Inner Work):** Run-scoped hosted coordinator tracks provider/account pressure, while domain selectors manage fine-grained chunk and page dispatch.
+Standalone `image`, `video`, and `music` have no batch path. Comic uses `--concurrency` instead of `--batch-concurrency`. Local engines, rendering, and preflight probes are not held by the hosted ramp.
 
-### Shared Hosted Admission and Pressure Model
+### Hosted admission
 
-All hosted network requests governed by concurrency controls pass through the run-scoped `HostedConcurrencyCoordinator`. Covered work includes model targets, OCR pages, STT segments, TTS chunks/turns, and generation tasks. Local providers, local rendering, and preflight checks execute immediately.
+Every hosted request governed by these controls shares one run-scoped coordinator. Lanes are keyed by provider plus account identity so two models on the same credentials share a cap, while independent providers ramp independently. Explicit stable non-secret labels isolate accounts without exposing credentials.
 
-- **Lane Scoping:** Lanes are keyed by `service:scopeLabel` (e.g., `openai:configured-account` or `mistral:env-api-key`). OCR and TTS share lanes across batch items; STT adapts its provider/model slot policy into scope labels. Explicit stable non-secret labels isolate accounts without exposing credentials.
-- **Concurrency Modes (`ramp|immediate`):** In `ramp` mode (the default), each lane admits one request immediately and adds one live slot every five seconds under queued demand, capping at the configured maximum. In `immediate` mode, lanes start directly at the cap.
-- **Pressure Recovery:** HTTP 429 and classified rate-limit responses halve the lane's live limit (`max(1, floor(limit / 2))`), pause new admissions, and allow active requests to drain. Delays observe `Retry-After` headers as a floor, with exponential jitter backoff (2, 4, 8, 16, 30s) bounded to a 5-minute recovery window. A successful probe clears the pressure streak and resumes 5-second slot ramping. Non-rate-limit errors (401, 403, 5xx, timeouts) follow their domain retry policies without triggering lane halving.
-- **Telemetry:** Additive `hostedConcurrency` telemetry records mode, lane identities, live limits, active/queued peaks, ramp transitions, backoff events, and probe outcomes.
+`--concurrency-mode ramp` (default) admits one request per lane immediately and adds one live slot every five seconds while demand is queued, up to the configured cap. `--concurrency-mode immediate` starts at the cap. The mode is persisted at `defaults.concurrency.mode`. Resume starts a fresh ramp and does not restore prior rate-limit pressure.
 
-### Domain Work Selectors
+HTTP 429 and classified rate-limit responses halve the lane's live limit (`max(1, floor(limit / 2))`), pause new admissions, and let in-flight work drain. Delays honor `Retry-After` as a floor, then exponential jitter (2, 4, 8, 16, 30s) bounded to a five-minute recovery window. A successful probe clears the pressure streak and resumes five-second ramping. Non-rate-limit errors (401, 403, 5xx, timeouts) follow domain retry policy and do not halve the lane. Rate-limit events are attributed to the exact file and chunk that received them.
 
-#### Hosted TTS Work Queue
+`--price` models a clean ramp with no rate-limit events. Runs record hosted-concurrency mode, lane identity, live limits, peaks, and ramp or backoff events.
 
-The hosted TTS coordinator (`HostedTtsBatchCoordinatorImpl`) decouples chunk dispatch from whole-file batch lifecycles:
+### Work units
 
-- **Registration Barrier:** The batch runner creates the coordinator with dispatch held, waits for every expected chunk job to register, then releases it. Slots are therefore refilled per chunk against the full known work set rather than per whole-file job.
-- **Deterministic Dispatch Order:** Each free slot goes to the runnable job with the lowest `originalOrder`, falling back to registration order. An optional per-job active-chunk ceiling (`maxActiveChunksPerJob`) is available to callers that want to cap one file's share; the CLI leaves it unset, so dispatch order alone decides allocation.
-- **Immutable Admission Tokens:** Each chunk receives a unique token containing lane ID, internal job ID, and chunk index, ensuring retries and rate-limit events attribute exactly to the responsible file.
-- **Chunk Limits:** Character-based chunking uses a 2000-character ceiling (200 for Groq), splitting on newlines or spaces.
+**Batch items**
 
-#### Pooled OCR Page Selector
+- **Unit:** One input file or URL through the pipeline
+- **Control:** `--batch-concurrency` (comic: `--concurrency`)
+- **Default:** `7`
+- **Ordering:** Results re-associated by original index; manifest order is preserved
+- **Failure:** Never fails fast; tallies `ok` / `partial` / `incomplete` / `fail`; throws only when `ok === 0` and `fail > 0`
 
-In `--ocr-provider-mode pool` (ADR-015), OCR targets do not process whole documents independently:
+**Provider targets**
 
-- **Shared Page Ledger:** A single source-ordered page queue is maintained per document. Eligible target workers dynamically claim pending pages.
-- **Lane Multiplication vs Sharing:** Independent hosted lanes (e.g., Google and Mistral) multiply page concurrency up to their respective caps, while models sharing a `service:scopeLabel` lane share a single lane limit.
-- **Claim Lifecycle:** Claims are checkpointed with unique claim IDs. Completed pages commit only if their claim ID matches and the page lacks an accepted result, preventing stale duplicate overwrites.
+- **Unit:** One `(service, model)` target per item
+- **Control:** `--provider-concurrency`, `--local-concurrency`
+- **Default:** `7` / `7`
+- **Ordering:** Results written back by original index
+- **Failure:** A failing target never aborts siblings
 
-#### STT and Multi-Speaker Dialogue Selectors
+**STT segments**
 
-- **STT Splitting and Offsetting:** `--split` defaults to 30-minute segments, dynamically reduced based on provider attachment/duration budgets. If rejected, adaptive halving passes reduce segment length down to a 60-second floor. Timestamp offsetting occurs inside provider adapters; diarization speaker identities remain per-segment.
-- **Multi-Speaker Dialogue Turns:** `runDialogueWorkSelector` manages turn execution with bounded concurrency, sized by `--tts-chunk-concurrency` for hosted and local targets alike. It assigns isolated `.work-*` workspaces per turn, preserves source ordering upon completion, and aborts and cleans workspaces immediately on error.
+- **Unit:** Contiguous audio time segment
+- **Control:** `--split` plus `--stt-segment-concurrency`
+- **Default:** 30-minute segments, shrunk to provider limits and halved on rejection down to 60 seconds; segment concurrency `7` (local and Mistral clamp to `1`)
+- **Ordering:** Merged by segment index
+- **Failure:** First error aborts remaining segments
+- Hidden `--stt-preflight-concurrency` (default `7`) bounds duration probes. Timestamp offsetting is applied in adapters; diarization speaker identities stay per-segment.
+
+**Hosted TTS chunks**
+
+- **Unit:** Text chunk, split on provider character limits
+- **Control:** `--tts-chunk-concurrency`
+- **Default:** `30` (`50` for Grok-only hosted TTS)
+- **Ordering:** Concatenated in chunk order per file
+- **Failure:** A failed chunk cancels only its owning file
+- `--tts-chunk-concurrency` is the run-wide hosted cap for a provider, not a per-file cap. `--batch-concurrency` keeps files active and parallelizes local work; it does not cap remote TTS requests. Dispatch waits until every file's chunks are known, then gives each free slot to the earliest-registered file that still has work. A file settles when its own chunks finish.
+
+**Multi-speaker TTS turns**
+
+- **Unit:** One dialogue turn
+- **Control:** `--tts-chunk-concurrency`
+- **Default:** `30`
+- **Ordering:** Written back by source index before concatenation
+- **Failure:** First failure aborts remaining turns and cleans isolated turn workspaces
+- Voice, rendering, and redispatch contracts belong to [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md). This record only bounds turn concurrency to the shared TTS chunk cap.
+
+**OCR pages**
+
+- **Unit:** One document page (large PDFs fall back to per-page work above 20 pages)
+- **Control:** `--ocr-concurrency`
+- **Default:** Local `10`; hosted `auto`
+- **Ordering:** Assembled by page index
+- **Failure:** First error stops scheduling; in-flight work drains; remaining pages are marked canceled
+- Omitting `--ocr-concurrency` selects adaptive `auto` sizing. An explicit number is a fixed hard cap.
+
+**Pooled OCR pages**
+
+- **Unit:** Dynamically claimed document page
+- **Control:** `--ocr-provider-mode pool`, plus target and OCR caps
+- **Default:** Mode `fanout`; OCR target caps `10` / `10`; OCR cap `auto`
+- **Ordering:** Assembled by original page number into one composite result
+- **Failure:** Page failure requeues to another eligible target; target or lane blockers retire that target or lane; a page is exhausted only when no eligible target remains
+- Independent hosted lanes multiply page concurrency up to each lane's cap; models that share an account share one cap. Claim, resume, artifact, and pricing contracts belong to [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md).
+
+**Chapter and comic splits**
+
+- `--chapters`, `--length`, and `--pdf-chapter-mode` (default `local`) produce chapter files. They are export splits, not hosted-lane work.
+- Comic `--panels-per-image` groups panels per generated image (default `1` final / `6` sketch) and comic `--concurrency` (default `7`) bounds that work.
 
 ## Rationale
 
-- **Concurrency Layers Multiply:** Documenting controls in isolation conceals exponential multiplication (e.g., batch concurrency × provider concurrency × page cap). A centralized inventory and layer model makes interactions explicit.
-- **Decoupling Safety from Work Selection:** Provider-wide caps prevent remote rate-limit violations, but queueing whole files behind one gate let an early large file hold capacity for its entire lifetime. Queueing individual chunks keeps the lane saturated while letting each file settle on its own completion instead of the batch's.
-- **Global Work Visibility:** Pre-chunking all batch inputs allows the scheduler to avoid head-of-line bias and produce accurate wall-time estimates from actual queued work.
-- **Domain-Specific Adaptation:** TTS, OCR, and STT require fundamentally different ordering, failure, and backfill semantics; sharing a lane vocabulary and admission coordinator provides safety without forcing artificial algorithmic unification.
-
-## API / Type Impact
-
-- `HostedConcurrencyMode`, admission tokens, coordinator, and telemetry types are public through `~/types`. The shared mode is configured via `--concurrency-mode` and persisted at `defaults.concurrency.mode`.
-- The run-scoped coordinator instance is threaded through options so batch children, multi-stage pipelines, and resume processes share lane pressure state within a command execution.
-- `--tts-chunk-concurrency` defines the provider-wide hosted maximum for the current run, not a per-file limit.
-- `--batch-concurrency` governs file lifecycle and local-work parallelism for hosted TTS batches, not remote request concurrency.
-- `--ocr-concurrency` maintains a two-state contract: omitted means adaptive `auto` sizing, while an explicit numeric value establishes a `fixed` hard cap.
-- `--ocr-provider-mode fanout|pool` selects full-document replication vs dynamic shared-page pooling.
-- `provider-lane-contract.ts` and `provider-lane-contract-types.ts` define scheduler-neutral lane identity, admission, completion, pressure, and telemetry contracts consumed by domain adapters.
+- **Concurrency layers multiply.** Documenting each flag in isolation conceals batch × provider × page-or-chunk caps. A single inventory and nesting model makes the product explicit.
+- **Safety is not the same as work selection.** Provider-wide caps prevent rate-limit violations, but queueing whole files behind one gate lets an early large file hold capacity for its entire lifetime. Queueing chunks keeps the lane saturated while each file finishes on its own work.
+- **Global work visibility.** Knowing every chunk before dispatch avoids head-of-line bias and lets wall-time estimates use the real queue, including ramp dynamics.
+- **Domain-specific adaptation.** TTS, OCR, and STT need different ordering and failure rules. Sharing lanes and admission policy provides safety without one monolithic scheduler.
 
 ## Consequences
 
 Positive outcomes:
 
-- Eliminates whole-file head-of-line blocking: a file settles as soon as its own chunks finish instead of waiting for other files' jobs to drain.
-- Hosted providers are protected by run-scoped concurrency caps and adaptive 429 backoff.
-- Large jobs retain high throughput because any free lane slot is refilled by the next runnable chunk rather than held for a specific file.
-- Accurate wall-time estimates reflect total queued chunks, provider throughput profiles, and ramp dynamics.
-- Clear documentation of nested concurrency interactions prevents accidental over-concurrency.
-- Exact admission tokens allow provider retries and rate limits to be attributed precisely to specific jobs and chunks.
-- Run-scoped OCR lanes prevent multi-document batch runs from multiplying account-level rate limits.
+- A file settles as soon as its own chunks finish instead of waiting for other files' jobs to drain.
+- Hosted providers stay inside run-scoped caps with adaptive 429 backoff.
+- Large jobs keep throughput because any free lane slot is refilled by the next runnable chunk.
+- Wall-time estimates reflect queued work, provider throughput, and ramp dynamics.
+- Nested flags can be reasoned about without accidentally over-subscribing an account.
+- Batch OCR across documents does not multiply the same account's rate limit.
 
 Negative outcomes:
 
-- Schedulers carry additional internal state (dispatch debt, dynamic windows, probe state).
-- Domain implementations must keep chunk/page preparation decoupled from scheduling.
-- Additional telemetry and diagnostics increase run metadata surface area.
-- Concurrency defaults must remain conservative to accommodate unannounced provider account limits.
+- Dispatch still prefers earlier-registered inputs while a lane is saturated.
+- `--batch-concurrency` no longer means remote TTS request concurrency.
+- Concurrency defaults stay conservative to accommodate unannounced provider account limits.
+- Runs emit additional scheduler telemetry.
 
 ## Trade-offs
 
 **Trade-off 1**
 
 - **Gain:** Provider-safe concurrency with fair cross-file progress
-- **Sacrifice:** Additional coordinator state and domain-specific work selectors
+- **Sacrifice:** Domain-specific work selectors instead of one FIFO gate
 
 **Trade-off 2**
 
@@ -332,83 +224,59 @@ Negative outcomes:
 **Trade-off 3**
 
 - **Gain:** Wall-time estimates based on actual queue mechanics
-- **Sacrifice:** Requirement to model and sample provider throughput profiles
+- **Sacrifice:** Estimates must model provider throughput and clean-ramp behavior
 
 **Trade-off 4**
 
-- **Gain:** Actionable post-run diagnostics and telemetry
-- **Sacrifice:** Increased run metadata surface area
-
-**Trade-off 5**
-
-- **Gain:** Preserved user-facing flag ergonomics
-- **Sacrifice:** Internal reinterpretation of `--batch-concurrency` for hosted TTS
-
-**Trade-off 6**
-
-- **Gain:** Dynamic multi-provider OCR throughput
-- **Sacrifice:** Bookkeeping for page claims, attempts, and target retirement
+- **Gain:** Existing flag names and defaults stay usable
+- **Sacrifice:** `--batch-concurrency` is file lifecycle for hosted TTS, not remote request concurrency
 
 ## Implementation Note
 
-- `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts` implements shared admission, 5-second ramping, exact-request pressure attribution, bounded recovery, and telemetry. `src/utils/hosted-concurrency-estimator.ts` provides the clean-ramp estimator for price planning.
-- `src/cli/commands/process-steps/step-4-tts/tts-batch-summary.ts` simulates the hosted work queue to produce wall-time estimates, and `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts` emits scheduler summaries after batch runs.
-- `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts` and `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts` implement bounded multi-speaker turn fan-out with isolated workspaces.
-- `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/batch-executor.ts` initializes the run-scoped OCR coordinator with per-document queue adapters for batch extract/write.
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`, `ocr-page-pool-state.ts`, `ocr-page-pool-workers.ts`, and `ocr-pooled-batch.ts` implement pooled OCR page claims, attempt tracking, and canonical checkpoints.
-- `src/cli/commands/process-steps/provider-lane-contract.ts` and `src/types/generation-core/provider-lane-contract-types.ts` provide the scheduler-neutral contract consumed by domain adapters.
+The run-scoped hosted admission coordinator, five-second ramp, exact-request 429 recovery, and telemetry live in `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts`. Clean-ramp price estimates use `src/utils/hosted-concurrency-estimator.ts`. Flag defaults live in `src/utils/concurrency-defaults.ts` and resolve through `src/cli/options/option-resolution/concurrency.ts`.
+
+Hosted TTS chunk dispatch is in `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`. Multi-speaker turns use `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`. Hosted OCR page scheduling is in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`. STT segment execution is in `src/cli/commands/process-steps/step-2-extract/step-2-stt/`. Provider target fan-out is in `src/cli/commands/process-steps/provider-target-scheduler.ts`.
+
+## API / Type Impact
+
+- `--concurrency-mode ramp|immediate` defaults to `ramp` and is persisted at `defaults.concurrency.mode`.
+- `--tts-chunk-concurrency` is the run-wide hosted maximum for the current provider, default `30` (`50` for Grok-only hosted TTS).
+- `--batch-concurrency` bounds how many files stay active. For hosted TTS it does not cap remote chunk requests.
+- `--ocr-concurrency` omitted means adaptive `auto`; an explicit number is a fixed cap.
+- `--ocr-provider-mode fanout|pool` selects full-document replication versus shared-page pooling; pool mode still uses these lanes.
+- Hidden `--stt-preflight-concurrency` and `--url-provider-concurrency` remain the STT probe and URL-target caps.
 
 ## Test Plan
 
-Run standard verification and targeted contract suites:
-
 ```bash
 bun run check
+bun t --price
+bun test test/test-cases/validation/runtime-contracts/hosted-concurrency-contracts.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
-- **Hosted TTS Work Queue Unit Tests:**
-  - Verify every expected chunk job registers before dispatch is released.
-  - Verify same-lane jobs dispatch in registered input order and concatenate chunks in chunk order.
-  - Verify concurrent chunked runs against one provider share a single hosted scheduler.
-  - Verify active requests never exceed `--tts-chunk-concurrency`.
-- **Pressure and Recovery Unit Tests:**
-  - Verify 429 responses halve active lane capacity down to 1.
-  - Verify `Retry-After` pauses admissions without cancelling in-flight work.
-  - Verify successful recovery probes restore 5-second ramping toward the configured cap.
-  - Verify admission tokens attribute retries and rate limits to exact jobs.
-- **Shared Coordinator Unit Tests:**
-  - Verify ramp mode reaches 12 slots after 55s of queued demand; immediate mode starts at cap.
-  - Verify provider/account lanes remain strictly isolated.
-  - Verify non-rate-limit errors (401, 403, 5xx, timeouts) do not trigger lane halving.
-- **Domain Selector Contract Tests:**
-  - Verify run-scoped OCR coordinator bounds aggregate active pages across multiple document adapters.
-  - Verify pooled OCR claims, attempt isolation, and duplicate-commit prevention.
-  - Verify multi-speaker turn selector bounds concurrency, preserves source ordering, and cleans workspaces on error.
-- **Verification Commands:**
-  - `bun run check`
-  - `bun t --price`
-  - `git diff --check`
-  - Targeted test suites under `test/test-cases/validation/providers/tts-provider-contracts/` and `test/test-cases/validation/cli/`
+1. Hosted TTS registers every expected chunk before dispatch, keeps same-lane work in registration order, concatenates chunks in chunk order, and never exceeds `--tts-chunk-concurrency`.
+2. Ramp mode grows one slot every five seconds under queued demand; immediate mode starts at the cap; provider/account lanes stay isolated.
+3. 429 responses halve a lane down to 1, honor `Retry-After` without cancelling in-flight work, resume ramping after a successful probe, and leave non-rate-limit errors to domain retry policy.
+4. Option resolution preserves `--concurrency-mode`, `--tts-chunk-concurrency`, `--batch-concurrency`, `--ocr-concurrency auto|n`, and the hidden STT/URL caps.
 
-Verification evidence recorded on 2026-08-21 using `bun run check`, `bun t --price`, option-resolution test suites, local scheduler contract suites, and `git diff --check`. No paid or quota-limited network calls are used in verification.
+Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 
 ## References
 
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Pipeline state, resume, and price preflight simulation
-- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) — Unified error handling and retry vocabulary
+- Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md) — Unified error handling, retry vocabulary, and TTS duplicate-spend authorization
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — Extraction domain architecture and OCR execution contracts
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Model registry, capabilities, and provider identities
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md) — Multi-speaker script-to-audio contracts and generation slots
 - Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — Multi-provider OCR page pool architecture
-- Concurrency defaults: `src/utils/concurrency-defaults.ts`
-- Shared hosted coordinator: `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts`, `src/types/generation-core/hosted-concurrency-types.ts`
-- Price ramp estimator: `src/utils/hosted-concurrency-estimator.ts`
-- Flag definitions and resolution: `src/cli/flags/shared-flags.ts`, `src/cli/flags/tts-flags.ts`, `src/cli/options/option-resolution/concurrency.ts`
-- Batch executor: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`, `batch-executor.ts`
-- Target scheduler and resource gate: `src/cli/commands/process-steps/provider-target-scheduler.ts`, `src/utils/resource-gate.ts` (the write-only `generation-resource-gate.ts` wrapper was removed with write generation in [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md))
-- Provider lane contract: `src/cli/commands/process-steps/provider-lane-contract.ts`, `src/types/generation-core/provider-lane-contract-types.ts`
-- Hosted TTS coordinator: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`, `hosted-tts-retry.ts`
-- Multi-speaker dialogue selector: `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`, `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`
-- Hosted OCR scheduler & pooled batch: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`, `ocr-provider-pool.ts`, `ocr-page-pool-state.ts`, `ocr-page-pool-workers.ts`, `ocr-pooled-batch.ts`
-- STT batch coordinator & splitting: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-coordinator.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `split-execution.ts`
+- `src/utils/concurrency-defaults.ts`
+- `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts`
+- `src/utils/hosted-concurrency-estimator.ts`
+- `src/cli/options/option-resolution/concurrency.ts`
+- `src/cli/commands/process-steps/provider-target-scheduler.ts`
+- `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`
+- `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`
+- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`
+- `src/cli/commands/process-steps/step-2-extract/step-2-stt/`
+- `test/test-cases/validation/runtime-contracts/hosted-concurrency-contracts.test.ts`

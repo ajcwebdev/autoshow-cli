@@ -21,7 +21,7 @@ bun autoshow extract [input] [flags]
 
 Batch inputs use the same shared controls as other processing commands. The default batch limit is `5`; use `--batch-limit all` to process every discovered item.
 
-Hosted extraction defaults to `--concurrency-mode ramp`: each provider/account lane starts one logical request immediately and adds one slot every five seconds while demand is queued, without exceeding the existing provider, segment, or OCR page cap. Use `--concurrency-mode immediate` to begin at those caps. Local engines, document rendering, batch preparation, and preflight probes remain immediate.
+Hosted extraction defaults to `--concurrency-mode ramp`. Use `--concurrency-mode immediate` to start at the configured caps. Local engines stay immediate.
 
 For backfilling missing provider outputs from an existing run or batch, see [`resume`](../../setup-and-utilities/resume/resume.md).
 
@@ -44,15 +44,11 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 | Directory batches                                                                                         | Mixed routing per discovered item                    |
 | URL-list batches (`.md` / `.txt`)                                                                         | Mixed routing per listed URL                         |
 
-Media inputs are downloaded, normalized when needed, and transcribed. With no engine flag, media defaults to local Whisper.cpp `tiny`. Hosted STT engines are documented in [STT extraction](./02-extract-stt.md).
-
-Document and image inputs route through OCR or native text extraction based on file type. PDFs and images default to local Tesseract. Hosted OCR engines are documented in [OCR extraction](./03-extract-ocr.md).
-
-Remote article URLs default to local `defuddle` and can also use hosted backends via `--url-provider` or `--all-providers`. Local HTML files always use `defuddle`. Hosted URL backends are documented in [URL and X extraction](./04-extract-url.md).
-
-X/Twitter Space URLs, post URLs, and raw Space IDs are auto-detected and processed through the X v2 API, producing metadata artifacts rather than an STT transcript.
+With no engine flag, media uses local Whisper.cpp `tiny`, PDFs and images use local Tesseract, and remote articles use local `defuddle`. Local HTML files always use `defuddle`. X/Twitter Space URLs, post URLs, and raw Space IDs produce metadata rather than a transcript.
 
 ## Local Engines
+
+Local STT, OCR, and URL engines are free. Install them with [`bun autoshow setup`](../../setup-and-utilities/setup/setup.md).
 
 | Flag                      | Description                                                     |
 | ------------------------- | --------------------------------------------------------------- |
@@ -62,23 +58,9 @@ X/Twitter Space URLs, post URLs, and raw Space IDs are auto-detected and process
 
 ### Local STT
 
-```bash
-# full setup
-bun autoshow setup
+Whisperfile downloads its selected model on first use; to pre-download, run `bun autoshow setup --step whisperfile` (default `tiny`) or `bun autoshow setup --models whisperfile:<model>`.
 
-# build whisper.cpp binary only
-bun autoshow setup --step whisper-binary
-
-# download the default whisper model only
-bun autoshow setup --step whisper-model
-
-# download large-v3-turbo
-bun autoshow setup --step transcription
-```
-
-Whisperfile needs no setup step. The first `--provider whisperfile=<model>` run downloads the matching prebuilt `whisper-<model>.llamafile` from `huggingface.co/Mozilla/whisperfile` into `runtime/bin/whisperfile/` and reuses it afterward. To pre-download it instead, run `bun autoshow setup --step whisperfile` (default `tiny`) or `bun autoshow setup --models whisperfile:<model>` for a specific model.
-
-If no engine flag is provided, `extract` defaults to local Whisper.cpp with the `tiny` model for media inputs.
+Neither local engine does diarization or speaker-count hints. Both emit native word timestamps and get AutoShow punctuation cleanup.
 
 #### Whisper.cpp
 
@@ -86,12 +68,11 @@ If no engine flag is provided, `extract` defaults to local Whisper.cpp with the 
 | -------- | --------------------------------------------------- |
 | Selector | default, or `--provider whisper[=<model>]`          |
 | Models   | `tiny`, `base`, `small`, `medium`, `large-v3-turbo` |
-| Runtime  | Local `whisper.cpp` (free)                          |
+| Runtime  | Local `whisper.cpp`                                 |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisper=large-v3-turbo
-bun autoshow extract https://ajc.pics/autoshow/examples/2-video.mp4 --provider whisper=large-v3-turbo --split
 ```
 
 #### Whisperfile
@@ -100,38 +81,29 @@ bun autoshow extract https://ajc.pics/autoshow/examples/2-video.mp4 --provider w
 | -------- | ------------------------------------------------------------------------------------- |
 | Selector | `--provider whisperfile=<model>`                                                      |
 | Models   | `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3` |
-| Runtime  | Local prebuilt `whisper-<model>.llamafile` (free)                                     |
+| Runtime  | Local Whisperfile                                                                     |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=large-v3
 ```
 
-Prebuilt binaries with embedded weights and native word timings. Downloads automatically to `runtime/bin/whisperfile/` on first use. Requires an explicit model selector. Included by `--all-local`.
-
-Local STT engines are free.
-
-| Provider                                                                                                 | Released      | Input    | Diarization | Speaker count | Word timestamps | Transcript cleanup                   | Duration             | File size            |
-| -------------------------------------------------------------------------------------------------------- | ------------- | -------- | ----------- | ------------- | --------------- | ------------------------------------ | -------------------- | -------------------- |
-| Whisper.cpp `tiny` / `base` / `small` / `medium` / `large-v3-turbo`                                      | ❌ 2024-09    | ✅ Local | ❌ No       | ❌ No         | ✅ Native words | ⚠️ AutoShow punctuation cleanup only | ✅ No documented cap | ✅ No documented cap |
-| Whisperfile `tiny` / `tiny.en` / `small` / `small.en` / `medium` / `medium.en` / `large-v2` / `large-v3` | ❌ 2023-11    | ✅ Local | ❌ No       | ❌ No         | ✅ Native words | ⚠️ AutoShow punctuation cleanup only | ✅ No documented cap | ✅ No documented cap |
-
-Whisper.cpp recency follows `large-v3-turbo` (September 2024). The original `tiny` / `base` / `small` / `medium` series is from September 2022. Whisperfile recency follows bundled `large-v3` (November 2023).
+Whisperfile requires an explicit model selector. It is included by `--all-local`.
 
 ### Local OCR
 
-Tesseract is the only local OCR engine and is installed as part of `bun autoshow setup`.
+Tesseract is the only local OCR engine.
 
 | Input family                                       | Default path                                                         |
 | -------------------------------------------------- | -------------------------------------------------------------------- |
-| PDF                                                | `mutool+tesseract`                                                   |
-| EPUB                                               | cleaned native extraction (`epub-text`); `--provider tesseract` also available |
-| Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | normalize to EPUB, then follow the EPUB path                         |
+| PDF                                                | Tesseract                                                            |
+| EPUB                                               | cleaned native text; `--provider tesseract` also available           |
+| Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT) | convert to EPUB, then follow the EPUB path                           |
 | CBZ                                                | per-image OCR, Tesseract by default                                  |
-| PNG / JPG / JPEG / TIF / TIFF / GIF                | local OCR by default                                                 |
-| WebP / BMP                                         | normalize locally when possible, then OCR                            |
+| PNG / JPG / JPEG / TIF / TIFF / GIF                | Tesseract                                                            |
+| WebP / BMP                                         | convert locally, then OCR                                            |
 
-`--all-local` enables Tesseract for this route. `--ocr-concurrency` defaults to `10` for local OCR. Local OCR remains immediate under `--concurrency-mode ramp`.
+`--all-local` enables Tesseract for this route. `--ocr-concurrency` defaults to `10` for local OCR.
 
 #### Tesseract
 
@@ -146,25 +118,13 @@ bun autoshow extract input/examples/document/1-document.pdf --provider tesseract
 bun autoshow extract input/examples/document/1-document.pdf --provider tesseract --ocr-language eng+fra --ocr-dpi 300
 ```
 
-Tesseract is the only engine that consumes `--ocr-language`.
-
-| Provider              | Released      | Kind                   | Native PDF                       | Images                      | Image cap        | PDF cap          | Pages          | Markdown      | Tables / formulas / layout   | BBoxes           | Password PDFs    | Pool   |
-| --------------------- | ------------- | ---------------------- | -------------------------------- | --------------------------- | ---------------- | ---------------- | -------------- | ------------- | ---------------------------- | ---------------- | ---------------- | ------ |
-| Tesseract `tesseract` | ❌ 2021-11-30 | ✅ Local dedicated OCR | ⚠️ Render plus hybrid text layer | ✅ PNG JPG TIF WEBP BMP GIF | ✅ No upload cap | ✅ No upload cap | ✅ No page cap | ❌ Plain text | ⚠️ Confidence TSV internally | ❌ Not persisted | ✅ Local decrypt | ✅ Yes |
+Tesseract is the only engine that consumes `--ocr-language`. It writes plain text, decrypts password PDFs locally, and has no upload or page cap.
 
 ### Local URL
 
-```bash
-# full setup
-bun autoshow setup
+`--all-local` runs `defuddle`. Do not combine `--url-provider` with `--all-providers` or `--all-local`.
 
-# local URL article extraction only
-bun autoshow setup --step defuddle
-```
-
-Remote article URLs default to `defuddle`. Local `.html` / `.htm` files always use `defuddle` and skip hosted backends. `--all-local` runs `defuddle`. Do not combine `--url-provider` with `--all-providers` or `--all-local`.
-
-In single-backend mode, `defuddle` falls back to `firecrawl` if extraction fails. `--all-local` selects `defuddle` and `--all-providers` selects the hosted backends; combining them runs `defuddle` first, and either group run disables that automatic fallback. `defuddle` runs in a single-slot lane.
+In single-backend mode, `defuddle` falls back to `firecrawl` if extraction fails. Combining `--all-local` with `--all-providers` runs `defuddle` first, and either group run disables that automatic fallback.
 
 #### Defuddle
 
@@ -172,7 +132,7 @@ In single-backend mode, `defuddle` falls back to `firecrawl` if extraction fails
 | -------- | ---------------------------------------------------- |
 | Selector | default, or `--url-provider defuddle`                |
 | Inputs   | Remote article URLs and local `.html` / `.htm` files |
-| Runtime  | Local HTML/article extraction via Defuddle CLI       |
+| Runtime  | Local HTML/article extraction                        |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com
@@ -181,10 +141,6 @@ bun autoshow extract input/article.html --format json
 
 Use `--bin-dir <dir>` to supply a custom `defuddle` binary path.
 
-| Provider            | Released   | Inputs                                   | Markdown        | Local HTML | Remote URLs |
-| ------------------- | ---------- | ---------------------------------------- | --------------- | ---------- | ----------- |
-| Defuddle `defuddle` | ⚠️ 2025-02 | Remote article URLs and local HTML files | ✅ Article text | ✅ Always  | ✅ Default  |
-
 ## Batch Inputs
 
 Directory batches and URL-list batches classify each item independently. A single batch can include media URLs, article URLs, document URLs, X/Twitter links, and local files.
@@ -192,9 +148,6 @@ Directory batches and URL-list batches classify each item independently. A singl
 ```bash
 # Process every item in a URL list
 bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
-
-# Compare every hosted URL article backend for one remote article
-bun autoshow extract https://example.com/article --all-providers
 
 # Process a whole YouTube channel batch with caption-first STT routing
 bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --batch-limit all

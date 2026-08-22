@@ -32,7 +32,7 @@ Short version:
 
 ## Common Workflows
 
-These examples cover the primary workflows. Where both local and hosted execution are supported, both are shown. See the [command docs](./docs/commands.md) for every provider and model, batch inputs, reference and editing modes, transcript video rendering, specialized source types, and advanced options.
+These examples cover the primary workflows. Where both local and hosted execution are supported, both are shown. See the [command overview](./docs/commands.md) for the command map and selection guide, and the linked command pages for provider lists, flags, and advanced options.
 
 ### Metadata and Download
 

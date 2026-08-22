@@ -14,9 +14,9 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice consent [subject-key] [flags]
 ```
 
-Grant still requires `<subject-key>` plus `--allow` with at least one explicit action. Revoke uses `--revoke <consent-ref>` and `--reason`. Do not infer grant vs revoke from whether a positional looks like a subject key or a locator. `--revoke` cannot be combined with `--allow` or a subject key.
+Grant requires `<subject-key>` plus `--allow` with at least one explicit action. Revoke uses `--revoke <consent-ref>` and `--reason`. `--revoke` cannot be combined with `--allow` or a subject key.
 
-Consent records are immutable and content-addressed. Revoking one appends a protected marker; the original locator then fails every consent gate. `consent --revoke <locator>` is the only revocation spelling; the former `revoke-consent` subcommand was removed.
+Consent records cannot be edited. After revoke, the original locator fails every consent-gated action.
 
 ### Options
 

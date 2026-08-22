@@ -28,6 +28,7 @@ Run the full download plus transcription or extraction pipeline, then generate s
   - [Creative Writing](#creative-writing)
 - [Output](#output)
 - [Notes](#notes)
+- [Generate Media from Write Output](#generate-media-from-write-output)
 - [Provider Capabilities](#provider-capabilities)
 
 ## Setup
@@ -107,7 +108,7 @@ bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
 ```
 
-Write price preflight uses the model registry's input/output token rates and local token-count heuristics for the selected prompt/source text. The human `Cost Estimate` table shows `step`, `provider`, `model`, estimated `input` tokens, `cost`, and `estimated` processing time; use `--json` to inspect the structured token estimates and rates.
+Write `--price` estimates use the selected prompt and source text. The `Cost Estimate` table shows `step`, `provider`, `model`, estimated `input` tokens, `cost`, and `estimated` processing time; use `--json` for structured token estimates and rates.
 
 ## Write Services
 
@@ -130,8 +131,6 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=g
 bun autoshow write ./output/demo/text/01-track-one.md --llm openai=gpt-5.5 --prompt folkSong
 ```
 
-Passing `--llm openai` defaults to `gpt-5.6-luna`. Explicit model selectors or `--all-providers llm` access all registered GPT-5.6, GPT-5.5, and GPT-5.4 tiers.
-
 ### Anthropic
 
 | Option   | Value                                                                                                            |
@@ -146,7 +145,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropi
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropic=claude-opus-5
 ```
 
-Passing `--llm anthropic` defaults to `claude-haiku-4-5`. Claude Opus 5 estimates use standard rates of `$5 / 1M input` and `$25 / 1M output`, with a 1M-token context window and 128K maximum output tokens.
+Claude Fable 5 requires 30-day data retention and is unavailable under ZDR.
 
 ### Gemini
 
@@ -161,7 +160,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=g
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
 ```
 
-Passing `--llm gemini` defaults to `gemini-3.5-flash-lite`. Gemini models use flat Standard rates: Gemini 3.7 Flash and Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Gemini 3.7 Flash estimates conservatively use the standard rates effective 2027-01-01, overstating cost during the introductory `$0.75 / $3.75` window through 2026-12-31. Gemini 3.1 Pro Preview uses `$2.00 / 1M input` and `$12.00 / 1M output` up to 200K tokens, and `$4.00 / 1M input` and `$18.00 / 1M output` above 200K.
+Gemini 3.7 Flash `--price` estimates use the standard `$1.50 / $7.50` rates effective 2027-01-01, overstating cost during the introductory `$0.75 / $3.75` window through 2026-12-31. Gemini 3.1 Pro Preview uses `$2.00 / 1M input` and `$12.00 / 1M output` up to 200K tokens, and `$4.00 / 1M input` and `$18.00 / 1M output` above 200K.
 
 ### Groq
 
@@ -177,18 +176,17 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm groq=ope
 
 ### MiniMax
 
-| Option   | Value                                             |
-| -------- | ------------------------------------------------- |
-| Selector | `--llm minimax[=<model>]`                         |
-| Models   | `MiniMax-M3`                                      |
-| Default  | Passing `--llm minimax` uses `MiniMax-M3`         |
-| API      | Native MiniMax text API at `/v1/chat/completions` |
+| Option   | Value                                     |
+| -------- | ----------------------------------------- |
+| Selector | `--llm minimax[=<model>]`                 |
+| Models   | `MiniMax-M3`                              |
+| Default  | Passing `--llm minimax` uses `MiniMax-M3` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm minimax=MiniMax-M3
 ```
 
-`MiniMax-M3` supports a 1M context window. Price estimates use MiniMax Standard pay-as-you-go bands: up to 512K input tokens at `$0.60 / 1M input` and `$2.40 / 1M output`; over 512K input tokens at `$1.20 / 1M input` and `$4.80 / 1M output`.
+MiniMax Standard pay-as-you-go bands: up to 512K input tokens at `$0.60 / 1M input` and `$2.40 / 1M output`; over 512K input tokens at `$1.20 / 1M input` and `$4.80 / 1M output`.
 
 ### Grok
 
@@ -203,38 +201,34 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=gro
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.5
 ```
 
-Passing `--llm grok` defaults to `grok-4.3`. Grok 4.5 and Grok 4.6 price estimates use standard rates: `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
+Grok 4.5 and Grok 4.6 price estimates use `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
 
 ### Z.AI GLM
 
-| Option            | Value                                                 |
-| ----------------- | ----------------------------------------------------- |
-| Selector          | `--llm glm[=<model>]`                                 |
-| Models            | `glm-5.1`                                             |
-| Default           | Passing `--llm glm` uses `glm-5.1`                    |
-| Structured output | Uses Z.AI's OpenAI-compatible chat API with JSON mode |
+| Option   | Value                              |
+| -------- | ---------------------------------- |
+| Selector | `--llm glm[=<model>]`              |
+| Models   | `glm-5.1`                          |
+| Default  | Passing `--llm glm` uses `glm-5.1` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm glm=glm-5.1
 ```
 
-GLM 5.1 pricing uses standard rates: `$1.40 / 1M input` and `$4.40 / 1M output`, with a 200K-token context window and 128K maximum output tokens.
-
 ### Kimi
 
-| Option            | Value                                                 |
-| ----------------- | ----------------------------------------------------- |
-| Selector          | `--llm kimi[=<model>]`                                |
-| Models            | `kimi-k2.6`, `kimi-k3`                                |
-| Default           | Passing `--llm kimi` uses `kimi-k2.6`                 |
-| Structured output | Uses Kimi's OpenAI-compatible chat API with JSON mode |
+| Option   | Value                                 |
+| -------- | ------------------------------------- |
+| Selector | `--llm kimi[=<model>]`                |
+| Models   | `kimi-k2.6`, `kimi-k3`                |
+| Default  | Passing `--llm kimi` uses `kimi-k2.6` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k2.6
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k3
 ```
 
-Passing `--llm kimi` defaults to `kimi-k2.6` (`$0.95 / 1M input`, `$4.00 / 1M output`, 256K context). Kimi K3 uses flat pay-as-you-go rates: `$3.00 / 1M input`, `$15.00 / 1M output`, and a 1M-token context window. K3 runs with always-on thinking by default; reasoning effort can be configured via `--reasoning-effort`.
+Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
 
 ### Together
 
@@ -243,14 +237,11 @@ Passing `--llm kimi` defaults to `kimi-k2.6` (`$0.95 / 1M input`, `$4.00 / 1M ou
 | Selector | `--llm together[=<model>]`              |
 | Models   | `kimi-k2.6`, `glm-5.1`                  |
 | Default  | Passing `--llm together` uses `glm-5.1` |
-| API key  | `TOGETHER_API_KEY`                      |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=kimi-k2.6
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=glm-5.1
 ```
-
-Together provides serverless hosted models via OpenAI-compatible chat completions: `kimi-k2.6` maps to `moonshotai/Kimi-K2.6` (`$1.20 / 1M input`, `$4.50 / 1M output`) and `glm-5.1` maps to `zai-org/GLM-5.1` (`$1.40 / 1M input`, `$4.40 / 1M output`).
 
 ### Cerebras
 
@@ -259,25 +250,15 @@ Together provides serverless hosted models via OpenAI-compatible chat completion
 | Selector | `--llm cerebras[=<model>]`                   |
 | Models   | `gpt-oss-120b`, `zai-glm-4.7`                |
 | Default  | Passing `--llm cerebras` uses `gpt-oss-120b` |
-| API key  | `CEREBRAS_API_KEY`                           |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=gpt-oss-120b
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=zai-glm-4.7
 ```
 
-Cerebras provides high-throughput hosted inference via OpenAI-compatible chat completions with 131K context and 40,960 maximum completion tokens: `gpt-oss-120b` (`$0.35 / 1M input`, `$0.75 / 1M output`) and `zai-glm-4.7` (`$2.25 / 1M input`, `$2.75 / 1M output`).
-
-AutoShow normalizes structured output schemas for Cerebras strict mode while validating returned JSON against the full local schema.
-
-```bash
-# Multi-provider run
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --llm grok=grok-4.5 --llm groq=openai/gpt-oss-20b --llm glm=glm-5.1 --llm kimi=kimi-k2.6 --llm together=kimi-k2.6 --llm together=glm-5.1 --llm cerebras=gpt-oss-120b --llm cerebras=zai-glm-4.7
-```
-
 ## Prompts
 
-Prompt names are assembled at runtime from JSON files discovered recursively under `src/prompts/entries/`. Available prompts organized by category:
+Available prompts organized by category:
 
 ### Summary and Overview
 
@@ -340,11 +321,10 @@ Prompt names are assembled at runtime from JSON files discovered recursively und
 - `write` output is JSON by default.
 - Single-target runs write `text.json`.
 - Multi-target runs write `text-<model>.json` for each selected LLM target.
-- `--rendered-text` writes rendered markdown inside the run directory.
+- `--rendered-text` writes rendered markdown inside the run directory: `text.md` for a single `--llm` target, or `text-<model>.md` per model when multiple targets are selected.
 - `--rendered-out-dir <dir>` also writes rendered markdown to another directory.
 - `--prompt-md` writes a second prompt file (`prompt-md.md`) with markdown-formatted examples alongside the JSON prompt.
 - Project lyric draft mode defaults `--rendered-out-dir` to `./output/<name>/lyrics`.
-- Providers with native structured output use it directly; other providers use the internal schema-guided fallback path.
 
 ## Notes
 
@@ -356,24 +336,17 @@ Prompt names are assembled at runtime from JSON files discovered recursively und
 
 ## Generate Media from Write Output
 
-`write` stops at step 3 (text generation). To generate speech, images, video, or music from written outputs, invoke the standalone generation commands against `write`'s rendered markdown or prompt outputs:
+`write` stops at step 3. Generate speech, images, video, or music with the standalone commands against rendered markdown:
 
 ```bash
-# 1. Run write to produce rendered text
 bun autoshow write video.mp4 --llm openai --prompt shortSummary --rendered-text
-
-# 2. Synthesize audio with TTS
 bun autoshow tts output/<run-dir>/text.md --provider elevenlabs
-
-# 3. Generate music using the written text as the prompt
 bun autoshow music output/<run-dir>/text.md --provider elevenlabs
-
-# 4. Generate images or video using the written text as a prompt
 bun autoshow image "$(cat output/<run-dir>/text.md)" --provider openai
 bun autoshow video "$(cat output/<run-dir>/text.md)" --provider grok
 ```
 
-With a single `--llm` target the rendered file is `text.md`; multiple targets write one `text-<model>.md` per model. Lyric drafts from project lyric draft mode land under `./output/<name>/lyrics` and pair with `music --lyrics-file` for lyrics-driven generation.
+Lyric drafts from project lyric draft mode land under `./output/<name>/lyrics` and pair with `music --lyrics-file`.
 
 ## Provider Capabilities
 
@@ -411,7 +384,5 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 | Groq `openai/gpt-oss-20b`       | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.075 / $0.30 per 1M tokens  | 1/30      |
 | Groq `openai/gpt-oss-120b`      | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.15 / $0.60 per 1M tokens   | 2/30      |
 | Cerebras `gpt-oss-120b`         | ❌ 2025-08-05  | ❌ Unsupported                | ❌ 131K        | ⚠️ Strict-mode normalized | $0.35 / $0.75 per 1M tokens   | 3/30      |
-
-Claude Fable 5 requires 30-day data retention and is unavailable under ZDR. MiniMax M3 has no `response_format` / `json_schema` support, so AutoShow uses the schema-guided fallback. Cerebras structured output is normalized into strict mode while JSON is validated against the full local schema. Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
 
 Write test coverage is documented in [Step 3 Service Tests: Write](write-tests.md).

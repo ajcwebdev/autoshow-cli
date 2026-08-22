@@ -11,7 +11,7 @@
 
 `links` is AutoShow's local documentation bundle command. It fetches curated provider documentation URLs, direct remote URLs, or input-file URL lists, converts HTML pages to Markdown as needed, and writes a combined Markdown artifact under `project/links/`.
 
-However, the generated Markdown records no freshness metadata: when each source was fetched, whether content changed since prior runs, payload sizes, or reference token estimates. In addition, provider manifests mixed model-reference URLs into general or modality sections, leaving `links models` incomplete and permitting URLs to repeat across categories.
+The generated Markdown records no freshness metadata: when each source was fetched, whether content changed since prior runs, payload sizes, or reference token estimates. Provider manifests also mixed model-reference URLs into general or modality sections, leaving `links models` incomplete and permitting URLs to repeat across categories.
 
 Why now: `links` is used as a repeatable documentation snapshot mechanism, requiring explicit refresh metadata and a clean model-documentation selection surface.
 
@@ -19,10 +19,10 @@ Why now: `links` is used as a repeatable documentation snapshot mechanism, requi
 
 **Option 1 (selected)**
 
-- **Option:** Add opt-in refresh flags with a sidecar metadata file and align the selector registry
-- **Pros:** Makes refresh behavior explicit; preserves default markdown behavior; gives `models` a first-class global section; prevents duplicate URLs across manifest categories
-- **Cons:** Adds command flags, a metadata schema, a vendored reference tokenizer, a sidecar artifact, and broader selector tests
-- **Quantitative Notes:** 2 boolean flags, 1 JSON sidecar per refresh run, 1 tokenizer utility, `Models` sections across 24 of the 43 curated providers
+- **Option:** Add opt-in `--refresh` / `--refresh-only` flags with a JSON sidecar, and promote model-reference URLs into first-class `Models` sections
+- **Pros:** Makes refresh behavior explicit; preserves default markdown-only output; gives `models` a first-class global section; prevents duplicate URLs across manifest categories
+- **Cons:** Adds command flags, a metadata schema, a sidecar artifact, and a reference tokenizer
+- **Quantitative Notes:** 2 boolean flags, 1 JSON sidecar per refresh run, `Models` sections across 24 of the 43 curated providers
 
 **Option 2**
 
@@ -47,76 +47,47 @@ Why now: `links` is used as a repeatable documentation snapshot mechanism, requi
 
 ## Decision
 
-Add `--refresh` as an explicit boolean flag for `links`. When present, `links` fetches every unique selected link, computes per-resource reference token counts, computes SHA-256 hashes over normalized markdown bodies, compares the current refresh against prior metadata, and writes a JSON sidecar next to the generated markdown. `--refresh-only` implies `--refresh` but leaves an existing markdown bundle in place, updating sidecar metadata only.
+Add `--refresh` as an explicit boolean flag for `links`. When present, `links` fetches every unique selected link, records per-resource reference token counts and SHA-256 hashes of the normalized markdown bodies, compares the current refresh against prior metadata, and writes a JSON sidecar next to the generated markdown. `--refresh-only` implies `--refresh` but leaves an existing markdown bundle in place, updating sidecar metadata only.
 
-Also promote model-reference URLs into `Models` sections across curated provider manifests so `links models` and provider-scoped `models` selections work consistently.
+Promote model-reference URLs into `Models` sections across curated provider manifests so `links models` and provider-scoped `models` selections work consistently.
 
 This applies to:
 
 - Curated `links` selections, including global sections, provider selectors, mixed selections, and deduplicated overlapping URLs.
 - Direct URL mode and input file mode.
-- Existing markdown output path behavior under `project/links/`.
-- Refresh metadata sidecars named from the generated markdown artifact, for example `project/links/<selection>-links.refresh.json`.
+- Combined markdown under `project/links/` and refresh sidecars named from that artifact, for example `project/links/<selection>-links.refresh.json`.
 - Provider manifest organization for first-class `models` coverage.
 
 It does not apply to:
 
 - Changing normal `links` behavior when `--refresh` is omitted.
-- Running paid or quota-limited provider APIs.
-- Replacing default fetch and Markdown conversion pipelines.
+- Paid or quota-limited provider APIs.
+- Replacing the default fetch and Markdown conversion pipelines.
 
 ## Rationale
 
-- Opt-in flags make comparison and sidecar behavior intentional while keeping existing `links` usage stable.
-- A JSON sidecar keeps machine-readable refresh state separate from the combined markdown artifact that users may paste into tools, diff, or archive.
-- Hashing the normalized markdown body after the existing fetch and conversion pipeline measures the content users actually receive rather than provider-specific transport details.
+- Opt-in flags keep existing `links` usage stable while making comparison and sidecar writes intentional.
+- A JSON sidecar keeps machine-readable refresh state separate from the combined markdown that users paste, diff, or archive.
+- Hashing the normalized markdown body measures the content users actually receive, rather than transport-level HTTP details.
 - Comparing both content hash and token count catches same-size text edits and tokenization-relevant edits.
-- Persisting tokenizer metadata makes token totals auditable and avoids presenting them as exact counts for every downstream provider or model.
-- Applying refresh metadata across curated, direct URL, and input-file modes provides uniform freshness auditing for both registry and ad hoc documentation.
-- First-class `models` sections make `bun autoshow links models` useful and keep model pages from being duplicated across modality sections.
-
-## Implementation Note
-
-- `src/cli/commands/setup-and-utilities/links/define-links-command.ts` parses `--refresh` and `--refresh-only`, supports direct URL and input file selection modes, enriches fetch results, and writes sidecars when requested.
-- `src/utils/reference-tokenizer.ts` centralizes the reference tokenizer as an in-repository `o200k_base` BPE encoder over the vendored rank table at `src/tools/o200k-base-ranks.tiktoken.gz`, with no npm tokenizer dependency.
-- `src/cli/commands/setup-and-utilities/links/model-links/*.json` provides first-class `Models` sections across curated provider manifests.
-- `docs/commands/setup-and-utilities/links/links.md` documents selection modes, `models`, `--refresh`, `--refresh-only`, sidecar paths, aggregate counts, and reference tokenizer semantics.
-
-## API / Type Impact
-
-- `links` accepts `--refresh` and `--refresh-only` as command-specific boolean flags.
-- `parseLinksArgv(argv)` returns `refresh: boolean` alongside selection fields, plus `refreshOnly: true` when `--refresh-only` is passed.
-- `runLinksWithArgv(argv, { outputPath, fetchImpl })` returns `refreshMetadataPath` when refresh is requested.
-- `getLinksRefreshMetadataPath(outputPath)` derives the sidecar path by replacing a `.md`, `.markdown`, or `.txt` extension with `.refresh.json`, and appending `.refresh.json` when the output path carries no such extension.
-- `ReferenceTokenizerMetadata` records tokenizer name (`o200k_base`), implementation (`in-repository-bpe`), and the SHA-256 of the vendored rank data.
-- Provider manifests expose `models` as a global section and provider-scoped section where model-reference URLs exist.
-
-The refresh sidecar schema (`schemaVersion: 1`) records:
-
-- `command`, `selectionMode`, selection details per mode, selected URLs, output path, sidecar path, `refreshedAt`, and `markdownWritten`.
-- Aggregate counts for total, successful, empty, failed, new, unchanged, and changed links, plus failed refreshes, tokens, bytes, and characters.
-- Tokenizer metadata.
-- Per-link `sourceUrl`, `fetchUrl`, `finalUrl` when available, fetch status, change status, token count, tokenizer metadata, SHA-256 content hash, byte count, character count, `lastRefreshAt`, `lastSuccessfulRefreshAt`, previous hash and token count when available, and failure reason when applicable.
-
-Under `--refresh-only`, `markdownWritten` is `false` when a bundle already exists and the command warns if remote content has drifted from it; when no bundle exists yet, the markdown is written and `markdownWritten` is `true`.
+- Tokenizer metadata makes token totals auditable and presents them as reference estimates, not exact billable counts.
+- First-class `models` sections make `bun autoshow links models` complete and keep model pages from being duplicated across modality sections.
 
 ## Consequences
 
 Positive outcomes:
 
-- Users can tell whether refreshed documentation sources are new, unchanged, changed, or failed without manually diffing the combined markdown artifact.
+- Users can tell whether refreshed documentation sources are new, unchanged, changed, or failed without manually diffing the combined markdown.
 - Token totals make documentation bundles easier to size before using them as model context.
 - Failed refreshes preserve previous successful hash, token count, and successful refresh timestamp when available.
 - `links models` and provider-scoped `models` selections work across the curated registry.
-- Documentation snapshots across all selection modes (curated, direct URL, input file) gain uniform freshness tracking.
 
 Negative outcomes:
 
-- Refresh runs can be slow because curated `bun autoshow links --refresh` fetches the full selected registry, even though fetches run concurrently at the shared CLI concurrency limit.
+- Refresh runs can be slow because curated `bun autoshow links --refresh` fetches the full selected registry.
 - The CLI gains command-specific flags and a metadata schema that must stay backward-compatible as it evolves.
-- The vendored `o200k_base` rank table adds roughly 1.7 MB of committed repository data and an ongoing parity responsibility against upstream `tiktoken`, and its counts are reference estimates rather than exact billable counts for any specific provider or model.
+- Token counts are reference estimates rather than exact billable counts for any specific provider or model.
 - Sidecar files add another artifact that docs and cleanup workflows need to account for.
-- The provider link registry and selector fixture tests churn more broadly when model docs move between categories.
 
 ## Trade-offs
 
@@ -140,6 +111,18 @@ Negative outcomes:
 - **Gain:** Reuse of existing fetch and conversion behavior
 - **Sacrifice:** Refresh duration remains tied to remote fetch latency across selected links
 
+## Implementation Note
+
+`--refresh` and `--refresh-only` are implemented in `src/cli/commands/setup-and-utilities/links/define-links-command.ts`. Reference token counts use the in-repository `o200k_base` tokenizer in `src/utils/reference-tokenizer.ts`. Curated `Models` sections live in `src/cli/commands/setup-and-utilities/links/model-links/`. User-facing behavior is documented in `docs/commands/setup-and-utilities/links/links.md`.
+
+## API / Type Impact
+
+- `links` accepts `--refresh` and `--refresh-only` as command-specific boolean flags.
+- Sidecar path is derived from the markdown output by replacing a `.md`, `.markdown`, or `.txt` extension with `.refresh.json`, or appending `.refresh.json` when the output path has no such extension.
+- Provider manifests expose `models` as a global section and as a provider-scoped section wherever model-reference URLs exist.
+- The refresh sidecar (`schemaVersion: 1`) records selection details, `refreshedAt`, `markdownWritten`, `o200k_base` tokenizer identity, aggregate success/change/failure/token/byte/character counts, and per-link fetch status, change status (`new`, `unchanged`, `changed`, or `failed`), hash, token count, timestamps, previous successful values, and failure reason.
+- Under `--refresh-only`, `markdownWritten` is `false` when a bundle already exists and the command warns if remote content has drifted from it; when no bundle exists yet, the markdown is written and `markdownWritten` is `true`.
+
 ## Test Plan
 
 Run default verification (`bun run check`) and local, no-cost contract validation suites (with no paid or quota-limited provider calls):
@@ -153,20 +136,19 @@ bun test test/test-cases/validation/cli/cli-help-contracts.test.ts test/test-cas
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
-The refresh metadata tests cover first refresh, unchanged second refresh, token-count change, same-token hash change, `--refresh-only` preserving an existing bundle, failed fetch preserving previous successful metadata, bounded-concurrency fetching with preserved output order and failures, input-file selections with deduped URLs, and deduped curated links; the input-mode tests cover direct URL mode and input file mode. No paid-provider, smoke, or e2e tests were run.
+1. First refresh, unchanged second refresh, hash-only and token-count changes, `--refresh-only` preserving an existing bundle, and failed fetch preserving previous successful metadata.
+2. Direct URL mode, input file mode, and URL deduplication.
+3. Help, usage errors, and option resolution for `--refresh` and `--refresh-only`.
+
+Do not run paid-provider, smoke, e2e, or full-suite tests for this ADR.
 
 ## References
 
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
-- Related reports: the 2026 hosted-model refresh reports under `docs/reports/`
 - `docs/commands/setup-and-utilities/links/links.md`
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts`
 - `src/cli/commands/setup-and-utilities/links/model-links/`
 - `src/types/cli-surface/define-links-command-types.ts`
 - `src/utils/reference-tokenizer.ts`
-- `src/tools/o200k-base-ranks.tiktoken.gz`
-- `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-input-modes.test.ts`
-- `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-refresh-metadata.test.ts`
-- `test/test-cases/validation/cli/native-cli-parser-contracts.test.ts`

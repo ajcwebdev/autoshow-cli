@@ -11,102 +11,58 @@
 
 Comic produces reviewed still panels, canonical dialogue `AudioRun` artifacts, and ADR-017 soundscape masters, but those assets previously lacked a local presentation layer. A raw audio master does not retain panel provenance, and cross-panel overlaps on the original scene clock cause audio to desynchronize when played beneath a simple image sequence.
 
-The presentation workflow must remain derived and non-destructive: it may consume ADR-013 and ADR-017 artifacts, but must not mutate source runs, generate replacement media, infer fuzzy matches, crop or rescale approved art, or introduce generated motion. Local rendering requires deterministic resume and idempotent execution without provider calls. Additionally, audio runs in separate output directories must resolve reviewed visual assets without manual file duplication or late-stage failures after paid generation completes.
+The presentation workflow must remain derived and non-destructive: it may consume ADR-013 and ADR-017 artifacts, but must not mutate source runs, generate replacement media, infer fuzzy matches, crop or rescale approved art, or introduce generated motion. Local rendering requires deterministic resume and idempotent execution without provider calls. Audio runs in separate output directories must resolve reviewed visual assets without manual file duplication or late-stage failures after paid generation completes.
 
 Why now: canonical panel, dialogue, and soundscape artifacts are sufficiently provenance-rich to produce a synchronized local MP4 without another generative provider.
 
 ## Options Considered
 
-**Option 1**
-
-- **Option:** Generate motion video from each panel
-- **Pros:** Visually dynamic output
-- **Cons:** Adds provider cost, creative drift, timing uncertainty, and another provider lifecycle
-- **Quantitative Notes:** At least one paid request per panel or shot
-
-**Option 2**
-
-- **Option:** Put the unmodified scene master under a fixed-rate image sequence
-- **Pros:** Small implementation
-- **Cons:** Cross-panel overlaps can play under the wrong image; raw masters cannot prove panel ownership
-- **Quantitative Notes:** One output with no reliable synchronization contract
-
-**Option 3 (selected)**
+**Option 1 (selected)**
 
 - **Option:** Build a manifest-backed local still-panel plan, recompose its audio, and render hard cuts with FFmpeg
 - **Pros:** Exact ownership evidence, no provider calls, deterministic timing, immutable resume, preserved source artifacts
 - **Cons:** Adds derived plans, timelines, local transforms, and strict failures for incomplete evidence
 - **Quantitative Notes:** `$0`; one WAV and one MP4 per presentation identity
 
+**Option 2**
+
+- **Option:** Generate motion video from each panel
+- **Pros:** Visually dynamic output
+- **Cons:** Adds provider cost, creative drift, timing uncertainty, and another provider lifecycle
+- **Quantitative Notes:** At least one paid request per panel or shot
+
+**Option 3**
+
+- **Option:** Put the unmodified scene master under a fixed-rate image sequence
+- **Pros:** Small implementation
+- **Cons:** Cross-panel overlaps can play under the wrong image; raw masters cannot prove panel ownership
+- **Quantitative Notes:** One output with no reliable synchronization contract
+
 ## Decision
 
 Add `autoshow comic generate-slideshow <script-path>` as an optional local presentation stage. It consumes canonical `panels/panel-NN.png` files and exactly one complete manifest-selected dialogue or soundscape run, constructs a sequential panel clock, recomposes a presentation-specific WAV from retained source audio, and renders a same-size H.264/yuv420p MP4 with AAC audio and hard cuts only.
 
-The visual source is the current run when it contains a valid reviewed scene and complete panels. Otherwise the workflow checks the deterministic canonical sibling named for the exact sanitized script slug, validates full source-segment coverage against the current structured script, and requires exact dialogue reconciliation. It then copies the verified scene and panel bytes into a content-addressed immutable `presentation/inputs/<visual-bundle-id>/` bundle inside the audio run. Presentation plans never retain external or escaping paths, and sibling naming alone never establishes compatibility.
+Visuals come from the current run when it contains a valid reviewed scene and complete panels; otherwise the command uses the canonical sibling named for the exact sanitized script slug after validating source coverage and exact dialogue reconciliation. Sibling naming alone never establishes compatibility. `comic generate-audio --slideshow` performs the same visual, panel, and encoder checks before TTS dispatch and fails locally if any prerequisite is missing. A completed audio run can invoke `comic generate-slideshow` for the local import and FFmpeg work only.
 
-`comic generate-audio --slideshow` performs visual resolution, source coverage, dialogue reconciliation, panel validation, and H.264 encoder readiness before TTS provider dispatch. If any prerequisite is unavailable, the command fails locally before provider spend. A completed audio run can invoke `comic generate-slideshow` directly to perform only the local import and FFmpeg work.
+Every reviewed panel must exist as one consecutive `panels/panel-NN.png` with identical positive even dimensions, which become the output dimensions with no crop, pad, or rescale. Missing files are reported together. Audio selection uses only complete selected manifest bindings: without `--audio-target`, exactly one selected soundscape run wins, otherwise exactly one selected dialogue run. Multiple complete candidates require `--audio-target <provider=model>`. Raw audio without a checksum-bound `AudioRun` is rejected.
+
+Dialogue and discrete effects bind by exact source identity, speaker, and speech text, never by fuzzy or provider-assisted matching. Inline effects belong to the panel that owns their dialogue segment; block effects belong to the unique panel owning the nearest preceding action or panel-note. Missing, duplicate, or ambiguous ownership fails.
+
+Panels play in reviewed order. Events on one panel keep their relative timing; events that overlapped across panels on the source clock are serialized so they cannot play under the wrong still. A panel without dialogue or a discrete effect holds for `--untimed-panel-ms` (default 2000). Ambience loops for the full presentation; if none exists, the audio is digital silence. The derived WAV never replaces the source master.
+
+The video uses `--fps` (default 30), H.264, `yuv420p`, AAC at 192 kbps, fast-start metadata, and hard cuts. Selected success publishes `presentation/presentation.json`, `presentation/final/slideshow.wav`, and `presentation/final/slideshow.mp4`. Identical complete reruns no-op after identity and checksum validation. `--price` validates option syntax, reports `$0.00`, and performs no writes.
 
 This applies to:
 
 - Exact source-to-panel reconciliation, dialogue and discrete-effect ownership, untimed panel holds, cross-panel serialization, ambience looping, local presentation audio recomposition, still-image encoding, output identity, resume, and publication.
-- `ComicPresentationPlan`, `ResolvedPanelTimeline`, `ComicPresentationRun`, the optional comic manifest presentation stage, compact `presentation/presentation.json`, and selected `presentation/final/` outputs. ADR-013 owns how those artifacts are stored and compacted.
+- The optional comic manifest presentation stage and selected `presentation/final/` outputs. ADR-013 owns how those artifacts are stored and compacted.
 
-This does not:
+It does not apply to:
 
-- Generate, repair, animate, crop, pad, or resize comic panels.
-- Generate dialogue, effects, ambience, voices, or any other provider-backed media.
-- Replace or mutate ADR-013 `AudioRun` artifacts, ADR-017 soundscape runs, their original timelines, masters, or selected-success pointers.
-- Accept a raw audio file without its checksum-bound canonical timeline.
-
-### Ownership Boundaries
-
-**Owner 1: ADR-013 dialogue workflow**
-
-- **Owner:** ADR-013 dialogue workflow
-- **Responsibilities:** Voice identity, casting, provider execution, dialogue assembly, canonical dialogue `AudioRun`, and original `FinalTimeline`
-- **Must not own:** Panel timing, presentation serialization, presentation outputs
-
-**Owner 2: ADR-017 soundscape workflow**
-
-- **Owner:** ADR-017 soundscape workflow
-- **Responsibilities:** Authored cues, SFX generation, retained sources, buses, cue placement, source stems, original soundscape timeline, and master
-- **Must not own:** Rewriting source runs for a slideshow or choosing panel windows
-
-**Owner 3: ADR-018 presentation workflow**
-
-- **Owner:** ADR-018 presentation workflow
-- **Responsibilities:** Exact panel reconciliation, event ownership evidence, sequential panel clock, derived audio transformations, continuous ambience or digital silence, still-image encoding, resume, publication, and presentation identity
-- **Must not own:** Provider dispatch, fuzzy matching, source-run mutation, generated motion
-
-**Owner 4: Canonical manifest**
-
-- **Owner:** Canonical manifest
-- **Responsibilities:** Optional local stage status and checksum-bound selected presentation references
-- **Must not own:** A second presentation manifest or mutable run artifacts
-
-### Input and Reconciliation Contract
-
-Every reviewed panel must have one direct canonical `panels/panel-NN.png` file in its visual source. The command reports every missing file in one error, rejects duplicate numeric aliases, requires consecutive reviewed panel numbers, and requires every image to have identical positive even dimensions. Those dimensions are the output dimensions; the encoder does not crop, pad, or rescale. Imported sibling inputs preserve those exact bytes and dimensions under an immutable run-contained visual bundle.
-
-Audio selection considers only complete selected manifest bindings. Without `--audio-target`, exactly one selected soundscape run wins; otherwise exactly one selected dialogue run is used. Multiple selected soundscape runs or, when no soundscape is selected, multiple dialogue runs require `--audio-target <provider=model>`. An explicit target selects its soundscape first and its dialogue run otherwise. Missing run artifacts, stale checksums, invalid content identities, untimed dialogue timelines, incomplete required cue results, and raw audio without an `AudioRun` fail before rendering.
-
-Dialogue turns bind by exact `sourceSegmentId`, speaker, and canonical speech text. When a reviewed panel line retains a parenthetical cue that the audio plan classifies as non-spoken delivery or timing, reconciliation elides it only when the cue text is preserved exactly in that turn's delivery or timing evidence. When panel lines lack source IDs, reconciliation falls back to deterministic exact speaker-and-text occurrence order. Content mismatches, unsupported parentheticals, duplicate ownership, missing turns, and ambiguous occurrences fail. The workflow never uses fuzzy or provider-assisted matching.
-
-An inline discrete effect belongs to the panel already owning its source dialogue segment. A block effect belongs to the unique panel owning the nearest preceding authored action or panel-note source segment. Split source fragments with an identical nearest source end may collapse only when every fragment resolves to the same panel, and the binding retains all equivalent source IDs. Every binding records its method and source evidence; missing and ambiguous panel ownership fail.
-
-### Presentation Clock and Audio Contract
-
-Panels are processed in reviewed order. Events assigned to one panel keep their relative timing and overlap. Each assigned panel starts after the preceding panel, so events that overlapped across panels on the source clock are serialized and cannot play beneath the wrong still. An assigned panel lasts from its earliest event start through its latest event end. A panel without dialogue or a discrete effect receives `--untimed-panel-ms`, defaulting to 2000 milliseconds, including untimed panels before, between, and after audio-bearing panels.
-
-The renderer slices checksum-bound dialogue ranges from the original dialogue output and places retained SFX sources according to the resolved panel timeline. Overlapping dialogue ranges from the same panel are unioned before slicing so the same master material is not mixed twice. Ambience sources loop continuously for the complete presentation duration; when no ambience exists, the audio graph records digital silence as its continuous base. All transformations and exact FFmpeg commands are retained in `ComicPresentationRun`. The derived WAV never replaces the source dialogue or soundscape master.
-
-### Rendering and Persistence Contract
-
-The video uses a constant configurable frame rate, defaulting to 30 fps, H.264 video, `yuv420p`, AAC at 192 kbps, fast-start metadata, and hard cuts. `libx264` uses its `stillimage` tune when available. A supported H.264 hardware encoder is selected and recorded when the managed FFmpeg build lacks `libx264`; the source remains a static same-size image sequence and no motion, transition, crop, pad, or scale filter is introduced.
-
-The content-addressed `presentationId` binds source identity, reviewed scene, structured script, dialogue plan, selected audio run and timeline, optional soundscape evidence, panel checksums and dimensions, reconciliation evidence, and timing/encoder options. External canonical visuals are first copied into an immutable content-addressed input bundle, so all plan paths remain contained by the active run. After selected success, ADR-013 compact writes `presentation/presentation.json` and hardlinks `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`, then deletes working `presentation/runs/` media copies and `.staging/`. Identical complete reruns validate content identities and checksums, republish only when necessary, and otherwise no-op.
-
-`--price` validates local option syntax, reports `$0.00`, makes no provider call, and performs no writes.
+- Generating, repairing, animating, cropping, padding, or resizing comic panels.
+- Generating dialogue, effects, ambience, voices, or any other provider-backed media.
+- Replacing or mutating ADR-013 `AudioRun` artifacts, ADR-017 soundscape runs, their original timelines, masters, or selected-success pointers.
+- Accepting a raw audio file without its checksum-bound canonical timeline.
 
 ## Rationale
 
@@ -116,10 +72,6 @@ The content-addressed `presentationId` binds source identity, reviewed scene, st
 - Exact matching and explicit ambiguity failures make panel reconciliation reviewable and reproducible.
 - Local FFmpeg rendering produces a standard shareable MP4 without generative cost or visual drift.
 
-## Implementation Note
-
-The workflow is implemented in `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/` and the `comic-presentation-*` utilities beside the existing comic workflow. Public types live in `src/types/comic-workflow/` — `comic-presentation-types.ts` plus the inputs, plan, and renderer modules — and are exported only through `src/types/index.ts`. Comic manifest parsing and updates live in `src/cli/commands/process-steps/pipeline-manifest.ts` and `src/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest.ts`. The native command surface is defined by `src/cli/flags/comic-flags.ts` and `src/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help.ts`.
-
 ## Consequences
 
 Positive outcomes:
@@ -127,7 +79,7 @@ Positive outcomes:
 - Approved still panels and canonical audio produce a synchronized local MP4 for zero provider cost.
 - Provider-comparison audio directories reuse one exact reviewed visual bundle without external paths or manual copying.
 - Combined audio-and-slideshow commands reject missing or incompatible visual inputs before paid synthesis begins.
-- Panel ownership, timing changes, encoder settings, commands, and output checksums are independently reviewable.
+- Panel ownership, timing, encoder settings, and output checksums are independently reviewable.
 - Source dialogue and soundscape runs remain immutable and reusable.
 - Interrupted local work resumes and identical completed work no-ops.
 
@@ -136,7 +88,7 @@ Negative outcomes:
 - The command rejects incomplete panel sets, differently sized images, untimed audio, and ambiguous provenance instead of producing a best-effort video.
 - Direct canonical panel PNGs are required in the current run or its deterministic exact-script sibling even when another image workflow retains model/run-qualified variants.
 - Presentations retain another WAV and MP4 plus their evidence graph.
-- Managed FFmpeg installations without `libx264` use a recorded H.264 hardware encoder and cannot apply the encoder-specific `stillimage` tune.
+- Managed FFmpeg installations without `libx264` fall back to a recorded H.264 hardware encoder.
 
 ## Trade-offs
 
@@ -165,6 +117,10 @@ Negative outcomes:
 - **Gain:** Deterministic resume and no-op reruns
 - **Sacrifice:** Content changes create a new immutable presentation identity
 
+## Implementation Note
+
+The workflow is implemented in `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/` and the adjacent `comic-presentation-*` utilities. Public types live in `src/types/comic-workflow/` and are exported only through `src/types/index.ts`. Comic manifest updates live in `src/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest.ts`. The command surface is defined by `src/cli/flags/comic-flags.ts` and `src/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help.ts`.
+
 ## Test Plan
 
 Run the default verification, price-only suite, and targeted local contracts:
@@ -180,7 +136,13 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 git diff --check
 ```
 
-The local contracts verify exact and fallback reconciliation, ambiguity failures, inline and action-segment SFX ownership, untimed panel holds, within-panel overlap, cross-panel serialization, ambience looping, digital silence, panel validation, sibling visual import, stale checksum rejection, audio target selection, immutable publication, resume behavior, and FFmpeg rendering. The FFmpeg contract verifies duration within one frame, hard-cut image timing, source dimensions, H.264/yuv420p video, AAC audio, and frequency alignment. No provider-backed test or paid suite is part of ADR verification.
+1. `bun run check` and `git diff --check` confirm type, lint, and whitespace health after documentation edits.
+2. `bun t --price` confirms no-cost `--price` planning with zero network calls and zero file mutations.
+3. The presentation contracts verify exact reconciliation, ambiguity failures, SFX ownership, untimed panel holds, cross-panel serialization, ambience looping, panel validation, sibling visual import, audio target selection, immutable publication, and resume.
+4. The FFmpeg contract verifies duration, hard-cut image timing, source dimensions, H.264/yuv420p video, and AAC audio.
+5. The CLI help, usage-error, and option-resolution contracts confirm the public `comic generate-slideshow` surface.
+
+No provider-backed test or paid suite is part of ADR verification.
 
 ## References
 

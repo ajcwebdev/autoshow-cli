@@ -4,10 +4,6 @@ Register an existing provider voice without creating a remote resource.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
-## Outline
-
-- [import](#import)
-
 ## import
 
 ```bash
@@ -25,8 +21,7 @@ bun autoshow voice import <subject-key> [flags]
 | `--origin <origin>` | Voice origin: `provider-stock`, `designed`, `remixed`, `instant-clone`, `professional-clone`, `imported-custom`, or `saved-reference`; default `provider-stock` |
 | `--provenance-ref <ref>` | Opaque non-secret provenance record reference |
 | `--consent-ref <ref>` | Protected consent-record reference when consent is required |
-| `--account-scope-hash <sha>` | Required lowercase SHA-256 account scope for every origin other than `provider-stock` |
-| `--capability-fixture-hash <sha>` | Optional pinned local capability fixture SHA-256 |
+| `--account-scope-hash <sha>` | Required for every origin other than `provider-stock` |
 | `--price` | Validate and estimate without provider calls or artifact writes |
 
 ### Examples

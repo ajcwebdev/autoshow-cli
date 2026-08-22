@@ -14,9 +14,9 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice retire <registration-id> [flags]
 ```
 
-Without `--reason`, `retire` is a local append-preserving transition. It removes the exact approved generation from the current index and does not delete remote resources.
+Without `--reason`, `retire` removes the generation from the current index. It is local: it does not call a provider and does not delete remote resources.
 
-With `--reason`, the same command runs the revoke transition: it records the reason and marks the registration's protected-asset cleanup state `deletion-required` when its retention policy is `delete-on-revocation`. It still does not silently delete remote resources. Remote delete stays on [delete](./09-delete.md). `retire --reason` is the only revocation spelling; the former `revoke` subcommand was removed.
+With `--reason`, the same command revokes the generation instead. It records the reason and can flag protected assets for later cleanup. It still does not delete remote resources. Use [delete](./09-delete.md) to delete a remote provider resource.
 
 ### Options
 

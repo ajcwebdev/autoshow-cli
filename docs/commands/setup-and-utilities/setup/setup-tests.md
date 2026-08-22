@@ -1,8 +1,8 @@
 # Setup Tests
 
-Setup coverage for managed downloads, doctor checks, progress output, and runtime bootstrap artifacts.
+Local no-cost coverage for the `setup` command, `--doctor`, progress output, and managed downloads.
 
-Safety: this suite is local and no-cost. Downloads are mocked against fixture URLs, so nothing here calls a paid or quota-limited provider.
+Safety: this suite is local and no-cost. Downloads are mocked, so nothing here calls a paid or quota-limited provider.
 
 ## Outline
 
@@ -19,7 +19,7 @@ bun test test/test-cases/validation/setup/
 
 ## Current Coverage
 
-- No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts`, `setup-doctor-contracts.test.ts`, `setup-progress-contracts.test.ts`, `native-setup-download-contracts.test.ts`, `managed-artifact-contracts.test.ts`, `retired-toolchain-contracts.test.ts`, `env-example-drift-contracts.test.ts`, and `setup-performance-contracts.test.ts`).
+- `test/test-cases/validation/setup/` covers setup command flags and steps, `--doctor` reporting, progress output, mocked managed downloads, and runtime artifacts.
 
 ## Price Preflight
 

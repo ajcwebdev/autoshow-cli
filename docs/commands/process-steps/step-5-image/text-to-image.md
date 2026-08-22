@@ -17,14 +17,11 @@ Generate images from a text prompt with hosted image providers.
   - [Luma Labs](#luma-labs)
   - [fal.ai](#falai)
 - [Output](#output)
-- [Notes](#notes)
 - [Provider Capabilities](#provider-capabilities)
   - [Reference Images](#reference-images)
   - [1–5 Reference Images](#15-reference-images)
 
 ## Setup
-
-Image providers are hosted API services.
 
 ```bash
 bun autoshow setup --doctor
@@ -52,7 +49,7 @@ Bare `--provider` flags without a model value resolve to the cheapest supported 
 
 ## Shared Image Options
 
-The standalone `image` command uses `--size` instead of `--image-size` (which carries the prefix on `config` and `resume` to avoid collisions per [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
+The standalone `image` command uses `--size`. `config` and `resume` use `--image-size`.
 
 | Flag                                   | Description                                                                                                                                                                       |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -68,8 +65,8 @@ The standalone `image` command uses `--size` instead of `--image-size` (which ca
 | `--input <path-or-url>`                | Repeatable source/reference image for edits or image-to-image workflows                                                                                                           |
 | `--mask <path>`                        | OpenAI mask image for inpainting                                                                                                                                                  |
 | `--compression <0-100>`                | OpenAI JPEG/WebP output compression                                                                                                                                               |
-| `--response-mode <image\|text-image>`  | Native Gemini response mode                                                                                                                                                       |
-| `--search-grounding`                   | Enable native Gemini search grounding metadata                                                                                                                                    |
+| `--response-mode <image\|text-image>`  | Gemini response mode                                                                                                                                                              |
+| `--search-grounding`                   | Enable Gemini search grounding                                                                                                                                                    |
 | `--price`                              | Show the aggregated estimate and exit                                                                                                                                             |
 | `--output-dir <dir>`                   | Global flag: pin output directory instead of `output/<timestamp>_image-gen/`                                                                                                      |
 
@@ -100,6 +97,8 @@ bun autoshow image "restyle this product image as a 1960s travel poster" --provi
 bun autoshow image "a detailed editorial data visualization" --provider gemini=gemini-3-pro-image --size 4K --search-grounding
 ```
 
+`--search-grounding` is supported on `gemini-3.1-flash-image` and `gemini-3-pro-image`. `gemini-3.1-flash-lite-image` rejects it.
+
 ### OpenAI
 
 | Option            | Value                                                                   |
@@ -118,6 +117,8 @@ bun autoshow image "a product sketch of the same travel mug concept" --provider 
 bun autoshow image "replace the background with a sunlit forest" --provider openai=gpt-image-2 --input input/product.png --mask input/mask.png --format webp
 ```
 
+OpenAI is the only provider that accepts `--mask`. `gpt-image-2` rejects `--background transparent`. Low quality is fastest, and JPEG output is faster than PNG.
+
 ### Grok
 
 | Option         | Value                                                                                                       |
@@ -127,7 +128,7 @@ bun autoshow image "replace the background with a sunlit forest" --provider open
 | Size           | `--size 1K\|2K`                                                                                             |
 | Aspect ratio   | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` |
 | Count          | `--count 1-10`                                                                                              |
-| Edit/reference | Up to 3 `--input` images with `grok-imagine-image-quality`                                                  |
+| Edit/reference | Up to 3 `--input` images                                                                                    |
 
 ```bash
 bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --aspect-ratio 16:9 --size 1K --count 4
@@ -201,18 +202,13 @@ bun autoshow image "turn this into a dusk scene" --provider fal=reve/2.1 --input
 ## Output
 
 - Single-provider runs write `generated-image.<ext>` (plus numbered variants for `--count > 1`) and `manifest.json`.
-- Multi-provider runs write `generated-image-<provider>-<sanitized-model>.<ext>` per provider/model target and `manifest.json`.
-- `--output-dir` controls the destination directory.
-- `manifest.json` records single-run item metadata including `image` targets array, `cost`, and `timing`.
-
-## Notes
-
-- **OpenAI Latency**: Low quality is fastest; JPEG output is faster than PNG.
-- **Pricing & Estimates**: Use `--price` to check estimated cost before running.
+- Multi-provider runs write `generated-image-<provider>-<model>.<ext>` per target and `manifest.json`.
+- `--output-dir` pins the destination directory.
+- `manifest.json` records `image`, `cost`, and `timing`; `image` is an array.
 
 ## Provider Capabilities
 
-Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.md#provider-capabilities): ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Recency marks follow the TTS convention: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. References use ✅ 8 or more, ⚠️ 1–7, and ❌ none. Max resolution uses ✅ 4K or 4MP and above, ⚠️ 2K/3K or about 2MP, and ❌ 1K-only or unpublished. Count uses ✅ 4 or more and ❌ 1. Formats use ✅ png/jpeg/webp, ⚠️ two formats, and ❌ a single format. Pricing is the AutoShow registry per-image rate. Cost rank orders models cheapest-first within each table (1 = cheapest) and ties share a rank; combined rows list prices and ranks in the same order as the models.
+✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Recency marks: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. References use ✅ 8 or more, ⚠️ 1–7, and ❌ none. Max resolution uses ✅ 4K or 4MP and above, ⚠️ 2K/3K or about 2MP, and ❌ 1K-only or unpublished. Count uses ✅ 4 or more and ❌ 1. Formats use ✅ png/jpeg/webp, ⚠️ two formats, and ❌ a single format. Pricing is the per-image estimate. Cost rank orders models cheapest-first within each table (1 = cheapest) and ties share a rank; combined rows list prices and ranks in the same order as the models.
 
 ### Reference Images
 
@@ -240,7 +236,5 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 | Grok `grok-imagine-image-quality`                  | ✅ 2026-04-03 | ⚠️ Up to 3 | ⚠️ 2K                    | ✅ 14 ratios    | ✅ 1–10 | ❌ JPEG          | $0.05/image               | 5/7       |
 | Replicate `qwen/qwen-image-2-pro` / `qwen-image-2` | ✅ 2026-03-04 | ⚠️ 1       | ❌ Unpublished           | ✅ 9 ratios     | ❌ 1    | ❌ PNG           | $0.075 / $0.035 per image | 6/7 / 4/7 |
 | BFL `flux-2-klein-4b` / `flux-2-klein-9b`          | ✅ 2026-01-15 | ⚠️ Up to 4 | ⚠️ Custom WxH, min 64    | ❌ Use `--size` | ❌ 1    | ✅ jpeg/png/webp | $0.014 / $0.015 per image | 2/7 / 3/7 |
-
-Every listed model is text-to-image. OpenAI is the only engine that accepts `--mask`. Gemini Flash Image adds extra ultra-wide ratios (`1:4`, `4:1`, `1:8`, `8:1`) and search grounding; Flash Lite rejects `--search-grounding`. OpenAI `gpt-image-2` rejects `--background transparent`. BFL does not publish a maximum custom size. Wan 2.7 Pro 4K is text-to-image only.
 
 Image test coverage is documented in [Step 5 Service Tests: Image](image-tests.md).

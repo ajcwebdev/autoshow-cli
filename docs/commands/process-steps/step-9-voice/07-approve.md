@@ -14,7 +14,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice approve <registration-id> [flags]
 ```
 
-Approval appends a new content-identified registration generation and atomically advances the sole current pointer for `(subject, provider, provider model, profile)`. This model-qualified key permits one subject to hold independent approved model selections that refer to the same provider voice resource. Approval does not create a scene snapshot.
+Approval makes the auditioned registration current for that subject, provider, provider model, and profile. One subject can hold independent current approvals per model, even when those approvals refer to the same provider voice.
 
 ### Options
 

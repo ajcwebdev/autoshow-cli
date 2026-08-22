@@ -1,6 +1,6 @@
 # comic draft-scenes
 
-`draft-scenes` processes script markdown through structured script JSON, draft prompt bundles, scene JSON panel objects, and stable panel prompt bundles.
+`draft-scenes` turns episode script Markdown into structured script JSON, a scene-drafting prompt, scene JSON, and panel prompt bundles.
 
 See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
 
@@ -25,9 +25,9 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Advanced Options
 
-| Flag                  | Description                                              | Default                             |
-| --------------------- | -------------------------------------------------------- | ----------------------------------- |
-| `--llm-model <model>` | Use a supported text model from the central LLM registry | `gpt-5.6-sol` for the `scene` stage |
+| Flag                  | Description                                                                                          | Default                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `--llm-model <model>` | Use a supported text model (see [Supported Models](./00-comic-overview.md#supported-models))          | `gpt-5.6-sol` for the `scene` stage |
 
 ### Examples
 
@@ -44,11 +44,9 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only pan
 - The full run executes `structure`, `prompt`, `scene`, and `panel-prompts` in order.
 - `--only structure` parses episode Markdown into structured script JSON locally, and adds an LLM review pass only when `--llm-model` is passed explicitly.
 - `--only prompt` builds the scene-drafting prompt bundle without calling an API.
-- `--only scene` drafts scene JSON from an existing prompt bundle.
+- `--only scene` drafts scene JSON from an existing prompt bundle. Invalid model output is saved as `scene.invalid.json` with validation details.
 - `--only panel-prompts` builds stable panel prompt bundles from existing scene JSON without calling an API. Register [character and location references](./02-reference-sketch.md) first.
-- Scene drafting validates generated JSON before writing it. Structured scripts embed a content-addressed source identity and exact Unicode source spans. Invalid model output is saved as `scene.invalid.json` with validation details.
-- Every panel has an exhaustive prose `shotPlan` covering camera, composition, exact blocking/acting/eyelines, props, balloon placement, and exclusions. Script-authored staging and exact cast/dialogue take precedence over inferred shot details. Permanent location topology remains canonical unless the script explicitly changes the set as a story event.
-- `panel.characterKeys` is authoritative for visibility. Descriptions, speech text, and source segments never add visual references implicitly. Every script-required visible character belongs in the panel. Generation preflights the selected model's reference-image input capability.
-- On-screen character speakers must be visible; offscreen character speakers must not be listed as visible.
+- Script staging, cast, and dialogue take precedence over inferred shot details. Location layout stays the same unless the script changes the set as a story event.
+- On-screen character speakers must be visible; offscreen character speakers must not.
 
 Next: [reference-sketch](./02-reference-sketch.md).

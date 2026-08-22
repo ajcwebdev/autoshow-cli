@@ -8,7 +8,7 @@ Collect and display metadata for media, documents, articles, or X Spaces without
 - [Flags](#flags)
 - [Output](#output)
 - [Examples](#examples)
-- [How It Works](#how-it-works)
+- [Setup and Environment](#setup-and-environment)
 
 ```bash
 bun autoshow metadata <input>
@@ -18,14 +18,14 @@ bun autoshow metadata <input>
 
 | Input                                                         | Behavior                                                                                                                        |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| YouTube / Twitch / TikTok URL                                 | `yt-dlp --dump-json` metadata extraction (no download)                                                                          |
+| YouTube / Twitch / TikTok URL                                 | `yt-dlp` metadata lookup (no download)                                                                                          |
 | Direct media URL (`.mp3`, `.mp4`, etc.)                       | URL-based metadata extraction (no download)                                                                                     |
-| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | HTTP fetch to temp file, detect format, extract metadata, clean up                                                              |
-| Remote article / HTML URL                                     | Article metadata/extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
-| X/Twitter Space URL, raw Space ID, or X/Twitter post URL      | X API metadata lookup for Space details, linked posts, users, and errors                                                        |
-| Local `.html` / `.htm` file                                   | Article metadata/extraction with local `defuddle`                                                                               |
-| Local media file                                              | `ffprobe` metadata extraction (duration, title)                                                                                 |
-| Local document file                                           | Format detection + `mutool` metadata (title, author, page count)                                                                |
+| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | Collect document metadata without keeping a local copy                                                                          |
+| Remote article / HTML URL                                     | Article metadata through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider`            |
+| X/Twitter Space URL, raw Space ID, or X/Twitter post URL      | X API metadata lookup for Space details, linked posts, and users                                                                |
+| Local `.html` / `.htm` file                                   | Article metadata with local `defuddle`                                                                                          |
+| Local media file                                              | `ffprobe` metadata (duration, title)                                                                                            |
+| Local document file                                           | `mutool` metadata (title, author, page count)                                                                                   |
 | YouTube channel URL                                           | Batch metadata for latest videos                                                                                                |
 | RSS / podcast feed URL                                        | Batch metadata for latest episodes                                                                                              |
 | URL list file (`.md` / `.txt`)                                | Batch metadata for each listed input                                                                                            |
@@ -50,9 +50,9 @@ bun autoshow metadata <input>
 
 ## Output
 
-By default, metadata is printed to the terminal as a labeled key/value report. Add the global `--json` flag to emit the same payload as JSON next to the structured log records.
+By default, metadata is printed to the terminal as a labeled key/value report. Use the global `--json` flag for JSON, or `--markdown` for Markdown frontmatter YAML.
 
-With `--markdown`, the same metadata is printed as Markdown frontmatter YAML.
+The `slug` comes from the original filename when one exists. Otherwise it is derived from the title, and media slugs include the publish date.
 
 **Terminal output (default)**
 
@@ -98,18 +98,18 @@ channelURL: 'https://www.youtube.com/channel/...'
 ---
 ```
 
+Media metadata may also include chapters and description when the source provides them.
+
 **With `--save` flag**
 
-When `--save` is provided, metadata artifacts are written to a timestamped output directory:
+`--save` writes artifacts to a timestamped output directory. Nothing is written to disk without it. Remote document URLs are inspected and discarded afterward unless `--save` is used.
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-The saved file uses the same unversioned canonical shape as every other pipeline output: `command: "metadata"`, `scope: "single"`, timestamps, and one item. The displayed metadata is stored under that item's `metadata.step1`; it is not a second manifest format.
-
-With `--save --markdown`, the same directory also includes:
+With `--save --markdown`, the same directory also includes `metadata.md`:
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
@@ -142,7 +142,7 @@ bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --save
 # Display metadata as Markdown frontmatter YAML
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown
 
-# Display and save the canonical manifest.json plus metadata.md
+# Display and save manifest.json plus metadata.md
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown --save
 
 # Local media file metadata
@@ -167,29 +167,10 @@ bun autoshow metadata https://www.youtube.com/@channelname --batch-limit 5
 bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
 ```
 
-## How It Works
+## Setup and Environment
 
-**Media inputs (URLs, audio/video files)**
+Setup details are centralized in [`setup.md`](../../setup-and-utilities/setup/setup.md).
 
-1. Calls `extractSourceMetadata()` which uses:
-   - `yt-dlp --dump-json` for streaming URLs (YouTube, Twitch, TikTok) — no actual download
-   - `ffprobe` for local media files — extracts duration and title from filename
-   - URL path parsing for direct media URLs
-2. Derives a `slug` from the input filename when one exists, otherwise falls back to a publish-date-prefixed title slug
-3. Prints the collected metadata (title, slug, duration, channel, URL, publish date, thumbnail, channel URL, chapters, description) as a terminal report by default, as JSON with `--json`, or as Markdown frontmatter YAML with `--markdown`
+For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. When that happens, persist cookies once with `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`, then rerun `metadata`.
 
-**Document inputs (PDFs, EPUBs, etc.)**
-
-1. Calls `detectDocumentFormat()` for format identification via magic bytes
-2. For PDF/EPUB, calls `getDocumentInfo()` via `mutool` to extract title, author, and page count
-3. Derives a `slug` from the original filename when one exists, otherwise falls back to a title-based slug
-4. Collects file size via `stat`
-5. Prints the document metadata as a terminal report by default, as JSON with `--json`, or as Markdown frontmatter YAML with `--markdown`
-
-For remote document URLs, the file is temporarily downloaded for inspection and cleaned up afterward. No permanent files are created unless `--save` is used.
-
-**X Space and post inputs**
-
-X Space URLs, raw Space IDs, and X post URLs use the X API to collect Space metadata, post references, user profiles, and lookup errors. Set `X_BEARER_TOKEN` before running these inputs.
-
-For YouTube inputs, `metadata` honors the same saved `yt-dlp` cookie auth as `download`: `bun autoshow config --cookies <file>` or `bun autoshow config --cookies-from-browser <browser>`.
+For X Space URLs, raw Space IDs, and X post URLs, set `X_BEARER_TOKEN`.

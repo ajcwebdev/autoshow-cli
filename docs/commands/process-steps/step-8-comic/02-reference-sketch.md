@@ -1,29 +1,18 @@
 # comic reference-sketch
 
-`reference-sketch --character` manages 3-view character outline sheets. `reference-sketch --location` targets a single camera view: `establishing` by default, or `--view reverse|side`.
+`reference-sketch --character` generates a 3-view character outline sheet. `reference-sketch --location` generates one camera view: `establishing` by default, or `--view reverse|side`.
 
 See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
 
 ## Outline
 
 - [reference-sketch](#reference-sketch)
-  - [Character sheets](#character-sheets)
   - [Options](#options)
   - [Advanced Options](#advanced-options)
   - [Examples](#examples)
   - [Behavior](#behavior)
 
 ## reference-sketch
-
-The first establishing location run scans matching scripts and asks the configured text model (`gpt-5.6-sol` by default) for stable location facts; reverse and side require an existing establishing view. Successful views are promoted and atomically registered. Existing targets no-op unless `--revise --notes` is supplied.
-
-Location `--price` preflight estimates specification-aggregation, initial image, and repair calls matching generation flags. Validated existing views report zero provider calls.
-
-### Character sheets
-
-`reference-sketch --character` generates an immutable three-view version and automatically composes its reference sheet.
-
-For a new prose-defined character with no source image, set `image` and `outlineSheet` to the same missing canonical destination, point `generationReference` at an existing style image under the character root, and provide rendering rules in `generationInstructions`.
 
 ### Options
 
@@ -62,11 +51,11 @@ bun autoshow comic reference-sketch --location cargo-bay --view reverse
 
 ### Behavior
 
-- The three generated views and composed sheet remain in temporary storage until all views succeed; only the flat catalog `outlineSheet` is persisted.
-- Fresh `--character` generation replaces the registered sheet by default, while an already registered location view no-ops. Revision never falls back to fresh generation.
-- The sheet and its entry in `character-sketches.json` are promoted together with rollback protection. Source and sheet SHA-256 checksums detect stale or tampered registrations.
-- Default generation parameters are `gpt-image-2` at `1024x1536` and `medium` quality for `--character`, and `gpt-image-2` at `1536x1024` and `high` quality for `--location`.
-- Each location view is judged against the canonical specification, the existing views, and the style reference, then repaired up to `--max-repairs` times. Attempts and QA reports stay under `input/locations/.attempts/<key>/<generation-id>/`, and only a passing attempt is promoted.
-- After updating character sketch references, rerun `draft-scenes --only panel-prompts` for affected scenes to stage the new references.
+- The first establishing location run reads matching scripts and uses `--llm-model` to capture stable location facts. Reverse and side views require that establishing view.
+- An already registered location view no-ops unless `--revise --notes` is supplied. Fresh `--character` generation replaces the registered sheet. `--revise` never falls back to fresh generation.
+- For a new prose-defined character, set catalog `image` and `outlineSheet` to the same missing destination, `generationReference` to an existing style image, and optional `generationInstructions`.
+- `--character` writes the composed three-view sheet only after every view succeeds. Location views are judged against the canonical specification, existing views, and the style reference, then repaired up to `--max-repairs` times. Only a passing view is registered.
+- `--price` estimates specification, image, and repair calls for the selected flags. A validated existing location view reports zero provider calls.
+- After updating character or location sketches, rerun `draft-scenes --only panel-prompts` for affected scenes.
 
 Next: [generate-images](./03-generate-images.md).

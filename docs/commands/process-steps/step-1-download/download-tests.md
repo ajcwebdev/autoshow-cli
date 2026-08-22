@@ -15,7 +15,7 @@ Safety: these `bun t` commands document human service/e2e coverage and may call 
 ## Quick Start
 
 ```bash
-# local-file input suite coverage
+# local file coverage
 bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts
 
 # network-backed coverage
@@ -27,14 +27,13 @@ bun t \
 
 ## Local Coverage
 
-- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts` covers the local document input path plus the shared hosted example audio URL.
+- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts` covers local document download and a hosted example audio URL.
 
 ## Service Coverage
 
 - `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-direct-url.test.ts` covers hosted audio and video URLs plus URL-list batching for direct URLs.
-- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts` covers RSS feed batching served from a local HTTP feed fixture.
+- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts` covers RSS feed batching.
 - `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streaming.test.ts` covers YouTube and Twitch streaming URLs.
-- No-cost validation coverage lives in `test/test-cases/validation/cli/option-resolution-contracts/download-extract-url-options.test.ts` and `test/test-cases/validation/ingest/input-contracts.test.ts`.
 
 ## Price Preflight
 
@@ -44,7 +43,7 @@ bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streami
 bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts --price
 ```
 
-These download mappings are report-only entries in `test/test-runner/price-commands/registry/download.ts`.
+`download` has no provider cost; `--price` on these paths is report-only.
 
 ## Related Docs
 

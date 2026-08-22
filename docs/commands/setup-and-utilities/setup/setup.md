@@ -1,6 +1,6 @@
 # setup
 
-Install local runtimes and prerequisite tools. Focused setup utilities also cover model pre-downloads (`--models`).
+Install local runtimes and prerequisite tools. Use `--models` to pre-download local STT models without running inference.
 
 ## Outline
 
@@ -33,23 +33,9 @@ Use full setup on a clean machine when you want local download, OCR, STT, or wri
 
 A full `bun autoshow setup` downloads several gigabytes and builds a number of tools from source. Budget roughly **10 GB free** and expect 5-10 minutes on a fast connection. A re-run with everything already installed takes a few seconds.
 
-Everything setup installs lives under the project checkout:
+Installs live under `runtime/` in the project checkout (~3 GiB of managed binaries and local STT models). Interrupted downloads resume instead of restarting from zero. A slow connection does not fail unless the transfer stalls for 60 seconds with no bytes received.
 
-| Location   | Holds                                      | Approx. size |
-| ---------- | ------------------------------------------ | ------------ |
-| `runtime/` | Managed binaries and local STT models      | ~3 GiB       |
-
-Notes:
-
-- The Setup Summary prints the current `runtime/` size under the `disk` row.
-- Installs created before the Whisper CoreML pipeline was retired may retain `runtime/bin/whisper-coreml-env` and encoder directories under `runtime/models/whisper`. Full setup reports those legacy artifacts and their sizes as safe to delete.
-- `runtime/build` holds only transient source trees. Each installer removes its own tree on success, and a full setup prunes whatever is left over.
-- Downloads stream to a `<file>.part` alongside the destination and resume from there, so an interrupted transfer does not restart from zero. Large assets abort only after **60 seconds with no bytes received**, not after a fixed total transfer time, so a slow connection does not by itself cause a failure.
-- At most three downloads transfer at once. Setup starts five tasks in parallel, and letting all of them pull at once divides the connection rather than finishing anything sooner.
-- Every 30 seconds, any step still running and not already printing its own progress is listed on a single `Still running:` line, so a long source build is distinguishable from a hang without burying the rest of the output.
-- The Setup Step Timings table reports **concurrent wall clock**. Tasks run in parallel and contend, so a step's figure there can be far above what the same step costs alone via `--step`.
-- Every full setup writes a schema-versioned phase artifact under `runtime/setup-performance/`. It records relative build-phase timestamps, compile overlap, task timings, pinned versions, and non-sensitive host facts; use verbose logging to print the detailed phase table.
-- On macOS, source builds of managed tools (mupdf, qpdf) target the host's major OS version by default. Export `MACOSX_DEPLOYMENT_TARGET` before running setup to override the deployment target; invalid values fail the build with an explicit error.
+On macOS, source builds of managed tools (`mupdf`, `qpdf`) target the host's major OS version by default. Export `MACOSX_DEPLOYMENT_TARGET` before running setup to override that target.
 
 ## Doctor
 
@@ -60,26 +46,17 @@ bun autoshow setup --doctor
 bun autoshow setup --doctor --strict
 ```
 
-API-key checks are presence-only: doctor reports whether each managed variable is set (non-empty), not whether the key is valid. The default doctor remains advisory and warnings do not change its exit code. `--strict` exits 2 when a provider credential required by a configured default is missing, which makes the command suitable for a no-cost CI or deployment readiness gate; it does not make live provider calls. `.env` handling matches every other command — Bun auto-loads `.env` from the working directory and real exported environment variables win over file values.
+API-key checks are presence-only: doctor reports whether each managed variable is set (non-empty), not whether the key is valid. The default doctor is advisory and warnings do not change its exit code. `--strict` exits 2 when a provider credential required by a configured default is missing, which makes the command suitable for a no-cost CI or deployment readiness gate; it does not make live provider calls. Doctor reads `.env` from the working directory; exported environment variables win over file values.
 
-Doctor also reports YouTube cookie state separately:
-
-- active mode: `cookies-file`, `cookies-from-browser`, or `none`
-- cookie-file readability when `bun autoshow config --cookies` is configured
+Doctor also reports YouTube cookie state: the active mode (`cookies-file`, `cookies-from-browser`, or `none`) and whether a configured cookies file is readable.
 
 ## YouTube Cookies
 
-If YouTube starts challenging anonymous `yt-dlp` requests, configure cookies using the step-by-step guide in [docs/cookies.md](../../../cookies.md).
-
-The same precedence rules apply everywhere in the CLI:
-
-1. `bun autoshow config --cookies <file>` wins when it is set and readable.
-2. Otherwise `bun autoshow config --cookies-from-browser <browser>` is used.
-3. If a cookies file is configured but unreadable, AutoShow warns and does not fall back silently.
+If YouTube starts challenging anonymous `yt-dlp` requests, configure cookies using [docs/cookies.md](../../../cookies.md).
 
 ## Targeted Setup Steps
 
-The `setup` command currently supports:
+Valid `--step` values:
 
 ```text
 yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | all | transcription | music

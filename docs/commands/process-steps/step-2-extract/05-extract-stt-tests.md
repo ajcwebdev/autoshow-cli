@@ -25,14 +25,14 @@ bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/
 
 ## Local Coverage
 
-- `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/` includes default, per-model (`tiny`/`base`), split, and `large-v3-turbo` coverage.
+- `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/` covers default Whisper transcription, per-model (`tiny`/`base`) runs, `--split`, and `large-v3-turbo`.
 - `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisperfile/` covers local Mozilla whisperfile STT (downloads a prebuilt `tiny` whisperfile on first run).
 
 ## Service Coverage
 
-- The shared `defineSTTServiceTest` helper (`test/test-utils/define-stt-service-test.ts`) runs real transcription per model when the required API key is configured, and the URL transcript files use `defineUrlTranscriptServiceTest` from the same `stt-services/` directory. Invalid model rejection is covered by the CLI validation suites rather than these e2e files. `--price` output coverage lives separately in `test/test-cases/price-flag/stt-price.test.ts`, and the mapped price commands behind `bun t --price` are declared in `test/test-runner/price-commands/registry/stt.ts`.
-- Service STT coverage is split into model and scenario files per provider target under `test/test-cases/e2e/service/step-2-stt-e2e/stt-services/`, covering AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Groq, Mistral, Rev, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including URL transcript scenarios.
-- Async STT lifecycle adoption and resume, transcript parsing and normalization, cue timing, split resilience, retry metrics, media acquisition, and the ScrapeCreators/Supadata provider contracts live in `test/test-cases/validation/extract-stt/`, alongside shared option/provider validation suites (`validation/ingest/input-contracts.test.ts`, `validation/cli/option-resolution-contracts/`, `validation/providers/provider-selection-contracts/`, `validation/reports-pricing/price-mode-contracts/`, and `validation/resume-manifests/resume-setup-contracts.test.ts`).
+- Model-level service files under `test/test-cases/e2e/service/step-2-stt-e2e/stt-services/` cover live transcription for AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Groq, Mistral, Rev, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together.
+- Dedicated URL transcript files (`scrapecreators-youtube-transcript.test.ts`, `supadata-auto-url-transcript.test.ts`) cover hosted URL-to-transcript scenarios.
+- Zero-cost validation and contract coverage lives in `test/test-cases/validation/extract-stt/`.
 
 ## Price Preflight
 
@@ -41,6 +41,8 @@ bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/ --price
 bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/ --budget 2500
 bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/ --price
 ```
+
+The mapped STT price preflight covers model-level STT service files plus ScrapeCreators and Supadata URL transcript scenarios.
 
 ## Related Docs
 

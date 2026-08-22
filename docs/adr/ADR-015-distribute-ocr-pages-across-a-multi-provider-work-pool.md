@@ -9,15 +9,13 @@
 
 ## Context
 
-Multi-provider OCR historically executed as full-document fan-out: every selected provider/model target processed the complete document independently, writing separate output under its provider directory. While useful for model comparison and redundancy, full-document fan-out charges every target for every page and prevents faster healthy targets from absorbing work from slower ones.
+Multi-provider OCR historically executed as full-document fan-out: every selected provider or model processed the complete document independently and wrote its own result. That remains useful for comparison, but it charges every target for every page and prevents faster healthy targets from absorbing work from slower ones.
 
-Document OCR provides page preparation, concurrency lanes, target admission, failure handling, manifest persistence, resume, pricing, and provider-attributed usage. Pooled execution must compose these capabilities without introducing a secondary checkpoint authority or altering existing fan-out contracts.
+Pooled execution must reuse existing page preparation, admission, failure handling, resume, and pricing without a second checkpoint authority or a change to the default fan-out contract. The hard guarantee is exactly-once accepted page output under at-least-once remote execution: a provider request can fail after work has already started, so claims, attempts, and usage need distinct identities.
 
-The critical boundary is ensuring exactly-once accepted output under at-least-once remote execution. Because remote provider requests may fail ambiguously after execution begins, claims, attempts, raw responses, and usage require distinct identities and durable attribution.
+Model identity, lifecycle, capabilities, and pricing provenance remain [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Canonical persistence, resume, and price planning remain [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md). Shared hosted lanes remain [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md). Extract artifacts and cache identity remain [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
 
-Model identity, lifecycle eligibility, capabilities, reasoning policy, and pricing provenance remain governed by [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Canonical persistence, resume selection, and price planning remain governed by [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
-
-Why now: users need multiple independent OCR lanes to collaborate on a single document without paying every selected target to process the full page set, while preserving the default fan-out contract.
+Why now: users need multiple independent OCR lanes to collaborate on one document without paying every selected target for the full page set, while keeping fan-out as the default comparison contract.
 
 ## Options Considered
 
@@ -25,7 +23,7 @@ Why now: users need multiple independent OCR lanes to collaborate on a single do
 
 - **Option:** Add an explicit shared page pool while retaining full-document fan-out as the default
 - **Pros:** Backward compatible; faster targets claim more work; single composite result; account lanes retain concurrency limits; explicit page-level resume and usage attribution
-- **Cons:** Requires canonical page ledger, claim lifecycle, per-attempt artifacts, and scheduler telemetry
+- **Cons:** Requires a canonical page ledger, claim lifecycle, per-attempt artifacts, and scheduler telemetry
 - **Quantitative Notes:** With three independent hosted lanes and `--ocr-concurrency 10`, up to 30 remote page requests may run; same-account targets share one cap of 10
 
 **Option 2**
@@ -52,78 +50,71 @@ Why now: users need multiple independent OCR lanes to collaborate on a single do
 **Option 5**
 
 - **Option:** Store a separate pool checkpoint beside `manifest.json`
-- **Pros:** Isolates pool scheduling logic from canonical manifest
-- **Cons:** Introduces competing completion and resume authorities forbidden by ADR-002
+- **Pros:** Isolates pool scheduling from the canonical manifest
+- **Cons:** Introduces competing completion and resume authorities forbidden by [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
 - **Quantitative Notes:** Two persistence authorities per run
 
 ## Decision
 
-Add `--ocr-provider-mode fanout|pool`, defaulting to `fanout`. In `pool` mode, every eligible selected OCR target draws independent pages from a shared queue to produce a single composite extraction; `--primary-ocr` is rejected because no complete per-provider result is generated.
+Add `--ocr-provider-mode fanout|pool`, defaulting to `fanout`. In `pool` mode, every eligible selected OCR target draws independent pages from a shared queue and the run produces one composite extraction. `--primary-ocr` is rejected because no complete per-provider result is generated.
 
 This applies to:
 
-- Supported PDF, CBZ, and image inputs normalized locally into compatible independent page work units.
+- Supported PDF, CBZ, and image inputs that can be normalized locally into independent page work units.
 - Fresh `extract` and document `write` execution, canonical resume, and side-effect-free price planning.
 - Hosted and local OCR targets admitted by target-pool controls and provider/account lane identities.
-- Page claims, accepted outputs, attempts, failures, usage, costs, timing, artifacts, telemetry, and diagnostics.
-- Fan-out preservation: absent or explicit `fanout` keeps existing full-document provider paths, provider state, pricing, resume, and optional primary-result behavior unchanged.
-- Scope explicitly excluded: altering source classification or normalization under [ADR-001](ADR-001-source-ingestion-and-normalization.md), changing error taxonomies under [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), modifying model catalog entries recorded in the 2026 hosted-model refresh reports under `docs/reports/`, or treating benchmark reports as price or resume authorities.
+- Page claims, accepted output, attempts, failures, usage, costs, artifacts, and diagnostics.
+- Default fan-out: omitted or explicit `fanout` keeps existing full-document provider paths, pricing, resume, and optional `--primary-ocr` unchanged.
 
-### Queue, admission, and claims
+It does not apply to:
 
-The pool creates a single page ledger in source order. A pending page can have at most one active claim. Target workers claim work dynamically, allowing faster targets to process more pages without static partitioning. Page preparation is promise-cached per page for the run; retries and handoffs reuse the provider-neutral prepared page safely.
+- Source classification or normalization ([ADR-001](ADR-001-source-ingestion-and-normalization.md)).
+- Error taxonomies ([ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)).
+- Hosted-model catalog entries recorded in `docs/models/`.
+- Treating benchmark reports as price or resume authorities.
 
-`--provider-concurrency` bounds admitted hosted targets and `--local-concurrency` bounds admitted local targets. Each admitted target requests page work up to its applicable OCR cap. Independent provider/account lanes run concurrently, while targets sharing a lane share that lane's cap. Explicit `--ocr-concurrency <n>` sets a fixed lane ceiling; omission defaults to adaptive `auto` sizing, pressure backoff, and qualified profile ceilings.
+### Queue and claims
 
-The run-scoped hosted concurrency mode operates orthogonally to pool allocation: `ramp` mode starts each provider/account lane with one slot and adds one slot every five seconds under queued demand; `immediate` mode starts at the resolved ceiling. The pool selector governs page claims, while the shared coordinator controls remote dispatch timing. Independent lanes ramp independently, same-lane targets share one ramp, local claims remain immediate, and 429 rate-limit recovery preserves accepted pages.
+The pool creates one page ledger in source order. A pending page has at most one active claim. Workers claim work dynamically, so faster targets process more pages. `--provider-concurrency` and `--local-concurrency` bound admitted targets. Each admitted target requests page work up to its OCR cap. Independent provider/account lanes run concurrently; targets that share a lane share that lane's cap. Explicit `--ocr-concurrency <n>` sets a fixed ceiling; omitting it uses adaptive `auto` sizing.
 
-Every claim creates a unique attempt tracking page number, provider, concrete model, lane, requested and effective reasoning policy, start time, and an isolated artifact directory. A successful attempt commits only if its claim is active and the page has no accepted result. This compare-before-commit rule prevents duplicate canonical page commits when remote execution is ambiguous or delayed.
+Hosted ramp versus immediate admission is the shared coordinator from [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md). The pool decides which page is claimed; the coordinator decides when a remote request may start. A successful attempt commits only if its claim is still active and the page has no accepted result.
 
 ### Failure and completion
 
-Transient page failures release the claim, making the page available to other eligible targets without immediate retry on the failing worker. Target-specific blockers retire only the affected target; provider/account blockers retire the entire lane. Accepted pages remain valid upon worker retirement, and unfinished pages are redistributed to healthy targets.
+A transient page failure releases the claim so another eligible target can take it. A target-specific blocker retires only that target; a provider/account blocker retires the lane. Accepted pages stay accepted. Each target gets one attempt per page unless resume explicitly re-enables a failed target. Interrupted in-flight claims return to unfinished work without consuming attempt eligibility. A page is exhausted when every eligible target fails terminally. The composite completes when every required page is accepted, and is incomplete if any page is exhausted.
 
-Ordinary execution limits each target to one attempt per page. Explicit resume re-enablement can reauthorize failed targets. Interrupted in-flight claims record `interrupted` evidence and return to unfinished work without consuming attempt eligibility. A page is exhausted when all eligible targets fail terminally. The composite result completes when all required pages are accepted, and marks incomplete if any page is exhausted.
+### Artifacts and pricing
 
-### Artifacts, cache identity, and evidence
+Top-level extraction is assembled from accepted pages in source order. Provider directories store per-attempt results, raw responses, errors, and usage. They are never a second complete extraction or resume authority.
 
-Top-level extraction artifacts are assembled from accepted pages in source order. Provider directories store only per-attempt results, raw responses, errors, and usage records, never serving as independent completion authorities or full extractions.
-
-Hosted page response-cache identity incorporates provider mode, provider, concrete model, requested and effective reasoning policy, input SHA-256, normalized format, page number, and DPI. Provider-neutral page preparation remains independently reusable. Pool throughput and token telemetry are explicitly qualified by pool mode and isolated from fan-out profiles.
-
-### Pricing and telemetry
-
-Price preflights allocate the page set once across available lane capacity rather than charging every selected target for the full document. The deterministic heuristic weights independent lanes equally, divides shared lane capacity among co-tenant targets, and scales estimated page units, tokens, time, and cost per target. `resume --price` applies this allocation strictly to unfinished pages without mutating state or invoking providers.
-
-Actual cost accounting records all attempts reporting usage, including failed or ambiguous executions, without treating failed work as accepted output. Scheduler telemetry logs queue depth, claim lifecycle events, retries, retirements, per-target throughput, and page distribution.
+Price preflights allocate the page set once across available lane capacity instead of charging every selected target for the full document. `resume --price` applies that allocation to unfinished pages only and does not mutate state or call providers. Actual cost includes every attempt that reports usage, including failed or ambiguous executions.
 
 ## Rationale
 
-- Dynamic claims maximize throughput by allowing fast, healthy targets to absorb work without static range bottlenecks.
-- Lane sharing maintains provider/account rate limits while enabling independent accounts or providers to scale concurrency.
-- Compare-before-commit guarantees exactly-once canonical output despite at-least-once remote execution.
-- Retaining the page ledger within `manifest.json` preserves ADR-002's single-authority model and ensures deterministic crash recovery.
-- Isolated per-attempt directories preserve raw evidence and billable failure usage without allowing provider artifacts to govern completion.
-- Explicit `--ocr-provider-mode` preserves full backward compatibility for comparison-oriented fan-out workflows.
-- Model registry and reasoning validation before dispatch prevents silent behavioral drift across resume cycles.
+- Dynamic claims let fast, healthy targets absorb work instead of stalling behind static page ranges.
+- Lane sharing keeps provider/account rate limits while independent accounts still run in parallel.
+- Compare-before-commit gives exactly-once canonical output even when remote execution is at-least-once.
+- Keeping the page ledger in `manifest.json` preserves [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s single authority.
+- Per-attempt directories keep raw evidence and billable failure usage without letting provider artifacts decide completion.
+- Explicit `--ocr-provider-mode` keeps comparison-oriented fan-out as the default.
 
 ## Consequences
 
 Positive outcomes:
 
-- Selected targets collaborate on a single extraction, allowing faster healthy workers to process more pages.
-- Independent provider lanes utilize their full concurrency caps while same-account models safely share lane limits.
-- Worker or lane failures do not invalidate already-accepted page results.
-- Resuming recovers interrupted claims and preserves accepted pages via the canonical ledger.
-- Price estimates reflect single-pass pooled allocation, while actual costs retain billable failed attempts.
+- Selected targets collaborate on one extraction, so faster healthy workers process more pages.
+- Independent provider lanes use their full concurrency caps; same-account models share a lane.
+- Worker or lane failures do not invalidate already-accepted pages.
+- Resume recovers interrupted claims and keeps accepted pages in the canonical ledger.
+- Price estimates reflect single-pass pooled allocation; actual costs still include billable failed attempts.
 - Default fan-out workflows and provider-comparison artifacts remain unchanged.
 
 Negative outcomes:
 
-- Pool manifests and diagnostics maintain additional page- and attempt-level state.
-- Ambiguous network failures may produce redundant remote executions before a single result is committed.
-- Heuristic price preflights cannot predict real-time throughput variances or dynamic rebalancing.
-- Pool mode is rejected for input formats or target combinations that cannot be normalized into discrete page units.
+- Pool manifests carry additional page- and attempt-level state.
+- Ambiguous network failures may produce redundant remote executions before one result commits.
+- Heuristic price preflights cannot predict live throughput or rebalancing.
+- Pool mode is rejected for inputs or target combinations that cannot be normalized into discrete page units.
 - Provider attempt directories contain partial outputs and cannot be resumed as standalone extractions.
 
 ## Trade-offs
@@ -145,34 +136,29 @@ Negative outcomes:
 
 **Trade-off 4**
 
-- **Gain:** Deterministic crash recovery via canonical manifest
+- **Gain:** Deterministic crash recovery via the canonical manifest
 - **Sacrifice:** More frequent atomic manifest updates during execution
 
 **Trade-off 5**
 
 - **Gain:** Backward-compatible explicit mode
-- **Sacrifice:** Maintained test coverage across both fanout and pool execution paths
+- **Sacrifice:** Test coverage across both `fanout` and `pool` paths
 
 ## Implementation Note
 
-The shared queue, claims, lane caps, retirement, handoff, exhaustion, and telemetry are implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-page-pool-state.ts`, with worker admission and claim execution in `ocr-page-pool-workers.ts` and the local/hosted lane classification and hosted priority order shared with the target pool in `ocr-pool-scheduling.ts`; `ocr-provider-pool.ts` composes them behind `runOcrPagePool` and `runOcrProviderTargetPools`. Compatible page preparation, isolated attempt execution, composite assembly, and canonical checkpoints are implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`. Canonical manifest persistence for Step 2 records and the `ocrPool` ledger is governed by `src/cli/commands/process-steps/pipeline-manifest.ts`.
+Pool queue, claims, admission, retirement, and composite assembly live under `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`. Canonical `ocrPool` ledger persistence is `src/cli/commands/process-steps/pipeline-manifest.ts`. `--ocr-provider-mode` is resolved for `extract`, `write`, `resume`, and configuration files. Resume keeps the stored mode, re-enables explicitly selected retired targets, and prices only unfinished pages.
 
-Option resolution exposes `--ocr-provider-mode` across `extract`, `write`, `resume`, and configuration files. Resume preserves the recorded mode, admits additive or explicitly re-enabled targets following registry validation, converts interrupted claims to unfinished work, and prices only pending pages. Hosted response cache identity incorporates pool mode alongside model, format, and reasoning parameters.
-
-Pooled price preflights and actual cost rollups are implemented in `src/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates.ts` and `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`. Preflights apply heuristic lane weighting, while actual usage accounts for billable failed or ambiguous attempts.
+Pooled price preflights are `src/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates.ts`. Actual cost rollups are `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`.
 
 ## API / Type Impact
 
-- New CLI flag: `--ocr-provider-mode fanout|pool` (default: `fanout`).
-- Specifying `--primary-ocr` alongside `pool` mode raises a structured usage validation error before credential lookup or dispatch.
-- Extraction options include `ocrProviderMode`, explicit mode provenance, and original pooled page indices for provider attribution and cache keys.
-- Canonical item manifests support `ocrProviderMode: "pool"` and the `ocrPool` ledger recording page, attempt, target, lane, and telemetry state.
-- Composite extraction metadata records `extractionMethod: "ocr-pool"`, `ocrProviderMode: "pool"`, and per-target usage attribution.
-- Attempt-specific artifacts are isolated under `providers/<target>/attempts/page-<six digits>/attempt-<three digits>/`.
+- `--ocr-provider-mode fanout|pool` defaults to `fanout`.
+- `--primary-ocr` with `pool` is a usage error before credential lookup or dispatch.
+- Canonical item manifests may record `ocrProviderMode: "pool"` and an `ocrPool` page ledger.
+- Composite extraction metadata records `extractionMethod: "ocr-pool"`.
+- Attempt artifacts live under `providers/<target>/attempts/page-<six digits>/attempt-<three digits>/`.
 
 ## Test Plan
-
-Validate pool scheduling, option resolution, and manifest contracts using local test suites:
 
 ```bash
 bun run check
@@ -180,23 +166,17 @@ bun test test/test-cases/validation/extract-ocr/ocr-page-pool-contracts.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
-- **CLI and Option Resolution:** Verify option defaults, help text, invalid arguments, incompatible inputs, and structured error rejection when `--primary-ocr` is combined with `pool` mode.
-- **Queue and Claims:** Verify dynamic work distribution, one-active-claim enforcement, hosted and local target admission, lane cap sharing, fixed versus adaptive OCR caps, and compare-before-commit deduplication.
-- **Failures and Recovery:** Verify transient failure handoff, target and lane retirement, page exhaustion, interrupted-claim recovery, and explicit target re-enablement.
-- **Manifest and Lineage:** Verify composite Step 2 persistence, `ocrPool` ledger round-tripping, resume continuity, attempt directory containment, and isolation from completion authority.
-- **Pricing and Cache:** Verify single-pass pooled price estimates, failed-attempt actual cost accounting, cache key sensitivity to pool parameters, and fan-out estimate preservation.
-- **Deterministic Verification:** Ensure all verification passes locally via `bun run check`, `bun t --price`, and mock contract suites without invoking paid network endpoints.
+These prove option defaults and `--primary-ocr` rejection, one-active-claim scheduling and handoff, composite `ocrPool` persistence, unfinished-page `resume --price`, and that fan-out estimates stay unchanged. Verification is local and no-cost.
 
 ## References
 
-- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — Canonical pipeline manifest, atomic progress, mode-preserving resume, and unfinished-page price planning
-- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — Shared queue, work selection, target admission, concurrency multiplication, and lane policy
-- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR execution, attribution, artifacts, failures, cache identity, profiles, and diagnostics
-- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Concrete model identity, lifecycle eligibility, capabilities, reasoning, pricing provenance, and hosted cache identity
-- Pool scheduler: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-page-pool-state.ts`, `ocr-page-pool-workers.ts`, and `ocr-pool-scheduling.ts`, composed by `ocr-provider-pool.ts`
-- Pool orchestration: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`
-- Canonical manifest: `src/cli/commands/process-steps/pipeline-manifest.ts`
-- Resume handlers: `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
-- Pricing preflight: `src/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates.ts`
-- Actual cost computation: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
-- Pool contract tests: `test/test-cases/validation/extract-ocr/ocr-page-pool-contracts.test.ts`
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — canonical pipeline manifest, resume, and unfinished-page price planning
+- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared queue, work selection, target admission, and lane policy
+- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR execution, artifacts, failures, cache identity, and diagnostics
+- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — model identity, lifecycle, capabilities, reasoning, and pricing provenance
+- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
+- `src/cli/commands/process-steps/pipeline-manifest.ts`
+- `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
+- `src/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates.ts`
+- `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
+- `test/test-cases/validation/extract-ocr/ocr-page-pool-contracts.test.ts`

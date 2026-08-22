@@ -14,7 +14,9 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice delete <registration-id> [flags]
 ```
 
-`delete` is an explicit provider-mutating action for ready, eligibility-checked, project-owned ElevenLabs, Inworld, Fish, Cartesia, and Speechify remote resources and requires `--confirm-voice-id` to equal the exact resource ID. A resource cannot be deleted while another current model-qualified registration shares its provider/resource identity. ElevenLabs, Inworld, Cartesia, and Speechify re-check project ownership, the account namespace, and the registered account scope inside the provider adapter before the delete request; Fish re-checks only the exact resource identity. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion. If a Fish provisioning journal is still pending, `delete` completes an unambiguous journal first. Ambiguous journals refuse until you pass `--reconcile`.
+`delete` is an explicit provider-mutating action for a ready, eligibility-checked, project-owned remote resource. `--confirm-voice-id` must equal the exact provider resource ID. A resource cannot be deleted while another current registration still uses the same provider voice.
+
+If a Fish provisioning journal is still pending, `delete` completes an unambiguous journal first. Ambiguous journals refuse until you pass `--reconcile`.
 
 ### Options
 

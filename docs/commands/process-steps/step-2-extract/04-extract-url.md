@@ -5,7 +5,6 @@ Remote article URLs default to local `defuddle` extraction and can run hosted ar
 ## Outline
 
 - [URL and X Environment](#url-and-x-environment)
-- [Article Path](#article-path)
 - [Shared URL Options](#shared-url-options)
 - [All URL Backends](#all-url-backends)
 - [Article Services](#article-services)
@@ -39,14 +38,6 @@ X_BEARER_TOKEN=...
 
 Select a hosted article backend using `--url-provider <backend>` or run all hosted backends with `--all-providers`. Do not combine `--url-provider` with `--all-providers`.
 
-## Article Path
-
-Remote article URLs route through article extraction rather than OCR provider engines.
-
-| Input family        | Hosted paths                                                                 |
-| ------------------- | ---------------------------------------------------------------------------- |
-| Remote article URLs | `--url-provider <backend>`, `--provider <backend>`, or `--all-providers`     |
-
 ## Shared URL Options
 
 | Flag                                   | Description                                                                                                                                                                       |
@@ -73,18 +64,16 @@ bun autoshow extract https://example.com/article --all-providers --url-request-t
 
 ## All URL Backends
 
-`--all-providers` runs remote HTML/article inputs through hosted URL backends in canonical order:
+`--all-providers` runs remote article URLs through hosted backends in this order:
 
 ```text
 firecrawl, glm-reader, spider, supadata, zyte
 ```
 
-Hosted backends run in a pool governed by `--provider-concurrency` and the run-scoped hosted concurrency mode.
+Hosted backends run concurrently up to `--provider-concurrency`, using `--concurrency-mode`.
 
-Rules:
 - `--all-providers` and `--all-local` conflict with `--url-provider`.
-- `write --all-providers url` runs URL extraction first, stores per-backend artifacts under `providers/<backend>/`, then passes extracted text to the LLM.
-- Each hosted backend is run independently without automatic fallback.
+- Each hosted backend runs independently, with no automatic fallback.
 
 ## Article Services
 
@@ -93,9 +82,7 @@ Rules:
 | Option       | Value                                                |
 | ------------ | ---------------------------------------------------- |
 | Selector     | `--url-provider firecrawl` or `--provider firecrawl` |
-| Inputs       | Remote article URLs                                  |
 | Required env | `FIRECRAWL_API_KEY`                                  |
-| Endpoint     | `POST /v2/scrape`                                    |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider firecrawl
@@ -106,9 +93,7 @@ bun autoshow extract https://ajcwebdev.com --url-provider firecrawl
 | Option       | Value                                                  |
 | ------------ | ------------------------------------------------------ |
 | Selector     | `--url-provider glm-reader` or `--provider glm-reader` |
-| Inputs       | Remote article URLs                                    |
 | Required env | `GLM_API_KEY`                                          |
-| Endpoint     | `POST /reader`                                         |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --provider glm-reader
@@ -116,12 +101,10 @@ bun autoshow extract https://ajcwebdev.com --provider glm-reader
 
 ### Spider
 
-| Option       | Value                                           |
-| ------------ | ----------------------------------------------- |
-| Selector     | `--url-provider spider` or `--provider spider`  |
-| Inputs       | Remote article URLs                             |
-| Required env | `SPIDER_API_KEY`                                |
-| Endpoint     | `POST /scrape` with `return_format: "markdown"` |
+| Option       | Value                                          |
+| ------------ | ---------------------------------------------- |
+| Selector     | `--url-provider spider` or `--provider spider` |
+| Required env | `SPIDER_API_KEY`                               |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider spider
@@ -132,9 +115,7 @@ bun autoshow extract https://ajcwebdev.com --url-provider spider
 | Option       | Value                                              |
 | ------------ | -------------------------------------------------- |
 | Selector     | `--url-provider supadata` or `--provider supadata` |
-| Inputs       | Remote article URLs                                |
 | Required env | `SUPADATA_API_KEY`                                 |
-| Endpoint     | `GET /web/scrape?url=<source>`                     |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider supadata
@@ -145,9 +126,7 @@ bun autoshow extract https://ajcwebdev.com --url-provider supadata
 | Option       | Value                                      |
 | ------------ | ------------------------------------------ |
 | Selector     | `--url-provider zyte` or `--provider zyte` |
-| Inputs       | Remote article URLs                        |
 | Required env | `ZYTE_API_KEY`                             |
-| Endpoint     | `POST /v1/extract` with `article: true`    |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --url-provider zyte
@@ -177,23 +156,23 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-Each provider `result.json` contains raw extraction metadata and output. Root `manifest.json` tracks item status and canonical provider entries (identity, attempts, cost, timing, and error state).
+Each provider directory contains that backend's extraction output. The root `manifest.json` records item status, cost, and errors.
 
 ## Provider Capabilities
 
-Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.md#provider-capabilities): ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or API snapshot dates. Recency marks follow the TTS convention: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. Pricing is the AutoShow registry scrape rate. Cost rank orders providers cheapest-first (1 = cheapest) and ties share a rank.
+Markdown uses ✅ for scrape markdown and ⚠️ when the backend returns a structured article extract. Pricing is the AutoShow registry scrape rate. Cost rank orders providers cheapest-first (1 = cheapest) and ties share a rank.
 
-| Provider                | Released   | Endpoint                           | Remote URLs | Markdown            | Auth                | Pricing                                           | Cost rank |
-| ----------------------- | ---------- | ---------------------------------- | ----------- | ------------------- | ------------------- | ------------------------------------------------- | --------- |
-| GLM Reader `glm-reader` | ⚠️ 2025-03 | `POST /reader`                     | ✅ Yes      | ✅ Default markdown | `GLM_API_KEY`       | $10.00/1k pages                                   | 4/5       |
-| Supadata `supadata`     | ❌ 2024-08 | `GET /web/scrape?url=<source>`     | ✅ Yes      | ✅ Scrape markdown  | `SUPADATA_API_KEY`  | $10.00/1k pages (1 credit/page at $10/1k credits) | 4/5       |
-| Firecrawl `firecrawl`   | ❌ 2024-04 | `POST /v2/scrape`                  | ✅ Yes      | ✅ Scrape markdown  | `FIRECRAWL_API_KEY` | $0.83/1k pages                                    | 1/5       |
-| Spider `spider`         | ❌ 2024-01 | `POST /scrape` markdown return     | ✅ Yes      | ✅ `return_format`  | `SPIDER_API_KEY`    | $1.20/1k pages                                    | 2/5       |
-| Zyte `zyte`             | ❌ 2021-09 | `POST /v1/extract` `article: true` | ✅ Yes      | ⚠️ Article extract  | `ZYTE_API_KEY`      | $1.60/1k pages                                    | 3/5       |
+| Provider                | Markdown            | Pricing                                           | Cost rank |
+| ----------------------- | ------------------- | ------------------------------------------------- | --------- |
+| GLM Reader `glm-reader` | ✅ Default markdown | $10.00/1k pages                                   | 4/5       |
+| Supadata `supadata`     | ✅ Scrape markdown  | $10.00/1k pages (1 credit/page at $10/1k credits) | 4/5       |
+| Firecrawl `firecrawl`   | ✅ Scrape markdown  | $0.83/1k pages                                    | 1/5       |
+| Spider `spider`         | ✅ Scrape markdown  | $1.20/1k pages                                    | 2/5       |
+| Zyte `zyte`             | ⚠️ Article extract  | $1.60/1k pages                                    | 3/5       |
 
 ## X Space Path
 
-X/Twitter Space URLs, post URLs, and raw Space IDs are auto-detected and processed via the X v2 API using `X_BEARER_TOKEN`.
+X/Twitter Space URLs, post URLs, and raw Space IDs are auto-detected and processed via the X API using `X_BEARER_TOKEN`.
 
 ```bash
 bun autoshow extract "https://x.com/i/spaces/1DXxyRYNejbKM"
@@ -218,7 +197,7 @@ Mobile (`mobile.x.com`, `mobile.twitter.com`) and www variants are also supporte
 X Space extraction writes:
 - `result.json` - Space metadata, user profiles, post references, sources, and errors
 - `extraction.md` - Markdown report with summary and post tables
-- `manifest.json` - Canonical single-run manifest
+- `manifest.json` - run status
 
 ## X Space Notes
 

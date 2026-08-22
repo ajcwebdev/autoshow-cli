@@ -14,13 +14,11 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice list [registration-id] [flags]
 ```
 
-`list` has three read modes. With no arguments it prints the append-preserved registration catalog and the current approved pointer for each `(subject, provider, provider model, profile)`. That local dump never calls a provider.
+`list` has three read modes. With no arguments it prints the local registration catalog and the current index for each subject, provider, model, and profile. That listing never calls a provider.
 
-With a registration id it inspects that generation. `--generation-id` is optional unless more than one generation could match. `--live` opts into a read-only provider readiness check for a ready resource. `--price` keeps the read static even when `--live` is set, and never completes a journal. If that registration has an unambiguous Fish provisioning journal, `list <id>` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--allow-ambiguous-redispatch`. Bare `voice list` never completes a journal.
+With a registration id it inspects that generation. `--live` opts into a read-only provider readiness check for a ready resource. `--price` keeps the read static even when `--live` is set, and never completes a journal. If that registration has an unambiguous Fish provisioning journal, `list <id>` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`. Bare `voice list` never completes a journal.
 
-With `--provider` it pages a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog operation and reports the dated capability fixture without reading the provider.
-
-`list` is the whole read surface: bare `list` prints the catalog and current index, `list <id>` inspects one generation, `list <id> --live` performs the live provider GET, and `list --provider <p>` reads a provider catalog. The former `status`, `inspect`, and `discover` subcommands were removed.
+With `--provider` it pages a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog operation without reading the provider.
 
 ### Options
 
@@ -45,8 +43,6 @@ bun autoshow voice list --provider elevenlabs --source account
 bun autoshow voice list --provider elevenlabs --source shared-library --cursor OPAQUE_CURSOR
 bun autoshow voice list --provider cartesia --source provider-library --cursor OPAQUE_CURSOR
 bun autoshow voice list --provider fish --source account --price
-bun autoshow voice list --provider speechify --source account --price
-bun autoshow voice list --provider inworld --source account --price
 ```
 
 Next: [consent](./02-consent.md).

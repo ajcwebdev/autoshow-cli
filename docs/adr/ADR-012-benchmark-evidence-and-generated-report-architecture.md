@@ -6,7 +6,7 @@
 - **Date Created:** 2026-07-16
 - **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
-- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to the 2026 hosted-model refresh reports under `docs/reports/`, which is gitignored and therefore local-only rather than committed.
+- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Dated model changes belong to the 2026 hosted-model refresh reports under `docs/models/`.
 
 ## Context
 
@@ -127,19 +127,19 @@ It does not apply to:
 
 - Production CLI flags, runtime commands, or public execution APIs (the CLI `benchmark` command was removed).
 - Durable hosted-model registry, lifecycle, and capability policy (governed by [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
-- Dated hosted-model refresh chronology and selector changes (recorded in the 2026 hosted-model refresh reports under `docs/reports/`).
+- Dated hosted-model refresh chronology and selector changes (recorded in the 2026 hosted-model refresh reports under `docs/models/`).
 - Single-run execution manifests, runtime data fetching, or cross-group overall leaderboards.
 
 ### Benchmark evidence lifecycle and paid approval
 
 Every provider/model refresh follows this evidence order:
 
-1. Refresh dated primary-source documentation through explicit curated selections. Preserve source URLs, refresh metadata, content hashes, token counts, and failed-fetch behavior under [ADR-011](ADR-011-add-refresh-metadata-to-links.md). Do not infer a current model from a moving alias or secondary catalog when primary request/pricing/capability documentation is available.
-2. Update the complete local contract under [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and the 2026 hosted-model refresh reports under `docs/reports/`. Run static checks plus targeted no-network selector, ordering, pricing, provenance, request-builder, response-parser, resume, historical-normalization, CLI help, usage, and option-resolution tests.
+1. Refresh dated primary-source documentation under [ADR-011](ADR-011-add-refresh-metadata-to-links.md). Do not infer a current model from a moving alias or secondary catalog when primary request, pricing, or capability documentation is available.
+2. Update the complete local contract under [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and the 2026 hosted-model refresh reports under `docs/models/`. Run static checks plus targeted no-network tests.
 3. Run the exact no-cost `--price` or `resume --price` command for the intended targets. Price mode must invoke no provider and mutate no manifest or raw artifact under [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 4. If live evidence is materially necessary, obtain immediate explicit approval naming the exact provider command and the reported cost or quota risk. Approval for implementation, another provider, an earlier phase, a failed attempt, or a preflight never authorizes the paid command. A correction or rerun requires fresh approval.
 5. Validate returned identity, provider/model state, source coverage, page/duration counts, attempt/retry data, usage and actual cost, output integrity, and artifact uniqueness. A provider-reported success is not trustworthy when checkpoints, paths, checksums, or normalized outputs prove collision or reuse.
-6. Compact only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints/splits/derived files only after validation, rebuild per-run reports from the compacted artifacts, then regenerate combined JSON/Markdown/HTML and repository summaries from those same reports.
+6. Compact only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files only after validation, rebuild per-run reports from the compacted artifacts, then regenerate combined JSON, Markdown, and HTML and repository summaries from those same reports.
 
 Published provider billing remains authoritative over an estimate. Recorded provider cost takes precedence over reconstructed historical rates. Benchmark estimates and actuals must name retries, reruns, billing variance, quota effects, and any excluded or invalid outputs.
 
@@ -153,11 +153,7 @@ All three combined report builders emit three sibling artifacts:
 - `combined-comparison-report.md`, the diffable text report; and
 - `combined-comparison-report.html`, the primary visual dashboard.
 
-The HTML is generated, not hand-authored. A shared, category-agnostic renderer receives a view model assembled by each builder. Category differences such as group names, column labels, evidence fields, display names, and value formats are data in that model rather than separate dashboard implementations.
-
-The resulting HTML is one file with all report data embedded at generation time, all CSS and JavaScript inline, and no network or third-party runtime dependencies. The browser script only switches among rankings that TypeScript has already computed and embedded; it does not recompute ranks or composites. The report remains readable when JavaScript is disabled and opens directly from `file://`. This keeps JSON, Markdown, and HTML on the same generated data while allowing the dashboard to consolidate the repeated ranking tables into one provider view, a weighted-ranking matrix, tier cards, and a per-run quality heatmap.
-
-URL combined schema v1 uses the source reports' `rankingSurfaces.*.automatedQuality` values as quality evidence, averages present supporting WER, CER, content coverage, processing-time, and cost values, and keeps `local` and `service` aggregation independent. Optional canonical `manifest.json` item metadata supplies article titles and safe HTTP(S) inventory links.
+The HTML is generated from the same data as JSON and Markdown, not hand-authored. Each file embeds its report data, CSS, and JavaScript at generation time, with no network or third-party runtime dependencies. The report remains readable when JavaScript is disabled and opens directly from `file://`. The dashboard consolidates the repeated ranking tables into one provider view, a weighted-ranking matrix, tier cards, and a per-run quality heatmap.
 
 ### Weighted rankings and quality-cost terciles
 
@@ -165,58 +161,50 @@ Weighted composites use per-run, per-group min-max quality, speed, and cost subs
 
 The exact weighted-ranking registry is:
 
-**Key 1: `strongQuality`**
+**Ranking 1: `strongQuality`**
 
-- **Key:** `strongQuality`
 - **Quality:** 0.80
 - **Speed:** 0.10
 - **Cost:** 0.10
 
-**Key 2: `moderateQuality`**
+**Ranking 2: `moderateQuality`**
 
-- **Key:** `moderateQuality`
 - **Quality:** 0.60
 - **Speed:** 0.20
 - **Cost:** 0.20
 
-**Key 3: `strongSpeed`**
+**Ranking 3: `strongSpeed`**
 
-- **Key:** `strongSpeed`
 - **Quality:** 0.10
 - **Speed:** 0.80
 - **Cost:** 0.10
 
-**Key 4: `moderateSpeed`**
+**Ranking 4: `moderateSpeed`**
 
-- **Key:** `moderateSpeed`
 - **Quality:** 0.20
 - **Speed:** 0.60
 - **Cost:** 0.20
 
-**Key 5: `strongCost`**
+**Ranking 5: `strongCost`**
 
-- **Key:** `strongCost`
 - **Quality:** 0.10
 - **Speed:** 0.10
 - **Cost:** 0.80
 
-**Key 6: `moderateCost`**
+**Ranking 6: `moderateCost`**
 
-- **Key:** `moderateCost`
 - **Quality:** 0.20
 - **Speed:** 0.20
 - **Cost:** 0.60
 
-**Key 7: `qualityCost`**
+**Ranking 7: `qualityCost`**
 
-- **Key:** `qualityCost`
 - **Quality:** 0.45
 - **Speed:** 0.10
 - **Cost:** 0.45
 
-**Key 8: `costSpeed`**
+**Ranking 8: `costSpeed`**
 
-- **Key:** `costSpeed`
 - **Quality:** 0.10
 - **Speed:** 0.45
 - **Cost:** 0.45
@@ -225,22 +213,18 @@ All rankings and tiers are computed separately within each provider group. Local
 
 The tier contract is:
 
-- `method` is `"quality-cost-terciles-v1"`.
-- `ranking` is `"qualityCost"`.
-- The underlying ranking orders composite descending, then quality subscore descending, then provider key ascending. The JSON `tieBreak` value is `"composite-desc, quality-subscore-desc, providerKey-asc"`.
+- Method `quality-cost-terciles-v1` slices the `qualityCost` ranking.
+- The ranking orders composite descending, then quality subscore descending, then provider key ascending.
 - For a group of `n` providers, start each tier with `floor(n / 3)` providers. Assign the first remainder provider to Tier 1 and the second to Tier 2. The resulting sizes differ by at most one: for example, eight providers split 3/3/2 and ten split 4/3/3.
 - Tiers are contiguous slices of the ordered `qualityCost` ranking. Every provider appears exactly once; three tier rows are still emitted for an empty or small group.
-- Each provider row inside JSON `tiering[*].tiers[*].providers` exposes `qualityCostRank` and `qualityCostComposite` alongside its identity fields.
-- Markdown tier tables and HTML tier cards display matching quality-cost ranks and composites from that same tier data.
-
-The combined JSON report schema versions are OCR v2, STT v3, and URL v1. These versions apply only to the generated benchmark-report contracts, not the unversioned pipeline manifest.
+- JSON, Markdown, and HTML display matching quality-cost ranks and composites from that same tier data.
 
 ## Rationale
 
 - Mechanical generation is the only way to keep the visual report current with the JSON and Markdown artifacts after every benchmark update.
 - A shared renderer keeps category differences explicit while preventing separate STT, OCR, and URL dashboards from drifting.
 - Embedded data, inline assets, and zero dependencies preserve deterministic, offline use from a repository checkout.
-- Precomputing ranks and composites in TypeScript gives all three formats one source of truth; the browser is a presentation layer only.
+- Precomputing ranks and composites once gives all three formats one source of truth; the browser is a presentation layer only.
 - Quality-cost terciles give readers a direct ordering and near-equal bands while respecting the existing rule that provider groups are evaluated independently.
 
 ## Consequences
@@ -283,54 +267,31 @@ Negative outcomes:
 
 ## Implementation Note
 
-The report architecture is implemented in:
+The report architecture ships in `.codex/skills/consensus/scripts/`: shared weight registry, ordering, terciles, and Markdown rendering in `shared/combined_report_lib.ts`; the self-contained dashboard renderer in `shared/combined_report_html.ts`; and STT, OCR, and URL combined-report builders under `stt/`, `ocr/`, and `url/`. Combined-report contracts live in `test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts`. Live calibration remains optional when primary documentation and local contracts already prove compatibility; `bun run audit:ocr-tokens --plan` is the zero-cost OCR planning helper and still requires explicit approval before execution.
 
-- `.codex/skills/consensus/scripts/shared/combined_report_lib.ts` for the shared weight registry, composite ordering, tercile construction, and Markdown tier rendering;
-- `.codex/skills/consensus/scripts/shared/combined_report_html.ts` for the pure self-contained dashboard renderer;
-- `.codex/skills/consensus/scripts/stt/build_combined_report.ts` for STT schema v3 and category-specific aggregation/view-model assembly;
-- `.codex/skills/consensus/scripts/ocr/build_combined_report.ts` for OCR schema v2 and category-specific aggregation/view-model assembly; and
-- `.codex/skills/consensus/scripts/url/build_combined_report.ts` for URL schema v1, source inventory metadata, and source-ranking aggregation/view-model assembly.
-
-The focused combined-report contract test checks the exact eight-set registry, weighted ordering and tie-breaks, tercile sizes, JSON fields, and schema versions, asserts rank/composite parity between `tiering` and the `qualityCost` ranking in each committed JSON artifact, and asserts that the committed Markdown and HTML carry the same tier method, ranking, and rank/composite surfaces.
-
-### 2026 hosted-model evidence ledger
-
-The 2026 hosted-model refresh reports under `docs/reports/` own which selectors changed; this section records what was measured, approved, repaired, compacted, and regenerated.
-
-#### Write and OCR
-
-- Calibration across historical benchmark runs produced GPT-5.6 and Claude Fable 5 benchmark evidence, establishing token throughput and timing baselines with unified multipliers.
-- A separately approved Kimi K3 short-summary write probe proved request and usage compatibility without requiring thinking-field overrides.
-
-#### STT
-
-- Benchmark evidence was verified across AssemblyAI Universal-3.5/2, Deepgram Nova-3, Gemini 3.6 Flash, Gladia Solaria 1/3, Soniox Async v5, Speechmatics Melia 1, and Together Parakeet across 5 source audio files (~4.5 audio hours per pass).
-- Resolved provider-specific edge cases: Gladia checkpoint isolation for multi-segment runs, Speechmatics multi-language request format, and Together operational split caps.
-- Compaction retained structured `result.json` provider output envelopes, removed intermediate checkpoint/split files, and regenerated per-run and combined reports covering 26 historical/current provider identities.
-
-#### TTS and music
-
-- Four retained June TTS benchmark cohorts (`tts-hard`, `tts-long`, `0-tts-short`, `1-tts`) were safely continued through exact no-cost `resume --price` preflights and approved paid passes.
-- Provider rejections exposed obsolete Inworld 1.5 identifiers and DeepInfra per-model input/schema constraints; the registry updated to model-specific serialization and now carries Inworld Realtime TTS 2.0 (`realtime-tts-2`), while the retained artifacts still hold the earlier `realtime-tts-2-flash` outputs.
-- DeepInfra Chatterbox Multilingual returned HTTP 500 on the hard input; the failed attempt was preserved with retained checkpoints without deleting cached artifacts. DeepInfra later replaced it with Chatterbox Turbo (`ResembleAI/chatterbox-turbo`), the registry entry today, which succeeded on all four runs. As regenerated on 2026-08-14 the cohorts closed at 135 of 136 provider outputs (33 of 34 on hard, 34 of 34 on each remaining run), with that hard-input failure as the only gap.
-- Four TTS provider-comparison reports were regenerated from retained successful artifacts, exposing price, speed, and automated/human quality surfaces without unverified voice claims.
-- Music preflight and execution validated ElevenLabs Music v2 and MiniMax Music 3.0 additions, resolving an additive-resume output collision by promoting outputs to provider/model-specific filenames.
-
-## Follow-up Actions
-
-- [x] Keep the eight-ranking registry, ordering rules, and tercile construction shared across STT, OCR, and URL builders — Implemented in `combined_report_lib.ts`
-- [x] Generate JSON, Markdown, and self-contained HTML from the same category view models — Implemented in the shared renderer and category builders
-- [x] Validate schema versions, tie-breaks, tier sizes, and rank/composite parity across committed artifacts — Implemented in `combined-report-weighted-ranking-contracts.test.ts`
-- [ ] Regenerate combined reports from committed local benchmark artifacts when source runs change — Ongoing
-- [ ] Preserve exact paid approval, invalid-output exclusion, repair, compaction, and regeneration evidence for every benchmark refresh — Ongoing
-- [x] Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts — Implemented, and protected by the zero-cost plan helper (`bun run audit:ocr-tokens --plan`) requiring explicit user approval before execution
+Committed run data and generated reports live under `docs/benchmarks/`. Dated selector changes live in the 2026 hosted-model refresh reports under `docs/models/`.
 
 ## Test Plan
 
-1. Run `bun test test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts`.
-2. Confirm every ADR-012 repository reference resolves to this file and the ADR index remains contiguous from ADR-001.
-3. Run `bun run check`, `bun t --price`, and `git diff --check`.
-4. Regenerate combined reports only from committed local artifacts; do not run the full test suite or invoke provider APIs as part of this verification.
+Run default verification and the local combined-report contract:
+
+```bash
+bun run check
+bun t --price
+git diff --check
+bun test test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts
+```
+
+1. `bun run check` and `git diff --check` prove the ADR remains well-formed.
+2. `bun t --price` proves the no-cost planning surface still runs.
+3. The weighted-ranking contract test proves the eight-set registry, ordering and tie-breaks, tercile sizes, and rank/composite parity across committed JSON, Markdown, and HTML artifacts.
+
+Do not regenerate reports from live provider calls, run the full test suite, or invoke paid APIs as part of this verification.
+
+## Follow-up Actions
+
+- [ ] Regenerate combined reports from committed local benchmark artifacts when source runs change — Ongoing
+- [ ] Preserve exact paid approval, invalid-output exclusion, repair, compaction, and regeneration evidence for every benchmark refresh — Ongoing
 
 ## References
 
@@ -338,7 +299,7 @@ The 2026 hosted-model refresh reports under `docs/reports/` own which selectors 
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR evidence qualification and diagnostics
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — durable model and calibration policy
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — primary-source refresh metadata
-- Related reports: the 2026 hosted-model refresh reports under `docs/reports/` (gitignored, local-only) — dated model changes associated with this evidence
+- Related reports: the 2026 hosted-model refresh reports under `docs/models/`
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — provider-specific TTS implementation phases and remaining advanced-capability gates
 - `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
 - `.codex/skills/consensus/scripts/shared/combined_report_html.ts`
@@ -349,4 +310,4 @@ The 2026 hosted-model refresh reports under `docs/reports/` own which selectors 
 - `docs/benchmarks/stt/combined-comparison-report.{json,md,html}`
 - `docs/benchmarks/ocr/combined-comparison-report.{json,md,html}`
 - `docs/benchmarks/url/combined-comparison-report.{json,md,html}`
-- `docs/benchmarks/tts/2026-06-15_18-24-36-993_tts-hard/`, `docs/benchmarks/tts/2026-06-15_18-28-56-715_tts-long/`, `docs/benchmarks/tts/2026-06-15_18-51-16-094_0-tts-short/`, `docs/benchmarks/tts/2026-06-15_18-59-47-953_1-tts/`
+- `docs/benchmarks/`
