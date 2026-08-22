@@ -25,7 +25,7 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
   return models.flatMap((rawModel) => {
     const model: GrokImageModel = validateGrokImageModel(rawModel)
     validateImageCount('Grok', model, options.imageCount, ...GROK_IMAGE_COUNT_RANGE)
-    validateEnumOption('Grok', model, 'image-aspect-ratio', options.imageAspectRatio, GROK_ASPECT_RATIOS)
+    validateEnumOption('Grok', model, 'aspect-ratio', options.imageAspectRatio, GROK_ASPECT_RATIOS)
     normalizeGrokImageResolution(options.imageSize)
     assertNoUnsupportedFlags(options, [
       'imageQuality',
@@ -38,10 +38,10 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
     ], {
       provider: 'Grok',
       model,
-      hint: 'Supported Grok image options: --image-count, --image-aspect-ratio, --image-size 1K|2K, and up to three --image-input references.'
+      hint: 'Supported Grok image options: --count, --aspect-ratio, --size 1K|2K, and up to three --input references.'
     })
     if (hasEditInputs(options) && model !== 'grok-imagine-image-quality') {
-      throw unsupportedFlagError('Grok', model, ['--image-input'], 'xAI documents image editing for grok-imagine-image-quality; use grok-imagine-image-quality for edit/reference inputs.')
+      throw unsupportedFlagError('Grok', model, ['--input'], 'xAI documents image editing for grok-imagine-image-quality; use grok-imagine-image-quality for edit/reference inputs.')
     }
     validateImageInputReferences(options.imageInputs, {
       provider: 'Grok',

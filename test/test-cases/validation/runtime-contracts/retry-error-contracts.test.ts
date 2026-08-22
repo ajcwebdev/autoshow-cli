@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { classifyTtsProviderAdmissionError } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/tts-request-evidence'
-import { AppError, CLIUsageError, ProviderError } from '~/utils/error-handler'
+import { AppError, UsageError, ProviderError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { classifyFetchRetry, classifyPaidCreateRetry, pollUntil, withRetry } from '~/utils/retries'
 import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
@@ -214,7 +214,7 @@ describe('retry error contracts', () => {
 
   test('withHostedTtsRetry does not retry deterministic local contract errors', async () => {
     let attempts = 0
-    const contractError = CLIUsageError('serializer evidence does not match the immutable plan')
+    const contractError = UsageError('serializer evidence does not match the immutable plan')
     await expect(withHostedTtsRetry(
       {
         operationName: 'hosted-tts-local-contract-error',
@@ -229,7 +229,7 @@ describe('retry error contracts', () => {
   })
 
   test('withHostedTtsRetry notifies hosted TTS chunk scheduler on 429 retries', async () => {
-    const scheduler = createHostedTtsChunkScheduler(4)
+    const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' })
     let attempts = 0
 
     const [result] = await scheduler.runChunks('grok', ['chunk'], async (_chunk, _index, admission) =>

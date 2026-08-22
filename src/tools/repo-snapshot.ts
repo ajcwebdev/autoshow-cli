@@ -16,8 +16,7 @@ const IGNORE_PATHS = [
   'new-*.md',
   'TODO.md',
   'bun.lock',
-  'src/tools/repo-snapshot.ts',
-  'project/links/all-all-links.md'
+  'src/tools/repo-snapshot.ts'
 ]
 
 const TOP_FILES_LENGTH = 20

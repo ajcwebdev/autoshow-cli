@@ -136,6 +136,7 @@ Negative outcomes:
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - Related ADR: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)
 - Related ADR: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
+- Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 - [`README.md`](../../README.md)
 - [`docs/commands/`](../commands/)
 - `test/test-cases/validation/cli/doc-command-flags-contract.test.ts`

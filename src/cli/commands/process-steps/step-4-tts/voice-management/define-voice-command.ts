@@ -4,8 +4,8 @@ import { defineCliCommand } from '~/cli/native/native-types'
 import { boolFlag, strFlag, strListFlag } from '~/cli/flags/flag-utils'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import * as l from '~/utils/app-logger/app-logger'
-import { CLIUsageError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { UsageError } from '~/utils/error-handler'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { withProcessLock } from '~/utils/process-lock'
 import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
@@ -75,12 +75,12 @@ const advancedProvider = (provider: VoiceProviderName, options: {
   resolveSpeechifyProtectedAsset?: Parameters<typeof createSpeechifyAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveSpeechifyProtectedConsent?: Parameters<typeof createSpeechifyAdvancedProvider>[0]['resolveProtectedConsent'] | undefined
 } = {}): ManagedAdvancedProvider => {
-  if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: options.elevenLabsApiKey ?? requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs voice management'), ...(options.resolveElevenLabsProtectedAsset ? { resolveProtectedAsset: options.resolveElevenLabsProtectedAsset } : {}) })
-  if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireApiKey('CARTESIA_API_KEY', 'voice:cartesia', 'Cartesia voice management'), ...(options.resolveCartesiaProtectedAsset ? { resolveProtectedAsset: options.resolveCartesiaProtectedAsset } : {}) })
-  if (provider === 'fish') return createFishAdvancedProvider({ apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish voice management'), ...(options.resolveFishProtectedAsset ? { resolveProtectedAsset: options.resolveFishProtectedAsset } : {}) })
-  if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: options.inworldApiKey ?? requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld voice management'), ...(options.resolveInworldProtectedAsset ? { resolveProtectedAsset: options.resolveInworldProtectedAsset } : {}) })
+  if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: options.elevenLabsApiKey ?? requireProviderKey('elevenlabs', 'voice:elevenlabs', 'ElevenLabs voice management'), ...(options.resolveElevenLabsProtectedAsset ? { resolveProtectedAsset: options.resolveElevenLabsProtectedAsset } : {}) })
+  if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireProviderKey('cartesia', 'voice:cartesia', 'Cartesia voice management'), ...(options.resolveCartesiaProtectedAsset ? { resolveProtectedAsset: options.resolveCartesiaProtectedAsset } : {}) })
+  if (provider === 'fish') return createFishAdvancedProvider({ apiKey: requireProviderKey('fish', 'voice:fish', 'Fish voice management'), ...(options.resolveFishProtectedAsset ? { resolveProtectedAsset: options.resolveFishProtectedAsset } : {}) })
+  if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: options.inworldApiKey ?? requireProviderKey('inworld', 'voice:inworld', 'Inworld voice management'), ...(options.resolveInworldProtectedAsset ? { resolveProtectedAsset: options.resolveInworldProtectedAsset } : {}) })
   return createSpeechifyAdvancedProvider({
-    apiKey: requireApiKey('SPEECHIFY_API_KEY', 'voice:speechify', 'Speechify voice management'),
+    apiKey: requireProviderKey('speechify', 'voice:speechify', 'Speechify voice management'),
     ...(options.resolveSpeechifyProtectedAsset ? { resolveProtectedAsset: options.resolveSpeechifyProtectedAsset } : {}),
     ...(options.resolveSpeechifyProtectedConsent ? { resolveProtectedConsent: options.resolveSpeechifyProtectedConsent } : {}),
   })
@@ -98,7 +98,7 @@ const commonRegistrationFlags = {
 
 const requiredFlag = (ctx: CliCommandContext, name: string): string => {
   const value = ctx.flags[name]
-  if (typeof value !== 'string' || !value.trim()) throw CLIUsageError(`--${name} is required.`)
+  if (typeof value !== 'string' || !value.trim()) throw UsageError(`--${name} is required.`)
   return value.trim()
 }
 
@@ -115,19 +115,19 @@ const optionalParameter = (ctx: CliCommandContext, name: string): string | undef
 
 const parameter = (ctx: CliCommandContext, name: string): string => {
   const value = optionalParameter(ctx, name)
-  if (!value) throw CLIUsageError(`${name} is required.`)
+  if (!value) throw UsageError(`${name} is required.`)
   return value
 }
 
 const providerFlag = (ctx: CliCommandContext): VoiceProviderName => {
   const provider = requiredFlag(ctx, 'provider')
-  if (!isVoiceProvider(provider as TtsProvider)) throw CLIUsageError(`Unknown voice provider ${provider}. Expected: ${VOICE_PROVIDERS.join(', ')}.`)
+  if (!isVoiceProvider(provider as TtsProvider)) throw UsageError(`Unknown voice provider ${provider}. Expected: ${VOICE_PROVIDERS.join(', ')}.`)
   return provider as VoiceProviderName
 }
 
 const requireVoiceModel = (provider: VoiceProviderName, model: string): string => {
   const expected = VOICE_SYNTHESIS_MODELS[provider]
-  if (model !== expected) throw CLIUsageError(`Voice management for ${provider} requires --model ${expected}.`)
+  if (model !== expected) throw UsageError(`Voice management for ${provider} requires --model ${expected}.`)
   return model
 }
 
@@ -135,7 +135,7 @@ const positiveIntegerFlag = (ctx: CliCommandContext, name: string, fallback: num
   const raw = optionalFlag(ctx, name)
   if (!raw) return fallback
   const value = Number(raw)
-  if (!Number.isInteger(value) || value < 1) throw CLIUsageError(`--${name} must be a positive integer.`)
+  if (!Number.isInteger(value) || value < 1) throw UsageError(`--${name} must be a positive integer.`)
   return value
 }
 
@@ -143,20 +143,20 @@ const nonNegativeNumberFlag = (ctx: CliCommandContext, name: string): number | u
   const raw = optionalFlag(ctx, name)
   if (!raw) return undefined
   const value = Number(raw)
-  if (!Number.isFinite(value) || value < 0) throw CLIUsageError(`--${name} must be a non-negative number.`)
+  if (!Number.isFinite(value) || value < 0) throw UsageError(`--${name} must be a non-negative number.`)
   return value
 }
 
 const capabilityFixtureHash = (ctx: CliCommandContext, provider: TtsProvider, model: string): string => {
   const explicit = optionalFlag(ctx, 'capability-fixture-hash')
-  if (explicit && !/^[a-f0-9]{64}$/.test(explicit)) throw CLIUsageError('--capability-fixture-hash must be a lowercase SHA-256 digest.')
+  if (explicit && !/^[a-f0-9]{64}$/.test(explicit)) throw UsageError('--capability-fixture-hash must be a lowercase SHA-256 digest.')
   return explicit ?? hashCanonicalTtsValue({ schemaVersion: 1, phase: 'adr-020-phase-1', provider, model, checkedAt: '2026-08-11' })
 }
 
 const requireBrief = async (subjectKey: string, profileKey: string) => {
   const catalog = await loadCharacterVoiceBriefCatalog(getCharactersRoot())
   const brief = catalog.briefs.find(entry => entry.subjectKey === subjectKey && entry.profileKey === profileKey)
-  if (!brief) throw CLIUsageError(`No character voice brief exists for ${subjectKey}/${profileKey} in character-voices.json.`)
+  if (!brief) throw UsageError(`No character voice brief exists for ${subjectKey}/${profileKey} in character-voices.json.`)
   return brief
 }
 
@@ -193,8 +193,8 @@ const handleRevokeConsent = async (ctx: CliCommandContext, reference = parameter
 const handleConsent = async (ctx: CliCommandContext): Promise<void> => {
   const revokeRef = optionalFlag(ctx, 'revoke')
   if (revokeRef) {
-    if (optionalFlag(ctx, 'allow')) throw CLIUsageError('--revoke cannot be combined with --allow.')
-    if (optionalParameter(ctx, 'subjectKey')) throw CLIUsageError('--revoke cannot be combined with a subject key.')
+    if (optionalFlag(ctx, 'allow')) throw UsageError('--revoke cannot be combined with --allow.')
+    if (optionalParameter(ctx, 'subjectKey')) throw UsageError('--revoke cannot be combined with a subject key.')
     await handleRevokeConsent(ctx, revokeRef)
     return
   }
@@ -202,8 +202,8 @@ const handleConsent = async (ctx: CliCommandContext): Promise<void> => {
   const provenanceRef = requiredFlag(ctx, 'provenance-ref')
   const allowed = (optionalFlag(ctx, 'allow') ?? '').split(',').map(value => value.trim()).filter(Boolean)
   const unknown = allowed.filter(value => !CONSENT_ACTIONS.includes(value as VoiceConsentAction))
-  if (unknown.length > 0) throw CLIUsageError(`Unknown consent action(s): ${unknown.join(', ')}. Expected: ${CONSENT_ACTIONS.join(', ')}.`)
-  if (allowed.length === 0) throw CLIUsageError('--allow must grant at least one explicit consent action; omitted actions remain denied.')
+  if (unknown.length > 0) throw UsageError(`Unknown consent action(s): ${unknown.join(', ')}. Expected: ${CONSENT_ACTIONS.join(', ')}.`)
+  if (allowed.length === 0) throw UsageError('--allow must grant at least one explicit consent action; omitted actions remain denied.')
   const actor = validateAuditActorRef({
     namespace: (optionalFlag(ctx, 'actor-namespace') ?? 'local-user') as 'local-user' | 'project-role' | 'automation',
     actorId: requiredFlag(ctx, 'actor-id')
@@ -215,7 +215,7 @@ const handleConsent = async (ctx: CliCommandContext): Promise<void> => {
     const planned = await managedVoiceAssetStore.plan({ sourcePath: evidencePath, authorizationRef: `voice-consent-evidence:${subjectKey}` })
     evidence = planned.protectedAsset
     if (ctx.flags['price'] !== true) {
-      if (!managedVoiceAssetStore.ingestManaged) throw CLIUsageError('Managed protected store does not support consent evidence.')
+      if (!managedVoiceAssetStore.ingestManaged) throw UsageError('Managed protected store does not support consent evidence.')
       await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
       evidence = (await managedVoiceAssetStore.ingestManaged({ sourcePath: evidencePath, authorizationRef: `voice-consent-evidence:${subjectKey}` }, {
         schemaVersion: 1,
@@ -252,13 +252,13 @@ const handleImport = async (ctx: CliCommandContext): Promise<void> => {
   const model = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   const originRaw = optionalFlag(ctx, 'origin') ?? 'provider-stock'
-  if (!VOICE_ORIGINS.includes(originRaw as typeof VOICE_ORIGINS[number])) throw CLIUsageError(`--origin must be ${VOICE_ORIGINS.join('|')}.`)
+  if (!VOICE_ORIGINS.includes(originRaw as typeof VOICE_ORIGINS[number])) throw UsageError(`--origin must be ${VOICE_ORIGINS.join('|')}.`)
   const origin = originRaw as typeof VOICE_ORIGINS[number]
   const consentRef = optionalFlag(ctx, 'consent-ref')
   const consent = await optionalConsent(consentRef)
   const brief = await requireBrief(subjectKey, profileKey)
   const accountScopeHash = optionalFlag(ctx, 'account-scope-hash')
-  if (accountScopeHash && !/^[a-f0-9]{64}$/.test(accountScopeHash)) throw CLIUsageError('--account-scope-hash must be a lowercase SHA-256 digest.')
+  if (accountScopeHash && !/^[a-f0-9]{64}$/.test(accountScopeHash)) throw UsageError('--account-scope-hash must be a lowercase SHA-256 digest.')
   const request = {
     charactersRoot: getCharactersRoot(), subjectKey, profileKey, provider, providerModel: model,
     resourceId: requiredFlag(ctx, 'voice-id'), origin, brief, provenanceRef: requiredFlag(ctx, 'provenance-ref'),
@@ -277,10 +277,10 @@ const handleImport = async (ctx: CliCommandContext): Promise<void> => {
 const handleDiscover = async (ctx: CliCommandContext): Promise<void> => {
   const provider = providerFlag(ctx)
   const sourceRaw = optionalFlag(ctx, 'source') ?? 'account'
-  if (sourceRaw !== 'account' && sourceRaw !== 'provider-library' && sourceRaw !== 'shared-library') throw CLIUsageError('--source must be account, provider-library, or shared-library.')
-  if (sourceRaw === 'shared-library' && provider !== 'elevenlabs') throw CLIUsageError(`${provider} does not expose an ElevenLabs-style shared-owner voice-library namespace.`)
+  if (sourceRaw !== 'account' && sourceRaw !== 'provider-library' && sourceRaw !== 'shared-library') throw UsageError('--source must be account, provider-library, or shared-library.')
+  if (sourceRaw === 'shared-library' && provider !== 'elevenlabs') throw UsageError(`${provider} does not expose an ElevenLabs-style shared-owner voice-library namespace.`)
   const cursor = optionalFlag(ctx, 'cursor')
-  if (cursor && provider === 'inworld') throw CLIUsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
+  if (cursor && provider === 'inworld') throw UsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
   if (ctx.flags['price'] === true) {
     reportVoicePrice('Voice discovery estimate', { operation: 'voice-discover', provider, mutation: false, providerCalls: 0, capabilityFixtureHash: advancedCapabilityFixtureHash(provider) })
     return
@@ -302,23 +302,23 @@ const maybeCompleteRegistrationJournal = async (registration: VoiceRegistration,
     journalRoot: voiceJournalRoot(),
     allowAmbiguous: ctx.flags['reconcile'] === true,
     ...(ctx.flags['reconcile'] === true && registration.provider === 'fish'
-      ? { apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish model reconciliation') }
+      ? { apiKey: requireProviderKey('fish', 'voice:fish', 'Fish model reconciliation') }
       : {}),
   })
 }
 
 const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   const saveId = optionalFlag(ctx, 'save')
-  if (ctx.flags['reconcile'] === true && !saveId) throw CLIUsageError('--reconcile is only valid with --save.')
+  if (ctx.flags['reconcile'] === true && !saveId) throw UsageError('--reconcile is only valid with --save.')
   if (saveId) {
     const mixed = DESIGN_PREVIEW_FLAGS.filter(name => name === 'candidates' ? ctx.rawParsed.explicitFlags.has('candidates') : optionalFlag(ctx, name) !== undefined)
-    if (mixed.length > 0) throw CLIUsageError(`--save cannot be combined with ${mixed.map(name => `--${name}`).join(', ')}.`)
+    if (mixed.length > 0) throw UsageError(`--save cannot be combined with ${mixed.map(name => `--${name}`).join(', ')}.`)
     await handleMaterialize({ ...ctx, flags: { ...ctx.flags, save: saveId } })
     return
   }
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
-  if (!isDesignProvider(provider)) throw CLIUsageError(`Voice Design currently supports ${DESIGN_PROVIDERS.join(', ')}; the selected provider has no implemented text-prompt design adapter.`)
+  if (!isDesignProvider(provider)) throw UsageError(`Voice Design currently supports ${DESIGN_PROVIDERS.join(', ')}; the selected provider has no implemented text-prompt design adapter.`)
   const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const creationModel = requiredFlag(ctx, 'creation-model')
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
@@ -327,32 +327,32 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   const candidateCount = positiveIntegerFlag(ctx, 'candidates', provider === 'elevenlabs' ? 3 : 1)
   const sourceVoiceId = optionalFlag(ctx, 'source-voice-id')
   const eligibilitySnapshotHash = optionalFlag(ctx, 'eligibility-snapshot-hash')
-  if ((sourceVoiceId || eligibilitySnapshotHash) && provider !== 'elevenlabs') throw CLIUsageError('Voice remix is supported only by the ElevenLabs advanced adapter.')
-  if ((sourceVoiceId && !eligibilitySnapshotHash) || (!sourceVoiceId && eligibilitySnapshotHash)) throw CLIUsageError('ElevenLabs remix requires both --source-voice-id and --eligibility-snapshot-hash.')
-  if (eligibilitySnapshotHash && !/^[a-f0-9]{64}$/.test(eligibilitySnapshotHash)) throw CLIUsageError('--eligibility-snapshot-hash must be a lowercase SHA-256 digest.')
+  if ((sourceVoiceId || eligibilitySnapshotHash) && provider !== 'elevenlabs') throw UsageError('Voice remix is supported only by the ElevenLabs advanced adapter.')
+  if ((sourceVoiceId && !eligibilitySnapshotHash) || (!sourceVoiceId && eligibilitySnapshotHash)) throw UsageError('ElevenLabs remix requires both --source-voice-id and --eligibility-snapshot-hash.')
+  if (eligibilitySnapshotHash && !/^[a-f0-9]{64}$/.test(eligibilitySnapshotHash)) throw UsageError('--eligibility-snapshot-hash must be a lowercase SHA-256 digest.')
   const seedRaw = optionalFlag(ctx, 'seed')
   const seed = seedRaw === undefined ? undefined : Number(seedRaw)
-  if (seed !== undefined && (!Number.isInteger(seed) || seed < 0)) throw CLIUsageError('--seed must be a non-negative integer.')
+  if (seed !== undefined && (!Number.isInteger(seed) || seed < 0)) throw UsageError('--seed must be a non-negative integer.')
   if (provider === 'elevenlabs') {
-    if (creationModel !== 'eleven_ttv_v3' && creationModel !== 'eleven_multilingual_ttv_v2') throw CLIUsageError('ElevenLabs Voice Design creation model must be eleven_ttv_v3 or eleven_multilingual_ttv_v2; synthesis model IDs such as eleven_v3 are not design model IDs.')
-    if (candidateCount > 3) throw CLIUsageError('ElevenLabs Voice Design supports one to three bounded previews per operation.')
-    if (description.length < 20 || description.length > 1000) throw CLIUsageError('ElevenLabs Voice Design description must contain 20-1000 characters.')
-    if (previewText.length < 100 || previewText.length > 1000) throw CLIUsageError('ElevenLabs Voice Design preview text must contain 100-1000 characters.')
+    if (creationModel !== 'eleven_ttv_v3' && creationModel !== 'eleven_multilingual_ttv_v2') throw UsageError('ElevenLabs Voice Design creation model must be eleven_ttv_v3 or eleven_multilingual_ttv_v2; synthesis model IDs such as eleven_v3 are not design model IDs.')
+    if (candidateCount > 3) throw UsageError('ElevenLabs Voice Design supports one to three bounded previews per operation.')
+    if (description.length < 20 || description.length > 1000) throw UsageError('ElevenLabs Voice Design description must contain 20-1000 characters.')
+    if (previewText.length < 100 || previewText.length > 1000) throw UsageError('ElevenLabs Voice Design preview text must contain 100-1000 characters.')
   } else if (provider === 'fish') {
-    if (creationModel !== FISH_VOICE_DESIGN_MODEL) throw CLIUsageError('Fish Audio Voice Design creation model must be voice-design-1.')
-    if (candidateCount < 1 || candidateCount > 4) throw CLIUsageError('Fish Audio Voice Design supports one to four bounded previews per request.')
-    if (description.length < 1 || description.length > 2000) throw CLIUsageError('Fish Audio Voice Design description must contain 1-2000 characters.')
-    if (previewText.length > 150) throw CLIUsageError('Fish Audio Voice Design preview text must contain at most 150 characters.')
+    if (creationModel !== FISH_VOICE_DESIGN_MODEL) throw UsageError('Fish Audio Voice Design creation model must be voice-design-1.')
+    if (candidateCount < 1 || candidateCount > 4) throw UsageError('Fish Audio Voice Design supports one to four bounded previews per request.')
+    if (description.length < 1 || description.length > 2000) throw UsageError('Fish Audio Voice Design description must contain 1-2000 characters.')
+    if (previewText.length > 150) throw UsageError('Fish Audio Voice Design preview text must contain at most 150 characters.')
   } else {
-    if (candidateCount > 3) throw CLIUsageError('Inworld Voice Design supports one to three bounded previews per request.')
-    if (description.length < 30 || description.length > 250) throw CLIUsageError('Inworld Voice Design description must contain 30-250 characters.')
-    if (!previewText.trim()) throw CLIUsageError('Inworld Voice Design preview text cannot be blank.')
-    if (seed !== undefined) throw CLIUsageError('Inworld Voice Design does not expose a deterministic seed.')
+    if (candidateCount > 3) throw UsageError('Inworld Voice Design supports one to three bounded previews per request.')
+    if (description.length < 30 || description.length > 250) throw UsageError('Inworld Voice Design description must contain 30-250 characters.')
+    if (!previewText.trim()) throw UsageError('Inworld Voice Design preview text cannot be blank.')
+    if (seed !== undefined) throw UsageError('Inworld Voice Design does not expose a deterministic seed.')
   }
   await requireBrief(subjectKey, profileKey)
   if (ctx.flags['price'] === true) {
     const rate = getTtsPricing(provider, providerModel).costPer1kCharsCents
-    if (rate === undefined) throw CLIUsageError(`Voice design pricing is unavailable for ${provider}/${providerModel}; provider dispatch is blocked.`)
+    if (rate === undefined) throw UsageError(`Voice design pricing is unavailable for ${provider}/${providerModel}; provider dispatch is blocked.`)
     const estimatedCostCents = ([...previewText].length / 1000) * rate
     reportVoicePrice('Voice design estimate', { operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations: 1, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 })
     return
@@ -381,12 +381,12 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
 const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
   const candidateId = optionalFlag(ctx, 'save') ?? parameter(ctx, 'candidateId')
   const subjectKey = optionalFlag(ctx, 'subject-key') ?? optionalParameter(ctx, 'subjectKey')
-  if (!subjectKey) throw CLIUsageError('--subject-key is required.')
+  if (!subjectKey) throw UsageError('--subject-key is required.')
   const desiredName = requiredFlag(ctx, 'voice-name')
   const provenanceRef = requiredFlag(ctx, 'provenance-ref')
   const provider = providerFlag(ctx)
   const candidate = await loadVoiceCandidate(getCharactersRoot(), candidateId)
-  if (provider !== candidate.provider || !isDesignProvider(provider)) throw CLIUsageError(`Candidate materialization provider must match one of: ${DESIGN_PROVIDERS.join(', ')}.`)
+  if (provider !== candidate.provider || !isDesignProvider(provider)) throw UsageError(`Candidate materialization provider must match one of: ${DESIGN_PROVIDERS.join(', ')}.`)
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   const brief = await requireBrief(subjectKey, profileKey)
   const consentRef = optionalFlag(ctx, 'consent-ref')
@@ -411,7 +411,7 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
         registration: { provider, provisioning: { state: 'pending', operationId: pending.attemptId }, sanitizedProviderMetadata: { desiredName } },
         journalRoot: voiceJournalRoot(),
         allowAmbiguous: ctx.flags['reconcile'] === true,
-        ...(ctx.flags['reconcile'] === true && provider === 'fish' ? { apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish model reconciliation') } : {}),
+        ...(ctx.flags['reconcile'] === true && provider === 'fish' ? { apiKey: requireProviderKey('fish', 'voice:fish', 'Fish model reconciliation') } : {}),
       })
     }
   }
@@ -442,13 +442,13 @@ const cloneMediaType = (path: string): string => {
   if (extension === 'flac') return 'audio/flac'
   if (extension === 'aac') return 'audio/aac'
   if (extension === 'webm') return 'audio/webm'
-  throw CLIUsageError('Voice audio samples must be mp3, wav, m4a/mp4, ogg, flac, aac, or webm audio.')
+  throw UsageError('Voice audio samples must be mp3, wav, m4a/mp4, ogg, flac, aac, or webm audio.')
 }
 
 const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
-  if (!isCloneProvider(provider)) throw CLIUsageError(`Voice clone currently supports ${CLONE_PROVIDERS.join(', ')}; other providers return unsupported until their adapter is implemented.`)
+  if (!isCloneProvider(provider)) throw UsageError(`Voice clone currently supports ${CLONE_PROVIDERS.join(', ')}; other providers return unsupported until their adapter is implemented.`)
   const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   if (ctx.flags['price'] !== true) {
@@ -462,22 +462,22 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     }
   }
   const samplePaths = repeatableFlag(ctx, 'sample')
-  if (samplePaths.length === 0) throw CLIUsageError(`${provider} instant voice clone requires at least one --sample.`)
-  if ((provider === 'cartesia' || provider === 'speechify') && samplePaths.length !== 1) throw CLIUsageError(`${provider} instant voice clone requires exactly one --sample.`)
+  if (samplePaths.length === 0) throw UsageError(`${provider} instant voice clone requires at least one --sample.`)
+  if ((provider === 'cartesia' || provider === 'speechify') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
   const speechifyConsentName = optionalFlag(ctx, 'consent-name')
   const speechifyConsentEmail = optionalFlag(ctx, 'consent-email')
   const speechifyLocale = optionalFlag(ctx, 'locale')
   const speechifyGender = optionalFlag(ctx, 'gender')
   if (provider === 'speechify') {
-    if (!speechifyConsentName || !speechifyConsentEmail) throw CLIUsageError('Speechify instant clone requires --consent-name and --consent-email.')
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(speechifyConsentEmail)) throw CLIUsageError('--consent-email must be a valid email address.')
-    if (speechifyGender && !SPEECHIFY_CLONE_GENDERS.includes(speechifyGender as typeof SPEECHIFY_CLONE_GENDERS[number])) throw CLIUsageError(`--gender must be ${SPEECHIFY_CLONE_GENDERS.join(', ')}.`)
+    if (!speechifyConsentName || !speechifyConsentEmail) throw UsageError('Speechify instant clone requires --consent-name and --consent-email.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(speechifyConsentEmail)) throw UsageError('--consent-email must be a valid email address.')
+    if (speechifyGender && !SPEECHIFY_CLONE_GENDERS.includes(speechifyGender as typeof SPEECHIFY_CLONE_GENDERS[number])) throw UsageError(`--gender must be ${SPEECHIFY_CLONE_GENDERS.join(', ')}.`)
   } else if (speechifyConsentName || speechifyConsentEmail || speechifyLocale || speechifyGender) {
-    throw CLIUsageError('--consent-name, --consent-email, --locale, and --gender are Speechify instant-clone flags.')
+    throw UsageError('--consent-name, --consent-email, --locale, and --gender are Speechify instant-clone flags.')
   }
   const consentRecordRef = requiredFlag(ctx, 'consent-ref')
   const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, consentRecordRef)
-  if (consent.subjectKey !== subjectKey) throw CLIUsageError('Voice clone consent subject does not match the requested subject.')
+  if (consent.subjectKey !== subjectKey) throw UsageError('Voice clone consent subject does not match the requested subject.')
   assertVoiceConsentAllows(consent, 'upload')
   assertVoiceConsentAllows(consent, 'new-synthesis')
   const authorizationRef = requiredFlag(ctx, 'authorization-ref')
@@ -498,7 +498,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   }
   const brief = await requireBrief(subjectKey, profileKey)
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
-  if (!managedVoiceAssetStore.ingestManaged) throw CLIUsageError('Managed protected store cannot retain clone samples.')
+  if (!managedVoiceAssetStore.ingestManaged) throw UsageError('Managed protected store cannot retain clone samples.')
   const createdAt = new Date().toISOString()
   const protectedSamples = await Promise.all(samplePaths.map(async (sourcePath, index) => (await managedVoiceAssetStore.ingestManaged!({ sourcePath, authorizationRef, speakerKey: subjectKey }, {
     schemaVersion: 1, purpose: 'reference-audio', authorizationRef, retention: { mode: 'retain-until-revoked', obligationRef: request.provenanceRef }, consentRecordRef, createdAt,
@@ -511,12 +511,12 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     const resolved = await resolveProtectedAsset(asset)
     const path = await managedVoiceAssetStore.resolve(asset)
     const durationSeconds = await getAudioDuration(path)
-    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw CLIUsageError('Speechify clone sample duration could not be verified before upload.')
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw UsageError('Speechify clone sample duration could not be verified before upload.')
     return { ...resolved, durationMs: Math.round(durationSeconds * 1000) }
   }
   const adapter = provider === 'elevenlabs'
     ? advancedProvider('elevenlabs', {
-        elevenLabsApiKey: requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs instant voice clone'),
+        elevenLabsApiKey: requireProviderKey('elevenlabs', 'voice:elevenlabs', 'ElevenLabs instant voice clone'),
         resolveElevenLabsProtectedAsset: resolveProtectedAsset,
       })
     : provider === 'fish'
@@ -534,7 +534,7 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
               }),
             })
           : advancedProvider('inworld', {
-              inworldApiKey: requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld instant voice clone'),
+              inworldApiKey: requireProviderKey('inworld', 'voice:inworld', 'Inworld instant voice clone'),
               resolveInworldProtectedAsset: resolveProtectedAsset,
             })
   const { localAttemptId: _planningId, ...cloneRequest } = request
@@ -550,7 +550,7 @@ const findRegistration = async (registrationId: string, generationId?: string) =
 
 const approveRegistration = async (registrationId: string, generationId: string, actorId: string) => {
   const registration = await findRegistration(registrationId, generationId)
-  if (registration.approval.state !== 'auditioned') throw CLIUsageError('Voice approval requires an auditioned registration generation.')
+  if (registration.approval.state !== 'auditioned') throw UsageError('Voice approval requires an auditioned registration generation.')
   const audition = await loadVoiceAuditionManifestForRegistration(getCharactersRoot(), registrationId, generationId)
   const catalog = await loadVoiceRegistrationCatalog(getCharactersRoot())
   const current = await loadCurrentVoiceRegistrationIndex(getCharactersRoot(), catalog)
@@ -569,7 +569,7 @@ const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
   if (approve) requiredFlag(ctx, 'actor-id')
   const registration = await findRegistration(registrationId, optionalFlag(ctx, 'generation-id'))
   const generationId = registration.generationId
-  if (!isVoiceProvider(registration.provider)) throw CLIUsageError(`Voice audition supports only ${VOICE_PROVIDERS.join(', ')} registrations.`)
+  if (!isVoiceProvider(registration.provider)) throw UsageError(`Voice audition supports only ${VOICE_PROVIDERS.join(', ')} registrations.`)
   const brief = await requireBrief(registration.subjectKey, registration.profileKey)
   const consent = registration.consentRecordRef ? await optionalConsent(registration.consentRecordRef) : undefined
   if (registration.consentRecordRef) assertVoiceConsentAllows(consent, 'new-synthesis')
@@ -577,7 +577,7 @@ const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
   const representativeLine = requiredFlag(ctx, 'representative-line')
   const plan = planCanonicalVoiceAudition(registration, brief, representativeLine, takeCount)
   const maxCents = nonNegativeNumberFlag(ctx, 'max-cents')
-  if (maxCents !== undefined && plan.estimatedCostCents > maxCents) throw CLIUsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${maxCents}.`)
+  if (maxCents !== undefined && plan.estimatedCostCents > maxCents) throw UsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${maxCents}.`)
   if (ctx.flags['price'] === true) {
     reportVoicePrice('Voice audition estimate', { operation: 'voice-audition', estimatedCostCents: plan.estimatedCostCents, mutation: false, characterCount: plan.characterCount, takeCount })
     return
@@ -586,7 +586,7 @@ const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
     const currentRegistration = await findRegistration(registrationId, generationId)
     const currentCatalog = await loadVoiceRegistrationCatalog(getCharactersRoot())
     if (currentCatalog.registrations.some(entry => entry.registrationId === registrationId && entry.priorGenerationId === generationId)) {
-      throw CLIUsageError('Voice registration generation already has an append-preserved successor; inspect it instead of purchasing another audition.')
+      throw UsageError('Voice registration generation already has an append-preserved successor; inspect it instead of purchasing another audition.')
     }
     const currentBrief = await requireBrief(currentRegistration.subjectKey, currentRegistration.profileKey)
     const currentConsent = currentRegistration.consentRecordRef ? await loadVoiceConsentRecord(managedVoiceAssetStore, currentRegistration.consentRecordRef) : undefined
@@ -622,7 +622,7 @@ const handleInspect = async (ctx: CliCommandContext, options: { live?: boolean }
     const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, registration.consentRecordRef)
     assertVoiceConsentAllows(consent, 'new-synthesis')
   }
-  if (!isVoiceProvider(registration.provider)) throw CLIUsageError(`Voice inspect supports only ${VOICE_PROVIDERS.join(', ')} registrations.`)
+  if (!isVoiceProvider(registration.provider)) throw UsageError(`Voice inspect supports only ${VOICE_PROVIDERS.join(', ')} registrations.`)
   const staticOnly = ctx.flags['price'] === true
   if (options.live === true && !staticOnly && registration.provisioning.state === 'ready') {
     const adapter = advancedProvider(registration.provider)
@@ -641,16 +641,16 @@ const handleList = async (ctx: CliCommandContext): Promise<void> => {
   const registrationId = optionalParameter(ctx, 'registrationId')
   const provider = optionalFlag(ctx, 'provider')
   const live = ctx.flags['live'] === true
-  if (registrationId && provider) throw CLIUsageError('--provider cannot be combined with a registration id.')
-  if (live && !registrationId) throw CLIUsageError('--live requires a registration id.')
+  if (registrationId && provider) throw UsageError('--provider cannot be combined with a registration id.')
+  if (live && !registrationId) throw UsageError('--live requires a registration id.')
   if (provider) {
     await handleDiscover(ctx)
     return
   }
   if (ctx.rawParsed.explicitFlags.has('source') || optionalFlag(ctx, 'cursor')) {
-    throw CLIUsageError('--provider is required.')
+    throw UsageError('--provider is required.')
   }
-  if (ctx.flags['reconcile'] === true && !registrationId) throw CLIUsageError('--reconcile requires a registration id.')
+  if (ctx.flags['reconcile'] === true && !registrationId) throw UsageError('--reconcile requires a registration id.')
   if (registrationId) {
     const registration = await findRegistration(registrationId, optionalFlag(ctx, 'generation-id'))
     const completed = await maybeCompleteRegistrationJournal(registration, ctx)
@@ -683,12 +683,12 @@ const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const registration = completed ?? source
   const generationId = registration.generationId
   if (!isVoiceProvider(registration.provider) || registration.provisioning.state !== 'ready' || registration.provisioning.providerVoice.kind !== 'remote-resource') {
-    throw CLIUsageError(`Voice deletion supports only ready ${VOICE_PROVIDERS.join(', ')} remote-resource registrations.`)
+    throw UsageError(`Voice deletion supports only ready ${VOICE_PROVIDERS.join(', ')} remote-resource registrations.`)
   }
   const providerVoice = registration.provisioning.providerVoice
   const confirmResourceId = requiredFlag(ctx, 'confirm-voice-id')
-  if (confirmResourceId !== providerVoice.resourceId) throw CLIUsageError('--confirm-voice-id must match the exact registered provider resource ID.')
-  if (providerVoice.ownership !== 'project' || providerVoice.deletion.state !== 'eligible') throw CLIUsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
+  if (confirmResourceId !== providerVoice.resourceId) throw UsageError('--confirm-voice-id must match the exact registered provider resource ID.')
+  if (providerVoice.ownership !== 'project' || providerVoice.deletion.state !== 'eligible') throw UsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
   if (ctx.flags['price'] === true) {
     reportVoicePrice('Voice delete estimate', { operation: 'voice-delete', estimatedCostCents: 0, mutation: false, registrationId, generationId, resourceId: providerVoice.resourceId })
     return
@@ -696,9 +696,9 @@ const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const pending = registration.cleanupState.state === 'deletion-pending'
     ? registration
     : await beginVoiceRegistrationDeletion({ charactersRoot: getCharactersRoot(), registrationId, generationId })
-  if (pending.provisioning.state !== 'ready' || pending.provisioning.providerVoice.kind !== 'remote-resource' || !isVoiceProvider(pending.provider)) throw CLIUsageError('Pending deletion lost its exact provider voice identity.')
+  if (pending.provisioning.state !== 'ready' || pending.provisioning.providerVoice.kind !== 'remote-resource' || !isVoiceProvider(pending.provider)) throw UsageError('Pending deletion lost its exact provider voice identity.')
   const adapter = advancedProvider(pending.provider)
-  if (!adapter.lifecycle) throw CLIUsageError(`${pending.provider} lifecycle adapter is unavailable.`)
+  if (!adapter.lifecycle) throw UsageError(`${pending.provider} lifecycle adapter is unavailable.`)
   const deleted = await adapter.lifecycle.delete({
     providerVoice: pending.provisioning.providerVoice,
     expectedResourceId: confirmResourceId,

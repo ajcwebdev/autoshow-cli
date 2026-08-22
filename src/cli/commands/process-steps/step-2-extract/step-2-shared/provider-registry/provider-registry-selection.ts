@@ -169,12 +169,9 @@ export const collectStep2ProviderSelections = (
     }
 
     const models = readRuntimeValue(options, entry.selection.runtimeModelsKey)
-    const fallback = readRuntimeValue(options, entry.selection.runtimeModelKey)
     const orderedModels = Array.isArray(models)
       ? models.filter((value): value is string => typeof value === 'string' && value.length > 0)
-      : typeof fallback === 'string' && fallback.length > 0
-        ? [fallback]
-        : []
+      : []
     const origin = selectionOrigins[entry.flagName] ?? (!hasSelectionOrigins ? 'default' : undefined)
 
     if (!origin || !includeOrigin(origin, filter)) {

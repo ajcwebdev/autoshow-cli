@@ -86,7 +86,7 @@ describe('model validation selector contracts', () => {
         continue
       }
       try {
-        expect(() => buildOptsFromFlags(false, { [flag]: 'invalid-model' })).toThrow(
+        expect(() => buildOptsFromFlags({ [flag]: 'invalid-model' })).toThrow(
           `Invalid model "invalid-model" for ${formatModelSelector(flag)}`
         )
       } catch (error) {

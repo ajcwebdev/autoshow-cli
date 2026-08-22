@@ -22,7 +22,7 @@ import { estimateImageOutputCost, formatCost } from '../comic-image-services/ima
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
 import { isGeminiImageModel } from './image-service'
 import { DEFAULT_LLM_MODEL, DEFAULT_QA_MODEL } from './cli-args'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from './image-size'
 import { ScenePromptDataSchema } from '../schemas/schemas'
 import { priceDetails, priceLine, priceNotice, priceTable } from './price-estimate-logging'
@@ -277,9 +277,9 @@ const printImageEstimateTable = (
 export const estimateCharacterSketchPrice = async (
   options: CharacterSketchCommandOptions
 ): Promise<void> => {
-  if (!options.character) throw CLIUsageError('--character is required')
+  if (!options.character) throw UsageError('--character is required')
   const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
-  if (models.length !== 1) throw CLIUsageError('comic reference-sketch accepts exactly one --image-model')
+  if (models.length !== 1) throw UsageError('comic reference-sketch accepts exactly one --image-model')
   const size: ImageGenerationSize = options.size ?? '1024x1536'
   const quality: ImageGenerationQuality = options.quality ?? 'medium'
   const catalog = loadCharacterCatalog()
@@ -288,7 +288,7 @@ export const estimateCharacterSketchPrice = async (
   const sourcePath = existsSync(character.sourcePath)
     ? character.sourcePath
     : character.generationReferencePath
-  if (!sourcePath) throw CLIUsageError(`Character "${key}" has no source image or generationReference`)
+  if (!sourcePath) throw UsageError(`Character "${key}" has no source image or generationReference`)
   const referenceCount = options.revise && character.sourcePath !== character.outlineSheetPath ? 2 : 1
   validateImageSizeForModels(size, models)
   validateReferenceImageCount(models[0]!, referenceCount, `character-sketch ${options.revise ? 'revision' : 'generation'}`)
@@ -337,9 +337,9 @@ export const estimateLocationReferencePrice = async (
   const entry = catalog.locations.find(item => item.key === options.location)
   const registration = manifest.sketches.find(item => item.locationKey === options.location)
   const target = registration?.views.find(item => item.view === view)
-  if (!LOCATION_VIEWS.includes(view)) throw CLIUsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
-  if (view !== 'establishing' && !registration?.views.some(item => item.view === 'establishing')) throw CLIUsageError(`Cannot generate ${view} view before the establishing view`)
-  if (options.revise && (!entry || !target)) throw CLIUsageError(`Cannot revise unregistered ${view} view for location "${options.location}"`)
+  if (!LOCATION_VIEWS.includes(view)) throw UsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
+  if (view !== 'establishing' && !registration?.views.some(item => item.view === 'establishing')) throw UsageError(`Cannot generate ${view} view before the establishing view`)
+  if (options.revise && (!entry || !target)) throw UsageError(`Cannot revise unregistered ${view} view for location "${options.location}"`)
   if (!options.revise && target) {
     await requireCurrentLocationReference(options.location!)
     priceLine('Comic - Price Estimate: reference-sketch --location: existing validated view, no provider calls.', {

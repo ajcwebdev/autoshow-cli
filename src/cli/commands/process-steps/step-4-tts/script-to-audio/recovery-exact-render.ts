@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import type { PipelineProviderState, PureCurrentTtsRenderPlanOptions } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { buildPureCurrentTtsRenderPlan } from './attempt-planning'
 import { discoverBatchCandidates } from './recovery-batch-discovery'
 import { loadRecoveryBatches } from './recovery-batch-reconstruction'
@@ -23,7 +23,7 @@ export const prepareCurrentTtsCompletedRecoveryImpl = async (
     const retainedRender = resultProjection.renderHistory.find((entry) =>
       entry.renderIdentity === pure.renderIdentity)
     if (!retainedRender) {
-      throw CLIUsageError(`Stored TTS target ${options.state.service}/${options.state.model ?? ''} does not match the exact planned render identity; rebuild instead of resuming it.`)
+      throw UsageError(`Stored TTS target ${options.state.service}/${options.state.model ?? ''} does not match the exact planned render identity; rebuild instead of resuming it.`)
     }
     const providerRoot = resolve(options.rootDir, options.state.artifactDir)
     const renderRoot = resolveRetainedPath(
@@ -76,7 +76,7 @@ export const prepareCurrentTtsCompletedRecoveryImpl = async (
       loadedBatches.some((batch) => batch.value.generationSlotId === slotId))
     if (!allCompleted) {
       if (pure.planned.strategy !== 'segmented') {
-        throw CLIUsageError('Partial completed-slot recovery is supported only for immutable segmented dialogue renders; redispatch is blocked.')
+        throw UsageError('Partial completed-slot recovery is supported only for immutable segmented dialogue renders; redispatch is blocked.')
       }
       return {
         kind: 'partial-slots' as const,

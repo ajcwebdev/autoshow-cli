@@ -271,11 +271,11 @@ export const selectCheapestVideoSelection = (
           let estimate: ReturnType<typeof estimateVideoCost>
           try {
             estimate = estimateVideoCost({
-              ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
-              ...(provider === 'grok' ? { grokVideoModel: model } : {}),
-              ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
-              ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
-              ...(provider === 'fal' ? { falVideoModel: model } : {}),
+              ...(provider === 'gemini' ? { geminiVideoModels: [model] } : {}),
+              ...(provider === 'grok' ? { grokVideoModels: [model] } : {}),
+              ...(provider === 'ltx' ? { ltxVideoModels: [model] } : {}),
+              ...(provider === 'lumalabs' ? { lumalabsVideoModels: [model] } : {}),
+              ...(provider === 'fal' ? { falVideoModels: [model] } : {}),
               videoDuration: duration,
               videoResolution: resolution
             })
@@ -327,12 +327,12 @@ const providerVideoEstimateOptions = (
   provider: typeof TEXT_VIDEO_PROVIDERS[number],
   model: string
 ): Parameters<typeof estimateVideoCost>[0] => ({
-  ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
-  ...(provider === 'grok' ? { grokVideoModel: model } : {}),
-  ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
-  ...(provider === 'replicate' ? { replicateVideoModel: model } : {}),
-  ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
-  ...(provider === 'fal' ? { falVideoModel: model } : {}),
+  ...(provider === 'gemini' ? { geminiVideoModels: [model] } : {}),
+  ...(provider === 'grok' ? { grokVideoModels: [model] } : {}),
+  ...(provider === 'ltx' ? { ltxVideoModels: [model] } : {}),
+  ...(provider === 'replicate' ? { replicateVideoModels: [model] } : {}),
+  ...(provider === 'lumalabs' ? { lumalabsVideoModels: [model] } : {}),
+  ...(provider === 'fal' ? { falVideoModels: [model] } : {}),
   videoMode: 'text'
 })
 

@@ -9,4 +9,4 @@ Architecture diagrams covering the system in six grouped views.
 3. [Processing Pipelines](diagrams/03-processing-pipelines.md) - Media, document, article, write, transcript-video, and lyric-video paths
 4. [Providers, Models & Setup](diagrams/04-providers-and-setup.md) - Provider catalog, setup steps, and API-key requirements
 5. [Types, Metadata & Output Layout](diagrams/05-types-and-output.md) - Manifest shape, artifacts, and output directories
-6. [End-to-End Execution Reference](diagrams/06-end-to-end-reference.md) - Example `write` command from invocation through files on disk
+6. [End-to-End Execution Reference](diagrams/06-end-to-end-reference.md) - Example `extract` then `write` from invocation through files on disk

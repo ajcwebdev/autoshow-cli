@@ -1,11 +1,9 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-flags'
-import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { videoCommandFlags } from '~/cli/flags/video-flags'
+import { UsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { selectCheapestDefaultTextVideoSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runVideoGen } from './run-video-gen'
@@ -26,10 +24,10 @@ import { VIDEO_PRICING_PROVIDERS } from './video-utils/video-pricing'
 import { optionsForService } from '~/utils/pricing/model-selection'
 
 const VIDEO_POSITIONAL_IMAGE_CONFLICT_FLAGS = [
-  ['video-input-image', '--input-image'],
-  ['video-last-frame', '--last-frame'],
-  ['video-reference-image', '--reference-image'],
-  ['video-input-video', '--input-video']
+  ['input-image', '--input-image'],
+  ['last-frame', '--last-frame'],
+  ['reference-image', '--reference-image'],
+  ['input-video', '--input-video']
 ] as const
 
 const hasValue = (value: unknown): boolean =>
@@ -47,7 +45,7 @@ const rejectRetiredVideoProviderSelectors = (occurrences: readonly { name: strin
     const model = occurrence.value.slice(separator + 1)
     const replacement = getRetiredModelReplacement('video', provider, model)
     if (replacement !== undefined) {
-      throw CLIUsageError(`Model "${model}" is retired for --provider ${provider}=<model>. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`)
+      throw UsageError(`Model "${model}" is retired for --provider ${provider}=<model>. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`)
     }
   }
 }
@@ -94,24 +92,24 @@ const resolveVideoInput = (
   flags: Record<string, unknown>
 ): { prompt: string | undefined, kind: 'image' | 'text' } => {
   if (!isFirstClassVideoImageInput(input)) {
-    if (!hasValue(flags['video-mode'])) {
-      flags['video-mode'] = 'text'
+    if (!hasValue(flags['mode'])) {
+      flags['mode'] = 'text'
     }
     return { prompt: input, kind: 'text' }
   }
 
   const mediaConflict = VIDEO_POSITIONAL_IMAGE_CONFLICT_FLAGS.find(([flagName]) => hasValue(flags[flagName]))
   if (mediaConflict) {
-    throw CLIUsageError(`Positional image input cannot be combined with ${mediaConflict[1]}.`)
+    throw UsageError(`Positional image input cannot be combined with ${mediaConflict[1]}.`)
   }
 
-  const explicitMode = typeof flags['video-mode'] === 'string' ? flags['video-mode'] : undefined
+  const explicitMode = typeof flags['mode'] === 'string' ? flags['mode'] : undefined
   if (explicitMode !== undefined && explicitMode !== 'image-to-video') {
-    throw CLIUsageError(`Positional image input infers --mode image-to-video; do not combine it with --mode ${explicitMode}.`)
+    throw UsageError(`Positional image input infers --mode image-to-video; do not combine it with --mode ${explicitMode}.`)
   }
 
-  flags['video-mode'] = 'image-to-video'
-  flags['video-input-image'] = input
+  flags['mode'] = 'image-to-video'
+  flags['input-image'] = input
   return { prompt: undefined, kind: 'image' }
 }
 
@@ -132,26 +130,20 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
     ]
   }
-}, retargetUsageErrorsToCommandSpellings(async (ctx) => {
+}, async (ctx) => {
   const input = ctx.parameters.input
   if (typeof input !== 'string' || input.trim().length === 0) {
-    throw CLIUsageError('Missing video input: provide a text prompt or image path, URL, or data URL.')
+    throw UsageError('Missing video input: provide a text prompt or image path, URL, or data URL.')
   }
-  const flags = ctx.flags
+  const flags = ctx.flags as Record<string, unknown>
 
-  const videoMaxCents = await resolveMaxCentsFromFlags(flags as Record<string, unknown>)
-  const optionNormalized = normalizeCommandSelectorFlags(
-    flags as Record<string, unknown>,
+  const videoMaxCents = await resolveMaxCentsFromFlags(flags)
+  const resolvedInput = resolveVideoInput(input, flags)
+  rejectRetiredVideoProviderSelectors(ctx.rawParsed.flagOccurrences)
+  const providerNormalized = normalizeGenericProviderSelectorFlags(
+    flags,
     ctx.rawParsed.explicitFlags,
     ctx.rawParsed.flagOccurrences,
-    videoCommandOptionNames
-  )
-  const resolvedInput = resolveVideoInput(input, optionNormalized.flags)
-  rejectRetiredVideoProviderSelectors(optionNormalized.flagOccurrences)
-  const providerNormalized = normalizeGenericProviderSelectorFlags(
-    optionNormalized.flags,
-    optionNormalized.explicitFlags,
-    optionNormalized.flagOccurrences,
     'provider',
     STANDALONE_VIDEO_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-video' }
@@ -160,16 +152,16 @@ export const videoCommand = defineCliCommand({
   if (!hasVideoProviderSelection(providerNormalized.flags)) {
     if (resolvedInput.kind === 'image') {
       providerNormalized.flags['all-video'] = true
-    } else if (providerNormalized.flags['video-mode'] === 'text') {
+    } else if (providerNormalized.flags['mode'] === 'text') {
       const selection = selectCheapestDefaultTextVideoSelection()
       setSingleVideoProviderSelection(providerNormalized.flags, selection.provider, selection.model)
     }
   }
 
-  const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
+  const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences })
   const videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
-    throw CLIUsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
+    throw UsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
   }
 
   const pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
@@ -251,4 +243,4 @@ export const videoCommand = defineCliCommand({
       includeOutputDir: false
     }
   )
-}, videoCommandOptionNames))
+})

@@ -7,14 +7,14 @@ import type {
   SanitizedProviderVoiceMetadata,
   VoiceLifecyclePort
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 export const assertAdvancedVoiceInspectionIdentity = (
   identity: AdvancedVoiceProviderIdentity,
   voice: ProviderVoiceRef
 ): RemoteVoiceResourceRef => {
   if (voice.provider !== identity.provider || voice.kind !== 'remote-resource') {
-    throw CLIUsageError(`${identity.label} inspection requires ${identity.labelWithArticle} remote voice resource.`)
+    throw UsageError(`${identity.label} inspection requires ${identity.labelWithArticle} remote voice resource.`)
   }
   return voice
 }
@@ -26,7 +26,7 @@ export const assertAdvancedVoiceDeletable = (
 ): RemoteVoiceResourceRef => {
   const voice = deleteRequest.providerVoice
   if (voice.provider !== identity.provider || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) {
-    throw CLIUsageError(`${identity.label} deletion identity does not match the registered resource.`)
+    throw UsageError(`${identity.label} deletion identity does not match the registered resource.`)
   }
 
   const namespaceWithOwnership = (policy.namespaceCheck ?? 'ownership') === 'ownership'
@@ -35,11 +35,11 @@ export const assertAdvancedVoiceDeletable = (
     || voice.deletion.state !== 'eligible'
     || (namespaceWithOwnership && voice.namespace !== 'account')
   ) {
-    throw CLIUsageError(`${identity.label} deletes only eligibility-checked project-owned ${policy.ownedResourceLabel}.`)
+    throw UsageError(`${identity.label} deletes only eligibility-checked project-owned ${policy.ownedResourceLabel}.`)
   }
 
   if ((!namespaceWithOwnership && voice.namespace !== 'account') || voice.accountScopeHash !== identity.accountScopeHash) {
-    throw CLIUsageError(`${identity.label} deletion credentials do not match the registered account scope.`)
+    throw UsageError(`${identity.label} deletion credentials do not match the registered account scope.`)
   }
 
   return voice
@@ -97,7 +97,7 @@ export const assertAdvancedVoiceCloneAuthorized = (
   beforeClause: string
 ): void => {
   if (!cloneRequest.consentRecordRef || !cloneRequest.provenanceRef) {
-    throw CLIUsageError(`${identity.label} cloning requires consent and provenance ${beforeClause}.`)
+    throw UsageError(`${identity.label} cloning requires consent and provenance ${beforeClause}.`)
   }
 }
 

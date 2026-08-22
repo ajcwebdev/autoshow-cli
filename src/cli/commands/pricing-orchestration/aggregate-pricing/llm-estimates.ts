@@ -12,10 +12,8 @@ export const buildLlmEstimates = async (
     prompts?: string[] | undefined
     promptFile?: string | undefined
     reasoningEffort?: NormalizedReasoningEffort | undefined
-  },
-  skipLLM: boolean
+  }
 ): Promise<LlmStepEstimate[]> => {
-  if (skipLLM) return []
   const llmConfig = resolveLLMDefaults(opts)
   const rates = estimateLlmRates(llmConfig)
   const plannedRates = rates.map((rate) => {

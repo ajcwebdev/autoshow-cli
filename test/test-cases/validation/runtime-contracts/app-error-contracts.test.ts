@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   AppError,
   AppUsageError,
-  CLIUsageError,
+  UsageError,
   collectErrorChain,
   extractErrorHints,
   extractErrorMetadata,
@@ -44,9 +44,9 @@ describe('app error contracts', () => {
     })
   })
 
-  test('AppUsageError and CLIUsageError preserve legacy usage behavior', () => {
+  test('AppUsageError and UsageError preserve legacy usage behavior', () => {
     const usage = new AppUsageError('Bad flags', ['Run help'])
-    const legacy = CLIUsageError('Missing input', 'Run: bun autoshow help extract')
+    const legacy = UsageError('Missing input', 'Run: bun autoshow help extract')
 
     expect(usage.name).toBe('AppUsageError')
     expect(usage.exitCode).toBe(2)
@@ -58,7 +58,7 @@ describe('app error contracts', () => {
   })
 
   test('usage classification requires the AppUsageError class, not a matching error name', () => {
-    const impostor = Object.assign(new Error('impostor'), { name: 'CLIUsageError' })
+    const impostor = Object.assign(new Error('impostor'), { name: 'UsageError' })
 
     expect(isUsageError(impostor)).toBe(false)
     expect(normalizeExitCode(impostor)).toBe(1)

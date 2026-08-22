@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureSonioxSttSetup = ensureProvider('soniox', 'stt:soniox', 'Soniox transcription')
+export const ensureSonioxSttSetup = async (): Promise<void> => { requireProviderKey('soniox', 'stt:soniox', 'Soniox transcription') }

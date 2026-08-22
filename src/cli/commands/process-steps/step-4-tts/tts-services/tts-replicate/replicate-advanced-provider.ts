@@ -4,7 +4,7 @@ import {
   buildCapabilityDocumentationEvidence,
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const DOCS = {
   kokoro: 'https://replicate.com/jaaari/kokoro-82m',
@@ -27,7 +27,7 @@ export const REPLICATE_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixt
 export const createReplicateAdvancedProvider = (
   options: CreateReplicateAdvancedProviderOptions
 ): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
-  const apiKey = requireProvidedApiKey(options.apiKey, 'REPLICATE_API_TOKEN', 'voice:replicate', 'Replicate capability inspection')
+  const apiKey = resolveCredential('replicate', 'require', { stage: 'voice:replicate', providedValue: options.apiKey, useProvidedValue: true, description: 'Replicate capability inspection' })
   return {
     provider: 'replicate',
     accountScopeHash: providerAccountScopeHash('replicate', apiKey),

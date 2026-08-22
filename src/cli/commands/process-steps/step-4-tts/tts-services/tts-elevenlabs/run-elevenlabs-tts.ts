@@ -6,7 +6,7 @@ import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -42,7 +42,7 @@ export const runElevenLabsTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('ELEVENLABS_API_KEY', 'tts:elevenlabs', 'ElevenLabs TTS')
+  const apiKey = requireProviderKey('elevenlabs', 'tts:elevenlabs', 'ElevenLabs TTS')
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
   const chunks = splitTextIntoChunks(text, resolveTtsChunkCharacterLimit('elevenlabs', options.model) ?? 2000)

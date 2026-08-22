@@ -168,11 +168,11 @@ describe('standalone Mistral protected request references', () => {
     }
 
     expect(() => resolveStandaloneMistralTtsCliReferenceInput({
-      'mistral-tts-ref-audio': join(root, 'configured.wav')
+      'tts-ref-audio': join(root, 'configured.wav')
     }, {
-      configuredFlags: new Set(['mistral-tts-ref-audio']),
+      configuredFlags: new Set(['tts-ref-audio']),
       cliReferenceInput: 'standalone-mistral'
-    })).toThrow('Configured --mistral-tts-ref-audio paths cannot be used as synthesis defaults')
+    })).toThrow('Configured --tts-ref-audio paths cannot be used as synthesis defaults')
 
     expect(() => resolveStandaloneMistralTtsSpeakerReferenceInputs({
       'tts-speaker': [`Host=${join(root, 'configured-host.wav')}`]

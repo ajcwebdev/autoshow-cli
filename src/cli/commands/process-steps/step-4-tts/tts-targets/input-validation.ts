@@ -10,7 +10,7 @@ export const validateTtsInput = (text: string, options: TtsOptions): void => {
   const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
   const dialogue = normalizeDialogueText(text, resolveDialogueFormat(options), registry)
 
-  const geminiModels = options.geminiTtsModels ?? (options.geminiTtsModel ? [options.geminiTtsModel] : [])
+  const geminiModels = options.geminiTtsModels ?? []
   if (
     geminiModels.length > 0
     && resolveGeminiDialogueStrategy(registry.entries.length, 'auto') === 'native'

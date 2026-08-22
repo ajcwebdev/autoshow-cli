@@ -12,17 +12,17 @@ import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const articleUrl = 'https://ajcwebdev.com'
 
-budgetedTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.com --url-provider glm-reader', async () => {
+budgetedTest('extract-glm-reader-url', 'bun autoshow extract https://ajcwebdev.com --provider glm-reader', async () => {
   await requireConfiguredEnvVar('GLM_API_KEY', 'GLM_API_KEY not configured')
 
   let outputDir: string | null = null
 
   try {
-    const args = ['src/cli/create-cli.ts', 'extract', articleUrl, '--url-provider', 'glm-reader']
+    const args = ['src/cli/create-cli.ts', 'extract', articleUrl, '--provider', 'glm-reader']
     outputDir = await runCommandAndExpectOutputDir(
       'GLM Reader URL extraction',
       args,
-      { testName: 'bun autoshow extract https://ajcwebdev.com --url-provider glm-reader' }
+      { testName: 'bun autoshow extract https://ajcwebdev.com --provider glm-reader' }
     )
 
     await expectArtifact(`${outputDir}/extraction.txt`)

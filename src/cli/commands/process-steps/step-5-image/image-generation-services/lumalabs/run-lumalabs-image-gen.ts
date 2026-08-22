@@ -1,5 +1,5 @@
 import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, Step5Metadata } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { downloadGeneratedImage, extractImageErrorMessage, LumalabsGenerationSchema, readJsonOrText, runPolledJob, withImageProviderHeaders } from '~/utils/polled-job-client/polled-job'
@@ -22,7 +22,7 @@ export const normalizeLumalabsAspectRatio = (aspectRatio: string | undefined): s
     return aspectRatio
   }
 
-  throw CLIUsageError(`Invalid --image-aspect-ratio value "${aspectRatio}" for Luma Labs. Supported values: ${LUMALABS_ASPECT_RATIOS.join(', ')}.`)
+  throw UsageError(`Invalid --aspect-ratio value "${aspectRatio}" for Luma Labs. Supported values: ${LUMALABS_ASPECT_RATIOS.join(', ')}.`)
 }
 
 export const normalizeLumalabsImageOutputFormat = (format: string | undefined): LumalabsOutputFormat =>
@@ -66,7 +66,7 @@ export const runLumalabsImageGen = async (
   const fileName = `generated-image.${ext}`
   const outputPath = `${outputDir}/${fileName}`
 
-  const estimate = estimateImageCosts({ lumalabsImageModel: options.model })[0]
+  const estimate = estimateImageCosts({ lumalabsImageModels: [options.model] })[0]
   if (estimate) {
     logImageEstimate(estimate)
   }

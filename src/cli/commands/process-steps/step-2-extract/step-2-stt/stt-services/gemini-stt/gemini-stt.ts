@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureGeminiSttSetup = ensureProvider('gemini', 'stt:gemini', 'Gemini transcription')
+export const ensureGeminiSttSetup = async (): Promise<void> => { requireProviderKey('gemini', 'stt:gemini', 'Gemini transcription') }

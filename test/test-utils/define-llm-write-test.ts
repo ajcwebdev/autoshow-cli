@@ -1,8 +1,6 @@
 import { expect } from "bun:test"
 import {
   fileExists,
-  STABLE_EXAMPLE_AUDIO_URL,
-  STABLE_EXAMPLE_AUDIO_TITLE,
 } from "./test-helpers"
 import { E2E_TEST_TIMEOUT_MS } from './budget'
 import { readCanonicalRecord } from './manifest-helpers'
@@ -28,8 +26,8 @@ export const defineLLMWriteTest = ({
   llmService,
   requiresEnvVar,
   promptProfiles,
-  inputPath = STABLE_EXAMPLE_AUDIO_URL,
-  inputTitle = STABLE_EXAMPLE_AUDIO_TITLE,
+  inputPath = 'input/examples/tts/0-tts-short.txt',
+  inputTitle = '0-tts-short',
 }: {
   models: readonly string[]
   provider: string

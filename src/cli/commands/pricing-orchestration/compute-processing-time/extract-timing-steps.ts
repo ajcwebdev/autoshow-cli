@@ -138,38 +138,38 @@ export const buildExtractTimingSteps = (input: ComputeEstimatedProcessingTimesIn
   let estimateConfidence: EstimateConfidence = 'registry'
   const ocrConcurrencyMode = resolveOcrConcurrencyMode(input)
 
-  const extractTargets = input.extractTargets && input.extractTargets.length > 0
+  const extractTargets: NonNullable<ComputeEstimatedProcessingTimesInput['extractTargets']> = input.extractTargets && input.extractTargets.length > 0
     ? input.extractTargets
     : [
-        ...(input.mistralOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'mistral' as const, model: input.mistralOcrModel, pageCount: input.extractPageCount }]
+        ...(input.mistralOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'mistral' as const, model: input.mistralOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.replicateOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'replicate' as const, model: input.replicateOcrModel, pageCount: input.extractPageCount }]
+        ...(input.replicateOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'replicate' as const, model: input.replicateOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.falOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'fal' as const, model: input.falOcrModel, pageCount: input.extractPageCount }]
+        ...(input.falOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'fal' as const, model: input.falOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.glmOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'glm' as const, model: input.glmOcrModel, pageCount: input.extractPageCount }]
+        ...(input.glmOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'glm' as const, model: input.glmOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.kimiOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'kimi' as const, model: input.kimiOcrModel, pageCount: input.extractPageCount }]
+        ...(input.kimiOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'kimi' as const, model: input.kimiOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.openaiOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'openai' as const, model: input.openaiOcrModel, pageCount: input.extractPageCount }]
+        ...(input.openaiOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'openai' as const, model: input.openaiOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.grokOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'grok' as const, model: input.grokOcrModel, pageCount: input.extractPageCount }]
+        ...(input.grokOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'grok' as const, model: input.grokOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.anthropicOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'anthropic' as const, model: input.anthropicOcrModel, pageCount: input.extractPageCount }]
+        ...(input.anthropicOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'anthropic' as const, model: input.anthropicOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.geminiOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'gemini' as const, model: input.geminiOcrModel, pageCount: input.extractPageCount }]
+        ...(input.geminiOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'gemini' as const, model: input.geminiOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.deepinfraOcrModel && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'deepinfra' as const, model: input.deepinfraOcrModel, pageCount: input.extractPageCount }]
+        ...(input.deepinfraOcrModels?.[0] && typeof input.extractPageCount === 'number'
+          ? [{ provider: 'deepinfra' as const, model: input.deepinfraOcrModels[0], pageCount: input.extractPageCount }]
           : [])
       ]
   const hostedOcrTargetCountsByProvider = new Map<string, number>()

@@ -1,6 +1,6 @@
 # Processing Pipelines
 
-Media, document, article, text-input writing, transcript-video, and lyric-video flows.
+Media, document, article, text writing, transcript-video, and lyric-video flows.
 
 ## Outline
 
@@ -12,7 +12,7 @@ Media, document, article, text-input writing, transcript-video, and lyric-video 
 
 ## Media STT Pipeline
 
-`metadata` stops after metadata extraction, `download` stops after Step 1, `extract` runs Steps 1-2, and `write` runs Steps 1-3 text generation (with follow-on generation commands for speech, images, video, and music).
+`metadata` stops after metadata extraction, `download` stops after Step 1, `extract` runs Steps 1-2, and `write` runs Step 3 text generation over local `.md` / `.txt` (with follow-on generation commands for speech, images, video, and music).
 
 ```
 media target
@@ -141,7 +141,7 @@ Local HTML uses Defuddle. Remote single-backend Defuddle automatically retries w
 
 ## Write Outputs
 
-For media, document, article, and text-input write flows, Step 3 builds a prompt and runs the selected LLM providers:
+For extracted transcripts, documents, articles, and local text write flows, Step 3 builds a prompt and runs the selected LLM providers:
 
 ```
 Step 2 result
@@ -170,9 +170,9 @@ write show notes
   +--> show-note.md or show-note-<model>.md
 ```
 
-Text-input write mode skips Steps 1-2. It treats `.md`/`.txt` files as the source corpus and then runs Step 3 text writing.
+`write` always starts at Step 3. It treats `.md`/`.txt` files as the source corpus. URLs, media, documents, HTML, and X Spaces go through `extract` first.
 
-`output/<project>/text` can be used as a project directory. The CLI infers `--text-input`, `prompt.md`, optional `tracks.md`, and rendered lyric output defaults from the project structure.
+`output/<project>/text` can be used as a project directory. The CLI infers `prompt.md`, optional `tracks.md`, and rendered lyric output defaults from the project structure.
 
 ## Transcript Video Pipeline
 

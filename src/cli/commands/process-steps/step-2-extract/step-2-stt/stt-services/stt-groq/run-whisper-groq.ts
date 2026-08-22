@@ -1,6 +1,6 @@
 import type { Step2Metadata, TranscriptionResult } from '~/types'
 import { GROQ_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleSingleSpeakerStt } from '../openai-compatible-single-speaker'
 
 export const runGroqTranscribe = async (
@@ -15,7 +15,7 @@ export const runGroqTranscribe = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
-  const apiKey = requireApiKey('GROQ_API_KEY', 'stt:groq', 'Groq STT models')
+  const apiKey = requireProviderKey('groq', 'stt:groq', 'Groq STT models')
 
   const baseURL = GROQ_DEFAULT_BASE_URL
   return await runOpenAICompatibleSingleSpeakerStt(audioPath, outputDir, {

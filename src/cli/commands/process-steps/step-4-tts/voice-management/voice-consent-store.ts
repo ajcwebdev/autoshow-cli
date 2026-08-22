@@ -1,5 +1,5 @@
 import type { AuditActorRef, ProtectedAssetRef, ProtectedVoiceAssetPolicy, ProtectedVoiceAssetStore, VoiceConsentRecord, VoiceConsentRevocation } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalRecordWithout } from '../script-to-audio/contract-identity'
 import { validateAuditActorRef, validateVoiceConsentRecord } from './voice-management-contracts'
 
@@ -10,9 +10,9 @@ const encodeVoiceConsentRecordRef = (asset: ProtectedAssetRef): string =>
 
 const parseVoiceConsentRecordRef = (value: string): ProtectedAssetRef => {
   const parts = value.split(':')
-  if (parts.length !== 5 || `${parts[0]}:${parts[1]}:` !== CONSENT_REF_PREFIX) throw CLIUsageError('Consent record reference is not a protected consent v1 locator.')
+  if (parts.length !== 5 || `${parts[0]}:${parts[1]}:` !== CONSENT_REF_PREFIX) throw UsageError('Consent record reference is not a protected consent v1 locator.')
   const [, , storeId, assetId, sha256] = parts
-  if (!storeId || !assetId || !sha256) throw CLIUsageError('Consent record reference is incomplete.')
+  if (!storeId || !assetId || !sha256) throw UsageError('Consent record reference is incomplete.')
   return { storeId, assetId, sha256 }
 }
 
@@ -21,7 +21,7 @@ export const storeVoiceConsentRecord = async (
   record: VoiceConsentRecord
 ): Promise<string> => {
   validateVoiceConsentRecord(record)
-  if (!store.storeBytes) throw CLIUsageError('Registered protected store does not support managed consent records.')
+  if (!store.storeBytes) throw UsageError('Registered protected store does not support managed consent records.')
   const policy: ProtectedVoiceAssetPolicy = {
     schemaVersion: 1,
     purpose: 'consent-evidence',
@@ -54,7 +54,7 @@ export const loadVoiceConsentRecord = async (
 ): Promise<VoiceConsentRecord> => {
   const { asset, record } = await loadVoiceConsentRecordBytes(store, reference)
   const revocations = store.readConsentRevocations ? await store.readConsentRevocations(asset) : []
-  if (revocations.length > 0) throw CLIUsageError(`Voice consent record ${record.consentRecordId} is revoked; all consent-gated actions are denied.`)
+  if (revocations.length > 0) throw UsageError(`Voice consent record ${record.consentRecordId} is revoked; all consent-gated actions are denied.`)
   return record
 }
 
@@ -65,8 +65,8 @@ export const revokeVoiceConsentRecord = async (input: {
   revokedBy: AuditActorRef
   revokedAt?: string | undefined
 }): Promise<VoiceConsentRevocation> => {
-  if (!input.store.recordConsentRevocation) throw CLIUsageError('Registered protected store does not support consent revocation markers.')
-  if (!input.reason.trim()) throw CLIUsageError('Consent revocation requires a reason.')
+  if (!input.store.recordConsentRevocation) throw UsageError('Registered protected store does not support consent revocation markers.')
+  if (!input.reason.trim()) throw UsageError('Consent revocation requires a reason.')
   validateAuditActorRef(input.revokedBy)
   const { asset, record } = await loadVoiceConsentRecordBytes(input.store, input.reference)
   const withoutId = {

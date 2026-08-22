@@ -1,7 +1,7 @@
 import { lstat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { AttemptSlot, CompactTargetRender, CurrentTtsPartialRecovery, CurrentTtsReconciliationBlocker, CurrentTtsRecoveredGenerationSlot, CurrentTtsSafeRedispatch, PipelineProviderState, ProviderRenderPlan, PureCurrentTtsRenderPlanOptions, RenderAdmissionJournalSnapshot } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, computePaidSpeechSlotHash, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderBatchResult, validateProviderRenderPlanIdentity, validateRenderAdmissionJournalSnapshot } from './contract-validation'
 import { contained, hasErrorCode, readObservedAudio, readVerifiedJson } from './attempt-io'
@@ -93,7 +93,7 @@ const recoverSlotReuseFromExistingWav = async (input: {
   const audio = await readObservedAudio(input.rootDir, wavPath)
   const sha256 = sha256Bytes(audio.bytes)
   if (input.expectedSha256 && input.expectedSha256 !== sha256) {
-    throw CLIUsageError(`Stored TTS slot ${input.slotHash} no longer matches its archive checksum.`)
+    throw UsageError(`Stored TTS slot ${input.slotHash} no longer matches its archive checksum.`)
   }
   const outputId = `output-${hashCanonicalTtsValue({ generationSlotId: input.slot.generationSlotId, outputIndex: 0, sha256, format: audio.format }).slice(0, 24)}`
   const resultBase = {
@@ -291,7 +291,7 @@ const recoverArchivedSlots = async (
       if (
         retainedPlan.renderIdentity !== retainedRender.renderIdentity
         || retainedPlan.renderPlanId !== retainedRender.renderPlanId
-      ) throw CLIUsageError('Stored TTS render plan identity does not match its canonical projection.')
+      ) throw UsageError('Stored TTS render plan identity does not match its canonical projection.')
       const compatibleSlotIds = compatibleSlotIdsFor(pure.renderPlan, retainedPlan)
       if (compatibleSlotIds.size === 0) continue
       const artifactRoot = options.artifactRoot
@@ -334,7 +334,7 @@ const recoverArchivedSlots = async (
     }
   ): void => {
     if (!blocker || options.reconciliationMode === 'report' || options.ttsOptions.ttsAllowAmbiguousRedispatch === true) return
-    throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+    throw UsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
   }
 
 export const prepareCurrentTtsCompatibleSlotRecoveryImpl = async (

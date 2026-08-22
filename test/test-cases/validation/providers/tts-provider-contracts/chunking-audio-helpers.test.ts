@@ -41,7 +41,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS chunk scheduler shares one cap across simultaneous runs for the same provider', async () => {
-      const scheduler = createHostedTtsChunkScheduler(2)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const releases: Array<() => void> = []
       let releaseImmediately = false
       let inFlight = 0
@@ -82,7 +82,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS batch coordinator dispatches the earliest job before later smaller jobs', async () => {
-      const scheduler = createHostedTtsBatchCoordinator(2)
+      const scheduler = createHostedTtsBatchCoordinator({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const started: string[] = []
       const releases = new Map<string, () => void>()
       let releaseImmediately = false
@@ -123,7 +123,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS batch coordinator fills provider capacity from the earliest job', async () => {
-      const scheduler = createHostedTtsBatchCoordinator(3)
+      const scheduler = createHostedTtsBatchCoordinator({ maxConcurrency: 3, concurrencyMode: 'immediate' })
       const started: string[] = []
       const releases = new Map<string, () => void>()
       let releaseImmediately = false
@@ -162,7 +162,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS batch coordinator moves forward only after all earlier-job chunks are dispatched', async () => {
-      const scheduler = createHostedTtsBatchCoordinator(6)
+      const scheduler = createHostedTtsBatchCoordinator({ maxConcurrency: 6, concurrencyMode: 'immediate' })
       const started: string[] = []
       const releases: Array<() => void> = []
       let releaseImmediately = false
@@ -193,7 +193,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS dispatch ordering is stable when later jobs arrive during execution', async () => {
-      const scheduler = createHostedTtsBatchCoordinator(1)
+      const scheduler = createHostedTtsBatchCoordinator({ maxConcurrency: 1, concurrencyMode: 'immediate' })
       const started: string[] = []
       const releases: Array<() => void> = []
       let secondShort: Promise<string[]> | undefined
@@ -226,7 +226,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS admission tokens attribute retries and rate limits to the exact chunk job', async () => {
-      const scheduler = createHostedTtsBatchCoordinator(2)
+      const scheduler = createHostedTtsBatchCoordinator({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const first = scheduler.runChunks('grok', ['A'], async (chunk, _index, admission) => {
         expect(Object.isFrozen(admission)).toBe(true)
         expect(Object.isFrozen(admission.context)).toBe(true)
@@ -253,7 +253,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS scheduler bindings preserve input, target, turn, and segment identity', async () => {
-      const scheduler = createHostedTtsChunkScheduler(1)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 1, concurrencyMode: 'immediate' })
       const targetScheduler = bindHostedTtsChunkScheduler(scheduler, {
         job: { jobId: 'input-2-target-3', inputIndex: 2, targetIndex: 3, originalOrder: 23 }
       })
@@ -273,7 +273,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS scope labels isolate pressure lanes for the same provider', async () => {
-      const scheduler = createHostedTtsChunkScheduler(2)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const releases: Array<() => void> = []
       let releaseImmediately = false
       let active = 0
@@ -302,7 +302,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS chunk scheduler uses independent caps for different providers', async () => {
-      const scheduler = createHostedTtsChunkScheduler(2)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const releases: Array<() => void> = []
       let releaseImmediately = false
       let inFlight = 0
@@ -372,7 +372,7 @@ describe('TTS provider service contracts', () => {
     })
 
   test('hosted TTS chunk scheduler gradually ramps successful providers back to the configured max', async () => {
-      const scheduler = createHostedTtsChunkScheduler(4)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 4, concurrencyMode: 'immediate' })
       let admission
       await scheduler.runChunks('grok', ['seed'], async (chunk, _index, token) => {
         admission = token
@@ -435,7 +435,7 @@ describe('TTS provider service contracts', () => {
     }, 5_000)
 
   test('hosted TTS chunk scheduler waits for active chunks to settle after cancellation', async () => {
-      const scheduler = createHostedTtsChunkScheduler(2)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const controller = new AbortController()
       const cancellation = new Error('cancel active hosted TTS chunks')
       const releases: Array<() => void> = []
@@ -482,7 +482,7 @@ describe('TTS provider service contracts', () => {
     }, 5_000)
 
   test('hosted TTS chunk scheduler does not admit a sibling job during shared-signal abort dispatch', async () => {
-      const scheduler = createHostedTtsChunkScheduler(1)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 1, concurrencyMode: 'immediate' })
       const controller = new AbortController()
       const cancellation = new Error('cancel shared hosted TTS signal')
       let releaseActive: (() => void) | undefined
@@ -511,7 +511,7 @@ describe('TTS provider service contracts', () => {
     }, 5_000)
 
   test('hosted TTS scheduler records provider and job telemetry', async () => {
-      const scheduler = createHostedTtsChunkScheduler(2)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 2, concurrencyMode: 'immediate' })
 
       await runTtsChunks(['a', 'b', 'c'], 2, async (chunk) => chunk, {
         provider: 'grok',

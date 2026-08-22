@@ -17,6 +17,9 @@ import {
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   WRITE_LLM_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
+import { imageCommandOptionNames } from '~/cli/flags/image-flags'
+import { musicCommandOptionNames } from '~/cli/flags/music-flags'
+import { videoCommandOptionNames } from '~/cli/flags/video-flags'
 
 const STT_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('stt')
 const OCR_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('ocr')
@@ -64,10 +67,99 @@ const readNestedValue = (
   return current
 }
 
+export type ConfigInjectionScope =
+  | 'write'
+  | 'extract'
+  | 'download'
+  | 'metadata'
+  | 'tts'
+  | 'image'
+  | 'video'
+  | 'music'
+  | 'resume'
+  | 'config'
+  | 'all'
+
+const SCOPE_PATH_PREFIXES: Record<ConfigInjectionScope, readonly (readonly string[])[]> = {
+  write: [
+    ['defaults', 'llm'],
+    ['defaults', 'batch'],
+    ['defaults', 'prompts'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  extract: [
+    ['defaults', 'extract'],
+    ['defaults', 'batch'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  download: [
+    ['defaults', 'extract'],
+    ['defaults', 'batch'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  metadata: [
+    ['defaults', 'extract'],
+    ['defaults', 'batch'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  tts: [
+    ['defaults', 'tts'],
+    ['defaults', 'batch'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  image: [
+    ['defaults', 'image'],
+    ['defaults', 'batch'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  video: [
+    ['defaults', 'video'],
+    ['defaults', 'batch'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  music: [
+    ['defaults', 'music'],
+    ['defaults', 'batch'],
+    ['defaults', 'concurrency'],
+    ['pricing'],
+    ['auth']
+  ],
+  resume: [],
+  config: [],
+  all: []
+}
+
+const pathMatchesScope = (path: readonly string[], scope: ConfigInjectionScope): boolean => {
+  const prefixes = SCOPE_PATH_PREFIXES[scope]
+  if (prefixes.length === 0) return true
+  return prefixes.some((prefix) => prefix.every((segment, index) => path[index] === segment))
+}
+
+const PUBLIC_FLAG_ALIASES_BY_SCOPE: Partial<Record<ConfigInjectionScope, Record<string, string>>> = {
+  image: imageCommandOptionNames,
+  video: videoCommandOptionNames,
+  music: musicCommandOptionNames
+}
+
 export const mergeConfigIntoRawFlags = (
   rawFlags: Record<string, unknown>,
   config: AutoshowConfig,
-  explicitFlags: Set<string>
+  explicitFlags: Set<string>,
+  scope: ConfigInjectionScope = 'all'
 ): Record<string, unknown> => {
   const merged: Record<string, unknown> = { ...rawFlags }
   const injectedFlags = new Set<string>()
@@ -77,10 +169,14 @@ export const mergeConfigIntoRawFlags = (
   const configRecord = config as unknown as Record<string, unknown>
 
   const inject = (flagName: string, path: readonly string[]): void => {
+    if (!pathMatchesScope(path, scope)) return
     const value = readNestedValue(configRecord, path)
-    if (value === undefined || explicitFlags.has(flagName)) return
-    merged[flagName] = typeof value === 'number' ? String(value) : value
-    injectedFlags.add(flagName)
+    if (value === undefined) return
+    const publicName = PUBLIC_FLAG_ALIASES_BY_SCOPE[scope]?.[flagName]
+    const destination = publicName && !explicitFlags.has(publicName) ? publicName : flagName
+    if (explicitFlags.has(destination) || explicitFlags.has(flagName)) return
+    merged[destination] = typeof value === 'number' ? String(value) : value
+    injectedFlags.add(destination)
   }
 
   for (const { gate, flags } of PROVIDER_SELECTION_GROUPS) {
@@ -96,7 +192,12 @@ export const mergeConfigIntoRawFlags = (
     inject(flagName, path)
   }
 
-  if (d.prompts && d.prompts.length > 0 && !explicitFlags.has('prompt')) {
+  if (
+    pathMatchesScope(['defaults', 'prompts'], scope)
+    && d.prompts
+    && d.prompts.length > 0
+    && !explicitFlags.has('prompt')
+  ) {
     merged['prompt'] = d.prompts
     injectedFlags.add('prompt')
   }
@@ -133,108 +234,85 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'cerebras':          ['defaults', 'llm', 'cerebras'],
   'llm-provider-concurrency': ['defaults', 'llm', 'providerConcurrency'],
   'llm-local-concurrency': ['defaults', 'llm', 'localConcurrency'],
-  'elevenlabs-tts':    ['defaults', 'post', 'tts', 'elevenlabsTts'],
-  'minimax-tts':       ['defaults', 'post', 'tts', 'minimaxTts'],
-  'groq-tts':          ['defaults', 'post', 'tts', 'groqTts'],
-  'grok-tts':          ['defaults', 'post', 'tts', 'grokTts'],
-  'mistral-tts':       ['defaults', 'post', 'tts', 'mistralTts'],
-  'openai-tts':        ['defaults', 'post', 'tts', 'openaiTts'],
-  'gemini-tts':        ['defaults', 'post', 'tts', 'geminiTts'],
-  'deepgram-tts':      ['defaults', 'post', 'tts', 'deepgramTts'],
-  'speechify-tts':     ['defaults', 'post', 'tts', 'speechifyTts'],
-  'hume-tts':          ['defaults', 'post', 'tts', 'humeTts'],
-  'cartesia-tts':      ['defaults', 'post', 'tts', 'cartesiaTts'],
-  'fish-tts':          ['defaults', 'post', 'tts', 'fishTts'],
-  'inworld-tts':       ['defaults', 'post', 'tts', 'inworldTts'],
-  'deepinfra-tts':     ['defaults', 'post', 'tts', 'deepinfraTts'],
-  'replicate-tts':     ['defaults', 'post', 'tts', 'replicateTts'],
-  'fal-tts':           ['defaults', 'post', 'tts', 'falTts'],
-  'groq-voice':        ['defaults', 'post', 'tts', 'groqVoice'],
-  'grok-tts-voice':    ['defaults', 'post', 'tts', 'grokTtsVoice'],
-  'grok-tts-language': ['defaults', 'post', 'tts', 'grokTtsLanguage'],
-  'grok-tts-text-normalization': ['defaults', 'post', 'tts', 'grokTtsTextNormalization'],
-  'mistral-tts-voice': ['defaults', 'post', 'tts', 'mistralTtsVoice'],
-  'tts-dialogue-format': ['defaults', 'post', 'tts', 'ttsDialogueFormat'],
-  'tts-speaker': ['defaults', 'post', 'tts', 'ttsSpeakers'],
-  'openai-voice':      ['defaults', 'post', 'tts', 'openaiVoice'],
-  'openai-tts-instructions': ['defaults', 'post', 'tts', 'openaiTtsInstructions'],
-  'openai-tts-speed': ['defaults', 'post', 'tts', 'openaiTtsSpeed'],
-  'gemini-voice':      ['defaults', 'post', 'tts', 'geminiVoice'],
-  'deepgram-tts-speed': ['defaults', 'post', 'tts', 'deepgramTtsSpeed'],
-  'elevenlabs-voice':  ['defaults', 'post', 'tts', 'elevenlabsVoice'],
-  'elevenlabs-tts-language-code': ['defaults', 'post', 'tts', 'elevenlabsTtsLanguageCode'],
-  'elevenlabs-tts-stability': ['defaults', 'post', 'tts', 'elevenlabsTtsStability'],
-  'elevenlabs-tts-similarity-boost': ['defaults', 'post', 'tts', 'elevenlabsTtsSimilarityBoost'],
-  'elevenlabs-tts-style': ['defaults', 'post', 'tts', 'elevenlabsTtsStyle'],
-  'elevenlabs-tts-use-speaker-boost': ['defaults', 'post', 'tts', 'elevenlabsTtsUseSpeakerBoost'],
-  'elevenlabs-tts-speed': ['defaults', 'post', 'tts', 'elevenlabsTtsSpeed'],
-  'elevenlabs-tts-seed': ['defaults', 'post', 'tts', 'elevenlabsTtsSeed'],
-  'elevenlabs-tts-text-normalization': ['defaults', 'post', 'tts', 'elevenlabsTtsTextNormalization'],
-  'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'post', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
-  'minimax-tts-voice': ['defaults', 'post', 'tts', 'minimaxTtsVoice'],
-  'minimax-tts-language-boost': ['defaults', 'post', 'tts', 'minimaxTtsLanguageBoost'],
-  'minimax-tts-speed': ['defaults', 'post', 'tts', 'minimaxTtsSpeed'],
-  'minimax-tts-volume': ['defaults', 'post', 'tts', 'minimaxTtsVolume'],
-  'minimax-tts-pitch': ['defaults', 'post', 'tts', 'minimaxTtsPitch'],
-  'minimax-tts-emotion': ['defaults', 'post', 'tts', 'minimaxTtsEmotion'],
-  'minimax-tts-english-normalization': ['defaults', 'post', 'tts', 'minimaxTtsEnglishNormalization'],
-  'minimax-tts-pronunciation': ['defaults', 'post', 'tts', 'minimaxTtsPronunciations'],
-  'deepgram-voice':    ['defaults', 'post', 'tts', 'deepgramVoice'],
-  'speechify-voice':   ['defaults', 'post', 'tts', 'speechifyVoice'],
-  'speechify-tts-language': ['defaults', 'post', 'tts', 'speechifyTtsLanguage'],
-  'hume-tts-voice':    ['defaults', 'post', 'tts', 'humeTtsVoice'],
-  'cartesia-tts-voice': ['defaults', 'post', 'tts', 'cartesiaTtsVoice'],
-  'cartesia-tts-language': ['defaults', 'post', 'tts', 'cartesiaTtsLanguage'],
-  'tts-provider-concurrency': ['defaults', 'post', 'tts', 'providerConcurrency'],
-  'tts-local-concurrency': ['defaults', 'post', 'tts', 'localConcurrency'],
-  'tts-chunk-concurrency': ['defaults', 'post', 'tts', 'chunkConcurrency'],
-  'gemini-image':      ['defaults', 'post', 'image', 'geminiImage'],
-  'openai-image':      ['defaults', 'post', 'image', 'openaiImage'],
-  'grok-image':        ['defaults', 'post', 'image', 'grokImage'],
-  'bfl-image':         ['defaults', 'post', 'image', 'bflImage'],
-  'replicate-image':   ['defaults', 'post', 'image', 'replicateImage'],
-  'lumalabs-image':    ['defaults', 'post', 'image', 'lumalabsImage'],
-  'fal-image':         ['defaults', 'post', 'image', 'falImage'],
-  'image-aspect-ratio': ['defaults', 'post', 'image', 'imageAspectRatio'],
-  'image-size':        ['defaults', 'post', 'image', 'imageSize'],
-  'image-quality':     ['defaults', 'post', 'image', 'imageQuality'],
-  'image-format':      ['defaults', 'post', 'image', 'imageFormat'],
-  'image-background':  ['defaults', 'post', 'image', 'imageBackground'],
-  'image-count':       ['defaults', 'post', 'image', 'imageCount'],
-  'image-provider-concurrency': ['defaults', 'post', 'image', 'providerConcurrency'],
-  'image-local-concurrency': ['defaults', 'post', 'image', 'localConcurrency'],
-  'gemini-video':      ['defaults', 'post', 'video', 'geminiVideo'],
-  'grok-video':        ['defaults', 'post', 'video', 'grokVideo'],
-  'ltx-video':         ['defaults', 'post', 'video', 'ltxVideo'],
-  'replicate-video':   ['defaults', 'post', 'video', 'replicateVideo'],
-  'lumalabs-video':    ['defaults', 'post', 'video', 'lumalabsVideo'],
-  'fal-video':         ['defaults', 'post', 'video', 'falVideo'],
-  'video-duration':    ['defaults', 'post', 'video', 'videoDuration'],
-  'video-aspect-ratio': ['defaults', 'post', 'video', 'videoAspectRatio'],
-  'video-resolution':  ['defaults', 'post', 'video', 'videoResolution'],
-  'video-mode':        ['defaults', 'post', 'video', 'videoMode'],
-  'video-input-image': ['defaults', 'post', 'video', 'videoInputImage'],
-  'video-last-frame':  ['defaults', 'post', 'video', 'videoLastFrame'],
-  'video-reference-image': ['defaults', 'post', 'video', 'videoReferenceImages'],
-  'video-input-video': ['defaults', 'post', 'video', 'videoInputVideo'],
-  'replicate-video-seed': ['defaults', 'post', 'video', 'replicateVideoSeed'],
-  'video-generate-audio': ['defaults', 'post', 'video', 'videoGenerateAudio'],
-  'video-reference-video': ['defaults', 'post', 'video', 'videoReferenceVideos'],
-  'video-reference-audio': ['defaults', 'post', 'video', 'videoReferenceAudios'],
-  'replicate-video-negative-prompt': ['defaults', 'post', 'video', 'replicateVideoNegativePrompt'],
-  'video-provider-concurrency': ['defaults', 'post', 'video', 'providerConcurrency'],
-  'video-local-concurrency': ['defaults', 'post', 'video', 'localConcurrency'],
-  'elevenlabs-music':  ['defaults', 'post', 'music', 'elevenlabsMusic'],
-  'minimax-music':     ['defaults', 'post', 'music', 'minimaxMusic'],
-  'gemini-music':      ['defaults', 'post', 'music', 'geminiMusic'],
-  'music-duration':    ['defaults', 'post', 'music', 'musicDuration'],
-  'music-instrumental': ['defaults', 'post', 'music', 'musicInstrumental'],
-  'music-provider-concurrency': ['defaults', 'post', 'music', 'providerConcurrency'],
-  'music-local-concurrency': ['defaults', 'post', 'music', 'localConcurrency'],
-  'ocr-language':       ['defaults', 'extract', 'ocr', 'lang'],
-  'format':             ['defaults', 'extract', 'ocr', 'out'],
+  'elevenlabs-tts':    ['defaults', 'tts', 'elevenlabsTts'],
+  'minimax-tts':       ['defaults', 'tts', 'minimaxTts'],
+  'groq-tts':          ['defaults', 'tts', 'groqTts'],
+  'grok-tts':          ['defaults', 'tts', 'grokTts'],
+  'mistral-tts':       ['defaults', 'tts', 'mistralTts'],
+  'openai-tts':        ['defaults', 'tts', 'openaiTts'],
+  'gemini-tts':        ['defaults', 'tts', 'geminiTts'],
+  'deepgram-tts':      ['defaults', 'tts', 'deepgramTts'],
+  'speechify-tts':     ['defaults', 'tts', 'speechifyTts'],
+  'hume-tts':          ['defaults', 'tts', 'humeTts'],
+  'cartesia-tts':      ['defaults', 'tts', 'cartesiaTts'],
+  'fish-tts':          ['defaults', 'tts', 'fishTts'],
+  'inworld-tts':       ['defaults', 'tts', 'inworldTts'],
+  'deepinfra-tts':     ['defaults', 'tts', 'deepinfraTts'],
+  'replicate-tts':     ['defaults', 'tts', 'replicateTts'],
+  'fal-tts':           ['defaults', 'tts', 'falTts'],
+  'tts-voice':         ['defaults', 'tts', 'voice'],
+  'tts-speed':         ['defaults', 'tts', 'speed'],
+  'tts-language':      ['defaults', 'tts', 'language'],
+  'tts-text-normalization': ['defaults', 'tts', 'textNormalization'],
+  'tts-instructions':  ['defaults', 'tts', 'instructions'],
+  'tts-dialogue-format': ['defaults', 'tts', 'ttsDialogueFormat'],
+  'tts-speaker': ['defaults', 'tts', 'ttsSpeakers'],
+  'elevenlabs-tts-stability': ['defaults', 'tts', 'elevenlabsTtsStability'],
+  'elevenlabs-tts-similarity-boost': ['defaults', 'tts', 'elevenlabsTtsSimilarityBoost'],
+  'elevenlabs-tts-style': ['defaults', 'tts', 'elevenlabsTtsStyle'],
+  'elevenlabs-tts-use-speaker-boost': ['defaults', 'tts', 'elevenlabsTtsUseSpeakerBoost'],
+  'elevenlabs-tts-seed': ['defaults', 'tts', 'elevenlabsTtsSeed'],
+  'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
+  'minimax-tts-volume': ['defaults', 'tts', 'minimaxTtsVolume'],
+  'minimax-tts-pitch': ['defaults', 'tts', 'minimaxTtsPitch'],
+  'minimax-tts-emotion': ['defaults', 'tts', 'minimaxTtsEmotion'],
+  'minimax-tts-pronunciation': ['defaults', 'tts', 'minimaxTtsPronunciations'],
+  'tts-provider-concurrency': ['defaults', 'tts', 'providerConcurrency'],
+  'tts-chunk-concurrency': ['defaults', 'tts', 'chunkConcurrency'],
+  'gemini-image':      ['defaults', 'image', 'geminiImage'],
+  'openai-image':      ['defaults', 'image', 'openaiImage'],
+  'grok-image':        ['defaults', 'image', 'grokImage'],
+  'bfl-image':         ['defaults', 'image', 'bflImage'],
+  'replicate-image':   ['defaults', 'image', 'replicateImage'],
+  'lumalabs-image':    ['defaults', 'image', 'lumalabsImage'],
+  'fal-image':         ['defaults', 'image', 'falImage'],
+  'image-aspect-ratio': ['defaults', 'image', 'imageAspectRatio'],
+  'image-size':        ['defaults', 'image', 'imageSize'],
+  'image-quality':     ['defaults', 'image', 'imageQuality'],
+  'image-format':      ['defaults', 'image', 'imageFormat'],
+  'image-background':  ['defaults', 'image', 'imageBackground'],
+  'image-count':       ['defaults', 'image', 'imageCount'],
+  'image-provider-concurrency': ['defaults', 'image', 'providerConcurrency'],
+  'gemini-video':      ['defaults', 'video', 'geminiVideo'],
+  'grok-video':        ['defaults', 'video', 'grokVideo'],
+  'ltx-video':         ['defaults', 'video', 'ltxVideo'],
+  'replicate-video':   ['defaults', 'video', 'replicateVideo'],
+  'lumalabs-video':    ['defaults', 'video', 'lumalabsVideo'],
+  'fal-video':         ['defaults', 'video', 'falVideo'],
+  'video-duration':    ['defaults', 'video', 'videoDuration'],
+  'video-aspect-ratio': ['defaults', 'video', 'videoAspectRatio'],
+  'video-resolution':  ['defaults', 'video', 'videoResolution'],
+  'video-mode':        ['defaults', 'video', 'videoMode'],
+  'video-input-image': ['defaults', 'video', 'videoInputImage'],
+  'video-last-frame':  ['defaults', 'video', 'videoLastFrame'],
+  'video-reference-image': ['defaults', 'video', 'videoReferenceImages'],
+  'video-input-video': ['defaults', 'video', 'videoInputVideo'],
+  'replicate-video-seed': ['defaults', 'video', 'replicateVideoSeed'],
+  'video-generate-audio': ['defaults', 'video', 'videoGenerateAudio'],
+  'video-reference-video': ['defaults', 'video', 'videoReferenceVideos'],
+  'video-reference-audio': ['defaults', 'video', 'videoReferenceAudios'],
+  'replicate-video-negative-prompt': ['defaults', 'video', 'replicateVideoNegativePrompt'],
+  'video-provider-concurrency': ['defaults', 'video', 'providerConcurrency'],
+  'elevenlabs-music':  ['defaults', 'music', 'elevenlabsMusic'],
+  'minimax-music':     ['defaults', 'music', 'minimaxMusic'],
+  'gemini-music':      ['defaults', 'music', 'geminiMusic'],
+  'music-duration':    ['defaults', 'music', 'musicDuration'],
+  'music-instrumental': ['defaults', 'music', 'musicInstrumental'],
+  'music-provider-concurrency': ['defaults', 'music', 'providerConcurrency'],
+  'ocr-language':       ['defaults', 'extract', 'ocr', 'ocrLanguage'],
+  'format':             ['defaults', 'extract', 'ocr', 'format'],
   'ocr-dpi':            ['defaults', 'extract', 'ocr', 'dpi'],
-  'ocr-concurrency':   ['defaults', 'extract', 'ocr', 'pageConcurrency'],
+  'ocr-concurrency':   ['defaults', 'extract', 'ocr', 'ocrConcurrency'],
   'ocr-provider-concurrency': ['defaults', 'extract', 'ocr', 'providerConcurrency'],
   'ocr-local-concurrency': ['defaults', 'extract', 'ocr', 'localConcurrency'],
   'ocr-provider-mode':  ['defaults', 'extract', 'ocr', 'providerMode'],
@@ -256,7 +334,7 @@ export const RUNTIME_ONLY_FLAGS = new Set([
   'reset',
   'config-path',
   'password',
-  'mistral-tts-ref-audio'
+  'tts-ref-audio'
 ])
 
 const setNestedValue = (obj: Record<string, unknown>, path: string[], value: unknown): void => {
@@ -296,10 +374,9 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
     'image-provider-concurrency', 'image-local-concurrency',
     'video-provider-concurrency', 'video-local-concurrency',
     'music-provider-concurrency', 'music-local-concurrency',
-    'openai-tts-speed', 'minimax-tts-speed', 'minimax-tts-volume', 'minimax-tts-pitch',
-    'deepgram-tts-speed',
+    'tts-speed', 'minimax-tts-volume', 'minimax-tts-pitch',
     'elevenlabs-tts-stability', 'elevenlabs-tts-similarity-boost', 'elevenlabs-tts-style',
-    'elevenlabs-tts-speed', 'elevenlabs-tts-seed',
+    'elevenlabs-tts-seed',
     'replicate-video-seed'
   ])
   if (numericFlags.has(flagName)) {
@@ -366,10 +443,10 @@ export const buildConfigPatchFromFlags = (
       ['defaults', 'extract', 'stt', 'providerConcurrency'],
       ['defaults', 'extract', 'ocr', 'providerConcurrency'],
       ['defaults', 'llm', 'providerConcurrency'],
-      ['defaults', 'post', 'tts', 'providerConcurrency'],
-      ['defaults', 'post', 'image', 'providerConcurrency'],
-      ['defaults', 'post', 'video', 'providerConcurrency'],
-      ['defaults', 'post', 'music', 'providerConcurrency']
+      ['defaults', 'tts', 'providerConcurrency'],
+      ['defaults', 'image', 'providerConcurrency'],
+      ['defaults', 'video', 'providerConcurrency'],
+      ['defaults', 'music', 'providerConcurrency']
     ]) {
       setNestedValue(patch, path, value)
     }
@@ -379,12 +456,7 @@ export const buildConfigPatchFromFlags = (
     const value = resolveConfigFlagValue('local-concurrency', flags['local-concurrency'])
     for (const path of [
       ['defaults', 'extract', 'stt', 'localConcurrency'],
-      ['defaults', 'extract', 'ocr', 'localConcurrency'],
-      ['defaults', 'llm', 'localConcurrency'],
-      ['defaults', 'post', 'tts', 'localConcurrency'],
-      ['defaults', 'post', 'image', 'localConcurrency'],
-      ['defaults', 'post', 'video', 'localConcurrency'],
-      ['defaults', 'post', 'music', 'localConcurrency']
+      ['defaults', 'extract', 'ocr', 'localConcurrency']
     ]) {
       setNestedValue(patch, path, value)
     }

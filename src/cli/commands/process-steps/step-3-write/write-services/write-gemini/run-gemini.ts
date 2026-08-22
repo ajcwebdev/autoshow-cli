@@ -1,5 +1,5 @@
 import type { LlmApiCallResult, Step3Metadata, StructuredRequestOptions } from '~/types'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
@@ -28,7 +28,7 @@ export const runGeminiModel = async (
     operationName: 'gemini-llm',
     emptyResponseStage: 'write:gemini',
     classifier: classifyGeminiRetry,
-    prepare: () => requireApiKey('GEMINI_API_KEY', 'write:gemini'),
+    prepare: () => requireProviderKey('gemini', 'write:gemini'),
     execute: async (createSignal, apiKey): Promise<LlmApiCallResult> => {
       const thinkingLevel = buildGeminiThinkingLevel(policy.effective)
       const generationConfig: Record<string, unknown> = {

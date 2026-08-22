@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { CLIUsageError, InternalError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InternalError, ValidationError } from '~/utils/error-handler'
 import type { ComicGridSpec, ComicPageChunk, ComicPanelSelection, PanelBundleData, GenerateImagesTarget, ImageGenerationSize, SketchPanelRange } from '~/types'
 import { PanelBundleDataSchema } from '../../schemas/schemas'
 
@@ -27,7 +27,7 @@ export const parseComicGridSpec = (value: string): ComicGridSpec => {
     || !Number.isSafeInteger(columns)
     || !Number.isSafeInteger(rows)
   ) {
-    throw CLIUsageError(`Invalid grid "${value}". Expected positive columns x rows like 2x3`)
+    throw UsageError(`Invalid grid "${value}". Expected positive columns x rows like 2x3`)
   }
 
   return { columns, rows }
@@ -46,15 +46,15 @@ export const validateComicGridOptions = (
   }
 
   if (options.target !== 'images' && options.target !== 'both') {
-    throw CLIUsageError('--grid only applies when --target is images or both')
+    throw UsageError('--grid only applies when --target is images or both')
   }
 
   if (options.size !== COMIC_GRID_PANEL_SIZE) {
-    throw CLIUsageError(`--grid requires --size ${COMIC_GRID_PANEL_SIZE}`)
+    throw UsageError(`--grid requires --size ${COMIC_GRID_PANEL_SIZE}`)
   }
 
   if (options.panelsPerImage !== 1) {
-    throw CLIUsageError('--grid requires --panels-per-image 1')
+    throw UsageError('--grid requires --panels-per-image 1')
   }
 }
 
@@ -65,13 +65,13 @@ export const parsePanelSelector = (value: string): ComicPanelSelection => {
   }
 
   if (!trimmed || trimmed.includes(' ')) {
-    throw CLIUsageError(`Invalid panels "${value}". Expected all, a range like 1-8, or a list like 1,3,7`)
+    throw UsageError(`Invalid panels "${value}". Expected all, a range like 1-8, or a list like 1,3,7`)
   }
 
   const selectedPanels = new Set<number>()
   for (const rawPart of trimmed.split(',')) {
     if (!rawPart) {
-      throw CLIUsageError(`Invalid panels "${value}". Expected all, a range like 1-8, or a list like 1,3,7`)
+      throw UsageError(`Invalid panels "${value}". Expected all, a range like 1-8, or a list like 1,3,7`)
     }
 
     const match = rawPart.match(PANEL_SELECTOR_PART_PATTERN)
@@ -79,7 +79,7 @@ export const parsePanelSelector = (value: string): ComicPanelSelection => {
     const endPanel = match?.[2] ? Number(match[2]) : startPanel
 
     if (!match || startPanel < 1 || endPanel < 1 || startPanel > endPanel) {
-      throw CLIUsageError(`Invalid panels "${value}". Expected all, a range like 1-8, or a list like 1,3,7`)
+      throw UsageError(`Invalid panels "${value}". Expected all, a range like 1-8, or a list like 1,3,7`)
     }
 
     for (let panelNumber = startPanel; panelNumber <= endPanel; panelNumber++) {

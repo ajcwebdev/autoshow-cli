@@ -14,7 +14,7 @@
         "costPerMOutputTokensCents": 5000,
         "limits": {
           "imageBytes": 5242880,
-          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
         },
         "estimation": {
           "promptTokensPerPage": 2024,
@@ -39,7 +39,7 @@
         "costPerMOutputTokensCents": 2500,
         "limits": {
           "imageBytes": 5242880,
-          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -64,7 +64,7 @@
         "costPerMOutputTokensCents": 1000,
         "limits": {
           "imageBytes": 5242880,
-          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -89,7 +89,7 @@
         "costPerMOutputTokensCents": 500,
         "limits": {
           "imageBytes": 5242880,
-          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -112,7 +112,7 @@
         "costPerMOutputTokensCents": 2500,
         "limits": {
           "imageBytes": 5242880,
-          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
         },
         "estimation": {
           "costMultiplier": 1,

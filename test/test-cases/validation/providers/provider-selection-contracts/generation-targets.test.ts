@@ -6,7 +6,7 @@ import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/m
 
 describe('provider selection contracts', () => {
   test('BFL/Replicate image and remaining video flags select targets and participate in all-provider shortcuts', () => {
-    const explicitOpts = buildOptsFromFlags(false, {
+    const explicitOpts = buildOptsFromFlags({
       'bfl-image': ['flux-2-pro'],
       'replicate-image': ['wan-video/wan-2.7-image'],
       'fal-image': ['alibaba/qwen-image-3'],
@@ -32,7 +32,7 @@ describe('provider selection contracts', () => {
       'fal:minimax/h3'
     ])
 
-    const allOpts = buildOptsFromFlags(false, {
+    const allOpts = buildOptsFromFlags({
       'all-image': true,
       'all-video': true
     })
@@ -85,7 +85,7 @@ describe('provider selection contracts', () => {
     ])
     expect(allOpts.falVideoModels).toEqual(['minimax/h3', 'fal-ai/pixverse/c1'])
 
-    const cheapestReplicateOpts = buildOptsFromFlags(false, {
+    const cheapestReplicateOpts = buildOptsFromFlags({
       'replicate-image': true
     })
     expect(cheapestReplicateOpts.replicateImageModels).toEqual(['wan-video/wan-2.7-image'])
@@ -93,7 +93,7 @@ describe('provider selection contracts', () => {
       'replicate:wan-video/wan-2.7-image'
     ])
 
-    const cheapestReplicateVideoOpts = buildOptsFromFlags(false, {
+    const cheapestReplicateVideoOpts = buildOptsFromFlags({
       'replicate-video': true
     })
     expect(cheapestReplicateVideoOpts.replicateVideoModels).toEqual(['pixverse/pixverse-v6'])
@@ -103,7 +103,7 @@ describe('provider selection contracts', () => {
   })
 
   test('Gemini music flag selects targets and participates in all-music shortcut', () => {
-    const explicitOpts = buildOptsFromFlags(false, {
+    const explicitOpts = buildOptsFromFlags({
       'gemini-music': ['lyria-3-pro-preview']
     })
 
@@ -114,7 +114,7 @@ describe('provider selection contracts', () => {
       'gemini:lyria-3-pro-preview'
     ])
 
-    const allOpts = buildOptsFromFlags(false, {
+    const allOpts = buildOptsFromFlags({
       'all-music': true
     })
 

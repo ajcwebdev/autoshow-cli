@@ -1,8 +1,8 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { ensureProvider, requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
 import {
   extractHappyScribeErrorMessage,
@@ -59,7 +59,7 @@ const listHappyScribeOrganizations = async (
     baseURL?: string | undefined
   } = {}
 ): Promise<HappyScribeOrganization[]> => {
-  const apiKey = options.apiKey ?? requireApiKey('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
+  const apiKey = options.apiKey ?? requireProviderKey('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription')
 
   const baseURL = options.baseURL ?? getHappyScribeBaseUrl()
   const payload = await withRetry(
@@ -155,7 +155,7 @@ export const buildHappyScribeOrganizationResolutionError = (
       ? 'Happy Scribe execution requires an explicit organization because this API key can access multiple organizations.'
       : 'No Happy Scribe organizations are available for this API key.'
 
-  return CLIUsageError(
+  return UsageError(
     [
       baseMessage,
       `Organizations: ${formatHappyScribeOrganizationChoices(selection.organizations)}.`
@@ -164,4 +164,4 @@ export const buildHappyScribeOrganizationResolutionError = (
   )
 }
 
-export const ensureHappyScribeSttSetup = ensureProvider('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription')
+export const ensureHappyScribeSttSetup = async (): Promise<void> => { requireProviderKey('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription') }

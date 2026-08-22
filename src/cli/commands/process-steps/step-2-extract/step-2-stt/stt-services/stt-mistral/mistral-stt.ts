@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureMistralSttSetup = ensureProvider('mistral', 'stt:mistral', 'Mistral transcription')
+export const ensureMistralSttSetup = async (): Promise<void> => { requireProviderKey('mistral', 'stt:mistral', 'Mistral transcription') }

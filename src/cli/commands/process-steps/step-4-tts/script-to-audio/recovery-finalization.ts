@@ -15,7 +15,7 @@ import type {
   RecoveryFinalizationInput,
   RetainedJournalEvidence,
 } from '~/types'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { UsageError, InternalError } from '~/utils/error-handler'
 import { concatAndConvertToWav } from '../tts-utils/audio-utils'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderRenderResult } from './contract-validation'
@@ -71,10 +71,10 @@ const findAggregateProviderResult = async (
       value.resultIdentity !== reference.resultIdentity
       || value.renderIdentity !== pure.renderIdentity
       || value.renderPlanId !== pure.renderPlanId
-    ) throw CLIUsageError('Stored provider render result does not bind the exact planned render.')
+    ) throw UsageError('Stored provider render result does not bind the exact planned render.')
     if (value.status !== 'succeeded') continue
     if (aggregate && aggregate.value.resultIdentity !== value.resultIdentity) {
-      throw CLIUsageError('Stored TTS render has conflicting successful aggregate provider results; reconciliation is required.')
+      throw UsageError('Stored TTS render has conflicting successful aggregate provider results; reconciliation is required.')
     }
     aggregate = { value, path, sha256: reference.resultSha256, journalEvidence: evidence }
   }
@@ -214,7 +214,7 @@ const buildRecoveryTerminalEvent = (input: {
   readinessAuthorization?: NonNullable<CanonicalAudioProviderProjection['renderHistory'][number]['events'][number]['readinessAuthorization']> | undefined
 }) => {
   if (input.result.closedBy.kind === 'provider-attempt' && !input.readinessAuthorization) {
-    throw CLIUsageError('Stored completed TTS attempt has no exact readiness authorization.')
+    throw UsageError('Stored completed TTS attempt has no exact readiness authorization.')
   }
   const nextSequence = (input.retainedRender.events.at(-1)?.sequence ?? 0) + 1
   const batchProgress = input.pure.planned.batches.map((batch) => ({
@@ -338,7 +338,7 @@ const assembleRecoveryAudio = async (
   const masteringProfile = input.options.ttsOptions.ttsMasteringProfile
   if (input.options.comicContext && input.pure.planned.strategy === 'segmented') {
     if (!masteringProfile) {
-      throw CLIUsageError('Comic segmented recovery requires an explicit mastering profile.')
+      throw UsageError('Comic segmented recovery requires an explicit mastering profile.')
     }
     return await assembleComicSegmentedAudio({
       dialoguePlan: input.options.comicContext.dialoguePlan,

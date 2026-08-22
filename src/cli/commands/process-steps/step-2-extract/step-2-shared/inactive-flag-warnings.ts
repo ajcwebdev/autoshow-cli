@@ -7,24 +7,23 @@ export const PDF_LENGTH_WITHOUT_CHAPTERS_WARNING = 'For PDF inputs, --length is 
 export const EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING = 'EPUB export flags (--chapters, --no-chapters, --length) are ignored when an OCR engine is selected for EPUB input.'
 
 const hasSelectedModel = (
-  values: string[] | undefined,
-  value: string | undefined
-): boolean => (values?.length ?? 0) > 0 || (typeof value === 'string' && value.length > 0)
+  values: string[] | undefined
+): boolean => (values?.length ?? 0) > 0
 
 export const hasConfiguredOcrProviderSelection = (
   opts: OcrSelectionState
 ): boolean =>
   opts.useTesseract === true
-  || hasSelectedModel(opts.mistralOcrModels, opts.mistralOcrModel)
-  || hasSelectedModel(opts.glmOcrModels, opts.glmOcrModel)
-  || hasSelectedModel(opts.kimiOcrModels, opts.kimiOcrModel)
-  || hasSelectedModel(opts.openaiOcrModels, opts.openaiOcrModel)
-  || hasSelectedModel(opts.grokOcrModels, opts.grokOcrModel)
-  || hasSelectedModel(opts.anthropicOcrModels, opts.anthropicOcrModel)
-  || hasSelectedModel(opts.geminiOcrModels, opts.geminiOcrModel)
-  || hasSelectedModel(opts.deepinfraOcrModels, opts.deepinfraOcrModel)
-  || hasSelectedModel(opts.replicateOcrModels, opts.replicateOcrModel)
-  || hasSelectedModel(opts.falOcrModels, opts.falOcrModel)
+  || hasSelectedModel(opts.mistralOcrModels)
+  || hasSelectedModel(opts.glmOcrModels)
+  || hasSelectedModel(opts.kimiOcrModels)
+  || hasSelectedModel(opts.openaiOcrModels)
+  || hasSelectedModel(opts.grokOcrModels)
+  || hasSelectedModel(opts.anthropicOcrModels)
+  || hasSelectedModel(opts.geminiOcrModels)
+  || hasSelectedModel(opts.deepinfraOcrModels)
+  || hasSelectedModel(opts.replicateOcrModels)
+  || hasSelectedModel(opts.falOcrModels)
 
 export const formatHtmlArticleOcrFlagsIgnoredWarning = (
   target?: string

@@ -36,7 +36,7 @@ describe('image model refresh contracts', () => {
       'alibaba/qwen-image-3',
       'reve/2.1'
     ])
-    const targets = collectImageTargets(buildOptsFromFlags(false, { 'all-image': true }))
+    const targets = collectImageTargets(buildOptsFromFlags({ 'all-image': true }))
     expect(targets).toHaveLength(22)
     expect(targets.filter(target => target.service === 'grok').map(target => target.model)).toEqual(['grok-imagine-image-quality'])
     expect(SUPPORTED_GROK_IMAGE_MODELS).toEqual(['grok-imagine-image-quality'])
@@ -50,63 +50,63 @@ describe('image model refresh contracts', () => {
   })
 
   test('Gemini image targets enforce Lite size and grounding capabilities', () => {
-    const allTargets = collectImageTargets(buildOptsFromFlags(false, { 'all-image': true }))
+    const allTargets = collectImageTargets(buildOptsFromFlags({ 'all-image': true }))
     expect(allTargets.filter((target) => target.service === 'gemini').map((target) => target.model)).toEqual([
       'gemini-3.1-flash-lite-image',
       'gemini-3.1-flash-image',
       'gemini-3-pro-image'
     ])
 
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
+    expect(() => collectImageTargets(buildOptsFromFlags({
       'gemini-image': ['gemini-3.1-flash-lite-image'],
-      'image-size': '2K'
+      'size': '2K'
     }))).toThrow('Supported value: 1K')
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
+    expect(() => collectImageTargets(buildOptsFromFlags({
       'gemini-image': ['gemini-3.1-flash-lite-image'],
-      'image-search-grounding': true
+      'search-grounding': true
     }))).toThrow('Use gemini-3.1-flash-image or gemini-3-pro-image')
-    expect(() => collectImageTargets(buildOptsFromFlags(false, {
+    expect(() => collectImageTargets(buildOptsFromFlags({
       'gemini-image': ['gemini-3.1-flash-lite-image'],
-      'image-aspect-ratio': '1:8'
-    }))).toThrow('Invalid --image-aspect-ratio value')
+      'aspect-ratio': '1:8'
+    }))).toThrow('Invalid --aspect-ratio value')
 
-    expect(collectImageTargets(buildOptsFromFlags(false, {
+    expect(collectImageTargets(buildOptsFromFlags({
       'gemini-image': ['gemini-3.1-flash-image', 'gemini-3-pro-image'],
-      'image-size': '4K',
-      'image-search-grounding': true
+      'size': '4K',
+      'search-grounding': true
     })).map((target) => target.model)).toEqual(['gemini-3.1-flash-image', 'gemini-3-pro-image'])
-    expect(collectImageTargets(buildOptsFromFlags(false, {
+    expect(collectImageTargets(buildOptsFromFlags({
       'gemini-image': ['gemini-3.1-flash-image'],
-      'image-aspect-ratio': '1:8'
+      'aspect-ratio': '1:8'
     }))).toHaveLength(1)
     withTempImageFixture('autoshow-gemini-input-limit-', (imagePath) => {
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'gemini-image': ['gemini-3-pro-image'],
-        'image-input': Array.from({ length: 15 }, () => imagePath)
+        'input': Array.from({ length: 15 }, () => imagePath)
       }))).toThrow('central image registry allows 14')
     })
   })
 
   test('Klein targets accept the fixed endpoints and cap references at four', () => {
-    expect(collectImageTargets(buildOptsFromFlags(false, {
+    expect(collectImageTargets(buildOptsFromFlags({
       'bfl-image': ['flux-2-klein-4b', 'flux-2-klein-9b']
     })).map((target) => target.model)).toEqual(['flux-2-klein-4b', 'flux-2-klein-9b'])
 
     withTempImageFixture('autoshow-klein-input-limit-', (imagePath) => {
-      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+      expect(() => collectImageTargets(buildOptsFromFlags({
         'bfl-image': ['flux-2-klein-4b'],
-        'image-input': [imagePath, imagePath, imagePath, imagePath, imagePath]
+        'input': [imagePath, imagePath, imagePath, imagePath, imagePath]
       }))).toThrow('supports at most 4 reference images')
     })
   })
 
   test('Gemini resolution and Klein starting-price estimates match the registry', () => {
-    expect(estimateImageCosts({ geminiImageModel: 'gemini-3.1-flash-lite-image', imageSize: '1K' })[0]?.costPerImageCents).toBe(3.36)
-    expect(estimateImageCosts({ geminiImageModel: 'gemini-3.1-flash-image', imageSize: '4K' })[0]?.costPerImageCents).toBe(15.1)
-    expect(estimateImageCosts({ geminiImageModel: 'gemini-3-pro-image', imageSize: '4K' })[0]?.costPerImageCents).toBe(24)
-    expect(estimateImageCosts({ bflImageModel: 'flux-2-klein-4b' })[0]?.costPerImageCents).toBe(1.4)
-    expect(estimateImageCosts({ bflImageModel: 'flux-2-klein-9b' })[0]?.costPerImageCents).toBe(1.5)
-    expect(estimateImageCosts({ replicateImageModel: 'bytedance/seedream-5-pro', imageSize: '1K' })[0]?.costPerImageCents).toBe(4.5)
-    expect(estimateImageCosts({ replicateImageModel: 'bytedance/seedream-5-pro', imageSize: '2K' })[0]?.costPerImageCents).toBe(9)
+    expect(estimateImageCosts({ geminiImageModels: ['gemini-3.1-flash-lite-image'], imageSize: '1K' })[0]?.costPerImageCents).toBe(3.36)
+    expect(estimateImageCosts({ geminiImageModels: ['gemini-3.1-flash-image'], imageSize: '4K' })[0]?.costPerImageCents).toBe(15.1)
+    expect(estimateImageCosts({ geminiImageModels: ['gemini-3-pro-image'], imageSize: '4K' })[0]?.costPerImageCents).toBe(24)
+    expect(estimateImageCosts({ bflImageModels: ['flux-2-klein-4b'] })[0]?.costPerImageCents).toBe(1.4)
+    expect(estimateImageCosts({ bflImageModels: ['flux-2-klein-9b'] })[0]?.costPerImageCents).toBe(1.5)
+    expect(estimateImageCosts({ replicateImageModels: ['bytedance/seedream-5-pro'], imageSize: '1K' })[0]?.costPerImageCents).toBe(4.5)
+    expect(estimateImageCosts({ replicateImageModels: ['bytedance/seedream-5-pro'], imageSize: '2K' })[0]?.costPerImageCents).toBe(9)
   })
 })

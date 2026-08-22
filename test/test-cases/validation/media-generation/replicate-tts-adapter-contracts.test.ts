@@ -57,19 +57,19 @@ describe('Replicate Kokoro TTS contracts', () => {
   })
 
   test('collects Replicate TTS targets with the documented default stock voice', () => {
-    const named = collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModel: REPLICATE_KOKORO_MODEL_ID, replicateTtsVoice: 'am_puck' }))
+    const named = collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModels: [REPLICATE_KOKORO_MODEL_ID], replicateTtsVoice: 'am_puck' }))
     expect(named).toHaveLength(1)
     expect(named[0]).toMatchObject({ service: 'replicate', model: REPLICATE_KOKORO_MODEL_ID, voice: 'am_puck' })
 
-    const defaults = collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModel: REPLICATE_KOKORO_MODEL_ID }))
+    const defaults = collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModels: [REPLICATE_KOKORO_MODEL_ID] }))
     expect(defaults[0]?.voice).toBe('af_bella')
   })
 
   test('rejects deferred clone and dialogue models plus fabricated stock voices before dispatch', () => {
-    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModel: 'x-lance/f5-tts' }))).toThrow('Allowed values: jaaari/kokoro-82m')
-    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModel: 'zsxkib/dia' }))).toThrow('Allowed values: jaaari/kokoro-82m')
-    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModel: 'lucataco/xtts-v2' }))).toThrow('Allowed values: jaaari/kokoro-82m')
-    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModel: REPLICATE_KOKORO_MODEL_ID, replicateTtsVoice: 'standard' }))).toThrow('Invalid --replicate-voice value')
+    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModels: ['x-lance/f5-tts'] }))).toThrow('Allowed values: jaaari/kokoro-82m')
+    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModels: ['zsxkib/dia'] }))).toThrow('Allowed values: jaaari/kokoro-82m')
+    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModels: ['lucataco/xtts-v2'] }))).toThrow('Allowed values: jaaari/kokoro-82m')
+    expect(() => collectReplicateTtsTargets(createTtsTargetSelection({ replicateTtsModels: [REPLICATE_KOKORO_MODEL_ID], replicateTtsVoice: 'standard' }))).toThrow('Invalid --replicate-voice value')
     expect(() => resolveTtsTargetInvocationVoice('replicate', invocation({}, { kind: 'ref-audio', value: 'sample.wav' }))).toThrow('does not support reference audio')
   })
 

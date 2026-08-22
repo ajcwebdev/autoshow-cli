@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureReplicateOcrSetup = ensureProvider('replicate', 'ocr:replicate', 'Replicate OCR')
+export const ensureReplicateOcrSetup = async (): Promise<void> => { requireProviderKey('replicate', 'ocr:replicate', 'Replicate OCR') }

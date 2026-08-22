@@ -1,5 +1,4 @@
-import type { CliCommandHandler, CliFlagDefinition, CliFlagsDefinition } from '~/types'
-import { AppUsageError, isCLIUsageError } from '~/utils/error-handler'
+import type { CliFlagDefinition, CliFlagsDefinition } from '~/types'
 
 export const strFlag = (description: string, defaultValue?: string): CliFlagDefinition =>
   defaultValue === undefined
@@ -32,48 +31,6 @@ export const withHelpGroup = (flags: CliFlagsDefinition, group: string): CliFlag
     }
   }
   return grouped
-}
-
-export const renameFlagSpellings = (
-  text: string,
-  publicNameByInternalName: Record<string, string>
-): string =>
-  Object.entries(publicNameByInternalName).reduce(
-    (value, [internalName, replacement]) => value.replaceAll(`--${internalName}`, `--${replacement}`),
-    text
-  )
-
-export const retargetUsageErrorsToCommandSpellings = (
-  handler: CliCommandHandler,
-  publicNameByInternalName: Record<string, string>
-): CliCommandHandler => async (ctx) => {
-  try {
-    await handler(ctx)
-  } catch (error) {
-    if (!isCLIUsageError(error)) {
-      throw error
-    }
-    const message = renameFlagSpellings(error.message, publicNameByInternalName)
-    if (message === error.message) {
-      throw error
-    }
-    throw new AppUsageError(message, error.hints.length > 0 ? error.hints : undefined)
-  }
-}
-
-export const renameFlags = (
-  flags: CliFlagsDefinition,
-  publicNameByInternalName: Record<string, string>
-): CliFlagsDefinition => {
-  const renamed: CliFlagsDefinition = {}
-  for (const [name, definition] of Object.entries(flags)) {
-    const publicName = publicNameByInternalName[name] ?? name
-    renamed[publicName] = {
-      ...definition,
-      description: renameFlagSpellings(definition.description, publicNameByInternalName)
-    }
-  }
-  return renamed
 }
 
 export const formatProviderList = (providers: Record<string, unknown>): string =>

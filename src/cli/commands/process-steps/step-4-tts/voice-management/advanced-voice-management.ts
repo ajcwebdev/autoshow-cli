@@ -12,7 +12,7 @@ import type {
   VoiceRegistration,
   ProtectedVoiceAssetStore,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { appendVoiceRegistration, hashCharacterVoiceBrief } from './character-voice-registry'
 import { buildReadyVoiceRegistrationDraft } from './voice-registration-management'
@@ -25,7 +25,7 @@ const SAFE_ID = /^[a-z0-9][a-z0-9_-]{0,127}$/
 
 const candidateRoot = (charactersRoot: string): string => join(resolve(charactersRoot), 'voice-candidates')
 const candidatePath = (charactersRoot: string, candidateId: string): string => {
-  if (!SAFE_ID.test(candidateId)) throw CLIUsageError('Voice candidate ID must be an opaque lowercase identifier.')
+  if (!SAFE_ID.test(candidateId)) throw UsageError('Voice candidate ID must be an opaque lowercase identifier.')
   return join(candidateRoot(charactersRoot), `${candidateId}.json`)
 }
 
@@ -34,7 +34,7 @@ const writeCreateOnlyJson = async (path: string, value: unknown): Promise<void> 
   const bytes = `${canonicalTtsJson(value)}\n`
   const file = Bun.file(path)
   if (await file.exists()) {
-    if (await file.text() !== bytes) throw CLIUsageError('Voice candidate artifact identity collision detected.')
+    if (await file.text() !== bytes) throw UsageError('Voice candidate artifact identity collision detected.')
     return
   }
   await Bun.write(path, bytes)
@@ -50,12 +50,12 @@ export const writeVoiceCandidate = async (charactersRoot: string, candidate: Voi
 export const loadVoiceCandidate = async (charactersRoot: string, candidateId: string): Promise<VoiceCandidate> => {
   let value: unknown
   try { value = JSON.parse(await readFile(candidatePath(charactersRoot, candidateId), 'utf8')) }
-  catch { throw CLIUsageError(`Voice candidate ${candidateId} was not found or is corrupt.`) }
+  catch { throw UsageError(`Voice candidate ${candidateId} was not found or is corrupt.`) }
   return validateVoiceCandidate(value as VoiceCandidate)
 }
 
 const requireDesignPort = (provider: Pick<TtsVoiceProvider, 'provider' | 'design'>) => {
-  if (!provider.design) throw CLIUsageError(`Provider ${provider.provider} does not implement Voice Design.`)
+  if (!provider.design) throw UsageError(`Provider ${provider.provider} does not implement Voice Design.`)
   return provider.design
 }
 
@@ -76,7 +76,7 @@ export const createAdvancedVoiceCandidates = async (input: {
   plannedCost?: PlannedCost | undefined
   now?: (() => string) | undefined
 }): Promise<VoiceCandidate[]> => {
-  if (!input.protectedStore.storeBytes) throw CLIUsageError('Managed protected store cannot retain candidate previews.')
+  if (!input.protectedStore.storeBytes) throw UsageError('Managed protected store cannot retain candidate previews.')
   const now = input.now ?? (() => new Date().toISOString())
   const design = requireDesignPort(input.provider)
   const result = await design.createCandidate({
@@ -101,7 +101,7 @@ export const createAdvancedVoiceCandidates = async (input: {
   const candidates: VoiceCandidate[] = []
   for (const preview of result.previews) {
     const previewBytes = Uint8Array.from(Buffer.from(preview.audioBase64, 'base64'))
-    if (previewBytes.byteLength === 0) throw CLIUsageError(`${input.provider.provider} returned an empty candidate preview.`)
+    if (previewBytes.byteLength === 0) throw UsageError(`${input.provider.provider} returned an empty candidate preview.`)
     const previewAsset = await input.protectedStore.storeBytes(previewBytes, {
       schemaVersion: 1,
       purpose: 'candidate-preview',
@@ -182,11 +182,11 @@ export const materializeAdvancedVoiceCandidate = async (input: {
   eligibilitySnapshotHash?: string | undefined
   now?: (() => string) | undefined
 }): Promise<{ candidate: VoiceCandidate, registration: VoiceRegistration, attempt: VoiceProvisioningAttempt }> => {
-  if (!input.protectedStore.storeBytes) throw CLIUsageError('Managed protected store cannot retain provisioning evidence.')
+  if (!input.protectedStore.storeBytes) throw UsageError('Managed protected store cannot retain provisioning evidence.')
   const candidate = await loadVoiceCandidate(input.charactersRoot, input.candidateId)
-  if (candidate.provider !== input.provider.provider || candidate.materialization.state !== 'not-materialized') throw CLIUsageError('Voice candidate is not an unmaterialized candidate for this provider.')
+  if (candidate.provider !== input.provider.provider || candidate.materialization.state !== 'not-materialized') throw UsageError('Voice candidate is not an unmaterialized candidate for this provider.')
   if (canonicalTtsJson(candidate.sourceVoice ?? null) !== canonicalTtsJson(input.sourceVoice ?? null) || candidate.eligibilitySnapshotHash !== input.eligibilitySnapshotHash) {
-    throw CLIUsageError('Voice candidate materialization must retain the exact source voice and eligibility snapshot captured at candidate creation.')
+    throw UsageError('Voice candidate materialization must retain the exact source voice and eligibility snapshot captured at candidate creation.')
   }
   const now = input.now ?? (() => new Date().toISOString())
   const evidence = await input.protectedStore.storeBytes(Buffer.from(canonicalTtsJson({
@@ -211,7 +211,7 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     journalRoot: input.journalRoot,
     attempt: initial,
     mutate: async () => {
-      if (!candidate.providerCandidateId) throw CLIUsageError('Advanced voice candidate omits its provider candidate ID.')
+      if (!candidate.providerCandidateId) throw UsageError('Advanced voice candidate omits its provider candidate ID.')
       const result = await design.materializeCandidate({
         providerCandidateId: candidate.providerCandidateId,
         desiredName: input.desiredName,
@@ -220,7 +220,7 @@ export const materializeAdvancedVoiceCandidate = async (input: {
         ...(input.sourceVoice ? { sourceVoice: input.sourceVoice } : {}),
         ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {})
       })
-      if (result.state !== 'ready' || !result.providerVoice) throw CLIUsageError(`${input.provider.provider} candidate materialization did not return a ready provider voice.`)
+      if (result.state !== 'ready' || !result.providerVoice) throw UsageError(`${input.provider.provider} candidate materialization did not return a ready provider voice.`)
       return {
         state: { state: 'ready' as const, providerVoice: result.providerVoice },
         issuedResources: [{ providerVoice: result.providerVoice, observedAt: result.checkedAt, sanitizedResponseHash: hashCanonicalTtsValue(result.sanitizedMetadata) }],
@@ -228,7 +228,7 @@ export const materializeAdvancedVoiceCandidate = async (input: {
       }
     }
   })
-  if (attempt.outcome?.state !== 'ready') throw CLIUsageError('Voice candidate materialization did not reach a ready state.')
+  if (attempt.outcome?.state !== 'ready') throw UsageError('Voice candidate materialization did not reach a ready state.')
   const { candidateId: _priorCandidateId, ...candidateWithoutId } = candidate
   const materializedWithoutId: Omit<VoiceCandidate, 'candidateId'> = { ...candidateWithoutId, materialization: { state: 'materialized', attemptId: attempt.attemptId, providerVoice: attempt.outcome.providerVoice } }
   const materialized = validateVoiceCandidate({ ...materializedWithoutId, candidateId: computeVoiceCandidateId(materializedWithoutId) })
@@ -258,7 +258,7 @@ export const planAdvancedClone = (request: ProviderVoiceCloneRequest): { estimat
 
 const cloneProvisioningState = (result: ProviderVoiceMutationResult, attemptId: string): VoiceRegistration['provisioning'] => {
   if (result.state === 'ready') {
-    if (!result.providerVoice) throw CLIUsageError('Ready voice clone response omits the provider voice identity.')
+    if (!result.providerVoice) throw UsageError('Ready voice clone response omits the provider voice identity.')
     return { state: 'ready', providerVoice: result.providerVoice }
   }
   if (result.state === 'pending') return { state: 'pending', operationId: result.providerOperationId ?? attemptId, ...(result.providerVoice ? { providerVoice: result.providerVoice } : {}) }
@@ -278,7 +278,7 @@ export const provisionAdvancedVoiceClone = async (input: {
   capabilityFixtureHash: string
   now?: (() => string) | undefined
 }): Promise<{ registration: VoiceRegistration, attempt?: VoiceProvisioningAttempt | undefined }> => {
-  if (!input.provider.clone) throw CLIUsageError(`${input.provider.provider} does not implement voice cloning.`)
+  if (!input.provider.clone) throw UsageError(`${input.provider.provider} does not implement voice cloning.`)
   const now = input.now ?? (() => new Date().toISOString())
   const sourceIdentityHash = hashCanonicalTtsValue({ cloneKind: input.request.cloneKind, samples: input.request.protectedSamples.map(sample => sample.sha256), desiredName: input.request.desiredName })
   const registrationId = `vr_${hashCanonicalTtsValue({ subjectKey: input.subjectKey, profileKey: input.profileKey, provider: input.provider.provider, providerModel: input.providerModel, sourceIdentityHash }).slice(0, 40)}`
@@ -293,7 +293,7 @@ export const provisionAdvancedVoiceClone = async (input: {
     sanitizedProviderMetadata = { ...sanitizedProviderMetadata, ...result.sanitizedMetadata }
   } else {
     const evidence = input.request.protectedSamples[0]
-    if (!evidence) throw CLIUsageError('Instant voice cloning requires at least one protected sample.')
+    if (!evidence) throw UsageError('Instant voice cloning requires at least one protected sample.')
     const initial: VoiceProvisioningAttempt = {
       schemaVersion: 1, attemptId, registrationDraftId: registrationId, operation: 'clone', accountScopeHash: input.provider.accountScopeHash,
       lockLeaseId: `lease_${crypto.randomUUID().replace(/-/gu, '')}`,

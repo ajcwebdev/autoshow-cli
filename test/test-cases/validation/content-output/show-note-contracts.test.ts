@@ -221,26 +221,18 @@ test('show notes mirror single and multi-output JSON naming', async () => {
   }
 })
 
-test('expected output planning reports show-note artifacts only when LLM output is expected', async () => {
+test('expected output planning reports show-note artifacts for write LLM output', async () => {
   const singleTextInput = await buildExpectedFilesList(
     'write',
-    buildOptsFromFlags(false, { 'text-input': true, openai: 'gpt-5.4-mini' })
+    buildOptsFromFlags({ openai: 'gpt-5.4-mini' })
   )
   expect(singleTextInput).toContain('text.json')
   expect(singleTextInput).toContain('show-note.md')
 
   const multiTextInput = await buildExpectedFilesList(
     'write',
-    buildOptsFromFlags(false, { 'text-input': true, 'all-llm': true })
+    buildOptsFromFlags({ 'all-llm': true })
   )
-  expect(multiTextInput).toContain('text-<model>.json')
-  expect(multiTextInput).toContain('show-note-<model>.md')
-  expect(multiTextInput).not.toContain('show-note.md')
-
-  const skipLlmMediaWrite = await buildExpectedFilesList(
-    'write',
-    buildOptsFromFlags(true, {})
-  )
-  expect(skipLlmMediaWrite).not.toContain('text.json')
-  expect(skipLlmMediaWrite).not.toContain('show-note.md')
+  expect(multiTextInput).toContain('text.json')
+  expect(multiTextInput).toContain('show-note.md')
 })

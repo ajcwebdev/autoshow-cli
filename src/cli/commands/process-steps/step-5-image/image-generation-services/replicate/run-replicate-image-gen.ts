@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises'
 import type { JsonObject, ReplicateImageModel, ReplicateImageRequestMode, ReplicateImageSize, Step5Metadata } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
@@ -62,7 +62,7 @@ const normalizeImageDimensions = (
 ): { width: number, height: number } => {
   const match = /^(\d{1,5})x(\d{1,5})$/i.exec(size.trim())
   if (!match) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for ${providerLabel}. Expected WIDTHxHEIGHT, e.g. 1024x1024.`)
+    throw UsageError(`Invalid --size value "${size}" for ${providerLabel}. Expected WIDTHxHEIGHT, e.g. 1024x1024.`)
   }
 
   const width = Number.parseInt(match[1]!, 10)
@@ -75,8 +75,8 @@ const normalizeImageDimensions = (
     || width > options.max
     || height > options.max
   ) {
-    throw CLIUsageError(
-      `Invalid --image-size value "${size}" for ${providerLabel}. Width and height must each be between ${options.min} and ${options.max} pixels.`
+    throw UsageError(
+      `Invalid --size value "${size}" for ${providerLabel}. Width and height must each be between ${options.min} and ${options.max} pixels.`
     )
   }
 
@@ -104,8 +104,8 @@ export const normalizeReplicateSeedreamAspectRatio = (
     return aspectRatio
   }
 
-  throw CLIUsageError(
-    `Invalid --image-aspect-ratio value "${aspectRatio}" for Replicate/${model}. Supported values: ${Array.from(REPLICATE_SEEDREAM_ASPECT_RATIOS).join(', ')}.`
+  throw UsageError(
+    `Invalid --aspect-ratio value "${aspectRatio}" for Replicate/${model}. Supported values: ${Array.from(REPLICATE_SEEDREAM_ASPECT_RATIOS).join(', ')}.`
   )
 }
 
@@ -121,8 +121,8 @@ export const normalizeReplicateQwenAspectRatio = (
     return aspectRatio
   }
 
-  throw CLIUsageError(
-    `Invalid --image-aspect-ratio value "${aspectRatio}" for Replicate/${model}. Supported values: ${Array.from(REPLICATE_QWEN_ASPECT_RATIOS).join(', ')}.`
+  throw UsageError(
+    `Invalid --aspect-ratio value "${aspectRatio}" for Replicate/${model}. Supported values: ${Array.from(REPLICATE_QWEN_ASPECT_RATIOS).join(', ')}.`
   )
 }
 
@@ -161,11 +161,11 @@ export const normalizeReplicateSeedreamSize = (
 
   if (/^\d+x\d+$/i.test(normalized) || upper === '1K' || upper === '3K' || upper === '4K') {
     const supported = model === 'bytedance/seedream-5-pro' ? '1K or 2K' : '2K or 3K'
-    throw CLIUsageError(`--image-size ${imageSize} is not supported by Replicate/${model}. Supported values: ${supported}.`)
+    throw UsageError(`--size ${imageSize} is not supported by Replicate/${model}. Supported values: ${supported}.`)
   }
 
   const supported = model === 'bytedance/seedream-5-pro' ? '1K or 2K' : '2K or 3K'
-  throw CLIUsageError(`Invalid --image-size value "${imageSize}" for Replicate/${model}. Supported values: ${supported}.`)
+  throw UsageError(`Invalid --size value "${imageSize}" for Replicate/${model}. Supported values: ${supported}.`)
 }
 
 export const normalizeReplicateWanSize = (
@@ -188,7 +188,7 @@ export const normalizeReplicateWanSize = (
     if (model === 'wan-video/wan-2.7-image-pro' && !hasInputs) {
       return { requestValue: '4K', metadataValue: '4K' }
     }
-    throw CLIUsageError(`--image-size 4K is only supported by Replicate/${model} for Wan text-to-image Pro requests without --image-input.`)
+    throw UsageError(`--size 4K is only supported by Replicate/${model} for Wan text-to-image Pro requests without --input.`)
   }
 
   const dimensions = normalizeImageDimensions(normalized, `Replicate/${model}`, { min: 256, max: 4096 })
@@ -212,13 +212,13 @@ export const normalizeReplicateImageOutputFormat = (
   const supportsFormat = model === 'bytedance/seedream-5-lite'
     || model === 'bytedance/seedream-5-pro'
   if (!supportsFormat) {
-    throw CLIUsageError(`--image-format is supported only by Replicate Seedream 5 image models. Omit --image-format for Replicate/${model}.`)
+    throw UsageError(`--format is supported only by Replicate Seedream 5 image models. Omit --format for Replicate/${model}.`)
   }
   if (normalized === 'png' || normalized === 'jpeg') {
     return normalized
   }
 
-  throw CLIUsageError(`Invalid --image-format value "${outputFormat}" for Replicate/${model}. Expected png or jpeg.`)
+  throw UsageError(`Invalid --format value "${outputFormat}" for Replicate/${model}. Expected png or jpeg.`)
 }
 
 export const normalizeReplicateImageCount = (
@@ -230,12 +230,12 @@ export const normalizeReplicateImageCount = (
   }
 
   if (!isReplicateWanModel(model)) {
-    throw CLIUsageError(`--image-count is supported only by Replicate Wan image models. Omit --image-count for Replicate/${model}.`)
+    throw UsageError(`--count is supported only by Replicate Wan image models. Omit --count for Replicate/${model}.`)
   }
 
   const [minCount, maxCount] = REPLICATE_WAN_IMAGE_COUNT_RANGE
   if (!Number.isInteger(count) || count < minCount || count > maxCount) {
-    throw CLIUsageError(`Invalid --image-count value "${String(count)}" for Replicate/${model}. Supported range: ${minCount}-${maxCount}.`)
+    throw UsageError(`Invalid --count value "${String(count)}" for Replicate/${model}. Supported range: ${minCount}-${maxCount}.`)
   }
 
   return count
@@ -296,7 +296,7 @@ const buildReplicateImageInput = async (
 
   if (isReplicateQwenModel(options.model)) {
     if (options.imageSize !== undefined) {
-      throw CLIUsageError(`--image-size is not supported by Replicate/${options.model}. Use --image-aspect-ratio for Qwen image dimensions.`)
+      throw UsageError(`--size is not supported by Replicate/${options.model}. Use --aspect-ratio for Qwen image dimensions.`)
     }
     normalizeReplicateImageOutputFormat(options.model, options.outputFormat)
     normalizeReplicateImageCount(options.model, options.count)
@@ -314,7 +314,7 @@ const buildReplicateImageInput = async (
   }
 
   if (options.aspectRatio !== undefined) {
-    throw CLIUsageError(`--image-aspect-ratio is not supported by Replicate/${options.model}. Use --image-size 1K|2K|4K or WIDTHxHEIGHT for Wan dimensions.`)
+    throw UsageError(`--aspect-ratio is not supported by Replicate/${options.model}. Use --size 1K|2K|4K or WIDTHxHEIGHT for Wan dimensions.`)
   }
   normalizeReplicateImageOutputFormat(options.model, options.outputFormat)
   const imageSize = normalizeReplicateWanSize(options.model, options.imageSize, references.length > 0)
@@ -359,7 +359,7 @@ export const runReplicateImageGen = async (
   })
   const fallbackExt = getReplicateImageExtension(options.model, options.outputFormat)
 
-  const estimate = estimateImageCosts({ replicateImageModel: options.model, imageCount: count, imageSize: imageSize?.metadataValue ?? options.imageSize })[0]
+  const estimate = estimateImageCosts({ replicateImageModels: [options.model], imageCount: count, imageSize: imageSize?.metadataValue ?? options.imageSize })[0]
   if (estimate) {
     logImageEstimate(estimate)
   }

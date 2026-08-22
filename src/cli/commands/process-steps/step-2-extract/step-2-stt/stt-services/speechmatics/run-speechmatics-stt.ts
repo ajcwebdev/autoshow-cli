@@ -173,7 +173,7 @@ export const runSpeechmaticsStt = async (
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => await runHttpAsyncSttProvider({
   service: 'speechmatics',
   displayName: 'Speechmatics',
-  credential: { envVar: 'SPEECHMATICS_API_KEY', stage: 'stt:speechmatics', purpose: 'Speechmatics transcription' },
+  credential: { stage: 'stt:speechmatics', purpose: 'Speechmatics transcription' },
   baseUrl: getSpeechmaticsBaseUrl,
   resolveUrl: buildSpeechmaticsUrl,
   endpoints: {

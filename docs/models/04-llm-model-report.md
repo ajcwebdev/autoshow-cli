@@ -52,7 +52,7 @@ This report records the hosted text-model changes, including selector additions 
 
 ## 2026-08-16 Claude/Gemini/Grok/OpenAI text-catalog gap audit
 
-Compared the active AutoShow write/OCR/STT/TTS/image/music/video registries against the 2026-08-16 primary-source dump `project/links/claude-models-text--gemini-models-text--grok-models-text--openai-models-text-links.md`. This section records recommended additions and explicit exclusions; it is not an implemented refresh.
+Compared the active AutoShow write/OCR/STT/TTS/image/music/video registries against the 2026-08-16 primary-source dump from `bun autoshow links --claude models --gemini models --grok models --openai models`. This section records recommended additions and explicit exclusions; it is not an implemented refresh.
 
 Current write coverage already includes Anthropic `claude-fable-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, and `claude-haiku-4-5`; Gemini `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, and `gemini-3.5-flash-lite`; Grok `grok-4.3` and `grok-4.5`; and OpenAI `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, and `gpt-5.4-nano`. The `gpt-5.6` alias remains unregistered. Invitation-only `claude-mythos-5` remains excluded.
 
@@ -235,4 +235,4 @@ Implements the two P1 write recommendations from the 2026-08-16 text-catalog gap
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - Write provider adapters: `src/cli/commands/process-steps/step-3-write/`
 - Primary-source snapshots: `src/cli/commands/setup-and-utilities/links/model-links/`
-- 2026-08-16 text-catalog dump: `project/links/claude-models-text--gemini-models-text--grok-models-text--openai-models-text-links.md`
+- 2026-08-16 text-catalog dump: `bun autoshow links --claude models --gemini models --grok models --openai models`

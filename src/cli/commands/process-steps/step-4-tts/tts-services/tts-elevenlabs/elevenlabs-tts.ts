@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureElevenLabsTtsSetup = ensureProvider('elevenlabs', 'tts:elevenlabs', 'ElevenLabs TTS')
+export const ensureElevenLabsTtsSetup = async (): Promise<void> => { requireProviderKey('elevenlabs', 'tts:elevenlabs', 'ElevenLabs TTS') }

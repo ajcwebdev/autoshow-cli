@@ -219,6 +219,7 @@ Do not run live paid provider, smoke, or e2e tests that call third-party APIs.
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - Related ADR: [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
+- Related ADR: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 - `src/cli/commands/process-steps/pipeline-manifest.ts`
 - `src/cli/commands/setup-and-utilities/resume/`
 - `src/cli/flags/resume-flags.ts`

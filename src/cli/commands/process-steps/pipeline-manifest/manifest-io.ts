@@ -11,7 +11,7 @@ import type {
   PipelineProviderState,
   ProcessCommand
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { writeFileExact } from '~/utils/bun-file-io'
 import { isRecord } from '~/utils/rest-client'
 import {
@@ -32,7 +32,7 @@ import { verifyManifestProjectionArtifacts } from './projection-artifact-graph'
 export const PIPELINE_MANIFEST_FILE = 'manifest.json'
 
 const invalidManifestError = (manifestPath: string): Error =>
-  CLIUsageError(`Invalid canonical manifest at ${manifestPath}. Re-run the pipeline to regenerate this output.`)
+  UsageError(`Invalid canonical manifest at ${manifestPath}. Re-run the pipeline to regenerate this output.`)
 
 const readManifestUnlocked = async (
   rootDir: string
@@ -46,7 +46,7 @@ const readManifestUnlocked = async (
   try {
     raw = await Bun.file(manifestPath).json() as unknown
   } catch (error) {
-    throw CLIUsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
+    throw UsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
   }
   const manifest = parseManifest(rootDir, raw)
   if (!manifest || !await verifyManifestProjectionArtifacts(rootDir, manifest)) {
@@ -126,7 +126,7 @@ export const updateManifest = async (
   await withManifestLock(rootDir, async () => {
     const current = await readManifestUnlocked(rootDir)
     if (!current) {
-      throw CLIUsageError(`Missing canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)}`)
+      throw UsageError(`Missing canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)}`)
     }
     return await writeManifestUnlocked(rootDir, await update(current), current)
   })
@@ -179,7 +179,7 @@ export const createManifestItem = (
   }
   const parsed = parseManifestItem(rootDir, item)
   if (!parsed) {
-    throw CLIUsageError('Cannot construct an invalid canonical manifest item.')
+    throw UsageError('Cannot construct an invalid canonical manifest item.')
   }
   return parsed
 }
@@ -238,7 +238,7 @@ const createProviderStatesFromRecord = (
   })
   const requestedByKey = new Map(requestedEntries)
   if (requestedByKey.size !== requestedEntries.length) {
-    throw CLIUsageError('Requested provider targets must be unique before canonical persistence.')
+    throw UsageError('Requested provider targets must be unique before canonical persistence.')
   }
   const rawStates = Array.isArray(record['providerStates'])
     ? record['providerStates'].filter((value): value is Record<string, unknown> => isRecord(value))
@@ -247,15 +247,15 @@ const createProviderStatesFromRecord = (
   const states = rawStates.map((state): PipelineProviderState => {
     const key = providerKey(state)
     if (!key || typeof state['service'] !== 'string') {
-      throw CLIUsageError('Cannot persist a provider state without a service identity.')
+      throw UsageError('Cannot persist a provider state without a service identity.')
     }
     if (statesByKey.has(key)) {
-      throw CLIUsageError('Canonical provider states cannot duplicate one requested target.')
+      throw UsageError('Canonical provider states cannot duplicate one requested target.')
     }
     statesByKey.add(key)
     const request = requestedByKey.get(key)
     if (requested.length > 0 && !request) {
-      throw CLIUsageError('Canonical provider states must contain only explicitly requested targets.')
+      throw UsageError('Canonical provider states must contain only explicitly requested targets.')
     }
     const status = typeof state['status'] === 'string' && PROVIDER_STATUS_SET.has(state['status'])
       ? state['status'] as PipelineProviderState['status']
@@ -284,9 +284,7 @@ const createProviderStatesFromRecord = (
       ...(isRecord(state['result']) ? { result: state['result'] } : {}),
       ...(isRecord(state['error'])
         ? { error: state['error'] }
-        : isRecord(state['lastError'])
-          ? { error: state['lastError'] }
-          : {})
+        : {})
     }
   })
 
@@ -296,7 +294,7 @@ const createProviderStatesFromRecord = (
       continue
     }
     if (request['operation'] === 'tts-synthesis' || request['operation'] === 'comic-audio') {
-      throw CLIUsageError('A requested audio target requires its real durable canonical provider state before persistence.')
+      throw UsageError('A requested audio target requires its real durable canonical provider state before persistence.')
     }
     states.push({
       service: request['service'],
@@ -407,7 +405,7 @@ export const derivePipelineItemRecord = (
     options: provider.options,
     metadata: provider.metadata,
     ...(provider.result ? { result: provider.result } : {}),
-    ...(provider.error ? { lastError: provider.error } : {})
+    ...(provider.error ? { error: provider.error } : {})
   }))
   const missingProviders = requestedProviders.filter((_, index) => {
     const status = item.providers[index]?.status
@@ -500,7 +498,7 @@ export const updateSingleManifestProviderState = async (
   let updatedProvider: PipelineProviderState | undefined
   await updateManifest(rootDir, async (manifest) => {
     if (manifest.scope !== 'single' || manifest.items.length !== 1) {
-      throw CLIUsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} is not a single-run manifest.`)
+      throw UsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} is not a single-run manifest.`)
     }
     const item = manifest.items[0]
     if (!item) {
@@ -511,11 +509,11 @@ export const updateSingleManifestProviderState = async (
     )
     const provider = item.providers[providerIndex]
     if (!provider) {
-      throw CLIUsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} has no matching ${selector.service} provider state.`)
+      throw UsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} has no matching ${selector.service} provider state.`)
     }
     const nextProvider = await update(provider)
     if (!matchesManifestProvider(rootDir, nextProvider, selector)) {
-      throw CLIUsageError('A manifest provider-state update cannot change the selected provider identity or artifact path.')
+      throw UsageError('A manifest provider-state update cannot change the selected provider identity or artifact path.')
     }
     assertAppendOnlyAudioProjection(provider, nextProvider)
     updatedProvider = nextProvider
@@ -524,13 +522,13 @@ export const updateSingleManifestProviderState = async (
     const items = manifest.items.slice()
     const reducedTtsStatus = manifest.command === 'tts' ? expectedTtsItemStatus(providers) : undefined
     if (manifest.command === 'tts' && reducedTtsStatus === undefined) {
-      throw CLIUsageError('A requested TTS item must retain at least one canonical provider state.')
+      throw UsageError('A requested TTS item must retain at least one canonical provider state.')
     }
     items[0] = { ...item, providers, ...(reducedTtsStatus ? { status: reducedTtsStatus } : {}) }
     return { ...manifest, items }
   })
   if (!updatedProvider) {
-    throw CLIUsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} was not updated.`)
+    throw UsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} was not updated.`)
   }
   return updatedProvider
 }
@@ -546,7 +544,7 @@ export const writePipelineItemRecords = async (
   } = {}
 ): Promise<PipelineManifest> => {
   if (scope === 'single' && records.length !== 1) {
-    throw CLIUsageError('A single-run canonical manifest must contain exactly one item record.')
+    throw UsageError('A single-run canonical manifest must contain exactly one item record.')
   }
   const current = await readManifest(rootDir)
   const next = createManifest(

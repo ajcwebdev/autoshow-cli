@@ -20,7 +20,7 @@ export const buildWriteStepSummaries = (ctx: BuildWriteStepSummariesContext): St
     (entry) => {
       const displayService = entry.transcriptionService === 'whisper' ? 'whisper.cpp' : entry.transcriptionService
       const displayModel = entry.transcriptionService === 'whisper'
-        ? (processingOptions.whisperModel ?? entry.transcriptionModel)
+        ? (processingOptions.whisperModels?.[0] ?? entry.transcriptionModel)
         : entry.transcriptionModel
       return `${displayService}/${displayModel}`
     },

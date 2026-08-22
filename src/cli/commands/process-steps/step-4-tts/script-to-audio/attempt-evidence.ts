@@ -11,7 +11,7 @@ import type {
   TtsTargetInvocation,
   WrittenJson,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { classifyTtsProviderAdmissionError } from './tts-request-evidence'
 import {
@@ -43,7 +43,7 @@ const slotFor = (
   const providerSegmentOffset = invocation?.providerSegmentIndex ?? 0
   const slot = candidates[providerSegmentOffset + observation.chunkIndex - 1]
   if (!slot) {
-    throw CLIUsageError(`Serializer emitted unplanned TTS chunk ${observation.chunkIndex}; dispatch was blocked before transport.`)
+    throw UsageError(`Serializer emitted unplanned TTS chunk ${observation.chunkIndex}; dispatch was blocked before transport.`)
   }
   return slot
 }
@@ -62,7 +62,7 @@ const recoverCompletedOutputs = (
   })
   if (recovered.length === 0) return undefined
   if (recovered.length !== invocationSlots.length) {
-    throw CLIUsageError(`Recovered TTS output covers only part of invocation ${invocation.sourceId}; provider redispatch is blocked.`)
+    throw UsageError(`Recovered TTS output covers only part of invocation ${invocation.sourceId}; provider redispatch is blocked.`)
   }
   return {
     paths: recovered.flatMap((entry) => [...entry.outputPaths]),
@@ -76,22 +76,22 @@ const validateObservationConstraints = (
   observation: TtsSerializedRequestObservation
 ): void => {
   if (!ctx.attemptSlotIds.has(slot.generationSlotId)) {
-    throw CLIUsageError(`TTS generation slot ${slot.generationSlotId} is outside this bounded execution checkpoint.`)
+    throw UsageError(`TTS generation slot ${slot.generationSlotId} is outside this bounded execution checkpoint.`)
   }
   if (ctx.recoveredBySlot.has(slot.generationSlotId)) {
-    throw CLIUsageError(`TTS generation slot ${slot.generationSlotId} already has verified retained output; provider redispatch is blocked.`)
+    throw UsageError(`TTS generation slot ${slot.generationSlotId} already has verified retained output; provider redispatch is blocked.`)
   }
   if (observation.providerText !== slot.providerText) {
-    throw CLIUsageError('TTS serializer text differs from the immutable planned generation slot; dispatch was blocked.')
+    throw UsageError('TTS serializer text differs from the immutable planned generation slot; dispatch was blocked.')
   }
   if (observation.endpointKind !== slot.expectedEndpointKind || observation.serializerVersion !== slot.expectedSerializerVersion) {
-    throw CLIUsageError('TTS serializer endpoint/version is not authorized by the immutable render plan; dispatch was blocked.')
+    throw UsageError('TTS serializer endpoint/version is not authorized by the immutable render plan; dispatch was blocked.')
   }
   if (hashCanonicalTtsValue(observation.requestControls ?? {}) !== slot.expectedRequestControlsHash) {
-    throw CLIUsageError('TTS serializer controls differ from the immutable render plan; dispatch was blocked.')
+    throw UsageError('TTS serializer controls differ from the immutable render plan; dispatch was blocked.')
   }
   if (hashCanonicalTtsValue(observation.continuation ?? { kind: 'none' }) !== hashCanonicalTtsValue({ kind: 'none' })) {
-    throw CLIUsageError('TTS serializer continuation differs from the immutable render plan; dispatch was blocked.')
+    throw UsageError('TTS serializer continuation differs from the immutable render plan; dispatch was blocked.')
   }
   for (const turnId of slot.turnIds) {
     const plannedTurn = ctx.purePlan.planned.turns.find((turn) => turn.canonical.turnId === turnId) as AttemptTurn
@@ -100,7 +100,7 @@ const validateObservationConstraints = (
       ?? (slot.turnIds.length === 1 ? observation.voices[0] : undefined)
     const serializedVoiceHash = serializedVoice?.valueHash ?? (serializedVoice?.value ? sha256Bytes(serializedVoice.value) : undefined)
     if (!serializedVoice || serializedVoice.kind !== plannedTurn.voice.kind || serializedVoiceHash !== plannedTurn.voice.valueHash) {
-      throw CLIUsageError(`TTS serializer voice differs from the immutable binding for ${plannedTurn.canonical.turnId}; dispatch was blocked.`)
+      throw UsageError(`TTS serializer voice differs from the immutable binding for ${plannedTurn.canonical.turnId}; dispatch was blocked.`)
     }
   }
 }
@@ -126,10 +126,10 @@ const dispatchAttemptRequest = async <T>(
     const priorForSlot = ctx.runtimeRequests.filter((entry) => entry.slot.generationSlotId === slot.generationSlotId)
     const retryOf = attempt.attempt > 1 ? priorForSlot.at(-1) : undefined
     if (attempt.attempt > 1 && (!retryOf || retryOf.request.requestBodyHash !== requestBodyHash)) {
-      throw CLIUsageError('TTS retry changed its generation slot or serialized request fingerprint; dispatch was blocked.')
+      throw UsageError('TTS retry changed its generation slot or serialized request fingerprint; dispatch was blocked.')
     }
     if (attempt.attempt === 1 && priorForSlot.length > 0) {
-      throw CLIUsageError('TTS serializer attempted a second deliberate request for one planned generation slot.')
+      throw UsageError('TTS serializer attempted a second deliberate request for one planned generation slot.')
     }
     let dispatchStarted = false
     try {
@@ -174,7 +174,7 @@ const dispatchAttemptRequest = async <T>(
           const expectedSpeaker = ctx.options.comicContext?.providerSpeakerLabelByTurnId[turnId] ?? turn.canonical.subjectKey
           const serializedVoice = observation.voices.find((voice) => voice.speaker?.trim().toUpperCase() === expectedSpeaker.trim().toUpperCase())
             ?? (turnIds.length === 1 ? observation.voices[0] : undefined)
-          if (!serializedVoice) throw CLIUsageError('TTS serializer did not expose the serialized voice before dispatch.')
+          if (!serializedVoice) throw UsageError('TTS serializer did not expose the serialized voice before dispatch.')
           return {
             turnId,
             providerTextHash: sha256Bytes(observation.providerText),
@@ -386,7 +386,7 @@ const recordOutputForSlot = async (
   await locked(ctx, async () => {
     const slot = slotFor(ctx, invocation, { chunkIndex } as TtsSerializedRequestObservation)
     if (!ctx.journalFile || !ctx.runtimeRequests.some((entry) => entry.slot.generationSlotId === slot.generationSlotId)) {
-      throw CLIUsageError('TTS serializer output does not bind one dispatched generation slot.')
+      throw UsageError('TTS serializer output does not bind one dispatched generation slot.')
     }
     const slotHash = ctx.paidSpeechSlotHash(slot)
     const outputIndex = (ctx.outputsBySlot.get(slot.generationSlotId)?.length ?? 0) + 1
@@ -402,16 +402,16 @@ const recordOutputForSlot = async (
     }
     const audio = await readObservedAudio(ctx.options.outputDir, destination)
     if (timing && timingFactory) {
-      throw CLIUsageError('TTS serializer output supplied conflicting timing representations.')
+      throw UsageError('TTS serializer output supplied conflicting timing representations.')
     }
     if (timingFactory && slot.turnIds.length !== 1) {
-      throw CLIUsageError('Provider timing for a hosted TTS chunk must bind exactly one planned turn.')
+      throw UsageError('Provider timing for a hosted TTS chunk must bind exactly one planned turn.')
     }
     const turn = timingFactory
       ? ctx.purePlan.planned.turns.find((entry) => entry.canonical.turnId === slot.turnIds[0]) as AttemptTurn | undefined
       : undefined
     if (timingFactory && !turn) {
-      throw CLIUsageError('Provider timing could not bind its planned turn identity.')
+      throw UsageError('Provider timing could not bind its planned turn identity.')
     }
     const boundTiming = timingFactory && turn
       ? timingFactory({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey })
@@ -440,14 +440,14 @@ const completeSlotRequest = async (
     const slot = slotFor(ctx, invocation, { chunkIndex } as TtsSerializedRequestObservation)
     const runtime = ctx.runtimeRequests.filter((entry) => entry.slot.generationSlotId === slot.generationSlotId).at(-1)
     if (!runtime || runtime.terminal !== undefined) {
-      throw CLIUsageError('TTS serializer completion does not bind one open dispatched request.')
+      throw UsageError('TTS serializer completion does not bind one open dispatched request.')
     }
     if (!(ctx.outputsBySlot.get(slot.generationSlotId)?.length)) {
-      throw CLIUsageError('TTS serializer cannot complete a request before durable output promotion.')
+      throw UsageError('TTS serializer cannot complete a request before durable output promotion.')
     }
     const requestFingerprint = ctx.journal.requests.find((entry) => entry.requestOrdinal === runtime.request.requestOrdinal)?.requestFingerprint
     if (!requestFingerprint) {
-      throw CLIUsageError('TTS serializer completion is missing its admission request fingerprint.')
+      throw UsageError('TTS serializer completion is missing its admission request fingerprint.')
     }
     const evidence = withIdentity({
       schemaVersion: 1 as const,

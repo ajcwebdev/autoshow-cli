@@ -28,7 +28,7 @@ export const collectLumalabsImageTargets = (options: ImageGenOptions): ImageTarg
     ], {
       provider: 'Luma Labs',
       model,
-      hint: 'Supported Luma Labs image options: --image-aspect-ratio, --image-format png|jpeg, and up to nine --image-input references.'
+      hint: 'Supported Luma Labs image options: --aspect-ratio, --format png|jpeg, and up to nine --input references.'
     })
     validateImageInputReferences(options.imageInputs, {
       provider: 'Luma Labs',

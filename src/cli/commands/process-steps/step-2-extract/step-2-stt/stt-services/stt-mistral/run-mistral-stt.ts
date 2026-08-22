@@ -7,7 +7,7 @@ import { formatSpeakerLabel, toTimestamp } from '~/cli/commands/process-steps/st
 import { withRetry, classifyFetchRetry, parseRetryAfterMs } from '~/utils/retries'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralMultipartRequest } from '~/utils/mistral/mistral-client'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
@@ -96,7 +96,7 @@ export const runMistralStt = async (
     baseUrl?: string | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireApiKey('MISTRAL_API_KEY', 'stt:mistral', 'Mistral transcription')
+  const apiKey = requireProviderKey('mistral', 'stt:mistral', 'Mistral transcription')
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {

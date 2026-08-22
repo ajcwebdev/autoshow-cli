@@ -1,5 +1,5 @@
 import type { SanitizedProviderError, TtsExecutionReadinessObservation, TtsTarget } from '~/types'
-import { CLIUsageError, extractErrorMetadata, ProviderError, ValidationError } from '~/utils/error-handler'
+import { UsageError, extractErrorMetadata, ProviderError, ValidationError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
@@ -244,7 +244,7 @@ export const validateTtsTargetsForExecution = (
   targets: readonly TtsTarget[]
 ): Promise<TtsExecutionReadinessObservation[]> => {
   if (targets.length === 0) {
-    throw CLIUsageError('TTS execution requires at least one fully validated target.')
+    throw UsageError('TTS execution requires at least one fully validated target.')
   }
   const targetKeys = new Set<string>()
   for (const target of targets) {
@@ -254,13 +254,13 @@ export const validateTtsTargetsForExecution = (
       || !target.transport
       || !target.model.trim()
     ) {
-      throw CLIUsageError(`Audio target ${target.service}/${target.model} is missing complete operation-scoped execution identity.`)
+      throw UsageError(`Audio target ${target.service}/${target.model} is missing complete operation-scoped execution identity.`)
     }
     if (target.targetKey !== canonicalTargetKey(target.operation, target.service, target.model, target.transport)) {
-      throw CLIUsageError(`Audio target ${target.service}/${target.model} has a non-canonical operation-scoped execution identity.`)
+      throw UsageError(`Audio target ${target.service}/${target.model} has a non-canonical operation-scoped execution identity.`)
     }
     if (targetKeys.has(target.targetKey)) {
-      throw CLIUsageError(`Duplicate operation-scoped TTS execution target: ${target.targetKey}`)
+      throw UsageError(`Duplicate operation-scoped TTS execution target: ${target.targetKey}`)
     }
     targetKeys.add(target.targetKey)
   }

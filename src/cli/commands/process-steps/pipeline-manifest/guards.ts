@@ -2,7 +2,7 @@ import { lstat } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { PIPELINE_ITEM_STATUSES, PIPELINE_PROVIDER_STATUSES, PROCESS_COMMANDS } from '~/types'
 import type { ExtractRoute, InputFamily, ProcessCommand } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 
 const PROCESS_COMMAND_SET = new Set<string>(PROCESS_COMMANDS)
@@ -134,7 +134,7 @@ export const toManifestRelativePath = (
   const target = isAbsolute(value) ? resolve(value) : resolve(root, value)
   const fromRoot = relative(root, target) || '.'
   if (!isSafeRelativePath(root, fromRoot)) {
-    throw CLIUsageError(`Manifest path escapes its run root: ${value}`)
+    throw UsageError(`Manifest path escapes its run root: ${value}`)
   }
   return fromRoot
 }
@@ -144,7 +144,7 @@ export const resolveManifestRelativePath = (
   value: string
 ): string => {
   if (!isSafeRelativePath(rootDir, value)) {
-    throw CLIUsageError(`Manifest path escapes its run root: ${value}`)
+    throw UsageError(`Manifest path escapes its run root: ${value}`)
   }
   return resolve(rootDir, value)
 }

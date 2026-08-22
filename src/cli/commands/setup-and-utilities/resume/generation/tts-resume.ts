@@ -9,7 +9,7 @@ import { bindTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { readRetainedTtsResolvedVoices, resolveTtsResumeSourceContext } from './tts-resume-source-context'
 import type { GenerationResumeConfig, GenerationResumeProviderIdentity, GenerationResumeRunContext, PipelineManifestItem, PipelineProviderState, ProtectedAssetRef, ProtectedVoiceAssetStore, ProviderVoiceRef, ResumeTarget, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { existsSync } from 'node:fs'
@@ -48,7 +48,7 @@ const getTtsResumeProviderKey = (
   provider: GenerationResumeProviderIdentity
 ): string => {
   if (!provider.targetKey) {
-    throw CLIUsageError(`TTS resume target ${provider.service}/${provider.model} is missing its operation-scoped targetKey.`)
+    throw UsageError(`TTS resume target ${provider.service}/${provider.model} is missing its operation-scoped targetKey.`)
   }
   return provider.targetKey
 }
@@ -57,7 +57,7 @@ const reduceTtsResumeItemStatus = (
   providers: PipelineProviderState[]
 ): PipelineManifestItem['status'] => {
   if (providers.length === 0) {
-    throw CLIUsageError('A resumed TTS item must retain at least one operation-scoped provider state.')
+    throw UsageError('A resumed TTS item must retain at least one operation-scoped provider state.')
   }
   if (providers.every((provider) => provider.status === 'skipped')) return 'skipped'
   if (
@@ -87,7 +87,7 @@ const commitTtsResumePreparedStates = async (
   providerOrder: readonly string[],
   itemIndex = 0
 ): Promise<void> => {
-  if (incomingStates.length === 0) throw CLIUsageError('TTS resume lifecycle produced no prepared provider states.')
+  if (incomingStates.length === 0) throw UsageError('TTS resume lifecycle produced no prepared provider states.')
   for (const incoming of incomingStates) {
     if (
       incoming.operation !== 'tts-synthesis'
@@ -95,20 +95,20 @@ const commitTtsResumePreparedStates = async (
       || !incoming.transport
       || typeof incoming.model !== 'string'
     ) {
-      throw CLIUsageError('TTS resume lifecycle produced a provider state without complete operation-scoped identity.')
+      throw UsageError('TTS resume lifecycle produced a provider state without complete operation-scoped identity.')
     }
   }
   const orderByTargetKey = new Map(providerOrder.map((targetKey, index) => [targetKey, index] as const))
   await updateManifest(rootDir, (manifest) => {
     if (manifest.command !== 'tts' || (manifest.scope !== 'single' && manifest.scope !== 'batch')) {
-      throw CLIUsageError('TTS resume lifecycle can update only a canonical TTS manifest.')
+      throw UsageError('TTS resume lifecycle can update only a canonical TTS manifest.')
     }
     if (manifest.scope === 'single' && (manifest.items.length !== 1 || itemIndex !== 0)) {
-      throw CLIUsageError('TTS resume lifecycle can update only one canonical single-run TTS manifest.')
+      throw UsageError('TTS resume lifecycle can update only one canonical single-run TTS manifest.')
     }
     const item = manifest.items[itemIndex] as PipelineManifestItem | undefined
     if (!item) {
-      throw CLIUsageError('TTS resume lifecycle received an out-of-range batch item.')
+      throw UsageError('TTS resume lifecycle received an out-of-range batch item.')
     }
     const providers = item.providers.slice()
     for (const incoming of incomingStates) {
@@ -156,7 +156,7 @@ const reconcileTtsResumeProviderStates = (
     if (current) {
       return current
     }
-    throw CLIUsageError(`TTS lifecycle did not persist a real canonical provider state for ${provider.service}/${provider.model}. Re-run the tts command to create a new branch.`)
+    throw UsageError(`TTS lifecycle did not persist a real canonical provider state for ${provider.service}/${provider.model}. Re-run the tts command to create a new branch.`)
   })
 }
 
@@ -166,7 +166,7 @@ const resolveStoredTtsResumeInput = async (
 ): Promise<string> => {
   const item = storedItem ?? (await readManifest(rootDir))?.items[0]
   if (!item || typeof item.input !== 'string' || item.input.trim().length === 0) {
-    throw CLIUsageError('TTS resume is missing its canonical source path. Rebuild this output with the current tts command.')
+    throw UsageError('TTS resume is missing its canonical source path. Rebuild this output with the current tts command.')
   }
   const sourcePath = resolveUserPath(item.input)
   let sourceExists = false
@@ -178,12 +178,12 @@ const resolveStoredTtsResumeInput = async (
     sourceExists = false
   }
   if (!sourceExists) {
-    throw CLIUsageError(`Stored TTS source file is missing: ${item.input}. Restore the exact source bytes or rebuild this output with the current tts command.`)
+    throw UsageError(`Stored TTS source file is missing: ${item.input}. Restore the exact source bytes or rebuild this output with the current tts command.`)
   }
   source = Bun.file(sourcePath)
   const text = new TextDecoder().decode(new Uint8Array(await source.arrayBuffer()))
   if (!text.trim()) {
-    throw CLIUsageError(`Stored TTS source file is empty: ${item.input}. Restore the exact source bytes or rebuild this output with the current tts command.`)
+    throw UsageError(`Stored TTS source file is empty: ${item.input}. Restore the exact source bytes or rebuild this output with the current tts command.`)
   }
   return text
 }
@@ -196,14 +196,14 @@ const sameProtectedAsset = (left: ProtectedAssetRef, right: ProtectedAssetRef): 
 const protectedReferenceVoice = (voice: ProviderVoiceRef): Extract<ProviderVoiceRef, { kind: 'reference-asset' }> | undefined => {
   const validated = validateProviderVoiceRef(voice)
   if (validated.provider !== 'mistral') {
-    throw CLIUsageError('Stored Mistral resume voice evidence names a different provider. Rebuild this output before resuming it.')
+    throw UsageError('Stored Mistral resume voice evidence names a different provider. Rebuild this output before resuming it.')
   }
   if (validated.kind !== 'reference-asset') return undefined
   if (
     validated.origin !== 'request-reference-audio'
     || validated.authorizationRef !== MISTRAL_CLI_REFERENCE_AUTHORIZATION
   ) {
-    throw CLIUsageError('Stored Mistral reference voice evidence lacks the exact request authorization. Rebuild this output before resuming it.')
+    throw UsageError('Stored Mistral reference voice evidence lacks the exact request authorization. Rebuild this output before resuming it.')
   }
   return validated
 }
@@ -252,13 +252,13 @@ export const resolveStoredTtsTargetsForResume = async (
   const input = await resolveStoredTtsResumeInput(target.dir, item)
   const targetKeys = new Set(mistralProviders.flatMap((provider) => provider.targetKey ? [provider.targetKey] : []))
   const sourceContext = await resolveTtsResumeSourceContext(target.dir, input, item.providers, targetKeys)
-  if (!sourceContext.dialoguePlan) throw CLIUsageError('Stored generic TTS resume source is missing its dialogue plan.')
+  if (!sourceContext.dialoguePlan) throw UsageError('Stored generic TTS resume source is missing its dialogue plan.')
   const turns = sourceContext.dialoguePlan.nodes.flatMap((node) => node.kind === 'turn' ? [node.turn] : node.turns)
 
   for (const provider of mistralProviders) {
-    if (!provider.targetKey) throw CLIUsageError(`Stored Mistral TTS target ${provider.model} is missing its operation-scoped target identity.`)
+    if (!provider.targetKey) throw UsageError(`Stored Mistral TTS target ${provider.model} is missing its operation-scoped target identity.`)
     const state = item.providers.find((entry) => entry.targetKey === provider.targetKey)
-    if (!state) throw CLIUsageError(`Stored Mistral TTS target ${provider.model} has no canonical provider state.`)
+    if (!state) throw UsageError(`Stored Mistral TTS target ${provider.model} has no canonical provider state.`)
     const voices = await readRetainedTtsResolvedVoices(target.dir, state)
     const references = voices.flatMap((voice) => {
       const reference = protectedReferenceVoice(voice)
@@ -275,7 +275,7 @@ export const resolveStoredTtsTargetsForResume = async (
       try {
         await protectedStore.resolve(asset)
       } catch {
-        throw CLIUsageError(
+        throw UsageError(
           `Stored protected Mistral reference ${asset.assetId} is missing or fails its content checksum. Restore the exact owner-only protected asset before recovery; interrupted reference synthesis cannot be redispatched by resume.`
         )
       }
@@ -284,7 +284,6 @@ export const resolveStoredTtsTargetsForResume = async (
     const retained = sourceContext.retainedPlanIdentities.get(provider.targetKey)
     const baseOptions = clearProviderModelFields({ ...opts }, TTS_MODEL_FIELDS) as TtsOptions
     baseOptions.mistralTtsModels = [provider.model]
-    baseOptions.mistralTtsModel = provider.model
     baseOptions.mistralTtsVoice = undefined
     const candidates: Array<{ options: TtsOptions, target: TtsTarget, speakerMappings?: string[] | undefined }> = []
 
@@ -321,7 +320,7 @@ export const resolveStoredTtsTargetsForResume = async (
       const speakerVoice = new Map<string, { mapping: string, protectedAsset?: ProtectedAssetRef | undefined }>()
       for (const [index, voice] of voices.entries()) {
         const turn = turns[index]
-        if (!turn) throw CLIUsageError('Stored Mistral voice evidence does not align with the item dialogue turns.')
+        if (!turn) throw UsageError('Stored Mistral voice evidence does not align with the item dialogue turns.')
         const speakerKey = normalizeDialogueSpeakerKey(turn.originalSpeakerLabel)
         const reference = protectedReferenceVoice(voice)
         const mapping = reference
@@ -329,10 +328,10 @@ export const resolveStoredTtsTargetsForResume = async (
           : voice.kind === 'remote-resource'
             ? `${turn.originalSpeakerLabel}=${voice.resourceId}`
             : undefined
-        if (!mapping) throw CLIUsageError('Stored Mistral dialogue voice kind cannot be reconstructed safely for resume.')
+        if (!mapping) throw UsageError('Stored Mistral dialogue voice kind cannot be reconstructed safely for resume.')
         const prior = speakerVoice.get(speakerKey)
         if (prior && prior.mapping.split('=').slice(1).join('=') !== mapping.split('=').slice(1).join('=')) {
-          throw CLIUsageError(`Stored Mistral speaker ${turn.originalSpeakerLabel} has conflicting retained voices.`)
+          throw UsageError(`Stored Mistral speaker ${turn.originalSpeakerLabel} has conflicting retained voices.`)
         }
         speakerVoice.set(speakerKey, { mapping, ...(reference ? { protectedAsset: reference.protectedAsset } : {}) })
       }
@@ -360,7 +359,7 @@ export const resolveStoredTtsTargetsForResume = async (
     }
 
     if (!exact) {
-      throw CLIUsageError('Stored protected Mistral voice bindings cannot reconstruct the exact retained branch/render semantics. Rebuild this output with standalone `tts`; resume will not rebind or repurchase reference synthesis.')
+      throw UsageError('Stored protected Mistral voice bindings cannot reconstruct the exact retained branch/render semantics. Rebuild this output with standalone `tts`; resume will not rebind or repurchase reference synthesis.')
     }
     if (exact.speakerMappings) {
       opts.ttsSpeakers = exact.speakerMappings
@@ -389,7 +388,7 @@ const createTtsBatchResumeReportedOutputResolver = (
 ): ((target: TtsTarget, defaultFileName: string) => { path: string, fileName: string }) => {
   const itemStem = artifactRoot.split('/')[1]
   if (!itemStem) {
-    throw CLIUsageError('TTS batch resume could not recover the canonical item stem from retained artifact paths.')
+    throw UsageError('TTS batch resume could not recover the canonical item stem from retained artifact paths.')
   }
   return (target, defaultFileName) => {
     const providerArtifact = defaultFileName || getTtsArtifactFileName(target, targets.length === 1)
@@ -412,7 +411,7 @@ const createTtsResumeReportedOutputResolver = (
     provider.targetKey ? [[provider.targetKey, provider.attempts + 1] as const] : []
   ))
   return (target, defaultFileName) => {
-    if (!target.targetKey) throw CLIUsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
+    if (!target.targetKey) throw UsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
     const extension = extname(defaultFileName) || '.wav'
     const stem = basename(defaultFileName, extname(defaultFileName)) || 'speech'
     const targetToken = target.targetKey.replace(/[^A-Za-z0-9_-]/g, '-').slice(-48)
@@ -440,7 +439,7 @@ const resolveExactTtsResumeSourceContext = async (
     && provider.status !== 'skipped'
   )
   if (canonicalProviderStates.length === 0) {
-    throw CLIUsageError('TTS resume has no retained active source/dialogue evidence and cannot authorize synthesis. Rebuild this output with the current tts command.')
+    throw UsageError('TTS resume has no retained active source/dialogue evidence and cannot authorize synthesis. Rebuild this output with the current tts command.')
   }
   const sourceContext = await resolveTtsResumeSourceContext(
     context.outputDir,
@@ -453,13 +452,13 @@ const resolveExactTtsResumeSourceContext = async (
   ))
   for (const target of targets) {
     if (!target.targetKey) {
-      throw CLIUsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
+      throw UsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
     }
     const current = currentByTargetKey.get(target.targetKey)
     if (!current) continue
     const retained = sourceContext.retainedPlanIdentities.get(target.targetKey)
     if (!retained) {
-      throw CLIUsageError(`Stored TTS target ${target.service}/${target.model} has no exact active branch or render plan. Re-run the tts command to create an explicit new branch.`)
+      throw UsageError(`Stored TTS target ${target.service}/${target.model} has no exact active branch or render plan. Re-run the tts command to create an explicit new branch.`)
     }
     const planned = planCurrentTtsRenderIdentity({
       target,
@@ -472,7 +471,7 @@ const resolveExactTtsResumeSourceContext = async (
       ? planned.branchPlanId === retained.branchPlanId
       : planned.renderPlanId === retained.renderPlanId && planned.renderIdentity === retained.renderIdentity
     if (!matchesRetainedPlan && (current.status !== 'failed' || target.allowFailedImplicitDefaultReplan !== true)) {
-      throw CLIUsageError(
+      throw UsageError(
         `Current TTS voice, cast, synthesis controls, or output plan differs from the retained active branch or render for ${target.service}/${target.model}. Re-run the tts command to create an explicit new branch; resume will not silently rebind or repurchase it.`
       )
     }
@@ -487,7 +486,7 @@ const resolveExactTtsResumeSourceContext = async (
         dialoguePlan: sourceContext.dialoguePlan
       })
       if (replacement.reconciliationBlockers.length > 0) {
-        throw CLIUsageError(
+        throw UsageError(
           `Stored TTS target ${target.service}/${target.model} has ambiguous admitted work and cannot replace its failed implicit-default plan without explicit ambiguous-redispatch authorization.`
         )
       }
@@ -507,7 +506,7 @@ const assertProtectedRecoveryOnlyTargetsAreComplete = async (
   for (const target of targets) {
     if (!protectedRecoveryOnlyTargets.has(target)) continue
     const state = target.targetKey ? currentByTargetKey.get(target.targetKey) : undefined
-    if (!state) throw CLIUsageError('Stored protected Mistral recovery target has no canonical provider state.')
+    if (!state) throw UsageError('Stored protected Mistral recovery target has no canonical provider state.')
     let recovery
     try {
       recovery = await prepareCurrentTtsCompletedRecovery({
@@ -520,12 +519,12 @@ const assertProtectedRecoveryOnlyTargetsAreComplete = async (
         dialoguePlan: sourceContext.dialoguePlan
       })
     } catch {
-      throw CLIUsageError(
+      throw UsageError(
         'Interrupted protected Mistral reference synthesis cannot be safely redispatched by resume. Re-run standalone `tts` with the explicitly authorized reference to create a new branch; no provider request was made.'
       )
     }
     if (!recovery || recovery.kind !== 'complete-render') {
-      throw CLIUsageError(
+      throw UsageError(
         'Protected Mistral reference synthesis has no complete retained result eligible for zero-call recovery. Re-run standalone `tts` with the explicitly authorized reference to create a new branch; resume will not repurchase it.'
       )
     }
@@ -549,7 +548,7 @@ export const ttsResumeConfig = {
     ),
   getSuccessKey: (entry: Step4Metadata) => {
     if (!entry.targetKey) {
-      throw CLIUsageError(`Resumed TTS metadata for ${entry.ttsService}/${entry.ttsModel} is missing its operation-scoped targetKey.`)
+      throw UsageError(`Resumed TTS metadata for ${entry.ttsService}/${entry.ttsModel} is missing its operation-scoped targetKey.`)
     }
     return entry.targetKey
   },
@@ -565,7 +564,7 @@ export const ttsResumeConfig = {
   ) => {
     const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(targets, input, opts, context)
     if (!sourceContext.dialoguePlan) {
-      throw CLIUsageError('TTS resume source context is missing its canonical dialogue plan.')
+      throw UsageError('TTS resume source context is missing its canonical dialogue plan.')
     }
     const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(outputDir, sourceContext.dialoguePlan)
     await assertProtectedRecoveryOnlyTargetsAreComplete(
@@ -624,7 +623,7 @@ export const ttsResumeConfig = {
     )
     const remaining: Array<{ target: TtsTarget, characterCount: number }> = []
     for (const target of context.targets) {
-      if (!target.targetKey) throw CLIUsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
+      if (!target.targetKey) throw UsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
       const current = currentByTargetKey.get(target.targetKey)
       if (!current) {
         remaining.push({ target, characterCount: input.length })
@@ -632,7 +631,7 @@ export const ttsResumeConfig = {
       }
       if (sourceContext.retainedPlanIdentities.get(target.targetKey)?.kind === 'branch') {
         if (protectedRecoveryOnlyTargets.has(target)) {
-          throw CLIUsageError('Price cannot authorize interrupted protected Mistral reference redispatch. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
+          throw UsageError('Price cannot authorize interrupted protected Mistral reference redispatch. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
         }
         remaining.push({ target, characterCount: input.length })
         continue
@@ -662,12 +661,12 @@ export const ttsResumeConfig = {
         dialoguePlan: sourceContext.dialoguePlan
       })
       if (protectedRecoveryOnlyTargets.has(target) && price.recoveryKind !== 'complete-render') {
-        throw CLIUsageError('Price cannot authorize protected Mistral reference redispatch without one complete retained result. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
+        throw UsageError('Price cannot authorize protected Mistral reference redispatch without one complete retained result. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
       }
       if (price.reconciliationBlockers.length > 0 && runtimeOptions.ttsAllowAmbiguousRedispatch !== true) {
         const blocker = price.reconciliationBlockers[0]
-        if (!blocker) throw CLIUsageError('Stored TTS generation slot has ambiguous provider work; automatic redispatch is blocked pending reconciliation.')
-        throw CLIUsageError(
+        if (!blocker) throw UsageError('Stored TTS generation slot has ambiguous provider work; automatic redispatch is blocked pending reconciliation.')
+        throw UsageError(
           `Stored TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`
         )
       }

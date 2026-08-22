@@ -17,7 +17,6 @@ node_modules/
 output/
 Library/
 runtime/*
-project/test-output
 .env.local
 
 **/*.webp

@@ -42,7 +42,7 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
     return okRun('ok')
   },
   resolveYtDlpBinaryInfo: () => ({ path: '/runtime/bin/yt-dlp', source: 'managed' }),
-  readDefuddleCliReadiness: async () => ({ label: 'defuddle', ok: true, detail: 'defuddle 0.17.0' }),
+  readDefuddleCliReadiness: async () => ({ label: 'defuddle', status: 'OK', detail: 'defuddle 0.17.0', severity: 'info' }),
   resolveConfigPath: async () => '/tmp/autoshow.json',
   loadConfig: async () => ({}),
   inspectYtDlpAuthState: async () => ({
@@ -311,8 +311,8 @@ describe('setup doctor contracts', () => {
   })
 
   for (const [step, targets, prefix] of [
-    ['image', STANDALONE_IMAGE_PROVIDER_TARGETS, 'defaults.post.image.'],
-    ['video', STANDALONE_VIDEO_PROVIDER_TARGETS, 'defaults.post.video.']
+    ['image', STANDALONE_IMAGE_PROVIDER_TARGETS, 'defaults.image.'],
+    ['video', STANDALONE_VIDEO_PROVIDER_TARGETS, 'defaults.video.']
   ] as const) {
     test(`${step} setup env keys are derived from every registered provider`, () => {
       const configPathFor = (flagName: string): string =>
@@ -358,8 +358,8 @@ describe('setup doctor contracts', () => {
 
   for (const [step, targets, prefix, localTargets] of [
     ['write', WRITE_LLM_PROVIDER_TARGETS, 'defaults.llm.', new Set<string>()],
-    ['tts', STANDALONE_TTS_PROVIDER_TARGETS, 'defaults.post.tts.', new Set<string>()],
-    ['music', STANDALONE_MUSIC_PROVIDER_TARGETS, 'defaults.post.music.', new Set<string>()]
+    ['tts', STANDALONE_TTS_PROVIDER_TARGETS, 'defaults.tts.', new Set<string>()],
+    ['music', STANDALONE_MUSIC_PROVIDER_TARGETS, 'defaults.music.', new Set<string>()]
   ] as const) {
     test(`${step} setup env keys cover registered providers with explicit local exclusions`, () => {
       const expected = new Set<string>()

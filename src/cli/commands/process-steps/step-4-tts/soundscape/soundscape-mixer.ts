@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { CompactMix, CompactMixTimelineSummary, ObservedAudioFormat, ResolvedSoundscapeTimeline, SoundEffectRenderPlan, SoundEffectRenderResult, SoundscapeBus, SoundscapePlan, SoundscapeStemRef, SoundscapeTransform, SourcePlacement } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
@@ -16,7 +16,7 @@ const runFfmpeg = async (args: string[], label: string, cancellation?: AbortSign
 
 const checkedSource = async (rootDir: string, path: string, sha256: string): Promise<string> => {
   const source = await readContainedArtifactFile(rootDir, path)
-  if (source.sha256 !== sha256) throw CLIUsageError(`Soundscape source checksum mismatch: ${path}`)
+  if (source.sha256 !== sha256) throw UsageError(`Soundscape source checksum mismatch: ${path}`)
   return source.path
 }
 
@@ -123,7 +123,7 @@ const renderPlacementBus = async (input: {
       labels.push(`[${label}]`)
     }
   })
-  if (labels.length === 0) throw CLIUsageError(`Cannot render an empty ${input.bus} soundscape bus.`)
+  if (labels.length === 0) throw UsageError(`Cannot render an empty ${input.bus} soundscape bus.`)
   filters.push(`${labels.join('')}amix=inputs=${labels.length}:duration=longest:normalize=0,atrim=0:${(input.durationMs / 1000).toFixed(6)},${deterministicOutputFormat(input.plan)}[bus]`)
   await runFfmpeg([...inputs, '-filter_complex', filters.join(';'), '-map', '[bus]', '-ar', String(profile.sampleRate), '-ac', String(profile.channels), '-c:a', profile.codec, '-bitexact', '-y', input.outputPath], `${input.bus} stem`, input.cancellation)
 }
@@ -203,7 +203,7 @@ const loadExistingSoundscapeMix = async (input: {
   }
   let mix: CompactMix
   try { mix = JSON.parse(stored.bytes.toString('utf8')) as CompactMix }
-  catch { throw CLIUsageError('Retained soundscape mix.json is not valid JSON.') }
+  catch { throw UsageError('Retained soundscape mix.json is not valid JSON.') }
   if (
     mix.schemaVersion !== 1
     || mix.mixId !== input.mixId
@@ -213,10 +213,10 @@ const loadExistingSoundscapeMix = async (input: {
     || mix.mixProfileHash !== input.plan.mixProfileHash
     || mix.sfx?.sfxId !== input.sfxId
     || mix.timelineSummary.dialogueAudioRunId !== input.dialogueAudioRunId
-  ) throw CLIUsageError('Retained soundscape mix identity is incompatible with the selected inputs.')
+  ) throw UsageError('Retained soundscape mix identity is incompatible with the selected inputs.')
   for (const ref of [...mix.stems, mix.master]) {
     const artifact = await readContainedArtifactFile(input.rootDir, ref.path)
-    if (artifact.sha256 !== ref.sha256) throw CLIUsageError(`Retained soundscape artifact checksum is invalid: ${ref.path}`)
+    if (artifact.sha256 !== ref.sha256) throw UsageError(`Retained soundscape artifact checksum is invalid: ${ref.path}`)
   }
   return { mix, ref: { path: stored.relativePath, sha256: stored.sha256 } }
 }
@@ -232,8 +232,8 @@ export const mixSoundscape = async (input: {
   sfx?: { sfxId: string, path: string, sha256: string } | undefined
   cancellation?: AbortSignal | undefined
 }): Promise<{ mix: CompactMix, ref: { path: string, sha256: string } }> => {
-  if (input.timeline.soundscapePlanId !== input.plan.soundscapePlanId || input.timeline.dialogueAudioRunId !== input.dialogueAudioRun.audioRunId) throw CLIUsageError('Resolved soundscape timeline does not bind the selected plan and dialogue audio run.')
-  if (input.timeline.durationMs <= 0 || !Number.isSafeInteger(input.timeline.durationMs)) throw CLIUsageError('Resolved soundscape timeline requires a positive integer duration.')
+  if (input.timeline.soundscapePlanId !== input.plan.soundscapePlanId || input.timeline.dialogueAudioRunId !== input.dialogueAudioRun.audioRunId) throw UsageError('Resolved soundscape timeline does not bind the selected plan and dialogue audio run.')
+  if (input.timeline.durationMs <= 0 || !Number.isSafeInteger(input.timeline.durationMs)) throw UsageError('Resolved soundscape timeline requires a positive integer duration.')
   const sfx = input.sfx ?? (input.renderResult
     ? { sfxId: input.renderResult.value.resultId, path: input.renderResult.ref.path, sha256: input.renderResult.ref.sha256 }
     : undefined)
@@ -270,7 +270,7 @@ export const mixSoundscape = async (input: {
       if (entry.status !== 'placed' || !entry.finalRangeMs || !entry.sourceRangeMs) continue
       const result = resultByCue.get(entry.cueId)
       const cue = cueById.get(entry.cueId)
-      if (!result?.audio || !cue) throw CLIUsageError(`Placed sound cue ${entry.cueId} has no checksum-bound source result.`)
+      if (!result?.audio || !cue) throw UsageError(`Placed sound cue ${entry.cueId} has no checksum-bound source result.`)
       const inputPath = await checkedSource(input.rootDir, result.audio.path, result.audio.sha256)
       placementsByBus.get(entry.bus)?.push({ cueId: entry.cueId, inputPath, sourceDurationMs: result.audio.durationMs, startMs: entry.finalRangeMs.start, endMs: entry.finalRangeMs.end, gainDb: cue.gainDb ?? 0, pan: cue.pan ?? input.plan.mixProfile.defaultPan, loopIterations: entry.loopIterations ?? 1 })
       const parametersHash = hashCanonicalTtsValue({ cueId: entry.cueId, range: entry.finalRangeMs, gainDb: cue.gainDb ?? 0, pan: cue.pan ?? input.plan.mixProfile.defaultPan, loopIterations: entry.loopIterations ?? 1 })

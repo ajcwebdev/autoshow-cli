@@ -9,7 +9,7 @@ import type { GeminiInlineAudioInfo, GeminiTtsModel, HostedTtsChunkScheduler, Sp
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import {
@@ -79,7 +79,7 @@ export const runGeminiTts = async (
     validateGeminiMultiSpeakerTranscriptFromRegistry(text, registry)
   }
 
-  const apiKey = requireApiKey('GEMINI_API_KEY', 'tts:gemini', 'Gemini TTS')
+  const apiKey = requireProviderKey('gemini', 'tts:gemini', 'Gemini TTS')
 
   const speakerSummary = registry
     ? formatSpeakerRegistrySummary(registry)

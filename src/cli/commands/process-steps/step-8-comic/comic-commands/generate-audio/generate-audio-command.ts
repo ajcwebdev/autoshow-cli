@@ -5,7 +5,7 @@ import { validateTtsRenderInputsForTargets } from '../../../step-4-tts/run-tts'
 import { collectTtsTargets } from '../../../step-4-tts/tts-targets'
 import { createResourceGate } from '~/utils/resource-gate'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { generateComicSlideshow } from '../generate-slideshow/generate-slideshow-command'
 import { createHostedTtsChunkScheduler } from '../../../step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
@@ -115,12 +115,12 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   }
 
   const collectedTargets = collectTtsTargets(baseOptions)
-  if (collectedTargets.length === 0) throw CLIUsageError('Comic audio requires at least one selected TTS provider target.')
+  if (collectedTargets.length === 0) throw UsageError('Comic audio requires at least one selected TTS provider target.')
   const targets = collectedTargets.map((target) => {
     const transport = target.transport ?? 'hosted-api'
     return { ...target, operation: 'comic-audio' as const, transport, targetKey: canonicalTargetKey('comic-audio', target.service, target.model, transport) }
   })
-  if (new Set(targets.map(target => target.targetKey)).size !== targets.length) throw CLIUsageError('Comic audio provider selection contains duplicate operation-scoped provider/model targets.')
+  if (new Set(targets.map(target => target.targetKey)).size !== targets.length) throw UsageError('Comic audio provider selection contains duplicate operation-scoped provider/model targets.')
 
   const { snapshot, retainedSnapshot } = await resolveComicVoiceSnapshot({ compatible, dialoguePlan, targets, profileKey })
 
@@ -213,7 +213,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     stageTargetKeys,
   })
 
-  if (soundscapeRequiredFailure) throw CLIUsageError('Comic soundscape failed one or more required cues; verified dialogue and sound-effect artifacts were retained for resume, but no master was published.')
+  if (soundscapeRequiredFailure) throw UsageError('Comic soundscape failed one or more required cues; verified dialogue and sound-effect artifacts were retained for resume, but no master was published.')
   if (checkpoints.length > 0) {
     for (const { entry, checkpoint } of checkpoints) {
       l.write('info', `${entry.ttsService}/${entry.ttsModel} generation checkpoint complete: ${checkpoint.completedGenerationSlotIds.length} retained, ${checkpoint.remainingGenerationSlotCount} remaining.`, {

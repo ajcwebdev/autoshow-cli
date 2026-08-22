@@ -176,7 +176,7 @@ bun autoshow config --reset
 
 ### links
 
-[`links`](./commands/setup-and-utilities/links/links.md) fetches curated provider documentation into Markdown files under `project/links/`.
+[`links`](./commands/setup-and-utilities/links/links.md) fetches curated provider documentation into a timestamped run directory under `output/`.
 
 Example:
 
@@ -218,6 +218,6 @@ See [Pricing Preflight](./commands.md#pricing-preflight) and the individual comm
 
 ## Output Layout
 
-Most artifact-producing commands write a timestamped directory under `output/` with one `manifest.json`. Utility commands update shared state, write docs under `project/`, or add reports beside existing runs.
+Most artifact-producing commands write a timestamped directory under `output/` with one `manifest.json`. Utility commands such as `config` and `setup` update shared state. `links` writes a combined markdown bundle into a timestamped `output/` run directory.
 
 See [Types, Metadata & Output Layout](./diagrams/05-types-and-output.md) for the full layout.

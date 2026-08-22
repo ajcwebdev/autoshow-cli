@@ -7,19 +7,18 @@ import { buildMediaStep1Slug, extractSourceMetadata } from '~/cli/commands/proce
 import { downloadAudio } from '~/cli/commands/process-steps/step-1-download/audio/dl-audio'
 import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
-import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { STT_MODEL_KEYS } from '~/cli/options/option-resolution/stt-options'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, DownloadMediaRuntimeOptions, DownloadRuntimeOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, DownloadMediaRuntimeOptions, DownloadRuntimeOptions, ExtractCommandOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
 
 export const buildProcessingOptions = (
   source: ProcessingSource,
   outputDir: string,
-  runtimeOptions: WriteRuntimeOptions
+  runtimeOptions: ExtractCommandOptions | WriteRuntimeOptions
 ): ProcessingOptions => {
   return {
     ...source,
-    concurrencyMode: runtimeOptions.concurrencyMode,
+    ...(runtimeOptions.concurrencyMode !== undefined ? { concurrencyMode: runtimeOptions.concurrencyMode } : {}),
     hostedConcurrencyCoordinator: runtimeOptions.hostedConcurrencyCoordinator,
     configPath: runtimeOptions.configPath,
     step2SelectionOrigins: runtimeOptions.step2SelectionOrigins,
@@ -30,16 +29,6 @@ export const buildProcessingOptions = (
     scrapecreatorsLang: runtimeOptions.scrapecreatorsLang,
     diarizationSpeakerCount: runtimeOptions.diarizationSpeakerCount,
     split: runtimeOptions.split,
-    ...buildLLMModelOptions(resolveLLMDefaults(runtimeOptions)),
-    llmProviderConcurrency: runtimeOptions.llmProviderConcurrency,
-    llmLocalConcurrency: runtimeOptions.llmLocalConcurrency,
-    skipLLM: runtimeOptions.skipLLM,
-    prompts: runtimeOptions.prompts,
-    promptFile: runtimeOptions.promptFile,
-    renderedText: runtimeOptions.renderedText,
-    renderedOutDir: runtimeOptions.renderedOutDir,
-    trackList: runtimeOptions.trackList,
-    promptMd: runtimeOptions.promptMd,
     outputDir
   }
 }
@@ -47,11 +36,11 @@ export const buildProcessingOptions = (
 export const processMediaSingle = async (
   target: string,
   baseDir: string,
-  llmDefaults: WriteRuntimeOptions,
+  runtimeOptions: ExtractCommandOptions | WriteRuntimeOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   batchChildContext?: BatchChildRunContext
 ): Promise<{ outputDir: string, info: { url: string, title: string, channel: string, channelURL?: string, publishDate?: string, duration: string } }> => {
-  if (llmDefaults.split) {
+  if (runtimeOptions.split) {
     l.write('info', 'Audio will be split into 30-minute segments for transcription', { category: 'pipeline' })
   }
 
@@ -79,14 +68,14 @@ export const processMediaSingle = async (
     : exists
       ? { filePath: target }
       : { url: target }
-  const options = buildProcessingOptions(source, baseDir, llmDefaults)
+  const options = buildProcessingOptions(source, baseDir, runtimeOptions)
 
   const outDir = await processVideo(options, meta, preflightEstimate, {
     ...(batchOutputDir ? { outputDir: batchOutputDir } : {}),
-    outputRootDir: llmDefaults.outputRootDir,
-    sttProviderConcurrency: llmDefaults.sttProviderConcurrency,
-    sttLocalConcurrency: llmDefaults.sttLocalConcurrency,
-    sttSegmentConcurrency: llmDefaults.sttSegmentConcurrency,
+    outputRootDir: runtimeOptions.outputRootDir,
+    sttProviderConcurrency: runtimeOptions.sttProviderConcurrency,
+    sttLocalConcurrency: runtimeOptions.sttLocalConcurrency,
+    sttSegmentConcurrency: runtimeOptions.sttSegmentConcurrency,
   })
   const baseInfo: { url: string, title: string, channel: string, duration: string, channelURL?: string, publishDate?: string } = {
     url: srcUrl,

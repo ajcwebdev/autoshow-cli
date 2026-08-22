@@ -17,14 +17,14 @@ import {
   resolveDeepinfraTtsRequestControls,
   resolveDeepinfraTtsVoiceField,
 } from './deepinfra-tts-request'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const runDeepinfraTts = async (
   text: string,
   outputDir: string,
   options: RunDeepinfraTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireProvidedApiKey(options.apiKey, 'DEEPINFRA_API_KEY', 'tts:deepinfra', 'DeepInfra TTS')
+  const apiKey = resolveCredential('deepinfra', 'require', { stage: 'tts:deepinfra', providedValue: options.apiKey, useProvidedValue: true, description: 'DeepInfra TTS' })
   const voice = validateDeepinfraTtsVoice(options.voiceId?.trim() || resolveDeepinfraTtsDefaultVoice(options.model))
   const providerText = prepareDeepinfraTtsText(options.model, text)
   const chunks = splitTextIntoChunks(providerText, resolveTtsChunkCharacterLimit('deepinfra', options.model) ?? 2000)

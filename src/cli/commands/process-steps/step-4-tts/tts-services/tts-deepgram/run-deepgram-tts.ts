@@ -4,7 +4,7 @@ import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { DEEPGRAM_DEFAULT_VOICE, validateDeepgramTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { InfraError } from '~/utils/error-handler'
 import { readDeepgramError } from './deepgram-utils'
@@ -29,7 +29,7 @@ export const runDeepgramTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('DEEPGRAM_API_KEY', 'tts:deepgram', 'Deepgram TTS')
+  const apiKey = requireProviderKey('deepgram', 'tts:deepgram', 'Deepgram TTS')
 
   const baseURL = trimTrailingSlash(DEEPGRAM_DEFAULT_BASE_URL)
   const rawVoice = options.voiceId?.trim() || options.model || DEEPGRAM_DEFAULT_VOICE

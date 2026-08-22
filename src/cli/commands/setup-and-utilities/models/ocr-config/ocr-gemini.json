@@ -16,7 +16,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "promptTokensPerPage": 1172,
@@ -58,7 +58,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "msPerPage": 2921,
@@ -84,7 +84,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -110,7 +110,7 @@
           "pdfBytes": 2147483648,
           "imageBytes": 2147483648,
           "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
+          "notes": "https://ai.google.dev/gemini-api/docs/document-processing.md.txt documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
           "costMultiplier": 1,

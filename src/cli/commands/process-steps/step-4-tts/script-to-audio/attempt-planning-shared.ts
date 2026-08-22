@@ -1,7 +1,7 @@
 import type { AnyCapabilityRecord, AttemptTurn, CanonicalDialogueTurn, CapabilityFixture, ComicDialoguePlan, CreateCurrentTtsRenderAttemptOptions, GenericTtsDialoguePlan, PlannedCost, ProtectedAssetRef, ProviderRenderStrategy, ResolvedVoiceBinding, SanitizedProviderError, TtsTarget, TypedProviderSynthesisSettings } from '~/types'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { ELEVENLABS_DEFAULT_VOICE_ID, SPEECHIFY_DEFAULT_TTS_VOICE } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError, extractErrorMetadata } from '~/utils/error-handler'
+import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { parseRetryAfterMs } from '~/utils/retries'
 import { hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
@@ -115,7 +115,7 @@ export const voiceBinding = (target: TtsTarget, kind: AttemptTurn['voice']['kind
   const providerVoice = kind === 'reference-asset'
     ? activeProtectedAsset
       ? { kind: 'reference-asset' as const, provider: target.service, protectedAsset: activeProtectedAsset, origin: 'request-reference-audio' as const, authorizationRef: 'explicit-cli:mistral-request-reference-v1' }
-      : (() => { throw CLIUsageError('Reference-audio synthesis requires a protected asset before render planning.') })()
+      : (() => { throw UsageError('Reference-audio synthesis requires a protected asset before render planning.') })()
     : kind === 'local-model-voice'
       ? { kind: 'local-model-voice' as const, provider: target.service, model: target.model, voiceLocator: value, origin: 'local-model-voice' as const }
       : { kind: 'remote-resource' as const, provider: target.service, resourceId: value, namespace: 'provider' as const, origin: 'provider-stock' as const, ownership: 'provider' as const, deletion: { state: 'provider-managed' as const, checkedAt: EPOCH } }

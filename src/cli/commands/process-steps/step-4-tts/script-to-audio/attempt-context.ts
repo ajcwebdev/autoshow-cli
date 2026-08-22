@@ -12,7 +12,7 @@ import type {
   ReadinessAuthorization,
   WrittenJson,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   computePaidSpeechSlotHash,
   hashCanonicalTtsValue,
@@ -87,7 +87,7 @@ const prepareRecoveredExecution = async (
   layout: ReturnType<typeof resolveAttemptLayout>
 ) => {
   const { planned, renderPlanId, renderIdentity } = purePlan
-  if ((options.recoveredSlots?.length ?? 0) > 0 && planned.strategy !== 'segmented') throw CLIUsageError('Recovered TTS generation slots may seed only an immutable segmented render.')
+  if ((options.recoveredSlots?.length ?? 0) > 0 && planned.strategy !== 'segmented') throw UsageError('Recovered TTS generation slots may seed only an immutable segmented render.')
   const recoveredBySlot = new Map<string, CurrentTtsRecoveredGenerationSlot>()
   for (const recovered of options.recoveredSlots ?? []) {
     const slot = planned.slots.find(entry => entry.generationSlotId === recovered.value.generationSlotId)
@@ -100,13 +100,13 @@ const prepareRecoveredExecution = async (
       || recovered.value.status !== 'succeeded'
       || recovered.value.outputs.length === 0
       || recovered.outputPaths.length !== recovered.value.outputs.length
-    ) throw CLIUsageError('Recovered TTS batch output does not bind one exact immutable generation slot.')
+    ) throw UsageError('Recovered TTS batch output does not bind one exact immutable generation slot.')
     recoveredBySlot.set(recovered.value.generationSlotId, recovered)
   }
   const unresolvedSlots = planned.slots.filter(slot => !recoveredBySlot.has(slot.generationSlotId))
   const requestedSlotLimit = options.ttsOptions.ttsMaxGenerationSlots
-  if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
-  if (requestedSlotLimit !== undefined && planned.strategy !== 'segmented') throw CLIUsageError('Bounded generation-slot execution is supported only for segmented TTS renders.')
+  if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) throw UsageError('TTS maximum generation slots must be a positive safe integer.')
+  if (requestedSlotLimit !== undefined && planned.strategy !== 'segmented') throw UsageError('Bounded generation-slot execution is supported only for segmented TTS renders.')
   for (const [slotId, recovered] of recoveredBySlot) {
     if (recovered.value.provenance !== 'slot-reuse') continue
     recoveredBySlot.set(slotId, { ...recovered, path: `${layout.renderRoot}/slots/${recovered.value.slotHash}/provider-batch-result.json` })
@@ -117,7 +117,7 @@ const prepareRecoveredExecution = async (
   const priorAttemptNumbers = (await readdir(layout.attemptsRoot).catch(() => []))
     .flatMap(name => /^attempt-(\d+)(?:-|$)/.exec(name)?.[1] ? [Number.parseInt(/^attempt-(\d+)(?:-|$)/.exec(name)?.[1] as string, 10)] : [])
     .filter(Number.isFinite)
-  if (options.priorAttemptCount !== undefined && (!Number.isSafeInteger(options.priorAttemptCount) || options.priorAttemptCount < 0)) throw CLIUsageError('Retained TTS provider attempt count must be a non-negative safe integer.')
+  if (options.priorAttemptCount !== undefined && (!Number.isSafeInteger(options.priorAttemptCount) || options.priorAttemptCount < 0)) throw UsageError('Retained TTS provider attempt count must be a non-negative safe integer.')
   const priorAttemptCount = options.priorAttemptCount ?? (priorAttemptNumbers.length > 0 ? Math.max(...priorAttemptNumbers) : 0)
   const attemptNumber = priorAttemptCount + 1
   const invocationId = `invocation-${crypto.randomUUID()}`
@@ -256,7 +256,7 @@ const buildExecutionSelection = (
   requestedSlotLimit: number | undefined,
   attemptSlots: AttemptSlot[]
 ) => requestedSlotLimit === undefined ? undefined : attemptSlots.map(slot => {
-  if (slot.turnIds.length !== 1) throw CLIUsageError('Bounded segmented execution requires each generation slot to bind exactly one dialogue turn.')
+  if (slot.turnIds.length !== 1) throw UsageError('Bounded segmented execution requires each generation slot to bind exactly one dialogue turn.')
   return { generationSlotId: slot.generationSlotId, turnId: slot.turnIds[0] as string, providerSegmentIndex: slot.slotIndex }
 })
 

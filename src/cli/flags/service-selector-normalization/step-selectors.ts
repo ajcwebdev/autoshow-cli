@@ -1,4 +1,4 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import type { CliFlagOccurrence, SelectorNormalizationResult } from '~/types'
 import { resolveProviderSelector } from './flag-helpers'
 import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
@@ -80,15 +80,15 @@ const normalizeStepSelectorOccurrences = (
       : allLocalTargets
     const value = occurrence.value
     if (value === true || value === false) {
-      throw CLIUsageError(`--${flagName} requires a step: ${allSelectorSteps}.`)
+      throw UsageError(`--${flagName} requires a step: ${allSelectorSteps}.`)
     }
     const step = value.trim().toLowerCase()
     if (!(step in allProvidersTargets)) {
-      throw CLIUsageError(`Invalid --${flagName} step "${value}". Expected ${allSelectorSteps}.`)
+      throw UsageError(`Invalid --${flagName} step "${value}". Expected ${allSelectorSteps}.`)
     }
     const target = targetsByStep[step]
     if (!target) {
-      throw CLIUsageError(`--${flagName} does not support step "${value}". Expected ${allLocalSelectorSteps}.`)
+      throw UsageError(`--${flagName} does not support step "${value}". Expected ${allLocalSelectorSteps}.`)
     }
     return [replaceFlagOccurrence(occurrence, target, true)]
   })

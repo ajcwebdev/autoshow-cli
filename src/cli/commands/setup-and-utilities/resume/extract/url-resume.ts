@@ -153,7 +153,7 @@ const resumeUrlArticleProviders = async (
     .filter((state) => state.status === 'failed')
     .map((state) => ({
       backend: state.service,
-      message: state.lastError?.message ?? 'Provider failed',
+      message: state.error?.message ?? 'Provider failed',
       attempts: state.attempts
     }))
   const completionStatus = completionStatusFromProviderStates(providerStates)

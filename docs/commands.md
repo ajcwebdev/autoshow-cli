@@ -44,11 +44,11 @@ bun autoshow extract output/<extract-run-dir> --transcript-video
 bun autoshow extract input
 bun autoshow extract input/examples/document
 
-# full write pipeline
-bun autoshow write "https://www.youtube.com/watch?v=u1-WHqATSQU" --llm openai=gpt-5.5
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3
+# write from extracted text or local markdown
+bun autoshow extract "https://www.youtube.com/watch?v=u1-WHqATSQU"
+bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5
+bun autoshow write notes.md --llm openai=gpt-5.5
 bun autoshow write ./output/demo/text --prompt rockSong
-bun autoshow write input/examples/batch/2-urls.md
 
 # text-to-speech
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
@@ -96,7 +96,7 @@ bun as <command>
 - `metadata`: [metadata](./commands/process-steps/step-0-metadata/metadata.md) — inspect source metadata without downloading
 - `download`: [download](./commands/process-steps/step-1-download/download-file.md) — download or stage a source before extraction
 - `extract`: [extract](./commands/process-steps/step-2-extract/01-extract.md) — transcribe media, extract documents or articles, report on X Spaces, or render transcript videos
-- `write`: [write](./commands/process-steps/step-3-write/write-text.md) — run extract plus hosted LLM text generation
+- `write`: [write](./commands/process-steps/step-3-write/write-text.md) — generate hosted LLM text from local `.md` / `.txt`
 - `tts`: [tts](./commands/process-steps/step-4-tts/text-to-speech-and-voice.md) — generate speech from text
 - `voice`: [voice](./commands/process-steps/step-9-voice/00-voice-overview.md) — list and register provider voices
 - `image`: [image](./commands/process-steps/step-5-image/text-to-image.md) — generate or edit images
@@ -109,7 +109,7 @@ bun as <command>
 
 ## Selection Guide
 
-- Use `metadata` to inspect a source without downloading it, `download` when you need the file on disk, `extract` for transcripts, OCR, article text, X Space reports, or transcript videos, and `write` for that extract pipeline plus LLM text.
+- Use `metadata` to inspect a source without downloading it, `download` when you need the file on disk, `extract` for transcripts, OCR, article text, X Space reports, or transcript videos, and `write` for hosted LLM text over local `.md` / `.txt` (including extract artifacts).
 - Use `tts`, `image`, `video`, and `music` for generation from text or prompts. Use `voice` to list or register voices without synthesizing speech.
 - Use `music --audio`, `--captions`, or `--batch` for local lyric videos from repo audio; hosted music uses a prompt or text file plus `--provider`.
 - Use `comic` for episode-script to comic production, including scene drafts, character sketches, panel and page images, dialogue and soundscape audio, and slideshows.
@@ -126,7 +126,7 @@ Most hosted or mixed-provider commands accept `--price` to print an estimated co
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq=whisper-large-v3 --price
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct --price
 bun autoshow extract https://example.com/article --all-providers --price
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --price
+bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow video "a sunset timelapse" --provider gemini=veo-3.1-lite-generate-preview --price

@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureCartesiaTtsSetup = ensureProvider('cartesia', 'tts:cartesia', 'Cartesia TTS')
+export const ensureCartesiaTtsSetup = async (): Promise<void> => { requireProviderKey('cartesia', 'tts:cartesia', 'Cartesia TTS') }

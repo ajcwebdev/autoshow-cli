@@ -16,7 +16,7 @@ import type {
   ProviderRenderResult,
   RenderAdmissionJournalSnapshot
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { assertContentIdentity, hashCanonicalTtsValue } from '../step-4-tts/script-to-audio/contract-identity'
@@ -35,7 +35,7 @@ import { validateComicDialoguePlan, validateComicSourceIdentity } from '../step-
 import { isIsoDateTime, isSha256, isStrictArtifactRelativePath } from './guards'
 
 const validateBranchPlanJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Provider render branch plan requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Provider render branch plan requires schemaVersion 1.')
   assertContentIdentity(value, 'branchPlanId', 'Provider render branch plan')
   const branch = value as unknown as ProviderRenderBranchPlan
   if (
@@ -43,7 +43,7 @@ const validateBranchPlanJson: JsonArtifactValidator = (value) => {
     || !Array.isArray(branch.candidateStrategies)
     || branch.candidateStrategies.length === 0
   ) {
-    throw CLIUsageError('Provider render branch plan has an invalid target or no candidate strategy.')
+    throw UsageError('Provider render branch plan has an invalid target or no candidate strategy.')
   }
   for (const candidate of branch.candidateStrategies) {
     assertContentIdentity(candidate as unknown as Record<string, unknown>, 'candidateId', 'Provider render branch candidate')
@@ -54,14 +54,14 @@ const validateBranchPlanJson: JsonArtifactValidator = (value) => {
       || !Array.isArray(candidate.batchSketches)
       || candidate.batchSketches.length === 0
       || !isSha256(candidate.requestedOutputHash)
-    ) throw CLIUsageError('Provider render branch candidate has invalid capability, batch, or output evidence.')
+    ) throw UsageError('Provider render branch candidate has invalid capability, batch, or output evidence.')
   }
 }
 
 const validateCompactRenderJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Compact TTS render requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Compact TTS render requires schemaVersion 1.')
   if (typeof value['renderId'] !== 'string' || typeof value['targetKey'] !== 'string' || typeof value['renderIdentity'] !== 'string' || !Array.isArray(value['slots'])) {
-    throw CLIUsageError('Compact TTS render is missing identity or slot index.')
+    throw UsageError('Compact TTS render is missing identity or slot index.')
   }
 }
 
@@ -77,7 +77,7 @@ const validateDialoguePlanJson: JsonArtifactValidator = (value) => {
 
 const validateCapabilityFixtureJson: JsonArtifactValidator = (value) => {
   if (value['schemaVersion'] !== 1 || !Array.isArray(value['records']) || value['records'].length !== 1) {
-    throw CLIUsageError('Provider capability fixture requires schemaVersion 1 and one exact capability record.')
+    throw UsageError('Provider capability fixture requires schemaVersion 1 and one exact capability record.')
   }
   validateCapabilityFacetSet(value['records'] as AnyCapabilityRecord[])
   const record = value['records'][0]
@@ -87,12 +87,12 @@ const validateCapabilityFixtureJson: JsonArtifactValidator = (value) => {
     || value['capabilityFixtureHash'] !== hashCanonicalTtsValue({ schemaVersion: 1, records: value['records'] })
     || value['capabilityScopeHash'] !== hashCanonicalTtsValue(record['scope'])
   ) {
-    throw CLIUsageError('Provider capability fixture has an invalid fixture or capability-scope identity.')
+    throw UsageError('Provider capability fixture has an invalid fixture or capability-scope identity.')
   }
 }
 
 const validateReadinessResultJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Provider readiness result requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Provider readiness result requires schemaVersion 1.')
   assertContentIdentity(value, 'readinessResultHash', 'Provider readiness result')
   const readiness = value as unknown as ProviderReadinessResult
   if (
@@ -105,7 +105,7 @@ const validateReadinessResultJson: JsonArtifactValidator = (value) => {
     || !Array.isArray(readiness.errors)
     || !isIsoDateTime(readiness.checkedAt)
   ) {
-    throw CLIUsageError('Provider readiness result has an invalid identity, status, or evidence collection.')
+    throw UsageError('Provider readiness result has an invalid identity, status, or evidence collection.')
   }
   const capabilityFixture = readiness.capabilityFixture
   if (
@@ -114,7 +114,7 @@ const validateReadinessResultJson: JsonArtifactValidator = (value) => {
     || !isStrictArtifactRelativePath(capabilityFixture.path)
     || !isSha256(capabilityFixture.sha256)
   ) {
-    throw CLIUsageError('Provider readiness result requires an exact retained capability fixture reference.')
+    throw UsageError('Provider readiness result requires an exact retained capability fixture reference.')
   }
   for (const observation of readiness.capabilityObservations) {
     validateAccountCapabilityObservation(observation)
@@ -122,7 +122,7 @@ const validateReadinessResultJson: JsonArtifactValidator = (value) => {
 }
 
 const validateAdmissionEvidenceJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Sanitized admission evidence requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Sanitized admission evidence requires schemaVersion 1.')
   assertContentIdentity(value, 'evidenceHash', 'Sanitized admission evidence')
   if (
     typeof value['journalId'] !== 'string'
@@ -132,88 +132,88 @@ const validateAdmissionEvidenceJson: JsonArtifactValidator = (value) => {
     || !['acceptance', 'completion', 'rejection', 'ambiguity', 'not-admitted'].includes(value['evidenceKind'] as string)
     || !isIsoDateTime(value['observedAt'])
     || !isRecord(value['fields'])
-  ) throw CLIUsageError('Sanitized admission evidence does not bind a complete request and proof kind.')
+  ) throw UsageError('Sanitized admission evidence does not bind a complete request and proof kind.')
 }
 
 const validateAudioRunJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Audio run requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Audio run requires schemaVersion 1.')
   assertContentIdentity(value, 'audioRunId', 'Audio run')
   const audioRun = value as unknown as AudioRun
   if (!audioRun.targetKey || !audioRun.renderPlanId || !audioRun.renderIdentity || audioRun.finalOutputs.length === 0) {
-    throw CLIUsageError('Audio run requires its target, render, and final output identities.')
+    throw UsageError('Audio run requires its target, render, and final output identities.')
   }
 }
 
 const validateAudioMixPlanJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Audio mix plan requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Audio mix plan requires schemaVersion 1.')
   assertContentIdentity(value, 'mixPlanId', 'Audio mix plan')
   if (typeof value['renderIdentity'] !== 'string' || !Array.isArray(value['sources']) || !Array.isArray(value['operations']) || !isIsoDateTime(value['createdAt'])) {
-    throw CLIUsageError('Audio mix plan has invalid render, source, operation, or creation evidence.')
+    throw UsageError('Audio mix plan has invalid render, source, operation, or creation evidence.')
   }
 }
 
 const validateAudioTransformLedgerJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Audio transform ledger requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Audio transform ledger requires schemaVersion 1.')
   assertContentIdentity(value, 'transformLedgerId', 'Audio transform ledger')
   if (typeof value['renderIdentity'] !== 'string' || !Array.isArray(value['operations'])) {
-    throw CLIUsageError('Audio transform ledger has invalid render or operation evidence.')
+    throw UsageError('Audio transform ledger has invalid render or operation evidence.')
   }
 }
 
 const validateFinalTimelineJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Final timeline requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Final timeline requires schemaVersion 1.')
   assertContentIdentity(value, 'timelineId', 'Final timeline')
   if (typeof value['renderIdentity'] !== 'string' || !isRecord(value['timing']) || !Array.isArray(value['speechSources']) || !isRecord(value['transformLedgerRef'])) {
-    throw CLIUsageError('Final timeline has invalid render, timing, source, or transform-ledger evidence.')
+    throw UsageError('Final timeline has invalid render, timing, source, or transform-ledger evidence.')
   }
 }
 
 const validateBatchInvocationPlanJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Provider batch invocation plan requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Provider batch invocation plan requires schemaVersion 1.')
   assertContentIdentity(value, 'batchInvocationPlanId', 'Provider batch invocation plan')
   const plan = value as unknown as ProviderBatchInvocationPlan
   if (!plan.renderPlanId || !plan.renderIdentity || !plan.invocationId || !plan.batchId || !plan.generationSlotId) {
-    throw CLIUsageError('Provider batch invocation plan requires complete render, attempt, batch, and slot identity.')
+    throw UsageError('Provider batch invocation plan requires complete render, attempt, batch, and slot identity.')
   }
 }
 
 const validateProviderTimingEvidenceJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Provider timing evidence requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Provider timing evidence requires schemaVersion 1.')
   assertContentIdentity(value, 'timingEvidenceId', 'Provider timing evidence')
   if (typeof value['provider'] !== 'string' || typeof value['model'] !== 'string' || typeof value['providerTimeUnit'] !== 'string' || !isRecord(value['payload'])) {
-    throw CLIUsageError('Provider timing evidence has invalid provider, model, unit, or payload fields.')
+    throw UsageError('Provider timing evidence has invalid provider, model, unit, or payload fields.')
   }
 }
 
 const validateRenderTakesJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Render takes artifact requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Render takes artifact requires schemaVersion 1.')
   assertContentIdentity(value, 'renderTakesId', 'Render takes artifact')
   if (typeof value['renderPlanId'] !== 'string' || typeof value['renderIdentity'] !== 'string' || !Array.isArray(value['generationSlots'])) {
-    throw CLIUsageError('Render takes artifact has invalid render or generation-slot evidence.')
+    throw UsageError('Render takes artifact has invalid render or generation-slot evidence.')
   }
 }
 
 const validateTakeSelectionJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Take selection requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Take selection requires schemaVersion 1.')
   assertContentIdentity(value, 'selectionId', 'Take selection')
   if (typeof value['renderPlanId'] !== 'string' || typeof value['renderIdentity'] !== 'string' || typeof value['batchId'] !== 'string' || !Array.isArray(value['batchResults'])) {
-    throw CLIUsageError('Take selection has invalid render, batch, or result evidence.')
+    throw UsageError('Take selection has invalid render, batch, or result evidence.')
   }
 }
 
 const validateContinuationCheckpointJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Continuation checkpoint requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Continuation checkpoint requires schemaVersion 1.')
   assertContentIdentity(value, 'checkpointId', 'Continuation checkpoint')
   if (typeof value['renderPlanId'] !== 'string' || typeof value['renderIdentity'] !== 'string' || !isRecord(value['batchResult']) || !isRecord(value['selection'])) {
-    throw CLIUsageError('Continuation checkpoint has invalid render, result, or selection evidence.')
+    throw UsageError('Continuation checkpoint has invalid render, result, or selection evidence.')
   }
 }
 
 const validateConsumedSelectionRebuildJson: JsonArtifactValidator = (value) => {
-  if (value['schemaVersion'] !== 1) throw CLIUsageError('Consumed-selection rebuild authorization requires schemaVersion 1.')
+  if (value['schemaVersion'] !== 1) throw UsageError('Consumed-selection rebuild authorization requires schemaVersion 1.')
   assertContentIdentity(value, 'authorizationId', 'Consumed-selection rebuild authorization')
   if (typeof value['renderPlanId'] !== 'string' || typeof value['renderIdentity'] !== 'string' || !Array.isArray(value['authorizedPotentialDispatchSlots'])) {
-    throw CLIUsageError('Consumed-selection rebuild authorization has invalid render or slot evidence.')
+    throw UsageError('Consumed-selection rebuild authorization has invalid render or slot evidence.')
   }
 }
 

@@ -1,5 +1,5 @@
 import type { MultiSpeakerStrategy, TtsProvider, TtsTargetInvocation, TtsTargetVoiceSource } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy>> = {
   gemini: 'native',
@@ -41,7 +41,7 @@ export const resolveTtsTargetInvocationVoice = (
 ): TtsTargetVoiceSource | undefined => {
   const voice = invocation?.voice
   if (voice?.kind === 'ref-audio' && !supportsRefAudioMultiSpeaker(service)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Provider ${service} does not support reference audio for explicit multi-speaker TTS invocation.`
     )
   }

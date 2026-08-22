@@ -124,13 +124,13 @@ type TokenOcrEstimateDescriptor = Readonly<{
 }>
 
 const TOKEN_OCR_ESTIMATE_DESCRIPTORS = {
-  glm: { fallbackModel: opts => opts.glmOcrModel || 'glm-ocr', note: GLM_OCR_PRICE_NOTE },
-  kimi: { fallbackModel: opts => opts.kimiOcrModel || 'kimi-ocr', note: KIMI_OCR_PRICE_NOTE },
-  openai: { fallbackModel: opts => opts.openaiOcrModel || 'openai-ocr', note: OPENAI_OCR_PRICE_NOTE },
-  grok: { fallbackModel: opts => opts.grokOcrModel || 'grok-4.3', note: GROK_OCR_PRICE_NOTE },
-  anthropic: { fallbackModel: opts => opts.anthropicOcrModel || 'anthropic-ocr', note: ANTHROPIC_OCR_PRICE_NOTE },
-  gemini: { fallbackModel: opts => opts.geminiOcrModel || 'gemini-ocr', note: GEMINI_OCR_PRICE_NOTE },
-  deepinfra: { fallbackModel: opts => opts.deepinfraOcrModel || 'deepinfra-ocr', note: DEEPINFRA_OCR_PRICE_NOTE },
+  glm: { fallbackModel: opts => opts.glmOcrModels?.[0] || 'glm-ocr', note: GLM_OCR_PRICE_NOTE },
+  kimi: { fallbackModel: opts => opts.kimiOcrModels?.[0] || 'kimi-ocr', note: KIMI_OCR_PRICE_NOTE },
+  openai: { fallbackModel: opts => opts.openaiOcrModels?.[0] || 'openai-ocr', note: OPENAI_OCR_PRICE_NOTE },
+  grok: { fallbackModel: opts => opts.grokOcrModels?.[0] || 'grok-4.3', note: GROK_OCR_PRICE_NOTE },
+  anthropic: { fallbackModel: opts => opts.anthropicOcrModels?.[0] || 'anthropic-ocr', note: ANTHROPIC_OCR_PRICE_NOTE },
+  gemini: { fallbackModel: opts => opts.geminiOcrModels?.[0] || 'gemini-ocr', note: GEMINI_OCR_PRICE_NOTE },
+  deepinfra: { fallbackModel: opts => opts.deepinfraOcrModels?.[0] || 'deepinfra-ocr', note: DEEPINFRA_OCR_PRICE_NOTE },
 } satisfies Record<TokenOcrEstimateProvider, TokenOcrEstimateDescriptor>
 
 const isTokenEstimateProvider = (provider: string): provider is TokenOcrEstimateProvider =>
@@ -195,8 +195,8 @@ const hostedOcrTarget = (
 ): ExtractEstimateTarget | undefined => {
   const { provider, model } = resolveExtractionProviderModel(entry)
   const pageCount = Math.max(1, entry.totalPages)
-  if (provider === 'mistral') return withPdfChunkTiming(entry, { provider, model: model || opts.mistralOcrModel || 'mistral-ocr', pageCount, estimateType: 'exact' })
-  if (provider === 'fal') return withPdfChunkTiming(entry, { provider, model: model || opts.falOcrModel || 'fal-ai/got-ocr/v2', pageCount, estimateType: 'exact' })
+  if (provider === 'mistral') return withPdfChunkTiming(entry, { provider, model: model || opts.mistralOcrModels?.[0] || 'mistral-ocr', pageCount, estimateType: 'exact' })
+  if (provider === 'fal') return withPdfChunkTiming(entry, { provider, model: model || opts.falOcrModels?.[0] || 'fal-ai/got-ocr/v2', pageCount, estimateType: 'exact' })
   if (!isTokenEstimateProvider(provider)) return undefined
   const descriptor = TOKEN_OCR_ESTIMATE_DESCRIPTORS[provider]
   const target = buildTokenTarget(
@@ -288,7 +288,6 @@ export const resolveDocumentWriteEstimatedCosts = (
       inputTokens: entry.inputTokenCount,
       outputTokens: entry.outputTokenCount
     })),
-    skipLLM: false,
     ...tokenProfileCostInput(opts)
   })
 }
@@ -312,7 +311,6 @@ export const resolveDocumentWriteObservedEstimateCosts = (
       inputTokens: entry.inputTokenCount,
       outputTokens: entry.outputTokenCount
     })),
-    skipLLM: false,
     ...tokenProfileCostInput(opts)
   })
 }

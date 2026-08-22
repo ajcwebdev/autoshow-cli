@@ -1,7 +1,6 @@
 const COMMANDS_WITHOUT_RUN_DIRECTORIES = new Set([
   'config',
   'setup',
-  'links',
   'resume',
   'voice',
   'comic reference-voice'

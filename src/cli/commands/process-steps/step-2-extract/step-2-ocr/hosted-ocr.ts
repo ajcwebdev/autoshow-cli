@@ -4,7 +4,7 @@ import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/model
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { HOSTED_OCR_ADAPTERS, hostedOcrAdapterForEngine, hostedOcrAdapterForService } from './hosted-ocr-adapters'
 import { GEMINI_FILE_UPLOAD_BYTES, GEMINI_PDF_PAGE_COUNT_LIMIT } from './ocr-services/gemini-ocr/gemini-ocr'
 import { isBunImagePngNormalizableFormat, normalizeImageToPngWithBun } from './ocr-utils/bun-image-utils'
@@ -88,7 +88,7 @@ const normalizeHostedImageWithBun = async (
   normalizedFormat: string
 ): Promise<{ filePath: string, format: DocumentMetadata['format'] }> => {
   if (!isBunImagePngNormalizableFormat(normalizedFormat)) {
-    throw CLIUsageError(getHostedDirectImageSupportError(engine))
+    throw UsageError(getHostedDirectImageSupportError(engine))
   }
 
   const pngPath = join(tempDir, `${outputStem}.png`)
@@ -121,7 +121,7 @@ const normalizeHostedImageWithImageMagick = async (
       ? 'convert'
       : undefined
   if (!imageMagickCommand) {
-    throw CLIUsageError(getHostedDirectImageSupportError(engine))
+    throw UsageError(getHostedDirectImageSupportError(engine))
   }
 
   const pngPath = join(tempDir, `${outputStem}.png`)
@@ -159,7 +159,7 @@ export const normalizeHostedDirectImageInput = async (
     return await normalizeHostedImageWithImageMagick(imagePath, engine, tempDir, outputStem)
   }
 
-  throw CLIUsageError(getHostedDirectImageSupportError(engine))
+  throw UsageError(getHostedDirectImageSupportError(engine))
 }
 
 const resolveHostedOcrSelection = (
@@ -184,7 +184,7 @@ const assertHostedOcrWithinLimits = async (
     const inputLabel = step1Metadata.format === 'pdf' ? 'PDF' : 'image'
     const fileStats = await stat(filePath)
     if (fileStats.size > GEMINI_FILE_UPLOAD_BYTES) {
-      throw CLIUsageError(
+      throw UsageError(
         `${formatHostedOcrLabel(selection.service)} supports ${inputLabel} inputs up to ${formatBytes(GEMINI_FILE_UPLOAD_BYTES)} based on ${getHostedOcrLimitSource(selection.service)}. `
         + `Got ${formatBytes(fileStats.size)} for ${basename(filePath)}.`
       )
@@ -193,7 +193,7 @@ const assertHostedOcrWithinLimits = async (
     if (step1Metadata.format === 'pdf') {
       const pageCount = await resolvePdfPageCount(filePath, opts.password, step1Metadata.pageCount)
       if (typeof pageCount === 'number' && pageCount > GEMINI_PDF_PAGE_COUNT_LIMIT) {
-        throw CLIUsageError(
+        throw UsageError(
           `${formatHostedOcrLabel(selection.service)} supports PDF inputs up to ${GEMINI_PDF_PAGE_COUNT_LIMIT} pages based on ${getHostedOcrLimitSource(selection.service)}. `
           + `Got ${pageCount} pages for ${basename(filePath)}.`
         )
@@ -205,11 +205,11 @@ const assertHostedOcrWithinLimits = async (
 
   if (selection.service === 'anthropic' && step1Metadata.format === 'pdf') {
     if (typeof opts.password === 'string' && opts.password.length > 0) {
-      throw CLIUsageError('Anthropic OCR only supports standard unencrypted PDFs. Remove --password and decrypt the PDF before using the Anthropic OCR provider.')
+      throw UsageError('Anthropic OCR only supports standard unencrypted PDFs. Remove --password and decrypt the PDF before using the Anthropic OCR provider.')
     }
 
     if (await isPdfEncrypted(filePath)) {
-      throw CLIUsageError('Anthropic OCR only supports standard unencrypted PDFs. Decrypt the PDF before using the Anthropic OCR provider.')
+      throw UsageError('Anthropic OCR only supports standard unencrypted PDFs. Decrypt the PDF before using the Anthropic OCR provider.')
     }
   }
 
@@ -225,7 +225,7 @@ const assertHostedOcrWithinLimits = async (
   const fileStats = await stat(filePath)
 
   if (typeof limits.effectiveBytes === 'number' && fileStats.size > limits.effectiveBytes) {
-    throw CLIUsageError(
+    throw UsageError(
       `${formatHostedOcrLabel(selection.service)} supports ${inputLabel} inputs up to ${formatBytes(limits.effectiveBytes)} based on ${getHostedOcrLimitSource(selection.service)}. `
       + `Got ${formatBytes(fileStats.size)} for ${basename(filePath)}.`
     )
@@ -234,7 +234,7 @@ const assertHostedOcrWithinLimits = async (
   if (step1Metadata.format === 'pdf' && typeof limits.pageCount === 'number') {
     const pageCount = await resolvePdfPageCount(filePath, opts.password, step1Metadata.pageCount)
     if (typeof pageCount === 'number' && pageCount > limits.pageCount) {
-      throw CLIUsageError(
+      throw UsageError(
         `${formatHostedOcrLabel(selection.service)} supports PDF inputs up to ${limits.pageCount} pages based on ${getHostedOcrLimitSource(selection.service)}. `
         + `Got ${pageCount} pages for ${basename(filePath)}.`
       )
@@ -427,5 +427,5 @@ export const runHostedOcr = async (
     }, adapter.fallbackOptions?.(opts, ocrModel) ?? {})
   }
 
-  throw CLIUsageError('Hosted OCR requested without a configured hosted OCR model.')
+  throw UsageError('Hosted OCR requested without a configured hosted OCR model.')
 }

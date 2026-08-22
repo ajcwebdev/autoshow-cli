@@ -5,7 +5,7 @@ import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extr
 import { createGeminiRetryClassifier } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { withRetry } from '~/utils/retries'
 import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
 import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiUploadFile, geminiUserContent, waitForGeminiFileActive } from '~/utils/gemini/gemini-rest'
 import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '../../stt-utils/stt-utils'
@@ -223,7 +223,7 @@ export const runGeminiStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
-  const apiKey = requireApiKey('GEMINI_API_KEY', 'stt:gemini', 'Gemini transcription')
+  const apiKey = requireProviderKey('gemini', 'stt:gemini', 'Gemini transcription')
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'gemini-stt', action: 'started', segmentNumber, totalSegments, model })

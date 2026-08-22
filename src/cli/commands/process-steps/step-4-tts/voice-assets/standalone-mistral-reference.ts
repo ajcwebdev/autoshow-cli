@@ -1,7 +1,7 @@
 import { extname, join } from 'node:path'
 import type { PendingStandaloneMistralReference, PendingStandaloneMistralSpeakerReference, PlannedStandaloneMistralSpeakerReferences, ProtectedVoiceAssetStore, TtsCliReferenceInput, TtsOptions } from '~/types'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { createProtectedVoiceAssetStore } from './protected-voice-asset-store'
 import {
   attachMistralProtectedReference,
@@ -47,7 +47,7 @@ export const planStandaloneMistralSpeakerReferences = async (
     inputBySpeaker.size !== referenceInputs.length
     || referenceInputs.some((input) => !input.speakerKey || input.authorizationRef !== MISTRAL_CLI_REFERENCE_AUTHORIZATION)
   ) {
-    throw CLIUsageError('Mistral dialogue request references require one explicit authorization for each unique speaker.')
+    throw UsageError('Mistral dialogue request references require one explicit authorization for each unique speaker.')
   }
 
   const plannedBySource = new Map<string, Promise<Awaited<ReturnType<ProtectedVoiceAssetStore['plan']>>>>()
@@ -64,7 +64,7 @@ export const planStandaloneMistralSpeakerReferences = async (
     if (entry.voiceKind !== 'ref-audio') return []
     const input = inputBySpeaker.get(entry.normalizedSpeaker)
     if (!input) {
-      throw CLIUsageError(`Mistral dialogue reference for speaker ${entry.speaker} did not retain its exact edge authorization.`)
+      throw UsageError(`Mistral dialogue reference for speaker ${entry.speaker} did not retain its exact edge authorization.`)
     }
     return [(async (): Promise<PendingStandaloneMistralSpeakerReference> => {
       const planned = await plannedBySource.get(input.sourcePath)
@@ -73,7 +73,7 @@ export const planStandaloneMistralSpeakerReferences = async (
         || planned.materialization !== 'non-materialized'
         || planned.authorizationRef !== input.authorizationRef
       ) {
-        throw CLIUsageError(`Protected Mistral reference planning did not preserve the exact speaker binding for ${entry.speaker}.`)
+        throw UsageError(`Protected Mistral reference planning did not preserve the exact speaker binding for ${entry.speaker}.`)
       }
       return {
         speakerKey: entry.normalizedSpeaker,
@@ -86,13 +86,13 @@ export const planStandaloneMistralSpeakerReferences = async (
     })()]
   }))
   if (pendingEntries.length !== referenceInputs.length) {
-    throw CLIUsageError('Mistral dialogue request-reference planning did not consume every explicit edge input.')
+    throw UsageError('Mistral dialogue request-reference planning did not consume every explicit edge input.')
   }
   const pendingBySpeaker = new Map(pendingEntries.map((entry) => [entry.speakerKey, entry]))
   const sanitizedMappings = registry.entries.map((entry) => {
     if (entry.voiceKind !== 'ref-audio') return `${entry.speaker}=${entry.voice}`
     const pending = pendingBySpeaker.get(entry.normalizedSpeaker)
-    if (!pending) throw CLIUsageError(`Missing protected Mistral reference plan for speaker ${entry.speaker}.`)
+    if (!pending) throw UsageError(`Missing protected Mistral reference plan for speaker ${entry.speaker}.`)
     return `${entry.speaker}=ref_audio:${pending.protectedAsset.assetId}`
   })
 
@@ -100,10 +100,10 @@ export const planStandaloneMistralSpeakerReferences = async (
     ttsSpeakers: Object.freeze(sanitizedMappings),
     attach: <T extends TtsOptions>(options: T): T => {
       if (JSON.stringify(options.ttsSpeakers ?? []) !== JSON.stringify(sanitizedMappings)) {
-        throw CLIUsageError('Protected Mistral speaker-reference capability does not match the exact sanitized dialogue mappings.')
+        throw UsageError('Protected Mistral speaker-reference capability does not match the exact sanitized dialogue mappings.')
       }
       if (getMistralProtectedReference(options)) {
-        throw CLIUsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
+        throw UsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
       }
       pendingSpeakerReferencesByOptions.set(options, pendingEntries)
       attachMistralProtectedSpeakerReferences(options, {
@@ -130,33 +130,33 @@ export const planStandaloneMistralReference = async <T extends TtsOptions>(
   if (!referenceInput) return options
   const sourcePath = referenceInput.sourcePath.trim()
   if (!sourcePath) {
-    throw CLIUsageError('Standalone Mistral request reference path is empty.')
+    throw UsageError('Standalone Mistral request reference path is empty.')
   }
 
   if (referenceInput.authorizationRef !== MISTRAL_CLI_REFERENCE_AUTHORIZATION) {
-    throw CLIUsageError(
+    throw UsageError(
       'Standalone Mistral request reference is missing its explicit CLI authorization.',
       'Pass --mistral-tts-ref-audio explicitly to standalone `tts`, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'
     )
   }
   if (referenceInput.speakerKey) {
-    throw CLIUsageError(
+    throw UsageError(
       'Per-speaker Mistral reference inputs are not available in the Phase 0 standalone path.',
       'Create or import each voice with the shared `voice` command or `comic reference-voice`, then use its existing voice ID in dialogue mappings.'
     )
   }
   if (isMultiSpeakerRequested(options)) {
-    throw CLIUsageError(
+    throw UsageError(
       'Standalone Mistral request reference audio cannot be combined with dialogue voice mappings in Phase 0.',
       'Create or import each voice with the shared `voice` command or `comic reference-voice`, then use its existing voice ID in SPEAKER=VOICE mappings.'
     )
   }
-  const hasMistralTarget = Boolean(options.mistralTtsModel || options.mistralTtsModels?.length)
+  const hasMistralTarget = Boolean(options.mistralTtsModels?.length)
   if (!hasMistralTarget) {
-    throw CLIUsageError('Mistral TTS reference audio requires selecting Mistral TTS with --provider/--tts mistral[=model].')
+    throw UsageError('Mistral TTS reference audio requires selecting Mistral TTS with --provider/--tts mistral[=model].')
   }
   if (options.mistralTtsVoice?.trim()) {
-    throw CLIUsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
+    throw UsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
   }
 
   const edgeInput = {
@@ -169,7 +169,7 @@ export const planStandaloneMistralReference = async <T extends TtsOptions>(
     planned.materialization !== 'non-materialized'
     || planned.authorizationRef !== edgeInput.authorizationRef
   ) {
-    throw CLIUsageError('Protected Mistral reference planning did not preserve the explicit request authorization.')
+    throw UsageError('Protected Mistral reference planning did not preserve the explicit request authorization.')
   }
   const sourceExtension = extname(sourcePath).toLowerCase()
 
@@ -191,15 +191,15 @@ export const materializeStandaloneMistralReference = async <T extends TtsOptions
   const speakerBinding = getMistralProtectedSpeakerReferences(options)
   if (!pending && !pendingSpeakers) {
     if (binding?.materialization === 'non-materialized' || speakerBinding?.materialization === 'non-materialized') {
-      throw CLIUsageError('Planned Mistral reference cannot execute without its exact authorization capability. Re-run the tts command and do not clone its runtime options.')
+      throw UsageError('Planned Mistral reference cannot execute without its exact authorization capability. Re-run the tts command and do not clone its runtime options.')
     }
     return options
   }
   if (pending && pendingSpeakers) {
-    throw CLIUsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
+    throw UsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
   }
   if (options.price === true) {
-    throw CLIUsageError('Price planning cannot materialize a protected Mistral reference.')
+    throw UsageError('Price planning cannot materialize a protected Mistral reference.')
   }
 
   const stores = [
@@ -218,7 +218,7 @@ export const materializeStandaloneMistralReference = async <T extends TtsOptions
   pendingSpeakerReferencesByOptions.delete(options)
   if (pending) {
     if (binding?.materialization !== 'non-materialized') {
-      throw CLIUsageError('Protected Mistral reference lost its non-materialized planning identity before execution ingestion.')
+      throw UsageError('Protected Mistral reference lost its non-materialized planning identity before execution ingestion.')
     }
     const materialized = await pending.store.ingest({
       sourcePath: pending.sourcePath,
@@ -230,7 +230,7 @@ export const materializeStandaloneMistralReference = async <T extends TtsOptions
       || materialized.protectedAsset.assetId !== binding.protectedAsset.assetId
       || materialized.protectedAsset.sha256 !== binding.protectedAsset.sha256
     ) {
-      throw CLIUsageError('Protected Mistral reference changed between deterministic planning and execution ingestion.')
+      throw UsageError('Protected Mistral reference changed between deterministic planning and execution ingestion.')
     }
     return promoteMistralProtectedReference(options, {
       materialization: 'materialized',
@@ -241,7 +241,7 @@ export const materializeStandaloneMistralReference = async <T extends TtsOptions
   }
 
   if (!pendingSpeakers || speakerBinding?.materialization !== 'non-materialized') {
-    throw CLIUsageError('Protected Mistral speaker references lost their non-materialized planning identity before execution ingestion.')
+    throw UsageError('Protected Mistral speaker references lost their non-materialized planning identity before execution ingestion.')
   }
   const expectedBySpeaker = new Map(speakerBinding.entries.map((entry) => [entry.speakerKey, entry]))
   if (
@@ -254,7 +254,7 @@ export const materializeStandaloneMistralReference = async <T extends TtsOptions
         || expected.protectedAsset.sha256 !== entry.protectedAsset.sha256
     })
   ) {
-    throw CLIUsageError('Protected Mistral speaker references changed after deterministic planning.')
+    throw UsageError('Protected Mistral speaker references changed after deterministic planning.')
   }
   const uniquePending = new Map<string, PendingStandaloneMistralSpeakerReference>()
   for (const entry of pendingSpeakers) {
@@ -275,7 +275,7 @@ export const materializeStandaloneMistralReference = async <T extends TtsOptions
     entries: pendingSpeakers.map((entry) => {
       const key = `${entry.protectedAsset.storeId}\0${entry.protectedAsset.assetId}\0${entry.protectedAsset.sha256}`
       const materialized = materializedByKey.get(key)
-      if (!materialized) throw CLIUsageError(`Protected Mistral reference for speaker ${entry.speakerKey} was not ingested.`)
+      if (!materialized) throw UsageError(`Protected Mistral reference for speaker ${entry.speakerKey} was not ingested.`)
       return {
         speakerKey: entry.speakerKey,
         protectedAsset: materialized.protectedAsset,

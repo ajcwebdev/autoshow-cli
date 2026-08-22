@@ -15,10 +15,10 @@ type ReasoningEstimateFields = {
 }
 
 type SttModelOverrides = Partial<Pick<SttRuntimeOptions,
-  | 'whisperfileModel' | 'deepinfraSttModel' | 'groqSttModel' | 'grokSttModel' | 'deepgramSttModel'
-  | 'sonioxSttModel' | 'speechmaticsSttModel' | 'revSttModel' | 'mistralSttModel' | 'assemblyaiSttModel'
-  | 'gladiaSttModel' | 'happyscribeSttModel' | 'supadataSttModel' | 'scrapecreatorsSttModel'
-  | 'geminiSttModel' | 'togetherSttModel'
+  | 'whisperModels' | 'whisperfileModels' | 'deepinfraSttModels' | 'groqSttModels' | 'grokSttModels' | 'deepgramSttModels'
+  | 'sonioxSttModels' | 'speechmaticsSttModels' | 'revSttModels' | 'mistralSttModels' | 'assemblyaiSttModels'
+  | 'gladiaSttModels' | 'happyscribeSttModels' | 'supadataSttModels' | 'scrapecreatorsSttModels'
+  | 'geminiSttModels' | 'togetherSttModels'
 >>
 
 export type SttStepEstimate = CostEstimateBase & {
@@ -143,7 +143,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   applyCostMultipliers?: boolean | undefined
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
-  whisperModel?: string | undefined
+  whisperModels?: string[] | undefined
   extractTargets?: Array<TokenProfileEstimateFields & {
     provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend
     model: string
@@ -167,7 +167,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   llmModel?: string | undefined
   llmInputTokenCount?: number | undefined
   llmOutputTokenCount?: number | undefined
-  skipLLM?: boolean | undefined
   ttsTargets?: Array<ProviderIdentityBase & {
     setupCostCents?: number
     setupTimeMs?: number
@@ -177,22 +176,22 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   ttsModel?: string | undefined
   ttsCharacterCount?: number | undefined
   imageTargets?: ImagePricingTarget[] | undefined
-  geminiImageModel?: string | undefined
-  openaiImageModel?: string | undefined
-  grokImageModel?: string | undefined
-  bflImageModel?: string | undefined
-  replicateImageModel?: string | undefined
-  lumalabsImageModel?: string | undefined
-  falImageModel?: string | undefined
+  geminiImageModels?: string[] | undefined
+  openaiImageModels?: string[] | undefined
+  grokImageModels?: string[] | undefined
+  bflImageModels?: string[] | undefined
+  replicateImageModels?: string[] | undefined
+  lumalabsImageModels?: string[] | undefined
+  falImageModels?: string[] | undefined
   imageSize?: string | undefined
   imageQuality?: string | undefined
   imageCount?: number | undefined
-  geminiVideoModel?: string | undefined
-  grokVideoModel?: string | undefined
-  ltxVideoModel?: string | undefined
-  replicateVideoModel?: string | undefined
-  lumalabsVideoModel?: string | undefined
-  falVideoModel?: string | undefined
+  geminiVideoModels?: string[] | undefined
+  grokVideoModels?: string[] | undefined
+  ltxVideoModels?: string[] | undefined
+  replicateVideoModels?: string[] | undefined
+  lumalabsVideoModels?: string[] | undefined
+  falVideoModels?: string[] | undefined
   videoTargets?: VideoPricingTarget[] | undefined
   videoDuration?: number | undefined
   videoAspectRatio?: string | undefined
@@ -201,9 +200,9 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
   replicateVideoReferenceVideoCount?: number | undefined
-  elevenlabsMusicModel?: string | undefined
-  minimaxMusicModel?: string | undefined
-  geminiMusicModel?: string | undefined
+  elevenlabsMusicModels?: string[] | undefined
+  minimaxMusicModels?: string[] | undefined
+  geminiMusicModels?: string[] | undefined
   musicTargets?: MusicPricingTarget[] | undefined
   musicDuration?: number | undefined
   musicLyricsFile?: string | undefined
@@ -228,7 +227,6 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
   llmModel?: string | undefined
   llmInputTokenCount?: number | undefined
   llmOutputTokenCount?: number | undefined
-  skipLLM?: boolean | undefined
   ttsTargets?: Array<ProviderIdentityBase<Step4Metadata['ttsService']> & {
     setupTimeMs?: number
     setupCostCents?: number

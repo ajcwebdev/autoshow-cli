@@ -1,5 +1,5 @@
 import type { GeminiImageModel, ImageGenOptions, ImageTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { validateGeminiImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureGeminiImageGenSetup } from './gemini-image-gen'
 import { runGeminiImageGen } from './run-gemini-image-gen'
@@ -28,26 +28,26 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
   const models = options.geminiImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GeminiImageModel = validateGeminiImageModel(rawModel)
-    validateEnumOption('Gemini', model, 'image-size', options.imageSize, GEMINI_IMAGE_SIZES)
+    validateEnumOption('Gemini', model, 'size', options.imageSize, GEMINI_IMAGE_SIZES)
     if (model === 'gemini-3.1-flash-lite-image' && options.imageSize !== undefined && options.imageSize !== '1K') {
-      throw CLIUsageError(`--image-size ${options.imageSize} is not supported by Gemini/${model}. Supported value: 1K.`)
+      throw UsageError(`--size ${options.imageSize} is not supported by Gemini/${model}. Supported value: 1K.`)
     }
-    validateEnumOption('Gemini', model, 'image-response-mode', options.imageResponseMode, GEMINI_RESPONSE_MODES)
+    validateEnumOption('Gemini', model, 'response-mode', options.imageResponseMode, GEMINI_RESPONSE_MODES)
     validateEnumOption(
       'Gemini',
       model,
-      'image-aspect-ratio',
+      'aspect-ratio',
       options.imageAspectRatio,
       model === 'gemini-3.1-flash-image' ? GEMINI_NATIVE_ASPECT_RATIOS : GEMINI_STANDARD_ASPECT_RATIOS
     )
     if (options.imageCount !== undefined) {
-      throw unsupportedFlagError('Gemini', model, ['--image-count'], 'Gemini native image generation returns one image per request; omit --image-count.')
+      throw unsupportedFlagError('Gemini', model, ['--count'], 'Gemini native image generation returns one image per request; omit --count.')
     }
     if (options.imageMask !== undefined) {
-      throw unsupportedFlagError('Gemini', model, ['--image-mask'], 'Gemini native image editing supports reference images via --image-input, not masks.')
+      throw unsupportedFlagError('Gemini', model, ['--mask'], 'Gemini native image editing supports reference images via --input, not masks.')
     }
     if (model === 'gemini-3.1-flash-lite-image' && options.geminiSearchGrounding === true) {
-      throw unsupportedFlagError('Gemini', model, ['--image-search-grounding'], 'Use gemini-3.1-flash-image or gemini-3-pro-image for Search-grounded image generation.')
+      throw unsupportedFlagError('Gemini', model, ['--search-grounding'], 'Use gemini-3.1-flash-image or gemini-3-pro-image for Search-grounded image generation.')
     }
     validateImageInputReferences(options.imageInputs, {
       provider: 'Gemini',
@@ -57,7 +57,7 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
     assertNoUnsupportedFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression'], {
       provider: 'Gemini',
       model,
-      hint: 'Supported Gemini image options are --image-aspect-ratio, --image-size, --image-response-mode, --image-input references, and --image-search-grounding.'
+      hint: 'Supported Gemini image options are --aspect-ratio, --size, --response-mode, --input references, and --search-grounding.'
     })
 
     return [{

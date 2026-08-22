@@ -4,7 +4,7 @@ import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shar
 import { inspectYtDlpAuthState } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 import { readDefuddleCliReadiness } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
-import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
+import type { AutoshowConfig, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { getHostedProviderConfiguredPaths, getMissingConfiguredHostedProviderCredentials, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
@@ -260,18 +260,6 @@ const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<Docto
   ]
 })
 
-const fromLegacyCheck = (legacy: CheckResult, options: { nextStep: string }): DoctorCheck => {
-  if (legacy.ok) {
-    return check('OK', legacy.label, legacy.detail)
-  }
-  return check(
-    legacy.detail.toLowerCase().includes('failed') ? 'WARN' : 'MISSING',
-    legacy.label,
-    legacy.detail,
-    { severity: 'warn', nextStep: options.nextStep }
-  )
-}
-
 const checkManagedBinary = async (
   probes: DoctorProbes,
   label: string,
@@ -298,40 +286,45 @@ const checkManagedBinary = async (
   })
 }
 
-const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
-  title: 'Managed local runtimes',
-  checks: [
-    await checkRuntimeToolVersion(probes, 'yt-dlp', 'yt-dlp', ['--version'], {
-      nextStep: 'bun autoshow setup --step yt-dlp'
-    }),
-    await checkRuntimeToolVersion(probes, 'ffmpeg', 'ffmpeg', ['-version'], {
-      nextStep: 'bun autoshow setup --step yt-dlp'
-    }),
-    await checkRuntimeToolVersion(probes, 'ffprobe', 'ffprobe', ['-version'], {
-      nextStep: 'bun autoshow setup --step yt-dlp'
-    }),
-    await checkRuntimeToolVersion(probes, 'mutool', 'mutool', ['-v'], {
-      nextStep: 'bun autoshow setup --step calibre',
-      okExitCodes: [0, 1],
-      managedArtifactTool: 'mupdf'
-    }),
-    await checkRuntimeToolVersion(probes, 'ebook-convert', 'ebook-convert', ['--version'], {
-      nextStep: 'bun autoshow setup --step calibre'
-    }),
-    await checkRuntimeToolVersion(probes, 'tesseract', 'tesseract', ['--version'], {
-      nextStep: 'bun autoshow setup'
-    }),
-    await checkTesseractEnglishData(probes),
-    await checkRuntimeToolVersion(probes, 'qpdf', 'qpdf', ['--version'], {
-      nextStep: 'bun autoshow setup --step calibre',
-      managedArtifactTool: 'qpdf'
-    }),
-    fromLegacyCheck(await probes.readDefuddleCliReadiness(), { nextStep: 'bun autoshow setup --step defuddle' }),
-    await checkManagedBinary(probes, 'runtime/bin/whisper-cli', whisperBinaryPath, ['--help'], {
-      nextStep: 'bun autoshow setup --step whisper-binary'
-    })
-  ]
-})
+const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<DoctorSection> => {
+  const defuddle = await probes.readDefuddleCliReadiness()
+  return {
+    title: 'Managed local runtimes',
+    checks: [
+      await checkRuntimeToolVersion(probes, 'yt-dlp', 'yt-dlp', ['--version'], {
+        nextStep: 'bun autoshow setup --step yt-dlp'
+      }),
+      await checkRuntimeToolVersion(probes, 'ffmpeg', 'ffmpeg', ['-version'], {
+        nextStep: 'bun autoshow setup --step yt-dlp'
+      }),
+      await checkRuntimeToolVersion(probes, 'ffprobe', 'ffprobe', ['--version'], {
+        nextStep: 'bun autoshow setup --step yt-dlp'
+      }),
+      await checkRuntimeToolVersion(probes, 'mutool', 'mutool', ['-v'], {
+        nextStep: 'bun autoshow setup --step calibre',
+        okExitCodes: [0, 1],
+        managedArtifactTool: 'mupdf'
+      }),
+      await checkRuntimeToolVersion(probes, 'ebook-convert', 'ebook-convert', ['--version'], {
+        nextStep: 'bun autoshow setup --step calibre'
+      }),
+      await checkRuntimeToolVersion(probes, 'tesseract', 'tesseract', ['--version'], {
+        nextStep: 'bun autoshow setup'
+      }),
+      await checkTesseractEnglishData(probes),
+      await checkRuntimeToolVersion(probes, 'qpdf', 'qpdf', ['--version'], {
+        nextStep: 'bun autoshow setup --step calibre',
+        managedArtifactTool: 'qpdf'
+      }),
+      defuddle.status === 'OK' || defuddle.nextStep
+        ? defuddle
+        : { ...defuddle, nextStep: 'bun autoshow setup --step defuddle' },
+      await checkManagedBinary(probes, 'runtime/bin/whisper-cli', whisperBinaryPath, ['--help'], {
+        nextStep: 'bun autoshow setup --step whisper-binary'
+      })
+    ]
+  }
+}
 
 const checkModelFile = async (
   probes: DoctorProbes,

@@ -296,7 +296,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       const estimates = await buildLlmEstimates({
         openaiModels: ['gpt-5.5'],
         reasoningEffort: 'high'
-      }, false)
+      })
       expect(estimates).toHaveLength(1)
       expect(estimates[0]?.requestedReasoningEffort).toBe('high')
       expect(estimates[0]?.effectiveReasoningEffort).toBe('high')
@@ -304,7 +304,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       await expect(buildLlmEstimates({
         anthropicModels: ['claude-haiku-4-5'],
         reasoningEffort: 'high'
-      }, false)).rejects.toThrow('does not support reasoning effort configuration')
+      })).rejects.toThrow('does not support reasoning effort configuration')
     })
 
     it('does not apply hosted reasoning overrides to local OCR price targets', async () => {
@@ -354,7 +354,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
   describe('Option Resolution Flag Integration', () => {
     it('reads --reasoning-effort flag into buildOptsFromFlags', () => {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         'reasoning-effort': 'high',
         prompt: 'test prompt'
       })
@@ -362,7 +362,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     })
 
     it('defaults reasoningEffort to undefined when flag is omitted', () => {
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         prompt: 'test prompt'
       })
       expect(opts.reasoningEffort).toBeUndefined()

@@ -149,8 +149,7 @@ export const runTextWrite = async (
 
   const observedEstimate = computeEstimatedCosts({
     applyCostMultipliers: false,
-    llmTargets,
-    skipLLM: false
+    llmTargets
   })
 
   const actual = computeActualCosts({
@@ -159,8 +158,7 @@ export const runTextWrite = async (
 
   const cost = { estimated, observedEstimate, actual }
   const fallbackEstimatedTiming = computeEstimatedProcessingTimes({
-    llmTargets,
-    skipLLM: false
+    llmTargets
   })
   const estimatedTiming = priceEstimate.timing ?? fallbackEstimatedTiming
   const actualTiming = computeActualProcessingTimes({

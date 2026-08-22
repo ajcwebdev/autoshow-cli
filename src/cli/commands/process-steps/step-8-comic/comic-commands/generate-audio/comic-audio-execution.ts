@@ -16,7 +16,7 @@ import { prepareComicSegmentedProviderTexts } from '../../../step-4-tts/script-t
 import { runTtsForTargets } from '../../../step-4-tts/run-tts'
 import { validateTtsTargetsForExecution } from '../../../step-4-tts/tts-targets'
 import { createResourceGate } from '~/utils/resource-gate'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import type { createComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
 import type { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 import { appendComicAudioProviderState, updateComicAudioManifest } from '../../comic-utils/comic-manifest'
@@ -27,8 +27,8 @@ const voiceLocator = (entry: ApprovedVoiceSnapshotEntry): { value: string, prote
   const voice = entry.providerVoice
   if (voice.kind === 'remote-resource') return { value: voice.resourceId }
   if (voice.kind === 'reference-asset') return { value: `ref_audio:${voice.protectedAsset.assetId}`, protectedAsset: voice.protectedAsset }
-  if (voice.kind !== 'shared-library-resource') throw CLIUsageError('Comic audio requires a materialized saved, stock, or reference voice.')
-  throw CLIUsageError(`Shared-library voice ${voice.sharedVoiceId} must be imported and approved as an account resource before comic synthesis.`)
+  if (voice.kind !== 'shared-library-resource') throw UsageError('Comic audio requires a materialized saved, stock, or reference voice.')
+  throw UsageError(`Shared-library voice ${voice.sharedVoiceId} must be imported and approved as an account resource before comic synthesis.`)
 }
 
 export const buildTargetExecution = (input: {
@@ -71,17 +71,17 @@ export const buildTargetExecution = (input: {
       && candidate.providerModel === target.model
       && candidate.subjectKey === turn.subjectKey
     )
-    if (!entry) throw CLIUsageError(`Aggregate voice snapshot has no ${target.service}/${target.model} binding for ${turn.subjectKey}.`)
+    if (!entry) throw UsageError(`Aggregate voice snapshot has no ${target.service}/${target.model} binding for ${turn.subjectKey}.`)
     const locator = voiceLocator(entry)
     const prior = speakers.get(speaker)
-    if (prior && prior !== locator.value) throw CLIUsageError(`Comic provider speaker ${speaker} resolves to conflicting approved voices.`)
+    if (prior && prior !== locator.value) throw UsageError(`Comic provider speaker ${speaker} resolves to conflicting approved voices.`)
     speakers.set(speaker, locator.value)
     if (locator.protectedAsset) protectedSpeakerVoiceAssets[speaker] = locator.protectedAsset
     providerSpeakerLabelByTurnId[turn.turnId] = speaker
     snapshotEntryIdByTurnId[turn.turnId] = entry.entryId
     const delivery = turn.delivery?.description
     if (delivery && target.service === 'hume' && target.model === 'octave-2') {
-      if (input.deliveryPolicy === 'strict') throw CLIUsageError(`Hume Octave 2 cannot serialize authored delivery for ${turn.turnId}; use --delivery-policy best-effort to record the degradation.`)
+      if (input.deliveryPolicy === 'strict') throw UsageError(`Hume Octave 2 cannot serialize authored delivery for ${turn.turnId}; use --delivery-policy best-effort to record the degradation.`)
       deliveryDispositionByTurnId[turn.turnId] = 'unsupported-best-effort'
     } else {
       deliveryDispositionByTurnId[turn.turnId] = delivery ? 'serialized' : 'none'

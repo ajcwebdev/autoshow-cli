@@ -59,14 +59,9 @@ const isProcessingOptions = (
   'outputDir' in opts && ('url' in opts || 'filePath' in opts)
 
 export function buildAggregatedPriceEstimate (
-  command: 'write',
-  resolvedTarget: string,
-  opts: CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions
-): Promise<AggregatedPriceEstimate>
-export function buildAggregatedPriceEstimate (
   command: ProcessCommand,
   resolvedTarget: string,
-  opts: CommandPricingOptions,
+  opts: CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions,
   characterCount?: number,
   context?: { ttsInputText?: string | undefined }
 ): Promise<AggregatedPriceEstimate>
@@ -88,22 +83,23 @@ export async function buildAggregatedPriceEstimate (
     totalEstimatedCost += step.totalCost
   }
 
+  if (command === 'write' && !isProcessingOptions(opts)) {
+    for (const llm of await buildLlmEstimates(opts)) {
+      addStep(llm)
+    }
+  } else {
   const routing = isProcessingOptions(opts)
     ? {
         family: 'media' as const,
         resolvedStep2: resolveSttStep2Execution(opts),
         extractRoute: 'media' as const
       }
-    : await resolveInputRoutingForCommand(command === 'download' || command === 'metadata' ? 'write' : command, resolvedTarget, opts)
-  const documentTarget = routing.family === 'document' || routing.family === 'html_article'
+    : await resolveInputRoutingForCommand(command === 'download' || command === 'metadata' ? 'extract' : command, resolvedTarget, opts)
   const resolvedStep2 = routing.resolvedStep2
   const extractRoute = routing.extractRoute
-  const textInputWrite = command === 'write' && !isProcessingOptions(opts) && opts.textInput
-  const documentWrite = command === 'write' && documentTarget && !textInputWrite
-  const mediaWrite = command === 'write' && routing.family === 'media' && !textInputWrite
   const isRemoteTarget = /^https?:\/\//i.test(resolvedTarget)
 
-  if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'media') || mediaWrite)) {
+  if (isExtractCommand(command) && extractRoute === 'media') {
     for (const stt of await buildSttEstimates(resolvedTarget, opts)) {
       addStep(stt)
       if (typeof stt.note === 'string' && stt.note.length > 0) {
@@ -112,7 +108,7 @@ export async function buildAggregatedPriceEstimate (
     }
   }
 
-  if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'document') || documentWrite) && resolvedStep2.route === 'ocr' && !isProcessingOptions(opts)) {
+  if (isExtractCommand(command) && extractRoute === 'document' && resolvedStep2.route === 'ocr' && !isProcessingOptions(opts)) {
     for (const extract of await buildExtractEstimates(resolvedTarget, resolvedStep2, {
       hostedOcrTokenProfilePath: 'hostedOcrTokenProfilePath' in opts ? opts.hostedOcrTokenProfilePath : undefined,
       reasoningEffort: opts.reasoningEffort,
@@ -128,13 +124,6 @@ export async function buildAggregatedPriceEstimate (
       addStep(estimate)
     }
     notes.push(...article.notes)
-  }
-
-  if (command === 'write') {
-    const llmEstimates = await buildLlmEstimates(opts, false)
-    for (const llm of llmEstimates) {
-      addStep(llm)
-    }
   }
 
   if (command === 'tts' || command === 'image' || command === 'video' || command === 'music') {
@@ -166,6 +155,7 @@ export async function buildAggregatedPriceEstimate (
         addStep(music)
       }
     }
+  }
   }
 
   if (steps.some((step) => step.step === 'stt' && step.provider === 'supadata')) {

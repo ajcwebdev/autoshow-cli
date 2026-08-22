@@ -53,7 +53,7 @@ const isHelpFlag = (arg: string | undefined): boolean =>
   arg === '--help' || arg === '-h'
 
 const isVersionFlag = (arg: string | undefined): boolean =>
-  arg === '--version' || arg === '-v' || arg === '-V'
+  arg === '--version' || arg === '-v'
 
 const isRepeatableStringFlag = (definition: CliFlagDefinition): boolean =>
   Array.isArray(definition.type)

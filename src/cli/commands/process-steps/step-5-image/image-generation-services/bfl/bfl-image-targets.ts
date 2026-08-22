@@ -24,7 +24,7 @@ export const collectBflImageTargets = (options: ImageGenOptions): ImageTarget[] 
     ], {
       provider: 'BFL',
       model,
-      hint: 'Use --image-size WIDTHxHEIGHT for BFL dimensions, --image-format jpeg|png|webp for output format, and --image-input references.'
+      hint: 'Use --size WIDTHxHEIGHT for BFL dimensions, --format jpeg|png|webp for output format, and --input references.'
     })
     validateImageInputReferences(options.imageInputs, {
       provider: 'BFL',

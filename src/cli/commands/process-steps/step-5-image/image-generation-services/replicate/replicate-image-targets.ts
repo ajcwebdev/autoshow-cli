@@ -1,5 +1,5 @@
 import type { ImageGenOptions, ImageTarget, ReplicateImageModel } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureReplicateImageGenSetup } from './replicate-image-gen'
 import {
@@ -39,7 +39,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
     ], {
       provider: 'Replicate',
       model,
-      hint: 'Supported Replicate image options vary by model family: Seedream uses --image-size, --image-aspect-ratio, optional --image-format on Seedream 5, and --image-input; Qwen uses --image-aspect-ratio and one --image-input; Wan uses --image-size, --image-count 1-4, and --image-input references.'
+      hint: 'Supported Replicate image options vary by model family: Seedream uses --size, --aspect-ratio, optional --format on Seedream 5, and --input; Qwen uses --aspect-ratio and one --input; Wan uses --size, --count 1-4, and --input references.'
     })
 
     if (isReplicateSeedreamModel(model)) {
@@ -55,7 +55,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
       })
     } else if (isReplicateQwenModel(model)) {
       if (options.imageSize !== undefined) {
-        throw unsupportedFlagError('Replicate', model, ['--image-size'], 'Use --image-aspect-ratio for Replicate Qwen image dimensions.')
+        throw unsupportedFlagError('Replicate', model, ['--size'], 'Use --aspect-ratio for Replicate Qwen image dimensions.')
       }
       normalizeReplicateQwenAspectRatio(model, options.imageAspectRatio)
       normalizeReplicateImageOutputFormat(model, options.imageFormat)
@@ -68,7 +68,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
       })
     } else if (isReplicateWanModel(model)) {
       if (options.imageAspectRatio !== undefined) {
-        throw unsupportedFlagError('Replicate', model, ['--image-aspect-ratio'], 'Use --image-size 1K|2K|4K or WIDTHxHEIGHT for Replicate Wan dimensions.')
+        throw unsupportedFlagError('Replicate', model, ['--aspect-ratio'], 'Use --size 1K|2K|4K or WIDTHxHEIGHT for Replicate Wan dimensions.')
       }
       normalizeReplicateWanSize(model, options.imageSize, (options.imageInputs?.length ?? 0) > 0)
       normalizeReplicateImageOutputFormat(model, options.imageFormat)
@@ -80,7 +80,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
         maxInputs: 9
       })
     } else {
-      throw CLIUsageError(`Unsupported Replicate image model "${model}".`)
+      throw UsageError(`Unsupported Replicate image model "${model}".`)
     }
 
     return [{

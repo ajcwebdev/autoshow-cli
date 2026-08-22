@@ -23,7 +23,7 @@ Standardized hosted video generation on 32 selectors across 7 providers.
 
 ## 2026-08-16 video refresh
 
-Compared the active video catalog plus the xAI Imagine snapshot `project/links/grok-video-links.md`. Implemented 2026-08-16. Removed 16 selectors and retired standalone GLM video and Runway (`glm-video`, `runway-video`). Direct `MiniMax-H3` was not added and remains unavailable; fal.ai `minimax/h3` remains a separate active path. Active count: 32 − 16 = 16. Removed selectors stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance where the provider surface remains.
+Compared the active video catalog plus the xAI Imagine snapshot from `bun autoshow links --grok video` (`https://docs.x.ai/developers/model-capabilities/video/generation.md`). Implemented 2026-08-16. Removed 16 selectors and retired standalone GLM video and Runway (`glm-video`, `runway-video`). Direct `MiniMax-H3` was not added and remains unavailable; fal.ai `minimax/h3` remains a separate active path. Active count: 32 − 16 = 16. Removed selectors stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance where the provider surface remains.
 
 **Provider 1: Replicate `runwayml/aleph-2`**
 
@@ -287,5 +287,5 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - Video provider adapters: `src/cli/commands/process-steps/step-6-video/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
-- 2026-08-16 xAI Imagine snapshot: `project/links/grok-video-links.md`
+- 2026-08-16 xAI Imagine snapshot: `bun autoshow links --grok video` (`https://docs.x.ai/developers/model-capabilities/video/generation.md`)
 - MiniMax H3: https://platform.minimax.io/docs/guides/video-generation.md, https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md

@@ -191,26 +191,17 @@ describe('adaptive provider group parser', () => {
       'src/cli/create-cli.ts',
       'extract',
       'https://example.com/article',
-      '--url-provider',
+      '--provider',
       'firecrawl'
     ])).toEqual(['url/firecrawl'])
 
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
       'write',
-      'https://ajc.pics/autoshow/examples/1-audio.mp3',
-      '--stt',
-      'deepgram=nova-3',
-      '--ocr',
-      'anthropic=claude-haiku-4-5',
-      '--url-provider',
-      'supadata',
+      'input/examples/tts/1-tts.md',
       '--llm',
       'openai=gpt-5.5'
     ])).toEqual([
-      'extract/anthropic',
-      'transcribe/deepgram',
-      'url/supadata',
       'write/openai',
     ])
 

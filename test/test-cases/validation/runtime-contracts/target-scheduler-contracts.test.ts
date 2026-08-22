@@ -156,13 +156,9 @@ describe('target scheduler contracts', () => {
         outputDir,
         {
           openaiImageModels: ['model-a', 'model-b'],
-          openaiImageModel: undefined,
           geminiImageModels: undefined,
-          geminiImageModel: undefined,
           grokImageModels: undefined,
-          grokImageModel: undefined,
           bflImageModels: undefined,
-          bflImageModel: undefined,
           imageAspectRatio: undefined,
           imageSize: undefined,
           imageQuality: undefined,

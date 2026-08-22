@@ -24,10 +24,10 @@ export const resolveRecordedSttStep2 = (
 }
 
 export const formatProviderStateIssue = (
-  state: Pick<SttProviderState, 'service' | 'model' | 'lastError'>
+  state: Pick<SttProviderState, 'service' | 'model' | 'error'>
 ): string => {
   const label = formatSttTargetLabel(state)
-  return state.lastError?.message ? `${label}: ${state.lastError.message}` : label
+  return state.error?.message ? `${label}: ${state.error.message}` : label
 }
 
 export const withMergedStep2Timings = (

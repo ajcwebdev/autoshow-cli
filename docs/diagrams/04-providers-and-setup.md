@@ -121,8 +121,7 @@ Hosted commands require the matching environment variable:
 | `extract` article            | Defuddle                                                        | Selected hosted URL key         |
 | `extract` X Space            | none                                                            | `X_BEARER_TOKEN`                |
 | `extract --transcript-video` | ffmpeg plus source audio and transcript files                   | none                            |
-| `write`                      | Same extract dependencies as the chosen route                   | Selected hosted LLM key         |
-| `write --text-input`         | local `.md`/`.txt` files                                        | Selected hosted LLM key         |
+| `write`                      | local `.md`/`.txt` files                                        | Selected hosted LLM key         |
 | `tts`                        | none                                                            | Selected hosted TTS key         |
 | `image`                      | none                                                            | Selected hosted image key       |
 | `video`                      | source image or video when required                             | Selected hosted video key       |

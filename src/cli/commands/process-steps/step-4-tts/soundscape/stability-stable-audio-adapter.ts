@@ -7,10 +7,10 @@ import type {
   StabilitySoundEffectHttpRequest,
   StabilitySoundEffectSerializedRequest,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { SoundEffectProviderError } from './sound-effect-errors'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const DOCS = [
   'https://platform.stability.ai/docs/api-reference',
@@ -57,11 +57,11 @@ export const resolveStabilitySoundEffectTarget = (
 ): SoundEffectTarget => {
   const [modelId] = model.split('@')
   if (modelId !== STABILITY_STABLE_AUDIO_MODEL_ID) {
-    throw CLIUsageError(`Unsupported Stability sound-effect model ${model}; expected ${STABILITY_STABLE_AUDIO_MODEL_ID}.`)
+    throw UsageError(`Unsupported Stability sound-effect model ${model}; expected ${STABILITY_STABLE_AUDIO_MODEL_ID}.`)
   }
   const outputFormat = options.outputFormat ?? 'wav'
   if (!STABILITY_STABLE_AUDIO_SFX_CAPABILITY_FIXTURE.constraints.outputFormats.includes(outputFormat)) {
-    throw CLIUsageError(`Unsupported Stability sound-effect output format ${outputFormat}.`)
+    throw UsageError(`Unsupported Stability sound-effect output format ${outputFormat}.`)
   }
   return {
     provider: 'stability',
@@ -76,18 +76,18 @@ export const resolveStabilitySoundEffectTarget = (
 
 export const validateStabilitySoundEffectTask = (task: SoundEffectRenderTask, target: SoundEffectTarget): void => {
   if (task.kind === 'vocal-reaction') {
-    throw CLIUsageError('Stability Stable Audio 3 is a dedicated action-SFX and ambience target and cannot render vocal reactions, dialogue, or voice identity.')
+    throw UsageError('Stability Stable Audio 3 is a dedicated action-SFX and ambience target and cannot render vocal reactions, dialogue, or voice identity.')
   }
   const constraints = target.capabilityFixture.constraints
   const promptLength = [...task.prompt].length
   if (promptLength < 1 || promptLength > constraints.promptMaxScalars) {
-    throw CLIUsageError(`Stability sound-effect prompt must contain 1-${constraints.promptMaxScalars} Unicode scalar values.`)
+    throw UsageError(`Stability sound-effect prompt must contain 1-${constraints.promptMaxScalars} Unicode scalar values.`)
   }
   if (
     task.durationSeconds !== undefined &&
     (task.durationSeconds < constraints.durationSeconds.min || task.durationSeconds > constraints.durationSeconds.max)
   ) {
-    throw CLIUsageError(
+    throw UsageError(
       `Stability sound-effect duration must be ${constraints.durationSeconds.min}-${constraints.durationSeconds.max} seconds.`
     )
   }
@@ -123,7 +123,7 @@ export const createStabilitySoundEffectAdapter = (options: {
   request?: StabilitySoundEffectHttpRequest | undefined
   now?: (() => string) | undefined
 }) => {
-  requireProvidedApiKey(options.apiKey, 'STABILITY_API_KEY', 'tts:soundscape', 'Stability Stable Audio 3')
+  resolveCredential('stability', 'require', { stage: 'tts:soundscape', providedValue: options.apiKey, useProvidedValue: true, description: 'Stability Stable Audio 3' })
   const request = options.request ?? defaultRequest(options.apiKey)
   const now = options.now ?? (() => new Date().toISOString())
   return {
@@ -157,7 +157,7 @@ export const createStabilitySoundEffectAdapter = (options: {
           response.headers
         )
       }
-      if (response.body.byteLength === 0) throw CLIUsageError('Stability Stable Audio 3 returned empty audio.')
+      if (response.body.byteLength === 0) throw UsageError('Stability Stable Audio 3 returned empty audio.')
       const contentType = header(response.headers, 'content-type')?.split(';')[0]?.trim() || 'application/octet-stream'
       const providerRequestId = header(response.headers, 'x-request-id')
       const evidenceBase = {

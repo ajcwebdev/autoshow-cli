@@ -9,9 +9,9 @@ import { makeTempDir } from '../../../../../test-utils/temp-dirs'
 
 describe('ElevenLabs clone option contracts', () => {
   test('elevenlabs synthesis accepts only an existing voice identity', () => {
-      const existingVoice = buildOptsFromFlags(false, {
+      const existingVoice = buildOptsFromFlags({
         'elevenlabs-tts': 'eleven_v3',
-        'elevenlabs-voice': 'voice_existing123'
+        'tts-voice': 'voice_existing123'
       })
 
       expect(collectTtsTargets(existingVoice).map((target) => target.voice)).toEqual(['voice_existing123'])

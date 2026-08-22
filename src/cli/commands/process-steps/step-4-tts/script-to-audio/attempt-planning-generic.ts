@@ -1,5 +1,5 @@
 import type { AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, TtsTargetInvocation, TtsTargetSelection } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
 import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../dialogue-normalizer'
@@ -38,7 +38,7 @@ export const resolveGenericTurns = (
       mapping?.voiceKind === 'ref-audio'
       && (!protectedAsset || mapping.voice !== `ref_audio:${protectedAsset.assetId}`)
     ) {
-      throw CLIUsageError(`Reference-audio speaker ${mapping.speaker} does not bind its exact protected asset before render planning.`)
+      throw UsageError(`Reference-audio speaker ${mapping.speaker} does not bind its exact protected asset before render planning.`)
     }
     const kind = mapping?.voiceKind === 'ref-audio' || (!mapping && options.target.protectedVoiceAsset)
       ? 'reference-asset'
@@ -82,11 +82,11 @@ export const resolveGenericNativeGroups = (
       if (
         groupedTurns.length !== chunkDialogue.turns.length
         || groupedTurns.some((turn, index) => turn.canonical.canonicalText !== chunkDialogue.turns[index]?.text || turn.canonical.subjectKey !== chunkDialogue.turns[index]?.speaker)
-      ) throw CLIUsageError('Gemini native dialogue partition did not preserve exact normalized turn boundaries.')
+      ) throw UsageError('Gemini native dialogue partition did not preserve exact normalized turn boundaries.')
       nativeTurnCursor += groupedTurns.length
       return { turnIds: groupedTurns.map((turn) => turn.canonical.turnId), providerTexts: [providerText] }
     })
-    if (nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini native dialogue partition omitted normalized turns.')
+    if (nativeTurnCursor !== turns.length) throw UsageError('Gemini native dialogue partition omitted normalized turns.')
     return groups
   }
   if (elevenLabsNative) {
@@ -105,7 +105,7 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
   const fallbackSource = createInlineTtsSourceIdentity(options.sourceText)
   const sourceIdentity = options.sourceIdentity ?? fallbackSource
   if (sourceIdentity.sourceKind === 'inline' && sourceIdentity.contentSha256 !== sha256Bytes(options.sourceText)) {
-    throw CLIUsageError('Generic inline TTS source identity does not match the exact selected source bytes.')
+    throw UsageError('Generic inline TTS source identity does not match the exact selected source bytes.')
   }
   validateGenericTtsSourceIdentity(sourceIdentity)
   const expectedPlan = isMultiSpeakerRequested(options.ttsOptions)
@@ -113,8 +113,8 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
     : createSingleTurnTtsDialoguePlan(sourceIdentity, options.sourceText, EPOCH)
   const dialoguePlan = options.dialoguePlan ?? expectedPlan
   validateGenericTtsDialoguePlan(dialoguePlan)
-  if (canonicalTtsJson(dialoguePlan.sourceIdentity) !== canonicalTtsJson(sourceIdentity)) throw CLIUsageError('Generic TTS dialogue plan does not bind the exact supplied source identity.')
-  if (canonicalTtsJson(dialoguePlan.nodes) !== canonicalTtsJson(expectedPlan.nodes)) throw CLIUsageError('Generic TTS dialogue plan does not exactly match normalized turn IDs, source indexes, speakers, text, delivery, and effects.')
+  if (canonicalTtsJson(dialoguePlan.sourceIdentity) !== canonicalTtsJson(sourceIdentity)) throw UsageError('Generic TTS dialogue plan does not bind the exact supplied source identity.')
+  if (canonicalTtsJson(dialoguePlan.nodes) !== canonicalTtsJson(expectedPlan.nodes)) throw UsageError('Generic TTS dialogue plan does not exactly match normalized turn IDs, source indexes, speakers, text, delivery, and effects.')
 
   const registry = isMultiSpeakerRequested(options.ttsOptions) ? parseSpeakerVoiceMappings(options.ttsOptions.ttsSpeakers) : undefined
   const canonicalTurns = flattenPlanTurns(dialoguePlan)
@@ -168,6 +168,6 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
     for (const slot of generationSlots) for (const amount of slot.plannedCost.amounts) amountByCurrency.set(amount.currency, (amountByCurrency.get(amount.currency) ?? 0) + amount.amount)
     return { batchId, orderedTurnIds: group.turnIds, requestControls: controls, generationSlots, takeSelectionPolicy: 'sole-take' as const, continuation: { kind: 'none' as const }, plannedCost: { amounts: [...amountByCurrency].map(([currency, amount]) => ({ currency, amount })) } }
   })
-  if (turns.length === 0 || slots.length === 0) throw CLIUsageError('TTS render planning requires at least one normalized turn and generation slot.')
+  if (turns.length === 0 || slots.length === 0) throw UsageError('TTS render planning requires at least one normalized turn and generation slot.')
   return { sourceIdentity, dialoguePlan, turns, batches, slots, strategy, normalizedText: normalizedDialogue?.normalizedText ?? options.sourceText }
 }

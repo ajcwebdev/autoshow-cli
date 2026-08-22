@@ -1,66 +1,38 @@
-import { withHelpGroup } from './flag-utils'
 import {
-  transcriptionFlags,
-  ocrInputFlags,
-  ocrProviderModeFlag,
-  ocrTuningFlags,
-  primaryOcrFlag,
-  allArticleFlags,
-  sharedConcurrencyFlags,
-  stepProviderSelectorFlags,
-  writeAllLocalFlag,
-  writeAllProvidersFlag,
   batchFlags,
-  promptFlag,
+  booleanAllProvidersFlag,
   priceFlag,
-  reasoningEffortFlag
+  promptFlag,
+  reasoningEffortFlag,
+  sharedConcurrencyFlags
 } from './shared-flags'
+import { formatProviderList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { WRITE_LLM_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import type { CliFlagsDefinition } from '~/types'
 
+const writeProviderSelectionFlags = {
+  llm: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`),
+  ...booleanAllProvidersFlag,
+  ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
+} as const satisfies CliFlagsDefinition
+
 const writeTextInputFlags = {
-  'text-input': {
-    description: 'Treat local .md/.txt files and directories as raw source text instead of URL lists',
-    type: Boolean,
-    default: false,
-    negatable: false
-  },
-  'prompt-file': {
-    description: 'Prepend prompt instructions from a local text file before named prompt presets',
-    type: String
-  },
+  'prompt-file': strFlag('Prepend prompt instructions from a local text file before named prompt presets'),
   'rendered-text': {
     description: 'Save rendered step-3 markdown output alongside JSON output',
     type: Boolean,
     default: false,
     negatable: false
   },
-  'rendered-out-dir': {
-    description: 'Also write rendered step-3 markdown files to this directory using source-based filenames',
-    type: String
-  },
-  'track-list': {
-    description: 'Optional tracks.md file used to prepend track-number headers on saved rendered text',
-    type: String
-  }
-} as const satisfies CliFlagsDefinition
-
-const writePipelineFlags = {
-  ...sharedConcurrencyFlags,
-  ...stepProviderSelectorFlags,
-  ...writeAllProvidersFlag,
-  ...writeAllLocalFlag
+  'rendered-out-dir': strFlag('Also write rendered step-3 markdown files to this directory using source-based filenames'),
+  'track-list': strFlag('Optional tracks.md file used to prepend track-number headers on saved rendered text')
 } as const satisfies CliFlagsDefinition
 
 export const writeFlags = {
   ...withHelpGroup(priceFlag, 'pricing'),
-  ...withHelpGroup(writePipelineFlags, 'pipeline'),
+  ...withHelpGroup(writeProviderSelectionFlags, 'pipeline'),
   ...withHelpGroup(reasoningEffortFlag, 'pipeline'),
-  ...withHelpGroup(batchFlags, 'batch-download'),
-  ...withHelpGroup(transcriptionFlags, 'transcription'),
-  ...withHelpGroup(ocrInputFlags, 'ocr-document'),
-  ...withHelpGroup(ocrTuningFlags, 'ocr-document'),
-  ...withHelpGroup({ ...ocrProviderModeFlag, ...primaryOcrFlag }, 'ocr-document'),
-  ...withHelpGroup(allArticleFlags, 'article-extraction'),
+  ...withHelpGroup(pickFlags(batchFlags, ['batch-limit', 'batch-order', 'batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup(writeTextInputFlags, 'writing')
 } as const satisfies CliFlagsDefinition

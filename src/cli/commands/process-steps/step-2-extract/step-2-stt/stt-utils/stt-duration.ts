@@ -5,7 +5,7 @@ import { downloadAudio } from '~/cli/commands/process-steps/step-1-download/audi
 import { extractSourceMetadata, getVideoInfo } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { getAudioDuration } from './audio-splitter'
 import { fileExists } from '~/utils/cli-utils'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
 import { DOCUMENT_EXTENSIONS, IMAGE_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
@@ -96,10 +96,10 @@ export const resolveSttInputDurationSeconds = async (
   if (!isLikelyUrl(input)) {
     const exists = await fileExists(input)
     if (!exists) {
-      throw CLIUsageError(`Input does not exist: ${input}. Run: bun autoshow help extract`)
+      throw UsageError(`Input does not exist: ${input}. Run: bun autoshow help extract`)
     }
     if (isDocumentLikePath(input)) {
-      throw CLIUsageError(`--price requires media input (audio/video). Got document/image input: ${input}`)
+      throw UsageError(`--price requires media input (audio/video). Got document/image input: ${input}`)
     }
 
     const localDuration = await tryProbeDurationSeconds(input)
@@ -125,7 +125,7 @@ export const resolveSttInputDurationSeconds = async (
   }
 
   if (isDocumentUrl(input)) {
-    throw CLIUsageError(`--price requires media input (audio/video). Got document/image URL: ${input}`)
+    throw UsageError(`--price requires media input (audio/video). Got document/image URL: ${input}`)
   }
 
   if (!isDirectMediaUrl(input)) {

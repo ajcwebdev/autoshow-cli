@@ -1,5 +1,5 @@
 import type { MappedReasoningPolicy, NormalizedReasoningEffort, ReasoningCapabilities, ReasoningSupport } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { getModelRegistry } from './model-loader/registry'
 import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
@@ -24,7 +24,7 @@ export const parseReasoningEffort = (value: string | undefined): NormalizedReaso
   if (isNormalizedReasoningEffort(normalized)) {
     return normalized as NormalizedReasoningEffort
   }
-  throw CLIUsageError(`Invalid --reasoning-effort value "${value}". Expected ${formatQuotedChoiceList(NORMALIZED_REASONING_EFFORTS)}.`)
+  throw UsageError(`Invalid --reasoning-effort value "${value}". Expected ${formatQuotedChoiceList(NORMALIZED_REASONING_EFFORTS)}.`)
 }
 
 const getReasoningCapabilities = (
@@ -100,14 +100,14 @@ export const resolveReasoningPolicy = (options: {
   }
 
   if (capabilities.support === 'unsupported') {
-    throw CLIUsageError(
+    throw UsageError(
       `Model "${model}" for ${service} does not support reasoning effort configuration.`
     )
   }
 
   if (requestedReasoningEffort === 'disabled') {
     if (capabilities.support === 'required' || capabilities.allowDisabled !== true) {
-      throw CLIUsageError(
+      throw UsageError(
         `Model "${model}" for ${service} does not support disabling reasoning.`
       )
     }
@@ -122,7 +122,7 @@ export const resolveReasoningPolicy = (options: {
     const supportedDescription = supportedEfforts.length > 0
       ? `Supported effort levels: ${supportedEfforts.join(', ')}.`
       : 'This model exposes no named effort levels.'
-    throw CLIUsageError(
+    throw UsageError(
       `Model "${model}" for ${service} does not support reasoning effort "${requestedReasoningEffort}". ${supportedDescription}`
     )
   }

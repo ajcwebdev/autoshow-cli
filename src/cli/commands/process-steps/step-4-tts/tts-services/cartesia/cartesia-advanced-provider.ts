@@ -1,6 +1,6 @@
 import type { AnyCapabilityRecord, CartesiaAdvancedProviderOptions, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceCloneRequest, ProviderVoiceMutationResult, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort } from '~/types'
 import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   buildAdvancedCapabilityFixture,
   buildCapabilityDocumentationEvidence,
@@ -42,7 +42,7 @@ const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
   const resourceId = trimmedString(voice['id'])
   const name = trimmedString(voice['name'])
-  if (!resourceId || !name) throw CLIUsageError('Cartesia voice response omits id or name.')
+  if (!resourceId || !name) throw UsageError('Cartesia voice response omits id or name.')
   const isOwner = voice['is_owner'] === true
   const labels = Object.fromEntries([
     ['gender', trimmedString(voice['gender'])],
@@ -80,7 +80,7 @@ export const createCartesiaAdvancedProvider = (options: CartesiaAdvancedProvider
   const catalog: VoiceCatalogPort = {
     list: async input => {
       const source = input?.source ?? 'account'
-      if (source === 'shared-library') throw CLIUsageError('Cartesia exposes public and account voices, not a shared-owner namespace.')
+      if (source === 'shared-library') throw UsageError('Cartesia exposes public and account voices, not a shared-owner namespace.')
       const payload = record(await request({ method: 'GET', path: '/voices', query: {
         limit: '100',
         ...(input?.cursor ? { starting_after: input.cursor } : {}),
@@ -101,9 +101,9 @@ export const createCartesiaAdvancedProvider = (options: CartesiaAdvancedProvider
         const result: ProviderVoiceMutationResult = { schemaVersion: 1, provider: 'cartesia', state: 'external-action-required', action: 'Complete the gated Cartesia Pro Voice Clone workflow in the dashboard, then import its stable voice ID.', sanitizedMetadata: { cloneKind: 'professional', cloneChannel: 'cartesia-dashboard', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
         return result
       }
-      if (cloneRequest.protectedSamples.length !== 1) throw CLIUsageError('Cartesia Instant Voice Clone requires exactly one protected sample.')
-      if (!options.resolveProtectedAsset) throw CLIUsageError('Cartesia cloning requires a protected-asset resolver.')
-      if (!cloneRequest.desiredName.trim()) throw CLIUsageError('Cartesia cloning requires a voice name.')
+      if (cloneRequest.protectedSamples.length !== 1) throw UsageError('Cartesia Instant Voice Clone requires exactly one protected sample.')
+      if (!options.resolveProtectedAsset) throw UsageError('Cartesia cloning requires a protected-asset resolver.')
+      if (!cloneRequest.desiredName.trim()) throw UsageError('Cartesia cloning requires a voice name.')
       const language = options.cloneLanguage?.trim() || 'en'
       const resolved = await options.resolveProtectedAsset(cloneRequest.protectedSamples[0] as ProviderVoiceCloneRequest['protectedSamples'][number])
       const form = new FormData()
@@ -127,7 +127,7 @@ export const createCartesiaAdvancedProvider = (options: CartesiaAdvancedProvider
   const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'account voices' }, {
     fetchVoice: async voice => {
       const entry = mapVoice(await request({ method: 'GET', path: `/voices/${encodeURIComponent(voice.resourceId)}`, query: { 'expand[]': 'preview_file_url' } }) as unknown)
-      if (entry.resourceId !== voice.resourceId) throw CLIUsageError('Cartesia inspection response identity does not match the registered resource.')
+      if (entry.resourceId !== voice.resourceId) throw UsageError('Cartesia inspection response identity does not match the registered resource.')
       return { state: 'available', sanitizedMetadata: entry.sanitizedMetadata }
     },
     deleteVoice: async voice => {

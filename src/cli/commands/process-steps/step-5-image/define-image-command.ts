@@ -1,9 +1,7 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { imageCommandFlags, imageCommandOptionNames } from '~/cli/flags/image-flags'
-import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { imageCommandFlags } from '~/cli/flags/image-flags'
+import { UsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runImageGen } from './run-image-gen'
@@ -27,19 +25,18 @@ const runImageCommand = async (
   flagOccurrences: readonly CliFlagOccurrence[]
 ): Promise<void> => {
   const imageMaxCents = await resolveMaxCentsFromFlags(flags)
-  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitFlags, flagOccurrences, imageCommandOptionNames)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
-    optionNormalized.flags,
-    optionNormalized.explicitFlags,
-    optionNormalized.flagOccurrences,
+    flags,
+    explicitFlags,
+    flagOccurrences,
     'provider',
     STANDALONE_IMAGE_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-image' }
   )
-  const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
+  const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences })
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
-    throw CLIUsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|replicate|lumalabs|fal[=model].')
+    throw UsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|replicate|lumalabs|fal[=model].')
   }
 
   const { estimate: preflightEstimate, shouldExit: imageShouldExit } = evaluatePreflightEstimate(
@@ -134,6 +131,6 @@ export const imageCommand = defineCliCommand({
       ['bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2', 'Generate with fal.ai']
     ]
   }
-}, retargetUsageErrorsToCommandSpellings(async (ctx) => {
+}, async (ctx) => {
   await runImageCommand(ctx.parameters.prompt, ctx.flags as Record<string, unknown>, ctx.rawParsed.explicitFlags, ctx.rawParsed.flagOccurrences)
-}, imageCommandOptionNames))
+})

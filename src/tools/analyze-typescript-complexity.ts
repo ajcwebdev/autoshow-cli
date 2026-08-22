@@ -1,4 +1,4 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { readFileSync, statSync } from 'node:fs'
 import { extname } from 'node:path'
 import ts from 'typescript'
@@ -405,7 +405,7 @@ const parseScopes = (argv: string[]): AnalysisScope[] => {
     if (argv[index] !== '--scope') continue
     const scope = argv[index + 1]
     if (scope !== 'src' && scope !== 'test') {
-      throw CLIUsageError(`Expected --scope src or --scope test, received ${scope ?? '<missing>'}`)
+      throw UsageError(`Expected --scope src or --scope test, received ${scope ?? '<missing>'}`)
     }
     scopes.push(scope)
     index += 1

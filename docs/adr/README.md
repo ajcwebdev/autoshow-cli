@@ -27,7 +27,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **Status:** Accepted · Passed
 - **Decision:** Owns the command-neutral batch work plan, the canonical pipeline `manifest.json` including the pooled OCR page ledger, execution-to-resume selection parity, non-mutating `resume --price`, and rejection of superseded manifest formats.
-- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
+- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 
 **ADR 3: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)**
 
@@ -69,7 +69,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **Status:** Accepted · Passed
 - **Decision:** Owns Step 2 URL and OCR execution plus artifacts: explicit article/X-Space routing, route-aware provider selection and resume, Tesseract-only local OCR, retry-aware hosted failures, fan-out and composite pool artifacts, page attribution, `auto|fixed` OCR ceilings, calibrated pricing and diagnostics, and shared chapter filenames.
-- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
+- **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-015](ADR-015-distribute-ocr-pages-across-a-multi-provider-work-pool.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 
 **ADR 10: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)**
 
@@ -80,7 +80,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 11: [ADR-011](ADR-011-add-refresh-metadata-to-links.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Adds direct URL and input-file `links` modes, model reference selections, and optional `--refresh` metadata sidecars with token/hash change tracking.
+- **Decision:** Adds direct URL and input-file `links` modes, model reference selections, optional `--refresh` metadata sidecars with token/hash change tracking, and standard `output/` run-directory writes via `--output-root` and `--output-dir`.
 - **Related ADRs:** [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 
 **ADR 12: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)**
@@ -111,7 +111,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 
 - **Status:** Proposed · Pending
 - **Decision:** Governs every shell-like command in the root README and all Markdown beneath `docs/` through classification, local no-spend verification, committed fixtures, and documented cost reporting.
-- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md), [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md), [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md), [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md), [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md), [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)
 
 **ADR 17: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)**
 
@@ -134,8 +134,8 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 20: [ADR-020](ADR-020-end-the-write-pipeline-at-step-3.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Binds the `write` command strictly to steps 0–3 (metadata, download, extract, LLM text writing), severing all TTS, image, video, and music generation execution, pricing, flags, selectors, and options from `write` in favor of standalone follow-on commands (`tts`, `image`, `video`, `music`).
-- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
+- **Decision:** Confines `write` to LLM text generation over `.md` / `.txt` input. Extract is the prior command for URLs, media, documents, and X Spaces. TTS, image, video, and music remain standalone follow-on commands. `write` does not run, price, or flag extract or generation work.
+- **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-016](ADR-016-govern-readme-command-examples-as-executable-contracts.md)
 
 ## Consolidation Analysis
 

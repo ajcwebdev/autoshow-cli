@@ -12,14 +12,13 @@ const asRecord = (value: unknown): Record<string, unknown> | undefined =>
 const validateTtsConfigAuthority = (parsed: unknown): void => {
   const root = asRecord(parsed)
   const defaults = asRecord(root?.['defaults'])
-  const post = asRecord(defaults?.['post'])
-  const tts = asRecord(post?.['tts'])
+  const tts = asRecord(defaults?.['tts'])
   if (!tts) return
 
   resolveStandaloneMistralTtsCliReferenceInput({
-    'mistral-tts-ref-audio': tts['mistralTtsRefAudio']
+    'tts-ref-audio': tts['mistralTtsRefAudio'] ?? tts['refAudio']
   }, {
-    configuredFlags: new Set(['mistral-tts-ref-audio']),
+    configuredFlags: new Set(['tts-ref-audio']),
     cliReferenceInput: 'standalone-mistral'
   })
 }

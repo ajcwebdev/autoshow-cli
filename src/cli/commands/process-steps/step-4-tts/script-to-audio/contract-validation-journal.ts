@@ -1,5 +1,5 @@
 import type { RenderAdmissionJournalSnapshot } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/value-helpers'
 import { assertContentIdentity, assertSafeArtifactRelativePath, hashCanonicalTtsValue } from './contract-identity'
 import { assertIsoDate, assertSha256, assertUnique, canonicalTtsJsonForValidation, SHA256 } from './contract-validation-primitives'
@@ -10,7 +10,7 @@ export const assertContiguousSequences = (
   start = 1
 ): void => {
   if (values.some((value, index) => !Number.isInteger(value) || value !== index + start)) {
-    throw CLIUsageError(`${label} must use contiguous ordered sequences beginning at ${start}.`)
+    throw UsageError(`${label} must use contiguous ordered sequences beginning at ${start}.`)
   }
 }
 
@@ -32,11 +32,11 @@ export const validateAdmissionProofRef = (
     || proof['requestFingerprint'] !== expected.requestFingerprint
     || proof['proofKind'] !== expected.kind
   ) {
-    throw CLIUsageError(`Admission ${expected.kind} proof does not bind the exact journal request.`)
+    throw UsageError(`Admission ${expected.kind} proof does not bind the exact journal request.`)
   }
   if (proof['kind'] === 'sanitized-artifact') {
     if (typeof proof['path'] !== 'string' || typeof proof['sha256'] !== 'string') {
-      throw CLIUsageError(`Admission ${expected.kind} proof requires a contained artifact and checksum.`)
+      throw UsageError(`Admission ${expected.kind} proof requires a contained artifact and checksum.`)
     }
     assertSafeArtifactRelativePath(proof['path'], 'attempt')
     assertSha256(proof['sha256'], `Admission ${expected.kind} proof checksum`)
@@ -52,12 +52,12 @@ export const validateAdmissionProofRef = (
       || asset['assetId'].trim().length === 0
       || typeof asset['sha256'] !== 'string'
     ) {
-      throw CLIUsageError(`Admission ${expected.kind} protected proof has an invalid asset reference.`)
+      throw UsageError(`Admission ${expected.kind} protected proof has an invalid asset reference.`)
     }
     assertSha256(asset['sha256'], `Admission ${expected.kind} protected proof checksum`)
     return
   }
-  throw CLIUsageError(`Admission ${expected.kind} proof has an invalid storage kind.`)
+  throw UsageError(`Admission ${expected.kind} proof has an invalid storage kind.`)
 }
 
 export const validateAdmissionTransitions = (
@@ -67,7 +67,7 @@ export const validateAdmissionTransitions = (
   assertContiguousSequences(request.transitions.map((transition) => transition.sequence), 'Admission transition sequence')
   const states = request.transitions.map((transition) => transition.state)
   if (states[0] !== 'prepared') {
-    throw CLIUsageError('Admission transitions must begin with prepared.')
+    throw UsageError('Admission transitions must begin with prepared.')
   }
   for (const transition of request.transitions) {
     assertIsoDate(transition.at, `Admission ${transition.state} transition`)
@@ -77,7 +77,7 @@ export const validateAdmissionTransitions = (
       assertSha256(transition.transportEvidenceHash, 'Admission dispatch transport-evidence hash')
     } else if (transition.state === 'provider-accepted') {
       if (transition.providerRequestId !== undefined && transition.providerRequestId.trim().length === 0) {
-        throw CLIUsageError('Admission provider acceptance has an empty provider request ID.')
+        throw UsageError('Admission provider acceptance has an empty provider request ID.')
       }
       validateAdmissionProofRef(transition.evidence, {
         kind: 'acceptance',
@@ -125,23 +125,23 @@ export const validateAdmissionTransitions = (
   if (states[1] === 'confirmed-not-admitted') {
     const transition = request.transitions[1]
     if (states.length !== 2 || transition?.state !== 'confirmed-not-admitted' || transition.method !== 'local-before-dispatch') {
-      throw CLIUsageError('Only local-before-dispatch confirmation may close a prepared request without dispatch.')
+      throw UsageError('Only local-before-dispatch confirmation may close a prepared request without dispatch.')
     }
     return
   }
   if (states[1] !== 'dispatch-started') {
-    throw CLIUsageError('Admission may advance from prepared only to dispatch-started or local no-admission proof.')
+    throw UsageError('Admission may advance from prepared only to dispatch-started or local no-admission proof.')
   }
   const afterDispatch = states.slice(2)
   if (afterDispatch.length === 0) return
   if (afterDispatch[0] === 'provider-accepted') {
     if (afterDispatch.length > 2 || (afterDispatch.length === 2 && afterDispatch[1] !== 'completed')) {
-      throw CLIUsageError('Provider acceptance may advance only to completion.')
+      throw UsageError('Provider acceptance may advance only to completion.')
     }
     return
   }
   if (afterDispatch.length !== 1) {
-    throw CLIUsageError('A dispatched request may have only one terminal rejection, ambiguity, or no-admission result.')
+    throw UsageError('A dispatched request may have only one terminal rejection, ambiguity, or no-admission result.')
   }
   if (afterDispatch[0] === 'provider-rejected' || afterDispatch[0] === 'ambiguous') return
   const transition = request.transitions[2]
@@ -150,7 +150,7 @@ export const validateAdmissionTransitions = (
     && transition?.state === 'confirmed-not-admitted'
     && transition.method !== 'local-before-dispatch'
   ) return
-  throw CLIUsageError('Admission request contains an invalid post-dispatch transition.')
+  throw UsageError('Admission request contains an invalid post-dispatch transition.')
 }
 
 export const validateRenderAdmissionJournalSnapshot = (
@@ -158,7 +158,7 @@ export const validateRenderAdmissionJournalSnapshot = (
   previous?: RenderAdmissionJournalSnapshot | undefined
 ): RenderAdmissionJournalSnapshot => {
   if (snapshot.schemaVersion !== 1 || snapshot.plannedRequestCount < 0 || !Number.isInteger(snapshot.plannedRequestCount)) {
-    throw CLIUsageError('Render admission journal has an invalid schema or planned request count.')
+    throw UsageError('Render admission journal has an invalid schema or planned request count.')
   }
   const expectedJournalId = hashCanonicalTtsValue({
     renderPlanId: snapshot.renderPlanId,
@@ -167,7 +167,7 @@ export const validateRenderAdmissionJournalSnapshot = (
     invocationId: snapshot.invocationId
   })
   if (snapshot.journalId !== expectedJournalId) {
-    throw CLIUsageError('Render admission journal ID does not bind its exact render, attempt, and invocation.')
+    throw UsageError('Render admission journal ID does not bind its exact render, attempt, and invocation.')
   }
   assertContentIdentity(snapshot as unknown as Record<string, unknown>, 'snapshotId', 'Render admission journal snapshot')
   assertUnique(snapshot.plannedBatchIds, 'Admission journal planned batch IDs')
@@ -178,21 +178,21 @@ export const validateRenderAdmissionJournalSnapshot = (
     return batchIds
   }, [])
   if (canonicalTtsJsonForValidation(snapshot.plannedBatchIds) !== canonicalTtsJsonForValidation(expectedBatchIds)) {
-    throw CLIUsageError('Admission planned batch IDs must exactly match first occurrence order in the planned generation slots.')
+    throw UsageError('Admission planned batch IDs must exactly match first occurrence order in the planned generation slots.')
   }
   if (snapshot.plannedRequestCount !== snapshot.plannedGenerationSlots.length) {
-    throw CLIUsageError('Admission planning requires exactly one deliberate request budget per generation slot.')
+    throw UsageError('Admission planning requires exactly one deliberate request budget per generation slot.')
   }
   assertContiguousSequences(snapshot.requests.map((request) => request.requestOrdinal), 'Admission request ordinals')
   const deliberateRequests = snapshot.requests.filter((request) => request.retryOfRequestOrdinal === undefined)
   const deliberateSlots = deliberateRequests.map((request) => `${request.batchId}\0${request.generationSlotId}`)
   assertUnique(deliberateSlots, 'Admission deliberate request generation slots')
   if (deliberateRequests.length > snapshot.plannedRequestCount) {
-    throw CLIUsageError('Admission journal contains more deliberate requests than the priced generation-slot plan.')
+    throw UsageError('Admission journal contains more deliberate requests than the priced generation-slot plan.')
   }
   for (const request of snapshot.requests) {
     if (!plannedSlots.includes(`${request.batchId}\0${request.generationSlotId}`)) {
-      throw CLIUsageError('Admission request references an unplanned generation slot.')
+      throw UsageError('Admission request references an unplanned generation slot.')
     }
     if (
       !request.batchInvocationPlanId.trim()
@@ -200,7 +200,7 @@ export const validateRenderAdmissionJournalSnapshot = (
       || !SHA256.test(request.batchInvocationPlanSha256)
       || !SHA256.test(request.requestFingerprint)
     ) {
-      throw CLIUsageError('Admission request requires a complete invocation-plan reference and request fingerprint.')
+      throw UsageError('Admission request requires a complete invocation-plan reference and request fingerprint.')
     }
     assertSafeArtifactRelativePath(request.batchInvocationPlanRef, 'attempt')
     validateAdmissionTransitions(snapshot, request)
@@ -216,7 +216,7 @@ export const validateRenderAdmissionJournalSnapshot = (
         || request.batchInvocationPlanSha256 !== retried.batchInvocationPlanSha256
         || request.requestFingerprint !== retried.requestFingerprint
       ) {
-        throw CLIUsageError('Admission retry must link an earlier request with the identical slot, invocation plan, and fingerprint.')
+        throw UsageError('Admission retry must link an earlier request with the identical slot, invocation plan, and fingerprint.')
       }
     }
   }
@@ -224,7 +224,7 @@ export const validateRenderAdmissionJournalSnapshot = (
   assertUnique(batchResultIds, 'Recorded admission batch result IDs')
   for (const result of snapshot.recordedBatchResults) {
     if (!plannedSlots.includes(`${result.batchId}\0${result.generationSlotId}`)) {
-      throw CLIUsageError('Recorded batch result references an unplanned generation slot.')
+      throw UsageError('Recorded batch result references an unplanned generation slot.')
     }
     const retainedFromPrevious = previous?.recordedBatchResults.some((oldResult) =>
       oldResult.batchResultId === result.batchResultId
@@ -236,11 +236,11 @@ export const validateRenderAdmissionJournalSnapshot = (
       && result.admissionBasisSnapshotId !== snapshot.snapshotId
       && result.admissionBasisSnapshotId !== snapshot.previousSnapshotId
     ) {
-      throw CLIUsageError('Recorded batch result has no exact admission-basis snapshot in this journal chain.')
+      throw UsageError('Recorded batch result has no exact admission-basis snapshot in this journal chain.')
     }
   }
   if (snapshot.recordedResult && snapshot.recordedBatchResults.length === 0 && snapshot.requests.length > 0) {
-    throw CLIUsageError('Aggregate provider result cannot omit batch results after provider requests were prepared.')
+    throw UsageError('Aggregate provider result cannot omit batch results after provider requests were prepared.')
   }
   if (previous) {
     if (
@@ -251,37 +251,37 @@ export const validateRenderAdmissionJournalSnapshot = (
       || snapshot.invocationId !== previous.invocationId
       || snapshot.attempt !== previous.attempt
     ) {
-      throw CLIUsageError('Admission journal snapshot does not extend the exact prior attempt snapshot.')
+      throw UsageError('Admission journal snapshot does not extend the exact prior attempt snapshot.')
     }
     if (previous.requests.length > snapshot.requests.length) {
-      throw CLIUsageError('Admission journal snapshot cannot remove request records.')
+      throw UsageError('Admission journal snapshot cannot remove request records.')
     }
     for (const [index, oldRequest] of previous.requests.entries()) {
       const nextRequest = snapshot.requests[index]
       if (!nextRequest) {
-        throw CLIUsageError('Admission journal request prefix is append-only.')
+        throw UsageError('Admission journal request prefix is append-only.')
       }
       const { transitions: oldTransitionsRaw, ...oldHeader } = oldRequest
       const { transitions: nextTransitionsRaw, ...nextHeader } = nextRequest
       if (canonicalTtsJsonForValidation(oldHeader) !== canonicalTtsJsonForValidation(nextHeader)) {
-        throw CLIUsageError('Admission journal request identity is immutable across snapshots.')
+        throw UsageError('Admission journal request identity is immutable across snapshots.')
       }
       const oldTransitions = oldTransitionsRaw.map((transition) => canonicalTtsJsonForValidation(transition))
       const nextTransitions = nextTransitionsRaw.map((transition) => canonicalTtsJsonForValidation(transition))
       if (oldTransitions.some((transition, transitionIndex) => transition !== nextTransitions[transitionIndex])) {
-        throw CLIUsageError('Admission transitions are append-only across journal snapshots.')
+        throw UsageError('Admission transitions are append-only across journal snapshots.')
       }
     }
     const oldBatchResults = previous.recordedBatchResults.map((result) => canonicalTtsJsonForValidation(result))
     const nextBatchResults = snapshot.recordedBatchResults.map((result) => canonicalTtsJsonForValidation(result))
     if (oldBatchResults.some((result, index) => result !== nextBatchResults[index])) {
-      throw CLIUsageError('Admission batch-result promotion is append-only across snapshots.')
+      throw UsageError('Admission batch-result promotion is append-only across snapshots.')
     }
     if (
       previous.recordedResult !== undefined
       && canonicalTtsJsonForValidation(previous.recordedResult) !== canonicalTtsJsonForValidation(snapshot.recordedResult)
     ) {
-      throw CLIUsageError('Admission aggregate-result promotion is immutable once recorded.')
+      throw UsageError('Admission aggregate-result promotion is immutable once recorded.')
     }
   }
   return snapshot

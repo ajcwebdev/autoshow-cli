@@ -11,7 +11,7 @@ import type {
   VoiceClonePort,
   VoiceDesignPort,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import {
   buildAdvancedCapabilityFixture,
@@ -70,7 +70,7 @@ const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): 
   const voice = record(value, 'voice')
   const resourceId = trimmedString(voice['voice_id']) ?? trimmedString(voice['id'])
   const name = trimmedString(voice['name'])
-  if (!resourceId || !name) throw CLIUsageError('ElevenLabs voice response omits voice_id or name.')
+  if (!resourceId || !name) throw UsageError('ElevenLabs voice response omits voice_id or name.')
   const category = trimmedString(voice['category'])
   const sharing = voice['sharing'] && typeof voice['sharing'] === 'object' && !Array.isArray(voice['sharing']) ? voice['sharing'] as JsonObject : undefined
   const expiresAt = unixExpiry(sharing?.['disable_at_unix'])
@@ -141,14 +141,14 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
 
   const design: VoiceDesignPort = {
     createCandidate: async designRequest => {
-      if (designRequest.candidateCount < 1 || designRequest.candidateCount > 3) throw CLIUsageError('ElevenLabs Voice Design supports one to three bounded previews per operation.')
-      if (designRequest.description.length < 20 || designRequest.description.length > 1000) throw CLIUsageError('ElevenLabs Voice Design description must contain 20-1000 characters.')
-      if (designRequest.previewText.length < 100 || designRequest.previewText.length > 1000) throw CLIUsageError('ElevenLabs Voice Design preview text must contain 100-1000 characters.')
+      if (designRequest.candidateCount < 1 || designRequest.candidateCount > 3) throw UsageError('ElevenLabs Voice Design supports one to three bounded previews per operation.')
+      if (designRequest.description.length < 20 || designRequest.description.length > 1000) throw UsageError('ElevenLabs Voice Design description must contain 20-1000 characters.')
+      if (designRequest.previewText.length < 100 || designRequest.previewText.length > 1000) throw UsageError('ElevenLabs Voice Design preview text must contain 100-1000 characters.')
       const sourceVoice = designRequest.sourceVoice
       if (sourceVoice && (!designRequest.eligibilitySnapshotHash || !/^[a-f0-9]{64}$/.test(designRequest.eligibilitySnapshotHash))) {
-        throw CLIUsageError('ElevenLabs remix requires a dated eligibility snapshot hash before any provider call.')
+        throw UsageError('ElevenLabs remix requires a dated eligibility snapshot hash before any provider call.')
       }
-      if (sourceVoice && sourceVoice.kind !== 'remote-resource') throw CLIUsageError('ElevenLabs remix requires a stable remote source voice ID.')
+      if (sourceVoice && sourceVoice.kind !== 'remote-resource') throw UsageError('ElevenLabs remix requires a stable remote source voice ID.')
       const path = sourceVoice ? `/v1/text-to-voice/${encodeURIComponent(sourceVoice.resourceId)}/remix` : '/v1/text-to-voice/design'
       const response = record(await request({ method: 'POST', path, body: {
         voice_description: designRequest.description,
@@ -157,7 +157,7 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
         ...(typeof designRequest.seed === 'number' ? { seed: designRequest.seed } : {})
       } }), sourceVoice ? 'remix' : 'design')
       const previews = Array.isArray(response['previews']) ? response['previews'].slice(0, designRequest.candidateCount) : []
-      if (previews.length === 0) throw CLIUsageError('ElevenLabs Voice Design returned no candidates.')
+      if (previews.length === 0) throw UsageError('ElevenLabs Voice Design returned no candidates.')
       const result: ProviderVoiceDesignResult = {
         schemaVersion: 1,
         provider: 'elevenlabs',
@@ -167,7 +167,7 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
           const preview = record(value, 'voice preview')
           const providerCandidateId = trimmedString(preview['generated_voice_id'])
           const audioBase64 = trimmedString(preview['audio_base_64'])
-          if (!providerCandidateId || !audioBase64) throw CLIUsageError('ElevenLabs voice preview omits generated voice ID or audio.')
+          if (!providerCandidateId || !audioBase64) throw UsageError('ElevenLabs voice preview omits generated voice ID or audio.')
           return {
             providerCandidateId,
             audioBase64,
@@ -184,15 +184,15 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
       return result
     },
     materializeCandidate: async materializeRequest => {
-      if (!materializeRequest.providerCandidateId.trim() || !materializeRequest.desiredName.trim()) throw CLIUsageError('ElevenLabs materialization requires the selected candidate ID and desired name.')
-      if (materializeRequest.sourceVoice && !materializeRequest.eligibilitySnapshotHash) throw CLIUsageError('ElevenLabs remix materialization requires its eligibility snapshot.')
+      if (!materializeRequest.providerCandidateId.trim() || !materializeRequest.desiredName.trim()) throw UsageError('ElevenLabs materialization requires the selected candidate ID and desired name.')
+      if (materializeRequest.sourceVoice && !materializeRequest.eligibilitySnapshotHash) throw UsageError('ElevenLabs remix materialization requires its eligibility snapshot.')
       const response = record(await request({ method: 'POST', path: '/v1/text-to-voice', body: {
         voice_name: materializeRequest.desiredName,
         voice_description: 'AutoShow materialized voice candidate',
         generated_voice_id: materializeRequest.providerCandidateId
       } }), 'voice materialization')
       const resourceId = trimmedString(response['voice_id'])
-      if (!resourceId) throw CLIUsageError('ElevenLabs materialization returned no voice_id.')
+      if (!resourceId) throw UsageError('ElevenLabs materialization returned no voice_id.')
       const derivedFrom = materializeRequest.sourceVoice
         ? {
             sourceRef: materializeRequest.sourceVoice.kind === 'remote-resource' ? materializeRequest.sourceVoice.resourceId : materializeRequest.providerCandidateId,
@@ -217,7 +217,7 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
       if (cloneRequest.cloneKind === 'professional') {
         return { schemaVersion: 1, provider: 'elevenlabs', state: 'verification-required', action: 'Complete Professional Voice Clone verification and plan checks, then import the resulting voice ID.', sanitizedMetadata: { cloneKind: 'professional' }, checkedAt: now() }
       }
-      if (cloneRequest.protectedSamples.length === 0 || !options.resolveProtectedAsset) throw CLIUsageError('ElevenLabs Instant Voice Clone requires protected samples and a protected-asset resolver.')
+      if (cloneRequest.protectedSamples.length === 0 || !options.resolveProtectedAsset) throw UsageError('ElevenLabs Instant Voice Clone requires protected samples and a protected-asset resolver.')
       const form = new FormData()
       form.set('name', cloneRequest.desiredName)
       if (cloneRequest.description) form.set('description', cloneRequest.description)
@@ -229,7 +229,7 @@ export const createElevenLabsAdvancedProvider = (options: ElevenLabsAdvancedProv
       const resourceId = trimmedString(response['voice_id'])
       const providerOperationId = trimmedString(response['request_id'])
       if (!resourceId) {
-        if (!providerOperationId) throw CLIUsageError('ElevenLabs Instant Voice Clone returned neither voice_id nor a pending operation ID.')
+        if (!providerOperationId) throw UsageError('ElevenLabs Instant Voice Clone returned neither voice_id nor a pending operation ID.')
         return { schemaVersion: 1, provider: 'elevenlabs', state: 'pending', providerOperationId, sanitizedMetadata: { cloneKind: 'instant', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
       }
       const providerVoice: ProviderVoiceRef = {

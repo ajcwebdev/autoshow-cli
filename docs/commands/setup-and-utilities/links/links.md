@@ -1,6 +1,6 @@
 # links
 
-Fetch curated or ad hoc documentation pages and write one combined markdown file under `project/links/`.
+Fetch curated or ad hoc documentation pages and write one combined markdown file into a timestamped run directory under `output/`.
 
 ## Outline
 
@@ -33,10 +33,11 @@ Add `--refresh` or `--refresh-only` to any of these invocations.
 
 `links` fetches matched pages from the curated documentation registry and concatenates them into a single local file. It can also fetch one remote documentation URL or read a local `.md` or `.txt` file of remote documentation URLs.
 
-- Curated selections write `project/links/<normalized-selection>-links.md`, for example `project/links/all-all-links.md` or `project/links/gemini-general-tts-links.md`
-- Direct URL mode writes `project/links/<normalized-host-and-path>-links.md`, for example `project/links/blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
-- Input file mode writes `project/links/<input-basename>-links.md`, for example `project/links/urls-links.md` from `urls.md`
-- Existing output is overwritten on each run
+Each run creates a timestamped directory under `output/` (or `--output-root`) and writes the combined markdown inside it. Pass `--output-dir <dir>` to pin that run directory instead of a timestamped path.
+
+- Curated selections write `<run-dir>/<normalized-selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md` or `output/<timestamp>_gemini-general-tts-links/gemini-general-tts-links.md`
+- Direct URL mode writes `<run-dir>/<normalized-host-and-path>-links.md`, for example `blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
+- Input file mode writes `<run-dir>/<input-basename>-links.md`, for example `urls-links.md` from `urls.md`
 - Duplicate URLs are fetched once
 - Raw markdown and text docs are appended as-is; HTML pages are converted to markdown before they are appended
 
@@ -206,9 +207,9 @@ Pass `--refresh` to write a JSON sidecar next to the generated markdown:
 bun autoshow links --refresh --openai models
 ```
 
-The sidecar path replaces `.md` with `.refresh.json`; for example, `project/links/openai-models-links.md` gets `project/links/openai-models-links.refresh.json`. Direct URL and input file modes use the same rule after their normal markdown filenames.
+The sidecar path replaces `.md` with `.refresh.json` next to the markdown in the same run directory; for example, `openai-models-links.md` gets `openai-models-links.refresh.json`. Direct URL and input file modes use the same rule after their normal markdown filenames.
 
-`--refresh-only` updates that sidecar without overwriting an existing markdown bundle.
+`--refresh-only` updates that sidecar without overwriting an existing markdown bundle. A default timestamped run is a new directory, so `--refresh` and `--refresh-only` only compare against a previous bundle when `--output-dir` pins that earlier run.
 
 Change status is one of:
 

@@ -3,7 +3,7 @@ import { extractStep2CommandFlags } from '~/cli/flags/extract-flags'
 import { handleProcessTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/handle-process-target'
 import { validateOcrProviderModeCommandFlags } from './step-2-ocr/command-validation'
 import { runExtractTranscriptVideo } from './transcript-video/run-transcript-video'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { withHelpGroup } from '~/cli/flags/flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 
@@ -64,7 +64,7 @@ export const extractCommand = defineCliCommand({
       ['bun autoshow extract https://youtube.com/watch?v=abc', 'Transcribe media with the default Whisper tiny STT model'],
       ['bun autoshow extract file.mp3 --provider assemblyai=universal-3-5-pro', 'Transcribe media with AssemblyAI STT'],
       ['bun autoshow extract document.pdf --provider mistral=mistral-ocr-2512', 'Extract text from a document with Mistral OCR'],
-      ['bun autoshow extract https://example.com/article --url-provider spider', 'Extract a remote article with a URL backend'],
+      ['bun autoshow extract https://example.com/article --provider spider', 'Extract a remote article with a URL backend'],
       ['bun autoshow extract output/<extract-run-dir> --transcript-video', 'Render a synced speaker transcript video from a media extract run'],
       ['bun autoshow extract --transcript-video --audio input/audio.mp3 --transcript-result output/<extract-run-dir>/result.json', 'Render a transcript video from explicit files'],
       ['bun autoshow extract input/examples/batch/2-urls.md --batch-limit all', 'Process every routed item from a mixed input list'],
@@ -82,7 +82,7 @@ export const extractCommand = defineCliCommand({
     .filter((flag) => ctx.rawParsed.explicitFlags.has(flag))
     .map((flag) => `--${flag}`)
   if (transcriptVideoOnlyFlags.length > 0) {
-    throw CLIUsageError(`${transcriptVideoOnlyFlags.join(', ')} require --transcript-video`)
+    throw UsageError(`${transcriptVideoOnlyFlags.join(', ')} require --transcript-video`)
   }
 
   validateOcrProviderModeCommandFlags(ctx)

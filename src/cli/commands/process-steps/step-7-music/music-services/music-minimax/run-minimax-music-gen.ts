@@ -5,7 +5,7 @@ import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, Mini
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { extractErrorMetadata, InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { MinimaxBaseRespSchema, minimaxFetchJson, minimaxJsonRequestInit } from '~/utils/minimax-client/minimax-client'
 import { classifyPaidCreateRetry, withRetry } from '~/utils/retries'
@@ -224,7 +224,7 @@ export const runMinimaxMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = requireApiKey('MINIMAX_API_KEY', 'music:minimax', 'MiniMax music generation')
+  const apiKey = requireProviderKey('minimax', 'music:minimax', 'MiniMax music generation')
 
   const baseURL = MINIMAX_DEFAULT_BASE_URL
   const musicPath = `${outputDir}/generated-music.mp3`

@@ -87,7 +87,7 @@ export const resolveSttStep2Execution = (
     sourceKind: 'media',
     providers: [{
       service: 'whisper',
-      model: typeof options.whisperModel === 'string' && options.whisperModel.length > 0 ? options.whisperModel : 'tiny',
+      model: options.whisperModels?.[0] ?? 'tiny',
       origin: 'default'
     }]
   }

@@ -1,5 +1,5 @@
 import type { CurrentTtsResumePricePlan, PipelineProviderState, PureCurrentTtsRenderPlanOptions } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { buildPureCurrentTtsRenderPlan, planCurrentTtsReadiness, readAudioProjection, sumCosts } from './attempt-planning'
 import { prepareCurrentTtsCompletedRecoveryImpl } from './recovery-exact-render'
 import { prepareCurrentTtsCompatibleSlotRecoveryImpl } from './recovery-compatible-slots'
@@ -18,7 +18,7 @@ export const planCurrentTtsResumePriceImpl = async (
     if (
       requestedSlotLimit !== undefined
       && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)
-    ) throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
+    ) throw UsageError('TTS maximum generation slots must be a positive safe integer.')
     const projection = state ? readAudioProjection(state) : undefined
     const retainedHasPlannedRender = projection?.activeWork?.kind === 'render'
       && projection.renderHistory.some((render) =>

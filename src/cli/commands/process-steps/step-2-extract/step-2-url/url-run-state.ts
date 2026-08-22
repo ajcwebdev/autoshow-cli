@@ -302,7 +302,7 @@ export const buildProviderStates = (
       artifactDir: getUrlProviderArtifactDir(backend),
       status: outcome.status,
       attempts: outcome.status === 'skipped' ? 0 : outcome.attempts,
-      lastError: {
+      error: {
         message: outcome.message
       }
     }
@@ -523,8 +523,8 @@ export const parseStoredProviderStates = (metadata: Record<string, unknown>): Ur
       attempts: typeof entry['attempts'] === 'number' ? entry['attempts'] : 0,
       ...(isRecord(entry['metadata']) ? { metadata: entry['metadata'] } : {}),
       ...(isRecord(entry['result']) ? { result: entry['result'] } : {}),
-      ...(isRecord(entry['lastError']) && typeof entry['lastError']['message'] === 'string'
-        ? { lastError: { message: entry['lastError']['message'] } }
+      ...(isRecord(entry['error']) && typeof entry['error']['message'] === 'string'
+        ? { error: { message: entry['error']['message'] } }
         : {})
     } satisfies UrlProviderState
   })

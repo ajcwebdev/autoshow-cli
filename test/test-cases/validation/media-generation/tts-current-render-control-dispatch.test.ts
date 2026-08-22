@@ -29,9 +29,9 @@ describe('current TTS render control dispatch', () => {
     }))
     const outputDir = await tempDirs.make()
     const options: TtsOptions = {
-      ...buildOptsFromFlags(false, {
+      ...buildOptsFromFlags({
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
-        'openai-tts-speed': '0.7',
+        'tts-speed': '0.7',
         'tts-dialogue-format': 'labeled',
         'tts-speaker': ['Alice=alloy', 'Bob=onyx']
       }),

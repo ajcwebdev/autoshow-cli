@@ -60,7 +60,7 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/
 - Pass file or directory paths under `test/test-cases/` to select tests.
 - Passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test.
 - `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32 and retry once. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override; `--concurrency` is not a Bun test flag and is rejected.
-- Each run writes artifacts under `./project/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` cleans that directory after every run and leaves `./project/test-output/latest.log` with the run summary, failures, runner log, and command log. Use `--no-cleanup` to keep the full run directory, per-test CLI outputs, and test cache.
+- Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` cleans that directory after every run and leaves `./output/test-output/latest.log` with the run summary, failures, runner log, and command log. Use `--no-cleanup` to keep the full run directory, per-test CLI outputs, and test cache.
 - Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
 
 ```bash
@@ -68,7 +68,7 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/
 bun t --no-cleanup
 
 # default cleanup still leaves a failure/debug summary
-cat project/test-output/latest.log
+cat output/test-output/latest.log
 ```
 
 ## Price Preflight

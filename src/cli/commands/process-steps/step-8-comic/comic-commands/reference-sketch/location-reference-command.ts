@@ -11,7 +11,7 @@ import { validateReferenceImageCount } from '../../comic-utils/reference-capabil
 import { runComicStructuredLlm } from '../../comic-utils/structured-script-utils/run-structured-llm'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
@@ -91,12 +91,12 @@ const validateQaResult = (value: LocationViewQaResult): LocationViewQaResult => 
 const uniquePaths = (paths: Array<string | undefined>): string[] => Array.from(new Set(paths.filter((path): path is string => !!path)))
 
 const resolveLocationReferenceRequest = (options: ReferenceSketchCommandOptions): ResolvedLocationReferenceRequest => {
-  if (!options.location || !LOCATION_KEY_PATTERN.test(options.location)) throw CLIUsageError('--location must be a lowercase kebab-case key')
+  if (!options.location || !LOCATION_KEY_PATTERN.test(options.location)) throw UsageError('--location must be a lowercase kebab-case key')
   const key = options.location
   const view = options.view ?? 'establishing'
-  if (!LOCATION_VIEWS.includes(view)) throw CLIUsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
+  if (!LOCATION_VIEWS.includes(view)) throw UsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
   const model = options.imageModels?.[0] ?? DEFAULT_IMAGE_MODEL
-  if ((options.imageModels?.length ?? 1) !== 1 || !model) throw CLIUsageError('reference-sketch accepts exactly one --image-model')
+  if ((options.imageModels?.length ?? 1) !== 1 || !model) throw UsageError('reference-sketch accepts exactly one --image-model')
   const size: ImageGenerationSize = options.size ?? '1536x1024'
   const quality: ImageGenerationQuality = options.quality ?? 'high'
   validateImageSizeForModels(size, [model])

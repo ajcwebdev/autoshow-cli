@@ -8,7 +8,7 @@ import type {
 } from '~/types'
 import { sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { readContainedArtifactFile } from '../../../step-4-tts/script-to-audio/safe-artifact-store'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import type { createComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
 import type { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 import { appendComicAudioProviderState, updateComicAudioManifest } from '../../comic-utils/comic-manifest'
@@ -60,7 +60,7 @@ export const finalizeComicAudioOutputs = async (input: {
   const completedMetadata = metadata.filter((entry) => !entry.generationCheckpoint)
   const checkpoints = metadata.flatMap((entry) => entry.generationCheckpoint ? [{ entry, checkpoint: entry.generationCheckpoint }] : [])
   const selectedAudioRuns = completedMetadata.map((entry) => {
-    if (!entry.targetKey || !entry.renderIdentity || !entry.audioRunId || !entry.comicAudio?.selectedSuccess) throw CLIUsageError('Completed comic target is missing selected audio-run evidence.')
+    if (!entry.targetKey || !entry.renderIdentity || !entry.audioRunId || !entry.comicAudio?.selectedSuccess) throw UsageError('Completed comic target is missing selected audio-run evidence.')
     const archive = entry.comicAudio.archive
     if (archive) {
       return { targetKey: entry.targetKey, renderIdentity: entry.renderIdentity, audioRunId: entry.audioRunId, audioRunRef: archive.renderRef.path, audioRunSha256: archive.renderRef.sha256 }
@@ -68,7 +68,7 @@ export const finalizeComicAudioOutputs = async (input: {
     const selected = entry.comicAudio.selectedSuccess
     const render = entry.comicAudio.renderHistory.find(candidate => candidate.renderIdentity === selected.renderIdentity)
     const event = render?.events.find(candidate => candidate.sequence === selected.eventSequence)
-    if (!event?.audioRunRef || !event.audioRunSha256 || !entry.artifactDir) throw CLIUsageError('Completed comic target audio run is not checksum-bound.')
+    if (!event?.audioRunRef || !event.audioRunSha256 || !entry.artifactDir) throw UsageError('Completed comic target audio run is not checksum-bound.')
     return { targetKey: entry.targetKey, renderIdentity: entry.renderIdentity, audioRunId: entry.audioRunId, audioRunRef: `${entry.artifactDir}/${event.audioRunRef}`, audioRunSha256: event.audioRunSha256 }
   })
   let finalOutputRefs = await Promise.all(completedMetadata.map(async entry => {
@@ -82,7 +82,7 @@ export const finalizeComicAudioOutputs = async (input: {
   if (soundEffectRenderPlan && completedMetadata.length > 0) {
     const dialogueRuns = selectedAudioRuns.map((run) => {
       const entry = completedMetadata.find(candidate => candidate.targetKey === run.targetKey)
-      if (!entry) throw CLIUsageError(`Selected dialogue AudioRun ${run.audioRunId} has no completed target metadata.`)
+      if (!entry) throw UsageError(`Selected dialogue AudioRun ${run.audioRunId} has no completed target metadata.`)
       return { targetKey: run.targetKey, renderIdentity: run.renderIdentity, audioRunId: run.audioRunId, audioRunRef: run.audioRunRef, audioRunSha256: run.audioRunSha256, reportedOutputPath: soundscapeReportedOutputPath(run.targetKey) }
     })
     const soundscape = await runComicSoundscape({
@@ -124,7 +124,7 @@ export const finalizeComicAudioOutputs = async (input: {
         continue
       }
       const stored = await readContainedArtifactFile(compatible.sceneRunDir, binding.audioRunRef)
-      if (stored.sha256 !== binding.audioRunSha256) throw CLIUsageError(`Retained soundscape mix checksum is stale: ${binding.audioRunRef}`)
+      if (stored.sha256 !== binding.audioRunSha256) throw UsageError(`Retained soundscape mix checksum is stale: ${binding.audioRunRef}`)
       retainedSoundscapeRefs.push(...soundscapeAudioRunLineageRefs(JSON.parse(stored.bytes.toString('utf8')) as CompactMix))
     }
     soundscapeArtifactRefs = [soundscape.planRef, ...(soundscape.renderPlanRef ? [soundscape.renderPlanRef] : []), soundscape.renderResultRef, ...retainedSoundscapeRefs]

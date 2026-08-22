@@ -101,7 +101,7 @@ class AppInternalError extends AppError {
   }
 }
 
-export const CLIUsageError = (
+export const UsageError = (
   message: string,
   hint?: string,
   options: { cause?: Error | undefined } = {}
@@ -134,7 +134,7 @@ export const ValidationError = (
 export const isAppError = (error: unknown): error is AppError =>
   error instanceof AppError
 
-export const isCLIUsageError = (error: unknown): error is AppUsageError =>
+export const isUsageError = (error: unknown): error is AppUsageError =>
   error instanceof AppUsageError
 
 export const isRetryExhaustedError = (error: unknown): boolean => {
@@ -163,10 +163,10 @@ export function rethrowAsUsage<T>(
   fallbackHint?: string
 ): T | Promise<T> {
   const wrap = (error: unknown): never => {
-    if (isCLIUsageError(error)) {
+    if (isUsageError(error)) {
       throw error
     }
-    throw CLIUsageError(
+    throw UsageError(
       error instanceof Error ? error.message : String(error),
       fallbackHint,
       error instanceof Error ? { cause: error } : {}
@@ -183,7 +183,7 @@ export function rethrowAsUsage<T>(
   }
 }
 
-export const isUsageError = (error: unknown): boolean => isCLIUsageError(error)
+
 
 export const normalizeExitCode = (error: unknown): number => {
   if (isAppError(error)) {
@@ -201,7 +201,7 @@ export const normalizeExitCode = (error: unknown): number => {
 }
 
 export const usageMessage = (error: unknown): string => {
-  if (isCLIUsageError(error)) {
+  if (isUsageError(error)) {
     return error.usageMessage
   }
   return 'Invalid command usage. Run: bun autoshow --help'

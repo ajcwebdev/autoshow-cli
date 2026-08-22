@@ -380,41 +380,41 @@ describe('price mode contracts', () => {
       const cost = (opts: Parameters<typeof estimateVideoCosts>[0]): string =>
         formatEstimatedCost(estimateVideoCosts(opts)[0]!.totalCost)
 
-      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5 })).toBe('25.00¢')
-      expect(cost({ grokVideoModel: 'grok-imagine-video-1.5', videoDuration: 5 })).toBe('40.00¢')
-      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 5 })).toBe('36.00¢')
-      expect(cost({ lumalabsVideoModel: 'ray-3.2', videoDuration: 5 })).toBe('30.00¢')
+      expect(cost({ grokVideoModels: ['grok-imagine-video'], videoDuration: 5 })).toBe('25.00¢')
+      expect(cost({ grokVideoModels: ['grok-imagine-video-1.5'], videoDuration: 5 })).toBe('40.00¢')
+      expect(cost({ ltxVideoModels: ['ltx-2-3-fast'], videoDuration: 5 })).toBe('36.00¢')
+      expect(cost({ lumalabsVideoModels: ['ray-3.2'], videoDuration: 5 })).toBe('30.00¢')
 
-      expect(cost({ replicateVideoModel: 'alibaba/happyhorse-1.1', videoDuration: 5, videoResolution: '720p' })).toBe('70.00¢')
-      expect(cost({ replicateVideoModel: 'alibaba/happyhorse-1.1', videoDuration: 5, videoResolution: '1080p' })).toBe('90.00¢')
-      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-video', videoDuration: 5, videoResolution: '720p' })).toBe('84.00¢')
-      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-video', videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.68')
-      expect(cost({ replicateVideoModel: 'kwaivgi/kling-v3-omni-video', videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.40')
-      expect(cost({ replicateVideoModel: 'pixverse/pixverse-v6', videoDuration: 5, videoResolution: '360p' })).toBe('25.00¢')
-      expect(cost({ replicateVideoModel: 'pixverse/pixverse-v6', videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.15')
-      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0', videoDuration: 5, videoResolution: '480p' })).toBe('40.00¢')
-      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0', videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('$1.10')
-      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0-fast', videoDuration: -1, videoResolution: '720p' })).toBe('75.00¢')
-      expect(cost({ replicateVideoModel: 'bytedance/seedance-2.0-fast', videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('85.00¢')
+      expect(cost({ replicateVideoModels: ['alibaba/happyhorse-1.1'], videoDuration: 5, videoResolution: '720p' })).toBe('70.00¢')
+      expect(cost({ replicateVideoModels: ['alibaba/happyhorse-1.1'], videoDuration: 5, videoResolution: '1080p' })).toBe('90.00¢')
+      expect(cost({ replicateVideoModels: ['kwaivgi/kling-v3-video'], videoDuration: 5, videoResolution: '720p' })).toBe('84.00¢')
+      expect(cost({ replicateVideoModels: ['kwaivgi/kling-v3-video'], videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.68')
+      expect(cost({ replicateVideoModels: ['kwaivgi/kling-v3-omni-video'], videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.40')
+      expect(cost({ replicateVideoModels: ['pixverse/pixverse-v6'], videoDuration: 5, videoResolution: '360p' })).toBe('25.00¢')
+      expect(cost({ replicateVideoModels: ['pixverse/pixverse-v6'], videoDuration: 5, videoResolution: '1080p', videoGenerateAudio: true })).toBe('$1.15')
+      expect(cost({ replicateVideoModels: ['bytedance/seedance-2.0'], videoDuration: 5, videoResolution: '480p' })).toBe('40.00¢')
+      expect(cost({ replicateVideoModels: ['bytedance/seedance-2.0'], videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('$1.10')
+      expect(cost({ replicateVideoModels: ['bytedance/seedance-2.0-fast'], videoDuration: -1, videoResolution: '720p' })).toBe('75.00¢')
+      expect(cost({ replicateVideoModels: ['bytedance/seedance-2.0-fast'], videoDuration: 5, videoResolution: '720p', replicateVideoReferenceVideoCount: 1 })).toBe('85.00¢')
 
-      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8 })).toBe('48.00¢')
-      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 8, videoResolution: '4k' })).toBe('$1.92')
-      expect(cost({ ltxVideoModel: 'ltx-2-3-fast', videoDuration: 12, videoResolution: '4k', videoAspectRatio: '9:16' })).toBe('$2.40')
-      expect(cost({ ltxVideoModel: 'ltx-2-3-pro', videoMode: 'extend', videoDuration: 5 })).toBe('50.00¢')
+      expect(cost({ ltxVideoModels: ['ltx-2-3-fast'], videoDuration: 8 })).toBe('48.00¢')
+      expect(cost({ ltxVideoModels: ['ltx-2-3-fast'], videoDuration: 8, videoResolution: '4k' })).toBe('$1.92')
+      expect(cost({ ltxVideoModels: ['ltx-2-3-fast'], videoDuration: 12, videoResolution: '4k', videoAspectRatio: '9:16' })).toBe('$2.40')
+      expect(cost({ ltxVideoModels: ['ltx-2-3-pro'], videoMode: 'extend', videoDuration: 5 })).toBe('50.00¢')
 
-      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5, videoResolution: '480p' })).toBe('25.00¢')
-      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5, videoResolution: '720p' })).toBe('35.00¢')
-      expect(cost({ grokVideoModel: 'grok-imagine-video', videoDuration: 5, videoResolution: '480p', grokInputImageCount: 1 })).toBe('25.20¢')
-      expect(cost({ grokVideoModel: 'grok-imagine-video-1.5', videoDuration: 5, videoResolution: '1080p', grokInputImageCount: 1 })).toBe('$1.26')
+      expect(cost({ grokVideoModels: ['grok-imagine-video'], videoDuration: 5, videoResolution: '480p' })).toBe('25.00¢')
+      expect(cost({ grokVideoModels: ['grok-imagine-video'], videoDuration: 5, videoResolution: '720p' })).toBe('35.00¢')
+      expect(cost({ grokVideoModels: ['grok-imagine-video'], videoDuration: 5, videoResolution: '480p', grokInputImageCount: 1 })).toBe('25.20¢')
+      expect(cost({ grokVideoModels: ['grok-imagine-video-1.5'], videoDuration: 5, videoResolution: '1080p', grokInputImageCount: 1 })).toBe('$1.26')
 
-      expect(cost({ geminiVideoModel: 'veo-3.1-lite-generate-preview', videoDuration: 4, videoResolution: '720p' })).toBe('20.00¢')
-      expect(cost({ geminiVideoModel: 'veo-3.1-lite-generate-preview', videoDuration: 4, videoResolution: '1080p' })).toBe('64.00¢')
-      expect(cost({ geminiVideoModel: 'veo-3.1-fast-generate-preview', videoDuration: 4, videoResolution: '720p' })).toBe('40.00¢')
-      expect(cost({ geminiVideoModel: 'veo-3.1-fast-generate-preview', videoDuration: 4, videoResolution: '1080p' })).toBe('96.00¢')
-      expect(cost({ geminiVideoModel: 'veo-3.1-fast-generate-preview', videoDuration: 4, videoResolution: '4k' })).toBe('$2.40')
-      expect(cost({ geminiVideoModel: 'veo-3.1-generate-preview', videoDuration: 4, videoResolution: '720p' })).toBe('$1.60')
-      expect(cost({ geminiVideoModel: 'veo-3.1-generate-preview', videoDuration: 4, videoResolution: '1080p' })).toBe('$3.20')
-      expect(cost({ geminiVideoModel: 'veo-3.1-generate-preview', videoDuration: 4, videoResolution: '4k' })).toBe('$4.80')
+      expect(cost({ geminiVideoModels: ['veo-3.1-lite-generate-preview'], videoDuration: 4, videoResolution: '720p' })).toBe('20.00¢')
+      expect(cost({ geminiVideoModels: ['veo-3.1-lite-generate-preview'], videoDuration: 4, videoResolution: '1080p' })).toBe('64.00¢')
+      expect(cost({ geminiVideoModels: ['veo-3.1-fast-generate-preview'], videoDuration: 4, videoResolution: '720p' })).toBe('40.00¢')
+      expect(cost({ geminiVideoModels: ['veo-3.1-fast-generate-preview'], videoDuration: 4, videoResolution: '1080p' })).toBe('96.00¢')
+      expect(cost({ geminiVideoModels: ['veo-3.1-fast-generate-preview'], videoDuration: 4, videoResolution: '4k' })).toBe('$2.40')
+      expect(cost({ geminiVideoModels: ['veo-3.1-generate-preview'], videoDuration: 4, videoResolution: '720p' })).toBe('$1.60')
+      expect(cost({ geminiVideoModels: ['veo-3.1-generate-preview'], videoDuration: 4, videoResolution: '1080p' })).toBe('$3.20')
+      expect(cost({ geminiVideoModels: ['veo-3.1-generate-preview'], videoDuration: 4, videoResolution: '4k' })).toBe('$4.80')
     })
 
   test('cheapest default text-to-video selection is fal pixverse', () => {
@@ -470,22 +470,22 @@ describe('price mode contracts', () => {
 
   test('OpenAI image estimates use model size and quality tables', () => {
       expect(estimateImageCosts({
-        openaiImageModel: 'gpt-image-2',
+        openaiImageModels: ['gpt-image-2'],
         imageSize: '1024x1024',
         imageQuality: 'low'
       })[0]?.costPerImageCents).toBe(0.6)
       expect(estimateImageCosts({
-        openaiImageModel: 'gpt-image-2',
+        openaiImageModels: ['gpt-image-2'],
         imageSize: '1536x1024',
         imageQuality: 'high'
       })[0]?.costPerImageCents).toBe(16.5)
       expect(estimateImageCosts({
-        openaiImageModel: 'gpt-image-2',
+        openaiImageModels: ['gpt-image-2'],
         imageSize: 'auto',
         imageQuality: 'auto'
       })[0]?.costPerImageCents).toBe(5.3)
       expect(estimateImageCosts({
-        openaiImageModel: 'gpt-image-2',
+        openaiImageModels: ['gpt-image-2'],
         imageSize: '2048x2048',
         imageQuality: 'high'
       })[0]?.note).toContain('OpenAI')

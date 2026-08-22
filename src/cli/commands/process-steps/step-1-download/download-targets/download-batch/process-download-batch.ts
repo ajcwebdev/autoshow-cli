@@ -199,7 +199,7 @@ const finalizeBatch = async ({
     ...manifest,
     items: completedItems
   }))
-  if (command === 'write' || (command === 'extract' && extractRoute === 'document')) {
+  if (command === 'extract' && extractRoute === 'document') {
     await writeOcrBatchDiagnostics(batchDir)
   }
 

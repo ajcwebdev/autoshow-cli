@@ -35,12 +35,12 @@ export const booleanAllLocalFlag = {
 export const stepProviderSelectorFlags = {
   stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
   ocr: strListFlag(`Write pipeline OCR provider[=model]: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
-  llm: strListFlag(`Write pipeline LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
+  llm: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
 } as const satisfies CliFlagsDefinition
 
 export const configPipelineSelectorFlags = {
-  stt: strListFlag(`Default STT provider[=model] persisted for the write and extract commands: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
-  ocr: strListFlag(`Default OCR provider[=model] persisted for the write and extract commands: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
+  stt: strListFlag(`Default STT provider[=model] persisted for the extract command: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
+  ocr: strListFlag(`Default OCR provider[=model] persisted for the extract command: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
   llm: strListFlag(`Default LLM provider[=model] persisted for the write command: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`)
 } as const satisfies CliFlagsDefinition
 
@@ -111,8 +111,7 @@ export const articleFlags = {
   'url-provider': strFlag(`Article/HTML extraction backend: ${formatValueList(URL_ARTICLE_BACKENDS)} (local .html/.htm always use defuddle)`, 'defuddle')
 } as const satisfies CliFlagsDefinition
 
-export const allArticleFlags = {
-  ...articleFlags,
+export const hiddenArticleFlags = {
   'url-provider-concurrency': {
     description: 'URL article extraction: max hosted URL providers running in parallel for one item',
     type: String,

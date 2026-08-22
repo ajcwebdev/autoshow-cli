@@ -13,7 +13,7 @@ import type {
   VoiceLifecyclePort,
 } from '~/types'
 import { FISH_API_BASE_URL, createFishClient } from '~/utils/fish-client/fish-client'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import {
   buildAdvancedCapabilityFixture,
@@ -24,7 +24,7 @@ import {
 import { FISH_VOICE_DESIGN_MODEL } from './fish-tts-request'
 import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const DOCS = {
   catalog: 'https://docs.fish.audio/api-reference/endpoint/model/list-models',
@@ -52,7 +52,7 @@ const capabilityRecords = [
 export const FISH_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
 export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
-  const apiKey = requireProvidedApiKey(options.apiKey, 'FISH_API_KEY', 'voice:fish', 'Fish Audio advanced voice operations')
+  const apiKey = resolveCredential('fish', 'require', { stage: 'voice:fish', providedValue: options.apiKey, useProvidedValue: true, description: 'Fish Audio advanced voice operations' })
 
   const client = createFishClient({
     apiKey,
@@ -89,10 +89,10 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
   const design: VoiceDesignPort = {
     createCandidate: async (designRequest: ProviderVoiceDesignRequest): Promise<ProviderVoiceDesignResult> => {
       if (designRequest.creationModel !== FISH_VOICE_DESIGN_MODEL) {
-        throw CLIUsageError('Fish Audio Voice Design creation model must be voice-design-1.')
+        throw UsageError('Fish Audio Voice Design creation model must be voice-design-1.')
       }
       if (!Number.isInteger(designRequest.candidateCount) || designRequest.candidateCount < 1 || designRequest.candidateCount > 4) {
-        throw CLIUsageError('Fish Audio Voice Design supports one to four bounded previews per request.')
+        throw UsageError('Fish Audio Voice Design supports one to four bounded previews per request.')
       }
       const res = await client.voiceDesign({
         instruction: designRequest.description,
@@ -124,14 +124,14 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
     },
     materializeCandidate: async (materializeRequest) => {
       if (!materializeRequest.protectedPreview) {
-        throw CLIUsageError('Fish Audio candidate materialization requires its protected preview audio.')
+        throw UsageError('Fish Audio candidate materialization requires its protected preview audio.')
       }
       if (!options.resolveProtectedAsset) {
-        throw CLIUsageError('Fish Audio candidate materialization requires a protected-asset resolver.')
+        throw UsageError('Fish Audio candidate materialization requires a protected-asset resolver.')
       }
       const preview = await options.resolveProtectedAsset(materializeRequest.protectedPreview)
       if (preview.bytes.byteLength === 0) {
-        throw CLIUsageError('Fish Audio candidate preview audio is empty.')
+        throw UsageError('Fish Audio candidate preview audio is empty.')
       }
       const model = await client.createModel({
         title: materializeRequest.desiredName,
@@ -170,13 +170,13 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
   const clone: VoiceClonePort = {
     clone: async (cloneRequest) => {
       if (cloneRequest.cloneKind === 'professional') {
-        throw CLIUsageError('Fish Audio does not document a professional voice-clone workflow.')
+        throw UsageError('Fish Audio does not document a professional voice-clone workflow.')
       }
       if (!cloneRequest.protectedSamples || cloneRequest.protectedSamples.length === 0) {
-        throw CLIUsageError('At least one reference audio sample is required for Fish Audio voice clone.')
+        throw UsageError('At least one reference audio sample is required for Fish Audio voice clone.')
       }
       if (!options.resolveProtectedAsset) {
-        throw CLIUsageError('Fish Audio cloning requires a protected-asset resolver.')
+        throw UsageError('Fish Audio cloning requires a protected-asset resolver.')
       }
       const samples = await Promise.all(
         cloneRequest.protectedSamples.map(async (s) => (await options.resolveProtectedAsset!(s)).bytes)
@@ -233,7 +233,7 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
     delete: async (deleteRequest) => {
       const voice = deleteRequest.providerVoice
       if (voice.provider !== 'fish' || voice.kind !== 'remote-resource' || voice.resourceId !== deleteRequest.expectedResourceId) {
-        throw CLIUsageError('Fish deletion identity does not match the registered resource.')
+        throw UsageError('Fish deletion identity does not match the registered resource.')
       }
       await client.deleteModel(voice.resourceId)
       return { deletedAt: now() }

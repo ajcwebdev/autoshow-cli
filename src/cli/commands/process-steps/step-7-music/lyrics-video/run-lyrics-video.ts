@@ -6,7 +6,7 @@ import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-c
 import { runWhisperTranscribe } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/run-whisper'
 import { createManifest, createManifestItem, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { ensureDirectory, fileExists } from '~/utils/cli-utils'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { LYRICS_CUE_LIMITS, buildTranscriptionCues } from './cue-builder'
@@ -279,13 +279,13 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
 
   if (batch) {
     if (audioFlag) {
-      throw CLIUsageError('Do not use --audio with --batch')
+      throw UsageError('Do not use --audio with --batch')
     }
     if (captionsFlag) {
-      throw CLIUsageError('Do not use --captions with --batch')
+      throw UsageError('Do not use --captions with --batch')
     }
   } else if (!audioFlag) {
-    throw CLIUsageError('Missing --audio (or use --batch <dir>)')
+    throw UsageError('Missing --audio (or use --batch <dir>)')
   }
 
   const model = validateWhisperModel(modelRaw)

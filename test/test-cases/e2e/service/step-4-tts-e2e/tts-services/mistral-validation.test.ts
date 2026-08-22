@@ -3,7 +3,7 @@ import {
   runCommand,
   STABLE_TTS_MD_PATH,
 } from '../../../../../test-utils/test-helpers'
-import { mistralTtsModel } from './cases'
+import { mistralTtsModels } from './cases'
 
 test('rejects invalid mistral model', async () => {
   const result = await runCommand([
@@ -24,7 +24,7 @@ test('mistral execution rejects a missing voice source before provider setup', a
     'tts',
     STABLE_TTS_MD_PATH,
     '--provider',
-    `mistral=${mistralTtsModel}`
+    `mistral=${mistralTtsModels}`
   ], {
     env: {
       MISTRAL_API_KEY: ''

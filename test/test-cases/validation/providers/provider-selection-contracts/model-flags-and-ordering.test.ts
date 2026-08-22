@@ -41,7 +41,7 @@ describe('provider selection contracts', () => {
     ]
 
     for (const [flag, model] of cases) {
-      expect(() => buildOptsFromFlags(false, { [flag]: model }))
+      expect(() => buildOptsFromFlags({ [flag]: model }))
         .toThrow(`Invalid model "${model}" for ${formatModelSelector(flag)}`)
     }
   })
@@ -108,7 +108,7 @@ describe('provider selection contracts', () => {
     }
     expect(getStep2ProviderSelectionFlagNames('url')).toEqual(['url-provider'])
 
-    const explicitOpts = buildOptsFromFlags(false, {
+    const explicitOpts = buildOptsFromFlags({
       'url-provider': 'spider'
     }, {}, new Set(['url-provider']))
     expect(collectStep2ProviderSelections('url', explicitOpts).map((selection) => ({
@@ -125,7 +125,7 @@ describe('provider selection contracts', () => {
       model: 'spider'
     }])
 
-    const allUrlOpts = buildOptsFromFlags(false, {
+    const allUrlOpts = buildOptsFromFlags({
       'all-url': true
     }, {}, new Set(['all-url']))
     expect(collectUrlArticleTargets(allUrlOpts)).toEqual(
@@ -139,7 +139,7 @@ describe('provider selection contracts', () => {
       'all-shortcut'
     ])
 
-    const allLocalUrlOpts = buildOptsFromFlags(false, {
+    const allLocalUrlOpts = buildOptsFromFlags({
       'all-local-url': true
     }, {}, new Set(['all-local-url']))
     expect(collectUrlArticleTargets(allLocalUrlOpts)).toEqual([{
@@ -149,7 +149,7 @@ describe('provider selection contracts', () => {
   })
 
   test('article planned routing includes standardized URL providers', () => {
-    const allUrlOpts = buildOptsFromFlags(false, {
+    const allUrlOpts = buildOptsFromFlags({
       'all-url': true
     }, {}, new Set(['all-url']))
     expect(resolveOcrStep2ExecutionFromFormat('html', allUrlOpts)).toEqual({
@@ -163,7 +163,7 @@ describe('provider selection contracts', () => {
     })
 
     const localHtmlHostedOpts = {
-      ...buildOptsFromFlags(false, {
+      ...buildOptsFromFlags({
         'url-provider': 'firecrawl'
       }, {}, new Set(['url-provider'])),
       localHtmlDocument: true
@@ -180,7 +180,7 @@ describe('provider selection contracts', () => {
   })
 
   test('target collection preserves provider ordering and deduplicates repeated models', () => {
-    const sttOpts = buildOptsFromFlags(false, {
+    const sttOpts = buildOptsFromFlags({
       'whisper-stt': ['base', 'base'],
       'assemblyai-stt': ['universal-3-5-pro', 'universal-3-5-pro', 'universal-2']
     })
@@ -189,7 +189,7 @@ describe('provider selection contracts', () => {
       openaiOcrModels: ['gpt-5.4-nano', 'gpt-5.4-nano', 'gpt-5.5'],
       grokOcrModels: ['grok-4.3']
     })
-    const ocrOpts = buildOptsFromFlags(false, {
+    const ocrOpts = buildOptsFromFlags({
       'tesseract-ocr': true,
       'openai-ocr': ['gpt-5.4-nano', 'gpt-5.4-nano', 'gpt-5.5'],
       'grok-ocr': ['grok-4.3']
@@ -215,7 +215,7 @@ describe('provider selection contracts', () => {
   })
 
   test('--all-stt registry expansion excludes local providers and leaves ScrapeCreators to source-aware YouTube expansion', () => {
-    const opts = buildOptsFromFlags(false, { 'all-stt': true })
+    const opts = buildOptsFromFlags({ 'all-stt': true })
     const services = collectSttTargets(opts).map((target) => target.service)
     const supadataTargets = collectSttTargets(opts).filter((target) => target.service === 'supadata')
     const scrapeCreatorsTargets = collectSttTargets(opts).filter((target) => target.service === 'scrapecreators')
@@ -240,7 +240,7 @@ describe('provider selection contracts', () => {
       'nvidia/parakeet-tdt-0.6b-v3'
     ])
 
-    const explicitOpts = buildOptsFromFlags(false, {
+    const explicitOpts = buildOptsFromFlags({
       'scrapecreators-stt': 'youtube-transcript'
     })
     expect(collectSttTargets(explicitOpts).filter((target) => target.service === 'scrapecreators')).toEqual([{
@@ -249,7 +249,7 @@ describe('provider selection contracts', () => {
       local: false
     }])
 
-    const localOpts = buildOptsFromFlags(false, { 'all-local-stt': true })
+    const localOpts = buildOptsFromFlags({ 'all-local-stt': true })
     const localServices = collectSttTargets(localOpts).map((target) => target.service)
     expect(localServices).not.toContain('reverb')
     expect(localServices).toContain('whisper')
@@ -258,7 +258,7 @@ describe('provider selection contracts', () => {
   })
 
   test('source-aware --all-stt filters URL-only STT providers per media input', () => {
-    const opts = buildOptsFromFlags(false, { 'all-stt': true })
+    const opts = buildOptsFromFlags({ 'all-stt': true })
     const localTargets = collectSttTargetsForSource(opts, { filePath: 'input/examples/video/local.mp4' })
     const youtubeTargets = collectSttTargetsForSource(opts, { url: 'https://www.youtube.com/watch?v=u1-WHqATSQU' })
     const directMediaTargets = collectSttTargetsForSource(opts, { url: 'https://example.com/media/interview.mp3' })
@@ -281,11 +281,11 @@ describe('provider selection contracts', () => {
   })
 
   test('explicit URL-only STT providers are not silently filtered for local media', () => {
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'supadata-stt': 'auto',
       'scrapecreators-stt': 'youtube-transcript'
     }, {}, new Set(['supadata-stt', 'scrapecreators-stt']))
-    const combinedAllAndExplicit = buildOptsFromFlags(false, {
+    const combinedAllAndExplicit = buildOptsFromFlags({
       'all-stt': true,
       'supadata-stt': 'auto'
     }, {}, new Set(['all-stt', 'supadata-stt']))
@@ -306,7 +306,7 @@ describe('provider selection contracts', () => {
   })
 
   test('mixed media batch items resolve different --all-stt target sets by source', () => {
-    const opts = buildOptsFromFlags(false, { 'all-stt': true })
+    const opts = buildOptsFromFlags({ 'all-stt': true })
     const mixedBatchTargets = [
       collectSttTargetsForSource(opts, { filePath: 'input/examples/video/local.mp4' }),
       collectSttTargetsForSource(opts, { url: 'https://youtu.be/u1-WHqATSQU' })

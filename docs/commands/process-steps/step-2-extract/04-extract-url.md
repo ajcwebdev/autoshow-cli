@@ -31,8 +31,7 @@ See the [`extract` overview](./01-extract.md) for input routing and default arti
 
 | Flag                                   | Description                                                                                                                                                                       |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--url-provider <backend>`             | Article extraction backend for remote article URLs: `defuddle` (default), `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                                              |
-| `--provider <backend>`                 | Same article backends as `--url-provider`                                                                                                                                         |
+| `--provider <backend>`                 | Article extraction backend for remote article URLs: `defuddle` (default), `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                                              |
 | `--all-providers`                      | For `extract`, run all hosted URL article backends: `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte`                                                                   |
 | `--provider-concurrency <n>`           | Hosted URL backends to run concurrently per item; default `7`                                                                                                                     |
 | `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
@@ -44,7 +43,7 @@ See the [`extract` overview](./01-extract.md) for input routing and default arti
 
 ```bash
 bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
-bun autoshow extract https://example.com/article --url-provider firecrawl
+bun autoshow extract https://example.com/article --provider firecrawl
 bun autoshow extract https://example.com/article --all-providers --price
 bun autoshow extract https://example.com/article --all-providers --provider-concurrency 2
 ```
@@ -57,7 +56,7 @@ bun autoshow extract https://example.com/article --all-providers --provider-conc
 firecrawl, glm-reader, spider, supadata, zyte
 ```
 
-Do not combine `--url-provider` with `--all-providers` or `--all-local`. Each hosted backend runs independently, with no automatic fallback.
+Do not combine `--provider` with `--all-providers` or `--all-local`. Each hosted backend runs independently, with no automatic fallback.
 
 ## URL Output
 
@@ -130,5 +129,5 @@ X Space extraction writes:
 ## X Space Notes
 
 - X inputs work in batch lists (`.md` / `.txt`) with `--batch-limit all`.
-- `metadata` looks up X sources, `download` fetches Space audio, and `write` runs an LLM over the Space report. `tts`, `image`, `video`, and `music` reject X links.
+- `metadata` looks up X sources, `download` fetches Space audio, and `extract` writes the Space report. Pass that report to `write` for LLM generation. `tts`, `image`, `video`, and `music` reject X links.
 - Posts without Spaces produce metadata reports with empty Spaces sections.

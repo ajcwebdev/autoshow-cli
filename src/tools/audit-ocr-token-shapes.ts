@@ -1,4 +1,4 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { auditOcrTokenShapes } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-token-shape-audit'
 
 const args = Bun.argv.slice(2)
@@ -11,17 +11,17 @@ for (let index = 0; index < args.length; index++) {
   const arg = args[index]
   if (arg === '--run-dir') {
     const value = args[++index]
-    if (!value) throw CLIUsageError('--run-dir requires a path')
+    if (!value) throw UsageError('--run-dir requires a path')
     runDirectories.push(value)
   } else if (arg === '--profile') {
     profilePath = args[++index]
-    if (!profilePath) throw CLIUsageError('--profile requires a path')
+    if (!profilePath) throw UsageError('--profile requires a path')
   } else if (arg === '--all-token-providers') {
     includeAllTokenProviders = true
   } else if (arg === '--plan') {
     showPlan = true
   } else {
-    throw CLIUsageError(`Unknown argument: ${arg ?? ''}`)
+    throw UsageError(`Unknown argument: ${arg ?? ''}`)
   }
 }
 

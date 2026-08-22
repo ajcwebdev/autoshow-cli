@@ -5,7 +5,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { downloadVideo } from './yt-utils'
 import { exec } from '~/utils/cli-utils'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { buildMediaStep1Slug, sanitizeTitleSlug } from './metadata-utils'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
@@ -230,7 +230,7 @@ export const downloadAudio = async (options: DownloadAudioOptions, videoMetadata
   let audioPath = ''
   if (options.filePath) {
     if (hasYtDlpPassthroughArgs) {
-      throw CLIUsageError('yt-dlp passthrough args (--) are not supported for local file inputs')
+      throw UsageError('yt-dlp passthrough args (--) are not supported for local file inputs')
     }
     if (preserveOriginalMedia) {
       audioPath = await finalizeDownloadedMedia(options.filePath, options.outputDir, videoMetadata, { copy: true })

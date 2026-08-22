@@ -1,6 +1,6 @@
 import type { GeminiDialogueMode, MultiSpeakerStrategy, SpeakerVoiceRegistry } from '~/types'
 import { validateGeminiTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 const escapeRegExp = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -25,7 +25,7 @@ export const validateGeminiMultiSpeakerTranscriptFromRegistry = (
   for (const entry of registry.entries) {
     const pattern = new RegExp(`(^|\\n)\\s*${escapeRegExp(entry.speaker)}\\s*:`, 'm')
     if (!pattern.test(text)) {
-      throw CLIUsageError(`Gemini multispeaker TTS requires the input text to include "${entry.speaker}:" labels.`)
+      throw UsageError(`Gemini multispeaker TTS requires the input text to include "${entry.speaker}:" labels.`)
     }
   }
 }
@@ -37,7 +37,7 @@ export const resolveGeminiDialogueStrategy = (
   if (mode === 'segmented') return 'segment-and-concat'
   if (registeredSpeakerCount === 2) return 'native'
   if (mode === 'native') {
-    throw CLIUsageError(
+    throw UsageError(
       `Gemini native dialogue requires exactly two registered speakers; received ${registeredSpeakerCount}.`
     )
   }
@@ -63,7 +63,7 @@ export const resolveGeminiDialogueStrategyForText = (
 
   const separator = oversizedLine.indexOf(':')
   const speaker = separator > 0 ? oversizedLine.slice(0, separator).trim() : 'unknown speaker'
-  throw CLIUsageError(
+  throw UsageError(
     `Gemini native dialogue turn for ${speaker} is ${oversizedLine.length} characters, exceeding the ${maxChars}-character request limit. Use segmented rendering for this dialogue.`
   )
 }
@@ -87,12 +87,12 @@ export const splitGeminiNativeDialogueText = (
     const rawSpeaker = separator > 0 ? line.slice(0, separator) : ''
     const spokenText = separator > 0 ? line.slice(separator + 1).trim() : ''
     if (!registry.bySpeaker.has(normalizeSpeaker(rawSpeaker)) || !spokenText) {
-      throw CLIUsageError(
+      throw UsageError(
         'Gemini native dialogue must be normalized into non-empty SPEAKER: text turns before request partitioning.'
       )
     }
     if (line.length > maxChars) {
-      throw CLIUsageError(
+      throw UsageError(
         `Gemini native dialogue turn for ${rawSpeaker.trim()} is ${line.length} characters, exceeding the ${maxChars}-character request limit. Use segmented rendering for this dialogue.`
       )
     }

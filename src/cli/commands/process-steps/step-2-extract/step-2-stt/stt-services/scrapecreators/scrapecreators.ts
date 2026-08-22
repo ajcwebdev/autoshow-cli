@@ -1,5 +1,5 @@
 import { SCRAPECREATORS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
 const YOUTUBE_HOST_PATTERNS = [
   /(^|\.)youtube\.com$/i,
@@ -47,4 +47,4 @@ export const describeScrapeCreatorsUnsupportedSource = (
   return `ScrapeCreators YouTube transcript retrieval only supports youtube.com and youtu.be URLs; unsupported source URL: ${sourceUrl}`
 }
 
-export const ensureScrapeCreatorsSttSetup = ensureProvider('scrapecreators', 'stt:scrapecreators', 'ScrapeCreators YouTube transcript retrieval')
+export const ensureScrapeCreatorsSttSetup = async (): Promise<void> => { requireProviderKey('scrapecreators', 'stt:scrapecreators', 'ScrapeCreators YouTube transcript retrieval') }

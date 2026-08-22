@@ -20,7 +20,7 @@ import { validateTtsTargetSelection } from './target-validation'
 import { getMultiSpeakerStrategy } from './multi-speaker-capability'
 import { resolveGeminiDialogueStrategy } from '../tts-services/tts-gemini/gemini-tts-config'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { getMistralProtectedReference, getMistralProtectedSpeakerReferences } from '../voice-assets/mistral-protected-reference-binding'
 
 const getTtsTransport = (): string => 'hosted-api'
@@ -30,7 +30,7 @@ export const preflightTtsTargetSelection = (
 ): TtsTargetSelection => {
   const rawMistralReference = (options as { mistralTtsRefAudio?: unknown }).mistralTtsRefAudio
   if (typeof rawMistralReference === 'string' && rawMistralReference.trim()) {
-    throw CLIUsageError(
+    throw UsageError(
       'Mistral request reference audio must cross the protected ingestion boundary before target collection.',
       'Pass the reference only through the standalone `tts` CLI edge, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'
     )
@@ -77,7 +77,7 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
 
   const targetKeys = targets.map((target) => target.targetKey)
   if (new Set(targetKeys).size !== targetKeys.length) {
-    throw CLIUsageError('Duplicate operation-scoped TTS targets are not allowed.')
+    throw UsageError('Duplicate operation-scoped TTS targets are not allowed.')
   }
 
   if (selection.multiSpeakerRequested) {

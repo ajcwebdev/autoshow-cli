@@ -1,5 +1,5 @@
 import type { TtsOutputLayout } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 const joinMedia = (mediaRoot: string, ...parts: string[]): string => {
   const prefix = mediaRoot ? `${mediaRoot}/` : ''
@@ -9,7 +9,7 @@ const joinMedia = (mediaRoot: string, ...parts: string[]): string => {
 const normalizeArtifactRoot = (artifactRoot: string | undefined): string => {
   const normalized = (artifactRoot ?? 'providers').replace(/\/+$/, '')
   if (!normalized || normalized.includes('\\') || normalized.split('/').some((part) => !part || part === '.' || part === '..')) {
-    throw CLIUsageError(`Invalid TTS provider artifact root: ${artifactRoot ?? 'providers'}`)
+    throw UsageError(`Invalid TTS provider artifact root: ${artifactRoot ?? 'providers'}`)
   }
   return normalized
 }

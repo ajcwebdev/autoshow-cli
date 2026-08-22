@@ -19,7 +19,7 @@ type ProviderStateBase = {
 }
 
 type PersistedAudioIdentity =
-  | { kind: 'legacy-absent' }
+  | { kind: 'non-audio' }
   | { kind: 'canonical', operation: string, targetKey: string, transport: string }
 
 const parseProviderStateBase = (rootDir: string, value: unknown): ProviderStateBase | undefined => {
@@ -58,7 +58,7 @@ const parseProviderStateBase = (rootDir: string, value: unknown): ProviderStateB
 
 const parsePersistedAudioIdentity = (base: ProviderStateBase): PersistedAudioIdentity | undefined => {
   const keys = ['operation', 'targetKey', 'transport'].filter(key => hasPersistedKey(base.raw, key))
-  if (keys.length === 0) return { kind: 'legacy-absent' }
+  if (keys.length === 0) return { kind: 'non-audio' }
   if (keys.length !== 3) return undefined
   const operation = base.raw['operation']
   const targetKey = base.raw['targetKey']

@@ -1,5 +1,5 @@
 import type { InworldTtsModel, InworldWebSocketConnection, InworldWebSocketConnector, InworldWebSocketRequestInput, InworldWebSocketResponseState, InworldWebSocketSynthesisResult, JsonObject, TtsTimingIdentity } from '~/types'
-import { CLIUsageError, InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InfraError, InternalError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { normalizeInworldTimestampInfo, resolveInworldTtsApiModelId } from './inworld-tts-request'
 
 export const INWORLD_TTS_WEBSOCKET_URL = 'wss://api.inworld.ai/tts/v1/voice:streamBidirectional'
@@ -13,14 +13,14 @@ const MAX_AUDIO_BYTES = 100 * 1024 * 1024
 const record = (value: unknown): Readonly<JsonObject> | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Readonly<JsonObject> : undefined
 const nonempty = (value: string, label: string): string => {
   const result = value.trim()
-  if (!result) throw CLIUsageError(`Inworld WebSocket ${label} cannot be blank.`)
+  if (!result) throw UsageError(`Inworld WebSocket ${label} cannot be blank.`)
   return result
 }
 
 export const buildInworldWebSocketRequests = (input: InworldWebSocketRequestInput): readonly Readonly<JsonObject>[] => {
   const text = nonempty(input.text, 'text')
   if (Array.from(text).length > INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH) {
-    throw CLIUsageError(`Inworld WebSocket text cannot exceed ${INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH} characters.`)
+    throw UsageError(`Inworld WebSocket text cannot exceed ${INWORLD_TTS_WEBSOCKET_MAX_TEXT_LENGTH} characters.`)
   }
   const contextId = nonempty(input.contextId, 'contextId')
   return [
@@ -217,7 +217,7 @@ export const synthesizeInworldWebSocket = async (input: Readonly<{
   const contextId = input.contextId === undefined ? crypto.randomUUID() : nonempty(input.contextId, 'contextId')
   const requestId = input.requestId === undefined ? crypto.randomUUID() : nonempty(input.requestId, 'requestId')
   const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > MAX_TIMEOUT_MS) throw CLIUsageError(`Inworld WebSocket timeoutMs must be between 1 and ${MAX_TIMEOUT_MS}.`)
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > MAX_TIMEOUT_MS) throw UsageError(`Inworld WebSocket timeoutMs must be between 1 and ${MAX_TIMEOUT_MS}.`)
   const requests = serializeInworldWebSocketRequests({ text: input.text, voiceId: input.voiceId, model: input.model, contextId })
   const timeout = AbortSignal.timeout(timeoutMs)
   const signal = input.abortSignal ? AbortSignal.any([input.abortSignal, timeout]) : timeout

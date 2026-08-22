@@ -71,12 +71,10 @@ import {
   validateFalVideoModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { AllShortcutFlag, BuildOptsDefaults, FlagOccurrenceValue, RepeatableModelFlag } from '~/types'
-import { readStringFlag } from './flag-readers'
 import { appendUnique, expandAllShortcutModels } from './model-flag-selection'
 
 export const validateCliValue = <T>(validator: (value: string) => T, value: string): T =>
   rethrowAsUsage(() => validator(value))
-const first = <T>(values: T[] | undefined): T | undefined => values?.[0]
 
 export const readRuntimeModelOptions = (
   flags: Record<string, unknown>,
@@ -101,251 +99,82 @@ export const readRuntimeModelOptions = (
     return normalized.length > 0 ? normalized : undefined
   }
 
-  const whisperModels = readValidatedMany('whisper-stt', validateWhisperModel)
-  const whisperModel = first(whisperModels) ?? validateCliValue(validateWhisperModel, readStringFlag(mergedFlags, 'whisper-stt', 'tiny'))
-  const whisperfileModels = readValidatedMany('whisperfile-stt', validateWhisperfileModel)
-  const deepinfraSttModels = readValidatedMany('deepinfra-stt', validateDeepinfraSttModel)
-  const groqSttModels = readValidatedMany('groq-stt', validateGroqSttModel)
-  const grokSttModels = readValidatedMany('grok-stt', validateGrokSttModel)
-  const deepgramSttModels = readValidatedMany('deepgram-stt', validateDeepgramSttModel)
-  const sonioxSttModels = readValidatedMany('soniox-stt', validateSonioxSttModel)
-  const speechmaticsSttModels = readValidatedMany('speechmatics-stt', validateSpeechmaticsSttModel)
-  const revSttModels = readValidatedMany('rev-stt', validateRevSttModel)
-  const mistralSttModels = readValidatedMany('mistral-stt', validateMistralSttModel)
-  const assemblyaiSttModels = readValidatedMany('assemblyai-stt', validateAssemblyaiSttModel)
-  const gladiaSttModels = readValidatedMany('gladia-stt', validateGladiaSttModel)
-  const happyscribeSttModels = readValidatedMany('happyscribe-stt', validateHappyscribeSttModel)
-  const supadataSttModels = readValidatedMany('supadata-stt', validateSupadataSttModel)
-  const scrapecreatorsSttModels = readValidatedMany('scrapecreators-stt', validateScrapeCreatorsSttModel)
-  const geminiSttModels = readValidatedMany('gemini-stt', validateGeminiSttModel)
-  const togetherSttModels = readValidatedMany('together-stt', validateTogetherSttModel)
-  const mistralOcrModels = readValidatedMany('mistral-ocr', validateMistralOcrModel)
-  const glmOcrModels = readValidatedMany('glm-ocr', validateGlmOcrModel)
-  const kimiOcrModels = readValidatedMany('kimi-ocr', validateKimiOcrModel)
-  const openaiOcrModels = readValidatedMany('openai-ocr', validateOpenAIOcrModel)
-  const grokOcrModels = readValidatedMany('grok-ocr', validateGrokOcrModel)
-  const anthropicOcrModels = readValidatedMany('anthropic-ocr', validateAnthropicOcrModel)
-  const geminiOcrModels = readValidatedMany('gemini-ocr', validateGeminiOcrModel)
-  const deepinfraOcrModels = readValidatedMany('deepinfra-ocr', validateDeepinfraOcrModel)
-  const replicateOcrModels = readValidatedMany('replicate-ocr', validateReplicateOcrModel)
-  const falOcrModels = readValidatedMany('fal-ocr', validateFalOcrModel)
-  const openaiModels = readValidatedMany('openai', validateOpenAIModel)
-  const groqModels = readValidatedMany('groq', validateGroqModel)
-  const geminiModels = readValidatedMany('gemini', validateGeminiModel)
-  const anthropicModels = readValidatedMany('anthropic', validateAnthropicModel)
-  const minimaxModels = readValidatedMany('minimax', validateMinimaxModel)
-  const grokModels = readValidatedMany('grok', validateGrokModel)
-  const glmModels = readValidatedMany('glm', validateGlmModel)
-  const kimiModels = readValidatedMany('kimi', validateKimiModel)
-  const togetherModels = readValidatedMany('together', validateTogetherModel)
-  const cerebrasModels = readValidatedMany('cerebras', validateCerebrasModel)
-  const whisperfileModel = first(whisperfileModels)
-  const deepinfraSttModel = first(deepinfraSttModels)
-  const groqSttModel = first(groqSttModels)
-  const grokSttModel = first(grokSttModels)
-  const deepgramSttModel = first(deepgramSttModels)
-  const sonioxSttModel = first(sonioxSttModels)
-  const speechmaticsSttModel = first(speechmaticsSttModels)
-  const revSttModel = first(revSttModels)
-  const mistralSttModel = first(mistralSttModels)
-  const assemblyaiSttModel = first(assemblyaiSttModels)
-  const gladiaSttModel = first(gladiaSttModels)
-  const happyscribeSttModel = first(happyscribeSttModels)
-  const supadataSttModel = first(supadataSttModels)
-  const scrapecreatorsSttModel = first(scrapecreatorsSttModels)
-  const geminiSttModel = first(geminiSttModels)
-  const togetherSttModel = first(togetherSttModels)
-  const mistralOcrModel = first(mistralOcrModels)
-  const glmOcrModel = first(glmOcrModels)
-  const kimiOcrModel = first(kimiOcrModels)
-  const openaiOcrModel = first(openaiOcrModels)
-  const grokOcrModel = first(grokOcrModels)
-  const anthropicOcrModel = first(anthropicOcrModels)
-  const geminiOcrModel = first(geminiOcrModels)
-  const deepinfraOcrModel = first(deepinfraOcrModels)
-  const replicateOcrModel = first(replicateOcrModels)
-  const falOcrModel = first(falOcrModels)
-  const openaiModel = first(openaiModels)
-  const groqModel = first(groqModels)
-  const geminiModel = first(geminiModels)
-  const anthropicModel = first(anthropicModels)
-  const minimaxModel = first(minimaxModels)
-  const grokModel = first(grokModels)
-  const glmModel = first(glmModels)
-  const kimiModel = first(kimiModels)
-  const togetherModel = first(togetherModels)
-  const cerebrasModel = first(cerebrasModels)
-  const elevenlabsTtsModels = readValidatedMany('elevenlabs-tts', validateElevenlabsTtsModel)
-  const minimaxTtsModels = readValidatedMany('minimax-tts', validateMinimaxTtsModel)
-  const groqTtsModels = readValidatedMany('groq-tts', validateGroqTtsModel)
-  const grokTtsModels = readValidatedMany('grok-tts', validateGrokTtsModel)
-  const mistralTtsModels = readValidatedMany('mistral-tts', validateMistralTtsModel)
-  const openaiTtsModels = readValidatedMany('openai-tts', validateOpenAITtsModel)
-  const geminiTtsModels = readValidatedMany('gemini-tts', validateGeminiTtsModel)
-  const deepgramTtsModels = readValidatedMany('deepgram-tts', validateDeepgramTtsModel)
-  const speechifyTtsModels = readValidatedMany('speechify-tts', validateSpeechifyTtsModel)
-  const humeTtsModels = readValidatedMany('hume-tts', validateHumeTtsModel)
-  const cartesiaTtsModels = readValidatedMany('cartesia-tts', validateCartesiaTtsModel)
-  const fishTtsModels = readValidatedMany('fish-tts', validateFishTtsModel)
-  const inworldTtsModels = readValidatedMany('inworld-tts', validateInworldTtsModel)
-  const deepinfraTtsModels = readValidatedMany('deepinfra-tts', validateDeepinfraTtsModel)
-  const replicateTtsModels = readValidatedMany('replicate-tts', validateReplicateTtsModel)
-  const falTtsModels = readValidatedMany('fal-tts', validateFalTtsModel)
-  const geminiImageModels = readValidatedMany('gemini-image', validateGeminiImageModel)
-  const openaiImageModels = readValidatedMany('openai-image', validateOpenAIImageModel)
-  const grokImageModels = readValidatedMany('grok-image', validateGrokImageModel)
-  const bflImageModels = readValidatedMany('bfl-image', validateBflImageModel)
-  const replicateImageModels = readValidatedMany('replicate-image', validateReplicateImageModel)
-  const lumalabsImageModels = readValidatedMany('lumalabs-image', validateLumalabsImageModel)
-  const falImageModels = readValidatedMany('fal-image', validateFalImageModel)
-  const elevenlabsMusicModels = readValidatedMany('elevenlabs-music', validateElevenlabsMusicModel)
-  const minimaxMusicModels = readValidatedMany('minimax-music', validateMinimaxMusicModel)
-  const geminiMusicModels = readValidatedMany('gemini-music', validateGeminiMusicModel)
-  const geminiVideoModels = readValidatedMany('gemini-video', validateGeminiVideoModel)
-  const grokVideoModels = readValidatedMany('grok-video', validateGrokVideoModel)
-  const ltxVideoModels = readValidatedMany('ltx-video', validateLtxVideoModel)
-  const replicateVideoModels = readValidatedMany('replicate-video', validateReplicateVideoModel)
-  const lumalabsVideoModels = readValidatedMany('lumalabs-video', validateLumalabsVideoModel)
-  const falVideoModels = readValidatedMany('fal-video', validateFalVideoModel)
+  const selectedWhisperModels = readValidatedMany('whisper-stt', validateWhisperModel)
+  const whisperPathActive = selectedWhisperModels !== undefined
+    || mergedFlags['whisper-stt'] !== undefined
+    || allShortcutFlags['all-local-stt']
+  const whisperModels = selectedWhisperModels
+    ?? (whisperPathActive ? [validateCliValue(validateWhisperModel, 'tiny')] : undefined)
 
   return {
     whisperModels,
-    whisperModel,
-    whisperfileModels,
-    whisperfileModel,
-    deepinfraSttModels,
-    deepinfraSttModel,
-    groqSttModels,
-    groqSttModel,
-    grokSttModels,
-    grokSttModel,
-    deepgramSttModels,
-    deepgramSttModel,
-    sonioxSttModels,
-    sonioxSttModel,
-    speechmaticsSttModels,
-    speechmaticsSttModel,
-    revSttModels,
-    revSttModel,
-    mistralSttModels,
-    mistralSttModel,
-    assemblyaiSttModels,
-    assemblyaiSttModel,
-    gladiaSttModels,
-    gladiaSttModel,
-    happyscribeSttModels,
-    happyscribeSttModel,
-    supadataSttModels,
-    supadataSttModel,
-    scrapecreatorsSttModels,
-    scrapecreatorsSttModel,
-    geminiSttModels,
-    geminiSttModel,
-    togetherSttModels,
-    togetherSttModel,
-    mistralOcrModels,
-    mistralOcrModel,
-    glmOcrModels,
-    glmOcrModel,
-    kimiOcrModels,
-    kimiOcrModel,
-    openaiOcrModels,
-    openaiOcrModel,
-    grokOcrModels,
-    grokOcrModel,
-    anthropicOcrModels,
-    anthropicOcrModel,
-    geminiOcrModels,
-    geminiOcrModel,
-    deepinfraOcrModels,
-    deepinfraOcrModel,
-    replicateOcrModels,
-    replicateOcrModel,
-    falOcrModels,
-    falOcrModel,
-    openaiModels,
-    openaiModel,
-    groqModels,
-    groqModel,
-    geminiModels,
-    geminiModel,
-    anthropicModels,
-    anthropicModel,
-    minimaxModels,
-    minimaxModel,
-    grokModels,
-    grokModel,
-    glmModels,
-    glmModel,
-    kimiModels,
-    kimiModel,
-    togetherModels,
-    togetherModel,
-    cerebrasModels,
-    cerebrasModel,
-    elevenlabsTtsModels,
-    elevenlabsTtsModel: first(elevenlabsTtsModels),
-    minimaxTtsModels,
-    minimaxTtsModel: first(minimaxTtsModels),
-    groqTtsModels,
-    groqTtsModel: first(groqTtsModels),
-    grokTtsModels,
-    grokTtsModel: first(grokTtsModels),
-    mistralTtsModels,
-    mistralTtsModel: first(mistralTtsModels),
-    openaiTtsModels,
-    openaiTtsModel: first(openaiTtsModels),
-    geminiTtsModels,
-    geminiTtsModel: first(geminiTtsModels),
-    deepgramTtsModels,
-    deepgramTtsModel: first(deepgramTtsModels),
-    speechifyTtsModels,
-    speechifyTtsModel: first(speechifyTtsModels),
-    humeTtsModels,
-    humeTtsModel: first(humeTtsModels),
-    cartesiaTtsModels,
-    cartesiaTtsModel: first(cartesiaTtsModels),
-    fishTtsModels,
-    fishTtsModel: first(fishTtsModels),
-    inworldTtsModels,
-    inworldTtsModel: first(inworldTtsModels),
-    deepinfraTtsModels,
-    deepinfraTtsModel: first(deepinfraTtsModels),
-    replicateTtsModels,
-    replicateTtsModel: first(replicateTtsModels),
-    falTtsModels,
-    falTtsModel: first(falTtsModels),
-    geminiImageModels,
-    geminiImageModel: first(geminiImageModels),
-    openaiImageModels,
-    openaiImageModel: first(openaiImageModels),
-    grokImageModels,
-    grokImageModel: first(grokImageModels),
-    bflImageModels,
-    bflImageModel: first(bflImageModels),
-    replicateImageModels,
-    replicateImageModel: first(replicateImageModels),
-    lumalabsImageModels,
-    lumalabsImageModel: first(lumalabsImageModels),
-    falImageModels,
-    falImageModel: first(falImageModels),
-    elevenlabsMusicModels,
-    elevenlabsMusicModel: first(elevenlabsMusicModels),
-    minimaxMusicModels,
-    minimaxMusicModel: first(minimaxMusicModels),
-    geminiMusicModels,
-    geminiMusicModel: first(geminiMusicModels),
-    geminiVideoModels,
-    geminiVideoModel: first(geminiVideoModels),
-    grokVideoModels,
-    grokVideoModel: first(grokVideoModels),
-    ltxVideoModels,
-    ltxVideoModel: first(ltxVideoModels),
-    replicateVideoModels,
-    replicateVideoModel: first(replicateVideoModels),
-    lumalabsVideoModels,
-    lumalabsVideoModel: first(lumalabsVideoModels),
-    falVideoModels,
-    falVideoModel: first(falVideoModels)
+    whisperfileModels: readValidatedMany('whisperfile-stt', validateWhisperfileModel),
+    deepinfraSttModels: readValidatedMany('deepinfra-stt', validateDeepinfraSttModel),
+    groqSttModels: readValidatedMany('groq-stt', validateGroqSttModel),
+    grokSttModels: readValidatedMany('grok-stt', validateGrokSttModel),
+    deepgramSttModels: readValidatedMany('deepgram-stt', validateDeepgramSttModel),
+    sonioxSttModels: readValidatedMany('soniox-stt', validateSonioxSttModel),
+    speechmaticsSttModels: readValidatedMany('speechmatics-stt', validateSpeechmaticsSttModel),
+    revSttModels: readValidatedMany('rev-stt', validateRevSttModel),
+    mistralSttModels: readValidatedMany('mistral-stt', validateMistralSttModel),
+    assemblyaiSttModels: readValidatedMany('assemblyai-stt', validateAssemblyaiSttModel),
+    gladiaSttModels: readValidatedMany('gladia-stt', validateGladiaSttModel),
+    happyscribeSttModels: readValidatedMany('happyscribe-stt', validateHappyscribeSttModel),
+    supadataSttModels: readValidatedMany('supadata-stt', validateSupadataSttModel),
+    scrapecreatorsSttModels: readValidatedMany('scrapecreators-stt', validateScrapeCreatorsSttModel),
+    geminiSttModels: readValidatedMany('gemini-stt', validateGeminiSttModel),
+    togetherSttModels: readValidatedMany('together-stt', validateTogetherSttModel),
+    mistralOcrModels: readValidatedMany('mistral-ocr', validateMistralOcrModel),
+    glmOcrModels: readValidatedMany('glm-ocr', validateGlmOcrModel),
+    kimiOcrModels: readValidatedMany('kimi-ocr', validateKimiOcrModel),
+    openaiOcrModels: readValidatedMany('openai-ocr', validateOpenAIOcrModel),
+    grokOcrModels: readValidatedMany('grok-ocr', validateGrokOcrModel),
+    anthropicOcrModels: readValidatedMany('anthropic-ocr', validateAnthropicOcrModel),
+    geminiOcrModels: readValidatedMany('gemini-ocr', validateGeminiOcrModel),
+    deepinfraOcrModels: readValidatedMany('deepinfra-ocr', validateDeepinfraOcrModel),
+    replicateOcrModels: readValidatedMany('replicate-ocr', validateReplicateOcrModel),
+    falOcrModels: readValidatedMany('fal-ocr', validateFalOcrModel),
+    openaiModels: readValidatedMany('openai', validateOpenAIModel),
+    groqModels: readValidatedMany('groq', validateGroqModel),
+    geminiModels: readValidatedMany('gemini', validateGeminiModel),
+    anthropicModels: readValidatedMany('anthropic', validateAnthropicModel),
+    minimaxModels: readValidatedMany('minimax', validateMinimaxModel),
+    grokModels: readValidatedMany('grok', validateGrokModel),
+    glmModels: readValidatedMany('glm', validateGlmModel),
+    kimiModels: readValidatedMany('kimi', validateKimiModel),
+    togetherModels: readValidatedMany('together', validateTogetherModel),
+    cerebrasModels: readValidatedMany('cerebras', validateCerebrasModel),
+    elevenlabsTtsModels: readValidatedMany('elevenlabs-tts', validateElevenlabsTtsModel),
+    minimaxTtsModels: readValidatedMany('minimax-tts', validateMinimaxTtsModel),
+    groqTtsModels: readValidatedMany('groq-tts', validateGroqTtsModel),
+    grokTtsModels: readValidatedMany('grok-tts', validateGrokTtsModel),
+    mistralTtsModels: readValidatedMany('mistral-tts', validateMistralTtsModel),
+    openaiTtsModels: readValidatedMany('openai-tts', validateOpenAITtsModel),
+    geminiTtsModels: readValidatedMany('gemini-tts', validateGeminiTtsModel),
+    deepgramTtsModels: readValidatedMany('deepgram-tts', validateDeepgramTtsModel),
+    speechifyTtsModels: readValidatedMany('speechify-tts', validateSpeechifyTtsModel),
+    humeTtsModels: readValidatedMany('hume-tts', validateHumeTtsModel),
+    cartesiaTtsModels: readValidatedMany('cartesia-tts', validateCartesiaTtsModel),
+    fishTtsModels: readValidatedMany('fish-tts', validateFishTtsModel),
+    inworldTtsModels: readValidatedMany('inworld-tts', validateInworldTtsModel),
+    deepinfraTtsModels: readValidatedMany('deepinfra-tts', validateDeepinfraTtsModel),
+    replicateTtsModels: readValidatedMany('replicate-tts', validateReplicateTtsModel),
+    falTtsModels: readValidatedMany('fal-tts', validateFalTtsModel),
+    geminiImageModels: readValidatedMany('gemini-image', validateGeminiImageModel),
+    openaiImageModels: readValidatedMany('openai-image', validateOpenAIImageModel),
+    grokImageModels: readValidatedMany('grok-image', validateGrokImageModel),
+    bflImageModels: readValidatedMany('bfl-image', validateBflImageModel),
+    replicateImageModels: readValidatedMany('replicate-image', validateReplicateImageModel),
+    lumalabsImageModels: readValidatedMany('lumalabs-image', validateLumalabsImageModel),
+    falImageModels: readValidatedMany('fal-image', validateFalImageModel),
+    elevenlabsMusicModels: readValidatedMany('elevenlabs-music', validateElevenlabsMusicModel),
+    minimaxMusicModels: readValidatedMany('minimax-music', validateMinimaxMusicModel),
+    geminiMusicModels: readValidatedMany('gemini-music', validateGeminiMusicModel),
+    geminiVideoModels: readValidatedMany('gemini-video', validateGeminiVideoModel),
+    grokVideoModels: readValidatedMany('grok-video', validateGrokVideoModel),
+    ltxVideoModels: readValidatedMany('ltx-video', validateLtxVideoModel),
+    replicateVideoModels: readValidatedMany('replicate-video', validateReplicateVideoModel),
+    lumalabsVideoModels: readValidatedMany('lumalabs-video', validateLumalabsVideoModel),
+    falVideoModels: readValidatedMany('fal-video', validateFalVideoModel)
   }
 }

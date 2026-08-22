@@ -30,14 +30,14 @@ import {
 
 describe('option resolution contracts', () => {
   test('hosted concurrency mode defaults to ramp and validates explicit values', () => {
-    const defaults = buildOptsFromFlags(false, {})
-    const immediate = buildOptsFromFlags(false, { 'concurrency-mode': 'immediate' })
+    const defaults = buildOptsFromFlags({})
+    const immediate = buildOptsFromFlags({ 'concurrency-mode': 'immediate' })
 
     expect(defaults.concurrencyMode).toBe('ramp')
     expect(defaults.hostedConcurrencyCoordinator?.mode).toBe('ramp')
     expect(immediate.concurrencyMode).toBe('immediate')
     expect(immediate.hostedConcurrencyCoordinator?.mode).toBe('immediate')
-    expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'fast' })).toThrow('Expected "ramp" or "immediate"')
+    expect(() => buildOptsFromFlags({ 'concurrency-mode': 'fast' })).toThrow('Expected "ramp" or "immediate"')
   })
 
   test('MiniMax write model validator accepts M3', () => {
@@ -98,12 +98,12 @@ describe('option resolution contracts', () => {
     })
 
   test('OCR provider concurrency defaults, falls back, and clamps like STT concurrency flags', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const fallback = buildOptsFromFlags(false, {
+      const defaults = buildOptsFromFlags({})
+      const fallback = buildOptsFromFlags({
         'ocr-provider-concurrency': 'not-a-number',
         'ocr-local-concurrency': 'nope'
       })
-      const clamped = buildOptsFromFlags(false, {
+      const clamped = buildOptsFromFlags({
         'ocr-provider-concurrency': '0',
         'ocr-local-concurrency': '-4'
       })
@@ -117,11 +117,11 @@ describe('option resolution contracts', () => {
     })
 
   test('OCR provider mode defaults to fanout and resolves explicit or configured pool mode', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const explicitPool = buildOptsFromFlags(false, {
+      const defaults = buildOptsFromFlags({})
+      const explicitPool = buildOptsFromFlags({
         'ocr-provider-mode': 'pool'
       }, {}, new Set(['ocr-provider-mode']))
-      const configuredPool = buildOptsFromFlags(false, {
+      const configuredPool = buildOptsFromFlags({
         'ocr-provider-mode': 'pool',
         __autoshowConfigInjectedFlags: ['ocr-provider-mode']
       })
@@ -133,19 +133,19 @@ describe('option resolution contracts', () => {
       expect(explicitPool.ocrProviderModeExplicit).toBe(true)
       expect(configuredPool.ocrProviderMode).toBe('pool')
       expect(configuredPool.ocrProviderModeExplicit).toBe(true)
-      expect(() => buildOptsFromFlags(false, { 'ocr-provider-mode': 'round-robin' })).toThrow('Expected fanout or pool')
+      expect(() => buildOptsFromFlags({ 'ocr-provider-mode': 'round-robin' })).toThrow('Expected fanout or pool')
     })
 
   test('OCR provider concurrency ignores parser-injected shared defaults', () => {
-      const parserDefaults = buildOptsFromFlags(false, {
+      const parserDefaults = buildOptsFromFlags({
         'provider-concurrency': String(DEFAULT_CLI_CONCURRENCY),
         'local-concurrency': String(DEFAULT_CLI_CONCURRENCY)
       })
-      const explicitShared = buildOptsFromFlags(false, {
+      const explicitShared = buildOptsFromFlags({
         'provider-concurrency': String(DEFAULT_CLI_CONCURRENCY),
         'local-concurrency': String(DEFAULT_CLI_CONCURRENCY)
       }, {}, new Set(['provider-concurrency', 'local-concurrency']))
-      const configuredSpecific = buildOptsFromFlags(false, {
+      const configuredSpecific = buildOptsFromFlags({
         'provider-concurrency': String(DEFAULT_CLI_CONCURRENCY),
         'local-concurrency': String(DEFAULT_CLI_CONCURRENCY),
         'ocr-provider-concurrency': '4',
@@ -162,17 +162,17 @@ describe('option resolution contracts', () => {
     })
 
   test('OCR page concurrency defaults to hosted auto, falls back on invalid values, and clamps to one', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const fallback = buildOptsFromFlags(false, {
+      const defaults = buildOptsFromFlags({})
+      const fallback = buildOptsFromFlags({
         'ocr-concurrency': 'not-a-number'
       })
-      const clamped = buildOptsFromFlags(false, {
+      const clamped = buildOptsFromFlags({
         'ocr-concurrency': '0'
       })
-      const explicit = buildOptsFromFlags(false, {
+      const explicit = buildOptsFromFlags({
         'ocr-concurrency': '4'
       })
-      const configured = buildOptsFromFlags(false, {
+      const configured = buildOptsFromFlags({
         'ocr-concurrency': '6',
         __autoshowConfigInjectedFlags: ['ocr-concurrency']
       })
@@ -196,12 +196,12 @@ describe('option resolution contracts', () => {
     })
 
   test('LLM provider concurrency defaults, falls back, and clamps like STT/OCR concurrency flags', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const fallback = buildOptsFromFlags(false, {
+      const defaults = buildOptsFromFlags({})
+      const fallback = buildOptsFromFlags({
         'llm-provider-concurrency': 'not-a-number',
         'llm-local-concurrency': 'nope'
       })
-      const clamped = buildOptsFromFlags(false, {
+      const clamped = buildOptsFromFlags({
         'llm-provider-concurrency': '0',
         'llm-local-concurrency': '-4'
       })
@@ -215,8 +215,8 @@ describe('option resolution contracts', () => {
     })
 
   test('generation provider concurrency defaults, falls back, and clamps like other provider concurrency flags', () => {
-      const defaults = buildOptsFromFlags(false, {})
-      const fallback = buildOptsFromFlags(false, {
+      const defaults = buildOptsFromFlags({})
+      const fallback = buildOptsFromFlags({
         'tts-provider-concurrency': 'not-a-number',
         'tts-local-concurrency': 'nope',
         'tts-chunk-concurrency': 'bad',
@@ -227,7 +227,7 @@ describe('option resolution contracts', () => {
         'music-provider-concurrency': 'bad',
         'music-local-concurrency': 'bad'
       })
-      const clamped = buildOptsFromFlags(false, {
+      const clamped = buildOptsFromFlags({
         'tts-provider-concurrency': '0',
         'tts-local-concurrency': '-1',
         'tts-chunk-concurrency': '0',
@@ -263,17 +263,17 @@ describe('option resolution contracts', () => {
       expect(clamped.musicProviderConcurrency).toBe(1)
       expect(clamped.musicLocalConcurrency).toBe(1)
 
-      const explicit = buildOptsFromFlags(false, {
+      const explicit = buildOptsFromFlags({
         'tts-chunk-concurrency': '3'
       })
       expect(explicit.ttsChunkConcurrency).toBe(3)
     })
 
   test('Grok-only hosted TTS gets a higher implicit chunk concurrency default', () => {
-      const grokOnly = buildOptsFromFlags(false, {
+      const grokOnly = buildOptsFromFlags({
         'grok-tts': 'grok-tts'
       })
-      const parserDefaultInjected = buildOptsFromFlags(false, {
+      const parserDefaultInjected = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
       })
@@ -283,34 +283,29 @@ describe('option resolution contracts', () => {
       }, new Set(['provider']), flagOccurrencesFromValues({ provider: 'grok' }), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
         allProvidersTarget: 'all-tts'
       })
-      const genericProviderGrok = buildOptsFromFlags(
-        false,
-        normalizedGrokProvider.flags,
-        {},
-        normalizedGrokProvider.explicitFlags
-      )
-      const explicitThirty = buildOptsFromFlags(false, {
+      const genericProviderGrok = buildOptsFromFlags(normalizedGrokProvider.flags, {}, normalizedGrokProvider.explicitFlags)
+      const explicitThirty = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
       }, {}, new Set(['tts-chunk-concurrency']))
-      const configuredThirty = buildOptsFromFlags(false, {
+      const configuredThirty = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY),
         __autoshowConfigInjectedFlags: ['tts-chunk-concurrency']
       })
-      const configuredCustom = buildOptsFromFlags(false, {
+      const configuredCustom = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
         'tts-chunk-concurrency': '44',
         __autoshowConfigInjectedFlags: ['tts-chunk-concurrency']
       })
-      const openaiOnly = buildOptsFromFlags(false, {
+      const openaiOnly = buildOptsFromFlags({
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15'
       })
-      const grokAndOpenai = buildOptsFromFlags(false, {
+      const grokAndOpenai = buildOptsFromFlags({
         'grok-tts': 'grok-tts',
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15'
       })
-      const allTts = buildOptsFromFlags(false, { 'all-tts': true })
+      const allTts = buildOptsFromFlags({ 'all-tts': true })
 
       expect(grokOnly.ttsChunkConcurrency).toBe(DEFAULT_GROK_TTS_CHUNK_CONCURRENCY)
       expect(parserDefaultInjected.ttsChunkConcurrency).toBe(DEFAULT_GROK_TTS_CHUNK_CONCURRENCY)
@@ -351,7 +346,7 @@ describe('option resolution contracts', () => {
       const deepgramTtsDefault = resolveCheapestModelForFlag('deepgram-tts')
       const humeTtsDefault = resolveCheapestModelForFlag('hume-tts')
       const cartesiaTtsDefault = resolveCheapestModelForFlag('cartesia-tts')
-      const opts = buildOptsFromFlags(false, {
+      const opts = buildOptsFromFlags({
         openai: true,
         gemini: true,
         grok: true,
@@ -407,36 +402,36 @@ describe('option resolution contracts', () => {
       expect(deepgramTtsDefault).toBe('aura-2-thalia-en')
       expect(humeTtsDefault).toBe('octave-1')
       expect(cartesiaTtsDefault).toBe('sonic-3.5-2026-05-04')
-      expect(opts.openaiModel).toBe(openaiDefault)
-      expect(geminiDefault).toBe(opts.geminiModel)
-      expect(grokDefault).toBe(opts.grokModel)
-      expect(glmDefault).toBe(opts.glmModel)
-      expect(kimiDefault).toBe(opts.kimiModel)
-      expect(togetherDefault).toBe(opts.togetherModel)
-      expect(cerebrasDefault).toBe(opts.cerebrasModel)
-      expect(opts.deepgramSttModel).toBe(deepgramDefault)
-      expect(opts.assemblyaiSttModel).toBe(assemblyaiDefault)
-      expect(opts.gladiaSttModel).toBe(gladiaDefault)
-      expect(opts.geminiSttModel).toBe(geminiSttDefault)
-      expect(opts.sonioxSttModel).toBe(sonioxDefault)
-      expect(opts.speechmaticsSttModel).toBe(speechmaticsDefault)
-      expect(opts.scrapecreatorsSttModel).toBe(scrapeCreatorsDefault)
-      expect(opts.openaiOcrModel).toBe(openaiOcrDefault)
-      expect(opts.geminiOcrModel).toBe(geminiOcrDefault)
-      expect(opts.grokOcrModel).toBe(grokOcrDefault)
-      expect(opts.deepinfraOcrModel).toBe(deepinfraOcrDefault)
-      expect(opts.kimiOcrModel).toBe(kimiOcrDefault)
-      expect(opts.speechifyTtsModel).toBe(speechifyTtsDefault)
-      expect(opts.elevenlabsTtsModel).toBe(elevenlabsTtsDefault)
-      expect(opts.groqTtsModel).toBe(groqTtsDefault)
-      expect(opts.openaiTtsModel).toBe(openaiTtsDefault)
-      expect(opts.deepgramTtsModel).toBe(deepgramTtsDefault)
-      expect(opts.humeTtsModel).toBe(humeTtsDefault)
-      expect(opts.cartesiaTtsModel).toBe(cartesiaTtsDefault)
+      expect(opts.openaiModels?.[0]).toBe(openaiDefault)
+      expect(geminiDefault).toBe(opts.geminiModels?.[0])
+      expect(grokDefault).toBe(opts.grokModels?.[0])
+      expect(glmDefault).toBe(opts.glmModels?.[0])
+      expect(kimiDefault).toBe(opts.kimiModels?.[0])
+      expect(togetherDefault).toBe(opts.togetherModels?.[0])
+      expect(cerebrasDefault).toBe(opts.cerebrasModels?.[0])
+      expect(opts.deepgramSttModels?.[0]).toBe(deepgramDefault)
+      expect(opts.assemblyaiSttModels?.[0]).toBe(assemblyaiDefault)
+      expect(opts.gladiaSttModels?.[0]).toBe(gladiaDefault)
+      expect(opts.geminiSttModels?.[0]).toBe(geminiSttDefault)
+      expect(opts.sonioxSttModels?.[0]).toBe(sonioxDefault)
+      expect(opts.speechmaticsSttModels?.[0]).toBe(speechmaticsDefault)
+      expect(opts.scrapecreatorsSttModels?.[0]).toBe(scrapeCreatorsDefault)
+      expect(opts.openaiOcrModels?.[0]).toBe(openaiOcrDefault)
+      expect(opts.geminiOcrModels?.[0]).toBe(geminiOcrDefault)
+      expect(opts.grokOcrModels?.[0]).toBe(grokOcrDefault)
+      expect(opts.deepinfraOcrModels?.[0]).toBe(deepinfraOcrDefault)
+      expect(opts.kimiOcrModels?.[0]).toBe(kimiOcrDefault)
+      expect(opts.speechifyTtsModels?.[0]).toBe(speechifyTtsDefault)
+      expect(opts.elevenlabsTtsModels?.[0]).toBe(elevenlabsTtsDefault)
+      expect(opts.groqTtsModels?.[0]).toBe(groqTtsDefault)
+      expect(opts.openaiTtsModels?.[0]).toBe(openaiTtsDefault)
+      expect(opts.deepgramTtsModels?.[0]).toBe(deepgramTtsDefault)
+      expect(opts.humeTtsModels?.[0]).toBe(humeTtsDefault)
+      expect(opts.cartesiaTtsModels?.[0]).toBe(cartesiaTtsDefault)
     })
 
   test('--all-llm expands OpenAI, Anthropic, Grok, GLM, Kimi, Together, and Cerebras to their supported models', () => {
-      const opts = buildOptsFromFlags(false, { 'all-llm': true })
+      const opts = buildOptsFromFlags({ 'all-llm': true })
 
       expect(opts.openaiModels).toEqual(['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini', 'gpt-5.4-nano'])
       expect(opts.openaiModels).not.toContain('gpt-5.6')
@@ -453,13 +448,13 @@ describe('option resolution contracts', () => {
     })
 
   test('--all shortcuts use aggressive hosted concurrency only when concurrency is not explicit', () => {
-      const ocrOpts = buildOptsFromFlags(false, { 'all-ocr': true })
-      const llmOpts = buildOptsFromFlags(false, { 'all-llm': true })
-      const ttsOpts = buildOptsFromFlags(false, { 'all-tts': true })
-      const imageOpts = buildOptsFromFlags(false, { 'all-image': true })
-      const videoOpts = buildOptsFromFlags(false, { 'all-video': true })
-      const musicOpts = buildOptsFromFlags(false, { 'all-music': true })
-      const explicitVideoOpts = buildOptsFromFlags(false, {
+      const ocrOpts = buildOptsFromFlags({ 'all-ocr': true })
+      const llmOpts = buildOptsFromFlags({ 'all-llm': true })
+      const ttsOpts = buildOptsFromFlags({ 'all-tts': true })
+      const imageOpts = buildOptsFromFlags({ 'all-image': true })
+      const videoOpts = buildOptsFromFlags({ 'all-video': true })
+      const musicOpts = buildOptsFromFlags({ 'all-music': true })
+      const explicitVideoOpts = buildOptsFromFlags({
         'all-video': true,
         'video-provider-concurrency': '3'
       }, {}, new Set(['video-provider-concurrency']))
@@ -477,10 +472,10 @@ describe('option resolution contracts', () => {
 
   test('--all-stt/--all-ocr expand hosted providers and local shortcuts expand local engines', () => {
       const expansions = getStep2AllShortcutModelExpansions()
-      const sttOpts = buildOptsFromFlags(false, { 'all-stt': true })
-      const ocrOpts = buildOptsFromFlags(false, { 'all-ocr': true })
-      const localSttOpts = buildOptsFromFlags(false, { 'all-local-stt': true })
-      const localOcrOpts = buildOptsFromFlags(false, { 'all-local-ocr': true })
+      const sttOpts = buildOptsFromFlags({ 'all-stt': true })
+      const ocrOpts = buildOptsFromFlags({ 'all-ocr': true })
+      const localSttOpts = buildOptsFromFlags({ 'all-local-stt': true })
+      const localOcrOpts = buildOptsFromFlags({ 'all-local-ocr': true })
 
       expect(expansions['deepgram-stt']?.shortcut).toBe('all-stt')
       expect(expansions['deepgram-stt']?.supported).toEqual(['nova-3'])
@@ -548,52 +543,52 @@ describe('option resolution contracts', () => {
     })
 
   test('priority OCR model additions are available without changing provider defaults', () => {
-      const openaiWriteOpts = buildOptsFromFlags(false, { openai: 'gpt-5.4-mini' })
-      const openaiSolWriteOpts = buildOptsFromFlags(false, { openai: 'gpt-5.6-sol' })
-      const openaiGpt55WriteOpts = buildOptsFromFlags(false, { openai: 'gpt-5.5' })
-      const mistralOcr4Opts = buildOptsFromFlags(false, { 'mistral-ocr': 'mistral-ocr-4-0' })
-      const openaiSolOcrOpts = buildOptsFromFlags(false, { 'openai-ocr': 'gpt-5.6-sol' })
-      const openaiOcrOpts = buildOptsFromFlags(false, { 'openai-ocr': 'gpt-5.4-nano' })
-      const openaiMiniOcrOpts = buildOptsFromFlags(false, { 'openai-ocr': 'gpt-5.4-mini' })
-      const openaiGpt55OcrOpts = buildOptsFromFlags(false, { 'openai-ocr': 'gpt-5.5' })
-      const grokWriteOpts = buildOptsFromFlags(false, { grok: 'grok-4.3' })
-      const grokOcrOpts = buildOptsFromFlags(false, { 'grok-ocr': 'grok-4.3' })
-      const grok420OcrOpts = buildOptsFromFlags(false, { 'grok-ocr': 'grok-4.20-0309-non-reasoning' })
-      const grok45OcrOpts = buildOptsFromFlags(false, { 'grok-ocr': 'grok-4.5' })
-      const gemini35OcrOpts = buildOptsFromFlags(false, { 'gemini-ocr': 'gemini-3.5-flash' })
-      const writeOpts = buildOptsFromFlags(false, { anthropic: 'claude-sonnet-4-6' })
-      const anthropicFableWriteOpts = buildOptsFromFlags(false, { anthropic: 'claude-fable-5' })
-      const anthropicSonnet5WriteOpts = buildOptsFromFlags(false, { anthropic: 'claude-sonnet-5' })
-      const anthropicFableOcrOpts = buildOptsFromFlags(false, { 'anthropic-ocr': 'claude-fable-5' })
-      const anthropicOpusOcrOpts = buildOptsFromFlags(false, { 'anthropic-ocr': 'claude-opus-4-8' })
-      const anthropicSonnet5OcrOpts = buildOptsFromFlags(false, { 'anthropic-ocr': 'claude-sonnet-5' })
-      const anthropicHaikuOcrOpts = buildOptsFromFlags(false, { 'anthropic-ocr': 'claude-haiku-4-5' })
+      const openaiWriteOpts = buildOptsFromFlags({ openai: 'gpt-5.4-mini' })
+      const openaiSolWriteOpts = buildOptsFromFlags({ openai: 'gpt-5.6-sol' })
+      const openaiGpt55WriteOpts = buildOptsFromFlags({ openai: 'gpt-5.5' })
+      const mistralOcr4Opts = buildOptsFromFlags({ 'mistral-ocr': 'mistral-ocr-4-0' })
+      const openaiSolOcrOpts = buildOptsFromFlags({ 'openai-ocr': 'gpt-5.6-sol' })
+      const openaiOcrOpts = buildOptsFromFlags({ 'openai-ocr': 'gpt-5.4-nano' })
+      const openaiMiniOcrOpts = buildOptsFromFlags({ 'openai-ocr': 'gpt-5.4-mini' })
+      const openaiGpt55OcrOpts = buildOptsFromFlags({ 'openai-ocr': 'gpt-5.5' })
+      const grokWriteOpts = buildOptsFromFlags({ grok: 'grok-4.3' })
+      const grokOcrOpts = buildOptsFromFlags({ 'grok-ocr': 'grok-4.3' })
+      const grok420OcrOpts = buildOptsFromFlags({ 'grok-ocr': 'grok-4.20-0309-non-reasoning' })
+      const grok45OcrOpts = buildOptsFromFlags({ 'grok-ocr': 'grok-4.5' })
+      const gemini35OcrOpts = buildOptsFromFlags({ 'gemini-ocr': 'gemini-3.5-flash' })
+      const writeOpts = buildOptsFromFlags({ anthropic: 'claude-sonnet-4-6' })
+      const anthropicFableWriteOpts = buildOptsFromFlags({ anthropic: 'claude-fable-5' })
+      const anthropicSonnet5WriteOpts = buildOptsFromFlags({ anthropic: 'claude-sonnet-5' })
+      const anthropicFableOcrOpts = buildOptsFromFlags({ 'anthropic-ocr': 'claude-fable-5' })
+      const anthropicOpusOcrOpts = buildOptsFromFlags({ 'anthropic-ocr': 'claude-opus-4-8' })
+      const anthropicSonnet5OcrOpts = buildOptsFromFlags({ 'anthropic-ocr': 'claude-sonnet-5' })
+      const anthropicHaikuOcrOpts = buildOptsFromFlags({ 'anthropic-ocr': 'claude-haiku-4-5' })
 
-      expect(openaiWriteOpts.openaiModel).toBe('gpt-5.4-mini')
-      expect(openaiSolWriteOpts.openaiModel).toBe('gpt-5.6-sol')
-      expect(openaiGpt55WriteOpts.openaiModel).toBe('gpt-5.5')
-      expect(mistralOcr4Opts.mistralOcrModel).toBe('mistral-ocr-4-0')
-      expect(openaiSolOcrOpts.openaiOcrModel).toBe('gpt-5.6-sol')
-      expect(openaiOcrOpts.openaiOcrModel).toBe('gpt-5.4-nano')
+      expect(openaiWriteOpts.openaiModels?.[0]).toBe('gpt-5.4-mini')
+      expect(openaiSolWriteOpts.openaiModels?.[0]).toBe('gpt-5.6-sol')
+      expect(openaiGpt55WriteOpts.openaiModels?.[0]).toBe('gpt-5.5')
+      expect(mistralOcr4Opts.mistralOcrModels?.[0]).toBe('mistral-ocr-4-0')
+      expect(openaiSolOcrOpts.openaiOcrModels?.[0]).toBe('gpt-5.6-sol')
+      expect(openaiOcrOpts.openaiOcrModels?.[0]).toBe('gpt-5.4-nano')
       expect(openaiOcrOpts.openaiOcrModels).toEqual(['gpt-5.4-nano'])
-      expect(openaiMiniOcrOpts.openaiOcrModel).toBe('gpt-5.4-mini')
-      expect(openaiGpt55OcrOpts.openaiOcrModel).toBe('gpt-5.5')
-      expect(grokWriteOpts.grokModel).toBe('grok-4.3')
-      expect(grokOcrOpts.grokOcrModel).toBe('grok-4.3')
+      expect(openaiMiniOcrOpts.openaiOcrModels?.[0]).toBe('gpt-5.4-mini')
+      expect(openaiGpt55OcrOpts.openaiOcrModels?.[0]).toBe('gpt-5.5')
+      expect(grokWriteOpts.grokModels?.[0]).toBe('grok-4.3')
+      expect(grokOcrOpts.grokOcrModels?.[0]).toBe('grok-4.3')
       expect(grokOcrOpts.grokOcrModels).toEqual(['grok-4.3'])
-      expect(grok420OcrOpts.grokOcrModel).toBe('grok-4.20-0309-non-reasoning')
-      expect(grok45OcrOpts.grokOcrModel).toBe('grok-4.5')
-      expect(gemini35OcrOpts.geminiOcrModel).toBe('gemini-3.5-flash')
-      expect(writeOpts.anthropicModel).toBe('claude-sonnet-4-6')
-      expect(anthropicFableWriteOpts.anthropicModel).toBe('claude-fable-5')
-      expect(anthropicSonnet5WriteOpts.anthropicModel).toBe('claude-sonnet-5')
-      expect(anthropicFableOcrOpts.anthropicOcrModel).toBe('claude-fable-5')
-      expect(anthropicOpusOcrOpts.anthropicOcrModel).toBe('claude-opus-4-8')
+      expect(grok420OcrOpts.grokOcrModels?.[0]).toBe('grok-4.20-0309-non-reasoning')
+      expect(grok45OcrOpts.grokOcrModels?.[0]).toBe('grok-4.5')
+      expect(gemini35OcrOpts.geminiOcrModels?.[0]).toBe('gemini-3.5-flash')
+      expect(writeOpts.anthropicModels?.[0]).toBe('claude-sonnet-4-6')
+      expect(anthropicFableWriteOpts.anthropicModels?.[0]).toBe('claude-fable-5')
+      expect(anthropicSonnet5WriteOpts.anthropicModels?.[0]).toBe('claude-sonnet-5')
+      expect(anthropicFableOcrOpts.anthropicOcrModels?.[0]).toBe('claude-fable-5')
+      expect(anthropicOpusOcrOpts.anthropicOcrModels?.[0]).toBe('claude-opus-4-8')
       expect(anthropicOpusOcrOpts.anthropicOcrModels).toEqual(['claude-opus-4-8'])
-      expect(anthropicSonnet5OcrOpts.anthropicOcrModel).toBe('claude-sonnet-5')
-      expect(anthropicHaikuOcrOpts.anthropicOcrModel).toBe('claude-haiku-4-5')
-      expect(() => buildOptsFromFlags(false, { 'anthropic-ocr': 'claude-sonnet-4-6' })).toThrow()
-      expect(() => buildOptsFromFlags(false, { openai: 'gpt-5.6' })).toThrow()
-      expect(() => buildOptsFromFlags(false, { anthropic: 'claude-mythos-5' })).toThrow()
+      expect(anthropicSonnet5OcrOpts.anthropicOcrModels?.[0]).toBe('claude-sonnet-5')
+      expect(anthropicHaikuOcrOpts.anthropicOcrModels?.[0]).toBe('claude-haiku-4-5')
+      expect(() => buildOptsFromFlags({ 'anthropic-ocr': 'claude-sonnet-4-6' })).toThrow()
+      expect(() => buildOptsFromFlags({ openai: 'gpt-5.6' })).toThrow()
+      expect(() => buildOptsFromFlags({ anthropic: 'claude-mythos-5' })).toThrow()
     })
 })

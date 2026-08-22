@@ -1,6 +1,5 @@
 type GenerationSelectionField = {
   readonly modelsKey: string
-  readonly modelKey: string
 }
 
 export type GenerationSelectionFields<TProviderTargets extends Readonly<Record<string, string>>> = {
@@ -16,6 +15,5 @@ export type GenerationPricingProviders<TDescriptor extends GenerationSelectionDe
   [Service in keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]: {
     service: Service
     modelsKey: TDescriptor['selections'][Service]['modelsKey']
-    modelKey: TDescriptor['selections'][Service]['modelKey']
   }
 }[keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]>

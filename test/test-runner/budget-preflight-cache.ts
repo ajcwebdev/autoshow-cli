@@ -1,13 +1,14 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import type { BudgetPreflightCacheFile, PriceCommandSpec } from '~/types'
 import { MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader/paths'
+import { TEST_OUTPUT_ROOT } from './artifacts'
 import { EMPTY_PRICE_CONFIG_PATH } from './price-command-config'
 import { sha256Bytes } from '~/utils/value-helpers'
 
 const CACHE_VERSION = 1
-const CACHE_PATH = resolve(process.cwd(), 'project/test-output/.test-cache/budget-preflight.json')
+const CACHE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'budget-preflight.json')
 
 const PRICING_SOURCE_FILES = [
   'src/cli/commands/process-steps/step-5-image/image-utils/image-pricing.ts',
@@ -133,7 +134,7 @@ export const writeBudgetPreflightCache = async (
   fingerprint: string,
   entries: ReadonlyMap<string, number>
 ): Promise<void> => {
-  await mkdir(resolve(process.cwd(), 'project/test-output/.test-cache'), { recursive: true })
+  await mkdir(join(TEST_OUTPUT_ROOT, '.test-cache'), { recursive: true })
   const payload: BudgetPreflightCacheFile = {
     version: CACHE_VERSION,
     fingerprint,

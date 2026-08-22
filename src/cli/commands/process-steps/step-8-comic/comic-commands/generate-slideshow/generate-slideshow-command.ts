@@ -1,6 +1,6 @@
 import { posix } from 'node:path'
 import type { CliCommandContext, ResolvedPanelTimeline } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { canonicalTtsJson } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
@@ -32,7 +32,7 @@ const DEFAULT_FPS = 30
 const parsePositiveInteger = (value: unknown, fallback: number, label: string, maximum?: number): number => {
   if (value === undefined) return fallback
   if (typeof value !== 'string' || !/^\d+$/u.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) <= 0 || (maximum !== undefined && Number(value) > maximum)) {
-    throw CLIUsageError(`${label} must be a positive safe integer${maximum === undefined ? '' : ` no greater than ${maximum}`}.`)
+    throw UsageError(`${label} must be a positive safe integer${maximum === undefined ? '' : ` no greater than ${maximum}`}.`)
   }
   return Number(value)
 }
@@ -44,7 +44,7 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
   const untimedPanelMs = parsePositiveInteger(flags['untimed-panel-ms'], DEFAULT_UNTIMED_PANEL_MS, '--untimed-panel-ms')
   const fps = parsePositiveInteger(flags['fps'], DEFAULT_FPS, '--fps', 120)
   const audioTarget = typeof flags['audio-target'] === 'string' && flags['audio-target'].trim() ? flags['audio-target'].trim() : undefined
-  if (audioTarget && !/^[^=\s]+=[^=\s]+$/u.test(audioTarget)) throw CLIUsageError('--audio-target must use <provider>=<model>.')
+  if (audioTarget && !/^[^=\s]+=[^=\s]+$/u.test(audioTarget)) throw UsageError('--audio-target must use <provider>=<model>.')
   if (flags['price'] === true) {
     l.write('info', 'Comic slideshow price: $0.00 (local FFmpeg presentation; no writes).', { category: 'pricing' })
     return

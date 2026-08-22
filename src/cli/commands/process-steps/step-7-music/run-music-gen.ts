@@ -1,6 +1,6 @@
 import type { MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
 import { runMediaFileTargets } from '~/cli/commands/process-steps/media-file-target-runner'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   collectMusicTargets,
   getMusicArtifactFileName,
@@ -51,7 +51,7 @@ export const runMusicGen = async (
 ): Promise<{ musicPaths: string[], metadata: Step7MusicMetadata[] }> => {
   const targets = collectMusicTargets(options)
   if (targets.length === 0) {
-    throw CLIUsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
+    throw UsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   }
 
   return await runMusicTargets(targets, prompt, outputDir, options)

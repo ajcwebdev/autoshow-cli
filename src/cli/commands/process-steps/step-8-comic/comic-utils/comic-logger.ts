@@ -24,12 +24,6 @@ const comicWrite = (...messages: unknown[]): void => {
   appLog.write('info', messages.map(String).join(' '), { category: 'command' })
 }
 
-comicWrite.success = (message: string): void => {
-  appLog.write('success', message, { category: 'command' })
-}
-
-export { comicWrite }
-
 export const withSuppressedPipelineLogs = async <T>(run: () => Promise<T>): Promise<T> => {
   const restore = appLog.suppressLogCategories(['pipeline'])
   try {

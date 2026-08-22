@@ -122,7 +122,7 @@ export const runRevStt = async (
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => await runHttpAsyncSttProvider({
   service: 'rev',
   displayName: 'Rev',
-  credential: { envVar: 'REVAI_ACCESS_TOKEN', stage: 'stt:rev', purpose: 'Rev transcription' },
+  credential: { stage: 'stt:rev', purpose: 'Rev transcription' },
   baseUrl: getRevBaseUrl,
   resolveUrl: resolveRestPath,
   endpoints: {

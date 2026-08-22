@@ -10,7 +10,7 @@ import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATIO
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
-import { comicWrite } from './comic-logger'
+import { comicLog } from './comic-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
@@ -120,7 +120,7 @@ export const applyReferenceImageLimits = (
 ): ResolvedReferenceImages => {
   const optional = [...prior, ...secondary].filter(path => !primary.includes(path))
   const limited = trimOptionalContinuityReferences(model, primary, optional)
-  if (limited.trimmed.length > 0) comicWrite(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
+  if (limited.trimmed.length > 0) comicLog.line(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
   return buildResolved(limited.references, primary, prior, secondary, missing)
 }
 

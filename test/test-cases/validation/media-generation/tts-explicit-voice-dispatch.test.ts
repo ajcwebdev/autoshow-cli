@@ -43,8 +43,8 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'OPENAI_API_KEY',
     flags: {
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
-      'openai-voice': 'ash',
-      'openai-tts-speed': '0.8'
+      'tts-voice': 'ash',
+      'tts-speed': '0.8'
     },
     capturedVoice: 'ash',
     invocationVoices: ['alloy', 'onyx', 'alloy'],
@@ -58,8 +58,8 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'ELEVENLABS_API_KEY',
     flags: {
       'elevenlabs-tts': 'eleven_v3',
-      'elevenlabs-voice': 'voice-captured',
-      'elevenlabs-tts-speed': '0.8'
+      'tts-voice': 'voice-captured',
+      'tts-speed': '0.8'
     },
     capturedVoice: 'voice-captured',
     invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
@@ -79,8 +79,8 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'MINIMAX_API_KEY',
     flags: {
       'minimax-tts': 'speech-2.8-hd',
-      'minimax-tts-voice': 'voice-captured',
-      'minimax-tts-speed': '0.8'
+      'tts-voice': 'voice-captured',
+      'tts-speed': '0.8'
     },
     capturedVoice: 'voice-captured',
     invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
@@ -117,7 +117,7 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'GROQ_API_KEY',
     flags: {
       'groq-tts': 'canopylabs/orpheus-v1-english',
-      'groq-voice': 'troy'
+      'tts-voice': 'troy'
     },
     capturedVoice: 'troy',
     invocationVoices: ['autumn', 'diana', 'autumn'],
@@ -131,7 +131,7 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'XAI_API_KEY',
     flags: {
       'grok-tts': 'grok-tts',
-      'grok-tts-voice': 'deadbeef'
+      'tts-voice': 'deadbeef'
     },
     capturedVoice: 'deadbeef',
     invocationVoices: ['ab12cd34', 'ef56ab78', 'ab12cd34'],
@@ -145,7 +145,7 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'MISTRAL_API_KEY',
     flags: {
       'mistral-tts': 'voxtral-mini-tts-2603',
-      'mistral-tts-voice': 'voice-captured'
+      'tts-voice': 'voice-captured'
     },
     capturedVoice: 'voice-captured',
     invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
@@ -159,7 +159,7 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'GEMINI_API_KEY',
     flags: {
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
-      'gemini-voice': 'Zephyr'
+      'tts-voice': 'Zephyr'
     },
     capturedVoice: 'Zephyr',
     invocationVoices: ['Kore', 'Puck', 'Kore'],
@@ -189,8 +189,8 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'DEEPGRAM_API_KEY',
     flags: {
       'deepgram-tts': 'aura-2-thalia-en',
-      'deepgram-voice': 'aura-2-thalia-en',
-      'deepgram-tts-speed': '0.8'
+      'tts-voice': 'aura-2-thalia-en',
+      'tts-speed': '0.8'
     },
     capturedVoice: 'aura-2-thalia-en',
     invocationVoices: ['aura-2-andromeda-en', 'aura-2-apollo-en', 'aura-2-andromeda-en'],
@@ -204,8 +204,8 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'SPEECHIFY_API_KEY',
     flags: {
       'speechify-tts': 'simba-3.2',
-      'speechify-voice': 'voice-captured',
-      'speechify-tts-language': 'en-US'
+      'tts-voice': 'voice-captured',
+      'tts-language': 'en-US'
     },
     capturedVoice: 'voice-captured',
     invocationVoices: ['beatrice_32', 'dominic_32', 'beatrice_32'],
@@ -219,7 +219,7 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'HUME_API_KEY',
     flags: {
       'hume-tts': 'octave-2',
-      'hume-tts-voice': 'Captured Voice'
+      'tts-voice': 'Captured Voice'
     },
     capturedVoice: 'Captured Voice',
     invocationVoices: [
@@ -244,7 +244,7 @@ const cases: readonly VoiceMatrixCase[] = [
     envKey: 'CARTESIA_API_KEY',
     flags: {
       'cartesia-tts': 'sonic-3.5-2026-05-04',
-      'cartesia-tts-voice': 'voice-captured'
+      'tts-voice': 'voice-captured'
     },
     capturedVoice: 'voice-captured',
     invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
@@ -261,7 +261,7 @@ const cases: readonly VoiceMatrixCase[] = [
 const collectOneTarget = (
   matrixCase: VoiceMatrixCase
 ): { options: TtsOptions, target: TtsTarget } => {
-  const options = buildOptsFromFlags(false, matrixCase.flags)
+  const options = buildOptsFromFlags(matrixCase.flags)
   const targets = collectTtsTargets(options)
   const target = requireDefined(
     targets.find(candidate => candidate.service === matrixCase.provider),
@@ -326,9 +326,9 @@ describe('explicit TTS target voice dispatch', () => {
     await mkdir(outputDir, { recursive: true })
     process.env['HUME_API_KEY'] = 'hume-test-key'
     const calls = installMockFetch(byteResponse)
-    const options = buildOptsFromFlags(false, {
+    const options = buildOptsFromFlags({
       'hume-tts': 'octave-2',
-      'hume-tts-voice': 'Captured Voice'
+      'tts-voice': 'Captured Voice'
     })
     const target = requireDefined(
       collectTtsTargets(options).find(candidate => candidate.service === 'hume'),

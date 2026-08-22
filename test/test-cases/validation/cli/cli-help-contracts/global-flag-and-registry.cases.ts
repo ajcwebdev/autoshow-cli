@@ -67,7 +67,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     expect(extract.stdout).toContain(urlBackends)
     expect(write.stdout).toContain(llmProviders)
     expect(write.stdout).toContain('(default: cheapest hosted)')
-    expect(write.stdout).toMatch(/--stt[^\n]*whisperfile/)
+    expect(write.stdout).not.toContain('--stt')
     expect(config.stdout).toContain(llmProviders)
     expect(config.stdout).toContain('(default: cheapest hosted)')
     expect(config.stdout).toMatch(/--stt[^\n]*whisperfile/)
@@ -78,21 +78,23 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
   })
 
   const derivedHelpLists = [
-    { command: 'video', label: '--video-mode', values: VIDEO_MODES },
-    { command: 'video', label: '--video-aspect-ratio (Luma Labs)', values: LUMA_ASPECT_RATIOS },
-    { command: 'video', label: '--video-aspect-ratio (Grok)', values: GROK_VIDEO_ASPECT_RATIOS },
-    { command: 'video', label: '--video-resolution (Gemini)', values: GEMINI_VIDEO_RESOLUTIONS },
-    { command: 'video', label: '--video-resolution (Replicate)', values: REPLICATE_VIDEO_RESOLUTIONS },
-    { command: 'video', label: '--video-resolution (Luma Labs)', values: LUMA_RESOLUTIONS },
-    { command: 'image', label: '--image-quality', values: IMAGE_GENERATION_QUALITIES },
-    { command: 'image', label: '--image-size (Gemini)', values: GEMINI_IMAGE_SIZE_VALUES },
-    { command: 'image', label: '--image-size (OpenAI)', values: OPENAI_FIXED_IMAGE_SIZE_VALUES },
-    { command: 'image', label: '--image-background', values: OPENAI_IMAGE_BACKGROUND_VALUES },
-    { command: 'image', label: '--image-response-mode', values: GEMINI_IMAGE_RESPONSE_MODES },
+    { command: 'video', label: '--mode', values: VIDEO_MODES },
+    { command: 'video', label: '--aspect-ratio (Luma Labs)', values: LUMA_ASPECT_RATIOS },
+    { command: 'video', label: '--aspect-ratio (Grok)', values: GROK_VIDEO_ASPECT_RATIOS },
+    { command: 'video', label: '--resolution (Gemini)', values: GEMINI_VIDEO_RESOLUTIONS },
+    { command: 'video', label: '--resolution (Replicate)', values: REPLICATE_VIDEO_RESOLUTIONS },
+    { command: 'video', label: '--resolution (Luma Labs)', values: LUMA_RESOLUTIONS },
+    { command: 'image', label: '--quality', values: IMAGE_GENERATION_QUALITIES },
+    { command: 'image', label: '--size (Gemini)', values: GEMINI_IMAGE_SIZE_VALUES },
+    { command: 'image', label: '--size (OpenAI)', values: OPENAI_FIXED_IMAGE_SIZE_VALUES },
+    { command: 'image', label: '--background', values: OPENAI_IMAGE_BACKGROUND_VALUES },
+    { command: 'image', label: '--response-mode', values: GEMINI_IMAGE_RESPONSE_MODES },
     { command: 'setup', label: '--step', values: SETUP_STEP_IDS },
     { command: 'extract', label: '--format', values: OUTPUT_FORMATS },
     { command: 'extract', label: '--pdf-chapter-mode', values: PDF_CHAPTER_MODES },
-    { command: 'extract', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
+    { command: 'extract', label: '--provider URL backends', values: URL_ARTICLE_BACKENDS },
+    { command: 'metadata', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
+    { command: 'download', label: '--url-provider', values: URL_ARTICLE_BACKENDS },
     { command: 'extract', label: '--primary-ocr', values: Object.keys(WRITE_OCR_PROVIDER_TARGETS) },
     { command: 'tts', label: '--minimax-tts-emotion', values: SUPPORTED_MINIMAX_TTS_EMOTIONS },
     { command: 'music', label: '--model', values: SUPPORTED_WHISPER_MODELS }
@@ -148,7 +150,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
 
     const writeResult = await loadHelp(['write', '--help'])
     expect(writeResult.exitCode).toBe(0)
-    expect(writeResult.stdout).toContain('Output format: text|json')
+    expect(writeResult.stdout).not.toContain('Output format: text|json')
     expect(writeResult.stdout).not.toContain('Alias for --output-dir')
   }, HELP_TREE_TIMEOUT_MS)
 
@@ -179,6 +181,7 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     expect(commandAcceptsGlobalFlag('config', 'bin-dir')).toBe(true)
     expect(commandAcceptsGlobalFlag('config', 'output-dir')).toBe(false)
     expect(commandAcceptsGlobalFlag('write', 'output-dir')).toBe(true)
+    expect(commandAcceptsGlobalFlag('links', 'output-dir')).toBe(true)
     expect(commandAcceptsGlobalFlag('voice', 'characters-root')).toBe(true)
     expect(commandAcceptsGlobalFlag('comic', 'characters-root')).toBe(true)
     expect(commandAcceptsGlobalFlag('voice clone', 'characters-root')).toBe(true)

@@ -1,5 +1,5 @@
 import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
-import { boolFlag, formatProviderList, formatRange, formatUniqueValueList, formatValueList, formatValuesByProvider, pickFlags, renameFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { boolFlag, formatProviderList, formatRange, formatUniqueValueList, formatValueList, formatValuesByProvider, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
@@ -83,10 +83,13 @@ export const imageProviderSpecificOptionNames = [
   'image-compression'
 ] as const
 
+const publicImageFlags = (names: readonly (keyof typeof imageCommandOptionNames)[]): CliFlagsDefinition =>
+  Object.fromEntries(names.map((internalName) => [imageCommandOptionNames[internalName], imageGenFlags[internalName]]))
+
 export const imageCommandFlags = {
   ...withHelpGroup(imageProviderSelectionFlags, 'provider-selection'),
-  ...withHelpGroup(renameFlags(pickFlags(imageGenFlags, imageGenerationOptionNames), imageCommandOptionNames), 'image-options'),
-  ...withHelpGroup(renameFlags(pickFlags(imageGenFlags, imageInputOptionNames), imageCommandOptionNames), 'image-inputs'),
-  ...withHelpGroup(renameFlags(pickFlags(imageGenFlags, imageProviderSpecificOptionNames), imageCommandOptionNames), 'image-provider-options'),
+  ...withHelpGroup(publicImageFlags(imageGenerationOptionNames), 'image-options'),
+  ...withHelpGroup(publicImageFlags(imageInputOptionNames), 'image-inputs'),
+  ...withHelpGroup(publicImageFlags(imageProviderSpecificOptionNames), 'image-provider-options'),
   ...withHelpGroup(priceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition

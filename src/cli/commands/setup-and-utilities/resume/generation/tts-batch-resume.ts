@@ -4,7 +4,7 @@ import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-ma
 import { priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
 import { ttsResumeConfig } from './tts-resume'
 import type { AggregatedPriceEstimate, PipelineManifest, ResumeResult, ResumeTarget, TtsOptions, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { resolveUserPath } from '~/utils/runtime-paths'
 
 const createTtsBatchResumeTarget = (batchDir: string): ResumeTarget => ({
@@ -24,17 +24,17 @@ export const assertCompatibleTtsDirectoryBatch = async (
   targets: readonly TtsTarget[]
 ): Promise<void> => {
   if (manifest.command !== 'tts' || manifest.scope !== 'batch') {
-    throw CLIUsageError(`Existing output at ${batchDir} is not a TTS batch. Use a new --output-dir to start a different run.`)
+    throw UsageError(`Existing output at ${batchDir} is not a TTS batch. Use a new --output-dir to start a different run.`)
   }
   if (manifest.items.length !== inputFiles.length) {
-    throw CLIUsageError(
+    throw UsageError(
       `Existing TTS batch at ${batchDir} has ${manifest.items.length} items, but ${inputFiles.length} input files were found. Use a new --output-dir to start a different batch.`
     )
   }
   for (const [index, inputFile] of inputFiles.entries()) {
     const item = manifest.items[index]
     if (!item || typeof item.input !== 'string') {
-      throw CLIUsageError(`Existing TTS batch item ${index + 1} is missing its canonical source path.`)
+      throw UsageError(`Existing TTS batch item ${index + 1} is missing its canonical source path.`)
     }
     let storedPath: string
     let currentPath: string
@@ -42,25 +42,25 @@ export const assertCompatibleTtsDirectoryBatch = async (
       storedPath = await canonicalExistingPath(item.input)
       currentPath = await canonicalExistingPath(inputFile)
     } catch {
-      throw CLIUsageError(
+      throw UsageError(
         `Existing TTS batch item ${index + 1} source ${item.input} does not match ${inputFile}. Restore the exact source or use a new --output-dir.`
       )
     }
     if (storedPath !== currentPath) {
-      throw CLIUsageError(
+      throw UsageError(
         `Existing TTS batch item ${index + 1} source ${item.input} does not match ${inputFile}. Restore the exact source or use a new --output-dir.`
       )
     }
   }
   for (const target of targets) {
     if (!target.targetKey) {
-      throw CLIUsageError(`TTS target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
+      throw UsageError(`TTS target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
     }
     const found = manifest.items.some((item) =>
       item.providers.some((provider) => provider.targetKey === target.targetKey)
     )
     if (!found) {
-      throw CLIUsageError(
+      throw UsageError(
         `Existing TTS batch at ${batchDir} has no stored ${target.service}/${target.model} target. Use a new --output-dir to start a different render.`
       )
     }

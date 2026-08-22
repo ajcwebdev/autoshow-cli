@@ -180,12 +180,12 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
   if (typeof retiredCost === 'number') return retiredCost
 
   const estimate = estimateVideoCost({
-    ...(entry.videoGenService === 'gemini' ? { geminiVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'grok' ? { grokVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'ltx' ? { ltxVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'replicate' ? { replicateVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'lumalabs' ? { lumalabsVideoModel: entry.videoGenModel } : {}),
-    ...(entry.videoGenService === 'fal' ? { falVideoModel: entry.videoGenModel } : {}),
+    ...(entry.videoGenService === 'gemini' ? { geminiVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'grok' ? { grokVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'ltx' ? { ltxVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'replicate' ? { replicateVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'lumalabs' ? { lumalabsVideoModels: [entry.videoGenModel] } : {}),
+    ...(entry.videoGenService === 'fal' ? { falVideoModels: [entry.videoGenModel] } : {}),
     ...(typeof entry.videoDuration === 'number' ? { videoDuration: entry.videoDuration } : {}),
     ...(typeof entry.videoAspectRatio === 'string' ? { videoAspectRatio: entry.videoAspectRatio } : {}),
     ...(typeof entry.videoResolution === 'string' ? { videoResolution: entry.videoResolution } : {}),
@@ -208,7 +208,7 @@ const computeImageFallbackCost = (
     && metadata.imageModel === 'gpt-image-2'
   ) {
     const estimate = estimateImageCosts({
-      openaiImageModel: metadata.imageModel,
+      openaiImageModels: [metadata.imageModel],
       imageSize: metadata.imageSize,
       imageQuality: metadata.imageQuality
     })[0]

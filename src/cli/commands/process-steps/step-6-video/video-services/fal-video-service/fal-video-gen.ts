@@ -1,3 +1,3 @@
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureFalVideoGenSetup = async (): Promise<string> => requireApiKey('FAL_API_KEY', 'video:fal', 'fal.ai video generation')
+export const ensureFalVideoGenSetup = async (): Promise<string> => requireProviderKey('fal', 'video:fal', 'fal.ai video generation')

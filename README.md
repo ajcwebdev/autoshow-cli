@@ -39,10 +39,10 @@ bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
 ```bash
 # Extract an article URL locally with Defuddle
-bun autoshow extract https://example.com/article --url-provider defuddle
+bun autoshow extract https://example.com/article --provider defuddle
 
 # Extract an article URL with hosted Firecrawl
-bun autoshow extract https://example.com/article --url-provider firecrawl
+bun autoshow extract https://example.com/article --provider firecrawl
 
 # Extract a PDF locally with Tesseract
 bun autoshow extract input/examples/document/1-document.pdf --provider tesseract --format json
@@ -69,20 +69,16 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 ### Write
 
 ```bash
-# Run the full extract-and-write pipeline with the cheapest hosted LLM
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3
+# Transcribe media, then write a summary
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3
+bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --prompt shortSummary takeaways
 
-# Run the full extract-and-write pipeline with hosted OpenAI
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5
+# Extract an article, then write a blog post
+bun autoshow extract https://example.com/article
+bun autoshow write output/<extract-run>/extraction.txt --llm openai=gpt-5.5 --prompt blog
 
-# Combine a short summary with key takeaways
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --prompt shortSummary takeaways
-
-# Turn an article into a blog post
-bun autoshow write https://example.com/article --llm openai=gpt-5.5 --prompt blog
-
-# Draft a YouTube description from a video
-bun autoshow write "https://www.youtube.com/watch?v=u1-WHqATSQU" --llm openai=gpt-5.5 --prompt youtubeDescription
+# Write from a local markdown file
+bun autoshow write notes.md --llm openai=gpt-5.5 --prompt shortSummary
 ```
 
 ### TTS and Music
@@ -141,7 +137,7 @@ bun autoshow comic generate-slideshow 01-01
 | Generate            | `tts`, `voice`, `image`, `video`, `music`, `comic` |
 | Setup & Utilities   | `setup`, `config`, `links`, `resume`               |
 
-- `write` summarizes transcripts or extracted documents, writes JSON and rendered markdown, and can fan out across multiple LLM providers.
+- `write` generates structured LLM text from local `.md` or `.txt` files, writes JSON and rendered markdown, and can fan out across multiple LLM providers. Transcribe URLs or media with `extract` first.
 - `setup --models` pre-downloads local STT runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models whisperfile:small`.
 
 ## Usage Basics
@@ -167,7 +163,7 @@ Batch mode is selected from the input type rather than a separate subcommand:
 
 ```bash
 # Newline-delimited URLs
-bun autoshow write input/examples/batch/2-urls.md
+bun autoshow extract input/examples/batch/2-urls.md
 
 # Process files plus 2-urls.md inside the directory
 bun autoshow extract input
@@ -204,9 +200,9 @@ Logging controls:
 
 ```bash
 # CLI flags
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --verbose
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --quiet
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --json
+bun autoshow write notes.md --verbose
+bun autoshow write notes.md --quiet
+bun autoshow write notes.md --json
 
 # Environment variables
 NO_COLOR=1                 # disable ANSI color in human logs and help
@@ -237,8 +233,7 @@ Mixed `extract` batches write a parent directory with nested `media/`, `document
 Notable exceptions:
 
 - `metadata --save` reports `manifest.json`, and `metadata --markdown --save` also reports `metadata.md`
-- `links` writes to a selection-based file under `project/links/`, for example `project/links/all-all-links.md`
-- utility commands such as `config`, `setup`, and `links` do not use the `output/` run-directory pattern
+- utility commands such as `config` and `setup` do not use the `output/` run-directory pattern
 
 ## Development
 

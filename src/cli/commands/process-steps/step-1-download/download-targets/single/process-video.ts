@@ -4,26 +4,20 @@ import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { extractSourceMetadata } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { prepareSttMedia } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/media'
 import {
+  buildPromptFile,
   buildProviderModelLabel,
   selectPrimaryPromptProvider
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-prompt'
 import { logSpeakerCountHintSummary } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-provider-pool'
 import { createMistralSttPassController } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt-pass-controller'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
-import { formatTranscriptText } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import { runLLM } from '~/cli/commands/process-steps/step-3-write/run-llm'
-import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
-import { writeRenderedTextArtifacts } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import { buildPrompt } from '~/cli/commands/process-steps/step-3-write/write-utils/prompt-utils'
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
 import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { resolvePromptNames } from '~/prompts/prompt-loader'
-import type { AggregatedPriceEstimate, ProcessVideoRuntimeOptions, ProcessingOptions, Step1Metadata, Step3Metadata, StructuredRunResult, VideoMetadata } from '~/types'
+import type { AggregatedPriceEstimate, ProcessVideoRuntimeOptions, ProcessingOptions, Step1Metadata, VideoMetadata } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
-import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { resolveWriteTranscription } from './write-transcription'
 import { computeWriteCostAndTiming } from './write-cost-timing'
 import { buildWriteSttProviderStates } from './write-provider-states'
@@ -45,7 +39,7 @@ export const processVideo = async (
   const baseDir = options.outputDir && options.outputDir.trim().length > 0
     ? options.outputDir
     : runtimeOptions?.outputRootDir ?? getOutputRoot()
-  const outputDir = runtimeOptions?.outputDir ?? resolveRunDirectory(baseDir, metadata.title, 'write')
+  const outputDir = runtimeOptions?.outputDir ?? resolveRunDirectory(baseDir, metadata.title, 'extract')
   await ensureDirectory(outputDir)
   const processingOptions: ProcessingOptions = {
     ...options,
@@ -88,7 +82,7 @@ export const processVideo = async (
     })
 
     if (!transcriptionResult) {
-      throw InternalError('No transcription result was produced for the write pipeline', { stage: 'write:video' })
+      throw InternalError('No transcription result was produced for the extract pipeline', { stage: 'extract:video' })
     }
     const finalizedTranscriptionResult = transcriptionResult
     const promptSource = selectPrimaryPromptProvider(successfulSttProviders)
@@ -99,83 +93,24 @@ export const processVideo = async (
         }
       : undefined
 
-    let step3RunResults: StructuredRunResult[] = []
-    let step3Results: Step3Metadata[] = []
-    if (processingOptions.skipLLM) {
-      await runWithLogContext({ step: 'step-3-write' }, async () => {
-        const promptPath = `${outputDir}/prompt.md`
-        const instruction = await resolvePromptNames(processingOptions.prompts ?? [], {
-          exampleFormat: 'json'
-        })
-        const promptContent = buildPrompt(
-          sourceMetadata,
-          finalizedTranscriptionResult.result,
-          instruction,
-          step1Metadata.slug,
-          promptOptions
-        )
-        await Bun.write(promptPath, promptContent)
-      })
-    } else {
-      step3RunResults = await runWithLogContext({ step: 'step-3-write' }, async () =>
-        await runLLM(sourceMetadata, finalizedTranscriptionResult.result, {
-          ...processingOptions,
-          promptBuilder: (instruction: string) =>
-            buildPrompt(
-              sourceMetadata,
-              finalizedTranscriptionResult.result,
-              instruction,
-              step1Metadata.slug,
-              promptOptions
-            )
-        }, step1Metadata.slug)
-      )
-      step3Results = step3RunResults.map((result) => result.metadata)
-    }
-
-    const renderedArtifacts = step3RunResults.length > 0
-      ? await writeRenderedTextArtifacts({
-          outputDir,
-          results: step3RunResults,
-          writeInternal: processingOptions.renderedText === true,
-          sourcePath: options.filePath,
-          trackListPath: processingOptions.trackList,
-          externalDir: processingOptions.renderedOutDir,
-          externalBaseName: step1Metadata.slug
-        })
-      : { internalArtifacts: {}, externalFiles: [] as string[] }
-
-    if (renderedArtifacts.externalFiles.length > 0) {
-      logLocationsTable(l, [{
-        artifact: 'renderedOutDir',
-        path: processingOptions.renderedOutDir,
-        detail: `${renderedArtifacts.externalFiles.length} file${renderedArtifacts.externalFiles.length === 1 ? '' : 's'}`
-      }])
-    }
-
-    const showNoteSourceText = formatTranscriptText(finalizedTranscriptionResult.result.segments, { precision: 'seconds' }) || finalizedTranscriptionResult.result.text
-    const showNoteArtifacts = step3RunResults.length > 0
-      ? await writeShowNoteArtifacts({
-          outputDir,
-          results: step3RunResults,
-          sourceText: showNoteSourceText
-        })
-      : { internalArtifacts: {} }
-
-    const step3Serialized = step3Results.length === 1
-      ? step3Results[0]
-      : step3Results.length > 1
-        ? step3Results
-        : undefined
+    await buildPromptFile(
+      outputDir,
+      sourceMetadata,
+      finalizedTranscriptionResult.result,
+      step1Metadata.slug,
+      {
+        prompts: [],
+        promptMd: false,
+        ...promptOptions
+      }
+    )
 
     const { cost, timing } = await computeWriteCostAndTiming({
       processingOptions,
       preflightEstimate,
       step1Metadata,
       transcriptionResult: finalizedTranscriptionResult,
-      mediaDurationSeconds,
-      step3Results,
-      step3Serialized
+      mediaDurationSeconds
     })
 
     const step2Entries = Array.isArray(finalizedTranscriptionResult.metadata)
@@ -195,19 +130,15 @@ export const processVideo = async (
       requestedProviders,
       providerStates,
       missingProviders,
-      ...(step3Serialized !== undefined ? { step3: step3Serialized } : {}),
       cost,
       ...(timing ? { timing } : {}),
       ...(sttFailures.length > 0 ? { errors: sttFailures } : {}),
     }
-    await writeManifest(outputDir, createManifest('write', 'single', [
+    await writeManifest(outputDir, createManifest('extract', 'single', [
       createPipelineItemFromRecord(outputDir, processingMetadata, { status: completionStatus })
     ]))
     logWriteManifestConsoleSummary(outputDir, processingMetadata, {
-      promptArtifact: 'prompt.md',
-      ...(step3Results.length === 1 && typeof renderedArtifacts.internalArtifacts['rendered'] === 'string'
-        ? { step3RenderedOutput: renderedArtifacts.internalArtifacts['rendered'] }
-        : {})
+      promptArtifact: 'prompt.md'
     })
 
     const totalTime = Date.now() - processStart
@@ -216,23 +147,23 @@ export const processVideo = async (
       processingOptions,
       step1Time,
       step2Entries,
-      step3Results,
+      step3Results: [],
       actualSteps: cost.actual.steps
     })
 
     const artifactFiles = buildWriteArtifactFiles({
       step1Metadata,
-      renderedInternalArtifacts: renderedArtifacts.internalArtifacts,
-      showNoteInternalArtifacts: showNoteArtifacts.internalArtifacts,
+      renderedInternalArtifacts: {},
+      showNoteInternalArtifacts: {},
       step2Entries,
       successfulSttProviders,
-      step3Results
+      step3Results: []
     })
 
     l.report.complete(outputDir, artifactFiles, { steps: stepSummaries, totalTimeMs: totalTime, totalCost: cost.actual.totalCost })
 
     if (sttFailures.length > 0) {
-      l.warn(`write run completed with partial STT failures/skips: ${sttFailures.map((failure) => `${failure.service}/${failure.model}: ${failure.message}`).join('; ')}`, {
+      l.warn(`extract run completed with partial STT failures/skips: ${sttFailures.map((failure) => `${failure.service}/${failure.model}: ${failure.message}`).join('; ')}`, {
         category: 'pipeline',
         metadata: {
           failureCount: sttFailures.length,

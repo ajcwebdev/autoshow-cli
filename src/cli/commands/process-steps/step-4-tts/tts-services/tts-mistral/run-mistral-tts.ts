@@ -9,8 +9,8 @@ import type { HostedTtsChunkScheduler, MistralReferenceAudio, MistralTtsModel, M
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { requireApiKey } from '~/utils/validate/env-utils'
-import { CLIUsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { requireProviderKey } from '~/utils/validate/env-utils'
+import { UsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { sha256Bytes } from '../../script-to-audio/contract-identity'
 
@@ -42,14 +42,14 @@ const resolveVoiceSource = (
   const optionVoice = options.voiceId?.trim()
   const optionRefAudio = options.refAudioPath?.trim()
   if (optionVoice && optionRefAudio) {
-    throw CLIUsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
+    throw UsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
   }
   if (optionVoice) {
     return { kind: 'voice', value: optionVoice, speaker: optionVoice }
   }
   if (optionRefAudio) {
     if (!options.protectedReference) {
-      throw CLIUsageError(
+      throw UsageError(
         'Mistral reference audio must resolve from an opaque protected asset immediately before synthesis.',
         'Use the standalone `tts` request-reference edge, or create/import a voice with the shared `voice` command or `comic reference-voice`.'
       )
@@ -61,7 +61,7 @@ const resolveVoiceSource = (
     }
   }
 
-  throw CLIUsageError('Mistral TTS requires a saved voice ID or reference audio. Use --mistral-tts-voice or --mistral-tts-ref-audio.')
+  throw UsageError('Mistral TTS requires a saved voice ID or reference audio. Use --mistral-tts-voice or --mistral-tts-ref-audio.')
 }
 
 const readAudioBase64 = async (
@@ -135,7 +135,7 @@ export const runMistralTts = async (
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const voiceSource = resolveVoiceSource(options)
-  const apiKey = requireApiKey('MISTRAL_API_KEY', 'tts:mistral', 'Mistral TTS')
+  const apiKey = requireProviderKey('mistral', 'tts:mistral', 'Mistral TTS')
 
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.mistral)
   if (chunks.length === 0) {

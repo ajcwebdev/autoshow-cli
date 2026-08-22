@@ -11,7 +11,7 @@ import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const articleUrl = 'https://ajcwebdev.com'
 
-budgetedTest('extract-firecrawl-url', 'bun autoshow extract https://ajcwebdev.com --url-provider firecrawl', async () => {
+budgetedTest('extract-firecrawl-url', 'bun autoshow extract https://ajcwebdev.com --provider firecrawl', async () => {
   await requireConfiguredEnvVar('FIRECRAWL_API_KEY', 'FIRECRAWL_API_KEY not configured')
 
   let outputDir: string | null = null
@@ -19,8 +19,8 @@ budgetedTest('extract-firecrawl-url', 'bun autoshow extract https://ajcwebdev.co
   try {
     outputDir = await runCommandAndExpectOutputDir(
       'Firecrawl URL extraction',
-      ['src/cli/create-cli.ts', 'extract', articleUrl, '--url-provider', 'firecrawl'],
-      { testName: 'bun autoshow extract https://ajcwebdev.com --url-provider firecrawl' }
+      ['src/cli/create-cli.ts', 'extract', articleUrl, '--provider', 'firecrawl'],
+      { testName: 'bun autoshow extract https://ajcwebdev.com --provider firecrawl' }
     )
 
     await expectArtifact(`${outputDir}/extraction.txt`)

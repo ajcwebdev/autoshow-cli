@@ -1,13 +1,13 @@
 import { join } from 'node:path'
 import type { VoiceIssuedResource, VoiceProvisioningAttempt, VoiceRegistration } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { createFishClient } from '~/utils/fish-client/fish-client'
 import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { providerAccountScopeHash } from '../script-to-audio/advanced-provider-contracts'
 import { recordVoiceProvisioningOutcome } from './character-voice-registry'
 import { listVoiceProvisioningAttempts, loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation } from './provisioning-journal'
 import { MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const AMBIGUOUS_VOICE_REDISPATCH_MESSAGE =
   'Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.'
@@ -63,7 +63,7 @@ const searchFishIssuedResource = async (
     : typeof registration.sanitizedProviderMetadata['desiredName'] === 'string'
       ? registration.sanitizedProviderMetadata['desiredName']
       : undefined
-  if (!title) throw CLIUsageError('Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.')
+  if (!title) throw UsageError('Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.')
   const client = createFishClient({ apiKey })
   const catalog = await client.listModels({ self: true, title, page_size: 20, page_number: 1 })
   const match = catalog.items.find(item => item.title === title)
@@ -96,23 +96,23 @@ export const finalizePendingVoiceProvisioningAttempt = async (input: {
 }): Promise<VoiceProvisioningAttempt | undefined> => {
   const kind = classifyProvisioningJournal(input.attempt)
   if (kind === 'none') return undefined
-  if (kind === 'ambiguous' && !input.allowAmbiguous) throw CLIUsageError(AMBIGUOUS_VOICE_REDISPATCH_MESSAGE)
+  if (kind === 'ambiguous' && !input.allowAmbiguous) throw UsageError(AMBIGUOUS_VOICE_REDISPATCH_MESSAGE)
   const root = journalRootFor(input.journalRoot)
   let attempt = input.attempt
   if (attempt.outcome === undefined) attempt = await requireVoiceProvisioningReconciliation(root, attempt.registrationDraftId, attempt.attemptId)
   if (attempt.outcome?.state !== 'reconciliation-required') return attempt
   let issued = issuedFishResource(attempt, input.registration)
   if (!issued) {
-    if (input.registration.provider !== 'fish') throw CLIUsageError('Voice reconcile currently supports fish; other providers return unsupported until their adapter is implemented.')
+    if (input.registration.provider !== 'fish') throw UsageError('Voice reconcile currently supports fish; other providers return unsupported until their adapter is implemented.')
     const title = attempt.reconciliation?.strategy === 'provider-search'
       ? attempt.reconciliation.providerHandle
       : typeof input.registration.sanitizedProviderMetadata['desiredName'] === 'string'
         ? input.registration.sanitizedProviderMetadata['desiredName']
         : undefined
-    if (!title) throw CLIUsageError('Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.')
-    const apiKey = requireProvidedApiKey(input.apiKey, 'FISH_API_KEY', 'voice:fish', 'Fish model reconciliation')
+    if (!title) throw UsageError('Fish provisioning journal has no safe reconciliation lookup handle; refuse to recreate the model.')
+    const apiKey = resolveCredential('fish', 'require', { stage: 'voice:fish', providedValue: input.apiKey, useProvidedValue: true, description: 'Fish model reconciliation' })
     if (providerAccountScopeHash('fish', apiKey) !== attempt.accountScopeHash) {
-      throw CLIUsageError('Fish reconciliation credentials do not match the provisioning account scope.')
+      throw UsageError('Fish reconciliation credentials do not match the provisioning account scope.')
     }
     issued = await searchFishIssuedResource(attempt, input.registration as VoiceRegistration, apiKey)
   }

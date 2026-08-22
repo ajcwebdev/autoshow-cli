@@ -1,12 +1,12 @@
 import type { CacheMaterializationPlan, ProviderBatchResult, ProviderRenderResult } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { assertContentIdentity } from './contract-identity'
 import { assertExactStringSet, assertUnique, validateObservedProviderRequest, validatePlannedAndObservedCost } from './contract-validation-primitives'
 
 export const validateProviderBatchResult = (
   result: ProviderBatchResult
 ): ProviderBatchResult => {
-  if (result.schemaVersion !== 1) throw CLIUsageError('Provider batch result requires schemaVersion 1.')
+  if (result.schemaVersion !== 1) throw UsageError('Provider batch result requires schemaVersion 1.')
   assertContentIdentity(result as unknown as Record<string, unknown>, 'batchResultId', 'Provider batch result')
   assertUnique(result.requestedTurnIds, 'Provider batch requested turn IDs')
   validatePlannedAndObservedCost(result.cost, 'Provider batch result')
@@ -19,13 +19,13 @@ export const validateProviderBatchResult = (
   const outputIds = new Set(result.outputs.map((output) => output.outputId))
   for (const outcome of result.turnOutcomes) {
     if (outcome.outputIds.some((outputId) => !outputIds.has(outputId))) {
-      throw CLIUsageError('Provider batch turn outcome references an unknown output.')
+      throw UsageError('Provider batch turn outcome references an unknown output.')
     }
     if (outcome.status === 'succeeded' && outcome.outputIds.length === 0) {
-      throw CLIUsageError('Succeeded provider batch turn requires at least one linked output.')
+      throw UsageError('Succeeded provider batch turn requires at least one linked output.')
     }
     if (outcome.status !== 'succeeded' && outcome.outputIds.length > 0) {
-      throw CLIUsageError('Non-succeeded provider batch turn cannot claim a completed output.')
+      throw UsageError('Non-succeeded provider batch turn cannot claim a completed output.')
     }
   }
   if (result.status === 'succeeded') {
@@ -34,15 +34,15 @@ export const validateProviderBatchResult = (
       || result.turnOutcomes.length !== result.requestedTurnIds.length
       || result.turnOutcomes.some((outcome) => outcome.status !== 'succeeded')
     ) {
-      throw CLIUsageError('Succeeded provider batch requires output and succeeded outcomes for every turn.')
+      throw UsageError('Succeeded provider batch requires output and succeeded outcomes for every turn.')
     }
   }
   if (result.provenance === 'slot-reuse') {
     if (!result.slotHash.trim() || result.observedRequests.length !== 0 || result.retryAttempts.length !== 0 || result.createdResources.length !== 0) {
-      throw CLIUsageError('Slot-reuse batch result must list one slot hash and cannot claim provider dispatch, retry, or created resources.')
+      throw UsageError('Slot-reuse batch result must list one slot hash and cannot claim provider dispatch, retry, or created resources.')
     }
   } else if (result.status === 'succeeded' && result.observedRequests.length === 0) {
-    throw CLIUsageError('Provider-dispatch success requires at least one serializer-observed request.')
+    throw UsageError('Provider-dispatch success requires at least one serializer-observed request.')
   }
   const observedRequestKeys = result.observedRequests.map((request) => `${request.invocationId}\0${request.requestOrdinal}`)
   assertUnique(observedRequestKeys, 'Provider batch observed request identities')
@@ -57,7 +57,7 @@ export const validateProviderBatchResult = (
       ))
       || request.turns.some((turn) => !result.requestedTurnIds.includes(turn.turnId))
     ) {
-      throw CLIUsageError('Observed provider request does not belong to its exact batch invocation and requested turn set.')
+      throw UsageError('Observed provider request does not belong to its exact batch invocation and requested turn set.')
     }
     assertUnique(request.turns.map((turn) => turn.turnId), 'Observed provider request turns')
   }
@@ -67,7 +67,7 @@ export const validateProviderBatchResult = (
       observedTurnIds.size !== result.requestedTurnIds.length
       || result.requestedTurnIds.some((turnId) => !observedTurnIds.has(turnId))
     ) {
-      throw CLIUsageError('Succeeded provider dispatch must serializer-observe every requested turn.')
+      throw UsageError('Succeeded provider dispatch must serializer-observe every requested turn.')
     }
   }
   for (const retry of result.retryAttempts) {
@@ -77,18 +77,18 @@ export const validateProviderBatchResult = (
       || !result.observedRequests.some((request) => request.requestOrdinal === retry.requestOrdinal)
       || !result.observedRequests.some((request) => request.requestOrdinal === retry.retryOfRequestOrdinal)
     ) {
-      throw CLIUsageError('Provider retry record does not link two ordered observed requests from the same invocation.')
+      throw UsageError('Provider retry record does not link two ordered observed requests from the same invocation.')
     }
   }
   if (result.generatedBatch) {
     if (result.generatedBatch.batchId !== result.batchId || result.generatedBatch.generationSlotId !== result.generationSlotId) {
-      throw CLIUsageError('Generated batch identity does not match its provider batch result.')
+      throw UsageError('Generated batch identity does not match its provider batch result.')
     }
     assertUnique(result.generatedBatch.takes.map((take) => take.takeId), 'Generated take IDs')
     validatePlannedAndObservedCost(result.generatedBatch.batchCost, 'Generated provider batch')
     for (const take of result.generatedBatch.takes) {
       if (take.generationSlotId !== result.generationSlotId || (take.audio.outputId && !outputIds.has(take.audio.outputId))) {
-        throw CLIUsageError('Generated take does not bind the result generation slot and one of its outputs.')
+        throw UsageError('Generated take does not bind the result generation slot and one of its outputs.')
       }
     }
   }
@@ -98,7 +98,7 @@ export const validateProviderBatchResult = (
 export const validateProviderRenderResult = (
   result: ProviderRenderResult
 ): ProviderRenderResult => {
-  if (result.schemaVersion !== 1) throw CLIUsageError('Provider render result requires schemaVersion 1.')
+  if (result.schemaVersion !== 1) throw UsageError('Provider render result requires schemaVersion 1.')
   assertContentIdentity(result as unknown as Record<string, unknown>, 'resultIdentity', 'Provider render result')
   assertUnique(result.requestedTurnIds, 'Provider render requested turn IDs')
   validatePlannedAndObservedCost(result.cost.currentComposition, 'Provider render current composition')
@@ -114,7 +114,7 @@ export const validateProviderRenderResult = (
   )
   if (result.status === 'succeeded') {
     if (result.outputs.length === 0 || result.turnOutcomes.length !== result.requestedTurnIds.length || result.turnOutcomes.some((outcome) => outcome.status !== 'succeeded')) {
-      throw CLIUsageError('Succeeded provider render requires output and succeeded outcomes for every requested turn.')
+      throw UsageError('Succeeded provider render requires output and succeeded outcomes for every requested turn.')
     }
   }
   const observedKeys = result.observedRequests.map((request) => `${request.invocationId}\0${request.requestOrdinal}`)
@@ -124,7 +124,7 @@ export const validateProviderRenderResult = (
   const aggregateOutputIds = new Set(result.outputs.map((output) => output.outputId))
   const batchResultIds = new Set(result.batchResults.map((entry) => entry.batchResultId))
   if (result.outputs.some((output) => !batchResultIds.has(output.batchResultId))) {
-    throw CLIUsageError('Provider render output references an unknown batch result.')
+    throw UsageError('Provider render output references an unknown batch result.')
   }
   for (const request of result.observedRequests) {
     validateObservedProviderRequest(request)
@@ -133,13 +133,13 @@ export const validateProviderRenderResult = (
       || !generationSlotIds.has(request.generationSlotId)
       || request.turns.some((turn) => !result.requestedTurnIds.includes(turn.turnId))
     ) {
-      throw CLIUsageError('Observed provider request references an unknown batch, slot, or turn in the aggregate result.')
+      throw UsageError('Observed provider request references an unknown batch, slot, or turn in the aggregate result.')
     }
   }
   for (const outcome of result.turnOutcomes) {
     for (const request of outcome.observedRequests) {
       if (!observedKeys.includes(`${request.invocationId}\0${request.requestOrdinal}`)) {
-        throw CLIUsageError('Turn outcome references an unknown observed provider request.')
+        throw UsageError('Turn outcome references an unknown observed provider request.')
       }
     }
     if (
@@ -147,7 +147,7 @@ export const validateProviderRenderResult = (
       || outcome.generationSlotIds.some((slotId) => !generationSlotIds.has(slotId))
       || outcome.outputIds.some((outputId) => !aggregateOutputIds.has(outputId))
     ) {
-      throw CLIUsageError('Turn outcome references an unknown batch, generation slot, or output.')
+      throw UsageError('Turn outcome references an unknown batch, generation slot, or output.')
     }
     if (
       outcome.status === 'succeeded'
@@ -158,12 +158,12 @@ export const validateProviderRenderResult = (
           && outcome.generationSlotIds.some((slotId) => result.observedRequests.some((request) => request.generationSlotId === slotId)))
       )
     ) {
-      throw CLIUsageError('Succeeded provider render turn requires output linkage and provider-attempt observation when dispatched.')
+      throw UsageError('Succeeded provider render turn requires output linkage and provider-attempt observation when dispatched.')
     }
   }
   for (const batch of result.generatedBatches) {
     if (!batchIds.has(batch.batchId) || !generationSlotIds.has(batch.generationSlotId)) {
-      throw CLIUsageError('Generated provider batch does not belong to the aggregate result plan.')
+      throw UsageError('Generated provider batch does not belong to the aggregate result plan.')
     }
   }
   return result
@@ -172,16 +172,16 @@ export const validateProviderRenderResult = (
 export const validateCacheMaterializationPlan = (
   plan: CacheMaterializationPlan
 ): CacheMaterializationPlan => {
-  if (plan.schemaVersion !== 1) throw CLIUsageError('Cache materialization plan requires schemaVersion 1.')
+  if (plan.schemaVersion !== 1) throw UsageError('Cache materialization plan requires schemaVersion 1.')
   assertContentIdentity(plan as unknown as Record<string, unknown>, 'cacheMaterializationPlanId', 'Cache materialization plan')
   if (!plan.portableSemanticInputHash.trim() || !plan.currentExecutionInputHash.trim()) {
-    throw CLIUsageError('Cache materialization requires portable and current execution input identities.')
+    throw UsageError('Cache materialization requires portable and current execution input identities.')
   }
   if (plan.resolvedContinuation.kind === 'none' && plan.continuationFingerprint.kind !== 'none') {
-    throw CLIUsageError('Cache continuation fingerprint must be none when no continuation is resolved.')
+    throw UsageError('Cache continuation fingerprint must be none when no continuation is resolved.')
   }
   if (plan.resolvedContinuation.kind === 'checkpoint' && plan.continuationFingerprint.kind !== 'checkpoint') {
-    throw CLIUsageError('Cache checkpoint materialization requires a checkpoint semantic fingerprint.')
+    throw UsageError('Cache checkpoint materialization requires a checkpoint semantic fingerprint.')
   }
   return plan
 }

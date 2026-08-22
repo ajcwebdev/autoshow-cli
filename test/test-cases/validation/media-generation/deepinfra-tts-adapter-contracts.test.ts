@@ -19,7 +19,7 @@ const tempDirs = setupContractSuiteLifecycle({ envKeys: ['DEEPINFRA_API_KEY'], t
 
 describe('DeepInfra Phase 4 Contracts', () => {
   test('collects DeepInfra TTS targets with correct provider and model', () => {
-    const selection = createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-turbo', deepinfraTtsVoice: 'standard' })
+    const selection = createTtsTargetSelection({ deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'], deepinfraTtsVoice: 'standard' })
     const targets = collectDeepinfraTtsTargets(selection)
     expect(targets).toHaveLength(1)
     expect(targets[0]?.service).toBe('deepinfra')
@@ -42,7 +42,7 @@ describe('DeepInfra Phase 4 Contracts', () => {
     expect(validatePreparedProviderText(prepared)).toBe(prepared)
     expect(prepareDeepinfraChatterboxText('Power.').preparationVersion).toBe('generic-tts-v1')
 
-    const [target] = collectDeepinfraTtsTargets(createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-turbo' }))
+    const [target] = collectDeepinfraTtsTargets(createTtsTargetSelection({ deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] }))
     expect(prepareComicSegmentedProviderTexts({
       turnId: 'dialogue-turn-009',
       sourceSegmentId: 'dialogue-turn-009',

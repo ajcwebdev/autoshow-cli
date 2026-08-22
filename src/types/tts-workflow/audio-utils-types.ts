@@ -1,7 +1,7 @@
 import type { HostedTtsChunkJobContext, HostedTtsChunkScheduler, TtsProvider } from '~/types'
 
 export type RunTtsChunksOptions = {
-  provider?: TtsProvider | undefined
+  provider: TtsProvider
   scheduler?: HostedTtsChunkScheduler | undefined
   job?: HostedTtsChunkJobContext | undefined
   scopeLabel?: string | undefined

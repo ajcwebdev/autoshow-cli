@@ -9,7 +9,7 @@ import type {
   NormalizedReasoningEffort,
   PageResult,
 } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { shouldExportEpubChapters } from './chapter-export-defaults'
 import { buildEpubTextOutput } from './ebook/epub/export'
@@ -147,7 +147,7 @@ export const extractOfficeNativeFormat = async (
     l.warn(`${format.toUpperCase()} OCR flags are ignored; extracting native ZIP/XML text with Bun`, { category: 'pipeline', metadata: { format } })
   }
   if (!isZipXmlFormat(format)) {
-    throw CLIUsageError(`Unsupported ZIP/XML document format: ${format}`)
+    throw UsageError(`Unsupported ZIP/XML document format: ${format}`)
   }
 
   l.write('info', `Extracting ${format.toUpperCase()} with native ZIP/XML parser`, { category: 'pipeline', metadata: { format, extractor: 'zip-xml' } })
@@ -204,7 +204,7 @@ export const extractCbzFormat = async (
     if (hasHostedOcr(opts)) {
       const hostedEngine = getHostedOcrEngine(opts)
       if (!hostedEngine) {
-        throw CLIUsageError('Hosted OCR requested without a configured hosted OCR model.')
+        throw UsageError('Hosted OCR requested without a configured hosted OCR model.')
       }
       const imagePages: PageResult[] = []
       let totalPromptTokens = 0
@@ -292,7 +292,7 @@ export const extractImageFormat = async (
   if (hasHostedOcr(opts)) {
     const hostedEngine = getHostedOcrEngine(opts)
     if (!hostedEngine) {
-      throw CLIUsageError('Hosted OCR requested without a configured hosted OCR model.')
+      throw UsageError('Hosted OCR requested without a configured hosted OCR model.')
     }
 
     const hostedNormDir = await mkdtemp(join(tmpdir(), 'autoshow-img-hosted-'))
@@ -344,7 +344,7 @@ export const extractPdfFormat = async (
   if (hasHostedOcr(opts)) {
     if (step1Metadata.format !== 'pdf') {
       const hostedEngine = getHostedOcrEngine(opts) ?? 'mistral-ocr'
-      throw CLIUsageError(getHostedDirectImageSupportError(hostedEngine))
+      throw UsageError(getHostedDirectImageSupportError(hostedEngine))
     }
     const run = await runHostedOcr(filePath, step1Metadata, opts)
     return {

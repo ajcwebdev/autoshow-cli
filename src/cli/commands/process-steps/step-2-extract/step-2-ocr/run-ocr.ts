@@ -1,5 +1,5 @@
 import type { DocumentMetadata, EpubArtifactFile, ExtractionMetadata, ExtractionOptions, ExtractionResult, FormatExtractionResult } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { writeFile } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildPdfChapterArtifacts } from './pdf/ocr-chapters/ocr-chapter-artifacts'
@@ -69,7 +69,7 @@ export const runOcr = async (
   const ocrEngineCount = countSelectedOcrEngines(opts)
 
   if (!hasPreparedMarkdownInput(opts) && ocrEngineCount > 1) {
-    throw CLIUsageError('Use at most one OCR provider at a time. Select one with --provider provider[=model].')
+    throw UsageError('Use at most one OCR provider at a time. Select one with --provider provider[=model].')
   }
 
   const format = step1Metadata.format

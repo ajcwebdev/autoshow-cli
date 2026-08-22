@@ -14,7 +14,7 @@ import {
   validateMinimaxTtsEmotion,
   validateMinimaxTtsLanguageBoost,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 const GEMINI_TTS_LANGUAGE_CODES = [
   'de-DE', 'en-AU', 'en-GB', 'en-IN', 'en-US', 'es-US', 'fr-FR', 'hi-IN',
@@ -98,7 +98,7 @@ const PROVIDERS = new Set<TtsProvider>(Object.keys(CONTROL_SPECS) as TtsProvider
 const CANONICAL_TURN_ID_RE = /^dialogue-turn-\d{3,}(?:-\d{2,})?$/
 
 const invalidControl = (provider: TtsProvider, key: string, detail: string): Error =>
-  CLIUsageError(`Invalid per-turn ${provider} TTS control ${key}: ${detail}.`)
+  UsageError(`Invalid per-turn ${provider} TTS control ${key}: ${detail}.`)
 
 const normalizeControlValue = (
   provider: TtsProvider,
@@ -159,7 +159,7 @@ const normalizeProviderControls = (
   for (const key of Object.keys(controls).sort()) {
     const spec = specs[key]
     if (!spec) {
-      throw CLIUsageError(
+      throw UsageError(
         `Provider ${provider} does not support per-turn TTS invocation control ${key}. Allowed controls: ${Object.keys(specs).sort().join(', ')}.`
       )
     }
@@ -184,7 +184,7 @@ export const resolveTtsTurnControlOverrides = (
   controlsByTurn: TtsTurnControls | undefined
 ): TtsTargetInvocationControls => {
   if (!CANONICAL_TURN_ID_RE.test(sourceId)) {
-    throw CLIUsageError(`Per-turn TTS controls require a canonical dialogue turn ID; received ${sourceId}.`)
+    throw UsageError(`Per-turn TTS controls require a canonical dialogue turn ID; received ${sourceId}.`)
   }
   const providerControls = controlsByTurn?.[sourceId]?.[provider]
   return providerControls
@@ -202,24 +202,24 @@ export const normalizeTtsTurnControls = (
 
   for (const sourceId of Object.keys(controlsByTurn).sort()) {
     if (!CANONICAL_TURN_ID_RE.test(sourceId)) {
-      throw CLIUsageError(`Per-turn TTS controls require canonical dialogue-turn-NNN or dialogue-turn-NNN-NN keys; received ${sourceId}.`)
+      throw UsageError(`Per-turn TTS controls require canonical dialogue-turn-NNN or dialogue-turn-NNN-NN keys; received ${sourceId}.`)
     }
     if (expected && !expected.has(sourceId)) {
-      throw CLIUsageError(`Per-turn TTS controls reference unknown dialogue turn ${sourceId}.`)
+      throw UsageError(`Per-turn TTS controls reference unknown dialogue turn ${sourceId}.`)
     }
     const rawProviderControls = controlsByTurn[sourceId]
     if (!rawProviderControls || typeof rawProviderControls !== 'object' || Array.isArray(rawProviderControls)) {
-      throw CLIUsageError(`Per-turn TTS controls for ${sourceId} must be a provider-keyed object.`)
+      throw UsageError(`Per-turn TTS controls for ${sourceId} must be a provider-keyed object.`)
     }
     const normalizedProviders: Partial<Record<TtsProvider, TtsTargetInvocationControls>> = {}
     for (const rawProvider of Object.keys(rawProviderControls).sort()) {
       if (!PROVIDERS.has(rawProvider as TtsProvider)) {
-        throw CLIUsageError(`Per-turn TTS controls for ${sourceId} use unknown provider ${rawProvider}.`)
+        throw UsageError(`Per-turn TTS controls for ${sourceId} use unknown provider ${rawProvider}.`)
       }
       const provider = rawProvider as TtsProvider
       const rawControls = rawProviderControls[provider]
       if (!rawControls || typeof rawControls !== 'object' || Array.isArray(rawControls)) {
-        throw CLIUsageError(`Per-turn ${provider} TTS controls for ${sourceId} must be an object.`)
+        throw UsageError(`Per-turn ${provider} TTS controls for ${sourceId} must be an object.`)
       }
       normalizedProviders[provider] = normalizeProviderControls(provider, rawControls, true)
     }

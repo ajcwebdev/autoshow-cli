@@ -12,7 +12,8 @@ import type { SingleTargetInputCategory, SingleTargetRoute } from '~/types'
 import { withTemporaryDirectDocument } from '~/cli/commands/process-steps/step-1-download/download-targets/single/temporary-direct-document'
 import { resolveXSpaceDownloadTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/single/x-space-runner'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { LOCAL_EXAMPLE_AUDIO_PATH, runCommand } from '../../../test-utils/test-helpers'
+import { WRITE_NON_TEXT_INPUT_MESSAGE } from '~/cli/commands/process-steps/step-3-write/run-write-command'
+import { STABLE_TTS_MD_PATH, runCommand } from '../../../test-utils/test-helpers'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
@@ -37,24 +38,23 @@ describe('input classification contracts', () => {
         metadata: SingleTargetRoute['action'] | 'error'
         download: SingleTargetRoute['action'] | 'error'
         extract: SingleTargetRoute['action'] | 'error'
-        write: SingleTargetRoute['action'] | 'error'
       }
     }> = [
-      { category: 'url_streaming', expected: { metadata: 'media', download: 'media', extract: 'media', write: 'media' } },
-      { category: 'url_direct_media', expected: { metadata: 'media', download: 'media', extract: 'media', write: 'media' } },
-      { category: 'url_direct_document', expected: { metadata: 'temporary-document', download: 'temporary-document', extract: 'temporary-document', write: 'temporary-document' } },
-      { category: 'url_html_article', expected: { metadata: 'article', download: 'article', extract: 'article', write: 'article' } },
-      { category: 'url_x_space', expected: { metadata: 'x-space', download: 'x-space', extract: 'x-space', write: 'x-space' } },
-      { category: 'local_html_article', expected: { metadata: 'article', download: 'article', extract: 'article', write: 'article' } },
-      { category: 'local_document', expected: { metadata: 'document', download: 'document', extract: 'document', write: 'document' } },
-      { category: 'local_media', expected: { metadata: 'media', download: 'media', extract: 'media', write: 'media' } },
-      { category: 'local_unsupported', expected: { metadata: 'media', download: 'media', extract: 'error', write: 'media' } },
-      { category: 'x_space_identifier', expected: { metadata: 'x-space', download: 'x-space', extract: 'x-space', write: 'x-space' } },
-      { category: 'missing', expected: { metadata: 'error', download: 'error', extract: 'error', write: 'error' } }
+      { category: 'url_streaming', expected: { metadata: 'media', download: 'media', extract: 'media' } },
+      { category: 'url_direct_media', expected: { metadata: 'media', download: 'media', extract: 'media' } },
+      { category: 'url_direct_document', expected: { metadata: 'temporary-document', download: 'temporary-document', extract: 'temporary-document' } },
+      { category: 'url_html_article', expected: { metadata: 'article', download: 'article', extract: 'article' } },
+      { category: 'url_x_space', expected: { metadata: 'x-space', download: 'x-space', extract: 'x-space' } },
+      { category: 'local_html_article', expected: { metadata: 'article', download: 'article', extract: 'article' } },
+      { category: 'local_document', expected: { metadata: 'document', download: 'document', extract: 'document' } },
+      { category: 'local_media', expected: { metadata: 'media', download: 'media', extract: 'media' } },
+      { category: 'local_unsupported', expected: { metadata: 'media', download: 'media', extract: 'error' } },
+      { category: 'x_space_identifier', expected: { metadata: 'x-space', download: 'x-space', extract: 'x-space' } },
+      { category: 'missing', expected: { metadata: 'error', download: 'error', extract: 'error' } }
     ]
 
     for (const { category, expected } of cases) {
-      for (const command of ['metadata', 'download', 'extract', 'write'] as const) {
+      for (const command of ['metadata', 'download', 'extract'] as const) {
         const expectedAction = expected[command]
         if (expectedAction === 'error') {
           const expectedMessage = category === 'local_unsupported'
@@ -72,21 +72,7 @@ describe('input classification contracts', () => {
     }
   })
 
-  test('single-target routing preserves text-input and passthrough usage failures', () => {
-    expect(() => resolveSingleTargetRouteDecision(
-      'write',
-      'url_html_article',
-      'https://example.com/article.html',
-      { textInput: true }
-    )).toThrow('write --text-input only accepts local .md or .txt files or directories')
-
-    expect(() => resolveSingleTargetRouteDecision(
-      'write',
-      'local_media',
-      'clip.mp3',
-      { textInput: true }
-    )).toThrow('write --text-input only accepts .md or .txt files. Got: clip.mp3')
-
+  test('single-target routing preserves passthrough usage failures', () => {
     expect(() => resolveSingleTargetRouteDecision(
       'download',
       'url_direct_document',
@@ -165,7 +151,7 @@ describe('input classification contracts', () => {
     const coordinatorText = coordinator?.getText() ?? ''
     expect(coordinatorText.match(/normalizeSingleTargetIntent\(/g)).toHaveLength(1)
     expect(coordinatorText.match(/classifySingleTargetInput\(/g)).toHaveLength(1)
-    for (const handler of ['handleMetadataRoute', 'handleDownloadRoute', 'handleExtractRoute', 'handleWriteRoute']) {
+    for (const handler of ['handleMetadataRoute', 'handleDownloadRoute', 'handleExtractRoute']) {
       expect(coordinatorText).toContain(`${handler}(`)
     }
 
@@ -210,8 +196,8 @@ describe('input classification contracts', () => {
     await expect(classifyInputFamily('1DXxyRYNejbKM')).resolves.toBe('x_space')
   })
 
-  test('write input routing accepts the extract-routed source families', async () => {
-    const dir = await makeTempDir('autoshow-validation-write-routing-')
+  test('extract input routing accepts the extract-routed source families', async () => {
+    const dir = await makeTempDir('autoshow-validation-extract-routing-')
     tempDirs.push(dir)
     const mediaPath = join(dir, 'clip.mp3')
     const imagePath = join(dir, 'page.png')
@@ -232,23 +218,23 @@ describe('input classification contracts', () => {
     ] as const
 
     for (const item of cases) {
-      const routing = await resolveInputRoutingForCommand('write', item.input)
+      const routing = await resolveInputRoutingForCommand('extract', item.input)
       expect(routing.supported).toBe(true)
       expect(routing.family).toBe(item.family)
       expect(routing.extractRoute).toBe(item.extractRoute)
     }
   })
 
-  test('write directory planning preserves input families and extract routes', async () => {
-    const dir = await makeTempDir('autoshow-validation-write-dir-')
+  test('extract directory planning preserves input families and extract routes', async () => {
+    const dir = await makeTempDir('autoshow-validation-extract-dir-')
     tempDirs.push(dir)
     await writeFile(join(dir, 'clip.mp3'), '')
     await writeFile(join(dir, 'scan.png'), '')
     await writeFile(join(dir, 'article.html'), '<article><p>Body</p></article>')
 
-    const opts = buildOptsFromFlags(false, {})
-    const plan = await resolveProcessTargetPlan('write', dir, opts)
-    const batchPlan = await planProcessTargetBatchExecution(plan, 'write', opts, dir)
+    const opts = buildOptsFromFlags({})
+    const plan = await resolveProcessTargetPlan('extract', dir, opts)
+    const batchPlan = await planProcessTargetBatchExecution(plan, 'extract', opts, dir)
 
     expect(batchPlan?.plannedInputs.map((item) => item.inputFamily).sort()).toEqual([
       'document',
@@ -338,7 +324,7 @@ describe('input classification contracts', () => {
     expect(`${result.stdout}\n${result.stderr}`).not.toContain('unsupported')
   })
 
-  test('X Space write uses the X extraction path instead of unsupported input rejection', async () => {
+  test('X Space write rejects non-text input instead of running extraction', async () => {
     const result = await runCommand([
       'src/cli/create-cli.ts',
       'write',
@@ -346,11 +332,10 @@ describe('input classification contracts', () => {
     ], { env: { X_BEARER_TOKEN: '' } })
 
     expect(result.exitCode).toBe(2)
-    expect(`${result.stdout}\n${result.stderr}`).toContain('X_BEARER_TOKEN environment variable is required for X/Twitter Space extraction')
-    expect(`${result.stdout}\n${result.stderr}`).not.toContain('unsupported')
+    expect(`${result.stdout}\n${result.stderr}`).toContain(WRITE_NON_TEXT_INPUT_MESSAGE)
   })
 
-  test('write URL-list pricing plans article and X Space entries', async () => {
+  test('write URL-list files are rejected as extract inputs', async () => {
     const dir = await makeTempDir('autoshow-validation-write-list-')
     tempDirs.push(dir)
     const listPath = join(dir, 'inputs.md')
@@ -368,11 +353,8 @@ describe('input classification contracts', () => {
       '--price'
     ], { env: { X_BEARER_TOKEN: '' } })
 
-    expect(result.exitCode).toBe(0)
-    const output = `${result.stdout}\n${result.stderr}`
-    expect(output).toContain('Suite Price Estimate')
-    expect(output).toContain('Suite Cost Summary')
-    expect(output).not.toContain('unsupported')
+    expect(result.exitCode).toBe(2)
+    expect(`${result.stdout}\n${result.stderr}`).toContain(WRITE_NON_TEXT_INPUT_MESSAGE)
   })
 
   test('unsupported input types produce a usage error message', async () => {
@@ -397,11 +379,11 @@ describe('input classification contracts', () => {
     })
   })
 
-  test('write rejects multiple step-2 providers for one routed media input', async () => {
+  test('write rejects extract STT flags', async () => {
     const result = await runCommand([
       'src/cli/create-cli.ts',
       'write',
-      LOCAL_EXAMPLE_AUDIO_PATH,
+      STABLE_TTS_MD_PATH,
       '--stt',
       'whisper=tiny',
       '--stt',
@@ -410,6 +392,6 @@ describe('input classification contracts', () => {
     ])
 
     expect(result.exitCode).toBe(2)
-    expect(`${result.stdout}\n${result.stderr}`).toContain('write accepts at most one STT provider')
+    expect(`${result.stdout}\n${result.stderr}`).toContain('Unexpected flag: --stt')
   })
 })

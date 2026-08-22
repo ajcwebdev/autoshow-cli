@@ -11,9 +11,9 @@ import type {
   TtsRequestEvidenceScope,
 } from '~/types'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
 import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
@@ -27,7 +27,7 @@ export const planHumeNativeUtteranceBatches = (
   turns: readonly HumeNativeUtteranceTurn[],
   maxCharacters = HUME_NATIVE_UTTERANCE_MAX_CHARACTERS
 ): HumeNativeUtteranceBatch[] => {
-  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw CLIUsageError('Hume native utterance character limit must be a positive integer.')
+  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw UsageError('Hume native utterance character limit must be a positive integer.')
   const batches: HumeNativeUtteranceBatch[] = []
   let current: HumeNativeUtteranceTurn[] = []
   let characters = 0
@@ -38,9 +38,9 @@ export const planHumeNativeUtteranceBatches = (
     characters = 0
   }
   for (const turn of turns) {
-    if (turn.delivery) throw CLIUsageError('Hume Octave 2 native utterances cannot serialize required acting descriptions; use segmented rendering or an Octave 1-compatible plan.')
+    if (turn.delivery) throw UsageError('Hume Octave 2 native utterances cannot serialize required acting descriptions; use segmented rendering or an Octave 1-compatible plan.')
     const length = [...turn.canonicalText].length
-    if (length > maxCharacters) throw CLIUsageError(`Hume native utterance ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
+    if (length > maxCharacters) throw UsageError(`Hume native utterance ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
     if (current.length > 0 && characters + length > maxCharacters) flush()
     current.push({ ...turn })
     characters += length
@@ -83,7 +83,7 @@ const timestampTokens = (input: {
       if ((type !== 'word' && type !== 'phoneme') || typeof text !== 'string' || typeof time?.['begin'] !== 'number' || typeof time['end'] !== 'number') continue
       const startMs = providerMilliseconds(time['begin'], input.durationMs)
       const endMs = providerMilliseconds(time['end'], input.durationMs)
-      if (endMs < startMs) throw CLIUsageError('Hume timestamp contains a reversed range.')
+      if (endMs < startMs) throw UsageError('Hume timestamp contains a reversed range.')
       const token = { turnId: turn.turnId, subjectKey: turn.subjectKey, text, startMs, endMs }
       if (type === 'word') words.push(token)
       else phonemes.push(token)
@@ -119,12 +119,12 @@ export const runHumeNativeUtterances = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (options.model !== 'octave-2') throw CLIUsageError('Hume native utterances currently require model octave-2.')
-  if (turns.length === 0) throw CLIUsageError('Hume native utterances require at least one turn.')
+  if (options.model !== 'octave-2') throw UsageError('Hume native utterances currently require model octave-2.')
+  if (turns.length === 0) throw UsageError('Hume native utterances require at least one turn.')
   const takeCount = options.takeCount ?? 1
-  if (!Number.isInteger(takeCount) || takeCount < 1 || takeCount > HUME_NATIVE_MAX_TAKES) throw CLIUsageError(`Hume num_generations must be between 1 and ${HUME_NATIVE_MAX_TAKES}.`)
-  if (takeCount > 1 && options.requestEvidence) throw CLIUsageError('Canonical Hume execution requires explicit take selection before continuation; use a one-take run until a selection policy is supplied.')
-  const apiKey = requireApiKey('HUME_API_KEY', 'tts:hume', 'Hume native utterances')
+  if (!Number.isInteger(takeCount) || takeCount < 1 || takeCount > HUME_NATIVE_MAX_TAKES) throw UsageError(`Hume num_generations must be between 1 and ${HUME_NATIVE_MAX_TAKES}.`)
+  if (takeCount > 1 && options.requestEvidence) throw UsageError('Canonical Hume execution requires explicit take selection before continuation; use a one-take run until a selection policy is supplied.')
+  const apiKey = requireProviderKey('hume', 'tts:hume', 'Hume native utterances')
   const batches = planHumeNativeUtteranceBatches(turns)
   const startedAt = Date.now()
   const selectedPaths: string[] = []

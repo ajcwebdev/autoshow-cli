@@ -8,7 +8,7 @@ import type {
   SanitizedProviderError,
   WrittenJson,
 } from '~/types'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { UsageError, InternalError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalTtsValue } from './contract-identity'
 import { validateProviderBatchResult } from './contract-validation'
 import { withIdentity } from './attempt-shared'
@@ -194,7 +194,7 @@ export const promoteBatchResult = async (
   const existingReference = ctx.journal.recordedBatchResults.find((entry) => entry.generationSlotId === slot.generationSlotId)
   if (existingReference) {
     if (canonicalTtsJson(existingReference) !== canonicalTtsJson(reference)) {
-      throw CLIUsageError('TTS admission journal contains conflicting batch-result evidence for one generation slot.')
+      throw UsageError('TTS admission journal contains conflicting batch-result evidence for one generation slot.')
     }
     return file
   }

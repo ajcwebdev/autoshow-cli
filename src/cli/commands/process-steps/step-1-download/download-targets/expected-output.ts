@@ -1,32 +1,11 @@
-import type { ExpectedOutputOptions, LlmRuntimeOptions, OcrRuntimeOptions, ProcessCommand, ResolvedInputRouting, SttRuntimeOptions } from '~/types'
+import type { ExpectedOutputOptions, OcrRuntimeOptions, ProcessCommand, ResolvedInputRouting, SttRuntimeOptions } from '~/types'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { collectSttTargets, collectSttTargetsForSource, sttSourceFromInput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { shouldExportEpubChapters } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults'
-import { resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { isDocumentLikeTarget } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
-const getEffectiveLlmOutputCount = (opts: LlmRuntimeOptions): number => {
-  const llmConfig = resolveLLMDefaults(opts)
-  return [
-    ...(llmConfig.openaiModels ?? (llmConfig.openaiModel ? [llmConfig.openaiModel] : [])),
-    ...(llmConfig.groqModels ?? (llmConfig.groqModel ? [llmConfig.groqModel] : [])),
-    ...(llmConfig.geminiModels ?? (llmConfig.geminiModel ? [llmConfig.geminiModel] : [])),
-    ...(llmConfig.anthropicModels ?? (llmConfig.anthropicModel ? [llmConfig.anthropicModel] : [])),
-    ...(llmConfig.minimaxModels ?? (llmConfig.minimaxModel ? [llmConfig.minimaxModel] : [])),
-    ...(llmConfig.grokModels ?? (llmConfig.grokModel ? [llmConfig.grokModel] : [])),
-    ...(llmConfig.glmModels ?? (llmConfig.glmModel ? [llmConfig.glmModel] : [])),
-    ...(llmConfig.kimiModels ?? (llmConfig.kimiModel ? [llmConfig.kimiModel] : [])),
-    ...(llmConfig.togetherModels ?? (llmConfig.togetherModel ? [llmConfig.togetherModel] : [])),
-    ...(llmConfig.cerebrasModels ?? (llmConfig.cerebrasModel ? [llmConfig.cerebrasModel] : []))
-  ].filter((value): value is string => typeof value === 'string' && value.length > 0).length
-}
-
-const getExpectedLlmJsonArtifact = (llmOutputCount: number): string =>
-  llmOutputCount <= 1 ? 'text.json' : 'text-<model>.json'
-
-const getExpectedShowNoteArtifact = (llmOutputCount: number): string =>
-  llmOutputCount <= 1 ? 'show-note.md' : 'show-note-<model>.md'
+import { expectedWriteArtifactFiles } from '~/cli/commands/process-steps/step-3-write/run-write-command'
 
 const getExpectedOcrArtifact = (opts: Pick<OcrRuntimeOptions, 'out'>): string =>
   opts.out === 'json' ? 'result.json' : 'extraction.txt'
@@ -64,6 +43,9 @@ export const buildExpectedFilesList = async (
   opts: ExpectedOutputOptions,
   resolvedTarget?: string
 ): Promise<string[]> => {
+  if (command === 'write') {
+    return expectedWriteArtifactFiles(opts)
+  }
   const routing = typeof resolvedTarget === 'string'
     ? await resolveInputRoutingForCommand(command === 'download' || command === 'metadata' ? 'write' : command, resolvedTarget, opts)
     : undefined
@@ -103,59 +85,7 @@ export const buildExpectedFilesList = async (
     }
     return files
   }
-  if (command === 'write' && opts.textInput) {
-    const llmOutputCount = getEffectiveLlmOutputCount(opts)
-    const files = [
-      getExpectedLlmJsonArtifact(llmOutputCount),
-      getExpectedShowNoteArtifact(llmOutputCount)
-    ]
-    if (opts.renderedText) {
-      files.push(llmOutputCount <= 1 ? 'text.md' : 'text-<model>.md')
-    }
-    if (typeof opts.renderedOutDir === 'string' && opts.renderedOutDir.length > 0) {
-      files.push(`${opts.renderedOutDir}/*.md`)
-    }
-    files.push('prompt.md')
-    files.push('manifest.json')
-    return files
-  }
-  const llmOutputCount = getEffectiveLlmOutputCount(opts)
-  const summaryFile = getExpectedLlmJsonArtifact(llmOutputCount)
-  const showNoteFile = getExpectedShowNoteArtifact(llmOutputCount)
-  if (command === 'write' && routing?.family === 'x_space') {
-    const files = ['result.json', 'extraction.md', summaryFile, showNoteFile]
-    if (opts.renderedText) {
-      files.push(llmOutputCount <= 1 ? 'text.md' : 'text-<model>.md')
-    }
-    files.push('prompt.md')
-    files.push('manifest.json')
-    return files
-  }
-  const documentWrite = command === 'write'
-    && (routing?.family === 'document' || routing?.family === 'html_article')
-  if (documentWrite) {
-    const htmlArticleInput = routing?.family === 'html_article'
-    const files = htmlArticleInput && opts.urlBackends
-      ? ['providers/<backend>/result.json', 'providers/<backend>/extraction.txt', summaryFile]
-      : [getExpectedOcrArtifact(opts), summaryFile]
-    files.push(showNoteFile)
-    files.push(...getExpectedOcrExportArtifacts(opts))
-    if (!htmlArticleInput && opts.ocrProviderMode === 'pool') {
-      files.push(...POOLED_OCR_ATTEMPT_ARTIFACTS)
-    } else if (!htmlArticleInput && collectExplicitOcrTargets(opts).length > 1) {
-      files.push('providers/<service>-<model>/result.json')
-    }
-    files.push('prompt.md')
-    if (!files.some((entry) => entry.startsWith('manifest.json'))) {
-      files.push('manifest.json')
-    }
-    return files
-  }
   const files = ['Audio file', 'transcription.txt', 'result.json']
-  if (!opts.skipLLM) {
-    files.push(summaryFile)
-    files.push(showNoteFile)
-  }
   if (collectExpectedSttTargets(opts, resolvedTarget).length > 1) {
     files.push('providers/<service>-<model>/transcription.txt')
     files.push('providers/<service>-<model>/result.json')

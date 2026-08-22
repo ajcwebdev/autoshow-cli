@@ -32,6 +32,8 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['write', 'https://example.com/a.mp3', '--all-url'], flag: '--all-url' },
   { argv: ['write', 'https://example.com/a.mp3', '--openai', 'gpt-5.5'], flag: '--openai' },
   { argv: ['extract', 'https://example.com/article', '--url-backend', 'firecrawl'], flag: '--url-backend' },
+  { argv: ['extract', 'https://example.com/article', '--url-provider', 'spider'], flag: '--url-provider' },
+  { argv: ['resume', 'output/x', '--url-provider', 'supadata'], flag: '--url-provider' },
   { argv: ['image', 'a sunset', '--openai', 'gpt-image-2'], flag: '--openai' },
   { argv: ['video', 'a sunset', '--gemini-video', 'veo-3.1-fast-generate-preview'], flag: '--gemini-video' },
   { argv: ['music', 'ambient', '--elevenlabs', 'music_v2'], flag: '--elevenlabs' },
@@ -119,7 +121,14 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['write', 'https://example.com/a.mp3', '--video-mode', 'text'], flag: '--video-mode' },
   { argv: ['write', 'https://example.com/a.mp3', '--music-duration', '20'], flag: '--music-duration' },
   { argv: ['write', 'https://example.com/a.mp3', '--tts-speaker', 'Host=Jasper'], flag: '--tts-speaker' },
-  { argv: ['write', 'https://example.com/a.mp3', '--elevenlabs-tts-stability', '0.4'], flag: '--elevenlabs-tts-stability' }
+  { argv: ['write', 'https://example.com/a.mp3', '--elevenlabs-tts-stability', '0.4'], flag: '--elevenlabs-tts-stability' },
+  { argv: ['write', 'notes.md', '--stt', 'whisper'], flag: '--stt' },
+  { argv: ['write', 'notes.md', '--ocr', 'tesseract'], flag: '--ocr' },
+  { argv: ['write', 'notes.md', '--text-input'], flag: '--text-input' },
+  { argv: ['write', 'notes.md', '--youtube-captions'], flag: '--youtube-captions' },
+  { argv: ['write', 'notes.md', '--url-provider', 'defuddle'], flag: '--url-provider' },
+  { argv: ['write', 'notes.md', '--ocr-language', 'eng'], flag: '--ocr-language' },
+  { argv: ['write', 'notes.md', '--all-local'], flag: '--all-local' }
 ]
 
 describe('removed CLI spellings', () => {

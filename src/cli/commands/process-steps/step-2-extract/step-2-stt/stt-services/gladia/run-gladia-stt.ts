@@ -7,7 +7,7 @@ import type { AsyncSttLifecycleMetrics, GladiaNormalizedWord, GladiaStatusRespon
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getGladiaBaseUrl } from './gladia'
 import { attachSttStageErrorContext } from '../../stt-error-context'
@@ -190,7 +190,7 @@ export const runGladiaStt = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = requireApiKey('GLADIA_API_KEY', 'stt:gladia', 'Gladia transcription')
+  const apiKey = requireProviderKey('gladia', 'stt:gladia', 'Gladia transcription')
 
   if (diarizationOptions?.speakerCount !== undefined) {
     logSttDiarizationConfig(l, {

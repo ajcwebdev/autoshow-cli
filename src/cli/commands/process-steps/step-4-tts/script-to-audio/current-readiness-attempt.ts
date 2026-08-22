@@ -11,7 +11,7 @@ import type {
   CreateCurrentTtsBlockedReadinessStateOptions,
   WrittenJson,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   planCurrentTtsReadiness,
 } from './current-render-attempt'
@@ -41,7 +41,7 @@ const writeJsonCreateOnly = async <T>(rootDir: string, path: string, value: T): 
 const contained = (root: string, path: string): string => {
   const value = relative(root, path)
   if (!value || value === '..' || value.startsWith(`..${sep}`) || isAbsolute(value)) {
-    throw CLIUsageError('TTS readiness evidence escaped its stable provider artifact directory.')
+    throw UsageError('TTS readiness evidence escaped its stable provider artifact directory.')
   }
   return value.split(sep).join('/')
 }
@@ -53,7 +53,7 @@ const normalizeArtifactRoot = (value: string | undefined): string => {
     || isAbsolute(artifactRoot)
     || artifactRoot.includes('\\')
     || artifactRoot.split('/').some((part) => !part || part === '.' || part === '..')
-  ) throw CLIUsageError(`Invalid TTS provider artifact root: ${artifactRoot}`)
+  ) throw UsageError(`Invalid TTS provider artifact root: ${artifactRoot}`)
   return artifactRoot
 }
 
@@ -96,16 +96,16 @@ export const createCurrentTtsBlockedReadinessState = async (
 ): Promise<PipelineProviderState> => {
   const plan = planCurrentTtsReadiness(options)
   if (options.readiness.targetKey !== plan.targetKey) {
-    throw CLIUsageError('TTS execution-readiness observation does not match its operation-scoped target.')
+    throw UsageError('TTS execution-readiness observation does not match its operation-scoped target.')
   }
   if (
     (options.readiness.status === 'ready' && (options.readiness.accountState !== 'available' || options.readiness.error !== undefined))
     || (options.readiness.status === 'blocked' && (options.readiness.accountState === 'available' || options.readiness.error?.phase !== 'readiness'))
   ) {
-    throw CLIUsageError('TTS execution-readiness observation has a contradictory account state or error.')
+    throw UsageError('TTS execution-readiness observation has a contradictory account state or error.')
   }
   if (options.readiness.status === 'ready' && !options.peerBlocked) {
-    throw CLIUsageError('A ready TTS target may use the branch-only writer only when a selected peer blocks all-target admission.')
+    throw UsageError('A ready TTS target may use the branch-only writer only when a selected peer blocks all-target admission.')
   }
 
   const artifactRoot = normalizeArtifactRoot(options.artifactRoot)
@@ -234,7 +234,7 @@ export const createCurrentTtsBlockedReadinessState = async (
   }
   const projected = projectCanonicalAudioProviderStatus(projection)
   if (projected.status !== 'failed' || projected.attempts !== 0) {
-    throw CLIUsageError('TTS branch-only readiness failure did not project failed with zero attempts.')
+    throw UsageError('TTS branch-only readiness failure did not project failed with zero attempts.')
   }
   const namespace = plan.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
   return {

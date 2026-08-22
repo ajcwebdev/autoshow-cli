@@ -19,7 +19,7 @@ import type {
   SoundscapePlan,
   StructuredScriptData,
 } from '~/types'
-import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
+import { UsageError, hasErrorCode } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { inspectSoundscapeAudio } from '../../step-4-tts/soundscape/soundscape-audio'
@@ -30,9 +30,9 @@ import { validateSceneSourceSegmentCoverage } from './source-coverage-utils'
 
 const verifiedJson = async <T>(rootDir: string, ref: ArtifactRef, label: string): Promise<T> => {
   const stored = await readContainedArtifactFile(rootDir, ref.path)
-  if (stored.sha256 !== ref.sha256) throw CLIUsageError(`${label} checksum is stale: ${ref.path}`)
+  if (stored.sha256 !== ref.sha256) throw UsageError(`${label} checksum is stale: ${ref.path}`)
   try { return JSON.parse(stored.bytes.toString('utf8')) as T }
-  catch { throw CLIUsageError(`${label} is not valid JSON: ${ref.path}`) }
+  catch { throw UsageError(`${label} is not valid JSON: ${ref.path}`) }
 }
 
 const runRelativeRef = (audioRunRef: string, ref: ArtifactRef): ArtifactRef => ({
@@ -44,15 +44,15 @@ export const assertPresentationSoundEffectResult = (
   renderResult: { sfxId: string, status: string },
   boundResultId: string,
 ): void => {
-  if (renderResult.sfxId !== boundResultId) throw CLIUsageError('Selected sound-effect result does not match the soundscape mix binding.')
-  if (renderResult.status !== 'succeeded') throw CLIUsageError('Selected sound-effect result is not a complete success.')
+  if (renderResult.sfxId !== boundResultId) throw UsageError('Selected sound-effect result does not match the soundscape mix binding.')
+  if (renderResult.status !== 'succeeded') throw UsageError('Selected sound-effect result is not a complete success.')
 }
 
 const assertIdentity = <T extends Record<string, unknown>>(value: T, field: keyof T, label: string): void => {
   const identity = value[field]
   const base = { ...value }
   delete base[field]
-  if (typeof identity !== 'string' || identity !== hashCanonicalTtsValue(base)) throw CLIUsageError(`${label} has invalid content identity.`)
+  if (typeof identity !== 'string' || identity !== hashCanonicalTtsValue(base)) throw UsageError(`${label} has invalid content identity.`)
 }
 
 const targetDescription = (compatible: CompatibleComicSceneRun, targetKey: string): { provider: string, model: string } => {
@@ -65,7 +65,7 @@ const targetDescription = (compatible: CompatibleComicSceneRun, targetKey: strin
 const parseAudioTarget = (value: string | undefined): { provider: string, model: string } | undefined => {
   if (value === undefined) return undefined
   const separator = value.indexOf('=')
-  if (separator <= 0 || separator !== value.lastIndexOf('=') || !value.slice(0, separator).trim() || !value.slice(separator + 1).trim()) throw CLIUsageError('--audio-target must use provider=model.')
+  if (separator <= 0 || separator !== value.lastIndexOf('=') || !value.slice(0, separator).trim() || !value.slice(separator + 1).trim()) throw UsageError('--audio-target must use provider=model.')
   return { provider: value.slice(0, separator).trim(), model: value.slice(separator + 1).trim() }
 }
 
@@ -82,32 +82,32 @@ export const selectPresentationAudioBinding = (compatible: CompatibleComicSceneR
   const dialogue = compatible.comicMetadata.audio.selectedAudioRuns ?? []
   const soundscape = compatible.comicMetadata.audio.selectedSoundscapeRuns ?? []
   const duplicate = (values: readonly { targetKey: string }[]) => values.find((entry, index) => values.findIndex(candidate => candidate.targetKey === entry.targetKey) !== index)
-  if (duplicate(dialogue) || duplicate(soundscape)) throw CLIUsageError('Canonical comic audio metadata contains duplicate selected target bindings.')
+  if (duplicate(dialogue) || duplicate(soundscape)) throw UsageError('Canonical comic audio metadata contains duplicate selected target bindings.')
   const requested = parseAudioTarget(selector)
   if (requested) {
     const soundMatches = soundscape.filter(binding => bindingMatchesTarget(compatible, binding.targetKey, requested))
     const dialogueMatches = dialogue.filter(binding => bindingMatchesTarget(compatible, binding.targetKey, requested))
-    if (soundMatches.length > 1 || dialogueMatches.length > 1) throw CLIUsageError(`--audio-target ${requested.provider}=${requested.model} is ambiguous in canonical selected audio metadata.`)
+    if (soundMatches.length > 1 || dialogueMatches.length > 1) throw UsageError(`--audio-target ${requested.provider}=${requested.model} is ambiguous in canonical selected audio metadata.`)
     const selectedSoundscape = soundMatches[0]
     if (selectedSoundscape) {
       const selectedDialogue = dialogue.find(binding => binding.audioRunId === selectedSoundscape.dialogueAudioRunId && binding.targetKey === selectedSoundscape.targetKey)
-      if (!selectedDialogue) throw CLIUsageError(`Selected soundscape target ${requested.provider}=${requested.model} has no exact canonical dialogue AudioRun binding.`)
+      if (!selectedDialogue) throw UsageError(`Selected soundscape target ${requested.provider}=${requested.model} has no exact canonical dialogue AudioRun binding.`)
       return { kind: 'soundscape', dialogue: selectedDialogue, soundscape: selectedSoundscape }
     }
     const selectedDialogue = dialogueMatches[0]
     if (selectedDialogue) return { kind: 'dialogue', dialogue: selectedDialogue }
-    throw CLIUsageError(`--audio-target ${requested.provider}=${requested.model} does not name a complete selected comic dialogue or soundscape run.`)
+    throw UsageError(`--audio-target ${requested.provider}=${requested.model} does not name a complete selected comic dialogue or soundscape run.`)
   }
   if (soundscape.length === 1) {
     const selectedSoundscape = soundscape[0] as NonNullable<typeof soundscape[number]>
     const selectedDialogue = dialogue.find(binding => binding.audioRunId === selectedSoundscape.dialogueAudioRunId && binding.targetKey === selectedSoundscape.targetKey)
-    if (!selectedDialogue) throw CLIUsageError('The sole selected soundscape run has no exact canonical dialogue AudioRun binding.')
+    if (!selectedDialogue) throw UsageError('The sole selected soundscape run has no exact canonical dialogue AudioRun binding.')
     return { kind: 'soundscape', dialogue: selectedDialogue, soundscape: selectedSoundscape }
   }
-  if (soundscape.length > 1) throw CLIUsageError(`Comic slideshow audio selection is ambiguous across ${soundscape.length} complete soundscape runs; pass --audio-target provider=model.`)
+  if (soundscape.length > 1) throw UsageError(`Comic slideshow audio selection is ambiguous across ${soundscape.length} complete soundscape runs; pass --audio-target provider=model.`)
   if (dialogue.length === 1) return { kind: 'dialogue', dialogue: dialogue[0] as NonNullable<typeof dialogue[number]> }
-  if (dialogue.length > 1) throw CLIUsageError(`Comic slideshow audio selection is ambiguous across ${dialogue.length} complete dialogue runs; pass --audio-target provider=model.`)
-  throw CLIUsageError('Comic slideshow requires a complete selected dialogue or soundscape AudioRun with its canonical timeline; raw audio files are unsupported.')
+  if (dialogue.length > 1) throw UsageError(`Comic slideshow audio selection is ambiguous across ${dialogue.length} complete dialogue runs; pass --audio-target provider=model.`)
+  throw UsageError('Comic slideshow requires a complete selected dialogue or soundscape AudioRun with its canonical timeline; raw audio files are unsupported.')
 }
 
 const loadDialogueAudio = async (compatible: CompatibleComicSceneRun, binding: ReturnType<typeof selectPresentationAudioBinding>['dialogue']): Promise<{
@@ -118,17 +118,17 @@ const loadDialogueAudio = async (compatible: CompatibleComicSceneRun, binding: R
   const storedJson = await verifiedJson<CompactTargetRender | AudioRun>(compatible.sceneRunDir, { path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Dialogue render ${binding.audioRunId}`)
   if ('renderId' in storedJson && 'outputs' in storedJson && !('audioRunId' in storedJson)) {
     assertIdentity(storedJson as unknown as Record<string, unknown>, 'renderId', 'Compact dialogue render')
-    if (storedJson.targetKey !== binding.targetKey || storedJson.renderIdentity !== binding.renderIdentity) throw CLIUsageError('Selected dialogue render does not match its canonical target binding.')
+    if (storedJson.targetKey !== binding.targetKey || storedJson.renderIdentity !== binding.renderIdentity) throw UsageError('Selected dialogue render does not match its canonical target binding.')
     const timelinePath = posix.join(posix.dirname(binding.audioRunRef), 'timeline.json')
     const timelineStored = await readContainedArtifactFile(compatible.sceneRunDir, timelinePath)
     const timeline = JSON.parse(timelineStored.bytes.toString('utf8')) as FinalTimeline
     assertIdentity(timeline as unknown as Record<string, unknown>, 'timelineId', 'Dialogue FinalTimeline')
-    if (timeline.renderIdentity !== storedJson.renderIdentity) throw CLIUsageError('Dialogue FinalTimeline does not bind the selected compact render.')
-    if (timeline.timing.availability !== 'timed') throw CLIUsageError(`Selected dialogue render has no canonical timed FinalTimeline: ${timeline.timing.reason}`)
+    if (timeline.renderIdentity !== storedJson.renderIdentity) throw UsageError('Dialogue FinalTimeline does not bind the selected compact render.')
+    if (timeline.timing.availability !== 'timed') throw UsageError(`Selected dialogue render has no canonical timed FinalTimeline: ${timeline.timing.reason}`)
     const stored = await readContainedArtifactFile(compatible.sceneRunDir, storedJson.outputs.final.path)
-    if (stored.sha256 !== storedJson.outputs.final.sha256) throw CLIUsageError(`Dialogue final audio checksum is stale: ${storedJson.outputs.final.path}`)
+    if (stored.sha256 !== storedJson.outputs.final.sha256) throw UsageError(`Dialogue final audio checksum is stale: ${storedJson.outputs.final.path}`)
     const observed = await inspectSoundscapeAudio(stored.path)
-    if (observed.durationMs !== storedJson.outputs.final.durationMs || observed.format.sampleRate !== storedJson.format.sampleRate || observed.format.channels !== storedJson.format.channels) throw CLIUsageError('Dialogue final audio format or duration no longer matches its compact render evidence.')
+    if (observed.durationMs !== storedJson.outputs.final.durationMs || observed.format.sampleRate !== storedJson.format.sampleRate || observed.format.channels !== storedJson.format.channels) throw UsageError('Dialogue final audio format or duration no longer matches its compact render evidence.')
     const syntheticRun = {
       schemaVersion: 1 as const,
       audioRunId: binding.audioRunId,
@@ -148,19 +148,19 @@ const loadDialogueAudio = async (compatible: CompatibleComicSceneRun, binding: R
   }
   const run = storedJson as AudioRun
   assertIdentity(run as unknown as Record<string, unknown>, 'audioRunId', 'Dialogue AudioRun')
-  if (run.audioRunId !== binding.audioRunId || run.targetKey !== binding.targetKey) throw CLIUsageError('Selected dialogue AudioRun does not match its canonical target binding.')
+  if (run.audioRunId !== binding.audioRunId || run.targetKey !== binding.targetKey) throw UsageError('Selected dialogue AudioRun does not match its canonical target binding.')
   const timelineRef = runRelativeRef(binding.audioRunRef, run.finalTimeline)
   const timeline = await verifiedJson<FinalTimeline>(compatible.sceneRunDir, timelineRef, `Dialogue timeline ${run.finalTimeline.timelineId}`)
   assertIdentity(timeline as unknown as Record<string, unknown>, 'timelineId', 'Dialogue FinalTimeline')
-  if (timeline.timelineId !== run.finalTimeline.timelineId || timeline.renderIdentity !== run.renderIdentity) throw CLIUsageError('Dialogue FinalTimeline does not bind the selected AudioRun.')
-  if (timeline.timing.availability !== 'timed') throw CLIUsageError(`Selected dialogue AudioRun has no canonical timed FinalTimeline: ${timeline.timing.reason}`)
+  if (timeline.timelineId !== run.finalTimeline.timelineId || timeline.renderIdentity !== run.renderIdentity) throw UsageError('Dialogue FinalTimeline does not bind the selected AudioRun.')
+  if (timeline.timing.availability !== 'timed') throw UsageError(`Selected dialogue AudioRun has no canonical timed FinalTimeline: ${timeline.timing.reason}`)
   const output = run.finalOutputs[0]
-  if (!output || run.finalOutputs.length !== 1) throw CLIUsageError('Selected dialogue AudioRun must contain exactly one canonical final audio output.')
+  if (!output || run.finalOutputs.length !== 1) throw UsageError('Selected dialogue AudioRun must contain exactly one canonical final audio output.')
   const audioRef = runRelativeRef(binding.audioRunRef, output)
   const stored = await readContainedArtifactFile(compatible.sceneRunDir, audioRef.path)
-  if (stored.sha256 !== output.sha256) throw CLIUsageError(`Dialogue final audio checksum is stale: ${audioRef.path}`)
+  if (stored.sha256 !== output.sha256) throw UsageError(`Dialogue final audio checksum is stale: ${audioRef.path}`)
   const observed = await inspectSoundscapeAudio(stored.path)
-  if (observed.durationMs !== output.durationMs || observed.format.sampleRate !== output.format.sampleRate || observed.format.channels !== output.format.channels) throw CLIUsageError('Dialogue final audio format or duration no longer matches its AudioRun evidence.')
+  if (observed.durationMs !== output.durationMs || observed.format.sampleRate !== output.format.sampleRate || observed.format.channels !== output.format.channels) throw UsageError('Dialogue final audio format or duration no longer matches its AudioRun evidence.')
   return { run, timeline, audio: { path: audioRef.path, sha256: audioRef.sha256, format: output.format, durationMs: output.durationMs } }
 }
 
@@ -176,11 +176,11 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
 
   const binding = selection.soundscape as NonNullable<typeof selection.soundscape>
   const soundscapeRun = await verifiedJson<CompactMix>(compatible.sceneRunDir, { path: binding.audioRunRef, sha256: binding.audioRunSha256 }, `Soundscape mix ${binding.soundscapeAudioRunId}`)
-  if (soundscapeRun.mixId !== binding.soundscapeAudioRunId || soundscapeRun.dialogueRender.audioRunId !== loadedDialogue.run.audioRunId || soundscapeRun.dialogueRender.sha256 !== selection.dialogue.audioRunSha256) throw CLIUsageError('Selected soundscape mix does not bind the exact selected dialogue render.')
+  if (soundscapeRun.mixId !== binding.soundscapeAudioRunId || soundscapeRun.dialogueRender.audioRunId !== loadedDialogue.run.audioRunId || soundscapeRun.dialogueRender.sha256 !== selection.dialogue.audioRunSha256) throw UsageError('Selected soundscape mix does not bind the exact selected dialogue render.')
   const plan = validateSoundscapePlan(await verifiedJson<SoundscapePlan>(compatible.sceneRunDir, { path: soundscapeRun.soundscapePlan.path, sha256: soundscapeRun.soundscapePlan.sha256 }, `SoundscapePlan ${soundscapeRun.soundscapePlan.soundscapePlanId}`), compatible.structuredScript)
-  if (plan.soundscapePlanId !== soundscapeRun.soundscapePlan.soundscapePlanId || plan.dialoguePlanId !== compatible.comicMetadata.audio.dialoguePlanId) throw CLIUsageError('Selected SoundscapePlan does not bind the canonical dialogue plan.')
+  if (plan.soundscapePlanId !== soundscapeRun.soundscapePlan.soundscapePlanId || plan.dialoguePlanId !== compatible.comicMetadata.audio.dialoguePlanId) throw UsageError('Selected SoundscapePlan does not bind the canonical dialogue plan.')
   const soundscapeTimeline = soundscapeRun.timelineSummary
-  if (soundscapeTimeline.dialogueAudioRunId !== loadedDialogue.run.audioRunId) throw CLIUsageError('Soundscape mix timeline summary does not bind the selected source runs.')
+  if (soundscapeTimeline.dialogueAudioRunId !== loadedDialogue.run.audioRunId) throw UsageError('Soundscape mix timeline summary does not bind the selected source runs.')
   let renderResult: CompactSfx | undefined
   if (soundscapeRun.sfx) {
     renderResult = await verifiedJson<CompactSfx>(compatible.sceneRunDir, { path: soundscapeRun.sfx.path, sha256: soundscapeRun.sfx.sha256 }, `Compact SFX ${soundscapeRun.sfx.sfxId}`)
@@ -193,9 +193,9 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
   for (const entry of renderResult?.entries ?? []) {
     if (entry.status !== 'succeeded' || !entry.audio) continue
     const stored = await readContainedArtifactFile(compatible.sceneRunDir, entry.audio.path)
-    if (stored.sha256 !== entry.audio.sha256) throw CLIUsageError(`Retained sound source checksum is stale for cue ${entry.cueId}: ${entry.audio.path}`)
+    if (stored.sha256 !== entry.audio.sha256) throw UsageError(`Retained sound source checksum is stale for cue ${entry.cueId}: ${entry.audio.path}`)
     const observed = await inspectSoundscapeAudio(stored.path)
-    if (observed.durationMs !== entry.audio.durationMs) throw CLIUsageError(`Retained sound source duration changed for cue ${entry.cueId}.`)
+    if (observed.durationMs !== entry.audio.durationMs) throw UsageError(`Retained sound source duration changed for cue ${entry.cueId}.`)
     verifiedAudio.set(entry.cueId, { path: entry.audio.path, sha256: entry.audio.sha256, durationMs: entry.audio.durationMs })
   }
   const sounds: PresentationSoundSource[] = plan.cues.flatMap(cue => {
@@ -203,20 +203,20 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
     const timelineEntry = timelineByCue.get(cue.cueId)
     const audio = verifiedAudio.get(cue.cueId)
     if (timelineEntry?.status !== 'placed') {
-      if (cue.required) throw CLIUsageError(`Required sound cue ${cue.cueId} is not placed in the selected soundscape timeline.`)
+      if (cue.required) throw UsageError(`Required sound cue ${cue.cueId} is not placed in the selected soundscape timeline.`)
       return []
     }
-    if (!result?.audio || !audio || !timelineEntry.finalRangeMs) throw CLIUsageError(`Placed sound cue ${cue.cueId} has no checksum-bound retained source.`)
+    if (!result?.audio || !audio || !timelineEntry.finalRangeMs) throw UsageError(`Placed sound cue ${cue.cueId} has no checksum-bound retained source.`)
     return [{ cue, sourceAudio: audio, originalRangeMs: timelineEntry.finalRangeMs }]
   })
   const ambience: ComicPresentationAmbienceInput[] = plan.ambientBeds.flatMap(cue => {
     const timelineEntry = timelineByCue.get(cue.cueId)
     const audio = verifiedAudio.get(cue.cueId)
     if (timelineEntry?.status !== 'placed') {
-      if (cue.required) throw CLIUsageError(`Required ambience cue ${cue.cueId} is not placed in the selected soundscape timeline.`)
+      if (cue.required) throw UsageError(`Required ambience cue ${cue.cueId} is not placed in the selected soundscape timeline.`)
       return []
     }
-    if (!audio) throw CLIUsageError(`Placed ambience cue ${cue.cueId} has no checksum-bound retained source.`)
+    if (!audio) throw UsageError(`Placed ambience cue ${cue.cueId} has no checksum-bound retained source.`)
     return [{ cueId: cue.cueId, prompt: cue.prompt, sourceSpan: cue.sourceSpan, sourceAudio: audio, gainDb: plan.mixProfile.busGainDb.ambience + (cue.gainDb ?? 0), pan: cue.pan ?? plan.mixProfile.defaultPan }]
   })
   return {
@@ -232,7 +232,7 @@ const readReviewedPresentationScene = async (sceneRunDir: string): Promise<{ sce
   try { bytes = new Uint8Array(await readFile(join(sceneRunDir, path))) }
   catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
-      throw CLIUsageError(
+      throw UsageError(
         `Reviewed comic scene is missing: ${join(sceneRunDir, path)}`,
         undefined,
         error instanceof Error ? { cause: error } : {}
@@ -242,24 +242,24 @@ const readReviewedPresentationScene = async (sceneRunDir: string): Promise<{ sce
   }
   let parsed: unknown
   try { parsed = JSON.parse(new TextDecoder().decode(bytes)) }
-  catch { throw CLIUsageError('Reviewed comic scene is not valid JSON: metadata/scene.json') }
+  catch { throw UsageError('Reviewed comic scene is not valid JSON: metadata/scene.json') }
   return { scene: v.parse(ScenePromptDataSchema, parsed), ref: { path, sha256: sha256Bytes(bytes) } }
 }
 
 const pngDimensions = (bytes: Uint8Array, path: string): { width: number, height: number } => {
   const buffer = Buffer.from(bytes)
-  if (buffer.length < 24 || buffer.toString('hex', 0, 8) !== '89504e470d0a1a0a' || buffer.toString('ascii', 12, 16) !== 'IHDR') throw CLIUsageError(`Canonical panel is not a valid PNG with an IHDR header: ${path}`)
+  if (buffer.length < 24 || buffer.toString('hex', 0, 8) !== '89504e470d0a1a0a' || buffer.toString('ascii', 12, 16) !== 'IHDR') throw UsageError(`Canonical panel is not a valid PNG with an IHDR header: ${path}`)
   const width = buffer.readUInt32BE(16)
   const height = buffer.readUInt32BE(20)
-  if (width <= 0 || height <= 0) throw CLIUsageError(`Canonical panel has invalid dimensions: ${path}`)
+  if (width <= 0 || height <= 0) throw UsageError(`Canonical panel has invalid dimensions: ${path}`)
   return { width, height }
 }
 
 export const loadCanonicalPresentationPanels = async (sceneRunDir: string, scene: ScenePromptData): Promise<ComicPresentationPanelInput[]> => {
   const panelNumbers = scene.panels.map(panel => panel.number)
-  if (new Set(panelNumbers).size !== panelNumbers.length) throw CLIUsageError(`Reviewed scene declares duplicate panel numbers: ${panelNumbers.filter((number, index) => panelNumbers.indexOf(number) !== index).join(', ')}.`)
+  if (new Set(panelNumbers).size !== panelNumbers.length) throw UsageError(`Reviewed scene declares duplicate panel numbers: ${panelNumbers.filter((number, index) => panelNumbers.indexOf(number) !== index).join(', ')}.`)
   panelNumbers.forEach((number, index) => {
-    if (number !== index + 1) throw CLIUsageError(`Reviewed scene panels must be ordered consecutively 1..N; found panel ${number} at ordinal ${index + 1}.`)
+    if (number !== index + 1) throw UsageError(`Reviewed scene panels must be ordered consecutively 1..N; found panel ${number} at ordinal ${index + 1}.`)
   })
   const panelRoot = join(sceneRunDir, 'panels')
   const entries = await readdir(panelRoot, { withFileTypes: true }).catch(() => [])
@@ -269,18 +269,18 @@ export const loadCanonicalPresentationPanels = async (sceneRunDir: string, scene
     return match?.[1] && declared.has(Number(match[1])) ? [{ name: entry.name, panelNumber: Number(match[1]) }] : []
   })
   const duplicates = [...new Set(aliases.flatMap(alias => aliases.filter(candidate => candidate.panelNumber === alias.panelNumber).length > 1 ? [alias.panelNumber] : []))]
-  if (duplicates.length > 0) throw CLIUsageError(`Canonical panel directory contains duplicate numeric PNG identities for panel(s): ${duplicates.join(', ')}.`)
+  if (duplicates.length > 0) throw UsageError(`Canonical panel directory contains duplicate numeric PNG identities for panel(s): ${duplicates.join(', ')}.`)
   const expected = panelNumbers.map(panelNumber => ({ panelNumber, path: `panels/panel-${String(panelNumber).padStart(2, '0')}.png` }))
   const missing = (await Promise.all(expected.map(async panel => await Bun.file(join(sceneRunDir, panel.path)).exists() ? undefined : panel.path))).filter((path): path is string => path !== undefined)
-  if (missing.length > 0) throw CLIUsageError(`Missing ${missing.length} canonical panel PNG(s):\n- ${missing.join('\n- ')}`)
+  if (missing.length > 0) throw UsageError(`Missing ${missing.length} canonical panel PNG(s):\n- ${missing.join('\n- ')}`)
   const panels = await Promise.all(expected.map(async panel => {
     const bytes = new Uint8Array(await Bun.file(join(sceneRunDir, panel.path)).arrayBuffer())
     return { ...panel, sha256: sha256Bytes(bytes), ...pngDimensions(bytes, panel.path) }
   }))
   const first = panels[0] as NonNullable<typeof panels[number]>
   const mismatched = panels.filter(panel => panel.width !== first.width || panel.height !== first.height)
-  if (mismatched.length > 0) throw CLIUsageError(`Canonical panel dimensions must be identical to ${basename(first.path)} (${first.width}x${first.height}); mismatches: ${mismatched.map(panel => `${basename(panel.path)}=${panel.width}x${panel.height}`).join(', ')}.`)
-  if (first.width % 2 !== 0 || first.height % 2 !== 0) throw CLIUsageError(`Canonical panel dimensions ${first.width}x${first.height} cannot be encoded exactly as H.264 yuv420p; both dimensions must be even.`)
+  if (mismatched.length > 0) throw UsageError(`Canonical panel dimensions must be identical to ${basename(first.path)} (${first.width}x${first.height}); mismatches: ${mismatched.map(panel => `${basename(panel.path)}=${panel.width}x${panel.height}`).join(', ')}.`)
+  if (first.width % 2 !== 0 || first.height % 2 !== 0) throw UsageError(`Canonical panel dimensions ${first.width}x${first.height} cannot be encoded exactly as H.264 yuv420p; both dimensions must be even.`)
   return panels
 }
 
@@ -305,7 +305,7 @@ export const resolvePresentationVisualInputs = async (
     try { return await loadPresentationVisualSource(candidate, compatible.structuredScript) }
     catch (error) { rejected.push(`${candidate}: ${error instanceof Error ? error.message : String(error)}`) }
   }
-  throw CLIUsageError(
+  throw UsageError(
     `Comic slideshow visual preflight failed before provider dispatch; no exact compatible reviewed scene and complete canonical panel set was found for ${compatible.sourceIdentity.canonicalPath}.`,
     `Checked: ${rejected.join('; ')}`
   )
@@ -325,7 +325,7 @@ export const preparePresentationVisualInputs = async (
   const bundleRoot = `presentation/inputs/${bundleId}`
   const sceneBytes = new Uint8Array(await readFile(join(loaded.sourceDir, loaded.sceneRef.path)))
   const writtenScene = await writeImmutableArtifactFile(compatible.sceneRunDir, `${bundleRoot}/reviewed-scene.json`, sceneBytes)
-  if (writtenScene.sha256 !== loaded.sceneRef.sha256) throw CLIUsageError('Reviewed comic scene changed while its immutable presentation input bundle was being imported.')
+  if (writtenScene.sha256 !== loaded.sceneRef.sha256) throw UsageError('Reviewed comic scene changed while its immutable presentation input bundle was being imported.')
   const panels = await Promise.all(loaded.panels.map(async panel => {
     const bytes = new Uint8Array(await readFile(join(loaded.sourceDir, panel.path)))
     const written = await writeImmutableArtifactFile(
@@ -333,7 +333,7 @@ export const preparePresentationVisualInputs = async (
       `${bundleRoot}/panels/panel-${String(panel.panelNumber).padStart(2, '0')}.png`,
       bytes
     )
-    if (written.sha256 !== panel.sha256) throw CLIUsageError(`Canonical panel ${panel.panelNumber} changed while its immutable presentation input bundle was being imported.`)
+    if (written.sha256 !== panel.sha256) throw UsageError(`Canonical panel ${panel.panelNumber} changed while its immutable presentation input bundle was being imported.`)
     return { ...panel, path: written.relativePath, sha256: written.sha256 }
   }))
   return {
@@ -348,8 +348,8 @@ export const preparePresentationVisualInputs = async (
 export const loadPresentationDialoguePlan = async (compatible: CompatibleComicSceneRun) => {
   const ref = compatible.comicMetadata.audio.dialoguePlanRef
   const id = compatible.comicMetadata.audio.dialoguePlanId
-  if (!ref || !id) throw CLIUsageError('Comic slideshow requires the canonical ComicDialoguePlan used by the selected AudioRun.')
+  if (!ref || !id) throw UsageError('Comic slideshow requires the canonical ComicDialoguePlan used by the selected AudioRun.')
   const plan = validateComicDialoguePlan(await verifiedJson(compatible.sceneRunDir, ref, `ComicDialoguePlan ${id}`))
-  if (plan.dialoguePlanId !== id || plan.sceneRunIdentity !== compatible.comicMetadata.audio.sceneRunIdentity) throw CLIUsageError('Canonical ComicDialoguePlan does not bind the compatible scene run.')
+  if (plan.dialoguePlanId !== id || plan.sceneRunIdentity !== compatible.comicMetadata.audio.sceneRunIdentity) throw UsageError('Canonical ComicDialoguePlan does not bind the compatible scene run.')
   return { plan, ref }
 }

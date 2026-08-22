@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import type { BflImageModel, BflOutputFormat, Step5Metadata } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { downloadGeneratedImage, extractImageErrorMessage, readJsonOrText, runPolledJob, withImageProviderHeaders } from '~/utils/polled-job-client/polled-job'
@@ -39,13 +39,13 @@ export const normalizeBflImageSize = (
 
   const match = /^(\d{2,5})x(\d{2,5})$/i.exec(size.trim())
   if (!match) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for BFL. Expected WIDTHxHEIGHT, e.g. 1024x1024.`)
+    throw UsageError(`Invalid --size value "${size}" for BFL. Expected WIDTHxHEIGHT, e.g. 1024x1024.`)
   }
 
   const width = Number.parseInt(match[1]!, 10)
   const height = Number.parseInt(match[2]!, 10)
   if (!Number.isFinite(width) || !Number.isFinite(height) || width < 64 || height < 64) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for BFL. Width and height must each be at least 64 pixels.`)
+    throw UsageError(`Invalid --size value "${size}" for BFL. Width and height must each be at least 64 pixels.`)
   }
 
   return { width, height }
@@ -78,7 +78,7 @@ export const runBflImageGen = async (
   const fileName = `generated-image.${ext}`
   const outputPath = `${outputDir}/${fileName}`
 
-  const estimate = estimateImageCosts({ bflImageModel: options.model, imageSize: options.imageSize })[0]
+  const estimate = estimateImageCosts({ bflImageModels: [options.model], imageSize: options.imageSize })[0]
   if (estimate) {
     logImageEstimate(estimate)
   }

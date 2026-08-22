@@ -5,7 +5,7 @@ import { parseStoredStep2TimingMetadata } from '../stt-timing-metadata'
 import { getSttTargetDirectoryName, getSttTargetKey } from '../stt-targets'
 import { readSinglePipelineItemRecord } from '../../../pipeline-manifest'
 import { parseStoredTranscriptionResult } from '../stt-utils/stt-result-artifacts'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   buildRequestedProviderList,
   collectMissingProviderTargets,
@@ -161,15 +161,15 @@ const parseStoredProviderState = (value: unknown): SttProviderState | undefined 
     return undefined
   }
 
-  const lastError = isRecord(value['lastError']) && typeof value['lastError']['message'] === 'string'
+  const lastError = isRecord(value['error']) && typeof value['error']['message'] === 'string'
     ? {
-        message: value['lastError']['message'],
-        ...(value['lastError']['skipped'] === true ? { skipped: true } : {}),
-        ...(typeof value['lastError']['stage'] === 'string' ? { stage: value['lastError']['stage'] } : {}),
-        ...(typeof value['lastError']['status'] === 'number' ? { status: value['lastError']['status'] } : {}),
-        ...(typeof value['lastError']['retryAfterMs'] === 'number' ? { retryAfterMs: value['lastError']['retryAfterMs'] } : {}),
-        ...(typeof value['lastError']['errorFile'] === 'string' ? { errorFile: value['lastError']['errorFile'] } : {}),
-        ...(typeof value['lastError']['rawResponseFile'] === 'string' ? { rawResponseFile: value['lastError']['rawResponseFile'] } : {})
+        message: value['error']['message'],
+        ...(value['error']['skipped'] === true ? { skipped: true } : {}),
+        ...(typeof value['error']['stage'] === 'string' ? { stage: value['error']['stage'] } : {}),
+        ...(typeof value['error']['status'] === 'number' ? { status: value['error']['status'] } : {}),
+        ...(typeof value['error']['retryAfterMs'] === 'number' ? { retryAfterMs: value['error']['retryAfterMs'] } : {}),
+        ...(typeof value['error']['errorFile'] === 'string' ? { errorFile: value['error']['errorFile'] } : {}),
+        ...(typeof value['error']['rawResponseFile'] === 'string' ? { rawResponseFile: value['error']['rawResponseFile'] } : {})
       } satisfies SttRecordedProviderError
     : undefined
 
@@ -178,7 +178,7 @@ const parseStoredProviderState = (value: unknown): SttProviderState | undefined 
     model: value['model'],
     local: value['local'] === true,
     ...core,
-    ...(lastError ? { lastError } : {})
+    ...(lastError ? { error: lastError } : {})
   }
 }
 
@@ -188,9 +188,9 @@ const parseStoredProviderStateMap = (
   parseStoredProviderStateEntries(entry['providerStates'], parseStoredProviderState)
 
 const isSkippedProviderState = (
-  state: Pick<SttProviderState, 'status' | 'lastError'> | undefined
+  state: Pick<SttProviderState, 'status' | 'error'> | undefined
 ): boolean =>
-  state?.status === 'skipped' || state?.lastError?.skipped === true
+  state?.status === 'skipped' || state?.error?.skipped === true
 
 export const summarizeSttProviderStates = (
   providerStates: SttProviderState[]
@@ -282,11 +282,11 @@ export const readExistingSttRun = async (
     }
     const metadata = parseStoredStep2Metadata(storedState.metadata)
     if (!metadata) {
-      throw CLIUsageError(`Canonical STT provider state ${target.service}/${target.model} is missing valid provider metadata.`)
+      throw UsageError(`Canonical STT provider state ${target.service}/${target.model} is missing valid provider metadata.`)
     }
     const result = parseStoredTranscriptionResult(storedState.result)
     if (!result) {
-      throw CLIUsageError(`Canonical STT provider state ${target.service}/${target.model} is missing a valid result.`)
+      throw UsageError(`Canonical STT provider state ${target.service}/${target.model} is missing a valid result.`)
     }
     successes[index] = {
       target,
@@ -339,7 +339,7 @@ export const buildProviderStates = <
         status: failure.skipped === true ? 'skipped' : 'failed',
         attempts: existing?.attempts ?? 1,
         ...(existing?.metadata ? { metadata: existing.metadata } : {}),
-        lastError: toRecordedProviderError({
+        error: toRecordedProviderError({
           message: failure.message,
           ...(failure.skipped === true ? { skipped: true } : {}),
           ...(failure.stage ? { stage: failure.stage } : {}),
@@ -359,7 +359,7 @@ export const buildProviderStates = <
       status: existing?.status ?? 'missing',
       attempts: existing?.attempts ?? 0,
       ...(existing?.metadata ? { metadata: existing.metadata } : {}),
-      ...(existing?.lastError ? { lastError: existing.lastError } : {})
+      ...(existing?.error ? { error: existing.error } : {})
     }
   })
 
@@ -384,17 +384,17 @@ export const buildMetadataErrorEntries = (
   providerStates: SttProviderState[]
 ): Array<Record<string, unknown>> =>
   providerStates
-    .filter((state) => state.lastError !== undefined)
+    .filter((state) => state.error !== undefined)
     .map((state) => ({
       service: state.service,
       model: state.model,
-      message: state.lastError?.message,
-      ...(state.status === 'skipped' || state.lastError?.skipped === true ? { skipped: true } : {}),
-      ...(state.lastError?.stage ? { stage: state.lastError.stage } : {}),
-      ...(typeof state.lastError?.status === 'number' ? { status: state.lastError.status } : {}),
-      ...(typeof state.lastError?.retryAfterMs === 'number' ? { retryAfterMs: state.lastError.retryAfterMs } : {}),
-      ...(state.lastError?.errorFile ? { errorFile: state.lastError.errorFile } : {}),
-      ...(state.lastError?.rawResponseFile ? { rawResponseFile: state.lastError.rawResponseFile } : {})
+      message: state.error?.message,
+      ...(state.status === 'skipped' || state.error?.skipped === true ? { skipped: true } : {}),
+      ...(state.error?.stage ? { stage: state.error.stage } : {}),
+      ...(typeof state.error?.status === 'number' ? { status: state.error.status } : {}),
+      ...(typeof state.error?.retryAfterMs === 'number' ? { retryAfterMs: state.error.retryAfterMs } : {}),
+      ...(state.error?.errorFile ? { errorFile: state.error.errorFile } : {}),
+      ...(state.error?.rawResponseFile ? { rawResponseFile: state.error.rawResponseFile } : {})
     }))
 
 export class SttPartialCompletionError extends ProviderBatchCompletionError {

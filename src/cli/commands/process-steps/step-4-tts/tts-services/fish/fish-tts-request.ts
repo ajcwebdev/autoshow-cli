@@ -1,5 +1,5 @@
 import type { FishGlobalTimelineSegment, FishNativeDialogueBatch, FishNativeDialogueTurn, FishPreparedDialogueTurn, FishTtsModel, NormalizedTiming, PreparedProviderText, TimedToken, TtsTimingIdentity } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalOffsetForProviderOffset } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-timing-mapping'
 
 export {
@@ -71,7 +71,7 @@ export const planFishNativeDialogueBatches = (
   turns: readonly FishNativeDialogueTurn[],
   maxCharacters = FISH_NATIVE_DIALOGUE_MAX_CHARACTERS
 ): FishNativeDialogueBatch[] => {
-  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw CLIUsageError('Fish native dialogue character limit must be a positive integer.')
+  if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw UsageError('Fish native dialogue character limit must be a positive integer.')
   const speakerOrder: string[] = []
   for (const turn of turns) {
     if (!speakerOrder.includes(turn.voiceId)) speakerOrder.push(turn.voiceId)
@@ -103,7 +103,7 @@ export const planFishNativeDialogueBatches = (
   }
   for (const turn of prepared) {
     const taggedLength = [...speakerTag(turn.speakerIndex)].length + [...turn.preparedText.providerText].length
-    if (taggedLength > maxCharacters) throw CLIUsageError(`Fish native dialogue turn ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
+    if (taggedLength > maxCharacters) throw UsageError(`Fish native dialogue turn ${turn.turnId} exceeds the ${maxCharacters}-character turn-safe boundary.`)
     if (current.length > 0 && characters + taggedLength > maxCharacters) flush()
     current.push(turn)
     characters += taggedLength

@@ -1,5 +1,5 @@
 import type { ExtractionOptions, OcrTarget, Step2ProviderSelectionFilter, Step2ProviderSelectionOrigin } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { sanitizeModelName } from '~/cli/commands/process-steps/target-runner'
 import { collectOcrProviderSpecs } from './ocr-cli'
 
@@ -51,11 +51,11 @@ export const resolvePrimaryOcrTarget = (
   }
 
   if (matches.length > 1) {
-    throw CLIUsageError(`--primary-ocr ${requested} matches multiple requested OCR providers. Use service/model.`)
+    throw UsageError(`--primary-ocr ${requested} matches multiple requested OCR providers. Use service/model.`)
   }
 
   const available = requestedTargets.map((target) => `${target.service}/${target.model}`).join(', ')
-  throw CLIUsageError(`--primary-ocr ${requested} does not match a requested OCR provider. Requested: ${available}`)
+  throw UsageError(`--primary-ocr ${requested} does not match a requested OCR provider. Requested: ${available}`)
 }
 
 export const getOcrTargetDirectoryName = (target: OcrTarget): string =>

@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import type { MistralReferenceAudioProbeRunner, MistralReferenceAudioProbeStatus } from '~/types'
 import { childEnv } from '~/utils/child-env'
 
@@ -42,7 +42,7 @@ export const assertMistralReferenceAudioDecodable = async (
     resolvedSourcePath
   ])
   if (stream.exitCode !== 0 || !stream.stdout.split(/\s+/).includes('audio')) {
-    throw CLIUsageError('Protected Mistral reference audio is not a decodable audio input.')
+    throw UsageError('Protected Mistral reference audio is not a decodable audio input.')
   }
 
   const decode = await runner(getFfmpegBinary(), [
@@ -54,7 +54,7 @@ export const assertMistralReferenceAudioDecodable = async (
     '-'
   ])
   if (decode.exitCode !== 0) {
-    throw CLIUsageError('Protected Mistral reference audio cannot be converted by the ready local audio runtime.')
+    throw UsageError('Protected Mistral reference audio cannot be converted by the ready local audio runtime.')
   }
   return 'ready'
 }

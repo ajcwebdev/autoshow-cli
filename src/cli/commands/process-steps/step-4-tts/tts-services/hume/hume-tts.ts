@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureHumeTtsSetup = ensureProvider('hume', 'tts:hume', 'Hume TTS')
+export const ensureHumeTtsSetup = async (): Promise<void> => { requireProviderKey('hume', 'tts:hume', 'Hume TTS') }

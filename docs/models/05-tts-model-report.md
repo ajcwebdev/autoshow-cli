@@ -159,7 +159,7 @@ These twelve selectors are permanently retired. Direct selection fails with repl
 
 Cartesia Sonic 3.6 is documented as a beta on the moving alias `sonic-preview` (44 languages, locale codes such as `en-GB`, Odia/Urdu, improved Hinglish). AutoShow stays on the fixed snapshot `sonic-3.5-2026-05-04`. Do not register `sonic-preview`. Add 3.6 only when Cartesia publishes a dated snapshot ID comparable to `sonic-3.5-2026-05-04`.
 
-Grok TTS speed, output-format, `replace`, and timestamp controls remain deferred; the 2026-08-16 xAI Voice snapshot is `project/links/grok-tts-links.md`.
+Grok TTS speed, output-format, `replace`, and timestamp controls remain deferred; the 2026-08-16 xAI Voice snapshot is from `bun autoshow links --grok tts` (`https://docs.x.ai/developers/model-capabilities/audio/text-to-speech.md`).
 
 The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model-report.md)) also recorded P3 TTS recommendations for `gemini-2.5-flash-preview-tts`, `gemini-2.5-pro-preview-tts`, and `gpt-audio-1.5`.
 
@@ -189,4 +189,4 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - TTS provider adapters: `src/cli/commands/process-steps/step-4-tts/`
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/`
-- 2026-08-16 xAI Voice snapshot: `project/links/grok-tts-links.md`
+- 2026-08-16 xAI Voice snapshot: `bun autoshow links --grok tts` (`https://docs.x.ai/developers/model-capabilities/audio/text-to-speech.md`)

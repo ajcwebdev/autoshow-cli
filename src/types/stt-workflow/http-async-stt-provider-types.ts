@@ -27,7 +27,7 @@ export type HttpAsyncSttDescriptor<
 > = {
   service: Step2Metadata['transcriptionService'] & string
   displayName: string
-  credential: { envVar: string, stage: string, purpose: string }
+  credential: { stage: string, purpose: string }
   baseUrl: () => string
   resolveUrl: (baseUrl: string, path: string) => string
   endpoints: {

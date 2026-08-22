@@ -1,17 +1,17 @@
 import { mkdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { join } from 'node:path'
 import type { RunnerStreamLabel, TestRunArtifacts } from '~/types'
 import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { l } from '~/utils/app-logger/app-logger'
 import { childEnv } from '~/utils/child-env'
 import { buildBunTestFlags, isE2EOnlyTestSelection } from './args'
-import { appendRunnerLog } from './artifacts'
+import { appendRunnerLog, TEST_OUTPUT_ROOT } from './artifacts'
 import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath } from './utils'
 
-const TEST_CLI_BUNDLE_PATH = resolve(process.cwd(), 'project/test-output/.test-cache/cli.js')
+const TEST_CLI_BUNDLE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'cli.js')
 
 export const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promise<void> => {
-  await mkdir(resolve(process.cwd(), 'project/test-output/.test-cache'), { recursive: true })
+  await mkdir(join(TEST_OUTPUT_ROOT, '.test-cache'), { recursive: true })
   const commandText = `bun build src/cli/create-cli.ts --target=bun --outfile ${TEST_CLI_BUNDLE_PATH}`
   await appendRunnerLog(artifacts, `\n=== PREBUILD CLI ${commandText} ===\n`)
   const proc = Bun.spawn(['bun', '--no-env-file', 'build', 'src/cli/create-cli.ts', '--target=bun', '--outfile', TEST_CLI_BUNDLE_PATH], {

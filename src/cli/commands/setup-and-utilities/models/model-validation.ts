@@ -1,5 +1,5 @@
 import type { ModelCategory } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
@@ -66,7 +66,7 @@ export const createModelValidator = <T extends string>(
   return (model: string): T => {
     if (!supported.includes(model as T)) {
       const suffix = extraMessage ? ` ${extraMessage}` : ''
-      throw CLIUsageError(
+      throw UsageError(
         `Invalid model "${model}" for ${formatModelSelector(flag)}.${suffix} Allowed values: ${formatAllowedValues(supported)}`
       )
     }
@@ -79,7 +79,7 @@ const throwRetiredModelSelection = (
   flag: string,
   replacement: string
 ): never => {
-  throw CLIUsageError(
+  throw UsageError(
     `Model "${model}" is retired for ${formatModelSelector(flag)}. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`
   )
 }

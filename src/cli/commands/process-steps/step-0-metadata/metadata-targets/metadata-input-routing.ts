@@ -15,10 +15,7 @@ export const describeUnsupportedInputForCommand = (
   }
 
   if (command === 'write') {
-    if (family === 'unsupported') {
-      return 'write could not classify this input; use media, documents, images, HTML articles, X Space links, URL lists, directories, or --text-input for raw text'
-    }
-    return 'write only processes media, documents, images, HTML articles, X Space links, URL lists, directories, or explicit raw text inputs'
+    return 'write only accepts local .md or .txt files or directories of those files. Run bun autoshow extract <input> first, then bun autoshow write on the extracted text'
   }
 
   return 'unsupported input'

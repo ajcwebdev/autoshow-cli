@@ -34,7 +34,7 @@ See the [`extract` overview](./01-extract.md) for input routing and default medi
 
 `--provider` selectors accept an omitted model value and then resolve to the cheapest or default supported model. Model-selecting selectors are repeatable, including repeated selectors from the same provider.
 
-On `extract`, pass `--provider provider[=model]`. On `write` and `config`, pass `--stt provider[=model]`. On `resume`, pass `--provider provider[=model]`.
+On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass `--stt provider[=model]`.
 
 ## STT Environment
 

@@ -44,7 +44,6 @@ export type PricingRuntimeOptions = {
 }
 
 export type UrlRuntimeOptions = {
-  skipLLM: boolean
   urlBackend: HtmlArticleBackend
   urlBackendExplicit: boolean
   urlBackends: HtmlArticleBackend[] | undefined

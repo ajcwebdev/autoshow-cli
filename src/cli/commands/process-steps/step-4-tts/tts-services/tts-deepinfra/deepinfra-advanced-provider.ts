@@ -1,5 +1,5 @@
 import type { AnyCapabilityRecord, CreateDeepinfraAdvancedProviderOptions, DeepinfraDesignSynthesis, ProviderVoiceCatalogEntry, ProviderVoiceCatalogPage, ProviderVoiceCloneRequest, ProviderVoiceDesignResult, ProviderVoiceRef, TtsVoiceProvider, VoiceCatalogPort, VoiceClonePort, VoiceDesignPort } from '~/types'
-import { CLIUsageError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
@@ -18,7 +18,7 @@ import {
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceCloneAuthorized, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const DOCS = {
   api: 'https://docs.deepinfra.com/apis/text-to-speech',
@@ -51,7 +51,7 @@ export const mapDeepinfraVoice = (value: unknown): ProviderVoiceCatalogEntry => 
   const voice = record(value, 'voice')
   const resourceId = trimmedString(voice['voice_id'])
   const name = trimmedString(voice['name'])
-  if (!resourceId || !name) throw CLIUsageError('DeepInfra voice response omits voice_id or name.')
+  if (!resourceId || !name) throw UsageError('DeepInfra voice response omits voice_id or name.')
   return {
     provider: 'deepinfra',
     resourceId,
@@ -96,7 +96,7 @@ const defaultDesignSynthesis = (apiKey: string): DeepinfraDesignSynthesis => asy
 export const createDeepinfraAdvancedProvider = (
   options: CreateDeepinfraAdvancedProviderOptions
 ): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
-  const apiKey = requireProvidedApiKey(options.apiKey, 'DEEPINFRA_API_KEY', 'voice:deepinfra', 'DeepInfra capability inspection')
+  const apiKey = resolveCredential('deepinfra', 'require', { stage: 'voice:deepinfra', providedValue: options.apiKey, useProvidedValue: true, description: 'DeepInfra capability inspection' })
   const request = options.request ?? createAdvancedProviderJsonRequest({
     baseUrl: 'https://api.deepinfra.com',
     apiKey: `Bearer ${apiKey}`,
@@ -109,7 +109,7 @@ export const createDeepinfraAdvancedProvider = (
 
   const catalog: VoiceCatalogPort = {
     list: async input => {
-      if (input?.cursor) throw CLIUsageError('DeepInfra voice catalog is not paginated.')
+      if (input?.cursor) throw UsageError('DeepInfra voice catalog is not paginated.')
       if (input?.source === 'provider-library' || input?.source === 'shared-library') {
         const page: ProviderVoiceCatalogPage = { schemaVersion: 1, provider: 'deepinfra', entries: [], checkedAt: now() }
         return page
@@ -131,19 +131,19 @@ export const createDeepinfraAdvancedProvider = (
     sourceIdentityHash: string
     operation: 'designed-from' | 'cloned-from'
   }) => {
-    if (!options.resolveProtectedAsset) throw CLIUsageError('DeepInfra voice creation requires a protected-asset resolver.')
-    if (input.samples.length === 0) throw CLIUsageError('DeepInfra voice creation requires at least one protected audio sample.')
+    if (!options.resolveProtectedAsset) throw UsageError('DeepInfra voice creation requires a protected-asset resolver.')
+    if (input.samples.length === 0) throw UsageError('DeepInfra voice creation requires at least one protected audio sample.')
     const form = new FormData()
     form.set('name', input.name)
     form.set('description', input.description)
     for (const sample of input.samples) {
       const resolved = await options.resolveProtectedAsset(sample)
-      if (resolved.bytes.byteLength === 0) throw CLIUsageError('DeepInfra voice samples cannot be empty.')
+      if (resolved.bytes.byteLength === 0) throw UsageError('DeepInfra voice samples cannot be empty.')
       form.append('files', new Blob([resolved.bytes], { type: resolved.mediaType }), resolved.fileName)
     }
     const created = record(await request({ method: 'POST', path: '/v1/voices/add', body: form }), 'voice create')
     const resourceId = trimmedString(created['voice_id'])
-    if (!resourceId) throw CLIUsageError('DeepInfra voice create response omits voice_id.')
+    if (!resourceId) throw UsageError('DeepInfra voice create response omits voice_id.')
     const checkedAt = now()
     const providerVoice: ProviderVoiceRef = {
       kind: 'remote-resource',
@@ -166,16 +166,16 @@ export const createDeepinfraAdvancedProvider = (
 
   const design: VoiceDesignPort = {
     createCandidate: async designRequest => {
-      if (designRequest.sourceVoice) throw CLIUsageError('DeepInfra Voice Design does not expose a voice remix operation.')
-      if (designRequest.seed !== undefined) throw CLIUsageError('DeepInfra Voice Design does not expose a deterministic seed.')
-      if (designRequest.candidateCount !== 1) throw CLIUsageError('DeepInfra Voice Design returns exactly one bounded preview per request.')
+      if (designRequest.sourceVoice) throw UsageError('DeepInfra Voice Design does not expose a voice remix operation.')
+      if (designRequest.seed !== undefined) throw UsageError('DeepInfra Voice Design does not expose a deterministic seed.')
+      if (designRequest.candidateCount !== 1) throw UsageError('DeepInfra Voice Design returns exactly one bounded preview per request.')
       if (!isDeepinfraVoiceDesignModel(designRequest.creationModel)) {
-        throw CLIUsageError('DeepInfra Voice Design creation model must be XiaomiMiMo/MiMo-V2.5-tts-voicedesign or Qwen/Qwen3-TTS-VoiceDesign.')
+        throw UsageError('DeepInfra Voice Design creation model must be XiaomiMiMo/MiMo-V2.5-tts-voicedesign or Qwen/Qwen3-TTS-VoiceDesign.')
       }
       const description = designRequest.description.trim()
       const previewText = designRequest.previewText.trim()
-      if (!description) throw CLIUsageError('DeepInfra Voice Design description cannot be blank.')
-      if (!previewText) throw CLIUsageError('DeepInfra Voice Design preview text cannot be blank.')
+      if (!description) throw UsageError('DeepInfra Voice Design description cannot be blank.')
+      if (!previewText) throw UsageError('DeepInfra Voice Design preview text cannot be blank.')
       const body = buildDeepinfraTtsRequestBody({ model: designRequest.creationModel, text: previewText, voice: description })
       const audio = await synthesizeDesign({ model: designRequest.creationModel, body })
       if (audio.byteLength === 0) throw ValidationError('DeepInfra Voice Design returned empty preview audio.', { stage: 'tts:deepinfra:voice-design' })
@@ -195,9 +195,9 @@ export const createDeepinfraAdvancedProvider = (
       return result
     },
     materializeCandidate: async materializeRequest => {
-      if (!materializeRequest.protectedPreview) throw CLIUsageError('DeepInfra candidate materialization requires its protected preview audio.')
+      if (!materializeRequest.protectedPreview) throw UsageError('DeepInfra candidate materialization requires its protected preview audio.')
       const desiredName = materializeRequest.desiredName.trim()
-      if (!desiredName) throw CLIUsageError('DeepInfra materialization requires a desired name.')
+      if (!desiredName) throw UsageError('DeepInfra materialization requires a desired name.')
       return await createVoice({
         name: desiredName,
         description: desiredName,
@@ -215,12 +215,12 @@ export const createDeepinfraAdvancedProvider = (
     clone: async cloneRequest => {
       assertAdvancedVoiceCloneAuthorized(identity, cloneRequest, 'references before any provider action')
       if (cloneRequest.cloneKind === 'professional') {
-        throw CLIUsageError('DeepInfra does not document a professional voice-clone workflow.')
+        throw UsageError('DeepInfra does not document a professional voice-clone workflow.')
       }
       const desiredName = cloneRequest.desiredName.trim()
-      if (!desiredName) throw CLIUsageError('DeepInfra Instant Voice Cloning requires a display name.')
+      if (!desiredName) throw UsageError('DeepInfra Instant Voice Cloning requires a display name.')
       const sourceSample = cloneRequest.protectedSamples[0]
-      if (!sourceSample) throw CLIUsageError('DeepInfra Instant Voice Cloning requires protected samples and a protected-asset resolver.')
+      if (!sourceSample) throw UsageError('DeepInfra Instant Voice Cloning requires protected samples and a protected-asset resolver.')
       return await createVoice({
         name: desiredName,
         description: cloneRequest.description?.trim() || desiredName,
@@ -238,7 +238,7 @@ export const createDeepinfraAdvancedProvider = (
   const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'account voices' }, {
     fetchVoice: async voice => {
       const entry = mapDeepinfraVoice(await request({ method: 'GET', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` }))
-      if (entry.resourceId !== voice.resourceId) throw CLIUsageError('DeepInfra inspection response identity does not match the registered resource.')
+      if (entry.resourceId !== voice.resourceId) throw UsageError('DeepInfra inspection response identity does not match the registered resource.')
       return { state: entry.state === 'unavailable' ? 'missing' : entry.state, sanitizedMetadata: entry.sanitizedMetadata }
     },
     deleteVoice: async voice => {

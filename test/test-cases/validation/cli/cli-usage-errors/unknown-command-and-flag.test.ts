@@ -14,9 +14,9 @@ test('unknown command exits 2', () => {
 })
 
 test('hosted commands reject invalid concurrency modes before dispatch', () => {
-  expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'fast' }))
+  expect(() => buildOptsFromFlags({ 'concurrency-mode': 'fast' }))
     .toThrow('Invalid --concurrency-mode value "fast". Expected "ramp" or "immediate".')
-  expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'adaptive' }))
+  expect(() => buildOptsFromFlags({ 'concurrency-mode': 'adaptive' }))
     .toThrow('Invalid --concurrency-mode value "adaptive". Expected "ramp" or "immediate".')
   expect(() => coerceAndValidateDraftScenes(parseCommandInvocation(
     ['comic draft-scenes', 'input/scripts/example.md', '--concurrency-mode', 'burst'],

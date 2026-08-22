@@ -3,7 +3,7 @@ import { MistralOcrResponseSchema } from '~/types'
 import { withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { OCR_IMAGE_MIME_TYPES_WITH_TIFF, resolveMediaMimeType } from '~/utils/media-mime-types'
 
@@ -18,7 +18,7 @@ export const runMistralOcr = async (
 ): Promise<{ pages: PageResult[], extractionMethod: 'mistral-ocr' }> => {
   const baseURL = options.baseURL ?? MISTRAL_DEFAULT_BASE_URL
   const onRetryable = options.onRetryable
-  const apiKey = requireApiKey('MISTRAL_API_KEY', 'ocr:mistral', 'Mistral OCR')
+  const apiKey = requireProviderKey('mistral', 'ocr:mistral', 'Mistral OCR')
 
   const bytes = await Bun.file(filePath).arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')

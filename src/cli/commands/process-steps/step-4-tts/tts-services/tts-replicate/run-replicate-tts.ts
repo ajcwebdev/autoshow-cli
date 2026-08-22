@@ -12,7 +12,7 @@ import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retrie
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 export const REPLICATE_KOKORO_VERSION = 'f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13'
 export const REPLICATE_KOKORO_MODEL_ID = 'jaaari/kokoro-82m' as const
@@ -53,7 +53,7 @@ export const runReplicateTts = async (
   outputDir: string,
   options: RunReplicateTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireProvidedApiKey(options.apiKey, 'REPLICATE_API_TOKEN', 'tts:replicate', 'Replicate TTS')
+  const apiKey = resolveCredential('replicate', 'require', { stage: 'tts:replicate', providedValue: options.apiKey, useProvidedValue: true, description: 'Replicate TTS' })
   const voice = validateReplicateTtsVoice(options.voiceId?.trim() || REPLICATE_DEFAULT_TTS_VOICE)
   if (options.speed !== undefined && (!Number.isFinite(options.speed) || options.speed < 0.1 || options.speed > 5)) {
     throw ValidationError('Replicate Kokoro TTS speed must be between 0.1 and 5', { stage: 'tts:replicate' })

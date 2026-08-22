@@ -84,7 +84,7 @@ Representative JSON shape:
       },
       "ocr": {
         "tesseract": true,
-        "lang": "eng",
+        "ocrLanguage": "eng",
         "dpi": 300,
         "chapters": true,
         "length": 50,
@@ -94,26 +94,24 @@ Representative JSON shape:
     "llm": {
       "openai": ["gpt-5.4-mini"]
     },
-    "post": {
-      "tts": {
-        "elevenlabsTts": ["eleven_v3"],
-        "elevenlabsVoice": "voice_123",
-        "ttsSpeakers": ["Host=Kore", "Guest=Puck"]
-      },
-      "image": {
-        "openaiImage": ["gpt-image-2"],
-        "imageSize": "1024x1024",
-        "imageCount": 2
-      },
-      "video": {
-        "ltxVideo": ["ltx-2-3-fast"],
-        "videoDuration": 8,
-        "videoResolution": "1080p"
-      },
-      "music": {
-        "minimaxMusic": ["music-3.0"],
-        "musicInstrumental": true
-      }
+    "tts": {
+      "elevenlabsTts": ["eleven_v3"],
+      "voice": "voice_123",
+      "ttsSpeakers": ["Host=Kore", "Guest=Puck"]
+    },
+    "image": {
+      "openaiImage": ["gpt-image-2"],
+      "imageSize": "1024x1024",
+      "imageCount": 2
+    },
+    "video": {
+      "ltxVideo": ["ltx-2-3-fast"],
+      "videoDuration": 8,
+      "videoResolution": "1080p"
+    },
+    "music": {
+      "minimaxMusic": ["music-3.0"],
+      "musicInstrumental": true
     },
     "batch": {
       "limit": 5,
@@ -136,7 +134,7 @@ Model-selecting fields are arrays of models, not single strings. Use `bun autosh
 
 ## Persisted Defaults
 
-`config` has no `--url-provider` flag, so set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). Once saved, `extract` and `write` inherit it like any other default.
+`config` has no `--url-provider` flag, so set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). Once saved, `extract` inherits it like any other default. `metadata` and `download` still take public `--url-provider`.
 
 Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Custom-voice provisioning and clone-creation audio files are runtime-only and managed via `voice`; synthesis defaults require an existing provider voice ID.
 

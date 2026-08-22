@@ -204,7 +204,7 @@ describe('TTS provider service contracts', () => {
   test('Grok TTS concurrent chunked runs share one hosted provider scheduler', async () => {
       const firstDir = await makeTempDir('autoshow-grok-tts-shared-scheduler-a-')
       const secondDir = await makeTempDir('autoshow-grok-tts-shared-scheduler-b-')
-      const scheduler = createHostedTtsChunkScheduler(2)
+      const scheduler = createHostedTtsChunkScheduler({ maxConcurrency: 2, concurrencyMode: 'immediate' })
       const audioBytes = createSyntheticWavBytes({ durationSeconds: 0.2, amplitude: 0.3, frequencyHz: 440 })
       const started: string[] = []
       const releases: Array<() => void> = []

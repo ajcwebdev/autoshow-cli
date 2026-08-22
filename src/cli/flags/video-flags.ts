@@ -1,5 +1,5 @@
 import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
-import { formatProviderList, formatRange, formatValueList, formatValuesByProvider, pickFlags, renameFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { formatProviderList, formatRange, formatValueList, formatValuesByProvider, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { VIDEO_MODES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
@@ -118,10 +118,27 @@ const replicateOptionNames = [
   'replicate-video-multi-clip'
 ] as const
 
+const publicVideoFlags = (names: readonly string[]): CliFlagsDefinition => {
+  const mapped: CliFlagsDefinition = {}
+  for (const internalName of names) {
+    const definition = videoGenFlags[internalName as keyof typeof videoGenFlags]
+    if (definition === undefined) continue
+    const publicName = videoCommandOptionNames[internalName as keyof typeof videoCommandOptionNames] ?? internalName
+    mapped[publicName] = {
+      ...definition,
+      description: Object.entries(videoCommandOptionNames).reduce(
+        (value, [internal, publicSpelling]) => value.replaceAll(`--${internal}`, `--${publicSpelling}`),
+        definition.description
+      )
+    }
+  }
+  return mapped
+}
+
 export const videoCommandFlags = {
   ...withHelpGroup(videoProviderSelectionFlags, 'provider-selection'),
-  ...withHelpGroup(renameFlags(pickFlags(videoGenFlags, videoGenerationOptionNames), videoCommandOptionNames), 'video-options'),
-  ...withHelpGroup(renameFlags(pickFlags(videoGenFlags, videoInputOptionNames), videoCommandOptionNames), 'video-inputs'),
-  ...withHelpGroup(renameFlags(pickFlags(videoGenFlags, replicateOptionNames), videoCommandOptionNames), 'replicate-video'),
+  ...withHelpGroup(publicVideoFlags(videoGenerationOptionNames), 'video-options'),
+  ...withHelpGroup(publicVideoFlags(videoInputOptionNames), 'video-inputs'),
+  ...withHelpGroup(publicVideoFlags(replicateOptionNames), 'replicate-video'),
   ...withHelpGroup(priceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition

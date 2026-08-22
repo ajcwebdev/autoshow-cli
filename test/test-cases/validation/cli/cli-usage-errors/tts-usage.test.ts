@@ -53,20 +53,20 @@ test('tts rejects ambiguous generic TTS options with multiple providers', () => 
 test('tts rejects --tts-voice combined with dialogue flags', () => {
   expect(() => assertNoVoiceIdentityWithDialogue(
     { ttsSpeakers: ['Host=Jasper'] },
-    new Set(['openai-voice'])
+    new Set(['tts-voice'])
   )).toThrow('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 })
 
 test('tts rejects reference audio combined with dialogue flags', () => {
   expect(() => assertNoVoiceIdentityWithDialogue(
     { ttsSpeakers: ['Host=Jasper'] },
-    new Set(['mistral-tts-ref-audio'])
+    new Set(['tts-ref-audio'])
   )).toThrow('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
 })
 
 
 test('tts rejects --tts-dialogue-format without speaker mappings', () => {
-  const opts = buildOptsFromFlags(false, {
+  const opts = buildOptsFromFlags({
     'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
     'tts-dialogue-format': 'labeled'
   }, {}, new Set(['tts-dialogue-format']))

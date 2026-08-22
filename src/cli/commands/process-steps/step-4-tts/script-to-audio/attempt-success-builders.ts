@@ -20,7 +20,7 @@ import type {
   FinalTimelineLayout,
   TimedToken,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from './contract-identity'
 import { LOCAL_ACTOR } from './attempt-shared'
 import {
@@ -290,7 +290,7 @@ export const buildCompactSlots = (input: {
 }): CompactAudioArchiveSlot[] => input.slots.map((slot) => {
   const file = input.batchResultFiles.find((entry) => entry.value.generationSlotId === slot.generationSlotId)
   const output = file?.value.outputs[0]
-  if (!output) throw CLIUsageError(`Compact TTS render is missing paid output for ${slot.generationSlotId}.`)
+  if (!output) throw UsageError(`Compact TTS render is missing paid output for ${slot.generationSlotId}.`)
   return {
     slotHash: input.paidSpeechSlotHash(slot),
     turnIds: [...slot.turnIds],

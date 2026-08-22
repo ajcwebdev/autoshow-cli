@@ -3,25 +3,15 @@ import { selectCheapestDefaultLlmSelection } from '~/cli/commands/setup-and-util
 
 export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMModelOptions => ({
   openaiModels: config.openaiModels,
-  openaiModel: config.openaiModel,
   groqModels: config.groqModels,
-  groqModel: config.groqModel,
   geminiModels: config.geminiModels,
-  geminiModel: config.geminiModel,
   anthropicModels: config.anthropicModels,
-  anthropicModel: config.anthropicModel,
   minimaxModels: config.minimaxModels,
-  minimaxModel: config.minimaxModel,
   grokModels: config.grokModels,
-  grokModel: config.grokModel,
   glmModels: config.glmModels,
-  glmModel: config.glmModel,
   kimiModels: config.kimiModels,
-  kimiModel: config.kimiModel,
   togetherModels: config.togetherModels,
-  togetherModel: config.togetherModel,
   cerebrasModels: config.cerebrasModels,
-  cerebrasModel: config.cerebrasModel,
 })
 
 const first = (models: string[] | undefined): string | undefined => models?.[0]
@@ -71,25 +61,15 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
 
   return {
     openaiModels: resolvedOpenai,
-    openaiModel: first(resolvedOpenai),
     groqModels: resolvedGroq,
-    groqModel: first(resolvedGroq),
     geminiModels: resolvedGemini,
-    geminiModel: first(resolvedGemini),
     anthropicModels: resolvedAnthropic,
-    anthropicModel: first(resolvedAnthropic),
     minimaxModels: resolvedMinimax,
-    minimaxModel: first(resolvedMinimax),
     grokModels: resolvedGrok,
-    grokModel: first(resolvedGrok),
     glmModels: resolvedGlm,
-    glmModel: first(resolvedGlm),
     kimiModels: resolvedKimi,
-    kimiModel: first(resolvedKimi),
     togetherModels: resolvedTogether,
-    togetherModel: first(resolvedTogether),
     cerebrasModels: resolvedCerebras,
-    cerebrasModel: first(resolvedCerebras),
     llmService: resolvedOpenai?.length ? 'openai'
       : resolvedGroq?.length ? 'groq'
         : resolvedGemini?.length ? 'gemini'

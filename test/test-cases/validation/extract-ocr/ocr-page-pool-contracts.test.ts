@@ -545,14 +545,14 @@ describe('pooled OCR page scheduler contracts', () => {
       }
       const manifestPath = join(dir, PIPELINE_MANIFEST_FILE)
       const before = await readFile(manifestPath)
-      const estimate = await priceOcrTarget(resumeTarget, buildOptsFromFlags(false, {}))
+      const estimate = await priceOcrTarget(resumeTarget, buildOptsFromFlags({}))
       const after = await readFile(manifestPath)
 
       expect(estimate.steps).toHaveLength(1)
       expect(estimate.steps[0]).toMatchObject({ provider: 'openai', model: 'gpt-5.6-sol', pageCount: 1, ocrProviderMode: 'pool' })
       expect(after.equals(before)).toBe(true)
 
-      const explicitFanout = buildOptsFromFlags(false, { 'ocr-provider-mode': 'fanout' }, {}, new Set(['ocr-provider-mode']))
+      const explicitFanout = buildOptsFromFlags({ 'ocr-provider-mode': 'fanout' }, {}, new Set(['ocr-provider-mode']))
       await expect(priceOcrTarget(resumeTarget, explicitFanout)).rejects.toThrow('Cannot resume a pool OCR run as fanout')
       expect((await readFile(manifestPath)).equals(before)).toBe(true)
     })

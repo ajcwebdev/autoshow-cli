@@ -1,5 +1,5 @@
 import { AppUsageError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
-import { findHostedProviderCredential, findHostedProviderCredentialByEnvVar, HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import { findHostedProviderCredential, HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import type { HostedProviderEnvCheck } from '~/types'
 
 export const MISSING_ENV_HINTS: Readonly<Record<string, string>> = Object.fromEntries(
@@ -106,46 +106,6 @@ export const requireProviderKey = (
   stage: string,
   description?: string
 ): string => resolveCredential(providerId, 'require', { stage, ...(description ? { description } : {}) })
-
-export const ensureProvider = (
-  providerId: string,
-  stage: string,
-  description?: string
-): () => Promise<void> => async () => {
-  requireProviderKey(providerId, stage, description)
-}
-
-export const requireApiKey = (envVar: string, stage: string, description?: string): string => {
-  const spec = findHostedProviderCredentialByEnvVar(envVar)
-  if (!spec) {
-    throw InternalError(`Unknown hosted provider credential environment variable: ${envVar}`, {
-      stage,
-      retryable: false
-    })
-  }
-  return resolveCredential(spec.providerId, 'require', { stage, ...(description ? { description } : {}) })
-}
-
-export const requireProvidedApiKey = (
-  value: string | undefined,
-  envVar: string,
-  stage: string,
-  description?: string
-): string => {
-  const spec = findHostedProviderCredentialByEnvVar(envVar)
-  if (!spec) {
-    throw InternalError(`Unknown hosted provider credential environment variable: ${envVar}`, {
-      stage,
-      retryable: false
-    })
-  }
-  return resolveCredential(spec.providerId, 'require', {
-    stage,
-    providedValue: value,
-    useProvidedValue: true,
-    ...(description ? { description } : {})
-  })
-}
 
 export const missingCredentialEnvVar = (error: unknown): string | undefined => {
   const value = extractErrorMetadata(error)['missingEnvVar']

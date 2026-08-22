@@ -1,7 +1,7 @@
 import { partialCompletionError } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-batch-state'
 import { isRecord } from '~/utils/rest-client'
 import { DocumentMetadataSchema } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { validateData } from '~/utils/validate/validation'
 import { processOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
 import { downloadDocumentUrlToTempFile } from '~/cli/commands/process-steps/step-1-download/document/resolve-document-source'
@@ -32,7 +32,7 @@ const assertStoredOcrProviderMode = (
 ): OcrProviderMode => {
   const storedMode = storedOcrProviderMode(record)
   if (opts?.ocrProviderModeExplicit && opts.ocrProviderMode !== storedMode) {
-    throw CLIUsageError(`Cannot resume a ${storedMode} OCR run as ${opts.ocrProviderMode}. Resume preserves the OCR provider mode stored in manifest.json.`)
+    throw UsageError(`Cannot resume a ${storedMode} OCR run as ${opts.ocrProviderMode}. Resume preserves the OCR provider mode stored in manifest.json.`)
   }
   return storedMode
 }
@@ -69,7 +69,7 @@ const storedPoolRequestedReasoningEffort = (
       : []
   )))
   if (efforts.size > 1) {
-    throw CLIUsageError(`Canonical pooled OCR manifest records conflicting requested reasoning policies: ${[...efforts].sort().join(', ')}.`)
+    throw UsageError(`Canonical pooled OCR manifest records conflicting requested reasoning policies: ${[...efforts].sort().join(', ')}.`)
   }
   return [...efforts][0]
 }
@@ -124,7 +124,7 @@ const filterRunnableStoredOcrTargets = (
     const nextStep = replacement !== undefined
       ? `Re-run with --provider ${target.service}=${replacement} to add the replacement as a distinct target.`
       : `Re-run with an explicit active ${target.service} model to add a distinct target.`
-    throw CLIUsageError(
+    throw UsageError(
       `Stored OCR target ${target.service}/${target.model} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. ${nextStep}`
     )
   }
@@ -171,7 +171,7 @@ const assertSelectedOcrReasoningCompatibility = (
           : [])
       ]) ?? [])
       if ([...storedEffectivePolicies].some((stored) => stored !== policy.effective)) {
-        throw CLIUsageError(
+        throw UsageError(
           `OCR resume reasoning policy mismatch for ${target.service}/${target.model}: the pooled page ledger records ${[...storedEffectivePolicies].sort().join(', ')}, but the current request resolves to ${policy.effective}.`
         )
       }
@@ -188,7 +188,7 @@ const assertSelectedOcrReasoningCompatibility = (
     const metadata = isRecord(state['metadata']) ? state['metadata'] : undefined
     const storedEffective = metadata?.['effectiveReasoningEffort']
     if (storedEffective !== policy.effective) {
-      throw CLIUsageError(
+      throw UsageError(
         `OCR resume reasoning policy mismatch for ${target.service}/${target.model}: manifest effective effort is ${typeof storedEffective === 'string' ? storedEffective : 'unrecorded'}, but the current request resolves to ${policy.effective}.`
       )
     }
@@ -209,7 +209,7 @@ const toStoredSource = (record: PipelineItemRecord): Step1SourceRef => {
   }
 
   if (!url) {
-    throw CLIUsageError('Pipeline item record is missing source information and cannot be resumed.')
+    throw UsageError('Pipeline item record is missing source information and cannot be resumed.')
   }
 
   return toProviderResumeSource(url)
@@ -240,7 +240,7 @@ const parseResumeRecord = async (
     ? parseStoredOcrPoolLedger(record['ocrPool'])
     : undefined
   if (ocrProviderMode === 'pool' && !poolLedger) {
-    throw CLIUsageError('Canonical pooled OCR manifest is missing a valid ocrPool page ledger.')
+    throw UsageError('Canonical pooled OCR manifest is missing a valid ocrPool page ledger.')
   }
   assertSelectedOcrReasoningCompatibility(
     record,
@@ -304,7 +304,7 @@ const parseResumeRecord = async (
 const readItemRecord = async (outputDir: string): Promise<PipelineItemRecord> => {
   const record = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'document' })
   if (!isRecord(record)) {
-    throw CLIUsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
+    throw UsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
   }
   return record
 }
@@ -312,7 +312,7 @@ const readItemRecord = async (outputDir: string): Promise<PipelineItemRecord> =>
 const readPreparedDocument = async (outputDir: string): Promise<PreparedDocument> => {
   const record = await readItemRecord(outputDir)
   if (!isRecord(record['step1'])) {
-    throw CLIUsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
+    throw UsageError(`Invalid OCR manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
   }
 
   const step1Metadata = validateData(DocumentMetadataSchema, record['step1'], 'stored OCR step1 metadata')
@@ -438,7 +438,7 @@ const runResumeOcrTarget = async (
         }
 
         if (!resumeFilePath) {
-          throw CLIUsageError('OCR resume entry is missing a resumable file path.')
+          throw UsageError('OCR resume entry is missing a resumable file path.')
         }
 
         try {

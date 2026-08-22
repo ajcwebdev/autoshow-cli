@@ -1,6 +1,6 @@
 import { isDirectMediaUrl } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
 const SUPADATA_SUPPORTED_HOST_PATTERNS = [
   /(^|\.)youtube\.com$/i,
@@ -57,4 +57,4 @@ export const describeSupadataUnsupportedSource = (
   return `Supadata only supports public YouTube, TikTok, Instagram, X/Twitter, Facebook, or direct media/file URLs; unsupported source URL: ${sourceUrl}`
 }
 
-export const ensureSupadataSttSetup = ensureProvider('supadata', 'stt:supadata', 'Supadata transcription')
+export const ensureSupadataSttSetup = async (): Promise<void> => { requireProviderKey('supadata', 'stt:supadata', 'Supadata transcription') }

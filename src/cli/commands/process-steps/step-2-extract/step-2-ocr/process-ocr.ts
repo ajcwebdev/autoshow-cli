@@ -12,7 +12,7 @@ import { cleanupOcrPreparationCache, createOcrPreparationCache } from './ocr-uti
 import { createHostedOcrScheduler } from './ocr-utils/hosted-ocr-scheduler'
 import { readSinglePipelineItemRecord } from '../../pipeline-manifest'
 import { isRecord } from '~/utils/rest-client'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 export { writeProviderArtifacts } from './ocr-artifacts'
 
@@ -72,7 +72,7 @@ export const processOcr = async (
     if (isRecord(storedRecord)) {
       const storedMode = storedRecord['ocrProviderMode'] === 'pool' ? 'pool' : 'fanout'
       if (storedMode !== ocrProviderMode) {
-        throw CLIUsageError(`Cannot resume a ${storedMode} OCR run as ${ocrProviderMode}. Resume preserves the OCR provider mode stored in manifest.json.`)
+        throw UsageError(`Cannot resume a ${storedMode} OCR run as ${ocrProviderMode}. Resume preserves the OCR provider mode stored in manifest.json.`)
       }
     }
     if (ocrProviderMode === 'pool') {

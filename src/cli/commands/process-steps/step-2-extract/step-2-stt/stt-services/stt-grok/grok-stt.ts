@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureGrokSttSetup = ensureProvider('grok', 'stt:grok', 'Grok STT')
+export const ensureGrokSttSetup = async (): Promise<void> => { requireProviderKey('grok', 'stt:grok', 'Grok STT') }

@@ -1,5 +1,5 @@
 import type { AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, ResolvedVoiceBinding, TtsTargetInvocation, TtsTargetSelection } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import { normalizeTtsTurnControls, resolveTtsTurnControlOverrides } from '../tts-targets/tts-invocation-controls'
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
@@ -25,11 +25,11 @@ export const resolveComicTurns = (
     const entryId = context.snapshotEntryIdByTurnId[canonical.turnId]
     const entry = entryId ? entriesById.get(entryId) : undefined
     if (!entry || entry.provider !== options.target.service || entry.providerModel !== options.target.model || entry.subjectKey !== canonical.subjectKey) {
-      throw CLIUsageError(`Comic turn ${canonical.turnId} has no exact approved snapshot binding for ${options.target.service}/${options.target.model}.`)
+      throw UsageError(`Comic turn ${canonical.turnId} has no exact approved snapshot binding for ${options.target.service}/${options.target.model}.`)
     }
     const providerVoice = entry.providerVoice
-    if (providerVoice.provider !== options.target.service) throw CLIUsageError(`Comic snapshot voice for ${canonical.turnId} belongs to another provider.`)
-    if (providerVoice.kind === 'shared-library-resource') throw CLIUsageError(`Comic snapshot voice for ${canonical.turnId} must be imported into an account resource before synthesis.`)
+    if (providerVoice.provider !== options.target.service) throw UsageError(`Comic snapshot voice for ${canonical.turnId} belongs to another provider.`)
+    if (providerVoice.kind === 'shared-library-resource') throw UsageError(`Comic snapshot voice for ${canonical.turnId} must be imported into an account resource before synthesis.`)
     const protectedAsset = providerVoice.kind === 'reference-asset' ? providerVoice.protectedAsset : undefined
     const voice = providerVoice.kind === 'reference-asset'
       ? { kind: 'reference-asset' as const, valueHash: providerVoice.protectedAsset.sha256 }
@@ -81,12 +81,12 @@ export const resolveComicNativeGroups = (
       const chunkDialogue = normalizeDialogueText(providerText, resolveDialogueFormat(options.ttsOptions), registry)
       const groupedTurns = turns.slice(nativeTurnCursor, nativeTurnCursor + chunkDialogue.turns.length)
       if (groupedTurns.length !== chunkDialogue.turns.length || groupedTurns.some((turn, index) => turn.canonical.canonicalText !== chunkDialogue.turns[index]?.text)) {
-        throw CLIUsageError('Gemini comic native partition did not preserve exact turn boundaries.')
+        throw UsageError('Gemini comic native partition did not preserve exact turn boundaries.')
       }
       nativeTurnCursor += groupedTurns.length
       return { turnIds: groupedTurns.map(turn => turn.canonical.turnId), providerTexts: [providerText] }
     })
-    if (nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini comic native partition omitted turns.')
+    if (nativeTurnCursor !== turns.length) throw UsageError('Gemini comic native partition omitted turns.')
     return groups
   }
   if (elevenLabsNative) {
@@ -103,8 +103,8 @@ export const resolveComicNativeGroups = (
 
 export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _capabilityFixtureHash?: string): PlannedInputs => {
   const context = options.comicContext!
-  if (context.operation !== 'comic-audio') throw CLIUsageError('Comic render context requires operation comic-audio.')
-  if (canonicalTtsJson(context.sourceIdentity) !== canonicalTtsJson(context.dialoguePlan.sourceIdentity)) throw CLIUsageError('Comic dialogue plan does not bind the exact source identity.')
+  if (context.operation !== 'comic-audio') throw UsageError('Comic render context requires operation comic-audio.')
+  if (canonicalTtsJson(context.sourceIdentity) !== canonicalTtsJson(context.dialoguePlan.sourceIdentity)) throw UsageError('Comic dialogue plan does not bind the exact source identity.')
   if (context.dialoguePlan.dialoguePlanId !== hashCanonicalTtsValue({
     schemaVersion: context.dialoguePlan.schemaVersion,
     sceneRunIdentity: context.dialoguePlan.sceneRunIdentity,
@@ -113,8 +113,8 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     createdAt: context.dialoguePlan.createdAt,
     pacing: context.dialoguePlan.pacing,
     nodes: context.dialoguePlan.nodes,
-  })) throw CLIUsageError('Comic dialogue plan identity is invalid.')
-  if (context.voiceSnapshot.dialoguePlanId !== context.dialoguePlan.dialoguePlanId || context.voiceSnapshot.sceneRunIdentity !== context.dialoguePlan.sceneRunIdentity) throw CLIUsageError('Comic voice snapshot does not bind the selected scene/dialogue plan.')
+  })) throw UsageError('Comic dialogue plan identity is invalid.')
+  if (context.voiceSnapshot.dialoguePlanId !== context.dialoguePlan.dialoguePlanId || context.voiceSnapshot.sceneRunIdentity !== context.dialoguePlan.sceneRunIdentity) throw UsageError('Comic voice snapshot does not bind the selected scene/dialogue plan.')
 
   const canonicalTurns = flattenPlanTurns(context.dialoguePlan)
   const normalizedTurnControls = normalizeTtsTurnControls(
@@ -143,7 +143,7 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
   const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && !hasTurnControls && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
   const fishNative = options.target.service === 'fish' && isFishNativeDialogueModel(options.target.model) && !hasTurnControls
   const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (geminiNative || elevenLabsNative || humeNative || fishNative)
-  if (context.modePreference === 'native' && !nativeEligible) throw CLIUsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
+  if (context.modePreference === 'native' && !nativeEligible) throw UsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
   const native = context.modePreference !== 'segmented' && nativeEligible
   const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
   const limit = chunkLimit(options.target)
@@ -173,6 +173,6 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     requestControls.values['serializerControlsHash'] = hashCanonicalTtsValue(contract.controls)
     return { batchId, orderedTurnIds: group.turnIds, requestControls, generationSlots, takeSelectionPolicy: 'sole-take' as const, continuation: { kind: 'none' as const }, plannedCost: sumCosts(generationSlots.map(slot => slot.plannedCost)) }
   })
-  if (turns.length === 0 || slots.length === 0) throw CLIUsageError('Comic render planning requires at least one dialogue turn and generation slot.')
+  if (turns.length === 0 || slots.length === 0) throw UsageError('Comic render planning requires at least one dialogue turn and generation slot.')
   return { sourceIdentity: context.sourceIdentity, dialoguePlan: context.dialoguePlan, turns, batches, slots, strategy, normalizedText }
 }

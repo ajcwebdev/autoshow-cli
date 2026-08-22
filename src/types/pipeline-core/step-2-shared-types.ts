@@ -12,16 +12,15 @@ type RegistrySelectionOptionKey<Entry> = Entry extends {
     : Selection extends {
       type: 'models'
       runtimeModelsKey: infer ModelsKey extends keyof Step2ProviderOptionSurface
-      runtimeModelKey: infer ModelKey extends keyof Step2ProviderOptionSurface
     }
-      ? ModelsKey | ModelKey
+      ? ModelsKey
       : never
   : never
 
 type RegistryModelOptionKey<Entry> = Entry extends {
   selection: {
     type: 'models'
-    runtimeModelKey: infer Key extends keyof Step2ProviderOptionSurface
+    runtimeModelsKey: infer Key extends keyof Step2ProviderOptionSurface
   }
 } ? Key : never
 
@@ -103,7 +102,6 @@ export type Step2ModelProviderRegistryEntry = Step2ProviderRegistryEntryBase & {
   selection: {
     type: 'models'
     runtimeModelsKey: keyof Step2ProviderOptionSurface
-    runtimeModelKey: keyof Step2ProviderOptionSurface
     supportedModels: readonly string[]
     validateModel: (value: string) => string
   }
@@ -129,7 +127,7 @@ export type ProviderRunStateBase<TService extends string, TError> = ProviderIden
   attempts: number
   metadata?: Record<string, unknown> | undefined
   result?: Record<string, unknown> | undefined
-  lastError?: TError | undefined
+  error?: TError | undefined
 }
 
 export type ProviderErrorSummaryFields = {

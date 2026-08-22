@@ -10,7 +10,7 @@ import type {
   StructuredScriptArtifactRef,
   StructuredScriptData,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
 import { validateComicDialoguePlan } from './comic-audio-contracts'
 
@@ -51,8 +51,8 @@ const rolePolicyMap = (policies: readonly ComicAudioRolePolicy[]): ReadonlyMap<s
   const result = new Map<string, string>()
   for (const policy of policies) {
     const label = normalizeLabel(policy.speakerLabel)
-    if (!label || !policy.subjectKey.trim()) throw CLIUsageError('Comic audio role policies require a speaker label and subject key.')
-    if (result.has(label)) throw CLIUsageError(`Duplicate comic audio role policy for ${policy.speakerLabel}.`)
+    if (!label || !policy.subjectKey.trim()) throw UsageError('Comic audio role policies require a speaker label and subject key.')
+    if (result.has(label)) throw UsageError(`Duplicate comic audio role policy for ${policy.speakerLabel}.`)
     result.set(label, policy.subjectKey.trim())
   }
   return result
@@ -109,16 +109,16 @@ export const createComicDialoguePlan = (input: {
   rolePolicies?: readonly ComicAudioRolePolicy[] | undefined
 }): ComicDialoguePlan => {
   if (input.structuredScript.schemaVersion !== 5 || canonicalTtsJson(input.structuredScript.sourceIdentity) !== canonicalTtsJson(input.sourceIdentity)) {
-    throw CLIUsageError('Comic dialogue planning requires strict structured-script v5 bound to the exact source identity.')
+    throw UsageError('Comic dialogue planning requires strict structured-script v5 bound to the exact source identity.')
   }
   const policies = rolePolicyMap(input.rolePolicies ?? [])
   const speakable = input.structuredScript.sourceSegments.filter(segment => segment.type === 'dialogue' || segment.type === 'narration')
   const sourceIds = speakable.map(segment => segment.id)
-  if (new Set(sourceIds).size !== sourceIds.length) throw CLIUsageError('Structured script contains duplicate speakable source segment IDs.')
+  if (new Set(sourceIds).size !== sourceIds.length) throw UsageError('Structured script contains duplicate speakable source segment IDs.')
 
   const nodes: CanonicalDialoguePlanNode[] = speakable.map((segment, index) => {
     const label = segment.speakerLabel?.trim() || (segment.type === 'narration' ? 'NARRATOR' : '')
-    if (!label) throw CLIUsageError(`Speakable source segment ${segment.id} has no speaker label or explicit narration policy.`)
+    if (!label) throw UsageError(`Speakable source segment ${segment.id} has no speaker label or explicit narration policy.`)
     const policySubject = policies.get(normalizeLabel(label))
     const speakerKeys = segment.speakerKeys ?? (segment.speakerKey ? [segment.speakerKey] : [])
     if (speakerKeys.length > 1 && !policySubject) {
@@ -129,7 +129,7 @@ export const createComicDialoguePlan = (input: {
       ?? speakerKeys[0]
       ?? (segment.type === 'narration' ? 'role:narrator' : undefined)
     if (!subjectKey) {
-      throw CLIUsageError(`Uncatalogued speaking role "${label}" in ${segment.id} requires --role "${label}=voice:<key>" or an authored role registration.`)
+      throw UsageError(`Uncatalogued speaking role "${label}" in ${segment.id} requires --role "${label}=voice:<key>" or an authored role registration.`)
     }
     return { kind: 'turn' as const, turn: turn({ index: index + 1, segment, subjectKey, originalSpeakerLabel: label }) }
   })
@@ -159,7 +159,7 @@ export const writeComicDialoguePlan = async (
   const bytes = `${canonicalTtsJson(plan)}\n`
   await mkdir(dirname(path), { recursive: true })
   if (await Bun.file(path).exists()) {
-    if (await readFile(path, 'utf8') !== bytes) throw CLIUsageError('Create-only comic dialogue plan conflicts with existing bytes.')
+    if (await readFile(path, 'utf8') !== bytes) throw UsageError('Create-only comic dialogue plan conflicts with existing bytes.')
   } else {
     await Bun.write(path, bytes)
   }
@@ -167,11 +167,11 @@ export const writeComicDialoguePlan = async (
   const existing = await Bun.file(indexPath).exists()
     ? await Bun.file(indexPath).json() as { schemaVersion?: unknown, entries?: unknown }
     : { schemaVersion: 1, entries: [] }
-  if (existing.schemaVersion !== 1 || !Array.isArray(existing.entries)) throw CLIUsageError('Comic dialogue plan index is invalid.')
+  if (existing.schemaVersion !== 1 || !Array.isArray(existing.entries)) throw UsageError('Comic dialogue plan index is invalid.')
   const entries = existing.entries as Array<{ dialoguePlanId: string, path: string, sha256: string, createdAt: string }>
   const nextEntry = { dialoguePlanId: plan.dialoguePlanId, path: relativePath, sha256: sha256Bytes(bytes), createdAt: plan.createdAt }
   const prior = entries.find(entry => entry.dialoguePlanId === plan.dialoguePlanId)
-  if (prior && canonicalTtsJson(prior) !== canonicalTtsJson(nextEntry)) throw CLIUsageError('Comic dialogue plan index contains conflicting append-only identity.')
+  if (prior && canonicalTtsJson(prior) !== canonicalTtsJson(nextEntry)) throw UsageError('Comic dialogue plan index contains conflicting append-only identity.')
   if (!prior) {
     const temporary = `${indexPath}.tmp-${crypto.randomUUID()}`
     await mkdir(dirname(indexPath), { recursive: true })

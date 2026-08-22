@@ -10,7 +10,7 @@ const RUNNER_LOG_FLUSH_INTERVAL_MS = 100
 const RUNNER_LOG_FLUSH_SIZE_BYTES = 64 * 1024
 const COMMAND_LOG_TAIL_BYTES = 256 * 1024
 
-const TEST_OUTPUT_ROOT = resolve(process.cwd(), 'project/test-output')
+export const TEST_OUTPUT_ROOT = resolve(process.cwd(), 'output/test-output')
 
 const runnerLogHandles = new WeakMap<TestRunArtifacts, RunnerLogHandle>()
 

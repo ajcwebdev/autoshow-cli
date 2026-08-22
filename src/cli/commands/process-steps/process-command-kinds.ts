@@ -12,8 +12,7 @@ const PROCESS_COMMAND_CAPABILITIES: Record<ProcessCommand, ProcessCommandCapabil
     supportedInputFamilies: ['media', 'document', 'html_article', 'x_space']
   },
   write: {
-    supportsBatchSourceExpansion: true,
-    supportedInputFamilies: ['media', 'document', 'html_article', 'x_space']
+    supportsBatchSourceExpansion: true
   },
   tts: {
     supportsBatchSourceExpansion: false
@@ -35,8 +34,8 @@ const PROCESS_COMMAND_CAPABILITIES: Record<ProcessCommand, ProcessCommandCapabil
 export const isExtractCommand = (command: ProcessCommand): command is 'extract' =>
   command === 'extract'
 
-export const usesExtractInputRouting = (command: ProcessCommand): command is 'extract' | 'write' =>
-  command === 'extract' || command === 'write'
+export const usesExtractInputRouting = (command: ProcessCommand): command is 'extract' =>
+  command === 'extract'
 
 const getProcessCommandCapabilities = (
   command: ProcessCommand

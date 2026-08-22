@@ -1,5 +1,5 @@
 import type { AudioProjectionValidationContext, PipelineManifest, PipelineProviderState } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import {
   canonicalManifestJson,
@@ -437,31 +437,31 @@ export const assertAppendOnlyAudioProjection = (
     || before.artifactDir !== after.artifactDir
     || canonicalManifestJson(before.options) !== canonicalManifestJson(after.options)
   ) {
-    throw CLIUsageError('An audio provider-state update cannot change operation-scoped identity, its artifact directory, or immutable provider options.')
+    throw UsageError('An audio provider-state update cannot change operation-scoped identity, its artifact directory, or immutable provider options.')
   }
   const namespace = before.operation === 'comic-audio' ? 'comicAudio' : before.operation === 'tts-synthesis' ? 'ttsAudio' : undefined
   if (!namespace) return
   const beforeProjection = before.result?.[namespace]
   const afterProjection = after.result?.[namespace]
   if (!isRecord(beforeProjection) || !isRecord(afterProjection)) {
-    throw CLIUsageError('An audio provider-state update requires its canonical projection.')
+    throw UsageError('An audio provider-state update requires its canonical projection.')
   }
   for (const key of ['branchHistory', 'readinessAttempts', 'pointerEvents'] as const) {
     const oldEntries = beforeProjection[key]
     const nextEntries = afterProjection[key]
     if (!Array.isArray(oldEntries) || !Array.isArray(nextEntries) || !isAppendOnlyArray(oldEntries, nextEntries)) {
-      throw CLIUsageError(`Canonical audio ${key} is append-only.`)
+      throw UsageError(`Canonical audio ${key} is append-only.`)
     }
   }
   const oldRenders = beforeProjection['renderHistory']
   const nextRenders = afterProjection['renderHistory']
   if (!Array.isArray(oldRenders) || !Array.isArray(nextRenders) || oldRenders.length > nextRenders.length) {
-    throw CLIUsageError('Canonical audio renderHistory is append-only.')
+    throw UsageError('Canonical audio renderHistory is append-only.')
   }
   for (const [index, oldRender] of oldRenders.entries()) {
     const nextRender = nextRenders[index]
     if (!isRecord(oldRender) || !isRecord(nextRender)) {
-      throw CLIUsageError('Canonical audio render history contains an invalid record.')
+      throw UsageError('Canonical audio render history contains an invalid record.')
     }
     const { events: oldEvents, ...oldHeader } = oldRender
     const { events: nextEvents, ...nextHeader } = nextRender
@@ -471,7 +471,7 @@ export const assertAppendOnlyAudioProjection = (
       || !Array.isArray(nextEvents)
       || !isAppendOnlyArray(oldEvents, nextEvents)
     ) {
-      throw CLIUsageError('Canonical audio render records and events are append-only.')
+      throw UsageError('Canonical audio render records and events are append-only.')
     }
   }
   const beforeActive = canonicalManifestJson(beforeProjection['activeWork'])
@@ -482,10 +482,10 @@ export const assertAppendOnlyAudioProjection = (
   const nextPointers = afterProjection['pointerEvents'] as unknown[]
   const appendedPointers = nextPointers.slice(oldPointers.length)
   if (beforeActive !== afterActive && appendedPointers.length === 0) {
-    throw CLIUsageError('Canonical audio activeWork may change only through an appended pointer event.')
+    throw UsageError('Canonical audio activeWork may change only through an appended pointer event.')
   }
   if (beforeSelected !== undefined && afterSelected === undefined) {
-    throw CLIUsageError('Canonical audio selectedSuccess cannot be cleared by later work.')
+    throw UsageError('Canonical audio selectedSuccess cannot be cleared by later work.')
   }
   if (canonicalManifestJson(beforeSelected) !== canonicalManifestJson(afterSelected)) {
     const pointer = appendedPointers.at(-1)
@@ -498,7 +498,7 @@ export const assertAppendOnlyAudioProjection = (
       || pointer['resultIdentity'] !== afterSelected['resultIdentity']
       || pointer['audioRunId'] !== afterSelected['audioRunId']
     ) {
-      throw CLIUsageError('Canonical audio selectedSuccess may change only through an appended exact success pointer.')
+      throw UsageError('Canonical audio selectedSuccess may change only through an appended exact success pointer.')
     }
   }
 }
@@ -508,16 +508,16 @@ export const assertAppendOnlyManifestAudioState = (
   after: PipelineManifest
 ): void => {
   if (before.command !== after.command || before.scope !== after.scope || before.createdAt !== after.createdAt) {
-    throw CLIUsageError('A canonical manifest cannot change its command, scope, or creation identity.')
+    throw UsageError('A canonical manifest cannot change its command, scope, or creation identity.')
   }
   if (before.command !== 'tts' && before.command !== 'comic') return
   if (before.items.length !== after.items.length) {
-    throw CLIUsageError('A canonical audio manifest cannot replace or remove existing items.')
+    throw UsageError('A canonical audio manifest cannot replace or remove existing items.')
   }
   for (const [itemIndex, oldItem] of before.items.entries()) {
     const nextItem = after.items[itemIndex]
     if (!nextItem || oldItem.input !== nextItem.input) {
-      throw CLIUsageError('A canonical audio manifest cannot reorder or replace an existing item.')
+      throw UsageError('A canonical audio manifest cannot reorder or replace an existing item.')
     }
     for (const oldProvider of oldItem.providers) {
       if (
@@ -525,7 +525,7 @@ export const assertAppendOnlyManifestAudioState = (
       ) continue
       const nextMatches = nextItem.providers.filter((provider) => provider.targetKey === oldProvider.targetKey)
       if (nextMatches.length !== 1) {
-        throw CLIUsageError(`Canonical audio target ${oldProvider.targetKey ?? oldProvider.service} cannot be removed or duplicated.`)
+        throw UsageError(`Canonical audio target ${oldProvider.targetKey ?? oldProvider.service} cannot be removed or duplicated.`)
       }
       assertAppendOnlyAudioProjection(oldProvider, nextMatches[0] as PipelineProviderState)
     }

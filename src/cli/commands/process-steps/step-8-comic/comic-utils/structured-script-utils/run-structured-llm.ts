@@ -2,7 +2,7 @@ import { collectLlmTargets } from '~/cli/commands/process-steps/step-3-write/run
 import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from '~/cli/commands/process-steps/step-3-write/structured-output/capabilities'
 import { runCompatFallback } from '~/cli/commands/process-steps/step-3-write/structured-output/compat-fallback'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { UsageError, InternalError } from '~/utils/error-handler'
 import type { ComicStructuredLlmResult, ComicStructuredSchema, HostedConcurrencyCoordinator, LLMOptions, LLMTarget, ResolvedStructuredSchema, StructuredRequestOptions, StructuredValidationContext } from '~/types'
 import { runComicHostedRequest } from '../hosted-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -23,12 +23,12 @@ const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
 const resolveComicLlmTarget = (modelId: string): LLMTarget => {
   const service = findRegistryServiceForModel('llm', modelId)
   if (!service) {
-    throw CLIUsageError(`Unknown LLM model "${modelId}". It is not present in the central LLM registry.`)
+    throw UsageError(`Unknown LLM model "${modelId}". It is not present in the central LLM registry.`)
   }
 
   const field = SERVICE_TO_LLM_OPTION_FIELD[service]
   if (!field) {
-    throw CLIUsageError(`LLM provider "${service}" for model "${modelId}" is not supported by comic.`)
+    throw UsageError(`LLM provider "${service}" for model "${modelId}" is not supported by comic.`)
   }
 
   const targets = collectLlmTargets({ [field]: [modelId] } as Partial<LLMOptions> as LLMOptions)

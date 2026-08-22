@@ -1,9 +1,7 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { musicCommandFlags, musicCommandOptionNames } from '~/cli/flags/music-flags'
-import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { musicCommandFlags } from '~/cli/flags/music-flags'
+import { UsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_MUSIC_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runMusicGen } from './run-music-gen'
@@ -56,26 +54,25 @@ const runHostedMusicGeneration = async (
     : input
 
   const musicMaxCents = await resolveMaxCentsFromFlags(flags)
-  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitFlags, flagOccurrences, musicCommandOptionNames)
-  const musicDurationRaw = typeof optionNormalized.flags['music-duration'] === 'string'
-    ? parseInt(optionNormalized.flags['music-duration'], 10)
+  const musicDurationRaw = typeof flags['duration'] === 'string'
+    ? parseInt(flags['duration'], 10)
     : undefined
   const musicDuration = Number.isFinite(musicDurationRaw) ? musicDurationRaw : undefined
-  const musicLyricsFile = typeof optionNormalized.flags['music-lyrics-file'] === 'string' ? optionNormalized.flags['music-lyrics-file'] : undefined
-  const musicInstrumental = optionNormalized.flags['music-instrumental'] === true
+  const musicLyricsFile = typeof flags['lyrics-file'] === 'string' ? flags['lyrics-file'] : undefined
+  const musicInstrumental = flags['instrumental'] === true
   const providerNormalized = normalizeGenericProviderSelectorFlags(
-    optionNormalized.flags,
-    optionNormalized.explicitFlags,
-    optionNormalized.flagOccurrences,
+    flags,
+    explicitFlags,
+    flagOccurrences,
     'provider',
     STANDALONE_MUSIC_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-music' }
   )
-  const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
+  const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences })
 
   const musicTargets = collectMusicTargets(musicOpts)
   if (musicTargets.length === 0) {
-    throw CLIUsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
+    throw UsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   }
 
   const { estimate: preflightEstimate, shouldExit: musicShouldExit } = evaluatePreflightEstimate(
@@ -168,18 +165,18 @@ export const musicCommand = defineCliCommand({
       ['bun autoshow music --batch input --model small', 'Render lyric videos for every supported audio file under input directory']
     ]
   }
-}, retargetUsageErrorsToCommandSpellings(async (ctx) => {
+}, async (ctx) => {
   const input = typeof ctx.parameters.input === 'string' ? ctx.parameters.input : undefined
   const flags = ctx.flags as Record<string, unknown>
   const hostedFlags = collectExplicitFlags(ctx.rawParsed.explicitFlags, HOSTED_MUSIC_FLAGS)
   const lyricVideoFlags = collectExplicitFlags(ctx.rawParsed.explicitFlags, LYRIC_VIDEO_FLAGS)
 
   if (input && lyricVideoFlags.length > 0) {
-    throw CLIUsageError(`Do not combine lyric-video flags (${lyricVideoFlags.join(', ')}) with a hosted music prompt`)
+    throw UsageError(`Do not combine lyric-video flags (${lyricVideoFlags.join(', ')}) with a hosted music prompt`)
   }
 
   if (lyricVideoFlags.length > 0 && hostedFlags.length > 0) {
-    throw CLIUsageError(`Do not combine hosted music flags (${hostedFlags.join(', ')}) with lyric-video flags (${lyricVideoFlags.join(', ')})`)
+    throw UsageError(`Do not combine hosted music flags (${hostedFlags.join(', ')}) with lyric-video flags (${lyricVideoFlags.join(', ')})`)
   }
 
   if (lyricVideoFlags.length > 0) {
@@ -188,7 +185,7 @@ export const musicCommand = defineCliCommand({
   }
 
   if (!input) {
-    throw CLIUsageError(
+    throw UsageError(
       hostedFlags.length > 0
         ? 'Missing hosted music prompt input'
         : 'Missing music mode: provide a prompt with --provider, or use --audio/--batch for lyric-video rendering'
@@ -196,4 +193,4 @@ export const musicCommand = defineCliCommand({
   }
 
   await runHostedMusicGeneration(input, flags, ctx.rawParsed.explicitFlags, ctx.rawParsed.flagOccurrences)
-}, musicCommandOptionNames))
+})

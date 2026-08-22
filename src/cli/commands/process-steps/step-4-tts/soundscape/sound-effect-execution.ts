@@ -1,7 +1,7 @@
 import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
-import { AppError, CLIUsageError, hasErrorCode } from '~/utils/error-handler'
+import { AppError, UsageError, hasErrorCode } from '~/utils/error-handler'
 import { formatRetryExhaustedMessage, getRetryPolicyForClass, logRetryAttempt, sleepWithAbortSignal } from '~/utils/retries'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
@@ -39,7 +39,7 @@ const readPersistedProviderResponse = async (rootDir: string, root: string, ordi
     const audio = await readContainedArtifactFile(rootDir, `${prefix}-provider-response.audio`)
     const { responsePackageId: _packageId, ...evidenceBase } = evidence
     const { requestEvidenceId: _evidenceId, ...requestEvidenceBase } = evidence.requestEvidence
-    if (evidence.schemaVersion !== 1 || evidence.requestIdentity !== evidence.requestEvidence.requestIdentity || evidence.requestOrdinal !== ordinal || evidence.requestEvidence.requestOrdinal !== ordinal || evidence.audioSha256 !== audio.sha256 || evidence.responsePackageId !== hashCanonicalTtsValue(evidenceBase) || evidence.requestEvidence.requestEvidenceId !== hashCanonicalTtsValue(requestEvidenceBase)) throw CLIUsageError('Retained sound-effect provider response evidence is invalid.')
+    if (evidence.schemaVersion !== 1 || evidence.requestIdentity !== evidence.requestEvidence.requestIdentity || evidence.requestOrdinal !== ordinal || evidence.requestEvidence.requestOrdinal !== ordinal || evidence.audioSha256 !== audio.sha256 || evidence.responsePackageId !== hashCanonicalTtsValue(evidenceBase) || evidence.requestEvidence.requestEvidenceId !== hashCanonicalTtsValue(requestEvidenceBase)) throw UsageError('Retained sound-effect provider response evidence is invalid.')
     return {
       bytes: audio.bytes,
       contentType: evidence.contentType,
@@ -75,7 +75,7 @@ const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task:
     try { started = JSON.parse((await readContainedArtifactFile(rootDir, startedPath)).bytes.toString('utf8')) as SoundEffectAdmissionStarted }
     catch { return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} has incomplete admission evidence.` } }
     const { eventId: _startedId, ...startedBase } = started
-    if (started.state !== 'dispatch-started' || started.renderPlanId !== plan.renderPlanId || started.requestIdentity !== task.requestIdentity || started.requestOrdinal !== ordinal || started.targetKey !== plan.target.targetKey || started.eventId !== hashCanonicalTtsValue(startedBase)) throw CLIUsageError('Retained sound-effect dispatch admission identity is invalid.')
+    if (started.state !== 'dispatch-started' || started.renderPlanId !== plan.renderPlanId || started.requestIdentity !== task.requestIdentity || started.requestOrdinal !== ordinal || started.targetKey !== plan.target.targetKey || started.eventId !== hashCanonicalTtsValue(startedBase)) throw UsageError('Retained sound-effect dispatch admission identity is invalid.')
     const recovered = await readPersistedProviderResponse(rootDir, relativeRoot, ordinal)
     let terminal: SoundEffectAdmissionTerminal | undefined
     try { terminal = JSON.parse((await readContainedArtifactFile(rootDir, `${relativeRoot}/${admissionOrdinal(ordinal)}-terminal.json`)).bytes.toString('utf8')) as SoundEffectAdmissionTerminal }
@@ -87,7 +87,7 @@ const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task:
       return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} has an ambiguous provider admission and cannot be repurchased automatically.` }
     }
     const { eventId: _terminalId, ...terminalBase } = terminal
-    if (terminal.renderPlanId !== plan.renderPlanId || terminal.requestIdentity !== task.requestIdentity || terminal.requestOrdinal !== ordinal || terminal.targetKey !== plan.target.targetKey || terminal.eventId !== hashCanonicalTtsValue(terminalBase)) throw CLIUsageError('Retained sound-effect terminal admission identity is invalid.')
+    if (terminal.renderPlanId !== plan.renderPlanId || terminal.requestIdentity !== task.requestIdentity || terminal.requestOrdinal !== ordinal || terminal.targetKey !== plan.target.targetKey || terminal.eventId !== hashCanonicalTtsValue(terminalBase)) throw UsageError('Retained sound-effect terminal admission identity is invalid.')
     if (terminal.state === 'ambiguous') return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} has an ambiguous provider admission and cannot be repurchased automatically${terminal.sanitizedReason ? `: ${terminal.sanitizedReason}` : '.'}` }
     if (terminal.state === 'provider-succeeded') {
       if (!recovered) return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} succeeded remotely but its response is incomplete; automatic redispatch is blocked.` }
@@ -164,22 +164,22 @@ const planSoundEffectCost = (tasks: readonly SoundEffectRenderTask[], pricing: S
 }
 
 const validatePlanIdentity = (plan: SoundEffectRenderPlan): SoundEffectRenderPlan => {
-  if (plan.schemaVersion !== 1 || !/^[a-f0-9]{64}$/u.test(plan.soundscapePlanId) || !plan.target.targetKey) throw CLIUsageError('Sound-effect render plan has invalid source or target identity.')
-  if (plan.target.capabilityFixture.capabilityFixtureHash !== hashCanonicalTtsValue((({ capabilityFixtureHash: _hash, ...rest }) => rest)(plan.target.capabilityFixture))) throw CLIUsageError('Sound-effect capability fixture hash is invalid.')
+  if (plan.schemaVersion !== 1 || !/^[a-f0-9]{64}$/u.test(plan.soundscapePlanId) || !plan.target.targetKey) throw UsageError('Sound-effect render plan has invalid source or target identity.')
+  if (plan.target.capabilityFixture.capabilityFixtureHash !== hashCanonicalTtsValue((({ capabilityFixtureHash: _hash, ...rest }) => rest)(plan.target.capabilityFixture))) throw UsageError('Sound-effect capability fixture hash is invalid.')
   if (plan.target.provider === 'replicate') {
     assertAudioGenLicenseEligible(plan.licenseUse, plan.target.capabilityFixture)
   }
   if (plan.routingDecisions) {
     const dedicated = new Set(plan.routingDecisions.filter(decision => decision.route === 'dedicated-sfx').map(decision => decision.cueId))
-    if (plan.routingDecisions.some(decision => decision.route === 'unsupported' && decision.required)) throw CLIUsageError('Sound-effect render plan records a required unsupported cue.')
-    if (plan.tasks.some(task => !dedicated.has(task.cueId)) || dedicated.size !== plan.tasks.length) throw CLIUsageError('Sound-effect render plan routing decisions do not match dedicated-sfx tasks.')
+    if (plan.routingDecisions.some(decision => decision.route === 'unsupported' && decision.required)) throw UsageError('Sound-effect render plan records a required unsupported cue.')
+    if (plan.tasks.some(task => !dedicated.has(task.cueId)) || dedicated.size !== plan.tasks.length) throw UsageError('Sound-effect render plan routing decisions do not match dedicated-sfx tasks.')
   }
   for (const task of plan.tasks) {
     validateSoundEffectTask(task, plan.target)
-    if (requestIdentityFor(task, plan.target) !== task.requestIdentity) throw CLIUsageError(`Sound-effect request ${task.taskId} has invalid provider-qualified identity.`)
+    if (requestIdentityFor(task, plan.target) !== task.requestIdentity) throw UsageError(`Sound-effect request ${task.taskId} has invalid provider-qualified identity.`)
   }
   const { renderPlanId: _id, ...withoutId } = plan
-  if (plan.renderPlanId !== hashCanonicalTtsValue(withoutId)) throw CLIUsageError('Sound-effect render plan content identity is invalid.')
+  if (plan.renderPlanId !== hashCanonicalTtsValue(withoutId)) throw UsageError('Sound-effect render plan content identity is invalid.')
   return plan
 }
 
@@ -227,7 +227,7 @@ export const writeSoundEffectRenderPlan = async (rootDir: string, plan: SoundEff
 
 export const loadSoundEffectRenderPlan = async (rootDir: string, ref: { path: string, sha256: string }): Promise<SoundEffectRenderPlan> => {
   const stored = await readContainedArtifactFile(rootDir, ref.path)
-  if (stored.sha256 !== ref.sha256) throw CLIUsageError('Retained sound-effect render plan checksum is invalid.')
+  if (stored.sha256 !== ref.sha256) throw UsageError('Retained sound-effect render plan checksum is invalid.')
   return validatePlan(JSON.parse(stored.bytes.toString('utf8')) as SoundEffectRenderPlan)
 }
 
@@ -236,9 +236,9 @@ const readCache = async (task: SoundEffectRenderTask, plan: SoundEffectRenderPla
   try {
     const stored = await readContainedArtifactFile(CACHE_ROOT, `${base}/cache-entry.json`)
     const entry = JSON.parse(stored.bytes.toString('utf8')) as CacheEntry
-    if (entry.schemaVersion !== 1 || entry.requestIdentity !== task.requestIdentity || entry.targetKey !== plan.target.targetKey || entry.capabilityFixtureHash !== plan.target.capabilityFixture.capabilityFixtureHash || entry.serializerVersion !== plan.target.capabilityFixture.serializerVersion) throw CLIUsageError('Sound-effect synthesis cache entry identity is incompatible.')
+    if (entry.schemaVersion !== 1 || entry.requestIdentity !== task.requestIdentity || entry.targetKey !== plan.target.targetKey || entry.capabilityFixtureHash !== plan.target.capabilityFixture.capabilityFixtureHash || entry.serializerVersion !== plan.target.capabilityFixture.serializerVersion) throw UsageError('Sound-effect synthesis cache entry identity is incompatible.')
     const audio = await readContainedArtifactFile(CACHE_ROOT, `${base}/${entry.audio.path}`)
-    if (audio.sha256 !== entry.audio.sha256) throw CLIUsageError('Sound-effect synthesis cache audio checksum is invalid.')
+    if (audio.sha256 !== entry.audio.sha256) throw UsageError('Sound-effect synthesis cache audio checksum is invalid.')
     return { entry, bytes: audio.bytes }
   } catch (error) {
     if (isMissingArtifactError(error)) return undefined
@@ -319,7 +319,7 @@ const projectCompactSfx = (sfx: CompactSfx): SoundEffectRenderResult => ({
 
 const validateCompactSfx = (sfx: CompactSfx): CompactSfx => {
   const { sfxId: _id, ...base } = sfx
-  if (sfx.schemaVersion !== 1 || sfx.status !== 'succeeded' || sfx.sfxId !== hashCanonicalTtsValue(base)) throw CLIUsageError('Retained compact sound-effect archive identity is invalid.')
+  if (sfx.schemaVersion !== 1 || sfx.status !== 'succeeded' || sfx.sfxId !== hashCanonicalTtsValue(base)) throw UsageError('Retained compact sound-effect archive identity is invalid.')
   return sfx
 }
 
@@ -345,7 +345,7 @@ const compactSucceededSoundEffectRender = async (rootDir: string, plan: SoundEff
   for (const entry of compact.entries) {
     if (!entry.audio) continue
     const source = await readContainedArtifactFile(rootDir, entry.audio.path)
-    if (source.sha256 !== entry.audio.sha256) throw CLIUsageError(`Compact sound-effect source checksum is invalid for ${entry.cueId}.`)
+    if (source.sha256 !== entry.audio.sha256) throw UsageError(`Compact sound-effect source checksum is invalid for ${entry.cueId}.`)
   }
   try {
     const names = await readdir(join(rootDir, 'audio', 'sound-effects', 'sources'))
@@ -392,7 +392,7 @@ export const executeSoundEffectRenderPlan = async (input: {
           continue
         }
         const retainedAdmission = await readAdmission(input.rootDir, input.plan, task)
-        if (retainedAdmission.blocker) throw CLIUsageError(retainedAdmission.blocker)
+        if (retainedAdmission.blocker) throw UsageError(retainedAdmission.blocker)
         let response = retainedAdmission.recovered
         let resultSource: SoundEffectRenderResultEntry['source'] = response ? 'resume' : 'provider-dispatch'
         let lastError: unknown
@@ -460,7 +460,7 @@ export const executeSoundEffectRenderPlan = async (input: {
           }
         }
         if (!response) {
-          if (!retriedDispatch) throw lastError ?? CLIUsageError('Sound-effect provider returned no response.')
+          if (!retriedDispatch) throw lastError ?? UsageError('Sound-effect provider returned no response.')
           throw new AppError(
             formatRetryExhaustedMessage(`sound-effect-dispatch-${task.taskId}`, dispatchAttempts, maxAttempts, 'max attempts reached', 0),
             {
@@ -517,7 +517,7 @@ export const loadSoundEffectRenderResult = async (rootDir: string, plan: SoundEf
   if (compact) {
     for (const entry of compact.value.entries) if (entry.audio) {
       const audio = await readContainedArtifactFile(rootDir, entry.audio.path)
-      if (audio.sha256 !== entry.audio.sha256) throw CLIUsageError(`Retained sound-effect audio checksum is invalid for ${entry.cueId}.`)
+      if (audio.sha256 !== entry.audio.sha256) throw UsageError(`Retained sound-effect audio checksum is invalid for ${entry.cueId}.`)
     }
     return projectCompactSfx(compact.value)
   }
@@ -526,10 +526,10 @@ export const loadSoundEffectRenderResult = async (rootDir: string, plan: SoundEf
     const bytes = await readFile(join(rootDir, path), 'utf8')
     const result = JSON.parse(bytes) as SoundEffectRenderResult
     const { resultId: _id, ...base } = result
-    if (result.renderPlanId !== plan.renderPlanId || result.soundscapePlanId !== plan.soundscapePlanId || result.resultId !== hashCanonicalTtsValue(base)) throw CLIUsageError('Retained sound-effect result identity is invalid.')
+    if (result.renderPlanId !== plan.renderPlanId || result.soundscapePlanId !== plan.soundscapePlanId || result.resultId !== hashCanonicalTtsValue(base)) throw UsageError('Retained sound-effect result identity is invalid.')
     for (const entry of result.entries) if (entry.audio) {
       const audio = await readContainedArtifactFile(rootDir, entry.audio.path)
-      if (audio.sha256 !== entry.audio.sha256) throw CLIUsageError(`Retained sound-effect audio checksum is invalid for ${entry.cueId}.`)
+      if (audio.sha256 !== entry.audio.sha256) throw UsageError(`Retained sound-effect audio checksum is invalid for ${entry.cueId}.`)
     }
     return result
   } catch (error) {
@@ -560,7 +560,7 @@ export const planSoundEffectResumePrice = async (rootDir: string, plan: SoundEff
       continue
     }
     const admission = await readAdmission(rootDir, plan, task)
-    if (admission.blocker) throw CLIUsageError(admission.blocker)
+    if (admission.blocker) throw UsageError(admission.blocker)
     if (admission.recovered) {
       resumedTaskCount++
       continue

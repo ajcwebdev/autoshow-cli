@@ -54,14 +54,14 @@ export const writeCachedPage = async (
 export const providerState = (
   target: OcrTarget,
   status: OcrProviderState['status'],
-  lastError: OcrProviderState['lastError'] = { message: `${target.service} failed` }
+  error: OcrProviderState['error'] = { message: `${target.service} failed` }
 ): OcrProviderState => ({
   service: target.service,
   model: target.model,
   artifactDir: `providers/${target.service}-${target.model}`,
   status,
   attempts: status === 'succeeded' ? 1 : 2,
-  ...(status === 'failed' ? { lastError } : {})
+  ...(status === 'failed' ? { error } : {})
 })
 
 export const ocrResumeTarget = (dir: string): ResumeTarget => ({

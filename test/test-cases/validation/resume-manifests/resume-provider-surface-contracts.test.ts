@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resumeFlags } from '~/cli/flags/resume-flags'
-import { allArticleFlags, ocrInputFlags, ocrTuningFlags } from '~/cli/flags/shared-flags'
+import { hiddenArticleFlags, ocrInputFlags, ocrTuningFlags } from '~/cli/flags/shared-flags'
 import { dialogueTtsCommandOptionNames, genericTtsOptionFlags } from '~/cli/flags/tts-flags'
 import { imageGenerationOptionNames, imageInputOptionNames, imageProviderSpecificOptionNames } from '~/cli/flags/image-flags'
 import { videoGenerationOptionNames, videoInputOptionNames } from '~/cli/flags/video-flags'
@@ -113,7 +113,7 @@ const buildOpts = (
   explicit: Set<string>,
   flagOccurrences: CliFlagOccurrence[]
 ) =>
-  buildOptsFromFlags(false, flags, {}, explicit, flagOccurrences)
+  buildOptsFromFlags(flags, {}, explicit, { flagOccurrences: flagOccurrences })
 
 const normalizeResumeSelectorFlagsForTarget = (
   resumeTarget: ResumeTarget,
@@ -251,9 +251,9 @@ describe('resume provider flag surface', () => {
     ])
     expectResumeHasFlags(Object.keys(ocrInputFlags))
     expectResumeHasFlags(Object.keys(ocrTuningFlags))
-    expectResumeHasFlags(Object.keys(allArticleFlags))
+    expectResumeHasFlags(Object.keys(hiddenArticleFlags))
     expectResumeHasFlags(Object.keys(genericTtsOptionFlags))
-    expect(buildOptsFromFlags(false, { 'allow-ambiguous-redispatch': true }).ttsAllowAmbiguousRedispatch).toBe(true)
+    expect(buildOptsFromFlags({ 'allow-ambiguous-redispatch': true }).ttsAllowAmbiguousRedispatch).toBe(true)
     expectResumeHasFlags(dialogueTtsCommandOptionNames)
     expectResumeHasFlags([
       ...imageGenerationOptionNames,
@@ -269,6 +269,7 @@ describe('resume provider flag surface', () => {
       'batch-order',
       'all-url',
       'url-backend',
+      'url-provider',
       'output-dir'
     ])
   })
@@ -327,9 +328,11 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--tts-voice', 'alloy']
     )
     expect(tts.flags['openai-tts']).toBe('gpt-4o-mini-tts-2025-12-15')
-    expect(tts.flags['openai-voice']).toBe('alloy')
+    expect(tts.flags['tts-voice']).toEqual(['alloy'])
     expect(tts.explicitFlags.has('openai-tts')).toBe(true)
-    expect(tts.explicitFlags.has('openai-voice')).toBe(true)
+    expect(tts.explicitFlags.has('tts-voice')).toBe(true)
+    expect(tts.explicitFlags.has('openai-voice')).toBe(false)
+    expect(buildOpts(tts.flags, tts.explicitFlags, tts.flagOccurrences).openaiVoiceId).toBe('alloy')
   })
 
   test('normalizes --provider for generation resume targets', () => {

@@ -17,7 +17,9 @@ test('buildOptsFromFlags has no obsolete double-dash argument calls', async () =
           && ts.isIdentifier(node.expression)
           && node.expression.text === 'buildOptsFromFlags'
           && (
-            node.arguments.length > 5
+            node.arguments.length > 4
+            || node.arguments[0]?.kind === ts.SyntaxKind.TrueKeyword
+            || node.arguments[0]?.kind === ts.SyntaxKind.FalseKeyword
             || (node.arguments[2] !== undefined && ts.isArrayLiteralExpression(node.arguments[2]))
           )
         ) {

@@ -1,5 +1,5 @@
 import type { FalTtsModel } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 
 export const FAL_TTS_SERIALIZER_VERSION = 'fal.tts.v1'
 
@@ -78,7 +78,7 @@ export const buildFalTtsRequestBody = (input: Readonly<{
   switch (input.model) {
     case FAL_SEED_SPEECH_MODEL: {
       if (!(FAL_SEED_SPEECH_VOICES as readonly string[]).includes(input.voice)) {
-        throw CLIUsageError(`Invalid fal.ai Seed Speech voice "${input.voice}". Expected one of: ${FAL_SEED_SPEECH_VOICES.join(', ')}.`)
+        throw UsageError(`Invalid fal.ai Seed Speech voice "${input.voice}". Expected one of: ${FAL_SEED_SPEECH_VOICES.join(', ')}.`)
       }
       return {
         text: input.text,

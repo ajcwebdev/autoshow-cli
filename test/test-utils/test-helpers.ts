@@ -33,7 +33,7 @@ import { pathExists } from '~/utils/filesystem'
 import { childEnv } from '~/utils/child-env'
 import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 
-const TEST_OUTPUT_ROOT = 'project/test-output'
+const TEST_OUTPUT_ROOT = 'output/test-output'
 
 const sanitizeOutputRootSegment = (value: string): string =>
   value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'

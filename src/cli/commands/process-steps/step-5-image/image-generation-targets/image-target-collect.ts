@@ -1,5 +1,5 @@
 import type { ImageGenOptions, ImageTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { collectGeminiImageTargets } from '../image-generation-services/image-gemini/gemini-image-targets'
 import { collectOpenAIImageTargets } from '../image-generation-services/image-openai/openai-image-targets'
 import { collectGrokImageTargets } from '../image-generation-services/image-grok/grok-image-targets'
@@ -11,7 +11,7 @@ import { validateImageReferenceCapabilities } from '~/cli/commands/setup-and-uti
 
 export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => {
   if (options.imageMask !== undefined && (options.imageInputs?.length ?? 0) === 0) {
-    throw CLIUsageError('--image-mask requires at least one --image-input reference image.')
+    throw UsageError('--mask requires at least one --input reference image.')
   }
 
   const targets = [

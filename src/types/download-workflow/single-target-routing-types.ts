@@ -3,8 +3,7 @@ import type {
   ExtractCommandOptions,
   InputFamily,
   MetadataCommandOptions,
-  UrlInputKind,
-  WriteRuntimeOptions
+  UrlInputKind
 } from '~/types'
 
 export type MetadataSingleTargetIntent = {
@@ -22,16 +21,10 @@ export type ExtractSingleTargetIntent = {
   opts: ExtractCommandOptions
 }
 
-export type WriteSingleTargetIntent = {
-  command: 'write'
-  opts: WriteRuntimeOptions
-}
-
 export type SingleTargetIntent =
   | MetadataSingleTargetIntent
   | DownloadSingleTargetIntent
   | ExtractSingleTargetIntent
-  | WriteSingleTargetIntent
 
 export type SingleTargetClassifiedInput =
   | { kind: 'url', subtype: UrlInputKind }
@@ -69,19 +62,10 @@ export type ExtractSingleTargetAction =
   | 'document'
   | 'media'
 
-export type WriteSingleTargetAction =
-  | 'text'
-  | 'x-space'
-  | 'temporary-document'
-  | 'article'
-  | 'document'
-  | 'media'
-
 export type SingleTargetAction =
   | MetadataSingleTargetAction
   | DownloadSingleTargetAction
   | ExtractSingleTargetAction
-  | WriteSingleTargetAction
 
 export type MetadataSingleTargetRoute = {
   command: 'metadata'
@@ -98,25 +82,16 @@ export type ExtractSingleTargetRoute = {
   action: ExtractSingleTargetAction
 }
 
-export type WriteSingleTargetRoute = {
-  command: 'write'
-  action: WriteSingleTargetAction
-}
-
 export type SingleTargetRoute =
   | MetadataSingleTargetRoute
   | DownloadSingleTargetRoute
   | ExtractSingleTargetRoute
-  | WriteSingleTargetRoute
 
 export type RoutingFailure =
   | 'missing'
   | 'unrecognized-extract'
   | 'download-passthrough'
-  | 'text-url'
-  | 'text-path'
 
 export type MetadataMatrixEntry = MetadataSingleTargetAction | RoutingFailure
 export type DownloadMatrixEntry = DownloadSingleTargetAction | RoutingFailure
 export type ExtractMatrixEntry = ExtractSingleTargetAction | RoutingFailure
-export type WriteMatrixEntry = WriteSingleTargetAction | RoutingFailure

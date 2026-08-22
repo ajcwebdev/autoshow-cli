@@ -14,7 +14,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'write',
-    args: ['write', LOCAL_EXAMPLE_AUDIO_PATH, '--llm', 'openai=gpt-5.4-nano', '--price'],
+    args: ['write', STABLE_TTS_MD_PATH, '--llm', 'openai=gpt-5.4-nano', '--price'],
     expected: 'Expected files'
   },
   {
@@ -99,7 +99,7 @@ describe('price mode contracts', () => {
       const result = await runCommand([
         'src/cli/create-cli.ts',
         'write',
-        LOCAL_EXAMPLE_AUDIO_PATH,
+        STABLE_TTS_MD_PATH,
         '--llm',
         'openai=gpt-5.5',
         '--llm',

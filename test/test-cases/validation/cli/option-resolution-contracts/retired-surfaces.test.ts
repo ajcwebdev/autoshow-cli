@@ -121,7 +121,7 @@ describe('retired surfaces', () => {
 
   test('retired models are rejected with public selectors', () => {
     for (const { flag, model, message } of RETIRED_FLAG_MODELS) {
-      expect(() => buildOptsFromFlags(false, { [flag]: model })).toThrow(message)
+      expect(() => buildOptsFromFlags({ [flag]: model })).toThrow(message)
     }
     expect(() => validateMinimaxModel(retiredMinimaxLlm))
       .toThrow(`Invalid model "${retiredMinimaxLlm}" for --llm minimax[=model]. Allowed values: MiniMax-M3`)

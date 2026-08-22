@@ -1,6 +1,6 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { setupFlags } from '~/cli/flags/setup-flags'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { runCompleteSetup, runSetupStep } from './run-complete-setup'
 import { runDoctor } from './run-doctor'
 import { runModelDownloads } from '~/cli/commands/setup-and-utilities/models/run-model-downloads'
@@ -47,7 +47,7 @@ export const setupCommand = defineCliCommand({
   const modelTargets = normalizeStringArrayFlag(ctx.flags.models)
 
   if (usedModelsFlag && modelTargets.length === 0) {
-    throw CLIUsageError('--models requires at least one value')
+    throw UsageError('--models requires at least one value')
   }
   if (usedModelsFlag) {
     const modeFlag = 'models'
@@ -55,7 +55,7 @@ export const setupCommand = defineCliCommand({
       .filter((flag) => flag !== modeFlag && ctx.rawParsed.explicitFlags.has(flag))
       .map((flag) => `--${flag}`)
     if (conflicts.length > 0) {
-      throw CLIUsageError(`--${modeFlag} cannot be combined with ${conflicts.join(', ')}`)
+      throw UsageError(`--${modeFlag} cannot be combined with ${conflicts.join(', ')}`)
     }
   }
 
@@ -67,7 +67,7 @@ export const setupCommand = defineCliCommand({
   }
 
   if (ctx.flags['strict'] === true && !ctx.flags.doctor) {
-    throw CLIUsageError('--strict requires --doctor')
+    throw UsageError('--strict requires --doctor')
   }
 
   if (ctx.flags.doctor) {
@@ -77,7 +77,7 @@ export const setupCommand = defineCliCommand({
 
   const step = ctx.flags.step as string
   if (!VALID_SETUP_STEPS.includes(step as SetupStepId)) {
-    throw CLIUsageError(`Invalid --step value: ${step}. Valid values: ${VALID_SETUP_STEPS.join(', ')}`)
+    throw UsageError(`Invalid --step value: ${step}. Valid values: ${VALID_SETUP_STEPS.join(', ')}`)
   }
 
   const healthy = await runWithLogContext({ step: 'setup' }, async () => {

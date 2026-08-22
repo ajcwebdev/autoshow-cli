@@ -1,8 +1,8 @@
 import { isRecord } from '~/utils/rest-client'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { CEREBRAS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { UsageError } from '~/utils/error-handler'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
@@ -45,13 +45,13 @@ const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Reco
 }
 
 const ensureCerebrasApiKey = (): string => {
-  const apiKey = requireApiKey('CEREBRAS_API_KEY', 'write:cerebras', '--cerebras models')
+  const apiKey = requireProviderKey('cerebras', 'write:cerebras', '--cerebras models')
   return apiKey
 }
 
 const resolveCerebrasApiModel = (model: string): string => {
   if (!(model in CEREBRAS_MODEL_BY_SELECTOR)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Unsupported Cerebras model selector "${model}". Allowed values: ${Object.keys(CEREBRAS_MODEL_BY_SELECTOR).join(', ')}`
     )
   }

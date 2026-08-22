@@ -12,14 +12,14 @@ import type {
   ReplicateAudioGenPredictionRunner,
   ReplicateAudioGenSerializedRequest,
 } from '~/types'
-import { CLIUsageError, extractErrorMetadata } from '~/utils/error-handler'
+import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
 import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { cancelReplicatePrediction, runReplicatePrediction, normalizeReplicateOutputUris } from '~/utils/replicate-client/replicate-prediction'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { SoundEffectProviderError } from './sound-effect-errors'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const DOCS = [
   'https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api',
@@ -151,21 +151,21 @@ export const AUDIOGEN_NONCOMMERCIAL_LICENSE_USE = createSoundEffectLicenseUse({
 
 export const assertAudioGenLicenseEligible = (licenseUse: SoundEffectLicenseUse | undefined, fixture: SoundEffectCapabilityFixture): SoundEffectLicenseUse => {
   if (!licenseUse) {
-    throw CLIUsageError(`Replicate AudioGen requires explicit --sfx-license-use noncommercial; noncommercial eligibility is never inferred from ${REPLICATE_AUDIOGEN_SELECTOR}.`)
+    throw UsageError(`Replicate AudioGen requires explicit --sfx-license-use noncommercial; noncommercial eligibility is never inferred from ${REPLICATE_AUDIOGEN_SELECTOR}.`)
   }
   const expected = createSoundEffectLicenseUse({ classification: licenseUse.classification, fixture })
   if (licenseUse.evidenceHash !== expected.evidenceHash || licenseUse.fixtureHash !== fixture.capabilityFixtureHash) {
-    throw CLIUsageError('Sound-effect license-use evidence does not match the selected AudioGen capability fixture.')
+    throw UsageError('Sound-effect license-use evidence does not match the selected AudioGen capability fixture.')
   }
   if (licenseUse.classification !== 'noncommercial' || fixture.permittedUse !== 'noncommercial') {
-    throw CLIUsageError(`Replicate AudioGen is restricted to license-compatible noncommercial use; ${licenseUse.classification} intended use is ineligible under ${fixture.licenseProvenance ?? 'the current fixture license'}.`)
+    throw UsageError(`Replicate AudioGen is restricted to license-compatible noncommercial use; ${licenseUse.classification} intended use is ineligible under ${fixture.licenseProvenance ?? 'the current fixture license'}.`)
   }
   return licenseUse
 }
 
 export const assertAudioGenDispatchEligible = (fixture: SoundEffectCapabilityFixture): void => {
   if (isAudioGenDispatchAvailable(fixture)) return
-  throw CLIUsageError(`Replicate AudioGen fixture ${fixture.capabilityFixtureHash} is ${fixture.dispatchAvailability ?? 'unavailable'} and cannot dispatch new predictions; historical plans remain readable.`)
+  throw UsageError(`Replicate AudioGen fixture ${fixture.capabilityFixtureHash} is ${fixture.dispatchAvailability ?? 'unavailable'} and cannot dispatch new predictions; historical plans remain readable.`)
 }
 
 export const resolveReplicateAudioGenTarget = (
@@ -175,14 +175,14 @@ export const resolveReplicateAudioGenTarget = (
   const modelPart = rawModel.trim()
   const [modelName, explicitVersion] = modelPart.split('@')
   if (modelName !== REPLICATE_AUDIOGEN_MODEL_ID) {
-    throw CLIUsageError(`Unsupported Replicate sound-effect model ${modelName}; expected ${REPLICATE_AUDIOGEN_MODEL_ID}. Aliases are rejected.`)
+    throw UsageError(`Unsupported Replicate sound-effect model ${modelName}; expected ${REPLICATE_AUDIOGEN_MODEL_ID}. Aliases are rejected.`)
   }
   if (explicitVersion && explicitVersion !== REPLICATE_AUDIOGEN_PINNED_VERSION) {
-    throw CLIUsageError(`Unreviewed Replicate AudioGen version ${explicitVersion}; expected pinned version ${REPLICATE_AUDIOGEN_PINNED_VERSION}.`)
+    throw UsageError(`Unreviewed Replicate AudioGen version ${explicitVersion}; expected pinned version ${REPLICATE_AUDIOGEN_PINNED_VERSION}.`)
   }
   const outputFormat = options.outputFormat ?? 'wav'
   if (!REPLICATE_AUDIOGEN_SFX_CAPABILITY_FIXTURE.constraints.outputFormats.includes(outputFormat)) {
-    throw CLIUsageError(`Unsupported Replicate AudioGen output format ${outputFormat}.`)
+    throw UsageError(`Unsupported Replicate AudioGen output format ${outputFormat}.`)
   }
   assertAudioGenDispatchEligible(REPLICATE_AUDIOGEN_SFX_CAPABILITY_FIXTURE)
   return {
@@ -198,18 +198,18 @@ export const resolveReplicateAudioGenTarget = (
 
 export const validateReplicateAudioGenTask = (task: SoundEffectRenderTask, target: SoundEffectTarget): void => {
   if (task.kind === 'vocal-reaction') {
-    throw CLIUsageError('Replicate AudioGen is a dedicated action-SFX and ambience target and cannot render vocal reactions, dialogue, or voice identity.')
+    throw UsageError('Replicate AudioGen is a dedicated action-SFX and ambience target and cannot render vocal reactions, dialogue, or voice identity.')
   }
   const constraints = target.capabilityFixture.constraints
   const promptLength = [...task.prompt].length
   if (promptLength < 1 || promptLength > constraints.promptMaxScalars) {
-    throw CLIUsageError(`Replicate AudioGen sound-effect prompt must contain 1-${constraints.promptMaxScalars} Unicode scalar values.`)
+    throw UsageError(`Replicate AudioGen sound-effect prompt must contain 1-${constraints.promptMaxScalars} Unicode scalar values.`)
   }
   if (
     task.durationSeconds !== undefined &&
     (task.durationSeconds < constraints.durationSeconds.min || task.durationSeconds > constraints.durationSeconds.max)
   ) {
-    throw CLIUsageError(
+    throw UsageError(
       `Replicate AudioGen sound-effect duration must be ${constraints.durationSeconds.min}-${constraints.durationSeconds.max} seconds.`
     )
   }
@@ -262,7 +262,7 @@ export const createReplicateAudioGenAdapter = (input: {
 }) => {
   const apiToken = input.apiToken.trim()
   if (!apiToken) {
-    requireProvidedApiKey(undefined, 'REPLICATE_API_TOKEN', 'tts:soundscape', 'Replicate AudioGen sound-effect execution')
+    resolveCredential('replicate', 'require', { stage: 'tts:soundscape', providedValue: undefined, useProvidedValue: true, description: 'Replicate AudioGen sound-effect execution' })
   }
   const baseUrl = input.baseUrl ?? REPLICATE_DEFAULT_BASE_URL
   const now = input.now ?? (() => new Date().toISOString())
@@ -320,7 +320,7 @@ export const createReplicateAudioGenAdapter = (input: {
 
       const outputUris = normalizeReplicateOutputUris(prediction.output)
       if (outputUris.length === 0 || !outputUris[0]) {
-        throw CLIUsageError('Replicate AudioGen prediction completed but returned no output URI.')
+        throw UsageError('Replicate AudioGen prediction completed but returned no output URI.')
       }
 
       const fetchFn = input.fetchImpl ?? fetch

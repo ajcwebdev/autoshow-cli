@@ -46,24 +46,23 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
     service: LLMTarget['service'],
     label: string,
     models: string[] | undefined,
-    fallback: string | undefined,
     run: LLMTarget['run']
   ): void => {
-    for (const model of models ?? (fallback ? [fallback] : [])) {
+    for (const model of models ?? []) {
       targets.push({ service, label, model, run })
     }
   }
 
-  appendTargets('gemini', 'Gemini', options.geminiModels, options.geminiModel, runGeminiModel)
-  appendTargets('anthropic', 'Anthropic', options.anthropicModels, options.anthropicModel, runAnthropicModel)
-  appendTargets('openai', 'OpenAI', options.openaiModels, options.openaiModel, runOpenAIModel)
-  appendTargets('groq', 'Groq', options.groqModels, options.groqModel, runGroqModel)
-  appendTargets('minimax', 'MiniMax', options.minimaxModels, options.minimaxModel, runMinimaxModel)
-  appendTargets('grok', 'Grok', options.grokModels, options.grokModel, runGrokModel)
-  appendTargets('glm', 'GLM', options.glmModels, options.glmModel, runGlmModel)
-  appendTargets('kimi', 'Kimi', options.kimiModels, options.kimiModel, runKimiModel)
-  appendTargets('together', 'Together', options.togetherModels, options.togetherModel, runTogetherModel)
-  appendTargets('cerebras', 'Cerebras', options.cerebrasModels, options.cerebrasModel, runCerebrasModel)
+  appendTargets('gemini', 'Gemini', options.geminiModels, runGeminiModel)
+  appendTargets('anthropic', 'Anthropic', options.anthropicModels, runAnthropicModel)
+  appendTargets('openai', 'OpenAI', options.openaiModels, runOpenAIModel)
+  appendTargets('groq', 'Groq', options.groqModels, runGroqModel)
+  appendTargets('minimax', 'MiniMax', options.minimaxModels, runMinimaxModel)
+  appendTargets('grok', 'Grok', options.grokModels, runGrokModel)
+  appendTargets('glm', 'GLM', options.glmModels, runGlmModel)
+  appendTargets('kimi', 'Kimi', options.kimiModels, runKimiModel)
+  appendTargets('together', 'Together', options.togetherModels, runTogetherModel)
+  appendTargets('cerebras', 'Cerebras', options.cerebrasModels, runCerebrasModel)
 
   return targets
 }

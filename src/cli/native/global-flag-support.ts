@@ -1,5 +1,5 @@
 import type { CliFlagsDefinition } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { commandCreatesRunDirectory } from './run-directory-support'
 
 const CHARACTERS_ROOT_COMMANDS = new Set(['voice', 'comic'])
@@ -44,28 +44,28 @@ export const globalFlagsForCommand = (flags: CliFlagsDefinition, commandName: st
 
 export const unsupportedGlobalFlagError = (commandName: string, flagName: string): Error => {
   if (flagName === 'output-dir') {
-    return CLIUsageError(
+    return UsageError(
       `--output-dir is not supported by "${commandName}" because it does not create a run directory.`,
       'Use --output-root to change the base output directory.'
     )
   }
   if (flagName === 'characters-root') {
-    return CLIUsageError(
+    return UsageError(
       `--characters-root is not supported by "${commandName}".`,
       'Use bun autoshow voice or bun autoshow comic.'
     )
   }
   if (flagName === 'allow-over-budget') {
-    return CLIUsageError(
+    return UsageError(
       `--allow-over-budget is not supported by "${commandName}".`,
       'Use --allow-over-budget with pipeline and generation commands that check costs.'
     )
   }
-  return CLIUsageError(`--${flagName} is not supported by "${commandName}".`)
+  return UsageError(`--${flagName} is not supported by "${commandName}".`)
 }
 
 export const unsupportedCookieFlagError = (commandName: string, flagName: string): Error =>
-  CLIUsageError(
+  UsageError(
     `--${flagName} is not supported by "${commandName}".`,
     'Use bun autoshow config --cookies <file> or bun autoshow config --cookies-from-browser <browser>.'
   )

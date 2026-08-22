@@ -4,7 +4,7 @@ import {
 } from '../../../../../test-utils/test-helpers'
 import {
   mistralRefAudioPath,
-  mistralTtsModel,
+  mistralTtsModels,
 } from './cases'
 
 test('mistral dialogue rejects remote reference locators before provider setup', async () => {
@@ -14,7 +14,7 @@ test('mistral dialogue rejects remote reference locators before provider setup',
     'tts',
     'input/examples/tts/tts-dialogue.txt',
     '--provider',
-    `mistral=${mistralTtsModel}`,
+    `mistral=${mistralTtsModels}`,
     '--tts-dialogue-format',
     'labeled',
     '--tts-speaker',

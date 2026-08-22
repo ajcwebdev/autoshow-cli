@@ -1,7 +1,7 @@
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { GenericTtsDialoguePlan, PipelineProviderState, TtsDialoguePlanArtifactRef } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
 import { validateGenericTtsDialoguePlan } from './contract-validation'
 import { writeImmutableArtifactFile } from './safe-artifact-store'
@@ -18,7 +18,7 @@ export const buildTtsDialoguePlanArtifactRef = (
 ): TtsDialoguePlanArtifactRef => {
   const validatedPlan = validateGenericTtsDialoguePlan(dialoguePlan)
   if (!DIALOGUE_PLAN_ID.test(validatedPlan.dialoguePlanId)) {
-    throw CLIUsageError('Canonical TTS dialogue plan has an invalid content identity.')
+    throw UsageError('Canonical TTS dialogue plan has an invalid content identity.')
   }
   const bytes = Buffer.from(`${canonicalTtsJson(validatedPlan)}\n`)
   return {
@@ -61,7 +61,7 @@ export const parseTtsDialoguePlanArtifactRef = (
     || record['path'] !== artifactPathFor(record['dialoguePlanId'])
     || !DIALOGUE_PLAN_ID.test(record['sha256'])
   ) {
-    throw CLIUsageError(`Canonical TTS provider ${state.service}/${state.model ?? ''} is missing its item-owned dialogue-plan artifact reference.`)
+    throw UsageError(`Canonical TTS provider ${state.service}/${state.model ?? ''} is missing its item-owned dialogue-plan artifact reference.`)
   }
   return {
     dialoguePlanId: record['dialoguePlanId'],
@@ -80,32 +80,32 @@ export const readTtsDialoguePlanArtifact = async (
     || reference.path !== expectedPath
     || !DIALOGUE_PLAN_ID.test(reference.sha256)
   ) {
-    throw CLIUsageError('Canonical TTS dialogue-plan artifact reference is malformed.')
+    throw UsageError('Canonical TTS dialogue-plan artifact reference is malformed.')
   }
   const canonicalRoot = await realpath(rootDir)
   const candidate = resolve(canonicalRoot, reference.path)
   if (!isContainedPath(canonicalRoot, candidate)) {
-    throw CLIUsageError('Canonical TTS dialogue-plan artifact escaped its run root.')
+    throw UsageError('Canonical TTS dialogue-plan artifact escaped its run root.')
   }
   let cursor = canonicalRoot
   for (const segment of reference.path.split('/')) {
     cursor = join(cursor, segment)
     const entry = await lstat(cursor)
     if (entry.isSymbolicLink()) {
-      throw CLIUsageError('Canonical TTS dialogue-plan artifact cannot traverse a symbolic link.')
+      throw UsageError('Canonical TTS dialogue-plan artifact cannot traverse a symbolic link.')
     }
   }
   const entry = await lstat(candidate)
-  if (!entry.isFile()) throw CLIUsageError('Canonical TTS dialogue-plan artifact is not a regular file.')
+  if (!entry.isFile()) throw UsageError('Canonical TTS dialogue-plan artifact is not a regular file.')
   const bytes = await readFile(candidate)
   if (sha256Bytes(bytes) !== reference.sha256) {
-    throw CLIUsageError('Canonical TTS dialogue-plan artifact checksum does not match its provider options.')
+    throw UsageError('Canonical TTS dialogue-plan artifact checksum does not match its provider options.')
   }
   let parsed: unknown
   try {
     parsed = JSON.parse(bytes.toString('utf8'))
   } catch {
-    throw CLIUsageError('Canonical TTS dialogue-plan artifact is not valid JSON.')
+    throw UsageError('Canonical TTS dialogue-plan artifact is not valid JSON.')
   }
   if (
     parsed === null
@@ -114,7 +114,7 @@ export const readTtsDialoguePlanArtifact = async (
     || (parsed as { dialoguePlanId?: unknown }).dialoguePlanId !== reference.dialoguePlanId
     || !bytes.equals(Buffer.from(`${canonicalTtsJson(parsed)}\n`))
   ) {
-    throw CLIUsageError('Canonical TTS dialogue-plan artifact bytes or identity are not canonical.')
+    throw UsageError('Canonical TTS dialogue-plan artifact bytes or identity are not canonical.')
   }
   return parsed as GenericTtsDialoguePlan
 }
@@ -125,7 +125,7 @@ export const bindTtsDialoguePlanArtifact = (
 ): PipelineProviderState => {
   const existing = state.options['dialoguePlan']
   if (existing !== undefined && canonicalTtsJson(existing) !== canonicalTtsJson(dialoguePlan)) {
-    throw CLIUsageError(`TTS provider ${state.service}/${state.model ?? ''} cannot change its canonical item dialogue plan.`)
+    throw UsageError(`TTS provider ${state.service}/${state.model ?? ''} cannot change its canonical item dialogue plan.`)
   }
   return {
     ...state,

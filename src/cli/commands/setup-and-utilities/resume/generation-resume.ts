@@ -4,7 +4,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import type { AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, GenerationResumePreparation, GenerationResumeProviderIdentity, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
 
@@ -28,9 +28,8 @@ export const clearProviderModelFields = <TOptions extends object>(
   fields: GenerationModelFieldTable
 ): TOptions => {
   const cleared = { ...opts }
-  for (const [modelsField, modelField] of Object.values(fields)) {
+  for (const modelsField of Object.values(fields)) {
     Reflect.set(cleared, modelsField, undefined)
-    Reflect.set(cleared, modelField, undefined)
   }
   return cleared
 }
@@ -42,14 +41,12 @@ export const collectGenerationTargetsForProviders = <TTarget extends ProviderIde
   collect: (opts: TOptions) => TTarget[]
 ): TTarget[] =>
   providers.flatMap((provider) => {
-    const providerFields = fields[provider.service]
-    if (!providerFields) {
+    const modelsField = fields[provider.service]
+    if (!modelsField) {
       return []
     }
-    const [modelsField, modelField] = providerFields
     const providerOptions = clearProviderModelFields(opts, fields)
     Reflect.set(providerOptions, modelsField, [provider.model])
-    Reflect.set(providerOptions, modelField, provider.model)
     return collect(providerOptions).filter((target) =>
       target.service === provider.service && target.model === provider.model
     )
@@ -61,7 +58,7 @@ const buildGenerationPriceOptions = <TOptions extends object>(
   fields: GenerationModelFieldTable
 ): TOptions => {
   const priceOpts = clearProviderModelFields(opts, fields)
-  for (const [service, [modelsField]] of Object.entries(fields)) {
+  for (const [service, modelsField] of Object.entries(fields)) {
     const models = targets
       .filter((target) => target.service === service)
       .map((target) => target.model)
@@ -155,7 +152,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
     && config.selectionMode === 'selected-only'
   ) {
     if (throwOnInvalid) {
-      throw CLIUsageError(`${config.stepLabel} resume currently supports single-run manifest.json outputs only.`)
+      throw UsageError(`${config.stepLabel} resume currently supports single-run manifest.json outputs only.`)
     }
     return undefined
   }
@@ -166,7 +163,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
       const manifestLabel = config.selectionMode === 'selected-only'
         ? config.stepLabel.toLowerCase()
         : config.stepLabel
-      throw CLIUsageError(`Invalid ${manifestLabel} manifest at ${target.dir}/manifest.json`)
+      throw UsageError(`Invalid ${manifestLabel} manifest at ${target.dir}/manifest.json`)
     }
     return undefined
   }
@@ -174,7 +171,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
   const item = manifest.items[itemIndex]
   if (!item) {
     if (throwOnInvalid) {
-      throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
+      throw UsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
     }
     return undefined
   }
@@ -192,7 +189,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
 
   if (invalidManifest) {
     if (throwOnInvalid) {
-      throw CLIUsageError(config.selectionMode === 'additive-stored'
+      throw UsageError(config.selectionMode === 'additive-stored'
         ? `This ${config.stepLabel} manifest.json does not contain canonical resume input/provider state. `
           + 'Re-run the original command to produce a resumable manifest.'
         : `This ${config.stepLabel.toLowerCase()} manifest.json does not contain resumable ${config.metadataKey} LLM metadata. `
@@ -205,7 +202,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
   const resumeValidationError = config.validateManifestForResume?.(item, existingEntries, opts)
   if (resumeValidationError) {
     if (throwOnInvalid) {
-      throw CLIUsageError(resumeValidationError)
+      throw UsageError(resumeValidationError)
     }
     return undefined
   }
@@ -291,7 +288,7 @@ const resolveGenerationTargetsToRunOrThrow = async <TTarget extends ProviderIden
     .filter((selected) => providerKeys.has(getProviderKey(selected)))
 
   if (targetsToRun.length === 0) {
-    throw CLIUsageError(
+    throw UsageError(
       `Could not reconstruct targets for missing providers: ${prep.resolved.providersToRun.map((p) => `${p.service}/${p.model}`).join(', ')}. `
       + 'Pass explicit provider flags matching the original models.'
     )
@@ -326,7 +323,7 @@ const resumeGenerationItems = async <TTarget extends ProviderIdentity, TMetadata
 ): Promise<ResumeResult> => {
   const manifest = await readManifest(target.dir)
   if (!manifest || manifest.command !== config.kind || manifest.scope !== target.scope || manifest.items.length === 0) {
-    throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
+    throw UsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
   }
   let totals: ResumeResult = { full: 0, incomplete: 0, failed: 0 }
   for (const [itemIndex] of manifest.items.entries()) {
@@ -486,7 +483,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     || latestManifest.scope !== target.scope
     || (target.scope === 'single' && latestManifest.items.length !== 1)
   ) {
-    throw CLIUsageError(`Canonical ${config.stepLabel} manifest changed incompatibly during resume.`)
+    throw UsageError(`Canonical ${config.stepLabel} manifest changed incompatibly during resume.`)
   }
   const rebuiltMetadata = config.rebuildRunMetadata
     ? config.rebuildRunMetadata(mergedMetadata, latestItem.metadata, input)
@@ -625,7 +622,7 @@ export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TM
   if (target.scope === 'batch' && config.kind === 'tts') {
     const manifest = await readManifest(target.dir)
     if (!manifest || manifest.command !== 'tts' || manifest.scope !== 'batch') {
-      throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
+      throw UsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
     }
     const steps: Awaited<ReturnType<GenerationResumeConfig<TTarget, TMetadata, TOptions>['buildEstimates']>> = []
     let priceOpts = opts

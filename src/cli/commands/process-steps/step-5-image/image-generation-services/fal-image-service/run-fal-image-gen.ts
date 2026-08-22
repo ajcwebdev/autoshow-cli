@@ -1,7 +1,7 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import type { FalImageFile, FalImageModel, FalImageOutput, Step5Metadata } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '../../image-utils/image-pricing'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
@@ -17,13 +17,13 @@ const normalizeFormat = (format: string | undefined): typeof FAL_IMAGE_FORMATS[n
   if (!format) return undefined
   const normalized = format.toLowerCase()
   if ((FAL_IMAGE_FORMATS as readonly string[]).includes(normalized)) return normalized as typeof FAL_IMAGE_FORMATS[number]
-  throw CLIUsageError(`Invalid --image-format value "${format}" for fal.ai. Expected png, jpeg, or webp.`)
+  throw UsageError(`Invalid --format value "${format}" for fal.ai. Expected png, jpeg, or webp.`)
 }
 
 const normalizeCount = (count: number | undefined): number => {
   if (count === undefined) return 1
   if (!Number.isInteger(count) || count < FAL_IMAGE_COUNT_RANGE[0] || count > FAL_IMAGE_COUNT_RANGE[1]) {
-    throw CLIUsageError(`Invalid --image-count value "${String(count)}" for fal.ai. Supported range: 1-4.`)
+    throw UsageError(`Invalid --count value "${String(count)}" for fal.ai. Supported range: 1-4.`)
   }
   return count
 }
@@ -31,16 +31,16 @@ const normalizeCount = (count: number | undefined): number => {
 const normalizeDimensions = (size: string | undefined, model: FalImageModel, editing: boolean): { width: number, height: number } | undefined => {
   if (!size) return undefined
   const match = /^(\d{2,5})x(\d{2,5})$/i.exec(size.trim())
-  if (!match) throw CLIUsageError(`Invalid --image-size value "${size}" for fal.ai/${model}. Expected WIDTHxHEIGHT.`)
+  if (!match) throw UsageError(`Invalid --size value "${size}" for fal.ai/${model}. Expected WIDTHxHEIGHT.`)
   const width = Number(match[1])
   const height = Number(match[2])
   const max = model === 'alibaba/qwen-image-3' && editing ? 1440 : 2048
   const min = model === 'alibaba/qwen-image-3' ? 512 : 256
   if (width < min || height < min || width > max || height > max) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for fal.ai/${model}. Each edge must be between ${min} and ${max} pixels.`)
+    throw UsageError(`Invalid --size value "${size}" for fal.ai/${model}. Each edge must be between ${min} and ${max} pixels.`)
   }
   if (model === 'fal-ai/hidream-o1-image' && (width % 32 !== 0 || height % 32 !== 0)) {
-    throw CLIUsageError(`Invalid --image-size value "${size}" for fal.ai/${model}. Width and height must be multiples of 32.`)
+    throw UsageError(`Invalid --size value "${size}" for fal.ai/${model}. Width and height must be multiples of 32.`)
   }
   return { width, height }
 }
@@ -49,7 +49,7 @@ export const normalizeFalImageAspectRatio = (model: FalImageModel, ratio: string
   if (!ratio) return undefined
   const allowed = FAL_REVE_ASPECT_RATIOS
   if ((allowed as readonly string[]).includes(ratio)) return ratio
-  throw CLIUsageError(`Invalid --image-aspect-ratio value "${ratio}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
+  throw UsageError(`Invalid --aspect-ratio value "${ratio}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
 }
 
 export const getFalImageExtension = (format: string | undefined): string => {
@@ -72,7 +72,7 @@ const buildRequest = async (prompt: string, options: {
   const dimensions = normalizeDimensions(options.imageSize, options.model, editing)
 
   if (options.model === 'fal-ai/hidream-o1-image') {
-    if (options.aspectRatio) throw CLIUsageError(`--image-aspect-ratio is not supported by fal.ai/${options.model}; use --image-size WIDTHxHEIGHT.`)
+    if (options.aspectRatio) throw UsageError(`--aspect-ratio is not supported by fal.ai/${options.model}; use --size WIDTHxHEIGHT.`)
     return {
       endpointId: options.model,
       input: { prompt, ...(references.length ? { reference_image_urls: references } : {}), ...(dimensions ? { image_size: dimensions } : {}), num_images: count, ...(format ? { output_format: format } : {}) },
@@ -83,8 +83,8 @@ const buildRequest = async (prompt: string, options: {
   }
 
   if (options.model === 'alibaba/qwen-image-3') {
-    if (options.aspectRatio) throw CLIUsageError(`--image-aspect-ratio is not supported by fal.ai/${options.model}; use --image-size WIDTHxHEIGHT.`)
-    if (references.length > 3) throw CLIUsageError(`--image-input supports at most 3 reference images for fal.ai/${options.model}.`)
+    if (options.aspectRatio) throw UsageError(`--aspect-ratio is not supported by fal.ai/${options.model}; use --size WIDTHxHEIGHT.`)
+    if (references.length > 3) throw UsageError(`--input supports at most 3 reference images for fal.ai/${options.model}.`)
     return {
       endpointId: `${options.model}/${editing ? 'edit' : 'text-to-image'}`,
       input: { prompt, ...(editing ? { image_urls: references } : {}), ...(dimensions ? { image_size: dimensions } : {}), num_images: count, ...(format ? { output_format: format } : {}) },
@@ -94,8 +94,8 @@ const buildRequest = async (prompt: string, options: {
     }
   }
 
-  if (references.length > 1) throw CLIUsageError(`--image-input supports at most 1 reference image for fal.ai/${options.model}.`)
-  if (options.imageSize) throw CLIUsageError(`--image-size is not supported by fal.ai/${options.model}; use --image-aspect-ratio.`)
+  if (references.length > 1) throw UsageError(`--input supports at most 1 reference image for fal.ai/${options.model}.`)
+  if (options.imageSize) throw UsageError(`--size is not supported by fal.ai/${options.model}; use --aspect-ratio.`)
   const aspectRatio = normalizeFalImageAspectRatio(options.model, options.aspectRatio)
   return {
     endpointId: `reve/2.1/${editing ? 'edit' : 'text-to-image'}`,
@@ -114,10 +114,10 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
   outputFormat?: string | undefined
   pollIntervalMs?: number | undefined
 }): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  if (!prompt.trim()) throw CLIUsageError('fal.ai image prompt cannot be empty.')
+  if (!prompt.trim()) throw UsageError('fal.ai image prompt cannot be empty.')
   const apiKey = await ensureFalImageGenSetup()
   const request = await buildRequest(prompt, { ...options, inputs: options.inputs ?? [] })
-  const estimate = estimateImageCosts({ falImageModel: options.model, imageCount: request.count, imageSize: request.metadataSize ?? options.imageSize })[0]
+  const estimate = estimateImageCosts({ falImageModels: [options.model], imageCount: request.count, imageSize: request.metadataSize ?? options.imageSize })[0]
   if (estimate) logImageEstimate(estimate)
   logMediaGenerationStatus(l, { mediaType: 'image', provider: 'fal', model: options.model, status: 'started', detail: request.mode })
   const startTime = Date.now()

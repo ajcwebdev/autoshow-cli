@@ -9,20 +9,24 @@ import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { asCtx, commandNamed, expectUnknownFlag } from './shared'
 
 test('extract rejects invalid OCR provider modes before dispatch', () => {
-  expect(() => buildOptsFromFlags(false, { 'ocr-provider-mode': 'round-robin' }))
+  expect(() => buildOptsFromFlags({ 'ocr-provider-mode': 'round-robin' }))
     .toThrow('Expected fanout or pool')
 })
 
-test('extract and write reject primary OCR selection in pool mode before dispatch', async () => {
-  const expected = '--primary-ocr cannot be used with --ocr-provider-mode pool'
-  for (const command of ['extract', 'write'] as const) {
-    const parsed = parseCommandInvocation(
-      [command, 'input.pdf', '--ocr-provider-mode', 'pool', '--primary-ocr', 'openai'],
-      commandNamed(command),
-      GLOBAL_FLAG_DEFINITIONS
-    )
-    expect(() => validateOcrProviderModeCommandFlags(asCtx(parsed))).toThrow(expected)
-  }
+test('extract rejects primary OCR selection in pool mode before dispatch', async () => {
+  const parsed = parseCommandInvocation(
+    ['extract', 'input.pdf', '--ocr-provider-mode', 'pool', '--primary-ocr', 'openai'],
+    commandNamed('extract'),
+    GLOBAL_FLAG_DEFINITIONS
+  )
+  expect(() => validateOcrProviderModeCommandFlags(asCtx(parsed))).toThrow(
+    '--primary-ocr cannot be used with --ocr-provider-mode pool'
+  )
+})
+
+test('write rejects extract OCR flags', () => {
+  expectUnknownFlag(['write', 'notes.md', '--ocr-provider-mode', 'pool'], '--ocr-provider-mode')
+  expectUnknownFlag(['write', 'notes.md', '--primary-ocr', 'openai'], '--primary-ocr')
 })
 
 test('extract rejects LLM-only provider flags as unknown flags', () => {
@@ -34,15 +38,23 @@ test('extract rejects unsupported URL article option flags', () => {
     ['extract', 'https://example.com/article', '--url-include-selector', 'article'],
     '--url-include-selector'
   )
+  expectUnknownFlag(
+    ['extract', 'https://example.com/article', '--url-provider', 'firecrawl'],
+    '--url-provider'
+  )
+})
+
+test('resume rejects public --url-provider on extract resume', () => {
+  expectUnknownFlag(['resume', 'output/x', '--url-provider', 'supadata'], '--url-provider')
 })
 
 test('extract rejects invalid URL article backend names', () => {
-  expect(() => buildOptsFromFlags(false, { 'url-provider': 'browserless' }))
+  expect(() => buildOptsFromFlags({ 'url-provider': 'browserless' }))
     .toThrow('Invalid --url-provider value "browserless". Expected "defuddle", "firecrawl", "glm-reader", "spider", "supadata", or "zyte".')
 })
 
 test('extract rejects unsupported ScrapeCreators STT modes', () => {
-  expect(() => buildOptsFromFlags(false, { 'scrapecreators-stt': 'auto' }))
+  expect(() => buildOptsFromFlags({ 'scrapecreators-stt': 'auto' }))
     .toThrow('Invalid model "auto" for --provider/--stt scrapecreators[=model]. Allowed values: youtube-transcript')
 })
 

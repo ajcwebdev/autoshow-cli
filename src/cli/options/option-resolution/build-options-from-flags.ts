@@ -1,5 +1,5 @@
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
-import type { BuildOptsDefaults, BuildOptsResolutionContext, CliFlagOccurrence, ResolvedFlagContext } from '~/types'
+import type { BuildOptsDefaults, BuildOptsResolutionContext, ResolvedFlagContext } from '~/types'
 import {
   parseHostedConcurrencyMode,
   readBooleanFlag,
@@ -25,23 +25,14 @@ export { collectRepeatableModelFlagOccurrences, REPEATABLE_MODEL_FLAGS, normaliz
 
 const emptyYtDlpPassthroughArgs = (): string[] | undefined => undefined
 
-const isBuildOptsResolutionContext = (
-  value: readonly CliFlagOccurrence[] | BuildOptsResolutionContext
-): value is BuildOptsResolutionContext => !Array.isArray(value)
-
 export const buildOptsFromFlags = (
-  skipLLM: boolean,
   flags: Record<string, unknown>,
   defaults: BuildOptsDefaults = {},
   explicitFlags: Set<string> = new Set(),
-  occurrencesOrContext: readonly CliFlagOccurrence[] | BuildOptsResolutionContext = []
+  context: BuildOptsResolutionContext = {}
 ) => {
-  const flagOccurrences = isBuildOptsResolutionContext(occurrencesOrContext)
-    ? occurrencesOrContext.flagOccurrences ?? []
-    : occurrencesOrContext
-  const ttsOptionResolutionAuthority = isBuildOptsResolutionContext(occurrencesOrContext)
-    ? occurrencesOrContext.ttsOptionResolutionAuthority ?? {}
-    : {}
+  const flagOccurrences = context.flagOccurrences ?? []
+  const ttsOptionResolutionAuthority = context.ttsOptionResolutionAuthority ?? {}
   const rawModelOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
 
   const mergedFlags: Record<string, unknown> = { ...flags }
@@ -51,25 +42,15 @@ export const buildOptsFromFlags = (
   const modelOptions = readRuntimeModelOptions(mergedFlags, rawModelOccurrences, allShortcutFlags, defaults)
   const {
     openaiModels,
-    openaiModel,
     groqModels,
-    groqModel,
     geminiModels,
-    geminiModel,
     anthropicModels,
-    anthropicModel,
     minimaxModels,
-    minimaxModel,
     grokModels,
-    grokModel,
     glmModels,
-    glmModel,
     kimiModels,
-    kimiModel,
     togetherModels,
-    togetherModel,
     cerebrasModels,
-    cerebrasModel,
   } = modelOptions
   const allUrlSelected = allShortcutFlags['all-url']
   const allLocalUrlSelected = allShortcutFlags['all-local-url']
@@ -101,25 +82,15 @@ export const buildOptsFromFlags = (
     whisperExplicit,
     step2SelectionOrigins,
     openaiModels,
-    openaiModel,
     groqModels,
-    groqModel,
     geminiModels,
-    geminiModel,
     anthropicModels,
-    anthropicModel,
     minimaxModels,
-    minimaxModel,
     grokModels,
-    grokModel,
     glmModels,
-    glmModel,
     kimiModels,
-    kimiModel,
     togetherModels,
-    togetherModel,
     cerebrasModels,
-    cerebrasModel,
     ...buildSttOptions(ctx),
     ...buildOcrOptions(ctx),
     llmProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'llm-provider-concurrency', allShortcutFlags['all-llm'], explicitFlags, configuredFlags),
@@ -132,7 +103,6 @@ export const buildOptsFromFlags = (
     ...buildMusicOptions(ctx),
     price: readBooleanFlag(mergedFlags, 'price'),
     allowOverBudget: readBooleanFlag(mergedFlags, 'allow-over-budget'),
-    skipLLM,
     ...urlOptions,
     urlProviderConcurrency: resolveProviderConcurrency(
       mergedFlags,

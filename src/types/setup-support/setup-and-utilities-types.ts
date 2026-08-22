@@ -121,12 +121,6 @@ export type CheapestLlmSelection = {
   totalCost: number
 }
 
-export type CheckResult = {
-  label: string
-  ok: boolean
-  detail: string
-}
-
 export type SetupToolStatus = {
   tool: string
   status: string

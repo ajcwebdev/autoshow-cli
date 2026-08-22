@@ -53,12 +53,12 @@ export const ocrRegistry: PriceSelectionEntry[] = [
     command('extract-gemini-gemini-3.1-pro-preview', 'extract-gemini-gemini-3.1-pro-preview', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'gemini=gemini-3.1-pro-preview', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts', [
-    command('extract-supadata-url', 'extract-supadata-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--url-provider', 'supadata', '--price']),
+    command('extract-supadata-url', 'extract-supadata-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'supadata', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts', [
-    command('extract-firecrawl-url', 'extract-firecrawl-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--url-provider', 'firecrawl', '--price']),
+    command('extract-firecrawl-url', 'extract-firecrawl-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'firecrawl', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts', [
-    command('extract-glm-reader-url', 'extract-glm-reader-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--url-provider', 'glm-reader', '--price']),
+    command('extract-glm-reader-url', 'extract-glm-reader-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'glm-reader', '--price']),
   ]),
 ]

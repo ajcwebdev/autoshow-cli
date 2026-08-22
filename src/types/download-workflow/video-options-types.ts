@@ -2,17 +2,11 @@ export type VideoRuntimeOptions = {
   videoProviderConcurrency: number
   videoLocalConcurrency: number
   geminiVideoModels: string[] | undefined
-  geminiVideoModel: string | undefined
   grokVideoModels: string[] | undefined
-  grokVideoModel: string | undefined
   ltxVideoModels: string[] | undefined
-  ltxVideoModel: string | undefined
   replicateVideoModels: string[] | undefined
-  replicateVideoModel: string | undefined
   lumalabsVideoModels: string[] | undefined
-  lumalabsVideoModel: string | undefined
   falVideoModels: string[] | undefined
-  falVideoModel: string | undefined
   allVideo: boolean | undefined
   videoDuration: number | undefined
   videoAspectRatio: string | undefined

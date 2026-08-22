@@ -5,7 +5,7 @@ import { extname, isAbsolute, join } from 'node:path'
 import type { DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, OcrBatchRunContext, OcrPoolAttemptUsage, OcrPoolLedger, OcrPoolTargetState, OcrProviderFailureSummary, OcrTarget, ProcessDocumentOutput, RunOcrPagePoolOptions } from '~/types'
 import { ExtractionMetadataSchema } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
-import { CLIUsageError, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
+import { UsageError, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { validateData } from '~/utils/validate/validation'
 import { writeFile } from '~/utils/cli-utils'
@@ -40,20 +40,20 @@ export const assertOcrPoolCompatible = (
   }
 ): void => {
   if (ctx.opts.primaryOcr) {
-    throw CLIUsageError('--primary-ocr cannot be used with --ocr-provider-mode pool because the top-level extraction is the composite pooled result.')
+    throw UsageError('--primary-ocr cannot be used with --ocr-provider-mode pool because the top-level extraction is the composite pooled result.')
   }
   const format = ctx.step1Metadata.format
   if (format !== 'pdf' && format !== 'cbz' && !POOL_IMAGE_FORMATS.has(format)) {
-    throw CLIUsageError(`--ocr-provider-mode pool requires a PDF or supported image input that can be normalized into independent page work units; received ${format}.`)
+    throw UsageError(`--ocr-provider-mode pool requires a PDF or supported image input that can be normalized into independent page work units; received ${format}.`)
   }
   if (ctx.requestedTargets.length === 0) {
-    throw CLIUsageError('--ocr-provider-mode pool requires at least one selected OCR target.')
+    throw UsageError('--ocr-provider-mode pool requires at least one selected OCR target.')
   }
   if (format !== 'pdf') {
     for (const target of ctx.requestedTargets) {
       if (isLocalOcrTarget(target)) continue
       if (resolveHostedDirectImageInputStrategy(format, toHostedEngine(target)) === 'unsupported') {
-        throw CLIUsageError(`${target.service}/${target.model} cannot normalize ${format.toUpperCase()} into a compatible pooled page work unit.`)
+        throw UsageError(`${target.service}/${target.model} cannot normalize ${format.toUpperCase()} into a compatible pooled page work unit.`)
       }
     }
   }
@@ -366,7 +366,7 @@ const targetProviderStates = (
     : ledger.status === 'running' ? 'running' : 'succeeded',
   attempts: target.attempts,
   metadata: {},
-  ...(target.lastFailure ? { lastError: target.lastFailure } : {})
+  ...(target.lastFailure ? { error: target.lastFailure } : {})
 }))
 
 const targetFailure = (target: OcrPoolTargetState): OcrProviderFailureSummary | undefined => {
@@ -428,13 +428,13 @@ const createPooledPageInputProvider = async (
   const cbzImages = ctx.step1Metadata.format === 'cbz'
     ? await extractCbzImages(ctx.extractFilePath, join(pageWorkspace, 'cbz-pages'))
     : undefined
-  if (cbzImages?.length === 0) throw CLIUsageError('--ocr-provider-mode pool requires the CBZ input to contain at least one supported image page.')
+  if (cbzImages?.length === 0) throw UsageError('--ocr-provider-mode pool requires the CBZ input to contain at least one supported image page.')
   if (cbzImages) {
     for (const imagePath of cbzImages) {
       const imageFormat = normalizedImageFormat(imagePath)
       for (const target of ctx.requestedTargets) {
         if (!isLocalOcrTarget(target) && resolveHostedDirectImageInputStrategy(imageFormat, toHostedEngine(target)) === 'unsupported') {
-          throw CLIUsageError(`${target.service}/${target.model} cannot normalize a ${imageFormat.toUpperCase()} CBZ page into a compatible pooled page work unit.`)
+          throw UsageError(`${target.service}/${target.model} cannot normalize a ${imageFormat.toUpperCase()} CBZ page into a compatible pooled page work unit.`)
         }
       }
     }
@@ -446,7 +446,7 @@ const createPooledPageInputProvider = async (
     const promise = (async (): Promise<PreparedPageInput> => {
       if (cbzImages) {
         const imagePath = cbzImages[pageNumber - 1]
-        if (!imagePath) throw CLIUsageError(`CBZ pooled OCR page ${pageNumber} does not exist.`)
+        if (!imagePath) throw UsageError(`CBZ pooled OCR page ${pageNumber} does not exist.`)
         const imageStats = await stat(imagePath)
         return { path: imagePath, metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: imageStats.size, format: normalizedImageFormat(imagePath) } }
       }
@@ -481,7 +481,7 @@ const preflightPooledPageInputs = async (provider: PooledPageInputProvider): Pro
       await provider.preparePage(pageNumber)
     } catch (error) {
       const detail = error instanceof Error && error.message.trim().length > 0 ? error.message.trim() : String(error)
-      throw CLIUsageError(
+      throw UsageError(
         `--ocr-provider-mode pool could not normalize page ${pageNumber} into a compatible work unit: ${detail}`,
         undefined,
         error instanceof Error ? { cause: error } : {}
@@ -546,7 +546,7 @@ const createPooledPageAttemptRunner = (
   try {
     const extracted = await runWithLogContext({ step: 'step-2-ocr', provider: getOcrTargetDirectoryName(target), page: pageNumber, attempt }, async () => await runOcr(prepared.path, prepared.metadata, providerOpts))
     const resultPage = extracted.result.pages[0]
-    if (!resultPage) throw CLIUsageError(`${target.service}/${target.model} returned no page result for pooled OCR page ${pageNumber}.`)
+    if (!resultPage) throw UsageError(`${target.service}/${target.model} returned no page result for pooled OCR page ${pageNumber}.`)
     await writeProviderArtifacts(absoluteArtifactDir, extracted.result, ctx.opts.outputFormat ?? 'text', extracted.artifactFiles)
     await writeFile(join(absoluteArtifactDir, 'usage.json'), `${JSON.stringify({ providerMode: 'pool', pageNumber, attempt, provider: target.service, model: target.model, ...usageFromMetadata(extracted.step2Metadata) }, null, 2)}\n`)
     return {

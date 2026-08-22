@@ -14,7 +14,7 @@ import {
   validateSpeechifyTtsLanguageForModel,
   validateSpeechifyTtsModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationControls } from '../tts-targets/tts-invocation-controls'
 import { ELEVENLABS_TTS_OUTPUT_FORMAT } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
 import {
@@ -114,7 +114,7 @@ const buildElevenLabsSerializer: SerializerBuilder = ({ strategy, controls }) =>
     const [rawId, rawVersion] = value.split(':', 2)
     const id = rawId?.trim()
     const version = rawVersion?.trim()
-    if (!id) throw CLIUsageError('Invalid ElevenLabs pronunciation dictionary locator in immutable TTS controls.')
+    if (!id) throw UsageError('Invalid ElevenLabs pronunciation dictionary locator in immutable TTS controls.')
     return { pronunciation_dictionary_id: id, ...(version ? { version_id: version } : {}) }
   })
   return {
@@ -192,7 +192,7 @@ export const resolveEffectiveProviderControls = (
   switch (target.service) {
     case 'openai': {
       const controls = resolveTtsTargetInvocationControls('openai', invocation, { instructions: selection.openaiInstructions, speed: selection.openaiSpeed })
-      if (controls.instructions && target.model !== 'gpt-4o-mini-tts-2025-12-15') throw CLIUsageError(`OpenAI per-turn TTS instructions are not supported by ${target.model}.`)
+      if (controls.instructions && target.model !== 'gpt-4o-mini-tts-2025-12-15') throw UsageError(`OpenAI per-turn TTS instructions are not supported by ${target.model}.`)
       return controls
     }
     case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators })

@@ -10,7 +10,7 @@ import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 import { buildElevenLabsCompositionPlan } from './elevenlabs-composition-plan'
@@ -145,7 +145,7 @@ export const runElevenLabsMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = requireApiKey('ELEVENLABS_API_KEY', 'music:elevenlabs', 'ElevenLabs music generation')
+  const apiKey = requireProviderKey('elevenlabs', 'music:elevenlabs', 'ElevenLabs music generation')
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
   const musicPath = `${outputDir}/generated-music.mp3`

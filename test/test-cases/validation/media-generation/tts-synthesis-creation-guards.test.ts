@@ -6,28 +6,22 @@ import { resolveStandaloneMistralTtsCliReferenceInput } from '~/cli/options/opti
 
 describe('Synthesis voice option contracts', () => {
   test('allows existing voice IDs and keeps an unnamed Mistral reference at the standalone edge', () => {
-    const elevenLabs = buildOptsFromFlags(false, {
+    const elevenLabs = buildOptsFromFlags({
       'elevenlabs-tts': 'eleven_v3',
-      'elevenlabs-voice': 'voice_existing'
+      'tts-voice': 'voice_existing'
     })
-    const speechify = buildOptsFromFlags(false, {
+    const speechify = buildOptsFromFlags({
       'speechify-tts': 'simba-3.2',
-      'speechify-voice': 'geffen_32'
+      'tts-voice': 'geffen_32'
     })
     const mistralFlags = {
       'mistral-tts': 'voxtral-mini-tts-2603',
-      'mistral-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
+      'tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
     }
     const referenceAuthority = { cliReferenceInput: 'standalone-mistral' } as const
-    const mistral = buildOptsFromFlags(
-      false,
-      mistralFlags,
-      {},
-      new Set(['mistral-tts-ref-audio']),
-      { ttsOptionResolutionAuthority: referenceAuthority }
-    )
+    const mistral = buildOptsFromFlags(mistralFlags, {}, new Set(['tts-ref-audio']), { ttsOptionResolutionAuthority: referenceAuthority })
     const referenceInput = resolveStandaloneMistralTtsCliReferenceInput(mistralFlags, {
-      explicitFlags: new Set(['mistral-tts-ref-audio']),
+      explicitFlags: new Set(['tts-ref-audio']),
       ...referenceAuthority
     })
 

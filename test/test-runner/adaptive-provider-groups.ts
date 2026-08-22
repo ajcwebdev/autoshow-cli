@@ -277,6 +277,11 @@ const addExtractProviderGroup = (
     return
   }
 
+  if (URL_REMOTE_SET.has(provider)) {
+    addGroup(groups, 'url', provider, URL_REMOTE_SET)
+    return
+  }
+
   const kind = inferExtractKind(input, provider)
   if (kind === 'transcribe') {
     addGroup(groups, 'transcribe', provider, STT_REMOTE_SET)
@@ -305,16 +310,10 @@ const addAllExtractGroups = (groups: Set<AdaptiveProviderGroup>, input: string |
 }
 
 const WRITE_ALL_PROVIDER_STEPS: Record<string, { kind: AdaptiveProviderGroupKind, providers: readonly string[] }> = {
-  stt: { kind: 'transcribe', providers: STT_REMOTE_PROVIDERS },
-  ocr: { kind: 'extract', providers: OCR_REMOTE_PROVIDERS },
-  url: { kind: 'url', providers: URL_REMOTE_PROVIDERS },
   llm: { kind: 'write', providers: LLM_REMOTE_PROVIDERS },
 }
 
 const WRITE_FLAG_GROUPS: Record<string, { kind: AdaptiveProviderGroupKind, remoteSet: Set<string> }> = {
-  'stt': { kind: 'transcribe', remoteSet: STT_REMOTE_SET },
-  'ocr': { kind: 'extract', remoteSet: OCR_REMOTE_SET },
-  'url-provider': { kind: 'url', remoteSet: URL_REMOTE_SET },
   'llm': { kind: 'write', remoteSet: LLM_REMOTE_SET },
 }
 

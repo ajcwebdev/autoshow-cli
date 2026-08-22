@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureOpenAIImageGenSetup = ensureProvider('openai', 'image:openai', 'OpenAI image generation')
+export const ensureOpenAIImageGenSetup = async (): Promise<void> => { requireProviderKey('openai', 'image:openai', 'OpenAI image generation') }

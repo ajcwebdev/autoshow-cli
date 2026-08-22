@@ -28,7 +28,7 @@ Documents and images route through hosted OCR or native text extraction dependin
 
 See the [`extract` overview](./01-extract.md) for input routing and default document/image OCR. Remote article URLs are documented separately in [URL and X extraction](./04-extract-url.md).
 
-Standalone `extract` uses `--provider provider[=model]` for document/OCR inputs. `write` and `config` use `--ocr provider[=model]`. `resume` uses `--provider provider[=model]`.
+Standalone `extract` and `resume` use `--provider provider[=model]` for document/OCR inputs. `config` uses `--ocr provider[=model]`.
 
 ## OCR Setup
 

@@ -14,21 +14,17 @@ export type BooleanProviderEntry<FlagName extends string, RuntimeKey extends Ste
 
 export type ModelProviderEntry<
   FlagName extends string,
-  RuntimeModelsKey extends keyof Step2ProviderOptionSurface,
-  RuntimeModelKey extends keyof Step2ProviderOptionSurface
+  RuntimeModelsKey extends keyof Step2ProviderOptionSurface
 > = Omit<Step2ModelProviderRegistryEntry, 'flagName' | 'selection'> & {
   flagName: FlagName
-  selection: Omit<Step2ModelProviderRegistryEntry['selection'], 'runtimeModelsKey' | 'runtimeModelKey'> & {
+  selection: Omit<Step2ModelProviderRegistryEntry['selection'], 'runtimeModelsKey'> & {
     runtimeModelsKey: RuntimeModelsKey
-    runtimeModelKey: RuntimeModelKey
   }
 }
 
 export type RuntimeModelKeyStem = {
   [Key in Extract<keyof Step2ProviderOptionSurface, string>]: Key extends `${infer Stem}Models`
-    ? `${Stem}Model` extends keyof Step2ProviderOptionSurface
-      ? Stem
-      : never
+    ? Stem
     : never
 }[Extract<keyof Step2ProviderOptionSurface, string>]
 
@@ -36,7 +32,6 @@ export type SttRuntimeModelKeyStem = Extract<RuntimeModelKeyStem, `${string}Stt`
 export type OcrRuntimeModelKeyStem = Extract<RuntimeModelKeyStem, `${string}Ocr`>
 
 export type RuntimeModelsKey<Stem extends RuntimeModelKeyStem> = Extract<keyof Step2ProviderOptionSurface, `${Stem}Models`>
-export type RuntimeModelKey<Stem extends RuntimeModelKeyStem> = Extract<keyof Step2ProviderOptionSurface, `${Stem}Model`>
 
 export type ConventionModelProviderOptions = {
   supportedModels: readonly string[]

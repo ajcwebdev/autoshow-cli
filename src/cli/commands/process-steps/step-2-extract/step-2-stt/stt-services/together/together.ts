@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureTogetherSttSetup = ensureProvider('together', 'stt:together', 'Together transcription')
+export const ensureTogetherSttSetup = async (): Promise<void> => { requireProviderKey('together', 'stt:together', 'Together transcription') }

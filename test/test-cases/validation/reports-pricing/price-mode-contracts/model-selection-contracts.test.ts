@@ -77,12 +77,12 @@ describe('generation pricing model-selection tables', () => {
     expect(MUSIC_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
       'elevenlabs', 'minimax', 'gemini'
     ])
-    expect(IMAGE_PRICING_MODEL_KEYS).toHaveLength(IMAGE_PRICING_PROVIDERS.length * 2)
-    expect(VIDEO_PRICING_MODEL_KEYS).toHaveLength(VIDEO_PRICING_PROVIDERS.length * 2)
-    expect(MUSIC_PRICING_MODEL_KEYS).toHaveLength(MUSIC_PRICING_PROVIDERS.length * 2)
+    expect(IMAGE_PRICING_MODEL_KEYS).toHaveLength(IMAGE_PRICING_PROVIDERS.length)
+    expect(VIDEO_PRICING_MODEL_KEYS).toHaveLength(VIDEO_PRICING_PROVIDERS.length)
+    expect(MUSIC_PRICING_MODEL_KEYS).toHaveLength(MUSIC_PRICING_PROVIDERS.length)
   })
 
-  test('singular and plural selectors produce identical estimates for every registered model', () => {
+  test('string and array selectors produce identical estimates for every registered model', () => {
     for (const provider of IMAGE_PRICING_PROVIDERS) {
       for (const model of IMAGE_MODELS[provider.service]) {
         const singular = estimateImageCosts(optionsForService(IMAGE_PRICING_PROVIDERS, provider.service, model))
@@ -113,22 +113,13 @@ describe('generation pricing model-selection tables', () => {
     }
   })
 
-  test('an explicitly empty plural selector wins over its singular selector', () => {
+  test('an explicitly empty array selector produces no image or music estimates', () => {
     expect(estimateImageCosts({
-      geminiImageModels: [],
-      geminiImageModel: 'gemini-3.1-flash-lite-image'
+      geminiImageModels: []
     })).toEqual([])
     expect(estimateMusicCosts({
-      elevenlabsMusicModels: [],
-      elevenlabsMusicModel: 'music_v2'
+      elevenlabsMusicModels: []
     })).toEqual([])
-    expect(estimateVideoCosts({
-      geminiVideoModels: [],
-      geminiVideoModel: 'veo-3.1-lite-generate-preview'
-    })[0]).toMatchObject({
-      provider: 'gemini',
-      model: 'veo-3.1-fast-generate-preview'
-    })
   })
 
   test('video and music cost targets retain their own durations', () => {

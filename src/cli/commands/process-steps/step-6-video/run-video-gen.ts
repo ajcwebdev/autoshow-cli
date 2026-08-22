@@ -1,6 +1,6 @@
 import type { Step6VideoMetadata, VideoGenOptions, VideoTarget } from '~/types'
 import { runMediaFileTargets } from '~/cli/commands/process-steps/media-file-target-runner'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   collectVideoTargets,
   getVideoArtifactFileName,
@@ -51,7 +51,7 @@ export const runVideoGen = async (
 ): Promise<{ videoPaths: string[], metadata: Step6VideoMetadata[] }> => {
   const targets = collectVideoTargets(options)
   if (targets.length === 0) {
-    throw CLIUsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
+    throw UsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
   }
   return await runVideoTargets(targets, prompt, outputDir, options)
 }

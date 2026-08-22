@@ -4,7 +4,7 @@ import { join, resolve as resolvePath } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import type { AggregatedPriceEstimate, NormalizedResumeProviderBatchRunOptions, PipelineItemRecord, ProviderResumePassResult, ResumeDisplayOptions, ResumeProviderBatchRunOptions, ResumeResult, ResumeSttEntry, ResumeTarget, SttExtractionOptions, SttResumePassContext, SttTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { processStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/process-stt'
 import { logSttBatchFinalSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
 import { buildSttBatchSchedulerRows } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-policy'
@@ -33,7 +33,7 @@ const assertStoredMissingSttTargetsAreActive = (
       continue
     }
 
-    throw CLIUsageError(
+    throw UsageError(
       `Stored STT target ${formatSttTargetLabel(target)} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. Start a new target with an active ${target.service} model.`
     )
   }
@@ -43,7 +43,7 @@ const toSourceFromStep1 = (record: PipelineItemRecord): { url?: string, filePath
   const step1 = isRecord(record['step1']) ? record['step1'] : undefined
   const rawUrl = typeof step1?.['url'] === 'string' ? step1['url'] : undefined
   if (!rawUrl) {
-    throw CLIUsageError('Pipeline item record is missing step1.url and cannot be resumed.')
+    throw UsageError('Pipeline item record is missing step1.url and cannot be resumed.')
   }
 
   return toProviderResumeSource(rawUrl)
@@ -65,7 +65,7 @@ const parseResumeRecord = async (
       l.warn('Skipping STT item record with no resumable output directory', { category: 'pipeline' })
       return undefined
     }
-    throw CLIUsageError('Pipeline item record is missing outputDir and could not be matched to an STT output directory.')
+    throw UsageError('Pipeline item record is missing outputDir and could not be matched to an STT output directory.')
   }
 
   const storedRequestedTargets = parseStoredRequestedTargets(record)
@@ -80,7 +80,7 @@ const parseResumeRecord = async (
     : selectedTargets
 
   if (requestedBaseTargets.length === 0 && (!fallbackSelectedTargets || fallbackSelectedTargets.length === 0)) {
-    throw CLIUsageError('Could not determine the original STT provider set for this output. Re-run with explicit provider flags.')
+    throw UsageError('Could not determine the original STT provider set for this output. Re-run with explicit provider flags.')
   }
 
   let source: { url?: string, filePath?: string }
@@ -117,7 +117,7 @@ const parseResumeRecord = async (
 const readItemRecord = async (outputDir: string): Promise<PipelineItemRecord> => {
   const record = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'media' })
   if (!isRecord(record)) {
-    throw CLIUsageError(`Invalid STT manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
+    throw UsageError(`Invalid STT manifest at ${outputDir}/${PIPELINE_MANIFEST_FILE}`)
   }
 
   return record

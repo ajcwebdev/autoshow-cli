@@ -111,13 +111,13 @@ Tesseract is the only engine that consumes `--ocr-language`. It decrypts passwor
 
 ### Local URL
 
-Do not combine `--url-provider` with `--all-providers` or `--all-local`.
+Do not combine `--provider` with `--all-providers` or `--all-local`.
 
 When `defuddle` is the only URL backend, it falls back to `firecrawl` if extraction fails. Combining `--all-local` with `--all-providers` runs `defuddle` first, and either group run disables that automatic fallback.
 
 #### Defuddle
 
-Default for remote articles and local HTML, or select with `--url-provider defuddle`.
+Default for remote articles and local HTML, or select with `--provider defuddle`.
 
 ```bash
 bun autoshow extract https://ajcwebdev.com

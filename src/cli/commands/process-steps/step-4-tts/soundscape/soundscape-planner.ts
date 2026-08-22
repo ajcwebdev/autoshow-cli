@@ -1,5 +1,5 @@
 import type { ComicDialoguePlan, SoundEffectSynthesisTask, SoundscapeMixProfile, SoundscapePlan, SoundscapeTimingPolicy, StructuredScriptArtifactRef, StructuredScriptData } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../script-to-audio/contract-identity'
 import { writeImmutableArtifactFile } from '../script-to-audio/safe-artifact-store'
 
@@ -30,60 +30,60 @@ export const DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE: SoundscapeMixProfile = {
 }
 
 const finite = (value: number | undefined, label: string): void => {
-  if (value !== undefined && !Number.isFinite(value)) throw CLIUsageError(`${label} must be finite.`)
+  if (value !== undefined && !Number.isFinite(value)) throw UsageError(`${label} must be finite.`)
 }
 
 const validateSoundscapeMixProfile = (profile: SoundscapeMixProfile): SoundscapeMixProfile => {
-  if (profile.schemaVersion !== 1 || !profile.profileKey.trim()) throw CLIUsageError('Soundscape mix profile requires schemaVersion 1 and a stable profile key.')
+  if (profile.schemaVersion !== 1 || !profile.profileKey.trim()) throw UsageError('Soundscape mix profile requires schemaVersion 1 and a stable profile key.')
   const buses = ['dialogue', 'vocal-reaction', 'action-sfx', 'ambience']
-  if (Object.keys(profile.busGainDb).sort().join('\0') !== buses.slice().sort().join('\0')) throw CLIUsageError('Soundscape mix profile requires exactly the four semantic bus gains.')
+  if (Object.keys(profile.busGainDb).sort().join('\0') !== buses.slice().sort().join('\0')) throw UsageError('Soundscape mix profile requires exactly the four semantic bus gains.')
   Object.entries(profile.busGainDb).forEach(([bus, gain]) => finite(gain, `Soundscape ${bus} bus gain`))
-  if (profile.panLaw !== 'constant-power' || profile.defaultPan < -1 || profile.defaultPan > 1) throw CLIUsageError('Soundscape Phase 1 requires constant-power pan in the -1..1 range.')
+  if (profile.panLaw !== 'constant-power' || profile.defaultPan < -1 || profile.defaultPan > 1) throw UsageError('Soundscape Phase 1 requires constant-power pan in the -1..1 range.')
   finite(profile.defaultPan, 'Soundscape default pan')
   finite(profile.loudness.integratedLufs, 'Soundscape integrated loudness')
-  if (profile.loudness.mode === 'ebu-r128' && profile.loudness.integratedLufs === undefined) throw CLIUsageError('EBU R128 soundscape mastering requires an integrated LUFS target.')
+  if (profile.loudness.mode === 'ebu-r128' && profile.loudness.integratedLufs === undefined) throw UsageError('EBU R128 soundscape mastering requires an integrated LUFS target.')
   const duck = profile.ambienceDucking
   for (const [name, value] of Object.entries(duck).filter((entry): entry is [string, number] => typeof entry[1] === 'number')) finite(value, `Soundscape ambience ducking ${name}`)
-  if (duck.sidechainBuses[0] !== 'dialogue' || duck.sidechainBuses[1] !== 'vocal-reaction' || duck.depthDb < 0 || duck.detectorWindowMs <= 0 || duck.attackMs < 0 || duck.releaseMs < 0 || duck.ratio < 1) throw CLIUsageError('Soundscape ambience ducking controls are invalid.')
-  if (![profile.bedLoopCrossfadeMs, profile.fadeInMs, profile.fadeOutMs].every(value => Number.isSafeInteger(value) && value >= 0)) throw CLIUsageError('Soundscape loop crossfade and fade durations must be non-negative integer milliseconds.')
-  if (!Number.isSafeInteger(profile.sampleRate) || profile.sampleRate <= 0 || ![1, 2].includes(profile.channels) || !['pcm_s16le', 'pcm_s24le'].includes(profile.codec) || profile.container !== 'wav') throw CLIUsageError('Soundscape master output profile must be PCM WAV with a positive sample rate and one or two channels.')
+  if (duck.sidechainBuses[0] !== 'dialogue' || duck.sidechainBuses[1] !== 'vocal-reaction' || duck.depthDb < 0 || duck.detectorWindowMs <= 0 || duck.attackMs < 0 || duck.releaseMs < 0 || duck.ratio < 1) throw UsageError('Soundscape ambience ducking controls are invalid.')
+  if (![profile.bedLoopCrossfadeMs, profile.fadeInMs, profile.fadeOutMs].every(value => Number.isSafeInteger(value) && value >= 0)) throw UsageError('Soundscape loop crossfade and fade durations must be non-negative integer milliseconds.')
+  if (!Number.isSafeInteger(profile.sampleRate) || profile.sampleRate <= 0 || ![1, 2].includes(profile.channels) || !['pcm_s16le', 'pcm_s24le'].includes(profile.codec) || profile.container !== 'wav') throw UsageError('Soundscape master output profile must be PCM WAV with a positive sample rate and one or two channels.')
   finite(profile.limiter.ceiling, 'Soundscape limiter ceiling')
   finite(profile.limiter.truePeakDb, 'Soundscape limiter true-peak target')
-  if (profile.limiter.ceiling <= 0 || profile.limiter.ceiling > 1 || profile.limiter.truePeakDb > 0) throw CLIUsageError('Soundscape limiter ceiling must be in the 0..1 range and its true-peak target must not exceed 0 dBTP.')
+  if (profile.limiter.ceiling <= 0 || profile.limiter.ceiling > 1 || profile.limiter.truePeakDb > 0) throw UsageError('Soundscape limiter ceiling must be in the 0..1 range and its true-peak target must not exceed 0 dBTP.')
   return profile
 }
 
 const validateAnchor = (anchor: SoundscapePlan['cues'][number]['anchor'], structuredScript: StructuredScriptData, label: string): void => {
   if (anchor.kind === 'scene-clock') {
-    if (!Number.isSafeInteger(anchor.positionMs) || anchor.positionMs < 0) throw CLIUsageError(`${label} scene-clock position must be a non-negative integer number of milliseconds.`)
+    if (!Number.isSafeInteger(anchor.positionMs) || anchor.positionMs < 0) throw UsageError(`${label} scene-clock position must be a non-negative integer number of milliseconds.`)
     return
   }
   if (anchor.kind === 'resolved-scene-edge') {
-    if (anchor.edge !== 'start' && anchor.edge !== 'end') throw CLIUsageError(`${label} resolved scene edge must be start or end.`)
+    if (anchor.edge !== 'start' && anchor.edge !== 'end') throw UsageError(`${label} resolved scene edge must be start or end.`)
     return
   }
   const segment = structuredScript.sourceSegments.find(candidate => candidate.id === anchor.sourceSegmentId)
-  if (!segment || (segment.type !== 'dialogue' && segment.type !== 'narration')) throw CLIUsageError(`${label} references unknown or non-speakable source segment ${anchor.sourceSegmentId}.`)
-  if (!Number.isSafeInteger(anchor.offsetMs)) throw CLIUsageError(`${label} source offset must be an integer number of milliseconds.`)
-  if (anchor.kind === 'source-text-offset' && (!Number.isSafeInteger(anchor.textOffset) || anchor.textOffset < 0 || anchor.textOffset > [...segment.text].length || anchor.indexUnit !== 'unicode-scalar-value')) throw CLIUsageError(`${label} text offset is outside its canonical Unicode source segment.`)
+  if (!segment || (segment.type !== 'dialogue' && segment.type !== 'narration')) throw UsageError(`${label} references unknown or non-speakable source segment ${anchor.sourceSegmentId}.`)
+  if (!Number.isSafeInteger(anchor.offsetMs)) throw UsageError(`${label} source offset must be an integer number of milliseconds.`)
+  if (anchor.kind === 'source-text-offset' && (!Number.isSafeInteger(anchor.textOffset) || anchor.textOffset < 0 || anchor.textOffset > [...segment.text].length || anchor.indexUnit !== 'unicode-scalar-value')) throw UsageError(`${label} text offset is outside its canonical Unicode source segment.`)
 }
 
 export const validateSoundscapePlan = (plan: SoundscapePlan, structuredScript?: StructuredScriptData): SoundscapePlan => {
-  if (plan.schemaVersion !== 1 || !/^[a-f0-9]{64}$/u.test(plan.sceneRunIdentity) || !/^[a-f0-9]{64}$/u.test(plan.structuredScriptHash) || !/^[a-f0-9]{64}$/u.test(plan.dialoguePlanId)) throw CLIUsageError('Soundscape plan requires strict scene, structured-script, and dialogue identities.')
+  if (plan.schemaVersion !== 1 || !/^[a-f0-9]{64}$/u.test(plan.sceneRunIdentity) || !/^[a-f0-9]{64}$/u.test(plan.structuredScriptHash) || !/^[a-f0-9]{64}$/u.test(plan.dialoguePlanId)) throw UsageError('Soundscape plan requires strict scene, structured-script, and dialogue identities.')
   validateSoundscapeMixProfile(plan.mixProfile)
-  if (plan.timingPolicy !== 'strict' && plan.timingPolicy !== 'proportional') throw CLIUsageError('Soundscape timing policy must be strict or proportional.')
-  if (hashCanonicalTtsValue(plan.mixProfile) !== plan.mixProfileHash) throw CLIUsageError('Soundscape plan mix profile hash is invalid.')
+  if (plan.timingPolicy !== 'strict' && plan.timingPolicy !== 'proportional') throw UsageError('Soundscape timing policy must be strict or proportional.')
+  if (hashCanonicalTtsValue(plan.mixProfile) !== plan.mixProfileHash) throw UsageError('Soundscape plan mix profile hash is invalid.')
   const all = [...plan.cues, ...plan.ambientBeds]
-  if (new Set(all.map(cue => cue.cueId)).size !== all.length) throw CLIUsageError('Soundscape plan contains duplicate cue IDs.')
-  if (new Set(plan.synthesisTasks.map(task => task.taskId)).size !== plan.synthesisTasks.length) throw CLIUsageError('Soundscape plan contains duplicate synthesis task IDs.')
+  if (new Set(all.map(cue => cue.cueId)).size !== all.length) throw UsageError('Soundscape plan contains duplicate cue IDs.')
+  if (new Set(plan.synthesisTasks.map(task => task.taskId)).size !== plan.synthesisTasks.length) throw UsageError('Soundscape plan contains duplicate synthesis task IDs.')
   for (const cue of all) {
-    if (!cue.prompt.trim() || cue.prompt !== cue.prompt.normalize('NFKC').replace(/\s+/gu, ' ').trim()) throw CLIUsageError(`Sound cue ${cue.cueId} prompt is empty or not canonically normalized.`)
-    if (!Number.isSafeInteger(cue.sourceSpan.start) || !Number.isSafeInteger(cue.sourceSpan.end) || cue.sourceSpan.start < 0 || cue.sourceSpan.end <= cue.sourceSpan.start || cue.sourceSpan.kind !== 'sound-effect' || cue.sourceSpan.indexUnit !== 'unicode-scalar-value') throw CLIUsageError(`Sound cue ${cue.cueId} has an invalid exact source span.`)
+    if (!cue.prompt.trim() || cue.prompt !== cue.prompt.normalize('NFKC').replace(/\s+/gu, ' ').trim()) throw UsageError(`Sound cue ${cue.cueId} prompt is empty or not canonically normalized.`)
+    if (!Number.isSafeInteger(cue.sourceSpan.start) || !Number.isSafeInteger(cue.sourceSpan.end) || cue.sourceSpan.start < 0 || cue.sourceSpan.end <= cue.sourceSpan.start || cue.sourceSpan.kind !== 'sound-effect' || cue.sourceSpan.indexUnit !== 'unicode-scalar-value') throw UsageError(`Sound cue ${cue.cueId} has an invalid exact source span.`)
     finite(cue.durationSeconds, `Sound cue ${cue.cueId} duration`)
-    if (cue.durationSeconds !== undefined && (cue.durationSeconds < 0.5 || cue.durationSeconds > 30)) throw CLIUsageError(`Sound cue ${cue.cueId} duration must be between 0.5 and 30 seconds.`)
+    if (cue.durationSeconds !== undefined && (cue.durationSeconds < 0.5 || cue.durationSeconds > 30)) throw UsageError(`Sound cue ${cue.cueId} duration must be between 0.5 and 30 seconds.`)
     finite(cue.gainDb, `Sound cue ${cue.cueId} gain`)
     finite(cue.pan, `Sound cue ${cue.cueId} pan`)
-    if (cue.pan !== undefined && (cue.pan < -1 || cue.pan > 1)) throw CLIUsageError(`Sound cue ${cue.cueId} pan must be between -1 and 1.`)
+    if (cue.pan !== undefined && (cue.pan < -1 || cue.pan > 1)) throw UsageError(`Sound cue ${cue.cueId} pan must be between -1 and 1.`)
     if (structuredScript) {
       if (cue.kind === 'ambience') {
         if (cue.range.kind === 'anchors') {
@@ -95,12 +95,12 @@ export const validateSoundscapePlan = (plan: SoundscapePlan, structuredScript?: 
   }
   for (const task of plan.synthesisTasks) {
     const cue = all.find(candidate => candidate.cueId === task.cueId)
-    if (!cue || task.prompt !== cue.prompt || task.kind !== cue.kind || task.required !== cue.required || task.loop !== (cue.kind === 'ambience')) throw CLIUsageError(`Sound synthesis task ${task.taskId} does not bind its authored cue.`)
+    if (!cue || task.prompt !== cue.prompt || task.kind !== cue.kind || task.required !== cue.required || task.loop !== (cue.kind === 'ambience')) throw UsageError(`Sound synthesis task ${task.taskId} does not bind its authored cue.`)
     const generationBase = { schemaVersion: 1, operation: 'sound-effect-generation', kind: task.kind, prompt: task.prompt, durationSeconds: task.durationSeconds ?? null, loop: task.loop }
-    if (task.generationIdentity !== hashCanonicalTtsValue(generationBase) || task.taskId !== hashCanonicalTtsValue({ cueId: task.cueId, generationIdentity: task.generationIdentity })) throw CLIUsageError(`Sound synthesis task ${task.taskId} has invalid content identity.`)
+    if (task.generationIdentity !== hashCanonicalTtsValue(generationBase) || task.taskId !== hashCanonicalTtsValue({ cueId: task.cueId, generationIdentity: task.generationIdentity })) throw UsageError(`Sound synthesis task ${task.taskId} has invalid content identity.`)
   }
   const { soundscapePlanId: _id, ...withoutId } = plan
-  if (plan.soundscapePlanId !== hashCanonicalTtsValue(withoutId)) throw CLIUsageError('Soundscape plan content identity is invalid.')
+  if (plan.soundscapePlanId !== hashCanonicalTtsValue(withoutId)) throw UsageError('Soundscape plan content identity is invalid.')
   return plan
 }
 
@@ -113,8 +113,8 @@ export const createSoundscapePlan = (input: {
   mixProfile?: SoundscapeMixProfile | undefined
   timingPolicy?: SoundscapeTimingPolicy | undefined
 }): SoundscapePlan => {
-  if (input.structuredScript.schemaVersion !== 5 || input.structuredScriptRef.artifactSchemaVersion !== 5) throw CLIUsageError('Soundscape planning requires clean-break structured-script v5 input.')
-  if (input.dialoguePlan.sceneRunIdentity !== input.sceneRunIdentity || input.dialoguePlan.structuredScript.sha256 !== input.structuredScriptRef.sha256) throw CLIUsageError('Soundscape and dialogue plans must bind the same exact scene-run input.')
+  if (input.structuredScript.schemaVersion !== 5 || input.structuredScriptRef.artifactSchemaVersion !== 5) throw UsageError('Soundscape planning requires clean-break structured-script v5 input.')
+  if (input.dialoguePlan.sceneRunIdentity !== input.sceneRunIdentity || input.dialoguePlan.structuredScript.sha256 !== input.structuredScriptRef.sha256) throw UsageError('Soundscape and dialogue plans must bind the same exact scene-run input.')
   const mixProfile = validateSoundscapeMixProfile(input.mixProfile ?? DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE)
   const timingPolicy = input.timingPolicy ?? 'strict'
   const authored = input.structuredScript.scene.soundscape

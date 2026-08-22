@@ -65,7 +65,7 @@ COPY --chown=bun:bun package.json bun.lock* bunfig.toml tsconfig.json ./
 COPY --chown=bun:bun src ./src
 
 RUN set -eux; \
-    mkdir -p input output runtime/tools project/links; \
+    mkdir -p input output runtime/tools; \
     ln -s /usr/share/tesseract-ocr/5/tessdata runtime/tools/tessdata; \
     chown -R bun:bun /app /home/bun
 

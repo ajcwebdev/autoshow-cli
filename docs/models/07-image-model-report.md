@@ -46,7 +46,7 @@ Standardized hosted raster image generation on 34 selectors across 6 providers, 
 
 ## 2026-08-16 image refresh
 
-Compared the active image catalog plus the xAI Imagine snapshot `project/links/grok-image-links.md`. Implemented 2026-08-16. Removed 12 selectors, kept `grok-imagine-image-quality`, and retired the Recraft provider and `recraft-image` flag. Active count: 34 − 12 = 22. The recorded `grok-imagine-image-2.0` successor is unavailable and was not added; the refresh was removal-only. Removed selectors stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance where the provider surface remains.
+Compared the active image catalog plus the xAI Imagine snapshot from `bun autoshow links --grok image` (`https://docs.x.ai/developers/model-capabilities/imagine.md`). Implemented 2026-08-16. Removed 12 selectors, kept `grok-imagine-image-quality`, and retired the Recraft provider and `recraft-image` flag. Active count: 34 − 12 = 22. The recorded `grok-imagine-image-2.0` successor is unavailable and was not added; the refresh was removal-only. Removed selectors stay parseable in historical manifests and pricing readers and fail direct selection with replacement guidance where the provider surface remains.
 
 **Provider 1: fal.ai `microsoft/mai-image-2.5-pro`**
 
@@ -160,4 +160,4 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - Image provider adapters: `src/cli/commands/process-steps/step-5-image/`
 - Historical cost reconstruction: `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
-- 2026-08-16 xAI Imagine snapshot: `project/links/grok-image-links.md`
+- 2026-08-16 xAI Imagine snapshot: `bun autoshow links --grok image` (`https://docs.x.ai/developers/model-capabilities/imagine.md`)

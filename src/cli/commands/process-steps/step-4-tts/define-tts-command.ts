@@ -40,7 +40,7 @@ export const ttsCommand = defineCliCommand({
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const configPath = await resolveConfigPath(configPathOverride)
   const config = await loadConfig(configPath)
-  const flags = mergeConfigIntoRawFlags(rawFlags, config, ctx.rawParsed.explicitFlags)
+  const flags = mergeConfigIntoRawFlags(rawFlags, config, ctx.rawParsed.explicitFlags, 'tts')
   const inputKind = await getTtsInputKind(inputPath)
   const maxCents = await resolveMaxCentsFromFlags(flags)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
@@ -90,16 +90,10 @@ export const ttsCommand = defineCliCommand({
     cliReferenceInput: 'standalone-mistral',
     ...(speakerReferencePlan ? { mistralSpeakerReferences: 'sanitized' as const } : {})
   } as const
-  const unresolvedTtsOptions: StandaloneTtsCommandOptions = buildOptsFromFlags(
-    true,
-    sanitizedFlags,
-    {},
-    ttsNormalized.explicitFlags,
-    {
+  const unresolvedTtsOptions: StandaloneTtsCommandOptions = buildOptsFromFlags(sanitizedFlags, {}, ttsNormalized.explicitFlags, {
       flagOccurrences: ttsNormalized.flagOccurrences,
       ttsOptionResolutionAuthority
-    }
-  )
+    })
   const referenceInput = resolveStandaloneMistralTtsCliReferenceInput(
     ttsNormalized.flags,
     {

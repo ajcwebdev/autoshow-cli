@@ -3,7 +3,7 @@ import type { GeminiVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { normalizeGeminiDuration, normalizeGeminiResolution } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -32,12 +32,12 @@ export const runGeminiVideoGen = async (
     abortSignal?: AbortSignal | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = requireApiKey('GEMINI_API_KEY', 'video:gemini')
+  const apiKey = requireProviderKey('gemini', 'video:gemini')
 
   logGenStatus('video', 'gemini', options.model, 'started')
 
   const estimate = estimateVideoCost({
-    geminiVideoModel: options.model,
+    geminiVideoModels: [options.model],
     videoDuration: options.durationSeconds,
     videoResolution: options.resolution,
     videoMode: options.mode

@@ -15,8 +15,9 @@ export const buildMusicOptions = (ctx: ResolvedFlagContext): MusicRuntimeOptions
     ...pick(modelOptions, MUSIC_PRICING_MODEL_KEYS),
     musicProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'music-provider-concurrency', allShortcutFlags['all-music'], explicitFlags, configuredFlags),
     musicLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'music-local-concurrency', explicitFlags, configuredFlags),
-    musicDuration: parseOptionalIntFlag(readOptionalStringFlag(mergedFlags, 'music-duration')),
-    musicLyricsFile: readOptionalStringFlag(mergedFlags, 'music-lyrics-file'),
-    musicInstrumental: readBooleanFlag(mergedFlags, 'music-instrumental'),
+    musicDuration: parseOptionalIntFlag(readOptionalStringFlag(mergedFlags, 'duration')),
+    musicLyricsFile: readOptionalStringFlag(mergedFlags, 'lyrics-file'),
+    musicInstrumental: readBooleanFlag(mergedFlags, 'instrumental')
+      || readBooleanFlag(mergedFlags, 'music-instrumental'),
   }
 }

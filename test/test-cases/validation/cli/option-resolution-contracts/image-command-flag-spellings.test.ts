@@ -6,12 +6,8 @@ import { runMusicGen } from '~/cli/commands/process-steps/step-7-music/run-music
 import { imageCommandFlags, imageCommandOptionNames } from '~/cli/flags/image-flags'
 import { musicCommandFlags, musicCommandOptionNames } from '~/cli/flags/music-flags'
 import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-flags'
-import { renameFlagSpellings } from '~/cli/flags/flag-utils'
 import type { MusicGenOptions, VideoGenOptions } from '~/types'
 import { rejectionMessage, thrownMessage } from '../../../../test-utils/cli-assertions'
-
-const internalNames = Object.keys(imageCommandOptionNames)
-const publicNames = Object.values(imageCommandOptionNames)
 
 const expectOnlyPublicCommandSpellings = (
   registeredFlags: Record<string, unknown>,
@@ -23,25 +19,17 @@ const expectOnlyPublicCommandSpellings = (
 }
 
 describe('image command flag spellings', () => {
-  test('the standalone image command registers the renamed spellings and none of the pipeline ones', () => {
+  test('the standalone image command registers the public spellings and none of the prefixed ones', () => {
     expectOnlyPublicCommandSpellings(imageCommandFlags, imageCommandOptionNames)
   })
 
-  test('every internal spelling retargets to exactly its public spelling', () => {
-    expect(renameFlagSpellings(internalNames.map((name) => `--${name}`).join(' '), imageCommandOptionNames))
-      .toBe(publicNames.map((name) => `--${name}`).join(' '))
-  })
-
-  test('shared step-5 rejections retarget to the spellings the image command accepts', () => {
-    const grokMessage = thrownMessage(() => collectImageTargets(buildOptsFromFlags(false, {
+  test('option resolution reads public image command spellings', () => {
+    const grokMessage = thrownMessage(() => collectImageTargets(buildOptsFromFlags({
       'grok-image': 'grok-imagine-image-quality',
-      'image-search-grounding': true
+      'search-grounding': true
     })))
-    expect(grokMessage).toContain('--image-search-grounding')
-    const retargetedGrok = renameFlagSpellings(grokMessage, imageCommandOptionNames)
-    expect(retargetedGrok).toContain('--search-grounding is not supported by Grok/grok-imagine-image-quality')
-    expect(retargetedGrok).not.toContain('--image-')
-
+    expect(grokMessage).toContain('--search-grounding is not supported by Grok/grok-imagine-image-quality')
+    expect(grokMessage).not.toContain('--image-')
   })
 })
 
@@ -51,13 +39,11 @@ describe('video and music command flag spellings', () => {
     expectOnlyPublicCommandSpellings(musicCommandFlags, musicCommandOptionNames)
   })
 
-  test('both command maps retarget every shared pipeline spelling', () => {
-    for (const optionNames of [videoCommandOptionNames, musicCommandOptionNames]) {
-      const internal = Object.keys(optionNames)
-      const publicNamesForCommand = Object.values(optionNames)
-      expect(renameFlagSpellings(internal.map((name) => `--${name}`).join(' '), optionNames))
-        .toBe(publicNamesForCommand.map((name) => `--${name}`).join(' '))
-    }
+  test('option resolution reads public video and music command spellings', () => {
+    expect(buildOptsFromFlags({ duration: '8' }).videoDuration).toBe(8)
+    expect(buildOptsFromFlags({ duration: '8' }).musicDuration).toBe(8)
+    expect(buildOptsFromFlags({ 'lyrics-file': 'lyrics.txt' }).musicLyricsFile).toBe('lyrics.txt')
+    expect(buildOptsFromFlags({ size: '1024x1024' }).imageSize).toBe('1024x1024')
   })
 
   test('runtime provider-list errors match their command-boundary twins', async () => {

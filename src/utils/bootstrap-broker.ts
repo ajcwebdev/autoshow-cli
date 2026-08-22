@@ -2,7 +2,7 @@ import { ensureWhisperReady } from '~/cli/commands/process-steps/step-2-extract/
 import { ensureWhisperfileReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
 import type { BootstrapHandler } from '~/types'
 import { InternalError } from '~/utils/error-handler'
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
 const DEFAULT_WHISPER_MODEL = 'tiny'
 const cache = new Map<string, Promise<void>>()
@@ -37,49 +37,49 @@ const handlers: Record<string, BootstrapHandler> = {
     ensure: async (model) => await ensureWhisperfileReady(model ?? DEFAULT_WHISPER_MODEL)
   },
   'deepgram-stt': {
-    ensure: ensureProvider('deepgram', 'stt:deepgram', 'Deepgram transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('deepgram', 'stt:deepgram', 'Deepgram transcription') }
   },
   'deepinfra-stt': {
-    ensure: ensureProvider('deepinfra', 'stt:deepinfra', 'DeepInfra transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('deepinfra', 'stt:deepinfra', 'DeepInfra transcription') }
   },
   'soniox-stt': {
-    ensure: ensureProvider('soniox', 'stt:soniox', 'Soniox transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('soniox', 'stt:soniox', 'Soniox transcription') }
   },
   'speechmatics-stt': {
-    ensure: ensureProvider('speechmatics', 'stt:speechmatics', 'Speechmatics transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('speechmatics', 'stt:speechmatics', 'Speechmatics transcription') }
   },
   'rev-stt': {
-    ensure: ensureProvider('rev', 'stt:rev', 'Rev transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('rev', 'stt:rev', 'Rev transcription') }
   },
   'groq-stt': {
-    ensure: ensureProvider('groq', 'stt:groq', 'Groq transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('groq', 'stt:groq', 'Groq transcription') }
   },
   'grok-stt': {
-    ensure: ensureProvider('grok', 'stt:grok', 'Grok transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('grok', 'stt:grok', 'Grok transcription') }
   },
   'mistral-stt': {
-    ensure: ensureProvider('mistral', 'stt:mistral', 'Mistral transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('mistral', 'stt:mistral', 'Mistral transcription') }
   },
   'assemblyai-stt': {
-    ensure: ensureProvider('assemblyai', 'stt:assemblyai', 'AssemblyAI transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('assemblyai', 'stt:assemblyai', 'AssemblyAI transcription') }
   },
   'gladia-stt': {
-    ensure: ensureProvider('gladia', 'stt:gladia', 'Gladia transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('gladia', 'stt:gladia', 'Gladia transcription') }
   },
   'happyscribe-stt': {
-    ensure: ensureProvider('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription') }
   },
   'supadata-stt': {
-    ensure: ensureProvider('supadata', 'stt:supadata', 'Supadata transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('supadata', 'stt:supadata', 'Supadata transcription') }
   },
   'scrapecreators-stt': {
-    ensure: ensureProvider('scrapecreators', 'stt:scrapecreators', 'ScrapeCreators transcript retrieval')
+    ensure: async (): Promise<void> => { requireProviderKey('scrapecreators', 'stt:scrapecreators', 'ScrapeCreators transcript retrieval') }
   },
   'gemini-stt': {
-    ensure: ensureProvider('gemini', 'stt:gemini', 'Gemini transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('gemini', 'stt:gemini', 'Gemini transcription') }
   },
   'together-stt': {
-    ensure: ensureProvider('together', 'stt:together', 'Together transcription')
+    ensure: async (): Promise<void> => { requireProviderKey('together', 'stt:together', 'Together transcription') }
   },
 }
 

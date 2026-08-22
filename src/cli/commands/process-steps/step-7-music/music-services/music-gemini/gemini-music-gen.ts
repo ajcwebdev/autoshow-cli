@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureGeminiMusicGenSetup = ensureProvider('gemini', 'music:gemini', 'Gemini music generation')
+export const ensureGeminiMusicGenSetup = async (): Promise<void> => { requireProviderKey('gemini', 'music:gemini', 'Gemini music generation') }

@@ -20,13 +20,13 @@ export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode
     }
     normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
     if (options.videoInputImage) {
-      validateVideoMediaReferences([options.videoInputImage], { flagName: '--video-input-image', provider: 'ltx', model, kind: 'image' })
+      validateVideoMediaReferences([options.videoInputImage], { flagName: '--input-image', provider: 'ltx', model, kind: 'image' })
     }
     if (options.videoLastFrame) {
-      validateVideoMediaReferences([options.videoLastFrame], { flagName: '--video-last-frame', provider: 'ltx', model, kind: 'image' })
+      validateVideoMediaReferences([options.videoLastFrame], { flagName: '--last-frame', provider: 'ltx', model, kind: 'image' })
     }
     if (options.videoInputVideo) {
-      validateVideoMediaReferences([options.videoInputVideo], { flagName: '--video-input-video', provider: 'ltx', model, kind: 'video' })
+      validateVideoMediaReferences([options.videoInputVideo], { flagName: '--input-video', provider: 'ltx', model, kind: 'video' })
     }
 
     return [{

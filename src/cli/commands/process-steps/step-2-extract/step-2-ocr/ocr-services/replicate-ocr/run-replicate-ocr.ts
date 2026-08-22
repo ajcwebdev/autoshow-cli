@@ -3,7 +3,7 @@ import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 import { isRecord } from '~/utils/rest-client'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { OCR_IMAGE_MIME_TYPES, resolveMediaMimeType } from '~/utils/media-mime-types'
 
 const imageMimeType = (filePath: string): string =>
@@ -24,7 +24,7 @@ export const runReplicateOcr = async (
   step1Metadata: DocumentMetadata,
   model: string
 ): Promise<{ pages: PageResult[], extractionMethod: 'replicate-ocr', totalPages?: number }> => {
-  const apiToken = requireApiKey('REPLICATE_API_TOKEN', 'ocr:replicate', 'Replicate OCR')
+  const apiToken = requireProviderKey('replicate', 'ocr:replicate', 'Replicate OCR')
   const bytes = await Bun.file(filePath).arrayBuffer()
   const mimeType = step1Metadata.format === 'pdf' ? 'application/pdf' : imageMimeType(filePath)
   const deepSeekOcr = isDeepSeekOcrModel(model)

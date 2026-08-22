@@ -1,7 +1,7 @@
 import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
@@ -248,7 +248,7 @@ export const runGeminiOcr = async (
     model,
     requestedReasoningEffort: opts.reasoningEffort
   })
-  const apiKey = requireApiKey('GEMINI_API_KEY', 'ocr:gemini', 'Gemini OCR')
+  const apiKey = requireProviderKey('gemini', 'ocr:gemini', 'Gemini OCR')
 
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
   const diagnosticPageNumber = expectedPageCount === 1

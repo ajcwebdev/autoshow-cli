@@ -1,7 +1,7 @@
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { UsageError } from '~/utils/error-handler'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 
@@ -11,13 +11,13 @@ const TOGETHER_MODEL_BY_SELECTOR = {
 } as const
 
 const ensureTogetherApiKey = (): string => {
-  const apiKey = requireApiKey('TOGETHER_API_KEY', 'write:together', '--together models')
+  const apiKey = requireProviderKey('together', 'write:together', '--together models')
   return apiKey
 }
 
 const resolveTogetherApiModel = (model: string): string => {
   if (!(model in TOGETHER_MODEL_BY_SELECTOR)) {
-    throw CLIUsageError(`Unsupported Together model selector "${model}". Allowed values: kimi-k2.6, glm-5.1`)
+    throw UsageError(`Unsupported Together model selector "${model}". Allowed values: kimi-k2.6, glm-5.1`)
   }
 
   return TOGETHER_MODEL_BY_SELECTOR[model as keyof typeof TOGETHER_MODEL_BY_SELECTOR]

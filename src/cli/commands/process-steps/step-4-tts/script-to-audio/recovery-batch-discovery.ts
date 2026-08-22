@@ -6,7 +6,7 @@ import type {
   RetainedBatchCandidate,
   RetainedJournalEvidence,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson } from './contract-identity'
 import { validateProviderBatchResult } from './contract-validation'
 import { contained } from './attempt-io'
@@ -21,7 +21,7 @@ const addBatchCandidate = (
 ): void => {
   const existing = candidates.get(candidate.batchResultId)
   if (existing && canonicalTtsJson(existing) !== canonicalTtsJson(candidate)) {
-    throw CLIUsageError('Stored TTS batch-result identity has conflicting retained artifact bindings.')
+    throw UsageError('Stored TTS batch-result identity has conflicting retained artifact bindings.')
   }
   candidates.set(candidate.batchResultId, candidate)
 }
@@ -56,7 +56,7 @@ const discoverProjectionBatchCandidates = (
         const path = resolveRetainedPath(renderRoot, slot.batchResult.path, 'Stored provider batch result')
         const relativeResult = relative(renderRoot, path).split(sep)
         const batchResultsIndex = relativeResult.lastIndexOf('batch-results')
-        if (batchResultsIndex < 1) throw CLIUsageError('Stored provider batch result is outside an immutable provider attempt.')
+        if (batchResultsIndex < 1) throw UsageError('Stored provider batch result is outside an immutable provider attempt.')
         addBatchCandidate(candidates, {
           batchId: batch.batchId,
           generationSlotId: slot.generationSlotId,
@@ -89,11 +89,11 @@ const discoverOrphanBatchCandidates = async (
         value = JSON.parse(retained.bytes.toString('utf8')) as ProviderBatchResult
         validateProviderBatchResult(value)
       } catch {
-        throw CLIUsageError('Stored TTS attempt contains an invalid orphan provider batch result; reconciliation is required.')
+        throw UsageError('Stored TTS attempt contains an invalid orphan provider batch result; reconciliation is required.')
       }
       if (value.provenance !== 'provider-dispatch') continue
       if (value.renderIdentity !== pure.renderIdentity || value.renderPlanId !== pure.renderPlanId) {
-        throw CLIUsageError('Stored TTS attempt contains a cross-render orphan provider batch result; reconciliation is required.')
+        throw UsageError('Stored TTS attempt contains a cross-render orphan provider batch result; reconciliation is required.')
       }
       addBatchCandidate(candidates, {
         batchId: value.batchId,

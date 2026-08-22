@@ -10,7 +10,7 @@ import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/comp
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
 import type { AggregatedPriceEstimate, PipelineItemRecord, PipelineProviderState, PreparedTtsInput, PreparedTtsRun, StandaloneTtsCommandOptions, Step4Metadata, TtsExecutionReadinessObservation, TtsOptions, TtsRunSourceContext, TtsTarget } from '~/types'
-import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
+import { UsageError, hasErrorCode } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
@@ -35,12 +35,12 @@ export const getTtsInputKind = async (inputPath: string): Promise<'file' | 'dire
     }
   } catch (error) {
     if (hasErrorCode(error, 'ENOENT')) {
-      throw CLIUsageError(`File not found: ${inputPath}`, undefined, error instanceof Error ? { cause: error } : {})
+      throw UsageError(`File not found: ${inputPath}`, undefined, error instanceof Error ? { cause: error } : {})
     }
     throw error
   }
 
-  throw CLIUsageError(`tts input must be a file or directory. Got: ${inputPath}`)
+  throw UsageError(`tts input must be a file or directory. Got: ${inputPath}`)
 }
 
 export const prepareTtsInput = async (
@@ -51,7 +51,7 @@ export const prepareTtsInput = async (
   const sourceBytes = new Uint8Array(await Bun.file(inputPath).arrayBuffer())
   const text = new TextDecoder().decode(sourceBytes)
   if (!text.trim()) {
-    throw CLIUsageError(`Input file is empty: ${inputPath}`)
+    throw UsageError(`Input file is empty: ${inputPath}`)
   }
 
   const dialogueRequested = isMultiSpeakerRequested(ttsOptions)
@@ -84,7 +84,7 @@ export const reduceTtsProviderStates = (
   providers: readonly PipelineProviderState[]
 ): 'full' | 'incomplete' | 'failed' | 'skipped' => {
   if (providers.length === 0) {
-    throw CLIUsageError('A canonical TTS item requires every requested target\'s real lifecycle state.')
+    throw UsageError('A canonical TTS item requires every requested target\'s real lifecycle state.')
   }
   if (providers.every((provider) => provider.status === 'skipped')) return 'skipped'
   if (
@@ -112,11 +112,11 @@ export const orderedTtsProviderStates = (
   states: ReadonlyMap<string, PipelineProviderState>
 ): PipelineProviderState[] => targets.map((target) => {
   if (!target.targetKey) {
-    throw CLIUsageError(`TTS target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
+    throw UsageError(`TTS target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
   }
   const state = states.get(target.targetKey)
   if (!state) {
-    throw CLIUsageError(`TTS lifecycle did not durably prepare ${target.service}/${target.model} before dispatch.`)
+    throw UsageError(`TTS lifecycle did not durably prepare ${target.service}/${target.model} before dispatch.`)
   }
   return state
 })
@@ -202,7 +202,7 @@ const runPreparedTtsInput = async (
       for (const unboundState of preparedStates) {
         const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
         if (!state.targetKey) {
-          throw CLIUsageError('TTS lifecycle produced a prepared state without an operation-scoped targetKey.')
+          throw UsageError('TTS lifecycle produced a prepared state without an operation-scoped targetKey.')
         }
         lifecycleStates.set(state.targetKey, state)
       }
@@ -222,19 +222,19 @@ const runPreparedTtsInput = async (
     onProviderState: async (unboundState) => {
       const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
       if (!state.targetKey) {
-        throw CLIUsageError('TTS lifecycle produced a provider state without an operation-scoped targetKey.')
+        throw UsageError('TTS lifecycle produced a provider state without an operation-scoped targetKey.')
       }
       let committed: PipelineProviderState | undefined
       await updateManifest(outputDir, (manifest) => {
         if (manifest.command !== 'tts' || manifest.scope !== 'single' || manifest.items.length !== 1) {
-          throw CLIUsageError('TTS lifecycle can update only its canonical single-run manifest.')
+          throw UsageError('TTS lifecycle can update only its canonical single-run manifest.')
         }
         const item = manifest.items[0]
-        if (!item) throw CLIUsageError('Canonical single-run TTS manifest is missing its item.')
+        if (!item) throw UsageError('Canonical single-run TTS manifest is missing its item.')
         const providerIndex = item.providers.findIndex((provider) => provider.targetKey === state.targetKey)
         const current = item.providers[providerIndex]
         if (!current) {
-          throw CLIUsageError(`Canonical single-run TTS manifest is missing lifecycle state for ${state.targetKey}.`)
+          throw UsageError(`Canonical single-run TTS manifest is missing lifecycle state for ${state.targetKey}.`)
         }
         committed = appendCurrentTtsProviderState(current, state)
         const providers = item.providers.slice()
@@ -249,10 +249,10 @@ const runPreparedTtsInput = async (
   })
   await updateManifest(outputDir, (manifest) => {
     if (manifest.command !== 'tts' || manifest.scope !== 'single' || manifest.items.length !== 1) {
-      throw CLIUsageError('TTS completion can update only its canonical single-run manifest.')
+      throw UsageError('TTS completion can update only its canonical single-run manifest.')
     }
     const item = manifest.items[0]
-    if (!item) throw CLIUsageError('Canonical single-run TTS manifest is missing its item.')
+    if (!item) throw UsageError('Canonical single-run TTS manifest is missing its item.')
     return {
       ...manifest,
       items: [{
@@ -298,7 +298,7 @@ export const runSingleTtsInput = async (
   maxCents: number | undefined
 ): Promise<void> => {
   if (!isTextInputPath(inputPath)) {
-    throw CLIUsageError(`tts only accepts .md or .txt files. Got: ${inputPath}`)
+    throw UsageError(`tts only accepts .md or .txt files. Got: ${inputPath}`)
   }
 
   const createdAt = new Date().toISOString()

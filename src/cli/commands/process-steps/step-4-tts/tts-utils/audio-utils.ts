@@ -40,48 +40,17 @@ export const runTtsChunks = async <T>(
   chunks: readonly string[],
   concurrency: number | undefined,
   runChunk: (chunk: string, index: number, admission?: HostedTtsChunkAdmissionToken | undefined) => Promise<T>,
-  options: RunTtsChunksOptions = {}
+  options: RunTtsChunksOptions
 ): Promise<T[]> => {
-  if (options.provider) {
-    const scheduler = options.scheduler ?? createHostedTtsChunkScheduler(concurrency)
-    return await scheduler.runChunks(options.provider, chunks, runChunk, {
-      job: options.job,
-      scopeLabel: options.scopeLabel,
-      abortSignal: options.abortSignal
-    })
-  }
-
-  const normalizedConcurrency = normalizeTtsChunkConcurrency(concurrency)
-  const results = new Array<T>(chunks.length)
-  let nextIndex = 0
-  let firstError: unknown
-
-  const worker = async (): Promise<void> => {
-    while (true) {
-      if (firstError !== undefined) return
-      const index = nextIndex
-      nextIndex += 1
-      if (index >= chunks.length) return
-
-      try {
-        results[index] = await runChunk(chunks[index] as string, index)
-      } catch (error) {
-        if (firstError === undefined) {
-          firstError = error
-        }
-        return
-      }
-    }
-  }
-
-  const workerCount = Math.min(normalizedConcurrency, chunks.length)
-  await Promise.all(Array.from({ length: workerCount }, () => worker()))
-
-  if (firstError !== undefined) {
-    throw firstError
-  }
-
-  return results
+  const scheduler = options.scheduler ?? createHostedTtsChunkScheduler({
+    maxConcurrency: concurrency,
+    concurrencyMode: 'immediate'
+  })
+  return await scheduler.runChunks(options.provider, chunks, runChunk, {
+    job: options.job,
+    scopeLabel: options.scopeLabel,
+    abortSignal: options.abortSignal
+  })
 }
 
 export const concatAndConvertToWav = async (

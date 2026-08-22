@@ -80,7 +80,7 @@ test('write --price auto-detects prose .txt targets as text input instead of bat
 
   const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
   expect(result.exitCode).toBe(0)
-  expect(output).toContain('running write in text-input mode')
+  expect(output).not.toContain('running write in text-input mode')
   expect(output).not.toContain('No valid inputs found')
   expect(output).toContain('Expected files')
 }, E2E_TEST_TIMEOUT_MS)
@@ -109,7 +109,6 @@ test('write project directory --price reports rendered lyric outputs without cre
     'src/cli/create-cli.ts',
     'write',
     project.textDir,
-    '--text-input',
     '--price'
   ], { env: { AUTOSHOW_TEST_OUTPUT_DIR: OUTPUT_DIR } })
 

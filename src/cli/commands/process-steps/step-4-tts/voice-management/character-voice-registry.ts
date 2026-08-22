@@ -14,7 +14,7 @@ import type {
   CharacterVoiceRegistryPaths,
 } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
-import { CLIUsageError, hasErrorCode, InfraError, ValidationError } from '~/utils/error-handler'
+import { UsageError, hasErrorCode, InfraError, ValidationError } from '~/utils/error-handler'
 import { canonicalTtsJson, encodeArtifactKey, hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import {
   validateAuditActorRef,
@@ -40,11 +40,11 @@ const VOICE_ORIGINS = new Set([
 const TTS_PROVIDERS = new Set(['elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'])
 
 const assertSafeKey = (value: string, label: string): void => {
-  if (!SAFE_KEY.test(value)) throw CLIUsageError(`${label} must be a safe lowercase key.`)
+  if (!SAFE_KEY.test(value)) throw UsageError(`${label} must be a safe lowercase key.`)
 }
 
 const assertSubjectKey = (value: string, label: string): void => {
-  if (!LOGICAL_SUBJECT_KEY.test(value)) throw CLIUsageError(`${label} must be a safe character key or an explicit role:/voice: logical key.`)
+  if (!LOGICAL_SUBJECT_KEY.test(value)) throw UsageError(`${label} must be a safe character key or an explicit role:/voice: logical key.`)
 }
 
 const voiceSubjectArtifactKey = (subjectKey: string): string => {
@@ -101,7 +101,7 @@ const readJson = async (path: string, missingValue?: unknown): Promise<unknown> 
 }
 
 const validateCharacterVoiceBrief = (brief: CharacterVoiceBrief): CharacterVoiceBrief => {
-  if (!isRecord(brief)) throw CLIUsageError('Character voice brief must be an object.')
+  if (!isRecord(brief)) throw UsageError('Character voice brief must be an object.')
   assertAllowedKeys(brief, [
     'subjectKey', 'profileKey', 'language', 'locale', 'accent', 'apparentAgeRange', 'genderPresentation',
     'pitchRegister', 'timbre', 'resonance', 'pace', 'energy', 'texture', 'mannerisms', 'defaultDelivery',
@@ -111,22 +111,22 @@ const validateCharacterVoiceBrief = (brief: CharacterVoiceBrief): CharacterVoice
   assertSafeKey(brief.profileKey, 'Voice brief profile key')
   if (brief.accent) {
     assertAllowedKeys(brief.accent, ['description', 'strength'], 'Voice brief accent')
-    if (!brief.accent.description.trim() || (brief.accent.strength !== undefined && !['light', 'moderate', 'strong'].includes(brief.accent.strength))) throw CLIUsageError('Voice brief accent requires a description and supported strength.')
+    if (!brief.accent.description.trim() || (brief.accent.strength !== undefined && !['light', 'moderate', 'strong'].includes(brief.accent.strength))) throw UsageError('Voice brief accent requires a description and supported strength.')
   }
   if (brief.apparentAgeRange && (
     !Number.isInteger(brief.apparentAgeRange.minimum)
     || !Number.isInteger(brief.apparentAgeRange.maximum)
     || brief.apparentAgeRange.minimum < 0
     || brief.apparentAgeRange.maximum < brief.apparentAgeRange.minimum
-  )) throw CLIUsageError('Voice brief apparent age range must be ordered non-negative integers.')
+  )) throw UsageError('Voice brief apparent age range must be ordered non-negative integers.')
   if (brief.apparentAgeRange) assertAllowedKeys(brief.apparentAgeRange, ['minimum', 'maximum'], 'Voice brief apparent age range')
-  if (!Array.isArray(brief.mannerisms) || !Array.isArray(brief.prohibitedCaricatures) || !Array.isArray(brief.pronunciations) || !Array.isArray(brief.allowedOrigins)) throw CLIUsageError('Voice brief list fields must be arrays.')
-  if (brief.allowedOrigins.length === 0 || brief.allowedOrigins.some(origin => !VOICE_ORIGINS.has(origin))) throw CLIUsageError('Voice brief requires at least one supported allowed origin.')
-  if (brief.preferredProviders && (!Array.isArray(brief.preferredProviders) || brief.preferredProviders.some(provider => !TTS_PROVIDERS.has(provider)))) throw CLIUsageError('Voice brief preferred providers contain an unsupported TTS provider.')
+  if (!Array.isArray(brief.mannerisms) || !Array.isArray(brief.prohibitedCaricatures) || !Array.isArray(brief.pronunciations) || !Array.isArray(brief.allowedOrigins)) throw UsageError('Voice brief list fields must be arrays.')
+  if (brief.allowedOrigins.length === 0 || brief.allowedOrigins.some(origin => !VOICE_ORIGINS.has(origin))) throw UsageError('Voice brief requires at least one supported allowed origin.')
+  if (brief.preferredProviders && (!Array.isArray(brief.preferredProviders) || brief.preferredProviders.some(provider => !TTS_PROVIDERS.has(provider)))) throw UsageError('Voice brief preferred providers contain an unsupported TTS provider.')
   for (const pronunciation of brief.pronunciations) assertAllowedKeys(pronunciation, ['term', 'pronunciation'], 'Voice brief pronunciation')
-  if (brief.pronunciations.some(entry => !entry.term.trim() || !entry.pronunciation.trim())) throw CLIUsageError('Voice brief pronunciations require a term and pronunciation.')
+  if (brief.pronunciations.some(entry => !entry.term.trim() || !entry.pronunciation.trim())) throw UsageError('Voice brief pronunciations require a term and pronunciation.')
   const pronunciationTerms = brief.pronunciations.map(entry => entry.term.normalize('NFKC').toLocaleLowerCase('en-US'))
-  if (new Set(pronunciationTerms).size !== pronunciationTerms.length) throw CLIUsageError('Voice brief contains duplicate pronunciation terms.')
+  if (new Set(pronunciationTerms).size !== pronunciationTerms.length) throw UsageError('Voice brief contains duplicate pronunciation terms.')
   return brief
 }
 
@@ -152,9 +152,9 @@ export const writeCharacterVoiceBriefCatalog = async (
   charactersRoot: string,
   catalog: CharacterVoiceBriefCatalog
 ): Promise<void> => {
-  if (catalog.schemaVersion !== 1) throw CLIUsageError('Character voice brief catalog requires schemaVersion 1.')
+  if (catalog.schemaVersion !== 1) throw UsageError('Character voice brief catalog requires schemaVersion 1.')
   const keys = catalog.briefs.map(brief => `${brief.subjectKey}\0${brief.profileKey}`)
-  if (new Set(keys).size !== keys.length) throw CLIUsageError('Character voice brief catalog contains duplicate subject/profile entries.')
+  if (new Set(keys).size !== keys.length) throw UsageError('Character voice brief catalog contains duplicate subject/profile entries.')
   for (const brief of catalog.briefs) validateCharacterVoiceBrief(brief)
   await atomicWriteJson(resolveCharacterVoiceRegistryPaths(charactersRoot).briefs, catalog)
 }
@@ -191,7 +191,7 @@ export const loadApprovedVoiceAudition = async (
   registration: VoiceRegistration
 ): Promise<VoiceAuditionManifest> => {
   if (registration.approval.state !== 'approved' || !registration.approvedAuditionId) {
-    throw CLIUsageError('Approved audition lookup requires an approved voice registration.')
+    throw UsageError('Approved audition lookup requires an approved voice registration.')
   }
   const paths = resolveCharacterVoiceRegistryPaths(charactersRoot)
   const path = join(
@@ -206,7 +206,7 @@ export const loadApprovedVoiceAudition = async (
   try {
     const audition = validateVoiceAuditionManifest(value as VoiceAuditionManifest)
     if (audition.auditionId !== registration.approvedAuditionId || audition.providerVoice.provider !== registration.provider) {
-      throw CLIUsageError('Approved audition does not bind the exact registration generation.')
+      throw UsageError('Approved audition does not bind the exact registration generation.')
     }
     return audition
   } catch (error) {
@@ -254,7 +254,7 @@ const referenceGenerationRoot = (paths: CharacterVoiceRegistryPaths, registratio
   assertSubjectKey(registration.subjectKey, 'Voice reference subject key')
   assertSafeKey(registration.provider, 'Voice reference provider key')
   assertSafeKey(registration.registrationId, 'Voice reference registration ID')
-  if (!/^[a-f0-9]{64}$/.test(registration.generationId)) throw CLIUsageError('Voice reference generation ID must be a SHA-256 digest.')
+  if (!/^[a-f0-9]{64}$/.test(registration.generationId)) throw UsageError('Voice reference generation ID must be a SHA-256 digest.')
   return join(paths.referencesRoot, voiceSubjectArtifactKey(registration.subjectKey), registration.provider, registration.registrationId, registration.generationId)
 }
 
@@ -317,11 +317,11 @@ export const recordVoiceProvisioningOutcome = async (input: {
   const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
   let catalog = await loadVoiceRegistrationCatalog(input.charactersRoot)
   const source = catalog.registrations.find(registration => registration.registrationId === input.registrationId && registration.generationId === input.generationId)
-  if (!source) throw CLIUsageError('Voice provisioning source registration generation was not found.')
+  if (!source) throw UsageError('Voice provisioning source registration generation was not found.')
   const existingSuccessor = catalog.registrations.find(registration => registration.registrationId === source.registrationId && registration.priorGenerationId === source.generationId)
   if (existingSuccessor) {
     if (canonicalTtsJson(existingSuccessor.provisioning) === canonicalTtsJson(input.provisioning)) return existingSuccessor
-    throw CLIUsageError('Voice provisioning generation already has a different append-preserved successor.')
+    throw UsageError('Voice provisioning generation already has a different append-preserved successor.')
   }
   const recordedAt = input.recordedAt ?? new Date().toISOString()
   const approval = source.approval.state === 'approved' && input.provisioning.state !== 'ready'
@@ -357,9 +357,9 @@ export const transitionVoiceRegistrationLifecycle = async (input: {
   const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
   let catalog = await loadVoiceRegistrationCatalog(input.charactersRoot)
   const source = catalog.registrations.find(registration => registration.registrationId === input.registrationId && registration.generationId === input.generationId)
-  if (!source) throw CLIUsageError('Voice lifecycle source registration generation was not found.')
-  if (input.action === 'revoke' && !input.reason?.trim()) throw CLIUsageError('Voice revocation requires a reason.')
-  if (input.action === 'delete' && source.provisioning.state !== 'ready') throw CLIUsageError('Voice deletion requires a ready provider resource generation.')
+  if (!source) throw UsageError('Voice lifecycle source registration generation was not found.')
+  if (input.action === 'revoke' && !input.reason?.trim()) throw UsageError('Voice revocation requires a reason.')
+  if (input.action === 'delete' && source.provisioning.state !== 'ready') throw UsageError('Voice deletion requires a ready provider resource generation.')
   const at = input.transitionedAt ?? new Date().toISOString()
   const auditionId = priorAuditionId(source)
   const approval = input.action === 'revoke'
@@ -397,10 +397,10 @@ export const beginVoiceRegistrationDeletion = async (input: {
   const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
   let catalog = await loadVoiceRegistrationCatalog(input.charactersRoot)
   const source = catalog.registrations.find(registration => registration.registrationId === input.registrationId && registration.generationId === input.generationId)
-  if (!source) throw CLIUsageError('Voice deletion source registration generation was not found.')
-  if (source.provisioning.state !== 'ready' || source.provisioning.providerVoice.kind !== 'remote-resource') throw CLIUsageError('Voice deletion requires a ready remote provider resource.')
+  if (!source) throw UsageError('Voice deletion source registration generation was not found.')
+  if (source.provisioning.state !== 'ready' || source.provisioning.providerVoice.kind !== 'remote-resource') throw UsageError('Voice deletion requires a ready remote provider resource.')
   if (source.provisioning.providerVoice.ownership !== 'project' || source.provisioning.providerVoice.deletion.state !== 'eligible') {
-    throw CLIUsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
+    throw UsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
   }
   const sourceVoice = source.provisioning.providerVoice
   const current = await loadCurrentVoiceRegistrationIndex(input.charactersRoot, catalog)
@@ -411,7 +411,7 @@ export const beginVoiceRegistrationDeletion = async (input: {
       && registration.provisioning.providerVoice.kind === 'remote-resource'
       && registration.provisioning.providerVoice.provider === sourceVoice.provider
       && registration.provisioning.providerVoice.resourceId === sourceVoice.resourceId)
-  if (sharedCurrent) throw CLIUsageError(`Voice deletion is blocked because current registration ${sharedCurrent.registrationId} shares the same provider resource.`)
+  if (sharedCurrent) throw UsageError(`Voice deletion is blocked because current registration ${sharedCurrent.registrationId} shares the same provider resource.`)
   const at = input.requestedAt ?? new Date().toISOString()
   const auditionId = priorAuditionId(source)
   const pending = registrationWithComputedGeneration({
@@ -438,9 +438,9 @@ export const recordVoiceAudition = async (input: {
   const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
   let catalog = await loadVoiceRegistrationCatalog(input.charactersRoot)
   const source = catalog.registrations.find(registration => registration.registrationId === input.registrationId && registration.generationId === input.generationId)
-  if (!source) throw CLIUsageError('Voice audition source registration generation was not found.')
-  if (source.provisioning.state !== 'ready') throw CLIUsageError('Voice audition requires a ready provisioned registration.')
-  if (source.approval.state !== 'draft') throw CLIUsageError('Voice audition can be recorded only from a draft registration generation.')
+  if (!source) throw UsageError('Voice audition source registration generation was not found.')
+  if (source.provisioning.state !== 'ready') throw UsageError('Voice audition requires a ready provisioned registration.')
+  if (source.approval.state !== 'draft') throw UsageError('Voice audition can be recorded only from a draft registration generation.')
   if (input.audition.registrationDraftId !== source.registrationId
     || input.audition.provider !== source.provider
     || input.audition.providerModel !== source.providerModel
@@ -448,7 +448,7 @@ export const recordVoiceAudition = async (input: {
     || input.audition.settingsSchema !== source.settingsSchema
     || canonicalTtsJson(input.audition.synthesisSettings) !== canonicalTtsJson(source.synthesisSettings)
     || canonicalTtsJson(input.audition.providerVoice) !== canonicalTtsJson(source.provisioning.providerVoice)) {
-    throw CLIUsageError('Voice audition does not bind the exact draft registration, provider target, settings, capability fixture, and provider voice.')
+    throw UsageError('Voice audition does not bind the exact draft registration, provider target, settings, capability fixture, and provider voice.')
   }
   const next = registrationWithComputedGeneration({
     ...source,
@@ -470,18 +470,18 @@ export const approveVoiceRegistration = async (
   const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
   let catalog = await loadVoiceRegistrationCatalog(input.charactersRoot)
   const current = await loadCurrentVoiceRegistrationIndex(input.charactersRoot, catalog)
-  if (current.revision !== input.expectedIndexRevision) throw CLIUsageError(`Current voice index changed; expected revision ${input.expectedIndexRevision}, found ${current.revision}.`)
+  if (current.revision !== input.expectedIndexRevision) throw UsageError(`Current voice index changed; expected revision ${input.expectedIndexRevision}, found ${current.revision}.`)
   const source = catalog.registrations.find(registration => registration.registrationId === input.registrationId && registration.generationId === input.generationId)
-  if (!source) throw CLIUsageError('Voice approval source registration generation was not found.')
-  if (source.provisioning.state !== 'ready' || source.approval.state !== 'auditioned') throw CLIUsageError('Voice approval requires a ready, auditioned registration generation.')
+  if (!source) throw UsageError('Voice approval source registration generation was not found.')
+  if (source.provisioning.state !== 'ready' || source.approval.state !== 'auditioned') throw UsageError('Voice approval requires a ready, auditioned registration generation.')
   if (source.consentRecordRef) {
-    if (!input.consent || input.consent.subjectKey !== source.subjectKey) throw CLIUsageError('Consent-bound voice approval requires the current protected consent record for the same subject.')
+    if (!input.consent || input.consent.subjectKey !== source.subjectKey) throw UsageError('Consent-bound voice approval requires the current protected consent record for the same subject.')
     assertVoiceConsentAllows(input.consent, 'new-synthesis')
   }
-  if (source.approval.auditionId !== input.audition.auditionId || input.audition.registrationDraftId !== source.registrationId) throw CLIUsageError('Voice approval audition does not match the exact registration generation.')
+  if (source.approval.auditionId !== input.audition.auditionId || input.audition.registrationDraftId !== source.registrationId) throw UsageError('Voice approval audition does not match the exact registration generation.')
   const selectionKey = `${source.subjectKey}\0${source.provider}\0${source.providerModel}\0${source.profileKey}`
   const priorSelection = current.selections.find(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.providerModel}\0${selection.profileKey}` === selectionKey)
-  if (input.expectedCurrentGenerationId !== priorSelection?.generationId) throw CLIUsageError('Current voice generation changed during approval.')
+  if (input.expectedCurrentGenerationId !== priorSelection?.generationId) throw UsageError('Current voice generation changed during approval.')
   const approvedAt = input.approvedAt ?? new Date().toISOString()
   const approvedInput: VoiceRegistration = {
     ...source,
@@ -524,11 +524,11 @@ export const resolveRegistrationGeneration = async (
   const catalog = await loadVoiceRegistrationCatalog(charactersRoot)
   if (requestedGenerationId) {
     const registration = catalog.registrations.find(entry => entry.registrationId === registrationId && entry.generationId === requestedGenerationId)
-    if (!registration) throw CLIUsageError('Voice registration generation was not found.')
+    if (!registration) throw UsageError('Voice registration generation was not found.')
     return registration
   }
   const matches = catalog.registrations.filter(entry => entry.registrationId === registrationId)
-  if (matches.length === 0) throw CLIUsageError('Voice registration generation was not found.')
+  if (matches.length === 0) throw UsageError('Voice registration generation was not found.')
   const current = await loadCurrentVoiceRegistrationIndex(charactersRoot, catalog)
   const currentGenerationIds = [...new Set(current.selections.filter(entry => entry.registrationId === registrationId).map(entry => entry.generationId))]
   if (currentGenerationIds.length === 1) {
@@ -536,7 +536,7 @@ export const resolveRegistrationGeneration = async (
     if (currentMatch) return currentMatch
   }
   if (currentGenerationIds.length > 1) {
-    throw CLIUsageError(`Voice registration ${registrationId} has multiple matching generations: ${[...currentGenerationIds].sort().join(', ')}. Pass --generation-id.`)
+    throw UsageError(`Voice registration ${registrationId} has multiple matching generations: ${[...currentGenerationIds].sort().join(', ')}. Pass --generation-id.`)
   }
   const [sole] = matches
   if (matches.length === 1 && sole) return sole
@@ -544,7 +544,7 @@ export const resolveRegistrationGeneration = async (
   const tips = matches.filter(entry => !successorIds.has(entry.generationId))
   const [tip] = tips
   if (tips.length === 1 && tip) return tip
-  throw CLIUsageError(`Voice registration ${registrationId} has multiple matching generations: ${matches.map(entry => entry.generationId).sort().join(', ')}. Pass --generation-id.`)
+  throw UsageError(`Voice registration ${registrationId} has multiple matching generations: ${matches.map(entry => entry.generationId).sort().join(', ')}. Pass --generation-id.`)
 }
 
 export const requireCurrentVoiceRegistration = async (

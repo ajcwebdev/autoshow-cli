@@ -36,7 +36,6 @@ describe('price mode contracts', () => {
       const model = 'voxtral-mini-tts-2603'
       const opts = {
         mistralTtsModels: [model],
-        mistralTtsModel: model,
         mistralTtsVoice: 'voice-existing'
       } as Parameters<typeof estimateTtsCosts>[0]
 

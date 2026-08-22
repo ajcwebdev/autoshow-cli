@@ -1,10 +1,10 @@
 import type { JsonObject } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 export const createProviderRecordReader = (providerLabel: string) =>
   (value: unknown, label: string): JsonObject => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      throw CLIUsageError(`${providerLabel} ${label} response is invalid.`)
+      throw UsageError(`${providerLabel} ${label} response is invalid.`)
     }
     return value as JsonObject
   }

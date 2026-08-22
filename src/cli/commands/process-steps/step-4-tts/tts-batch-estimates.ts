@@ -2,7 +2,7 @@ import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestra
 import { buildTtsEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, PreparedTtsInput, StepTimingBreakdown, TtsBatchEstimateReport, TtsOptions, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { formatDuration, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { createDetailTable } from '~/utils/app-logger/human-table/human-table'
@@ -91,7 +91,7 @@ export const enforceTtsBatchBudget = (
   }
 
   if (!allowOverBudget) {
-    throw CLIUsageError(
+    throw UsageError(
       `Estimated suite cost ${formatCents(totalEstimatedCost)} exceeds configured budget ${formatCents(maxCents)}. Use --allow-over-budget to proceed.`
     )
   }

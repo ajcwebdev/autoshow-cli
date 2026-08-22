@@ -12,24 +12,24 @@ const resolveExtractTargets = (input: ComputeEstimatedCostsInput): NonNullable<C
 
   const pageCount = input.extractPageCount
   const heuristicProviders = [
-    { provider: 'glm' as const, model: input.glmOcrModel },
-    { provider: 'kimi' as const, model: input.kimiOcrModel },
-    { provider: 'openai' as const, model: input.openaiOcrModel },
-    { provider: 'grok' as const, model: input.grokOcrModel },
-    { provider: 'anthropic' as const, model: input.anthropicOcrModel },
-    { provider: 'gemini' as const, model: input.geminiOcrModel },
-    { provider: 'deepinfra' as const, model: input.deepinfraOcrModel },
+    { provider: 'glm' as const, model: input.glmOcrModels?.[0] },
+    { provider: 'kimi' as const, model: input.kimiOcrModels?.[0] },
+    { provider: 'openai' as const, model: input.openaiOcrModels?.[0] },
+    { provider: 'grok' as const, model: input.grokOcrModels?.[0] },
+    { provider: 'anthropic' as const, model: input.anthropicOcrModels?.[0] },
+    { provider: 'gemini' as const, model: input.geminiOcrModels?.[0] },
+    { provider: 'deepinfra' as const, model: input.deepinfraOcrModels?.[0] },
   ]
 
   return [
-    ...(input.mistralOcrModel
-      ? [{ provider: 'mistral' as const, model: input.mistralOcrModel, pageCount, estimateType: 'exact' as const }]
+    ...(input.mistralOcrModels?.[0]
+      ? [{ provider: 'mistral' as const, model: input.mistralOcrModels[0], pageCount, estimateType: 'exact' as const }]
       : []),
-    ...(input.replicateOcrModel
-      ? [{ provider: 'replicate' as const, model: input.replicateOcrModel, pageCount, estimateType: 'exact' as const }]
+    ...(input.replicateOcrModels?.[0]
+      ? [{ provider: 'replicate' as const, model: input.replicateOcrModels[0], pageCount, estimateType: 'exact' as const }]
       : []),
-    ...(input.falOcrModel
-      ? [{ provider: 'fal' as const, model: input.falOcrModel, pageCount, estimateType: 'exact' as const }]
+    ...(input.falOcrModels?.[0]
+      ? [{ provider: 'fal' as const, model: input.falOcrModels[0], pageCount, estimateType: 'exact' as const }]
       : []),
     ...heuristicProviders.flatMap(({ provider, model }) =>
       model ? [{ provider, model, pageCount, estimateType: 'heuristic' as const }] : [])

@@ -35,7 +35,7 @@ export const markSttTargetSkipped = async (
     status: 'skipped',
     attempts: options.attempts ?? ctx.providerStateMap.get(targetKey)?.attempts ?? 0,
     ...(ctx.providerStateMap.get(targetKey)?.metadata ? { metadata: ctx.providerStateMap.get(targetKey)?.metadata } : {}),
-    lastError: toRecordedProviderError({
+    error: toRecordedProviderError({
       message: reason.message,
       skipped: true,
       ...(reason.stage ? { stage: reason.stage } : {}),
@@ -210,7 +210,7 @@ export const runSttProviderTargetAtIndex = async (
       status: 'failed',
       attempts: nextAttemptCount,
       ...(providerStateMap.get(targetKey)?.metadata ? { metadata: providerStateMap.get(targetKey)?.metadata } : {}),
-      lastError: toRecordedProviderError({
+      error: toRecordedProviderError({
         message: failure.message,
         ...(failure.stage ? { stage: failure.stage } : {}),
         ...(typeof failure.status === 'number' ? { status: failure.status } : {}),

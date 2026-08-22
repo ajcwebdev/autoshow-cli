@@ -1,4 +1,4 @@
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { ImagePromptVariation, PromptsConfig } from '~/types'
 
 export const IMAGE_PROMPT_VARIATIONS: ImagePromptVariation[] = [
@@ -18,7 +18,7 @@ const IMAGE_PROMPT_VARIATION_LABELS: Record<ImagePromptVariation, string> = {
 export const parseImagePromptVariations = (value: string): ImagePromptVariation[] => {
   const rawVariations = value.split(',').map(variation => variation.trim())
   if (rawVariations.some(variation => variation.length === 0)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid variation list "${value}". Expected one or more comma-separated values from: ${IMAGE_PROMPT_VARIATIONS.join(', ')}`
     )
   }
@@ -28,13 +28,13 @@ export const parseImagePromptVariations = (value: string): ImagePromptVariation[
 
   for (const variation of rawVariations) {
     if (!IMAGE_PROMPT_VARIATION_OPTIONS.has(variation)) {
-      throw CLIUsageError(
+      throw UsageError(
         `Invalid variation "${variation}". Expected one or more comma-separated values from: ${IMAGE_PROMPT_VARIATIONS.join(', ')}`
       )
     }
 
     if (seenVariations.has(variation)) {
-      throw CLIUsageError(`Duplicate variation "${variation}" is not allowed`)
+      throw UsageError(`Duplicate variation "${variation}" is not allowed`)
     }
 
     seenVariations.add(variation)

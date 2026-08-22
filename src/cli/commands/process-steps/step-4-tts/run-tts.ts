@@ -10,7 +10,7 @@ import {
 } from './tts-targets'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested } from './dialogue-normalizer'
 import { runMultiSpeakerTts } from './run-multi-speaker-tts'
-import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
+import { UsageError, InfraError, InternalError } from '~/utils/error-handler'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
@@ -74,13 +74,13 @@ const selectBoundedExecutionOptions = (
       ...turn,
       providerSegments: indexes.map((index) => {
         const segment = providerSegments[index]
-        if (segment === undefined) throw CLIUsageError(`Bounded TTS execution selected missing provider segment ${index} for ${turn.turnId}.`)
+        if (segment === undefined) throw UsageError(`Bounded TTS execution selected missing provider segment ${index} for ${turn.turnId}.`)
         return segment
       }),
       providerSegmentIndexes: indexes
     }]
   })
-  if (!selectedTurns?.length) throw CLIUsageError('Bounded TTS execution did not select any canonical dialogue turns.')
+  if (!selectedTurns?.length) throw UsageError('Bounded TTS execution did not select any canonical dialogue turns.')
   const selectedTurnIds = new Set(selectedTurns.map(turn => turn.turnId))
   const selectedTurnControls = options.ttsTurnControls
     ? Object.fromEntries(Object.entries(options.ttsTurnControls).filter(([turnId]) => selectedTurnIds.has(turnId)))
@@ -194,7 +194,7 @@ const persistBlockedReadiness = async (input: {
   if (input.sourceContext?.beforeDispatch) await input.sourceContext.beforeDispatch(states)
   else await Promise.all(states.map(async state => await input.sourceContext?.onProviderState?.(state)))
   const messages = input.readiness.blocked.flatMap(entry => entry.error?.message ? [entry.error.message] : [])
-  throw CLIUsageError(`TTS execution readiness failed before synthesis${messages.length > 0 ? `: ${messages.join('; ')}` : '.'}`)
+  throw UsageError(`TTS execution readiness failed before synthesis${messages.length > 0 ? `: ${messages.join('; ')}` : '.'}`)
 }
 
 const recoveryRoot = (outputDir: string, sourceContext?: TtsRunSourceContext | undefined): string =>

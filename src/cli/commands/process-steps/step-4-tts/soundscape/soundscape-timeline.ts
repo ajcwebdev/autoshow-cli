@@ -1,5 +1,5 @@
 import type { AnchorRole, ComicDialoguePlan, FinalTimeline, ResolvedSoundscapeAnchorResolution, ResolvedSoundscapeTimeline, SoundEffectRenderResult, SoundscapeAnchor, SoundscapePlan } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 
 const sourceTurnIds = (dialoguePlan: ComicDialoguePlan, sourceSegmentId: string): string[] => dialoguePlan.nodes.flatMap((node) => {
@@ -21,23 +21,23 @@ const resolvedAnchor = (
 
 const resolveAnchor = (anchor: SoundscapeAnchor, dialoguePlan: ComicDialoguePlan, timeline: FinalTimeline, cueId: string, timingPolicy: SoundscapePlan['timingPolicy'], anchorRole: AnchorRole, sceneBounds?: { start: number, end: number }): { positionMs: number, resolution: ResolvedSoundscapeAnchorResolution } => {
   if (anchor.kind === 'resolved-scene-edge') {
-    if (!sceneBounds) throw CLIUsageError(`Sound cue ${cueId} resolved-scene-edge anchor requires a computed scene range.`)
+    if (!sceneBounds) throw UsageError(`Sound cue ${cueId} resolved-scene-edge anchor requires a computed scene range.`)
     return resolvedAnchor(anchor.edge === 'start' ? sceneBounds.start : sceneBounds.end, anchorRole, timingPolicy, 'resolved-scene-edge-v1', { anchor, sceneBounds })
   }
   if (anchor.kind === 'scene-clock') return resolvedAnchor(anchor.positionMs, anchorRole, timingPolicy, 'scene-clock-v1', { anchor })
   const turnIds = sourceTurnIds(dialoguePlan, anchor.sourceSegmentId)
-  if (turnIds.length === 0) throw CLIUsageError(`Sound cue ${cueId} anchor references unknown speakable source segment ${anchor.sourceSegmentId}.`)
-  if (timeline.timing.availability !== 'timed') throw CLIUsageError(`Sound cue ${cueId} requires exact dialogue timing, but the selected final timeline is unavailable: ${timeline.timing.reason}`)
+  if (turnIds.length === 0) throw UsageError(`Sound cue ${cueId} anchor references unknown speakable source segment ${anchor.sourceSegmentId}.`)
+  if (timeline.timing.availability !== 'timed') throw UsageError(`Sound cue ${cueId} requires exact dialogue timing, but the selected final timeline is unavailable: ${timeline.timing.reason}`)
   const turns = timeline.timing.turns.filter(turn => turnIds.includes(turn.turnId))
-  if (turns.length !== turnIds.length) throw CLIUsageError(`Sound cue ${cueId} cannot resolve every selected dialogue turn for ${anchor.sourceSegmentId}.`)
+  if (turns.length !== turnIds.length) throw UsageError(`Sound cue ${cueId} cannot resolve every selected dialogue turn for ${anchor.sourceSegmentId}.`)
   if (anchor.kind === 'source-segment-edge') {
     const edge = anchor.edge === 'start' ? Math.min(...turns.map(turn => turn.startMs)) : Math.max(...turns.map(turn => turn.endMs))
     return resolvedAnchor(edge + anchor.offsetMs, anchorRole, timingPolicy, 'source-segment-edge-v1', { anchor, turnIds, turns })
   }
-  if (turnIds.length !== 1) throw CLIUsageError(`Sound cue ${cueId} text-offset anchor is ambiguous because ${anchor.sourceSegmentId} renders as overlapping voices.`)
+  if (turnIds.length !== 1) throw UsageError(`Sound cue ${cueId} text-offset anchor is ambiguous because ${anchor.sourceSegmentId} renders as overlapping voices.`)
   const turn = turns[0] as NonNullable<typeof turns[number]>
   const canonicalTurn = dialoguePlan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns).find(candidate => candidate.turnId === turn.turnId)
-  if (!canonicalTurn) throw CLIUsageError(`Sound cue ${cueId} has no canonical dialogue turn for its exact text offset.`)
+  if (!canonicalTurn) throw UsageError(`Sound cue ${cueId} has no canonical dialogue turn for its exact text offset.`)
   const canonicalLength = [...canonicalTurn.canonicalText].length
   if (anchor.textOffset === 0) return resolvedAnchor(turn.startMs + anchor.offsetMs, anchorRole, timingPolicy, 'prepared-provider-timing-v1', { anchor, turn, canonicalLength })
   if (anchor.textOffset === canonicalLength) return resolvedAnchor(turn.endMs + anchor.offsetMs, anchorRole, timingPolicy, 'prepared-provider-timing-v1', { anchor, turn, canonicalLength })
@@ -46,8 +46,8 @@ const resolveAnchor = (anchor: SoundscapeAnchor, dialoguePlan: ComicDialoguePlan
   const ends = tokens.filter(token => token.canonicalEnd === anchor.textOffset).map(token => token.endMs)
   const exact = starts.length > 0 ? Math.min(...starts) : ends.length > 0 ? Math.max(...ends) : undefined
   if (exact !== undefined) return resolvedAnchor(exact + anchor.offsetMs, anchorRole, timingPolicy, 'prepared-provider-timing-v1', { anchor, turn, tokens })
-  if (timingPolicy !== 'proportional') throw CLIUsageError(`Sound cue ${cueId} text offset ${anchor.textOffset} has no exact PreparedProviderText/timing evidence in the selected final timeline; use --soundscape-timing-policy proportional to record an explicit bounded approximation.`)
-  if (canonicalLength === 0) throw CLIUsageError(`Sound cue ${cueId} cannot proportionally resolve an empty canonical dialogue turn.`)
+  if (timingPolicy !== 'proportional') throw UsageError(`Sound cue ${cueId} text offset ${anchor.textOffset} has no exact PreparedProviderText/timing evidence in the selected final timeline; use --soundscape-timing-policy proportional to record an explicit bounded approximation.`)
+  if (canonicalLength === 0) throw UsageError(`Sound cue ${cueId} cannot proportionally resolve an empty canonical dialogue turn.`)
   const basePositionMs = turn.startMs + Math.round(((turn.endMs - turn.startMs) * anchor.textOffset) / canonicalLength)
   const positionMs = basePositionMs + anchor.offsetMs
   const errorBoundMs = Math.max(basePositionMs - turn.startMs, turn.endMs - basePositionMs)
@@ -68,7 +68,7 @@ export const resolveSoundscapeTimeline = (input: {
   const provisional = input.plan.cues.map((cue) => {
     const result = resultByCue.get(cue.cueId)
     if (!result || result.status !== 'succeeded' || !result.audio) {
-      if (cue.required) throw CLIUsageError(`Required sound cue ${cue.cueId} has no verified successful generation result.`)
+      if (cue.required) throw UsageError(`Required sound cue ${cue.cueId} has no verified successful generation result.`)
       return { cueId: cue.cueId, bus: cue.kind, required: false, status: 'omitted' as const, omissionReason: result?.omissionReason ?? 'No compatible generated source was available.' }
     }
     const anchor = resolveAnchor(cue.anchor, input.dialoguePlan, input.dialogueTimeline, cue.cueId, input.plan.timingPolicy, 'point')
@@ -97,7 +97,7 @@ export const resolveSoundscapeTimeline = (input: {
   const ambient = input.plan.ambientBeds.map((cue) => {
     const result = resultByCue.get(cue.cueId)
     if (!result || result.status !== 'succeeded' || !result.audio) {
-      if (cue.required) throw CLIUsageError(`Required ambient cue ${cue.cueId} has no verified successful generation result.`)
+      if (cue.required) throw UsageError(`Required ambient cue ${cue.cueId} has no verified successful generation result.`)
       return { cueId: cue.cueId, bus: 'ambience' as const, required: false, status: 'omitted' as const, omissionReason: result?.omissionReason ?? 'No compatible generated source was available.' }
     }
     const sceneBounds = { start: sceneStart, end: sceneEnd }
@@ -105,7 +105,7 @@ export const resolveSoundscapeTimeline = (input: {
     const endAnchor = cue.range.kind === 'full-scene' ? undefined : resolveAnchor(cue.range.end, input.dialoguePlan, input.dialogueTimeline, cue.cueId, input.plan.timingPolicy, 'range-end', sceneBounds)
     const start = startAnchor?.positionMs ?? sceneStart
     const end = endAnchor?.positionMs ?? sceneEnd
-    if (end <= start) throw CLIUsageError(`Ambient cue ${cue.cueId} resolves to a non-positive playback range.`)
+    if (end <= start) throw UsageError(`Ambient cue ${cue.cueId} resolves to a non-positive playback range.`)
     sceneStart = Math.min(sceneStart, start)
     sceneEnd = Math.max(sceneEnd, end)
     return {

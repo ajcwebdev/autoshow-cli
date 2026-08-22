@@ -1,7 +1,7 @@
 import type { MistralProtectedReferenceBinding, MistralProtectedSpeakerReferenceBinding, MistralTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import { validateMistralTtsModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runMistralTts } from './run-mistral-tts'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { UsageError, InternalError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationVoice } from '../../tts-targets/multi-speaker-capability'
 import { normalizeDialogueSpeakerKey } from '../../dialogue-normalizer'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '../../voice-assets/mistral-request-reference-policy'
@@ -17,13 +17,13 @@ export const collectMistralTtsTargets = (
     const model: MistralTtsModel = validateMistralTtsModel(rawModel)
     const voiceId = selection.mistralVoiceId
     if (voiceId && (protectedReference || protectedSpeakerReferences)) {
-      throw CLIUsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
+      throw UsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
     }
     if (protectedReference && protectedSpeakerReferences) {
-      throw CLIUsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
+      throw UsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
     }
     if (!voiceId && !protectedReference && !selection.multiSpeakerRequested) {
-      throw CLIUsageError(
+      throw UsageError(
         'Mistral TTS synthesis requires an existing voice ID or an explicitly authorized unnamed request reference.',
         'Pass --mistral-tts-voice with an existing voice, or use standalone --mistral-tts-ref-audio so the reference crosses protected ingestion before target collection.'
       )
@@ -61,7 +61,7 @@ export const collectMistralTtsTargets = (
           || invocationAsset?.assetId !== speakerReference.protectedAsset.assetId
           || invocationAsset?.sha256 !== speakerReference.protectedAsset.sha256
         )) {
-          throw CLIUsageError(
+          throw UsageError(
             'Mistral dialogue reference invocation does not bind its exact protected speaker asset.',
             'Pass each SPEAKER=path mapping explicitly to standalone `tts`; raw paths and copied invocation identities are rejected.'
           )

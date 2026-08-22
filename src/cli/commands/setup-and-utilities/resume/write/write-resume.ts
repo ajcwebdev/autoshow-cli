@@ -13,7 +13,7 @@ import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts } from 
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
@@ -354,8 +354,7 @@ const rebuildWriteCostTiming = (
     ...(typeof audioDurationSeconds === 'number' ? { audioDurationSeconds } : {}),
     sttTargets: getStep2SttTargets(currentMetadata['step2']),
     ...(extractTargets.length > 0 ? { extractTargets } : {}),
-    llmTargets,
-    skipLLM: false
+    llmTargets
   }
   const estimated = computePriceAlignedEstimatedCosts(undefined, estimatedInput)
   const observedEstimate = computeObservedEstimateCosts(estimatedInput)
@@ -369,8 +368,7 @@ const rebuildWriteCostTiming = (
     ...(typeof audioDurationSeconds === 'number' ? { audioDurationSeconds } : {}),
     sttTargets: getStep2SttTargets(currentMetadata['step2']),
     ...(extractTargets.length > 0 ? { extractTargets } : {}),
-    llmTargets,
-    skipLLM: false
+    llmTargets
   })
   const actualTiming = computeActualProcessingTimes({
     ...(step1 ? { step1 } : {}),
@@ -494,7 +492,7 @@ export const writeResumeConfig = {
   resolveInput: async (target: ResumeTarget) => {
     const prompt = await readTextFileIfPresent(join(target.dir, 'prompt.md'))
     if (!prompt) {
-      throw CLIUsageError(`Write resume requires prompt.md in ${target.dir}.`)
+      throw UsageError(`Write resume requires prompt.md in ${target.dir}.`)
     }
     return prompt
   },

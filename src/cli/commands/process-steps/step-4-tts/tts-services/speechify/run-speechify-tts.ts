@@ -5,7 +5,7 @@ import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { SPEECHIFY_DEFAULT_TTS_VOICE, validateSpeechifyTtsLanguageForModel, validateSpeechifyTtsVoiceForModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { ValidationError } from '~/utils/error-handler'
@@ -41,7 +41,7 @@ export const runSpeechifyTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('SPEECHIFY_API_KEY', 'tts:speechify', 'Speechify TTS')
+  const apiKey = requireProviderKey('speechify', 'tts:speechify', 'Speechify TTS')
 
   const baseURL = trimTrailingSlash(SPEECHIFY_DEFAULT_BASE_URL)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.speechify)

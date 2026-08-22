@@ -2,7 +2,7 @@ import { rename } from 'node:fs/promises'
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import type { CanonicalAudioProviderProjection, CurrentTtsRecoveredGenerationSlot, ObservedAudioFormat, WrittenJson } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
 import { hasErrorCode } from '~/utils/error-handler'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
@@ -12,7 +12,7 @@ export { hasErrorCode }
 
 export const contained = (root: string, path: string): string => {
   const value = relative(root, path)
-  if (!value || value === '..' || value.startsWith(`..${sep}`)) throw CLIUsageError('TTS evidence escaped its stable provider artifact directory.')
+  if (!value || value === '..' || value.startsWith(`..${sep}`)) throw UsageError('TTS evidence escaped its stable provider artifact directory.')
   return value.split(sep).join('/')
 }
 
@@ -69,7 +69,7 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
       } else if (kind === 'data') dataBytes += Math.min(size, Math.max(0, bytes.length - content))
       offset = content + size + (size % 2)
     }
-    if (sampleRate <= 0 || channels <= 0) throw CLIUsageError(`Retained TTS WAV output has no valid audio format metadata: ${path}`)
+    if (sampleRate <= 0 || channels <= 0) throw UsageError(`Retained TTS WAV output has no valid audio format metadata: ${path}`)
     return { bytes, format: { codec: bitsPerSample === 24 ? 'pcm_s24le' : 'pcm_s16le', container: 'wav', sampleRate, channels }, durationMs: byteRate > 0 ? Math.round(dataBytes / byteRate * 1000) : 0 }
   }
 
@@ -85,7 +85,7 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
     new Response(probe.stderr).text(),
     probe.exited
   ])
-  if (exitCode !== 0) throw CLIUsageError(`Could not probe retained TTS audio output ${path}: ${stderr.trim() || `ffprobe exited ${exitCode}`}`)
+  if (exitCode !== 0) throw UsageError(`Could not probe retained TTS audio output ${path}: ${stderr.trim() || `ffprobe exited ${exitCode}`}`)
   let parsed: {
     format?: { format_name?: string | undefined, duration?: string | undefined, bit_rate?: string | undefined } | undefined
     streams?: Array<{ codec_name?: string | undefined, sample_rate?: string | undefined, channels?: number | undefined, bit_rate?: string | undefined }> | undefined
@@ -93,7 +93,7 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
   try {
     parsed = JSON.parse(stdout) as typeof parsed
   } catch {
-    throw CLIUsageError(`Could not parse retained TTS audio metadata for ${path}.`)
+    throw UsageError(`Could not parse retained TTS audio metadata for ${path}.`)
   }
   const stream = parsed.streams?.find((entry) => Number(entry.sample_rate) > 0 && Number(entry.channels) > 0)
   const codec = stream?.codec_name?.trim()
@@ -101,7 +101,7 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
   sampleRate = Number(stream?.sample_rate)
   channels = Number(stream?.channels)
   if (!codec || !container || !Number.isFinite(sampleRate) || sampleRate <= 0 || !Number.isInteger(channels) || channels <= 0) {
-    throw CLIUsageError(`Retained TTS audio output has incomplete observed format metadata: ${path}`)
+    throw UsageError(`Retained TTS audio output has incomplete observed format metadata: ${path}`)
   }
   const bitRate = Number(stream?.bit_rate ?? parsed.format?.bit_rate)
   const durationSeconds = Number(parsed.format?.duration)
@@ -122,13 +122,13 @@ export const readVerifiedJson = async <T>(rootDir: string, path: string, expecte
   try {
     retained = await readContainedArtifactFile(rootDir, contained(rootDir, path))
   } catch (error) {
-    throw CLIUsageError(`${label} could not be read as a contained regular artifact: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
+    throw UsageError(`${label} could not be read as a contained regular artifact: ${error instanceof Error ? error.message : String(error)}`, undefined, error instanceof Error ? { cause: error } : {})
   }
-  if (retained.sha256 !== expectedSha256) throw CLIUsageError(`${label} checksum does not match retained canonical evidence.`)
+  if (retained.sha256 !== expectedSha256) throw UsageError(`${label} checksum does not match retained canonical evidence.`)
   try {
     return JSON.parse(retained.bytes.toString('utf8')) as T
   } catch {
-    throw CLIUsageError(`${label} is not valid JSON.`)
+    throw UsageError(`${label} is not valid JSON.`)
   }
 }
 
@@ -145,7 +145,7 @@ export const publishReportedOutput = async (
     .flatMap((event) => event.reportedOutputRefs ?? [])
     .filter((ref) => ref.path === destinationRef)
   if (protectedRefs.some((ref) => ref.sha256 !== sourceFile.sha256)) {
-    throw CLIUsageError(`Reported TTS output ${destinationRef} is checksum-bound to an earlier successful render and cannot be replaced.`)
+    throw UsageError(`Reported TTS output ${destinationRef} is checksum-bound to an earlier successful render and cannot be replaced.`)
   }
   try {
     const existing = await readContainedArtifactFile(rootDir, destinationRef)
@@ -171,6 +171,6 @@ export const materializeRecoveredBatch = async (
   if (!batch.requiresMaterialization) return
   const file = await writeJson(rootDir, batch.path, batch.value)
   if (file.sha256 !== batch.sha256) {
-    throw CLIUsageError(`Recovered TTS generation slot ${batch.value.generationSlotId} changed identity during durable result promotion.`)
+    throw UsageError(`Recovered TTS generation slot ${batch.value.generationSlotId} changed identity during durable result promotion.`)
   }
 }

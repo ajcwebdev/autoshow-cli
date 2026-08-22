@@ -58,7 +58,7 @@ export type ResumeHandler<TOptions extends object> = {
 
 export type ExtractRouteResumeHandler<TOptions extends object> = Pick<ResumeHandler<TOptions>, 'hasResumableWork' | 'resume' | 'price'>
 
-export type GenerationModelFieldTable = Record<string, readonly [modelsField: string, modelField: string]>
+export type GenerationModelFieldTable = Record<string, string>
 
 export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetadata, TOptions extends object = object> = {
   outputDir: string

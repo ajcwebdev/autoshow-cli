@@ -13,8 +13,8 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: [
       'defaults.llm.openai',
       'defaults.extract.ocr.openaiOcr',
-      'defaults.post.tts.openaiTts',
-      'defaults.post.image.openaiImage'
+      'defaults.tts.openaiTts',
+      'defaults.image.openaiImage'
     ]
   },
   {
@@ -28,9 +28,9 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
       'defaults.llm.grok',
       'defaults.extract.stt.grokStt',
       'defaults.extract.ocr.grokOcr',
-      'defaults.post.tts.grokTts',
-      'defaults.post.image.grokImage',
-      'defaults.post.video.grokVideo'
+      'defaults.tts.grokTts',
+      'defaults.image.grokImage',
+      'defaults.video.grokVideo'
     ]
   },
   {
@@ -44,10 +44,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
       'defaults.llm.gemini',
       'defaults.extract.stt.geminiStt',
       'defaults.extract.ocr.geminiOcr',
-      'defaults.post.tts.geminiTts',
-      'defaults.post.image.geminiImage',
-      'defaults.post.video.geminiVideo',
-      'defaults.post.music.geminiMusic'
+      'defaults.tts.geminiTts',
+      'defaults.image.geminiImage',
+      'defaults.video.geminiVideo',
+      'defaults.music.geminiMusic'
     ]
   },
   {
@@ -83,7 +83,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     label: 'LTX video',
     hintUrl: 'https://docs.ltx.video/',
     stages: ['video'],
-    configPaths: ['defaults.post.video.ltxVideo']
+    configPaths: ['defaults.video.ltxVideo']
   },
   {
     providerId: 'mistral',
@@ -95,7 +95,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: [
       'defaults.extract.stt.mistralStt',
       'defaults.extract.ocr.mistralOcr',
-      'defaults.post.tts.mistralTts'
+      'defaults.tts.mistralTts'
     ]
   },
   {
@@ -104,7 +104,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     label: 'BFL image',
     hintUrl: 'https://dashboard.bfl.ai/',
     stages: ['image'],
-    configPaths: ['defaults.post.image.bflImage']
+    configPaths: ['defaults.image.bflImage']
   },
   {
     providerId: 'lumalabs',
@@ -112,7 +112,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     label: 'Luma Labs image/video',
     hintUrl: 'https://platform.lumalabs.ai/',
     stages: ['image', 'video'],
-    configPaths: ['defaults.post.image.lumalabsImage', 'defaults.post.video.lumalabsVideo']
+    configPaths: ['defaults.image.lumalabsImage', 'defaults.video.lumalabsVideo']
   },
   {
     providerId: 'fal',
@@ -122,9 +122,9 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     stages: ['image', 'video', 'tts', 'ocr'],
     ttsPreflight: { provider: 'fal', label: 'fal.ai TTS' },
     configPaths: [
-      'defaults.post.image.falImage',
-      'defaults.post.video.falVideo',
-      'defaults.post.tts.falTts',
+      'defaults.image.falImage',
+      'defaults.video.falVideo',
+      'defaults.tts.falTts',
       'defaults.extract.ocr.falOcr'
     ]
   },
@@ -145,9 +145,9 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ttsPreflight: { provider: 'replicate', label: 'Replicate TTS' },
     configPaths: [
       'defaults.extract.ocr.replicateOcr',
-      'defaults.post.image.replicateImage',
-      'defaults.post.video.replicateVideo',
-      'defaults.post.tts.replicateTts'
+      'defaults.image.replicateImage',
+      'defaults.video.replicateVideo',
+      'defaults.tts.replicateTts'
     ]
   },
   {
@@ -168,7 +168,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: [
       'defaults.llm.groq',
       'defaults.extract.stt.groqStt',
-      'defaults.post.tts.groqTts'
+      'defaults.tts.groqTts'
     ]
   },
   {
@@ -181,7 +181,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: [
       'defaults.extract.stt.deepinfraStt',
       'defaults.extract.ocr.deepinfraOcr',
-      'defaults.post.tts.deepinfraTts'
+      'defaults.tts.deepinfraTts'
     ]
   },
   {
@@ -194,8 +194,8 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     liveProbe: 'voice-catalog',
     configPaths: [
       'defaults.llm.minimax',
-      'defaults.post.tts.minimaxTts',
-      'defaults.post.music.minimaxMusic'
+      'defaults.tts.minimaxTts',
+      'defaults.music.minimaxMusic'
     ]
   },
   {
@@ -207,8 +207,8 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ttsPreflight: { provider: 'elevenlabs', label: 'ElevenLabs TTS' },
     liveProbe: 'voice-catalog',
     configPaths: [
-      'defaults.post.tts.elevenlabsTts',
-      'defaults.post.music.elevenlabsMusic'
+      'defaults.tts.elevenlabsTts',
+      'defaults.music.elevenlabsMusic'
     ]
   },
   {
@@ -234,7 +234,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     hintUrl: 'https://console.deepgram.com/project/api-keys',
     stages: ['stt', 'tts'],
     ttsPreflight: { provider: 'deepgram', label: 'Deepgram TTS' },
-    configPaths: ['defaults.extract.stt.deepgramStt', 'defaults.post.tts.deepgramTts']
+    configPaths: ['defaults.extract.stt.deepgramStt', 'defaults.tts.deepgramTts']
   },
   {
     providerId: 'speechify',
@@ -244,7 +244,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     stages: ['tts', 'voice'],
     ttsPreflight: { provider: 'speechify', label: 'Speechify TTS' },
     liveProbe: 'voice-catalog',
-    configPaths: ['defaults.post.tts.speechifyTts']
+    configPaths: ['defaults.tts.speechifyTts']
   },
   {
     providerId: 'hume',
@@ -254,7 +254,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     stages: ['tts', 'voice'],
     ttsPreflight: { provider: 'hume', label: 'Hume TTS' },
     liveProbe: 'voice-catalog',
-    configPaths: ['defaults.post.tts.humeTts']
+    configPaths: ['defaults.tts.humeTts']
   },
   {
     providerId: 'cartesia',
@@ -264,7 +264,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     stages: ['tts', 'voice'],
     ttsPreflight: { provider: 'cartesia', label: 'Cartesia TTS' },
     liveProbe: 'voice-catalog',
-    configPaths: ['defaults.post.tts.cartesiaTts']
+    configPaths: ['defaults.tts.cartesiaTts']
   },
   {
     providerId: 'fish',
@@ -273,7 +273,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     hintUrl: 'https://fish.audio/',
     stages: ['tts', 'voice'],
     ttsPreflight: { provider: 'fish', label: 'Fish Audio TTS' },
-    configPaths: ['defaults.post.tts.fishTts']
+    configPaths: ['defaults.tts.fishTts']
   },
   {
     providerId: 'inworld',
@@ -283,7 +283,7 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     stages: ['tts', 'voice'],
     ttsPreflight: { provider: 'inworld', label: 'Inworld AI TTS' },
     liveProbe: 'voice-catalog',
-    configPaths: ['defaults.post.tts.inworldTts']
+    configPaths: ['defaults.tts.inworldTts']
   },
   {
     providerId: 'soniox',

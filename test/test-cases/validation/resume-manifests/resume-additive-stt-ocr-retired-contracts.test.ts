@@ -83,7 +83,7 @@ describe('additive resume provider selection', () => {
         dir,
         manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
       }
-      const opts = buildOptsFromFlags(false, {})
+      const opts = buildOptsFromFlags({})
 
       await expect(priceOcrTarget(resumeTarget, opts)).rejects.toThrow(
         'Stored OCR target gemini/gemini-3.1-flash-lite is incomplete, but that model is no longer in the active registry.'

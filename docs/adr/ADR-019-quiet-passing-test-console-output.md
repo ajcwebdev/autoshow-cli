@@ -54,13 +54,14 @@ Why now: a full `bun t --budget` run made the inverted console policy the domina
 
 ## Decision
 
-Passing tests emit only Bun's result line (`✓`, name, duration). Failing tests keep that `✗` line and also print every `console` write from that test. Both `bun test` and `bun t` follow this invert. JUnit remains the additive machine-readable summary for `report.json`. Budget preflight follows the same quiet-on-success rule.
+Passing tests emit only Bun's result line (`✓`, name, duration). Failing tests keep that `✗` line and also print every `console` write from that test. Both `bun test` and `bun t` follow this invert. JUnit remains the additive machine-readable summary for `report.json`. Budget preflight follows the same quiet-on-success rule. `bun t` artifacts default to `output/test-output/`.
 
 This applies to:
 
 - `bun test` and `bun t` console output for discovered tests.
 - In-process production logger writes that already go through `console`.
 - Budget preflight progress logging.
+- Default `bun t` artifact root `output/test-output/`, including timestamped run directories, `latest.log`, and `.test-cache/`.
 
 It does not apply to:
 
@@ -105,7 +106,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-Implemented in `test/test-utils/test-console-harness.ts`, preloaded from `bunfig.toml`, with budget-preflight quieting in `test/test-runner/runner.ts`.
+Implemented in `test/test-utils/test-console-harness.ts`, preloaded from `bunfig.toml`, with budget-preflight quieting in `test/test-runner/runner.ts`. Runner artifacts, CLI bundles, file-timings, and budget-preflight cache default to `output/test-output/` via `TEST_OUTPUT_ROOT` in `test/test-runner/artifacts.ts`.
 
 ## Test Plan
 

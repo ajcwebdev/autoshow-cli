@@ -21,10 +21,10 @@ export type VideoCostEstimate = CostEstimateBase<VideoProvider> & {
 }
 
 export type EstimateVideoCostOptions = Partial<Pick<VideoRuntimeOptions,
-  | 'geminiVideoModels' | 'geminiVideoModel'
-  | 'grokVideoModels' | 'grokVideoModel' | 'ltxVideoModels' | 'ltxVideoModel'
-  | 'replicateVideoModels' | 'replicateVideoModel' | 'lumalabsVideoModels' | 'lumalabsVideoModel'
-  | 'falVideoModels' | 'falVideoModel' | 'videoDuration'
+  | 'geminiVideoModels'
+  | 'grokVideoModels' | 'ltxVideoModels'
+  | 'replicateVideoModels' | 'lumalabsVideoModels'
+  | 'falVideoModels' | 'videoDuration'
   | 'videoAspectRatio' | 'videoResolution' | 'videoMode' | 'videoGenerateAudio'
 >> & {
   grokInputImageCount?: number | undefined

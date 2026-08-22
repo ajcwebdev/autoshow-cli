@@ -7,15 +7,15 @@ import { isRecord } from '../../../test-utils/test-helpers'
 import { requireDefined } from '../../../test-utils/value-assertions'
 
 const FAKE_MODEL_FIELDS = {
-  openai: ['openaiImageModels', 'openaiImageModel'],
-  gemini: ['geminiImageModels', 'geminiImageModel']
+  openai: 'openaiImageModels',
+  gemini: 'geminiImageModels'
 } as const
 
 export const collectFakeTargetsFromOptions = (opts: ResolvedFlagOptions): ProviderIdentity[] => {
   const valuesByField = opts as Record<string, unknown>
-  return Object.entries(FAKE_MODEL_FIELDS).flatMap(([service, [modelsField, modelField]]) => {
-    const models = valuesByField[modelsField] ?? valuesByField[modelField]
-    const values = Array.isArray(models) ? models : [models]
+  return Object.entries(FAKE_MODEL_FIELDS).flatMap(([service, modelsField]) => {
+    const models = valuesByField[modelsField]
+    const values = Array.isArray(models) ? models : []
     return values.flatMap(model => typeof model === 'string' ? [{ service, model }] : [])
   })
 }

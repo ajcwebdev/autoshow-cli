@@ -1,6 +1,6 @@
 import type { LumalabsVideoModel, VideoGenOptions, VideoMode, VideoTarget } from '~/types'
 import { validateLumalabsVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { runLumalabsVideoGen } from './run-lumalabs-video-gen'
 import { isSupportedOrSkippedForAllVideo } from '../../video-utils/video-mode-validation'
 import { validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
@@ -16,7 +16,7 @@ export const collectLumalabsVideoTargets = (options: VideoGenOptions, mode: Vide
     normalizeLumaVideoAspectRatio(options.videoAspectRatio)
     normalizeLumaVideoResolution(options.videoResolution)
     if (options.videoInputImage) {
-      validateVideoMediaReferences([options.videoInputImage], { flagName: '--video-input-image', provider: 'lumalabs', model, kind: 'image' })
+      validateVideoMediaReferences([options.videoInputImage], { flagName: '--input-image', provider: 'lumalabs', model, kind: 'image' })
     }
 
     return [{
@@ -24,7 +24,7 @@ export const collectLumalabsVideoTargets = (options: VideoGenOptions, mode: Vide
       model,
       run: async (prompt, outputDir) => {
         if (prompt === undefined) {
-          throw CLIUsageError('Luma Labs video prompt cannot be empty.')
+          throw UsageError('Luma Labs video prompt cannot be empty.')
         }
         return await runLumalabsVideoGen(prompt, outputDir, {
           model,

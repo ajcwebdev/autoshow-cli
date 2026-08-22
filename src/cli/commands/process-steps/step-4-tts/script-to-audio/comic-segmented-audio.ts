@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { AttemptSlot, AttemptTurn, CanonicalDialogueTurn, ComicDialoguePlan, TtsMasteringProfile, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
@@ -94,11 +94,11 @@ export const assembleComicSegmentedAudio = async (input: {
     const turnDir = join(input.masteringDir, 'turns', turn.turnId)
     await mkdir(turnDir, { recursive: true })
     const turnSlots = input.slots.filter(slot => slot.turnIds.includes(turn.turnId))
-    if (turnSlots.length === 0) throw CLIUsageError(`Comic assembly has no retained provider output for ${turn.turnId}.`)
+    if (turnSlots.length === 0) throw UsageError(`Comic assembly has no retained provider output for ${turn.turnId}.`)
     const segmentPaths = new Map<number, string[]>()
     for (const slot of turnSlots) {
       const paths = input.outputPathsBySlot.get(slot.generationSlotId)
-      if (!paths) throw CLIUsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
+      if (!paths) throw UsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
       const segmentIndex = slot.timingSegmentIndex ?? 0
       segmentPaths.set(segmentIndex, [...(segmentPaths.get(segmentIndex) ?? []), ...paths])
     }
@@ -116,7 +116,7 @@ export const assembleComicSegmentedAudio = async (input: {
       const durationMs = offset === undefined ? undefined : cueDurationByOffset.get(offset)
       if (durationMs) assembledParts.push(await createSilenceWav(join(turnDir, `pause-${String(segmentIndex + 1).padStart(3, '0')}-${durationMs}ms.wav`), durationMs, input.profile))
     }
-    if (assembledParts.length === 0) throw CLIUsageError(`Comic assembly has no speech or timing parts for ${turn.turnId}.`)
+    if (assembledParts.length === 0) throw UsageError(`Comic assembly has no speech or timing parts for ${turn.turnId}.`)
     const concatenated = await concatAndConvertToWav(assembledParts, turnDir, `${input.providerLabel}-${turn.turnId}`, undefined, input.profile)
     const effectFilter = localVoiceEffectFilter(turn)
     if (effectFilter) {
@@ -131,20 +131,20 @@ export const assembleComicSegmentedAudio = async (input: {
   for (const [nodeIndex, node] of input.dialoguePlan.nodes.entries()) {
     if (node.kind === 'turn') {
       const path = turnAudio.get(node.turn.turnId)
-      if (!path) throw CLIUsageError(`Comic assembly lost turn ${node.turn.turnId}.`)
+      if (!path) throw UsageError(`Comic assembly lost turn ${node.turn.turnId}.`)
       nodePaths.push(path)
       continue
     }
     const overlapPaths = node.turns.map((turn) => {
       const path = turnAudio.get(turn.turnId)
-      if (!path) throw CLIUsageError(`Comic overlap assembly lost turn ${turn.turnId}.`)
+      if (!path) throw UsageError(`Comic overlap assembly lost turn ${turn.turnId}.`)
       return path
     })
     const overlapDir = join(input.masteringDir, 'overlaps', `${String(nodeIndex + 1).padStart(3, '0')}-${node.groupId}`)
     await mkdir(overlapDir, { recursive: true })
     nodePaths.push(await mixAudioToWav(overlapPaths, join(overlapDir, 'speech.wav'), `${input.providerLabel}-${node.groupId}`, input.profile))
   }
-  if (nodePaths.length === 0) throw CLIUsageError('Comic segmented assembly has no dialogue nodes.')
+  if (nodePaths.length === 0) throw UsageError('Comic segmented assembly has no dialogue nodes.')
   const assemblyDir = join(input.masteringDir, 'assembly')
   await mkdir(assemblyDir, { recursive: true })
   const pacedNodePaths: string[] = []

@@ -8,7 +8,7 @@ import type {
   ProjectionTraversalState,
   ProjectionVerificationRoots
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { readFileBytes } from '~/utils/bun-file-io'
 import { isRecord } from '~/utils/rest-client'
 import {
@@ -33,15 +33,15 @@ export const discoverPreviousAdmissionJournalReference = async (
   const previousSnapshotId = snapshot['previousSnapshotId']
   if (previousSnapshotId === undefined) return []
   if (typeof previousSnapshotId !== 'string' || previousSnapshotId.length === 0) {
-    throw CLIUsageError('Admission journal predecessor ID is invalid.')
+    throw UsageError('Admission journal predecessor ID is invalid.')
   }
   const attemptDir = posix.dirname(reference.path)
   if (attemptDir === '.' || !isStrictArtifactRelativePath(attemptDir)) {
-    throw CLIUsageError('Admission journal is not contained by a stable attempt directory.')
+    throw UsageError('Admission journal is not contained by a stable attempt directory.')
   }
   const absoluteAttemptDir = resolve(artifactRoot, attemptDir)
   if (!isSafeRelativePath(artifactRoot, attemptDir) || !await hasNoSymlinkBelowRoot(artifactRoot, absoluteAttemptDir)) {
-    throw CLIUsageError('Admission journal attempt directory is unsafe.')
+    throw UsageError('Admission journal attempt directory is unsafe.')
   }
   const matches: ProjectionArtifactReference[] = []
   for (const entry of await readdir(absoluteAttemptDir, { withFileTypes: true })) {
@@ -76,7 +76,7 @@ export const discoverPreviousAdmissionJournalReference = async (
     })
   }
   if (matches.length !== 1) {
-    throw CLIUsageError('Admission journal predecessor must resolve exactly once inside the same attempt directory.')
+    throw UsageError('Admission journal predecessor must resolve exactly once inside the same attempt directory.')
   }
   return matches
 }
@@ -124,7 +124,7 @@ export const decodeProjectionArtifactBytes = (
   const jsonText = reference.kind === 'admission-journal' && reference.path.endsWith('.jsonl')
     ? text.split('\n').filter((line) => line.length > 0).at(-1)
     : text
-  if (!jsonText) throw CLIUsageError('Projection artifact JSON is empty.')
+  if (!jsonText) throw UsageError('Projection artifact JSON is empty.')
   const parsed = JSON.parse(jsonText) as unknown
   const value = reference.kind === 'admission-journal'
     && reference.path.endsWith('.jsonl')
@@ -132,7 +132,7 @@ export const decodeProjectionArtifactBytes = (
     && isRecord(parsed['snapshot'])
     ? parsed['snapshot']
     : parsed
-  if (!isRecord(value)) throw CLIUsageError('Projection artifact JSON must be an object.')
+  if (!isRecord(value)) throw UsageError('Projection artifact JSON must be an object.')
   return value
 }
 

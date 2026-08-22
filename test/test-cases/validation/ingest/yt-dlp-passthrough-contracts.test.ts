@@ -308,7 +308,7 @@ describe('yt-dlp passthrough execution contracts', () => {
     if (resolved.kind !== 'target') {
       throw new Error('expected integrated passthrough target mode')
     }
-    const opts = buildOptsFromFlags(true, {
+    const opts = buildOptsFromFlags({
       'batch-limit': '2',
       'batch-concurrency': '3',
       'flat-batch': true,

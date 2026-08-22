@@ -29,51 +29,44 @@ describe('config load schema contracts', () => {
           ocr: {
             providerConcurrency: 3,
             localConcurrency: 1,
-            pageConcurrency: 4,
+            ocrConcurrency: 4,
             openaiOcr: ['gpt-5.5'],
             grokOcr: ['grok-4.3'],
             deepinfraOcr: ['Qwen/Qwen3-VL-30B-A3B-Instruct'],
             kimiOcr: ['kimi-k2.6']
           }
         },
-        post: {
-          tts: {
-            speechifyTts: ['simba-3.2'],
-            speechifyVoice: 'narrator_voice',
-            speechifyTtsLanguage: 'en-US',
-            mistralTts: ['voxtral-mini-tts-2603'],
-            mistralTtsVoice: 'voice_abc123',
-            deepgramTtsSpeed: 1.1,
-            openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
-            openaiVoice: 'alloy',
-            elevenlabsTts: ['eleven_v3'],
-            elevenlabsTtsLanguageCode: 'en',
-            elevenlabsTtsStability: 0.4,
-            elevenlabsTtsSimilarityBoost: 0.8,
-            elevenlabsTtsStyle: 0.2,
-            elevenlabsTtsUseSpeakerBoost: true,
-            elevenlabsTtsSpeed: 1.1,
-            elevenlabsTtsSeed: 12345,
-            elevenlabsTtsTextNormalization: 'on',
-            elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2'],
-            minimaxTts: ['speech-2.8-turbo'],
-            minimaxTtsVoice: 'AutoShowTestVoice',
-            chunkConcurrency: 3
-          },
-          image: {
-            bflImage: ['flux-2-pro'],
-            replicateImage: ['wan-video/wan-2.7-image'],
-            imageFormat: 'jpeg'
-          },
-          video: {
-            replicateVideo: ['bytedance/seedance-2.0-fast'],
-            replicateVideoSeed: 123,
-            videoGenerateAudio: false,
-            videoReferenceVideos: ['input/examples/video/reference.mp4'],
-            videoReferenceAudios: ['input/examples/audio/reference.mp3'],
-            replicateVideoNegativePrompt: 'blur',
-            videoDuration: -1
-          }
+        tts: {
+          speechifyTts: ['simba-3.2'],
+          mistralTts: ['voxtral-mini-tts-2603'],
+          openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
+          elevenlabsTts: ['eleven_v3'],
+          minimaxTts: ['speech-2.8-turbo'],
+          voice: ['speechify=narrator_voice', 'mistral=voice_abc123', 'openai=alloy', 'minimax=AutoShowTestVoice'],
+          speed: 1.1,
+          language: 'en',
+          textNormalization: 'on',
+          elevenlabsTtsStability: 0.4,
+          elevenlabsTtsSimilarityBoost: 0.8,
+          elevenlabsTtsStyle: 0.2,
+          elevenlabsTtsUseSpeakerBoost: true,
+          elevenlabsTtsSeed: 12345,
+          elevenlabsTtsPronunciationDictionaryLocators: ['dict_1:version_2'],
+          chunkConcurrency: 3
+        },
+        image: {
+          bflImage: ['flux-2-pro'],
+          replicateImage: ['wan-video/wan-2.7-image'],
+          imageFormat: 'jpeg'
+        },
+        video: {
+          replicateVideo: ['bytedance/seedance-2.0-fast'],
+          replicateVideoSeed: 123,
+          videoGenerateAudio: false,
+          videoReferenceVideos: ['input/examples/video/reference.mp4'],
+          videoReferenceAudios: ['input/examples/audio/reference.mp3'],
+          replicateVideoNegativePrompt: 'blur',
+          videoDuration: -1
         }
       }
     }
@@ -84,16 +77,16 @@ describe('config load schema contracts', () => {
 
   test('loadConfig rejects raw reference defaults with migration guidance', async () => {
     const mistralReference = await writeTempConfig({
-      defaults: { post: { tts: { mistralTtsRefAudio: 'private-reference.wav' } } }
+      defaults: { tts: { mistralTtsRefAudio: 'private-reference.wav' } }
     })
     const elevenLabsClone = await writeTempConfig({
-      defaults: { post: { tts: { elevenlabsTtsRefAudio: 'private-reference.wav' } } }
+      defaults: { tts: { elevenlabsTtsRefAudio: 'private-reference.wav' } }
     })
     const speechifyConsent = await writeTempConfig({
-      defaults: { post: { tts: { speechifyTtsConsentEmail: 'performer@example.com' } } }
+      defaults: { tts: { speechifyTtsConsentEmail: 'performer@example.com' } }
     })
 
-    await expect(loadConfig(mistralReference)).rejects.toThrow('Configured --mistral-tts-ref-audio paths cannot be used as synthesis defaults')
+    await expect(loadConfig(mistralReference)).rejects.toThrow('Configured --tts-ref-audio paths cannot be used as synthesis defaults')
     await expect(loadConfig(elevenLabsClone)).rejects.toThrow('autoshow config')
     await expect(loadConfig(speechifyConsent)).rejects.toThrow('autoshow config')
   })

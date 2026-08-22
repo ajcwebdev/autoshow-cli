@@ -1,6 +1,6 @@
 import { SUPPORTED_WHISPER_MODELS } from '~/cli/commands/setup-and-utilities/models/stt-models'
 import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
-import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, renameFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_MUSIC_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
@@ -33,9 +33,15 @@ export const musicCommandOptionNames = {
   'music-instrumental': 'instrumental'
 } as const satisfies Record<string, string>
 
+const publicMusicFlags = (): CliFlagsDefinition =>
+  Object.fromEntries(Object.entries(musicCommandOptionNames).map(([internalName, publicName]) => [
+    publicName,
+    musicGenFlags[internalName as keyof typeof musicGenFlags]
+  ]))
+
 export const musicCommandFlags = {
   ...withHelpGroup(musicProviderSelectionFlags, 'provider-selection'),
-  ...withHelpGroup(renameFlags(musicGenFlags, musicCommandOptionNames), 'hosted-music'),
+  ...withHelpGroup(publicMusicFlags(), 'hosted-music'),
   ...withHelpGroup(priceFlag, 'pricing'),
   ...withHelpGroup(musicLyricVideoFlags, 'lyric-video')
 } as const satisfies CliFlagsDefinition

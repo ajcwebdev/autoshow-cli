@@ -58,7 +58,7 @@ const parseSttProviderSummaries = (
       continue
     }
 
-    const lastError = isRecord(value['lastError']) ? value['lastError'] : undefined
+    const lastError = isRecord(value['error']) ? value['error'] : undefined
     const message = typeof lastError?.['message'] === 'string' && lastError['message'].trim().length > 0
       ? lastError['message'].trim()
       : undefined

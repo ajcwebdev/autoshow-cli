@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureDeepgramSttSetup = ensureProvider('deepgram', 'stt:deepgram', 'Deepgram transcription')
+export const ensureDeepgramSttSetup = async (): Promise<void> => { requireProviderKey('deepgram', 'stt:deepgram', 'Deepgram transcription') }

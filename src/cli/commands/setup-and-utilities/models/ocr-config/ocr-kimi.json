@@ -15,7 +15,7 @@
         "costPerMOutputTokensCents": 400,
         "limits": {
           "imageBytes": 104857600,
-          "notes": "project/links/kimi-general-ocr-text-links.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
+          "notes": "https://platform.kimi.ai/docs/guide/use-kimi-vision-model.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -41,7 +41,7 @@
         "costPerMOutputTokensCents": 1500,
         "limits": {
           "imageBytes": 104857600,
-          "notes": "project/links/kimi-all-links.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
+          "notes": "https://platform.kimi.ai/docs/guide/use-kimi-vision-model.md documents Kimi image support for PNG/JPEG/WebP/GIF, a 100 MB request-body/file limit, and recommended image resolution no higher than 4K. AutoShow renders PDFs to page images before calling Kimi OCR."
         },
         "estimation": {
           "costMultiplier": 1,

@@ -1,4 +1,4 @@
-import type { BooleanProviderEntry, CliFlagDefinition, ConventionModelProviderOptions, ModelProviderEntry, OcrRuntimeModelKeyStem, RuntimeModelKey, RuntimeModelKeyStem, RuntimeModelsKey, Step2BooleanSelectionKey, Step2Command, Step2Modality, Step2ProviderOptionSurface, Step2ShortcutFlag, SttModelProviderOptions, SttRuntimeModelKeyStem } from '~/types'
+import type { BooleanProviderEntry, CliFlagDefinition, ConventionModelProviderOptions, ModelProviderEntry, OcrRuntimeModelKeyStem, RuntimeModelKeyStem, RuntimeModelsKey, Step2BooleanSelectionKey, Step2Command, Step2Modality, Step2ProviderOptionSurface, Step2ShortcutFlag, SttModelProviderOptions, SttRuntimeModelKeyStem } from '~/types'
 
 const createBooleanFlag = (
   description: string
@@ -83,8 +83,7 @@ export const booleanProvider = <
 
 const modelProvider = <
   const FlagName extends string,
-  const RuntimeModelsKey extends keyof Step2ProviderOptionSurface,
-  const RuntimeModelKey extends keyof Step2ProviderOptionSurface
+  const RuntimeModelsKey extends keyof Step2ProviderOptionSurface
 >(
   entry: {
     step: Step2Command
@@ -96,17 +95,15 @@ const modelProvider = <
     configKey: string
     allShortcut?: Step2ShortcutFlag | undefined
     runtimeModelsKey: RuntimeModelsKey
-    runtimeModelKey: RuntimeModelKey
     supportedModels: readonly string[]
     validateModel: (value: string) => string
     description: string
   }
-): ModelProviderEntry<FlagName, RuntimeModelsKey, RuntimeModelKey> => ({
+): ModelProviderEntry<FlagName, RuntimeModelsKey> => ({
   ...providerEntryHeader(entry),
   selection: {
     type: 'models',
     runtimeModelsKey: entry.runtimeModelsKey,
-    runtimeModelKey: entry.runtimeModelKey,
     supportedModels: entry.supportedModels,
     validateModel: entry.validateModel
   },
@@ -115,17 +112,15 @@ const modelProvider = <
 
 const runtimeSelectionKeys = <Stem extends RuntimeModelKeyStem>(keyStem: Stem): {
   runtimeModelsKey: RuntimeModelsKey<Stem>
-  runtimeModelKey: RuntimeModelKey<Stem>
 } => ({
-  runtimeModelsKey: `${keyStem}Models` as RuntimeModelsKey<Stem>,
-  runtimeModelKey: `${keyStem}Model` as RuntimeModelKey<Stem>
+  runtimeModelsKey: `${keyStem}Models` as RuntimeModelsKey<Stem>
 })
 
 export const sttModelProvider = <const Slug extends string, Stem extends SttRuntimeModelKeyStem>(
   slug: Slug,
   keyStem: Stem,
   options: SttModelProviderOptions
-): ModelProviderEntry<`${Slug}-stt`, RuntimeModelsKey<Stem>, RuntimeModelKey<Stem>> => {
+): ModelProviderEntry<`${Slug}-stt`, RuntimeModelsKey<Stem>> => {
   const flagName = `${slug}-stt` as `${Slug}-stt`
   return modelProvider({
     step: 'stt',
@@ -147,7 +142,7 @@ export const ocrModelProvider = <const Slug extends string, Stem extends OcrRunt
   slug: Slug,
   keyStem: Stem,
   options: ConventionModelProviderOptions
-): ModelProviderEntry<`${Slug}-ocr`, RuntimeModelsKey<Stem>, RuntimeModelKey<Stem>> => {
+): ModelProviderEntry<`${Slug}-ocr`, RuntimeModelsKey<Stem>> => {
   const flagName = `${slug}-ocr` as `${Slug}-ocr`
   return modelProvider({
     step: 'ocr',

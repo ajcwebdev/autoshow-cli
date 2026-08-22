@@ -6,7 +6,7 @@ import type {
   StructuredScriptArtifactRef,
   VoiceReferenceManifest,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import type { createComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
 import { writeComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
 import type { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
@@ -137,7 +137,7 @@ export const executeZeroTurnsWithSoundscape = async (input: {
     },
     providers: [soundscape.providerState],
   })
-  if (soundscape.providerState.status !== 'succeeded') throw CLIUsageError('Comic soundscape failed one or more required cues; generated artifacts were retained but no master was published.')
+  if (soundscape.providerState.status !== 'succeeded') throw UsageError('Comic soundscape failed one or more required cues; generated artifacts were retained but no master was published.')
 }
 
 export const stageComicAudioArtifacts = async (input: {

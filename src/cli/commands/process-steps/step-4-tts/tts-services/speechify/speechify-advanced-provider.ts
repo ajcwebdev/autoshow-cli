@@ -11,7 +11,7 @@ import type {
   VoiceClonePort,
 } from '~/types'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   buildAdvancedCapabilityFixture,
   buildCapabilityDocumentationEvidence,
@@ -52,7 +52,7 @@ const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
   const resourceId = trimmedString(voice['id'])
   const name = trimmedString(voice['display_name']) ?? trimmedString(voice['name'])
-  if (!resourceId || !name) throw CLIUsageError('Speechify voice response omits id or display_name.')
+  if (!resourceId || !name) throw UsageError('Speechify voice response omits id or display_name.')
   const type = trimmedString(voice['type'])
   const models = Array.isArray(voice['models']) ? voice['models'] : []
   const modelIds = models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) ? trimmedString((value as JsonObject)['name']) ?? [] : [])
@@ -82,7 +82,7 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
   const catalog: VoiceCatalogPort = {
     list: async input => {
       const source = input?.source ?? 'account'
-      if (source === 'shared-library') throw CLIUsageError('Speechify exposes shared and personal voice types, not a shared-owner library namespace.')
+      if (source === 'shared-library') throw UsageError('Speechify exposes shared and personal voice types, not a shared-owner library namespace.')
       const payload = record(await request({ method: 'GET', path: '/v1/voices', query: { cursor: input?.cursor, limit: '100', type: source === 'account' ? 'personal' : 'shared' } }), 'voice catalog')
       const entries = Array.isArray(payload['voices']) ? payload['voices'].map(mapVoice) : []
       const nextCursor = payload['has_more'] === true ? trimmedString(payload['next_cursor']) : undefined
@@ -98,18 +98,18 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
         const result: ProviderVoiceMutationResult = { schemaVersion: 1, provider: 'speechify', state: 'external-action-required', action: 'Speechify does not document a separate professional-clone API; use the supported personal-voice clone workflow or manage any contracted workflow externally.', sanitizedMetadata: { cloneKind: 'professional', sampleCount: cloneRequest.protectedSamples.length }, checkedAt: now() }
         return result
       }
-      if (cloneRequest.protectedSamples.length !== 1) throw CLIUsageError('Speechify voice cloning requires exactly one protected 10-30 second sample.')
-      if (!options.resolveProtectedAsset || !options.resolveProtectedConsent) throw CLIUsageError('Speechify cloning requires protected asset and consent resolvers.')
-      if (!cloneRequest.desiredName.trim()) throw CLIUsageError('Speechify cloning requires a voice name.')
+      if (cloneRequest.protectedSamples.length !== 1) throw UsageError('Speechify voice cloning requires exactly one protected 10-30 second sample.')
+      if (!options.resolveProtectedAsset || !options.resolveProtectedConsent) throw UsageError('Speechify cloning requires protected asset and consent resolvers.')
+      if (!cloneRequest.desiredName.trim()) throw UsageError('Speechify cloning requires a voice name.')
       const [resolved, consent] = await Promise.all([
         options.resolveProtectedAsset(cloneRequest.protectedSamples[0] as ProviderVoiceCloneRequest['protectedSamples'][number]),
         options.resolveProtectedConsent(cloneRequest.consentRecordRef)
       ])
-      if (resolved.bytes.byteLength === 0 || resolved.bytes.byteLength > SPEECHIFY_CLONE_SAMPLE_MAX_BYTES) throw CLIUsageError('Speechify clone sample must be non-empty and no larger than 5 MiB.')
-      if (!Number.isFinite(resolved.durationMs) || resolved.durationMs < 10_000 || resolved.durationMs > 30_000) throw CLIUsageError('Speechify clone sample must have a verified duration of 10-30 seconds.')
+      if (resolved.bytes.byteLength === 0 || resolved.bytes.byteLength > SPEECHIFY_CLONE_SAMPLE_MAX_BYTES) throw UsageError('Speechify clone sample must be non-empty and no larger than 5 MiB.')
+      if (!Number.isFinite(resolved.durationMs) || resolved.durationMs < 10_000 || resolved.durationMs > 30_000) throw UsageError('Speechify clone sample must have a verified duration of 10-30 seconds.')
       const fullName = consent.fullName.trim()
       const email = consent.email.trim()
-      if (!fullName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw CLIUsageError('Speechify protected consent must contain a full name and valid email address.')
+      if (!fullName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw UsageError('Speechify protected consent must contain a full name and valid email address.')
       const locale = consent.locale?.trim() || 'en-US'
       const gender = consent.gender ?? 'not_specified'
       const form = new FormData()
@@ -134,7 +134,7 @@ export const createSpeechifyAdvancedProvider = (options: SpeechifyAdvancedProvid
   const lifecycle = createRemoteResourceVoiceLifecycle(identity, { ownedResourceLabel: 'personal voices' }, {
     fetchVoice: async voice => {
       const entry = mapVoice(await request({ method: 'GET', path: `/v1/voices/${encodeURIComponent(voice.resourceId)}` }) as unknown)
-      if (entry.resourceId !== voice.resourceId) throw CLIUsageError('Speechify inspection response identity does not match the registered resource.')
+      if (entry.resourceId !== voice.resourceId) throw UsageError('Speechify inspection response identity does not match the registered resource.')
       return { state: 'available', sanitizedMetadata: entry.sanitizedMetadata }
     },
     deleteVoice: async voice => {

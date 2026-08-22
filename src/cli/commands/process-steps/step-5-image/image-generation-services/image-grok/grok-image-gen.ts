@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureGrokImageGenSetup = ensureProvider('grok', 'image:grok', 'Grok image generation')
+export const ensureGrokImageGenSetup = async (): Promise<void> => { requireProviderKey('grok', 'image:grok', 'Grok image generation') }

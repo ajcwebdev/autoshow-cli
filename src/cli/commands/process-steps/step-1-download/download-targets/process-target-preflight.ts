@@ -4,13 +4,13 @@ import { logSuitePriceSummary } from './suite-price-logging'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
-import type { CommandPricingOptions, PricingRuntimeOptions, ProcessCommand } from '~/types'
+import type { CommandPricingOptions, PricingRuntimeOptions, ProcessCommand, WriteRuntimeOptions } from '~/types'
 import { serializeDiagnosticError } from '~/utils/error-handler'
 
 export const reportSuitePriceEstimate = async (
   command: ProcessCommand,
   targets: string[],
-  opts: CommandPricingOptions
+  opts: CommandPricingOptions | WriteRuntimeOptions
 ): Promise<number> => {
   logSingleRowTable(l, 'Suite Price Estimate', {
     itemType: targets.length === 1 ? 'target' : 'targets',
@@ -18,7 +18,9 @@ export const reportSuitePriceEstimate = async (
   }, { category: 'pricing', columns: ['itemType', 'itemCount'] })
 
   let suiteTotalEstimatedCost = 0
-  const concurrency = isExtractCommand(command) ? opts.sttPreflightConcurrency : 1
+  const concurrency = isExtractCommand(command) && 'sttPreflightConcurrency' in opts
+    ? opts.sttPreflightConcurrency
+    : 1
 
   let skipped = 0
   await mapWithConcurrency(concurrency, targets, async (item) => {

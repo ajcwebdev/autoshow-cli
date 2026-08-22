@@ -6,7 +6,7 @@ import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/s
 import type { GenerationCostStep, LogLevel, MediaGenerationStatus, PipelineProviderState, StepTimingCost, TableLogger } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
-import { CLIUsageError, isCLIUsageError } from '~/utils/error-handler'
+import { UsageError, isUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createDetailTable } from '~/utils/app-logger/human-table/human-table'
 import { createManifest, createPipelineItemFromRecord, writeManifest } from './pipeline-manifest'
@@ -119,11 +119,11 @@ const ensureExplicitOutputDirectory = async (outputDir: string): Promise<void> =
   try {
     const stats = await stat(outputDir)
     if (!stats.isDirectory()) {
-      throw CLIUsageError(`Output path exists and is not a directory: ${outputDir}`)
+      throw UsageError(`Output path exists and is not a directory: ${outputDir}`)
     }
     return
   } catch (error) {
-    if (isCLIUsageError(error)) {
+    if (isUsageError(error)) {
       throw error
     }
     const code = error !== null && typeof error === 'object' && 'code' in error

@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { parseCommandArgv } from '~/cli/native/native-parser'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { BOOLEAN_PROVIDER_TARGETS, STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS, WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
+import { BOOLEAN_PROVIDER_TARGETS, STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { CliCommandDefinition, SelectorCase } from '~/types'
 
 const selectorCommand = (selectorFlag: string): CliCommandDefinition => ({
@@ -45,29 +44,25 @@ const selectorCases = (): SelectorCase[] => {
   addCases('generic', 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS)
   addCases('generic', 'provider', STANDALONE_VIDEO_PROVIDER_TARGETS)
   addCases('generic', 'provider', STANDALONE_MUSIC_PROVIDER_TARGETS)
-  addCases('write', 'stt', WRITE_STT_PROVIDER_TARGETS)
-  addCases('write', 'ocr', WRITE_OCR_PROVIDER_TARGETS)
-  addCases('write', 'llm', WRITE_LLM_PROVIDER_TARGETS)
+  addCases('generic', 'llm', WRITE_LLM_PROVIDER_TARGETS)
   return cases
 }
 
 describe('selector occurrence differential', () => {
-  test('preserves the flag-map and ordered-argv projections for 270+ selector spellings', () => {
+  test('preserves the flag-map and ordered-argv projections for selector spellings', () => {
     const cases = selectorCases()
-    expect(cases.length).toBeGreaterThanOrEqual(270)
+    expect(cases.length).toBeGreaterThanOrEqual(160)
 
     for (const entry of cases) {
       const argv = ['probe', ...entry.args]
       const parsed = parseCommandArgv(argv, selectorCommand(entry.selectorFlag), {})
-      const normalized = entry.normalize === 'generic'
-        ? normalizeGenericProviderSelectorFlags(
+      const normalized = normalizeGenericProviderSelectorFlags(
             parsed.flags,
             parsed.rawParsed.explicitFlags,
             parsed.rawParsed.flagOccurrences,
             entry.selectorFlag,
             entry.targets
           )
-        : normalizeWriteStepSelectorFlags(parsed.flags, parsed.rawParsed.explicitFlags, parsed.rawParsed.flagOccurrences)
 
       expect(normalized.flags[entry.target], argv.join(' ')).toEqual(entry.expectedValue)
       expect(normalized.explicitFlags.has(entry.selectorFlag), argv.join(' ')).toBe(false)

@@ -1,5 +1,5 @@
 import type { ReplicateTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { REPLICATE_DEFAULT_TTS_VOICE, validateReplicateTtsModel, validateReplicateTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runReplicateTts } from './run-replicate-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
@@ -20,7 +20,7 @@ export const collectReplicateTtsTargets = (
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('replicate', invocation)
         const controls = resolveTtsTargetInvocationControls('replicate', invocation, {})
-        const apiKey = requireApiKey('REPLICATE_API_TOKEN', 'tts:replicate', 'Replicate TTS')
+        const apiKey = requireProviderKey('replicate', 'tts:replicate', 'Replicate TTS')
         return await runReplicateTts(text, outputDir, {
           model,
           apiKey,

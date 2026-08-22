@@ -87,39 +87,22 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
 
 const STT_SELECTION_PROBE = {
   deepinfraSttModels: undefined,
-  deepinfraSttModel: undefined,
   deepgramSttModels: undefined,
-  deepgramSttModel: undefined,
   sonioxSttModels: undefined,
-  sonioxSttModel: undefined,
   speechmaticsSttModels: undefined,
-  speechmaticsSttModel: undefined,
   revSttModels: undefined,
-  revSttModel: undefined,
   groqSttModels: undefined,
-  groqSttModel: undefined,
   grokSttModels: undefined,
-  grokSttModel: undefined,
   mistralSttModels: undefined,
-  mistralSttModel: undefined,
   assemblyaiSttModels: undefined,
-  assemblyaiSttModel: undefined,
   gladiaSttModels: undefined,
-  gladiaSttModel: undefined,
   happyscribeSttModels: undefined,
-  happyscribeSttModel: undefined,
   supadataSttModels: undefined,
-  supadataSttModel: undefined,
   scrapecreatorsSttModels: undefined,
-  scrapecreatorsSttModel: undefined,
   geminiSttModels: ['gemini-3-flash-preview'],
-  geminiSttModel: undefined,
   togetherSttModels: ['openai/whisper-large-v3'],
-  togetherSttModel: undefined,
-  whisperModels: undefined,
-  whisperModel: 'tiny',
+  whisperModels: ['tiny'],
   whisperfileModels: undefined,
-  whisperfileModel: undefined,
   step2SelectionOrigins: {
     'gemini-stt': 'explicit',
     'together-stt': 'explicit'
@@ -129,25 +112,15 @@ const STT_SELECTION_PROBE = {
 const OCR_SELECTION_PROBE = {
   useTesseract: false,
   mistralOcrModels: undefined,
-  mistralOcrModel: undefined,
   glmOcrModels: undefined,
-  glmOcrModel: undefined,
   kimiOcrModels: undefined,
-  kimiOcrModel: undefined,
   openaiOcrModels: undefined,
-  openaiOcrModel: undefined,
   grokOcrModels: undefined,
-  grokOcrModel: undefined,
   anthropicOcrModels: undefined,
-  anthropicOcrModel: undefined,
   geminiOcrModels: undefined,
-  geminiOcrModel: undefined,
   deepinfraOcrModels: undefined,
-  deepinfraOcrModel: undefined,
   replicateOcrModels: undefined,
-  replicateOcrModel: undefined,
   falOcrModels: undefined,
-  falOcrModel: undefined,
   step2SelectionOrigins: {}
 } satisfies OcrSelectionOptions
 
@@ -163,7 +136,7 @@ const registrySelectionKeys = (step: 'stt' | 'ocr'): string[] => [
   ...getStep2ProviderEntries(step).flatMap((entry) => {
     if (entry.selection.type === 'boolean') return [entry.selection.runtimeKey]
     if (entry.selection.type === 'models') {
-      return [entry.selection.runtimeModelsKey, entry.selection.runtimeModelKey]
+      return [entry.selection.runtimeModelsKey]
     }
     return []
   }),

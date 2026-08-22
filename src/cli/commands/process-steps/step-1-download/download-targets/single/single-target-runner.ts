@@ -1,6 +1,5 @@
 import { processStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/process-stt'
 import { processUrlArticle } from '~/cli/commands/process-steps/step-2-extract/step-2-url/process-url'
-import { runTextWrite } from '~/cli/commands/process-steps/step-3-write/run-text-write'
 import { ValidationError } from '~/utils/error-handler'
 import type {
   AggregatedPriceEstimate,
@@ -16,11 +15,9 @@ import type {
   SingleTargetClassifiedInput,
   SingleTargetCommandOptions,
   SingleTargetExecutionContext,
-  SingleTargetRunOptions,
-  WriteSingleTargetAction,
-  WriteSingleTargetIntent
+  SingleTargetRunOptions
 } from '~/types'
-import { processDownloadMedia, processMediaSingle, processMetadataMedia } from './media-runner'
+import { processDownloadMedia, processMetadataMedia } from './media-runner'
 import {
   prepareArticleDocument,
   processDownloadDocument,
@@ -29,12 +26,10 @@ import {
   processMetadataPreparedDocument,
   processOcrSingle
 } from './document-runner'
-import { runDocumentWrite, runExtractedDocumentWrite } from './document-write'
 import {
   processMetadataXSpace,
   processXSpace,
-  resolveXSpaceDownloadTarget,
-  runXSpaceWrite
+  resolveXSpaceDownloadTarget
 } from './x-space-runner'
 import {
   classifySingleTargetInput,
@@ -226,82 +221,6 @@ const handleExtractRoute = async (
   }
 }
 
-const handleWriteRoute = async (
-  intent: WriteSingleTargetIntent,
-  action: WriteSingleTargetAction,
-  context: SingleTargetExecutionContext
-): Promise<BatchItemProcessResult | void> => {
-  const batchChildContext = context.runOptions?.batchChildContext
-  switch (action) {
-    case 'text':
-      return await runTextWrite(
-        context.item,
-        context.baseDir,
-        intent.opts,
-        context.preflightEstimate,
-        batchChildContext
-      )
-    case 'x-space':
-      return await runXSpaceWrite(
-        context.item,
-        context.baseDir,
-        intent.opts,
-        context.preflightEstimate,
-        batchChildContext
-      )
-    case 'temporary-document':
-      return await withTemporaryDirectDocument(
-        context.item,
-        async (filePath) =>
-          await runDocumentWrite(
-            filePath,
-            context.baseDir,
-            intent.opts,
-            { url: context.item },
-            undefined,
-            context.preflightEstimate,
-            batchChildContext
-          )
-      )
-    case 'article': {
-      const extraction = await processUrlArticle(
-        context.item,
-        context.baseDir,
-        intent.opts,
-        context.preflightEstimate,
-        batchChildContext
-      )
-      return await runExtractedDocumentWrite({
-        target: context.item,
-        opts: intent.opts,
-        extraction,
-        sourceRef: sourceRefForInput(context.input, context.item),
-        ...(context.preflightEstimate ? { preflightEstimate: context.preflightEstimate } : {})
-      })
-    }
-    case 'document':
-      return await runDocumentWrite(
-        context.item,
-        context.baseDir,
-        intent.opts,
-        undefined,
-        undefined,
-        context.preflightEstimate,
-        batchChildContext
-      )
-    case 'media': {
-      const result = await processMediaSingle(
-        context.item,
-        context.baseDir,
-        intent.opts,
-        context.preflightEstimate,
-        batchChildContext
-      )
-      return { outputDir: result.outputDir }
-    }
-  }
-}
-
 export const processSingleTarget = async (
   command: ProcessCommand,
   item: string,
@@ -335,10 +254,6 @@ export const processSingleTarget = async (
     case 'extract': {
       const route = resolveSingleTargetRoute(intent, input, item)
       return await handleExtractRoute(intent, route.action, context)
-    }
-    case 'write': {
-      const route = resolveSingleTargetRoute(intent, input, item)
-      return await handleWriteRoute(intent, route.action, context)
     }
   }
 }

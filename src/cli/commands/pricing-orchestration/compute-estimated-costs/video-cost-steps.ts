@@ -6,7 +6,7 @@ import { pushGenerationEstimates } from './cost-steps-shared'
 
 export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStepsResult => {
   const hasVideo = input.videoTargets?.length
-    || VIDEO_PRICING_PROVIDERS.some((provider) => !!input[provider.modelKey])
+    || VIDEO_PRICING_PROVIDERS.some((provider) => (input[provider.modelsKey]?.length ?? 0) > 0)
   if (!hasVideo) {
     return { steps: [], cost: 0 }
   }
@@ -20,8 +20,8 @@ export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStep
     ...(input.replicateVideoReferenceVideoCount !== undefined ? { replicateVideoReferenceVideoCount: input.replicateVideoReferenceVideoCount } : {})
   }
   const selectionOptions = Object.assign({}, ...VIDEO_PRICING_PROVIDERS.map((provider) => {
-    const model = input[provider.modelKey]
-    return model ? optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, model) : {}
+    const models = input[provider.modelsKey]
+    return models?.length ? optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, models) : {}
   }))
   const videoEstimates = input.videoTargets === undefined
     ? estimateVideoCosts({ ...selectionOptions, ...sharedOptions, videoDuration: input.videoDuration })

@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureGeminiImageGenSetup = ensureProvider('gemini', 'image:gemini', 'Gemini image generation')
+export const ensureGeminiImageGenSetup = async (): Promise<void> => { requireProviderKey('gemini', 'image:gemini', 'Gemini image generation') }

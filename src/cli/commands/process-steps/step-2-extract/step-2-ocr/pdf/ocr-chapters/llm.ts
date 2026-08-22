@@ -57,15 +57,15 @@ const buildLlmOptions = (
   llmProviderConcurrency: DEFAULT_CLI_CONCURRENCY,
   llmLocalConcurrency: DEFAULT_CLI_CONCURRENCY,
   promptBuilder,
-  ...(service === 'openai' ? { openaiModel: model } : {}),
-  ...(service === 'groq' ? { groqModel: model } : {}),
-  ...(service === 'gemini' ? { geminiModel: model } : {}),
-  ...(service === 'anthropic' ? { anthropicModel: model } : {}),
-  ...(service === 'minimax' ? { minimaxModel: model } : {}),
-  ...(service === 'grok' ? { grokModel: model } : {}),
-  ...(service === 'glm' ? { glmModel: model } : {}),
-  ...(service === 'together' ? { togetherModel: model } : {}),
-  ...(service === 'cerebras' ? { cerebrasModel: model } : {})
+  ...(service === 'openai' ? { openaiModels: [model] } : {}),
+  ...(service === 'groq' ? { groqModels: [model] } : {}),
+  ...(service === 'gemini' ? { geminiModels: [model] } : {}),
+  ...(service === 'anthropic' ? { anthropicModels: [model] } : {}),
+  ...(service === 'minimax' ? { minimaxModels: [model] } : {}),
+  ...(service === 'grok' ? { grokModels: [model] } : {}),
+  ...(service === 'glm' ? { glmModels: [model] } : {}),
+  ...(service === 'together' ? { togetherModels: [model] } : {}),
+  ...(service === 'cerebras' ? { cerebrasModels: [model] } : {})
 })
 
 export const resolveLlmCandidates = async (input: {

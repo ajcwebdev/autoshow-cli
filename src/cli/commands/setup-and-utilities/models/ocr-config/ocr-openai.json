@@ -15,7 +15,7 @@
         "costPerMOutputTokensCents": 3000,
         "limits": {
           "pdfBytes": 52428800,
-          "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
+          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
           "promptTokensPerPage": 1625,
@@ -41,7 +41,7 @@
         "costPerMOutputTokensCents": 1200,
         "limits": {
           "pdfBytes": 52428800,
-          "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
+          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
           "promptTokensPerPage": 1625,
@@ -67,7 +67,7 @@
         "costPerMOutputTokensCents": 120,
         "limits": {
           "pdfBytes": 52428800,
-          "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
+          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
           "promptTokensPerPage": 1625,
@@ -93,7 +93,7 @@
         "costPerMOutputTokensCents": 3000,
         "limits": {
           "pdfBytes": 52428800,
-          "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
+          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
           "promptTokensPerPage": 2986,
@@ -135,7 +135,7 @@
         "costPerMOutputTokensCents": 450,
         "limits": {
           "pdfBytes": 52428800,
-          "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
+          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
           "costMultiplier": 1,
@@ -160,7 +160,7 @@
         "costPerMOutputTokensCents": 125,
         "limits": {
           "pdfBytes": 52428800,
-          "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
+          "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
           "costMultiplier": 1,

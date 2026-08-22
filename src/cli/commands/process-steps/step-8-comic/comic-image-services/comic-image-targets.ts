@@ -5,7 +5,7 @@ import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/i
 import { resolveImageService, SERVICE_TO_IMAGE_MODELS_FIELD } from '../comic-utils/image-service'
 import { validateImageSizeForModels } from '../comic-utils/image-size'
 import { validateReferenceImageCount } from '../comic-utils/reference-capabilities'
-import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
+import { UsageError, InfraError, InternalError } from '~/utils/error-handler'
 import type { GeneratedImageResponse, ImageGenOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize } from '~/types'
 
 const GEMINI_SIZE_TO_ASPECT_RATIO: Record<string, string> = {
@@ -67,12 +67,12 @@ export const createImage = async (
 
   const service = resolveImageService(model)
   if (!service) {
-    throw CLIUsageError(`Unknown image model "${model}". It is not present in the central image registry.`)
+    throw UsageError(`Unknown image model "${model}". It is not present in the central image registry.`)
   }
 
   const field = SERVICE_TO_IMAGE_MODELS_FIELD[service]
   if (!field) {
-    throw CLIUsageError(`Image provider "${service}" for model "${model}" is not supported by comic.`)
+    throw UsageError(`Image provider "${service}" for model "${model}" is not supported by comic.`)
   }
 
   const options = buildImageGenOptions(service, field, model, size, quality, referenceImages)

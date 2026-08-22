@@ -1,5 +1,5 @@
 import type { FishNativeDialogueTurn, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { createFishClient } from '~/utils/fish-client/fish-client'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
 import { finalizeTtsRun } from '../../tts-utils/finalize-tts-run'
@@ -25,8 +25,8 @@ export const runFishNativeDialogue = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (!isFishNativeDialogueModel(options.model)) throw CLIUsageError('Fish native dialogue requires model s2.1-pro.')
-  if (turns.length === 0) throw CLIUsageError('Fish native dialogue requires at least one turn.')
+  if (!isFishNativeDialogueModel(options.model)) throw UsageError('Fish native dialogue requires model s2.1-pro.')
+  if (turns.length === 0) throw UsageError('Fish native dialogue requires at least one turn.')
   const batches = planFishNativeDialogueBatches(turns)
   const client = createFishClient({ apiKey: options.apiKey })
   const paths: string[] = []

@@ -4,15 +4,14 @@ import type {
   CapabilityDocumentationEvidence,
   TtsProvider,
 } from '~/types'
-import { CLIUsageError, InternalError, ProviderError } from '~/utils/error-handler'
+import { UsageError, ProviderError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from './contract-identity'
 import { validateCapabilityFacetSet } from './contract-validation'
 import { deriveProviderAccountScopeHash } from '~/utils/account-scope-hash'
-import { findHostedTtsCredential } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
-import { requireProvidedApiKey } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const ADVANCED_PROVIDER_FIXTURE_CHECKED_AT = '2026-08-11T00:00:00.000Z'
 
@@ -92,30 +91,23 @@ export const buildAdvancedCapabilityFixture = <T extends readonly AnyCapabilityR
 }
 
 export const providerAccountScopeHash = (provider: TtsProvider, credential: string): string => {
-  const spec = findHostedTtsCredential(provider)
-  if (!spec) {
-    throw InternalError(`TTS provider ${provider} has no credential specification.`, {
-      stage: 'tts:account-scope',
-      retryable: false
-    })
-  }
-  const normalized = requireProvidedApiKey(
-    credential,
-    spec.envVar,
-    'tts:account-scope',
-    `${provider} account scope`
-  )
+  const normalized = resolveCredential(provider, 'require', {
+    stage: 'tts:account-scope',
+    providedValue: credential,
+    useProvidedValue: true,
+    description: `${provider} account scope`
+  })
   return deriveProviderAccountScopeHash(provider, normalized)
 }
 
 export const providerSecondsToMilliseconds = (seconds: number, durationMs?: number | undefined): number => {
-  if (!Number.isFinite(seconds) || seconds < 0) throw CLIUsageError('Provider timing must be a finite non-negative number of seconds.')
+  if (!Number.isFinite(seconds) || seconds < 0) throw UsageError('Provider timing must be a finite non-negative number of seconds.')
   const rounded = Math.floor((seconds * 1000) + 0.5)
   return durationMs === undefined ? rounded : Math.min(durationMs, rounded)
 }
 
 export const providerMilliseconds = (milliseconds: number, durationMs?: number | undefined): number => {
-  if (!Number.isFinite(milliseconds) || milliseconds < 0) throw CLIUsageError('Provider timing must be a finite non-negative number of milliseconds.')
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) throw UsageError('Provider timing must be a finite non-negative number of milliseconds.')
   const rounded = Math.floor(milliseconds + 0.5)
   return durationMs === undefined ? rounded : Math.min(durationMs, rounded)
 }

@@ -1,7 +1,7 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import type { FalVideoModel, FalVideoOutput, Step6VideoMetadata, VideoMode } from '~/types'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '../../video-utils/video-pricing'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
@@ -17,22 +17,22 @@ export const FAL_PIXVERSE_ASPECT_RATIOS = ['16:9', '4:3', '1:1', '3:4', '9:16', 
 export const normalizeFalVideoDuration = (model: FalVideoModel, value: number | undefined): number => {
   const duration = value ?? 5
   const min = model === 'minimax/h3' ? 5 : 1
-  if (!Number.isInteger(duration) || duration < min || duration > 15) throw CLIUsageError(`Invalid --video-duration value "${String(value)}" for fal.ai/${model}. Supported range: ${min}-15 seconds.`)
+  if (!Number.isInteger(duration) || duration < min || duration > 15) throw UsageError(`Invalid --duration value "${String(value)}" for fal.ai/${model}. Supported range: ${min}-15 seconds.`)
   return duration
 }
 
 export const normalizeFalVideoResolution = (model: FalVideoModel, value: string | undefined): string => {
   const normalized = value?.toLowerCase() ?? (model === 'minimax/h3' ? '2k' : '720p')
   const allowed = model === 'minimax/h3' ? FAL_H3_RESOLUTIONS : FAL_PIXVERSE_RESOLUTIONS
-  if (!(allowed as readonly string[]).includes(normalized)) throw CLIUsageError(`Invalid --video-resolution value "${value}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
+  if (!(allowed as readonly string[]).includes(normalized)) throw UsageError(`Invalid --resolution value "${value}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
   return model === 'minimax/h3' ? normalized.toUpperCase() : normalized
 }
 
 export const normalizeFalVideoAspectRatio = (model: FalVideoModel, value: string | undefined, mode: VideoMode): string | undefined => {
   if (!value) return undefined
-  if (model === 'minimax/h3' && mode === 'image-to-video') throw CLIUsageError(`--video-aspect-ratio is not supported by fal.ai/${model} image-to-video; output follows the first frame.`)
+  if (model === 'minimax/h3' && mode === 'image-to-video') throw UsageError(`--aspect-ratio is not supported by fal.ai/${model} image-to-video; output follows the first frame.`)
   const allowed = model === 'minimax/h3' ? FAL_H3_ASPECT_RATIOS : FAL_PIXVERSE_ASPECT_RATIOS
-  if (!(allowed as readonly string[]).includes(value)) throw CLIUsageError(`Invalid --video-aspect-ratio value "${value}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
+  if (!(allowed as readonly string[]).includes(value)) throw UsageError(`Invalid --aspect-ratio value "${value}" for fal.ai/${model}. Supported values: ${allowed.join(', ')}.`)
   return value
 }
 
@@ -59,7 +59,7 @@ const buildFalVideoRequest = async (prompt: string, options: {
   const referenceAudios = await Promise.all((options.referenceAudios ?? []).map(value => videoMediaReferenceToUrlOrDataUrl(value, 'audio')))
 
   if (options.model === 'minimax/h3') {
-    if (options.generateAudio !== undefined) throw CLIUsageError(`--video-generate-audio is not configurable for fal.ai/${options.model}; H3 generates native audio according to its model behavior.`)
+    if (options.generateAudio !== undefined) throw UsageError(`--generate-audio is not configurable for fal.ai/${options.model}; H3 generates native audio according to its model behavior.`)
     if (options.mode === 'text') return { endpointId: 'minimax/h3/text-to-video', input: { prompt, duration, resolution, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) }, duration, resolution, aspectRatio }
     if (options.mode === 'image-to-video' || options.mode === 'interpolate') return { endpointId: 'minimax/h3/image-to-video', input: { prompt, duration, resolution, image_url: image, ...(lastFrame ? { end_image_url: lastFrame } : {}) }, duration, resolution }
     return {
@@ -98,10 +98,10 @@ export const runFalVideoGen = async (prompt: string, outputDir: string, options:
   generateAudio?: boolean | undefined
   pollIntervalMs?: number | undefined
 }): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  if (!prompt.trim()) throw CLIUsageError('fal.ai video prompt cannot be empty.')
+  if (!prompt.trim()) throw UsageError('fal.ai video prompt cannot be empty.')
   const apiKey = await ensureFalVideoGenSetup()
   const request = await buildFalVideoRequest(prompt, options)
-  const estimate = estimateVideoCost({ falVideoModel: options.model, videoDuration: request.duration, videoResolution: request.resolution, videoMode: options.mode })
+  const estimate = estimateVideoCost({ falVideoModels: [options.model], videoDuration: request.duration, videoResolution: request.resolution, videoMode: options.mode })
   logVideoEstimate(estimate)
   logMediaGenerationStatus(l, { mediaType: 'video', provider: 'fal', model: options.model, status: 'started', detail: options.mode })
   const startTime = Date.now()

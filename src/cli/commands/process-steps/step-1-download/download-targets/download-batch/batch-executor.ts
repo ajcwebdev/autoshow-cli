@@ -10,13 +10,13 @@ import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-s
 import type { BatchCommandOptions, BatchExecutionPlan, BatchProcessResult, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand } from '~/types'
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 import type { OptionsAssertion } from '~/types'
 import { createOptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
 
 const assertExtractCommandOptions: OptionsAssertion<BatchCommandOptions, ExtractCommandOptions> =
-  createOptionsAssertion('Extract command options are incomplete', ['whisperModel', 'step2SelectionOrigins'])
+  createOptionsAssertion('Extract command options are incomplete', ['step2SelectionOrigins'])
 
 const createExtractChildBatchPlan = (
   route: ExtractRoute
@@ -97,10 +97,10 @@ const readExtractChildManifest = async (
   const childDir = join(batchDir, route)
   const manifest = await readManifest(childDir)
   if (!manifest) {
-    throw CLIUsageError(`Missing canonical child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
+    throw UsageError(`Missing canonical child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
   }
   if (manifest.command !== 'extract' || manifest.scope !== 'batch') {
-    throw CLIUsageError(`Invalid extract child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
+    throw UsageError(`Invalid extract child manifest at ${join(childDir, PIPELINE_MANIFEST_FILE)}.`)
   }
   return { childDir, manifest }
 }
@@ -244,10 +244,10 @@ const executeExtractBatchPlan = async (
 
       const childEntry = childManifest.items[childIndex]
       if (!childEntry) {
-        throw CLIUsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} is missing item ${childIndex}.`)
+        throw UsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} is missing item ${childIndex}.`)
       }
       if (childEntry.extractRoute !== route) {
-        throw CLIUsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} item ${childIndex} has route ${childEntry.extractRoute ?? 'missing'}, expected ${route}.`)
+        throw UsageError(`Canonical child manifest ${join(childDir, PIPELINE_MANIFEST_FILE)} item ${childIndex} has route ${childEntry.extractRoute ?? 'missing'}, expected ${route}.`)
       }
       const outputDir = childEntry.outputDir === undefined
         ? undefined

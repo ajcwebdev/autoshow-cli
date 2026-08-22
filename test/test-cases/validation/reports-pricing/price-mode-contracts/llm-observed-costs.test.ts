@@ -26,8 +26,7 @@ describe('price mode contracts', () => {
           model: 'gpt-5.5',
           inputTokens: 100_000,
           outputTokens: 100_000
-        }],
-        skipLLM: false
+        }]
       })
       const multiplier = getLlmEstimation('openai', 'gpt-5.5').costMultiplier
 

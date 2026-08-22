@@ -14,21 +14,21 @@ How targets become single runs or batches.
 ```
 command + target + flags
         |
-        +--> write: <project>/text with prompt.md -> --text-input
-        +--> write: a .md/.txt file that is not an input list -> --text-input
+        +--> write: <project>/text with prompt.md -> project lyric draft mode
+        +--> write: a local .md/.txt file or directory of those files
         |
         v
 plan the run
 ```
 
-Write `--text-input` planning:
+Write planning:
 
 ```
-write && --text-input?
+write
   |
-  +--> URL target: usage error
+  +--> URL, media, document, HTML, or X Space: usage error naming extract
   +--> directory: collect .md/.txt files -> batch
-  +--> .md/.txt file: single text-input item
+  +--> .md/.txt file: single text item
   +--> otherwise: usage error
 ```
 
@@ -59,7 +59,7 @@ Directory, list, source, and collection plans run as batches. Everything else is
 
 ## Input Routing
 
-Extract and write classify each single target and each planned batch item:
+Extract classifies each single target and each planned batch item. Write does not classify extract routes; it accepts only local `.md` / `.txt` text:
 
 ```
 target
@@ -91,11 +91,11 @@ Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported. S
 
 | Family         | `metadata`            | `download`                     | `extract`                 | `write`                                   |
 | -------------- | --------------------- | ------------------------------ | ------------------------- | ----------------------------------------- |
-| Media          | metadata only         | download/stage media           | STT route                 | STT + LLM                                 |
-| Document/image | metadata only         | download/copy document         | OCR/native document route | OCR/native document + LLM                 |
-| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | URL/article + LLM                         |
-| X Space        | X API metadata lookup | Space audio download           | X Space route             | X Space report + LLM                      |
-| Text input     | unsupported           | unsupported                    | unsupported               | `--text-input`, project, or auto-detected |
+| Media          | metadata only         | download/stage media           | STT route                 | unsupported; extract first                |
+| Document/image | metadata only         | download/copy document         | OCR/native document route | unsupported; extract first                |
+| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | unsupported; extract first                |
+| X Space        | X API metadata lookup | Space audio download           | X Space route             | unsupported; extract first                |
+| Text input     | unsupported           | unsupported                    | unsupported               | local `.md`/`.txt`, including extract artifacts and project lyric drafts |
 
 Unsupported batch items stay in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`.
 

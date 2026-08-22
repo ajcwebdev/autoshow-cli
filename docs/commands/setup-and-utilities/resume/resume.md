@@ -66,7 +66,7 @@ bun autoshow resume ./output/2026-06-10_16-33-20-777_write \
 
 # Retry or append extract providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-ocr
-bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --url-provider supadata
+bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider supadata
 
 # Retry or append TTS, image, video, and music providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3
@@ -115,10 +115,7 @@ These flags match [`extract`](../../process-steps/step-2-extract/01-extract.md).
 | `--chapters`, `--no-chapters`       | Write or suppress EPUB/PDF chapter files when rebuilding extraction artifacts                                            |
 | `--length <thousands>`              | Hard export limit in thousands of characters for EPUB/PDF chunking                                                       |
 | `--pdf-chapter-mode <mode>`         | PDF chapter detection mode: `local`, `auto`, or `llm`                                                                    |
-| `--url-provider <backend>`          | Article/HTML backend: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                             |
-| `--url-provider-concurrency <n>`    | Max hosted URL providers running in parallel for one item                                                                |
-| `--url-request-timeout-ms <ms>`     | Per-provider URL request timeout                                                                                         |
-| `--url-request-attempts <n>`        | Per-provider URL retry attempts                                                                                          |
+| `--provider <backend>`              | Article/HTML backend: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                             |
 
 ## TTS Options
 

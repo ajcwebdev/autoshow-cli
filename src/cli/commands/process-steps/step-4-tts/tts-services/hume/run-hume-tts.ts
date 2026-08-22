@@ -5,7 +5,7 @@ import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-
 import { HUME_DEFAULT_TTS_VOICE, HUME_LIBRARY_VOICE_PROVIDER, validateHumeTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
@@ -45,7 +45,7 @@ export const runHumeTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('HUME_API_KEY', 'tts:hume', 'Hume TTS')
+  const apiKey = requireProviderKey('hume', 'tts:hume', 'Hume TTS')
 
   const baseURL = trimTrailingSlash(HUME_DEFAULT_BASE_URL)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.hume)

@@ -17,26 +17,6 @@ export const planBatchInputsForCommand = async (
   resultEntryIndexes: number[]
   plannedInputs: PlannedBatchInput[]
 }> => {
-  if (command === 'write' && opts.textInput) {
-    return {
-      items,
-      ...(selectedItems ? { selectedItems } : {}),
-      initialRecords: items.map((item, index) => ({
-        ...buildPipelineItemRecord(item, selectedItems?.[index]),
-        sourceKind: 'text-input'
-      })),
-      resultEntryIndexes: items.map((_, index) => index),
-      plannedInputs: items.map((item, index) => ({
-        input: item,
-        inputFamily: 'unsupported',
-        resolvedStep2: {
-          route: 'unsupported',
-          sourceKind: 'unsupported'
-        },
-        ...(selectedItems?.[index] ? { batchItem: selectedItems[index] } : {})
-      }))
-    }
-  }
 
   const shouldResolveRouting = usesExtractInputRouting(command)
   if (!shouldResolveRouting) {

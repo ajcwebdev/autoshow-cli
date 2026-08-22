@@ -23,11 +23,11 @@ const targetFor = (options: TtsOptions, service: TtsTarget['service']): TtsTarge
 
 describe('current TTS render planning uses final invocation controls', () => {
   test('plans OpenAI A/X, B/default-cleared, A/X from the exact effective serializer controls', () => {
-    const defaults = buildOptsFromFlags(false, {
+    const defaults = buildOptsFromFlags({
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
-      'openai-voice': 'ash',
-      'openai-tts-instructions': 'inherited instruction',
-      'openai-tts-speed': 1,
+      'tts-voice': 'ash',
+      'tts-instructions': 'inherited instruction',
+      'tts-speed': '1',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=alloy', 'Bob=onyx'],
     })
@@ -78,7 +78,7 @@ describe('current TTS render planning uses final invocation controls', () => {
   })
 
   test('forces two-speaker Gemini through segmented planning when any turn has explicit controls', () => {
-    const defaults = buildOptsFromFlags(false, {
+    const defaults = buildOptsFromFlags({
       'gemini-tts': 'gemini-3.1-flash-tts-preview',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=Kore', 'Bob=Puck'],

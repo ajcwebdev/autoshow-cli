@@ -1,7 +1,5 @@
 import type { CliFlagOccurrence } from '~/types'
 
-export type SelectorFlagMap = Record<string, string>
-
 export type SelectorNormalizationResult = {
   flags: Record<string, unknown>
   explicitFlags: Set<string>

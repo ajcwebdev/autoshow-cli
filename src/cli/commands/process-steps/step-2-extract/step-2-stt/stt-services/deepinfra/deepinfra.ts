@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureDeepinfraSttSetup = ensureProvider('deepinfra', 'stt:deepinfra', 'DeepInfra transcription')
+export const ensureDeepinfraSttSetup = async (): Promise<void> => { requireProviderKey('deepinfra', 'stt:deepinfra', 'DeepInfra transcription') }

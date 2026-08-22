@@ -1,4 +1,4 @@
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { InfraError } from '~/utils/error-handler'
 import type { LlmApiCallResult, MiniMaxChatCompletionResponse, Step3Metadata, StructuredRequestOptions } from '~/types'
 import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
@@ -33,7 +33,7 @@ export const runMinimaxModel = async (
     emptyResponseStage: 'write:minimax',
     classifier: (error) => classifyFetchRetry(error, 'runtime_http_create_conservative'),
     prepare: () => ({
-      apiKey: requireApiKey('MINIMAX_API_KEY', 'write:minimax'),
+      apiKey: requireProviderKey('minimax', 'write:minimax'),
       provider: 'minimax',
       baseURL: MINIMAX_TEXT_BASE_URL
     }),

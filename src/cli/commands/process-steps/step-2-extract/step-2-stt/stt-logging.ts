@@ -487,17 +487,17 @@ export const logSttProviderFailures = (
 }
 
 const buildSttProviderSkipTable = (
-  skippedProviders: ReadonlyArray<Pick<SttProviderState, 'service' | 'model' | 'lastError'>>
+  skippedProviders: ReadonlyArray<Pick<SttProviderState, 'service' | 'model' | 'error'>>
 ): HumanLogTable => {
   const table = createHumanTable(
     skippedProviders.map((state) => ({
       provider: formatSttTargetLabel(state),
-      stage: state.lastError?.stage ?? '',
-      status: state.lastError?.status ?? '',
-      reason: state.lastError
+      stage: state.error?.stage ?? '',
+      status: state.error?.status ?? '',
+      reason: state.error
         ? summarizeProviderFailureReason({
-          stage: state.lastError.stage,
-          status: state.lastError.status
+          stage: state.error.stage,
+          status: state.error.status
         })
         : 'skipped'
     })),
@@ -509,7 +509,7 @@ const buildSttProviderSkipTable = (
       ...(table.details ?? []),
       ...skippedProviders.map((state) => ({
         label: `${formatSttTargetLabel(state)} detail`,
-        value: state.lastError?.message ?? 'skipped'
+        value: state.error?.message ?? 'skipped'
       }))
     ]
   }
@@ -517,7 +517,7 @@ const buildSttProviderSkipTable = (
 
 export const logSttProviderSkips = (
   logger: TableLogger,
-  skippedProviders: ReadonlyArray<Pick<SttProviderState, 'service' | 'model' | 'lastError'>>,
+  skippedProviders: ReadonlyArray<Pick<SttProviderState, 'service' | 'model' | 'error'>>,
   level: LogLevel = 'warn'
 ): void => {
   if (skippedProviders.length === 0) {
@@ -530,9 +530,9 @@ export const logSttProviderSkips = (
     metadata: {
       skipped: skippedProviders.map((state) => ({
         provider: formatSttTargetLabel(state),
-        stage: state.lastError?.stage,
-        status: state.lastError?.status,
-        detail: state.lastError?.message ?? 'skipped'
+        stage: state.error?.stage,
+        status: state.error?.status,
+        detail: state.error?.message ?? 'skipped'
       }))
     }
   })

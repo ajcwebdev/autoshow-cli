@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { buildProcessingOptions } from '~/cli/commands/process-steps/step-1-download/download-targets/single/media-runner'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import type { MatrixCase, ProcessingOptions, ProcessingSource, ResolvedFlagOptions } from '~/types'
@@ -10,7 +9,18 @@ import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrenc
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 
 const sourceKeys = new Set(['url', 'filePath'])
-const defaultResolvedOptions = buildOptsFromFlags(false, {})
+const writeOnlyProcessingKeys = new Set([
+  'skipLLM',
+  'prompts',
+  'promptFile',
+  'renderedText',
+  'renderedOutDir',
+  'trackList',
+  'promptMd',
+  'llmProviderConcurrency',
+  'llmLocalConcurrency'
+])
+const defaultResolvedOptions = buildOptsFromFlags({})
 const positiveProcessingKeys = Object.keys(buildProcessingOptions(
   { url: 'https://example.com/reference' },
   '/tmp/reference-output',
@@ -25,10 +35,10 @@ const expectComposedValueParity = (
 ): void => {
   const actualRecord = actual as Record<string, unknown>
   const resolvedRecord = resolvedOptions as Record<string, unknown>
-  const llmRecord = buildLLMModelOptions(resolveLLMDefaults(resolvedOptions)) as Record<string, unknown>
   const actualPositiveKeys = Object.keys(actualRecord).filter((key) => !sourceKeys.has(key)).sort()
 
   expect(actualPositiveKeys).toEqual(positiveProcessingKeys)
+  expect(actualPositiveKeys.some((key) => writeOnlyProcessingKeys.has(key))).toBe(false)
   expect(actual.outputDir).toBe(outputDir)
   expect('url' in actual).toBe('url' in source)
   expect('filePath' in actual).toBe('filePath' in source)
@@ -37,8 +47,7 @@ const expectComposedValueParity = (
     if (key === 'outputDir') {
       continue
     }
-    const expected = key in llmRecord ? llmRecord[key] : resolvedRecord[key]
-    expect(actualRecord[key], `composed value for ${key}`).toEqual(expected)
+    expect(actualRecord[key], `composed value for ${key}`).toEqual(resolvedRecord[key])
   }
 }
 
@@ -53,33 +62,31 @@ const MATRIX: MatrixCase[] = [
       'provider-concurrency': '4',
       'local-concurrency': '2',
       'youtube-captions': true,
-      'prompt': ['summary', 'chapters']
+      split: true
     },
     explicitFlags: new Set([
       'provider-concurrency',
       'local-concurrency',
       'youtube-captions',
-      'prompt'
+      'split'
     ])
   },
   {
     label: 'config-injected flags',
     flags: {
-      'prompt-file': 'custom-prompt.md',
+      'youtube-captions': true,
       __autoshowConfigInjectedFlags: [
-        'prompt-file'
+        'youtube-captions'
       ]
     }
   },
   {
     label: 'all-provider shortcuts',
     flags: {
-      'all-stt': true,
-      'all-llm': true
+      'all-stt': true
     },
     explicitFlags: new Set([
-      'all-stt',
-      'all-llm'
+      'all-stt'
     ])
   }
 ]
@@ -93,24 +100,28 @@ describe('processing-options boundary differential', () => {
     expect(Object.keys(fileOptions).filter((key) => !sourceKeys.has(key)).sort()).toEqual(positiveProcessingKeys)
   })
 
-  test('option resolution supplies every retired schema default before projection', () => {
-    const runtimeOptions = buildOptsFromFlags(false, {})
+  test('extract projection keeps STT and source fields without write-only LLM options', () => {
+    const runtimeOptions = buildOptsFromFlags({})
     const options = buildProcessingOptions({ url: 'https://example.com/watch' }, '/tmp/output', runtimeOptions)
 
-    expect(options.llmProviderConcurrency).toBe(runtimeOptions.llmProviderConcurrency)
-    expect(options.llmLocalConcurrency).toBe(runtimeOptions.llmLocalConcurrency)
+    expect(options.youtubeCaptions).toBe(runtimeOptions.youtubeCaptions)
+    expect(options.split).toBe(runtimeOptions.split)
+    expect(options.whisperModels).toBe(runtimeOptions.whisperModels)
+    expect('skipLLM' in options).toBe(false)
+    expect('prompts' in options).toBe(false)
+    expect('llmProviderConcurrency' in options).toBe(false)
   })
 
-  test('the narrowed STT and write-pricing inputs preserve resolved-option behavior', async () => {
+  test('the narrowed STT and extract-pricing inputs preserve resolved-option behavior', async () => {
     await withTempDir('autoshow-processing-options-', async (tempDir) => {
       const inputPath = join(tempDir, 'input.mp4')
       await Bun.write(inputPath, new Uint8Array())
-      const runtimeOptions = buildOptsFromFlags(false, {})
+      const runtimeOptions = buildOptsFromFlags({})
       const processingOptions = buildProcessingOptions({ filePath: inputPath }, '/tmp/output', runtimeOptions)
 
       expect(collectSttTargets(processingOptions)).toEqual(collectSttTargets(runtimeOptions))
-      expect(await buildAggregatedPriceEstimate('write', inputPath, processingOptions)).toEqual(
-        await buildAggregatedPriceEstimate('write', inputPath, runtimeOptions)
+      expect(await buildAggregatedPriceEstimate('extract', inputPath, processingOptions)).toEqual(
+        await buildAggregatedPriceEstimate('extract', inputPath, runtimeOptions)
       )
     })
   })
@@ -122,15 +133,9 @@ describe('processing-options boundary differential', () => {
     ]) {
       const sourceLabel = 'url' in source ? 'URL' : 'file'
 
-      test(`${matrixCase.label} preserves the retired boundary values for ${sourceLabel} input`, () => {
+      test(`${matrixCase.label} preserves extract processing options for ${sourceLabel} input`, () => {
         const explicitFlags = matrixCase.explicitFlags ?? new Set<string>()
-        const runtimeOptions = buildOptsFromFlags(
-          false,
-          matrixCase.flags,
-          {},
-          explicitFlags,
-          flagOccurrencesFromValues(matrixCase.flags, explicitFlags)
-        )
+        const runtimeOptions = buildOptsFromFlags(matrixCase.flags, {}, explicitFlags, { flagOccurrences: flagOccurrencesFromValues(matrixCase.flags, explicitFlags) })
         const actual = buildProcessingOptions(source, '/tmp/output', runtimeOptions)
 
         expectComposedValueParity(source, '/tmp/output', runtimeOptions, actual)

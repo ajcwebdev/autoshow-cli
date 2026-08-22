@@ -1,6 +1,6 @@
 # Benchmark Rankings Summary
 
-Static cross-run ranking report built from the current `provider-comparison-report.json` and `reference-comparison-report.json` files under `docs/benchmarks`. Deleted tracked runs and `project/reports/results` are not included.
+Static cross-run ranking report built from the current `provider-comparison-report.json` and `reference-comparison-report.json` files under `docs/benchmarks`.
 
 Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-better and converted from milliseconds to seconds. Auto-quality and human quality are higher-is-better. Averages use only observed rows for the exact `providerKey`; coverage shows observed category runs.
 

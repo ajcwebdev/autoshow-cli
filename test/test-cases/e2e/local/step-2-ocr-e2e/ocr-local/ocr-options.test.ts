@@ -156,13 +156,13 @@ test('extract image with explicit --tesseract matches the default local OCR path
   expect(explicitMetadata.missingProviders).toEqual([])
 })
 
-test('bun autoshow extract https://ajcwebdev.com --url-provider defuddle', async () => {
+test('bun autoshow extract https://ajcwebdev.com --provider defuddle', async () => {
   let outputDir: string | null = null
 
   try {
     const result = await runCommand(
-      ['src/cli/create-cli.ts', 'extract', articleUrl, '--url-provider', 'defuddle'],
-      { testName: 'bun autoshow extract https://ajcwebdev.com --url-provider defuddle' }
+      ['src/cli/create-cli.ts', 'extract', articleUrl, '--provider', 'defuddle'],
+      { testName: 'bun autoshow extract https://ajcwebdev.com --provider defuddle' }
     )
     expect(result.exitCode).toBe(0)
 

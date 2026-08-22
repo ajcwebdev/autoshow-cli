@@ -194,7 +194,7 @@ describe('additive resume provider selection', () => {
       backendsToRun: ['zyte']
     })
 
-    const selectedSpiderTargets = getSelectedUrlTargets(buildOptsFromFlags(false, {
+    const selectedSpiderTargets = getSelectedUrlTargets(buildOptsFromFlags({
       'url-provider': 'spider'
     }, {}, new Set(['url-provider'])))
     expect(selectedSpiderTargets).toEqual([spider])
@@ -207,7 +207,7 @@ describe('additive resume provider selection', () => {
       skippedSuccessfulBackends: []
     })
 
-    const selectedFirecrawlTargets = getSelectedUrlTargets(buildOptsFromFlags(false, {
+    const selectedFirecrawlTargets = getSelectedUrlTargets(buildOptsFromFlags({
       'url-provider': 'firecrawl'
     }, {}, new Set(['url-provider'])))
     expect(resolveUrlArticleResumePlan(metadata, selectedFirecrawlTargets)).toMatchObject({
@@ -217,7 +217,7 @@ describe('additive resume provider selection', () => {
       skippedSuccessfulBackends: ['firecrawl']
     })
 
-    const allHostedTargets = getSelectedUrlTargets(buildOptsFromFlags(false, {
+    const allHostedTargets = getSelectedUrlTargets(buildOptsFromFlags({
       'all-url': true
     }, {}, new Set(['all-url'])))
     expect(allHostedTargets).toEqual([

@@ -11,7 +11,7 @@ import type {
   RenderAdmissionJournalSnapshot,
   RetainedJournalEvidence,
 } from '~/types'
-import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
+import { UsageError, hasErrorCode } from '~/utils/error-handler'
 import {
   hardlinkContainedArtifact,
   readContainedArtifactFile,
@@ -33,7 +33,7 @@ export const resolveRetainedPath = (baseDir: string, artifactRef: string, label:
   const path = resolve(base, artifactRef)
   const fromBase = relative(base, path)
   if (!fromBase || fromBase === '..' || fromBase.startsWith(`..${sep}`)) {
-    throw CLIUsageError(`${label} escapes its retained evidence directory.`)
+    throw UsageError(`${label} escapes its retained evidence directory.`)
   }
   return path
 }
@@ -46,15 +46,15 @@ export const readJournalSnapshotFromLedger = async (
 ): Promise<RenderAdmissionJournalSnapshot> => {
   const retained = await readContainedArtifactFile(rootDir, contained(rootDir, path))
   if (expectedSha256 && retained.sha256 !== expectedSha256 && !snapshotId) {
-    throw CLIUsageError('Stored TTS admission journal checksum does not match retained canonical evidence.')
+    throw UsageError('Stored TTS admission journal checksum does not match retained canonical evidence.')
   }
   const lines = retained.bytes.toString('utf8').split('\n').filter((line) => line.length > 0)
-  if (lines.length === 0) throw CLIUsageError('Stored TTS admission journal is empty.')
+  if (lines.length === 0) throw UsageError('Stored TTS admission journal is empty.')
   const parsedLines = lines.map((line) => JSON.parse(line) as { snapshot?: RenderAdmissionJournalSnapshot })
   const selected = snapshotId
     ? parsedLines.find((entry) => entry.snapshot?.snapshotId === snapshotId)
     : parsedLines.at(-1)
-  if (!selected?.snapshot) throw CLIUsageError('Stored TTS admission journal line is missing its snapshot.')
+  if (!selected?.snapshot) throw UsageError('Stored TTS admission journal line is missing its snapshot.')
   validateRenderAdmissionJournalSnapshot(selected.snapshot)
   return selected.snapshot
 }
@@ -100,13 +100,13 @@ export const resolveCurrentTtsPriorAdmittedAttemptCount = async (options: {
     || journal.renderIdentity !== active.renderIdentity
     || journal.attempt !== retainedCount
   ) {
-    throw CLIUsageError('Stored TTS admission journal does not bind the retained provider-attempt count.')
+    throw UsageError('Stored TTS admission journal does not bind the retained provider-attempt count.')
   }
   const hasDurableDispatch = journal.requests.some((request) =>
     request.transitions.some((transition) => transition.state !== 'prepared'))
   if (hasDurableDispatch) return retainedCount
   if (journal.requests.length === 0 || journal.requests.some((request) => request.transitions.length !== 1 || request.transitions[0]?.state !== 'prepared')) {
-    throw CLIUsageError('Stored TTS provider attempt has no durable dispatch but is not an exact prepared-only journal.')
+    throw UsageError('Stored TTS provider attempt has no durable dispatch but is not an exact prepared-only journal.')
   }
   const attemptsDirectory = join(options.rootDir, dirname(journalPath), 'attempts')
   const claimPath = join(attemptsDirectory, `.attempt-${String(journal.attempt).padStart(3, '0')}.claim`)
@@ -132,12 +132,12 @@ export const validateRecoveryProjections = (
   metadataProjection: CanonicalAudioProviderProjection
 } => {
   if (options.state.targetKey !== pure.targetKey || options.state.artifactDir.trim().length === 0) {
-    throw CLIUsageError('Stored TTS provider state does not bind the exact planned target identity.')
+    throw UsageError('Stored TTS provider state does not bind the exact planned target identity.')
   }
   const resultProjection = readAudioProjection(options.state)
   const metadataProjection = readAudioMetadataProjection(options.state)
   if (!resultProjection || !metadataProjection || canonicalTtsJson(resultProjection) !== canonicalTtsJson(metadataProjection)) {
-    throw CLIUsageError('Stored TTS provider state is missing one exact canonical projection.')
+    throw UsageError('Stored TTS provider state is missing one exact canonical projection.')
   }
   return { resultProjection, metadataProjection }
 }
@@ -167,12 +167,12 @@ export const prepareCompactRenderRecovery = async (
     'Compact TTS render'
   )
   if (compactRender.renderIdentity !== pure.renderIdentity || compactRender.renderPlanId !== pure.renderPlanId || compactRender.targetKey !== pure.targetKey) {
-    throw CLIUsageError('Compact TTS render does not bind the exact planned render identity.')
+    throw UsageError('Compact TTS render does not bind the exact planned render identity.')
   }
   await readVerifiedJson(options.rootDir, resolve(options.rootDir, archive.timelineRef.path), archive.timelineRef.sha256, 'Compact TTS timeline')
   const finalAudio = await readObservedAudio(options.rootDir, resolve(options.rootDir, archive.finalRef.path))
   if (sha256Bytes(finalAudio.bytes) !== archive.finalRef.sha256) {
-    throw CLIUsageError('Compact TTS final output no longer matches its archive checksum.')
+    throw UsageError('Compact TTS final output no longer matches its archive checksum.')
   }
   return {
     kind: 'complete-render',
@@ -222,7 +222,7 @@ export const prepareSelectedSuccess = async (
     || selectedEvent.providerRenderResultIdentity !== selectedSuccess.resultIdentity
     || !selectedEvent.audioRunRef
     || !selectedEvent.audioRunSha256
-  ) throw CLIUsageError('Selected TTS success does not bind one complete terminal render event.')
+  ) throw UsageError('Selected TTS success does not bind one complete terminal render event.')
   const audioRunPath = resolveRetainedPath(providerRoot, selectedEvent.audioRunRef, 'Selected TTS AudioRun')
   const audioRun = await readVerifiedJson<AudioRun>(options.rootDir, audioRunPath, selectedEvent.audioRunSha256, 'Selected TTS AudioRun')
   const { audioRunId: _audioRunId, ...audioRunBase } = audioRun
@@ -233,7 +233,7 @@ export const prepareSelectedSuccess = async (
     || audioRun.renderIdentity !== pure.renderIdentity
     || audioRun.renderPlanId !== pure.renderPlanId
     || audioRun.providerResult.resultIdentity !== selectedSuccess.resultIdentity
-  ) throw CLIUsageError('Selected TTS AudioRun does not bind the exact planned render and selected success.')
+  ) throw UsageError('Selected TTS AudioRun does not bind the exact planned render and selected success.')
   const providerResultPath = resolveRetainedPath(renderRoot, audioRun.providerResult.path, 'Selected TTS provider result')
   const providerResult = await readVerifiedJson<ProviderRenderResult>(
     options.rootDir,
@@ -247,22 +247,22 @@ export const prepareSelectedSuccess = async (
     || providerResult.resultIdentity !== selectedSuccess.resultIdentity
     || providerResult.renderIdentity !== pure.renderIdentity
     || providerResult.renderPlanId !== pure.renderPlanId
-  ) throw CLIUsageError('Selected TTS provider result is not a complete success for the exact planned render.')
+  ) throw UsageError('Selected TTS provider result is not a complete success for the exact planned render.')
   const audioRunRoot = dirname(audioRunPath)
   for (const ref of [audioRun.mixPlan, audioRun.transformLedger, audioRun.finalTimeline]) {
     await readVerifiedJson(options.rootDir, resolveRetainedPath(audioRunRoot, ref.path, 'Selected TTS AudioRun dependency'), ref.sha256, 'Selected TTS AudioRun dependency')
   }
   const finalOutput = audioRun.finalOutputs[0]
-  if (!finalOutput || audioRun.finalOutputs.length !== 1) throw CLIUsageError('Selected TTS AudioRun must retain exactly one canonical final output.')
+  if (!finalOutput || audioRun.finalOutputs.length !== 1) throw UsageError('Selected TTS AudioRun must retain exactly one canonical final output.')
   const finalOutputPath = resolveRetainedPath(audioRunRoot, finalOutput.path, 'Selected TTS final output')
   const finalAudio = await readObservedAudio(options.rootDir, finalOutputPath)
   if (
     sha256Bytes(finalAudio.bytes) !== finalOutput.sha256
     || finalAudio.durationMs !== finalOutput.durationMs
     || canonicalTtsJson(finalAudio.format) !== canonicalTtsJson(finalOutput.format)
-  ) throw CLIUsageError('Selected TTS final output no longer matches its AudioRun checksum, duration, or format.')
+  ) throw UsageError('Selected TTS final output no longer matches its AudioRun checksum, duration, or format.')
   const eventOutput = selectedEvent.outputRefs?.find((ref) => resolveRetainedPath(providerRoot, ref.path, 'Selected TTS event output') === finalOutputPath)
-  if (!eventOutput || eventOutput.sha256 !== finalOutput.sha256) throw CLIUsageError('Selected TTS terminal event does not checksum-bind its AudioRun final output.')
+  if (!eventOutput || eventOutput.sha256 !== finalOutput.sha256) throw UsageError('Selected TTS terminal event does not checksum-bind its AudioRun final output.')
   return {
     kind: 'complete-render',
     preparedState: options.state,
@@ -302,7 +302,7 @@ export const collectRetainedJournalEvidence = async (
   for (const event of retainedRender.events) {
     if (!event.admissionJournalRef && !event.admissionJournalSha256 && !event.admissionJournalSnapshotId) continue
     if (!event.admissionJournalRef || !event.admissionJournalSha256 || !event.admissionJournalSnapshotId) {
-      throw CLIUsageError('Stored TTS admission journal reference is incomplete.')
+      throw UsageError('Stored TTS admission journal reference is incomplete.')
     }
     if (knownJournalSnapshots.has(event.admissionJournalSnapshotId)) continue
     const path = resolveRetainedPath(providerRoot, event.admissionJournalRef, 'Stored TTS admission journal')
@@ -315,7 +315,7 @@ export const collectRetainedJournalEvidence = async (
       || value.renderIdentity !== pure.renderIdentity
       || value.renderPlanId !== pure.renderPlanId
       || value.requests.some((request) => !plannedSlotIds.includes(request.generationSlotId))
-    ) throw CLIUsageError('Stored TTS admission journal does not bind the exact planned render and generation-slot set.')
+    ) throw UsageError('Stored TTS admission journal does not bind the exact planned render and generation-slot set.')
     const evidence = { value, path, sha256: event.admissionJournalSha256, attemptRoot: dirname(path) }
     journalEvidenceById.set(value.journalId, evidence)
     knownJournalSnapshots.add(value.snapshotId)
@@ -343,7 +343,7 @@ export const collectRetainedJournalEvidence = async (
         value = JSON.parse(retained.bytes.toString('utf8')) as RenderAdmissionJournalSnapshot
         validateRenderAdmissionJournalSnapshot(value)
       } catch {
-        throw CLIUsageError('Stored TTS attempt contains an invalid orphan admission-journal artifact; reconciliation is required.')
+        throw UsageError('Stored TTS attempt contains an invalid orphan admission-journal artifact; reconciliation is required.')
       }
       if (knownJournalSnapshots.has(value.snapshotId)) continue
       if (
@@ -352,7 +352,7 @@ export const collectRetainedJournalEvidence = async (
         || value.renderPlanId !== pure.renderPlanId
         || value.invocationId !== attemptFrontier.value.invocationId
         || value.attempt !== attemptFrontier.value.attempt
-      ) throw CLIUsageError('Stored TTS attempt contains a cross-attempt orphan journal; reconciliation is required.')
+      ) throw UsageError('Stored TTS attempt contains a cross-attempt orphan journal; reconciliation is required.')
       orphanJournalCandidates.push({ value, path, sha256: retained.sha256, attemptRoot })
     }
     const attemptJournalBySnapshot = new Map<string, RetainedJournalEvidence>(
@@ -371,7 +371,7 @@ export const collectRetainedJournalEvidence = async (
     while (true) {
       const children = orphanJournalCandidates.filter((candidate) => candidate.value.previousSnapshotId === attemptFrontier.value.snapshotId)
       if (children.length === 0) break
-      if (children.length !== 1) throw CLIUsageError('Stored TTS attempt contains a forked orphan journal chain; reconciliation is required.')
+      if (children.length !== 1) throw UsageError('Stored TTS attempt contains a forked orphan journal chain; reconciliation is required.')
       const child = children[0] as RetainedJournalEvidence
       validateRenderAdmissionJournalSnapshot(child.value, attemptFrontier.value)
       attemptFrontier = child
@@ -379,7 +379,7 @@ export const collectRetainedJournalEvidence = async (
       orphanJournalCandidates.splice(orphanJournalCandidates.indexOf(child), 1)
     }
     if (orphanJournalCandidates.length > 0) {
-      throw CLIUsageError('Stored TTS attempt contains an unchained orphan journal; reconciliation is required.')
+      throw UsageError('Stored TTS attempt contains an unchained orphan journal; reconciliation is required.')
     }
     journalEvidenceById.set(attemptFrontier.value.journalId, attemptFrontier)
     if (attemptRoot === terminalDirectJournal.attemptRoot) terminalJournalEvidence = attemptFrontier

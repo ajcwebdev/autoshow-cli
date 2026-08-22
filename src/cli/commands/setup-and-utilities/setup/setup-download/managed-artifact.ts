@@ -2,7 +2,7 @@ import { lstat, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import * as v from 'valibot'
 import { readDependencyUrlAndSha256, readDependencyVersion } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
-import { CLIUsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { UsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import {
   managedToolchainDistributionLicense,
@@ -260,7 +260,7 @@ export const resolveSourceDeploymentTarget = async (): Promise<string> => {
   if (configured) {
     const version = normalizeMacosVersion(configured)
     if (!version) {
-      throw CLIUsageError(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`, 'Use a MAJOR.MINOR macOS version, for example 15.0.')
+      throw UsageError(`Invalid MACOSX_DEPLOYMENT_TARGET: ${configured}`, 'Use a MAJOR.MINOR macOS version, for example 15.0.')
     }
     return version
   }

@@ -1,7 +1,7 @@
 import type { FalFlorenceOcrOutput, FalGotOcrOutput, PageResult } from '~/types'
 import { runFalQueue } from '~/utils/fal-client/fal-queue'
 import { ValidationError } from '~/utils/error-handler'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { OCR_IMAGE_MIME_TYPES, resolveMediaMimeType } from '~/utils/media-mime-types'
 
 const imageMimeType = (filePath: string): string =>
@@ -11,7 +11,7 @@ export const runFalOcr = async (
   filePath: string,
   model: string
 ): Promise<{ pages: PageResult[], extractionMethod: 'fal-ocr' }> => {
-  const apiKey = requireApiKey('FAL_API_KEY', 'ocr:fal', 'fal.ai OCR')
+  const apiKey = requireProviderKey('fal', 'ocr:fal', 'fal.ai OCR')
   const bytes = await Bun.file(filePath).arrayBuffer()
   const mimeType = imageMimeType(filePath)
   const input = model === 'fal-ai/florence-2-large/ocr'

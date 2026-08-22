@@ -12,7 +12,7 @@
         "pricingNotes": "Firecrawl Standard is $83/month for 100,000 credits and /scrape uses 1 credit/page for the base markdown scrape. The estimate is a base/reference heuristic because advanced formats, enhanced mode, agents, browser actions, and other options can consume extra credits. Free credits, annual discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "costPer1kPagesCents": 83,
         "limits": {
-          "notes": "No Firecrawl article-extraction file-size or page-count limits were found in project/links/all-all-links.md."
+          "notes": "No Firecrawl article-extraction file-size or page-count limits were found in https://docs.firecrawl.dev/features/scrape.md."
         },
         "estimation": {
           "costMultiplier": 1,

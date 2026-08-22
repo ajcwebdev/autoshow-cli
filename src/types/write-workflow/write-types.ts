@@ -1,15 +1,13 @@
 import type * as v from 'valibot'
-import type { JsonObject, LLMModelOptionKey, NormalizedReasoningEffort, ProcessingOptions, RateEstimateBase, Step3Metadata } from '~/types'
-export type LLMOptions = Pick<ProcessingOptions,
-  | 'outputDir'
-  | 'prompts'
-  | 'promptFile'
-  | 'promptMd'
-  | LLMModelOptionKey
-  | 'llmProviderConcurrency'
-  | 'llmLocalConcurrency'
-  | 'reasoningEffort'
-> & {
+import type { JsonObject, NormalizedReasoningEffort, RateEstimateBase, ResolvedLLMModelOptions, Step3Metadata } from '~/types'
+export type LLMOptions = Partial<ResolvedLLMModelOptions> & {
+  outputDir: string
+  prompts?: string[] | undefined
+  promptFile?: string | undefined
+  promptMd?: boolean | undefined
+  llmProviderConcurrency?: number | undefined
+  llmLocalConcurrency?: number | undefined
+  reasoningEffort?: NormalizedReasoningEffort | undefined
   concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
   promptBuilder?: ((instruction: string) => string) | undefined

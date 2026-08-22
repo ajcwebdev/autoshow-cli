@@ -1,8 +1,8 @@
 import {
   batchFlags,
-  allArticleFlags,
   booleanAllLocalFlag,
   booleanAllProvidersFlag,
+  hiddenArticleFlags,
   ocrInputFlags,
   ocrProviderModeFlag,
   ocrTuningFlags,
@@ -56,7 +56,7 @@ export const resumeFlags = {
   ...withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(pickFlags(transcriptionFlags, resumeTranscriptionOptionNames), 'transcription'),
   ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...ocrProviderModeFlag, ...reasoningEffortFlag }, 'ocr-document'),
-  ...withHelpGroup(allArticleFlags, 'article-extraction'),
+  ...withHelpGroup(hiddenArticleFlags, 'article-extraction'),
   ...withHelpGroup(promptFlag, 'writing'),
   ...withHelpGroup({
     ...genericTtsOptionFlags,

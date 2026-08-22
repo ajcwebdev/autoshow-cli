@@ -28,7 +28,7 @@ import type {
   TtsTarget,
 } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
-import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { UsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { formatDuration } from '~/utils/app-logger/formatters'
@@ -53,7 +53,7 @@ const buildTtsBatchInitialRecords = (
 ): PipelineItemRecord[] =>
   preparedInputs.map((prepared, index) => {
     const accumulator = accumulators[index]
-    if (!accumulator) throw CLIUsageError(`Missing TTS batch lifecycle accumulator for item ${index + 1}.`)
+    if (!accumulator) throw UsageError(`Missing TTS batch lifecycle accumulator for item ${index + 1}.`)
     const providerStates = orderedTtsProviderStates(targets, accumulator.providerStates)
     return {
       ...buildPipelineItemRecord(prepared.manifestInputPath),
@@ -188,42 +188,42 @@ const createTtsBatchLifecycleCoordinator = (options: {
     if (!initialized) await preparationBarrier
     if (initialization) await initialization
     if (initializationError !== undefined) throw initializationError
-    if (!initialized) throw CLIUsageError('TTS batch preparation ended before every requested target had a real durable lifecycle state.')
+    if (!initialized) throw UsageError('TTS batch preparation ended before every requested target had a real durable lifecycle state.')
   }
 
   return {
     beforeDispatch: async (itemIndex, preparedStates) => {
       const accumulator = options.accumulators[itemIndex]
-      if (!accumulator) throw CLIUsageError(`Missing TTS batch lifecycle accumulator for item ${itemIndex + 1}.`)
+      if (!accumulator) throw UsageError(`Missing TTS batch lifecycle accumulator for item ${itemIndex + 1}.`)
       const dialoguePlanArtifact = options.dialoguePlanArtifacts[itemIndex]
-      if (!dialoguePlanArtifact) throw CLIUsageError(`Missing canonical dialogue-plan artifact for TTS batch item ${itemIndex + 1}.`)
+      if (!dialoguePlanArtifact) throw UsageError(`Missing canonical dialogue-plan artifact for TTS batch item ${itemIndex + 1}.`)
       for (const unboundState of preparedStates) {
         const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
-        if (!state.targetKey) throw CLIUsageError('TTS batch lifecycle produced a prepared state without an operation-scoped targetKey.')
+        if (!state.targetKey) throw UsageError('TTS batch lifecycle produced a prepared state without an operation-scoped targetKey.')
         accumulator.providerStates.set(state.targetKey, state)
       }
       await waitForInitialization()
     },
     onProviderState: async (itemIndex, unboundState) => {
       const dialoguePlanArtifact = options.dialoguePlanArtifacts[itemIndex]
-      if (!dialoguePlanArtifact) throw CLIUsageError(`Missing canonical dialogue-plan artifact for TTS batch item ${itemIndex + 1}.`)
+      if (!dialoguePlanArtifact) throw UsageError(`Missing canonical dialogue-plan artifact for TTS batch item ${itemIndex + 1}.`)
       const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
-      if (!state.targetKey) throw CLIUsageError('TTS batch lifecycle produced a provider state without an operation-scoped targetKey.')
+      if (!state.targetKey) throw UsageError('TTS batch lifecycle produced a provider state without an operation-scoped targetKey.')
       await waitForInitialization()
       const accumulator = options.accumulators[itemIndex]
-      if (!accumulator) throw CLIUsageError(`Missing TTS batch lifecycle accumulator for item ${itemIndex + 1}.`)
+      if (!accumulator) throw UsageError(`Missing TTS batch lifecycle accumulator for item ${itemIndex + 1}.`)
       let committed: PipelineProviderState | undefined
       await updateManifest(options.batchDir, (manifest) => {
         if (manifest.command !== 'tts' || manifest.scope !== 'batch' || manifest.items.length !== options.preparedInputs.length) {
-          throw CLIUsageError('TTS batch lifecycle can update only its complete canonical batch manifest.')
+          throw UsageError('TTS batch lifecycle can update only its complete canonical batch manifest.')
         }
         const item = manifest.items[itemIndex]
         if (!item || item.input !== options.preparedInputs[itemIndex]?.manifestInputPath) {
-          throw CLIUsageError(`Canonical TTS batch item ${itemIndex + 1} changed identity during synthesis.`)
+          throw UsageError(`Canonical TTS batch item ${itemIndex + 1} changed identity during synthesis.`)
         }
         const providerIndex = item.providers.findIndex((provider) => provider.targetKey === state.targetKey)
         const current = item.providers[providerIndex]
-        if (!current) throw CLIUsageError(`Canonical TTS batch item ${itemIndex + 1} is missing lifecycle state for ${state.targetKey}.`)
+        if (!current) throw UsageError(`Canonical TTS batch item ${itemIndex + 1} is missing lifecycle state for ${state.targetKey}.`)
         committed = appendCurrentTtsProviderState(current, state)
         const providers = item.providers.slice()
         providers[providerIndex] = committed
@@ -520,13 +520,13 @@ export const runTtsDirectoryBatch = async (
   )
   await updateManifest(batchDir, (manifest) => {
     if (manifest.command !== 'tts' || manifest.scope !== 'batch' || manifest.items.length !== finalRecords.length) {
-      throw CLIUsageError('TTS batch completion can update only its complete canonical batch manifest.')
+      throw UsageError('TTS batch completion can update only its complete canonical batch manifest.')
     }
     const items = finalRecords.map((record, index) => {
       const next = createPipelineItemFromRecord(batchDir, record)
       const current = manifest.items[index]
       if (!current || current.input !== next.input) {
-        throw CLIUsageError(`Canonical TTS batch item ${index + 1} changed identity before completion.`)
+        throw UsageError(`Canonical TTS batch item ${index + 1} changed identity before completion.`)
       }
       return next
     })

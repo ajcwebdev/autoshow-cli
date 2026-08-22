@@ -27,8 +27,8 @@ const estimateImageTargetCost = (
 
 export const buildImageCostSteps = (input: ComputeEstimatedCostsInput): CostStepsResult => {
   const selectionOptions = Object.assign({}, ...IMAGE_PRICING_PROVIDERS.map((provider) => {
-    const model = input[provider.modelKey]
-    return model ? optionsForService(IMAGE_PRICING_PROVIDERS, provider.service, model) : {}
+    const models = input[provider.modelsKey]
+    return models?.length ? optionsForService(IMAGE_PRICING_PROVIDERS, provider.service, models) : {}
   }))
   const imageEstimates = input.imageTargets && input.imageTargets.length > 0
     ? input.imageTargets.map((target) => estimateImageTargetCost(target, input))

@@ -3,7 +3,7 @@ import {
   runCommand,
   STABLE_TTS_MD_PATH,
 } from '../../../../../test-utils/test-helpers'
-import { mistralRefAudioPath, mistralTtsModel } from './cases'
+import { mistralRefAudioPath, mistralTtsModels } from './cases'
 
 test('mistral named saved-voice creation flag is rejected as an unknown flag', async () => {
   const result = await runCommand([
@@ -11,7 +11,7 @@ test('mistral named saved-voice creation flag is rejected as an unknown flag', a
     'tts',
     STABLE_TTS_MD_PATH,
     '--provider',
-    `mistral=${mistralTtsModel}`,
+    `mistral=${mistralTtsModels}`,
     '--tts-ref-audio',
     mistralRefAudioPath,
     '--tts-voice-name',

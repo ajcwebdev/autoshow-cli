@@ -1,5 +1,5 @@
 import type { TtsOptions, TtsTargetSelection } from '~/types'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { UsageError, InternalError } from '~/utils/error-handler'
 import {
   getGroqTtsVoicesForModel,
   validateGroqTtsVoice
@@ -41,10 +41,10 @@ export const validateTtsTargetSelection = (
     ]
     const selectedProviders = allProviderModels.filter((p) => p.models.length > 0)
     if (selectedProviders.length === 0) {
-      throw CLIUsageError('Multi-speaker TTS requires at least one TTS provider.')
+      throw UsageError('Multi-speaker TTS requires at least one TTS provider.')
     }
     if (selectedProviders.length !== 1) {
-      throw CLIUsageError(
+      throw UsageError(
         'The current --tts-speaker SPEAKER=VOICE mapping is provider-specific and requires exactly one TTS provider. '
         + 'Run providers separately or use a provider-qualified cast record so voice identifiers cannot cross provider namespaces.'
       )
@@ -52,14 +52,14 @@ export const validateTtsTargetSelection = (
 
     const hasCapable = selectedProviders.some((p) => getMultiSpeakerStrategy(p.provider) !== undefined)
     if (!hasCapable) {
-      throw CLIUsageError('No selected TTS provider supports multi-speaker TTS.')
+      throw UsageError('No selected TTS provider supports multi-speaker TTS.')
     }
 
     const refAudioSpeakers = registry.entries.filter((e) => e.voiceKind === 'ref-audio')
     if (refAudioSpeakers.length > 0) {
       const selected = selectedProviders[0]
       if (selected?.provider !== 'mistral') {
-        throw CLIUsageError(
+        throw UsageError(
           `--tts-speaker SPEAKER=path is supported only by one explicitly selected Mistral TTS target, not ${selected?.provider ?? 'the selected provider'}.`,
           'Use existing provider voice IDs for this target, or run standalone `tts` with one Mistral provider and explicit reference paths.'
         )
@@ -74,7 +74,7 @@ export const validateTtsTargetSelection = (
           return !protectedReference || entry.voice !== `ref_audio:${protectedReference.protectedAsset.assetId}`
         })
       ) {
-        throw CLIUsageError(
+        throw UsageError(
           'Mistral dialogue reference paths must cross protected ingestion as exact per-speaker opaque assets before target collection.',
           'Pass every SPEAKER=path mapping explicitly to standalone `tts`; config, inherited paths, and copied runtime options are not authorized.'
         )
@@ -92,24 +92,24 @@ export const validateTtsTargetSelection = (
     || (selection.minimaxPronunciations && selection.minimaxPronunciations.length > 0)
   )
   if (hasMinimaxRequestControlFlags && selection.minimaxModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('MiniMax TTS', 'minimax', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('MiniMax TTS', 'minimax', 'request control flags'))
   }
 
   if ((selection.openaiInstructions || typeof selection.openaiSpeed === 'number') && selection.openaiModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('OpenAI TTS', 'openai', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('OpenAI TTS', 'openai', 'request control flags'))
   }
   if (selection.inworldInstructions && selection.inworldModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Inworld TTS', 'inworld', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('Inworld TTS', 'inworld', 'request control flags'))
   }
   if (selection.openaiInstructions) {
     const incompatibleModels = selection.openaiModels.filter((model) => model !== 'gpt-4o-mini-tts-2025-12-15')
     if (incompatibleModels.length > 0) {
-      throw CLIUsageError(`OpenAI TTS instructions are supported only by gpt-4o-mini-tts-2025-12-15; incompatible selected models: ${incompatibleModels.join(', ')}.`)
+      throw UsageError(`OpenAI TTS instructions are supported only by gpt-4o-mini-tts-2025-12-15; incompatible selected models: ${incompatibleModels.join(', ')}.`)
     }
   }
 
   if ((selection.grokLanguage || selection.grokTextNormalization) && selection.grokModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Grok TTS', 'grok', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('Grok TTS', 'grok', 'request control flags'))
   }
 
   if (selection.groqVoiceId && selection.groqModels.length > 1) {
@@ -117,7 +117,7 @@ export const validateTtsTargetSelection = (
     const matchingModel = selection.groqModels.find((model) =>
       getGroqTtsVoicesForModel(model as Parameters<typeof getGroqTtsVoicesForModel>[0]).includes(voice)
     )
-    throw CLIUsageError(
+    throw UsageError(
       matchingModel
         ? `Groq TTS --tts-voice groq="${voice}" matches only ${matchingModel}; select --provider/--tts groq=${matchingModel}.`
         : `Groq TTS --tts-voice groq="${voice}" requires selecting a Groq TTS model with --provider/--tts groq[=model].`
@@ -126,7 +126,7 @@ export const validateTtsTargetSelection = (
 
   const hasDeepgramRequestControlFlags = typeof selection.deepgramSpeed === 'number'
   if (hasDeepgramRequestControlFlags && selection.deepgramModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Deepgram TTS', 'deepgram', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('Deepgram TTS', 'deepgram', 'request control flags'))
   }
 
   const hasElevenLabsRequestControlFlags = Boolean(
@@ -141,18 +141,18 @@ export const validateTtsTargetSelection = (
     || (selection.elevenLabsPronunciationDictionaryLocators && selection.elevenLabsPronunciationDictionaryLocators.length > 0)
   )
   if (hasElevenLabsRequestControlFlags && selection.elevenlabsModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('ElevenLabs TTS', 'elevenlabs', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('ElevenLabs TTS', 'elevenlabs', 'request control flags'))
   }
   if (selection.speechifyLanguage && selection.speechifyModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Speechify TTS', 'speechify', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('Speechify TTS', 'speechify', 'request control flags'))
   }
 
   if (selection.humeVoice && selection.humeModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Hume TTS', 'hume', 'voice flags'))
+    throw UsageError(requireProviderSelectionMessage('Hume TTS', 'hume', 'voice flags'))
   }
 
   if ((selection.cartesiaVoiceId || selection.cartesiaLanguage) && selection.cartesiaModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Cartesia TTS', 'cartesia', 'request control flags'))
+    throw UsageError(requireProviderSelectionMessage('Cartesia TTS', 'cartesia', 'request control flags'))
   }
 
 }

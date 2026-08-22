@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureSpeechifyTtsSetup = ensureProvider('speechify', 'tts:speechify', 'Speechify TTS')
+export const ensureSpeechifyTtsSetup = async (): Promise<void> => { requireProviderKey('speechify', 'tts:speechify', 'Speechify TTS') }

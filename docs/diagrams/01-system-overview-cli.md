@@ -54,7 +54,7 @@ Global flags:
 | `--version`, `-v`       | Print CLI version.                                                                                                                                                                                                                                                                                      |
 | `--config-path`         | Use a config file other than `config/autoshow.json`.                                                                                                                                                                                                                                                    |
 | `--output-root`         | Base output directory under which per-step subdirectories are created.                                                                                                                                                                                                                                  |
-| `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, `resume`, `voice`, and `comic reference-voice`, which do not create run directories. |
+| `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `resume`, `voice`, and `comic reference-voice`, which do not create run directories. |
 | `--characters-root`     | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only.                                                                                                                                                                                    |
 | `--bin-dir`             | Directory of external tool binaries checked before the managed install and PATH.                                                                                                                                                                                                                        |
 | `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget. Accepted on priced pipeline and generation commands only; rejected on unbudgeted commands (`config`, `setup`, `links`, `voice`, `comic reference-voice`).                                                                                  |
@@ -80,7 +80,7 @@ Processing and generation:
   metadata  Step 0/1 metadata only
   download  Step 1 download/detect only
   extract   Step 1 + Step 2 extraction
-  write     Step 1 + Step 2 + Step 3 text generation
+  write     Step 3 LLM text generation from local .md/.txt
   tts       standalone TTS for .md/.txt files or directories
   voice     standalone voice registration and lifecycle management
   image     standalone image generation
@@ -108,12 +108,10 @@ standalone generation
   --all-providers
   --provider-concurrency N
 
-write pipeline
-  --stt provider[=model]
-  --ocr provider[=model]
+write
   --llm provider[=model]
-  --all-providers stt|ocr|url|llm
-  --all-local stt|ocr|url
+  --all-providers
+  --provider-concurrency N
 
 config pipeline defaults
   --stt provider[=model]

@@ -1,6 +1,6 @@
 import { lstat, realpath } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
-import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
+import { UsageError, hasErrorCode } from '~/utils/error-handler'
 
 const canonicalProspectivePath = async (input: string): Promise<string> => {
   let cursor = resolve(input)
@@ -12,7 +12,7 @@ const canonicalProspectivePath = async (input: string): Promise<string> => {
       exists = true
     } catch (error) {
       if (!hasErrorCode(error, 'ENOENT')) {
-        throw CLIUsageError(
+        throw UsageError(
       'Unable to inspect the TTS output/protected-store path boundary.',
       undefined,
       error instanceof Error ? { cause: error } : {}
@@ -24,12 +24,12 @@ const canonicalProspectivePath = async (input: string): Promise<string> => {
         const canonicalPrefix = await realpath(cursor)
         return resolve(canonicalPrefix, ...suffix)
       } catch {
-        throw CLIUsageError('Unable to resolve the TTS output/protected-store path boundary; dangling symbolic links are not allowed.')
+        throw UsageError('Unable to resolve the TTS output/protected-store path boundary; dangling symbolic links are not allowed.')
       }
     } else {
       const parent = dirname(cursor)
       if (parent === cursor) {
-        throw CLIUsageError('Unable to resolve the TTS output/protected-store path boundary.')
+        throw UsageError('Unable to resolve the TTS output/protected-store path boundary.')
       }
       suffix.unshift(basename(cursor))
       cursor = parent
@@ -55,7 +55,7 @@ export const assertProtectedStoreOutputDisjoint = async (
     isSameOrContained(canonicalOutput, canonicalStore)
     || isSameOrContained(canonicalStore, canonicalOutput)
   ) {
-    throw CLIUsageError(
+    throw UsageError(
       'Output and the protected voice asset store must be disjoint directories.',
       'Choose an --output-dir/--output-root outside the protected runtime store and do not connect them through a symbolic link.'
     )

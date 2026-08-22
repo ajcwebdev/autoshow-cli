@@ -8,7 +8,7 @@ describe('config explicit flag and runtime exclusion contracts', () => {
       price: true,
       password: 'secret-pdf-password',
       'config-path': '/tmp/autoshow.json',
-      'mistral-tts-ref-audio': 'input/voices/mistral-sample.mp3',
+      'tts-ref-audio': 'input/voices/mistral-sample.mp3',
       'allow-over-budget': true,
       show: true,
       reset: true
@@ -17,7 +17,7 @@ describe('config explicit flag and runtime exclusion contracts', () => {
       'price',
       'password',
       'config-path',
-      'mistral-tts-ref-audio',
+      'tts-ref-audio',
       'allow-over-budget',
       'show',
       'reset'

@@ -1,5 +1,5 @@
 import { createModelValidator, formatAllowedValues } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import {
   getGeminiTtsVoices,
   getGroqTtsVoices,
@@ -25,7 +25,7 @@ export const validateElevenlabsTtsModel = createRetiringModelValidator<Elevenlab
 export const validateElevenLabsTtsTextNormalization = (value: string): string => {
   const normalized = normalizeListedValue(value, SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS)
   if (!normalized) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --elevenlabs-tts-text-normalization "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS)}`
     )
   }
@@ -103,7 +103,7 @@ const normalizeListedValue = (value: string, allowedValues: readonly string[]): 
 export const validateMinimaxTtsLanguageBoost = (value: string): string => {
   const normalized = normalizeListedValue(value, SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS)
   if (!normalized) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --tts-language "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_MINIMAX_TTS_LANGUAGE_BOOSTS)}`
     )
   }
@@ -113,7 +113,7 @@ export const validateMinimaxTtsLanguageBoost = (value: string): string => {
 export const validateMinimaxTtsEmotion = (value: string): string => {
   const normalized = normalizeListedValue(value, SUPPORTED_MINIMAX_TTS_EMOTIONS)
   if (!normalized) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --minimax-tts-emotion "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_MINIMAX_TTS_EMOTIONS)}`
     )
   }
@@ -141,7 +141,7 @@ export const validateGroqTtsModel = createRetiringModelValidator<GroqTtsModel>('
 export const validateGroqTtsVoice = (voice: string): string => {
   const normalized = voice.trim().toLowerCase()
   if (!SUPPORTED_GROQ_TTS_VOICES.includes(normalized)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --tts-voice groq="${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GROQ_TTS_VOICES)}`
     )
   }
@@ -158,7 +158,7 @@ export const validateGroqTtsVoiceForModel = (model: GroqTtsModel, voice: string)
   const normalized = voice.trim().toLowerCase()
   const allowedValues = getGroqTtsVoicesForModel(model)
   if (!allowedValues.includes(normalized)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --tts-voice groq="${voice}" for ${model}. Allowed values: ${formatAllowedValues(allowedValues)}`
     )
   }
@@ -200,7 +200,7 @@ export const validateGrokTtsModel = createModelValidator<GrokTtsModel>(SUPPORTED
 export const validateGrokTtsVoice = (voice: string): string => {
   const normalized = voice.trim().toLowerCase()
   if (!SUPPORTED_GROK_TTS_VOICES.includes(normalized) && !/^[a-z0-9]{8}$/.test(normalized)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --grok-tts-voice "${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GROK_TTS_VOICES)}, or an 8-character custom voice ID.`
     )
   }
@@ -210,7 +210,7 @@ export const validateGrokTtsVoice = (voice: string): string => {
 export const validateGrokTtsLanguage = (language: string): string => {
   const normalized = normalizeListedValue(language, SUPPORTED_GROK_TTS_LANGUAGES)
   if (!normalized) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --grok-tts-language "${language}". Allowed values: ${formatAllowedValues(SUPPORTED_GROK_TTS_LANGUAGES)}`
     )
   }
@@ -247,7 +247,7 @@ export const resolveOpenAITtsVoiceForModel = (
   if (/^voice_\S+$/.test(trimmed)) {
     return { kind: 'custom', voiceId: trimmed, requestVoice: { id: trimmed } }
   }
-  throw CLIUsageError(
+  throw UsageError(
     `Invalid --tts-voice openai="${voice}". Allowed built-in values: ${formatAllowedValues(SUPPORTED_OPENAI_TTS_VOICES)}, or an eligible custom voice ID beginning with voice_.`
   )
 }
@@ -265,7 +265,7 @@ export const validateGeminiTtsModel = createModelValidator<GeminiTtsModel>(SUPPO
 export const validateGeminiTtsVoice = (voice: string): string => {
   const normalized = normalizeListedValue(voice, SUPPORTED_GEMINI_TTS_VOICES)
   if (!normalized) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --tts-voice gemini="${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GEMINI_TTS_VOICES)}`
     )
   }
@@ -372,7 +372,7 @@ export const validateDeepgramTtsModel = createModelValidator<DeepgramTtsModel>(S
 
 export const validateDeepgramTtsVoice = (voice: string): DeepgramTtsModel => {
   if (!SUPPORTED_DEEPGRAM_TTS_MODELS.includes(voice as DeepgramTtsModel)) {
-    throw CLIUsageError(
+    throw UsageError(
       `Invalid --deepgram-voice "${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_DEEPGRAM_TTS_MODELS)}`
     )
   }
@@ -406,7 +406,7 @@ export const validateSpeechifyTtsModel = createRetiringModelValidator<SpeechifyT
 export const validateSpeechifyTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw CLIUsageError('Invalid --speechify-voice value. Expected a non-empty Speechify voice ID.')
+    throw UsageError('Invalid --speechify-voice value. Expected a non-empty Speechify voice ID.')
   }
   return normalized
 }
@@ -420,7 +420,7 @@ export const validateSpeechifyTtsLanguageForModel = (
 
   const supported = normalized === 'en' || normalized.toLowerCase().startsWith('en-')
   if (!supported) {
-    throw CLIUsageError(
+    throw UsageError(
       `Speechify ${model} supports only en or en-* languages; received "${language}".`
     )
   }
@@ -437,7 +437,7 @@ export const validateSpeechifyTtsVoiceForModel = (
     return normalized
   }
   if (SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES.includes(normalized as typeof SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES[number])) {
-    throw CLIUsageError(`Speechify built-in voice "${voice}" is not compatible with simba-3.2.`)
+    throw UsageError(`Speechify built-in voice "${voice}" is not compatible with simba-3.2.`)
   }
   return normalized
 }
@@ -455,7 +455,7 @@ export const validateHumeTtsModel = createModelValidator<HumeTtsModel>(SUPPORTED
 export const validateHumeTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw CLIUsageError('Invalid --hume-tts-voice value. Expected a non-empty Hume voice name or ID.')
+    throw UsageError('Invalid --hume-tts-voice value. Expected a non-empty Hume voice name or ID.')
   }
   return normalized
 }
@@ -471,7 +471,7 @@ export const validateCartesiaTtsModel = createModelValidator<CartesiaTtsModel>(S
 export const validateCartesiaTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw CLIUsageError('Invalid --cartesia-tts-voice value. Expected a non-empty Cartesia voice ID.')
+    throw UsageError('Invalid --cartesia-tts-voice value. Expected a non-empty Cartesia voice ID.')
   }
   return normalized
 }
@@ -487,7 +487,7 @@ export const validateFishTtsModel = createRetiringModelValidator<FishTtsModel>('
 export const validateFishTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw CLIUsageError('Invalid --fish-tts-voice value. Expected a non-empty Fish model/voice ID.')
+    throw UsageError('Invalid --fish-tts-voice value. Expected a non-empty Fish model/voice ID.')
   }
   return normalized
 }
@@ -503,7 +503,7 @@ export const validateInworldTtsModel = createRetiringModelValidator<InworldTtsMo
 export const validateInworldTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw CLIUsageError('Invalid --inworld-voice value. Expected a non-empty Inworld voice ID.')
+    throw UsageError('Invalid --inworld-voice value. Expected a non-empty Inworld voice ID.')
   }
   return normalized
 }
@@ -521,7 +521,7 @@ export const validateDeepinfraTtsModel = createRetiringModelValidator<DeepinfraT
 export const validateDeepinfraTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw CLIUsageError('Invalid --deepinfra-voice value. Expected a non-empty DeepInfra model/voice ID.')
+    throw UsageError('Invalid --deepinfra-voice value. Expected a non-empty DeepInfra model/voice ID.')
   }
   return normalized
 }
@@ -592,7 +592,7 @@ export const validateFalTtsModel = createModelValidator<FalTtsModel>(SUPPORTED_F
 export const validateFalTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw CLIUsageError('Invalid --fal-voice value. Expected a non-empty fal.ai voice ID or voice description.')
+    throw UsageError('Invalid --fal-voice value. Expected a non-empty fal.ai voice ID or voice description.')
   }
   return normalized
 }
@@ -602,7 +602,7 @@ export const validateReplicateTtsModel = createModelValidator<ReplicateTtsModel>
 export const validateReplicateTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!SUPPORTED_REPLICATE_TTS_VOICES.includes(normalized as typeof SUPPORTED_REPLICATE_TTS_VOICES[number])) {
-    throw CLIUsageError(`Invalid --replicate-voice value "${normalized}". Expected a supported Kokoro voice: ${SUPPORTED_REPLICATE_TTS_VOICES.join(', ')}.`)
+    throw UsageError(`Invalid --replicate-voice value "${normalized}". Expected a supported Kokoro voice: ${SUPPORTED_REPLICATE_TTS_VOICES.join(', ')}.`)
   }
   return normalized
 }

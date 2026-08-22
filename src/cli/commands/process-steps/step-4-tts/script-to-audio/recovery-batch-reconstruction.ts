@@ -1,7 +1,7 @@
 import { readdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import type { AttemptSlot, LoadedRecoveryBatch, ObservedProviderRequest, ProviderBatchInvocationPlan, ProviderBatchOutput, ProviderBatchResult, RecordedOutput, RenderAdmissionJournalSnapshot, RetainedBatchCandidate, RetainedJournalEvidence, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { validateProviderBatchResult, validateRenderAdmissionJournalSnapshot } from './contract-validation'
 import { contained, hasErrorCode, readObservedAudio, readVerifiedJson } from './attempt-io'
@@ -27,7 +27,7 @@ const loadPromotedRecoveryBatch = async (
     || value.renderIdentity !== pure.renderIdentity
     || value.renderPlanId !== pure.renderPlanId
     || value.provenance !== 'provider-dispatch'
-  ) throw CLIUsageError('Stored provider batch result is not a complete success for the exact planned render.')
+  ) throw UsageError('Stored provider batch result is not a complete success for the exact planned render.')
   const admissionPath = resolveRetainedPath(attemptRoot, value.admissionBasis.artifactRef, 'Stored provider batch admission basis')
   const admission = await readVerifiedJson<RenderAdmissionJournalSnapshot>(options.rootDir, admissionPath, value.admissionBasis.sha256, 'Stored provider batch admission basis')
   validateRenderAdmissionJournalSnapshot(admission)
@@ -36,7 +36,7 @@ const loadPromotedRecoveryBatch = async (
     || admission.snapshotId !== value.admissionBasis.snapshotId
     || admission.renderIdentity !== pure.renderIdentity
     || admission.renderPlanId !== pure.renderPlanId
-  ) throw CLIUsageError('Stored provider batch result does not bind its exact admission-journal basis.')
+  ) throw UsageError('Stored provider batch result does not bind its exact admission-journal basis.')
   knownJournalSnapshots.add(admission.snapshotId)
   if (!journalEvidenceById.has(admission.journalId)) {
     journalEvidenceById.set(admission.journalId, { value: admission, path: admissionPath, sha256: value.admissionBasis.sha256, attemptRoot })
@@ -54,17 +54,17 @@ const loadPromotedRecoveryBatch = async (
     || invocationPlan.renderIdentity !== pure.renderIdentity
     || invocationPlan.renderPlanId !== pure.renderPlanId
     || invocationPlan.generationSlotId !== value.generationSlotId
-  ) throw CLIUsageError('Stored batch invocation plan does not bind its exact promoted generation slot.')
+  ) throw UsageError('Stored batch invocation plan does not bind its exact promoted generation slot.')
   const outputPaths: string[] = []
   for (const output of value.outputs) {
     const outputPath = resolveRetainedPath(dirname(path), output.artifactRef, 'Stored provider batch audio')
     const outputFile = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, outputPath))
     if (outputFile.sha256 !== output.sha256) {
-      throw CLIUsageError('Stored provider batch audio checksum does not match its promoted result.')
+      throw UsageError('Stored provider batch audio checksum does not match its promoted result.')
     }
     outputPaths.push(outputPath)
   }
-  if (outputPaths.length === 0) throw CLIUsageError('Stored successful provider batch result has no retained audio output.')
+  if (outputPaths.length === 0) throw UsageError('Stored successful provider batch result has no retained audio output.')
   return { value, path, sha256: candidate.sha256, attemptRoot, outputPaths }
 }
 
@@ -81,7 +81,7 @@ const recordedOutputsForInterruptedRequest = async (
     .sort()
   if (outputNames.length === 0) return []
   if (outputNames.some((name, index) => !name.startsWith(`audio-${String(index + 1).padStart(3, '0')}.`))) {
-    throw CLIUsageError(`Completed TTS generation slot ${generationSlotId} has non-contiguous retained audio outputs.`)
+    throw UsageError(`Completed TTS generation slot ${generationSlotId} has non-contiguous retained audio outputs.`)
   }
   return await Promise.all(outputNames.map(async (name) => {
     const path = resolve(batchResultDir, name)
@@ -108,7 +108,7 @@ const buildObservedRequest = (
   const preparedTransition = request.transitions.find((transition) => transition.state === 'prepared')
   const completedTransition = request.transitions.at(-1)
   if (preparedTransition?.state !== 'prepared' || completedTransition?.state !== 'completed') {
-    throw CLIUsageError('Completed TTS request is missing its prepared or completed transition evidence.')
+    throw UsageError('Completed TTS request is missing its prepared or completed transition evidence.')
   }
   const requestFingerprint = hashCanonicalTtsValue({
     endpointKind: slot.expectedEndpointKind,
@@ -116,7 +116,7 @@ const buildObservedRequest = (
     requestBodyHash: preparedTransition.requestBodyHash
   })
   if (requestFingerprint !== request.requestFingerprint) {
-    throw CLIUsageError('Completed TTS request fingerprint does not match the immutable serializer contract.')
+    throw UsageError('Completed TTS request fingerprint does not match the immutable serializer contract.')
   }
   const acceptedTransition = [...request.transitions].reverse().find((transition) => transition.state === 'provider-accepted')
   return {
@@ -135,7 +135,7 @@ const buildObservedRequest = (
     actualContinuationHash: hashCanonicalTtsValue({ kind: 'none' }),
     turns: slot.turnIds.map((turnId) => {
       const turn = pure.planned.turns.find((candidate) => candidate.canonical.turnId === turnId)
-      if (!turn) throw CLIUsageError(`Completed TTS generation slot ${slot.generationSlotId} references an unknown turn.`)
+      if (!turn) throw UsageError(`Completed TTS generation slot ${slot.generationSlotId} references an unknown turn.`)
       return {
         turnId,
         providerTextHash: sha256Bytes(slot.providerText),
@@ -158,7 +158,7 @@ const reconstructInterruptedBatch = async (
   const slot = pure.planned.slots.find((candidate) => candidate.generationSlotId === request.generationSlotId)
   const batch = pure.planned.batches.find((candidate) => candidate.batchId === request.batchId)
   if (!slot || !batch || slot.batchId !== request.batchId) {
-    throw CLIUsageError('Completed TTS request does not bind an immutable planned generation slot.')
+    throw UsageError('Completed TTS request does not bind an immutable planned generation slot.')
   }
   const invocationPath = resolveRetainedPath(evidence.attemptRoot, request.batchInvocationPlanRef, 'Stored batch invocation plan')
   const invocationPlan = await readVerifiedJson<ProviderBatchInvocationPlan>(
@@ -173,7 +173,7 @@ const reconstructInterruptedBatch = async (
     || invocationPlan.renderPlanId !== pure.renderPlanId
     || invocationPlan.invocationId !== evidence.value.invocationId
     || invocationPlan.generationSlotId !== slot.generationSlotId
-  ) throw CLIUsageError('Completed TTS request invocation plan does not bind its exact immutable generation slot.')
+  ) throw UsageError('Completed TTS request invocation plan does not bind its exact immutable generation slot.')
 
   const batchResultDir = resolve(evidence.attemptRoot, 'batch-results', slot.batchId, slot.generationSlotId)
   const recordedOutputs = await recordedOutputsForInterruptedRequest(
@@ -184,7 +184,7 @@ const reconstructInterruptedBatch = async (
   if (recordedOutputs.length === 0) return undefined
   const completedTransition = request.transitions.at(-1)
   if (completedTransition?.state !== 'completed') {
-    throw CLIUsageError('Completed TTS request is missing its completed transition evidence.')
+    throw UsageError('Completed TTS request is missing its completed transition evidence.')
   }
   const observedRequest = buildObservedRequest(options, pure, evidence, request, slot, invocationPlan)
   const outputs: ProviderBatchOutput[] = recordedOutputs.map((output, outputIndex) => ({
@@ -217,7 +217,7 @@ const reconstructInterruptedBatch = async (
           provenance: 'unavailable' as const,
           turns: slot.turnIds.map((turnId) => {
             const turn = pure.planned.turns.find((candidate) => candidate.canonical.turnId === turnId)
-            if (!turn) throw CLIUsageError(`Completed TTS generation slot ${slot.generationSlotId} references an unknown turn.`)
+            if (!turn) throw UsageError(`Completed TTS generation slot ${slot.generationSlotId} references an unknown turn.`)
             return { turnId, subjectKey: turn.canonical.subjectKey }
           }),
           reason: 'Provider timing metadata was not durably promoted before process interruption.'
@@ -302,7 +302,7 @@ export const loadRecoveryBatches = async (
     if (!loaded) continue
     const conflictingSlot = loadedBatches.find((batch) => batch.value.generationSlotId === loaded.value.generationSlotId)
     if (conflictingSlot && conflictingSlot.value.batchResultId !== loaded.value.batchResultId) {
-      throw CLIUsageError(`Stored TTS generation slot ${loaded.value.generationSlotId} has conflicting promoted batch results.`)
+      throw UsageError(`Stored TTS generation slot ${loaded.value.generationSlotId} has conflicting promoted batch results.`)
     }
     if (!conflictingSlot) loadedBatches.push(loaded)
   }

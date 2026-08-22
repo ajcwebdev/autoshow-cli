@@ -1,3 +1,3 @@
-import { ensureProvider } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 
-export const ensureElevenLabsMusicGenSetup = ensureProvider('elevenlabs', 'music:elevenlabs', 'ElevenLabs music generation')
+export const ensureElevenLabsMusicGenSetup = async (): Promise<void> => { requireProviderKey('elevenlabs', 'music:elevenlabs', 'ElevenLabs music generation') }

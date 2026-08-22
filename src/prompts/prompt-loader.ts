@@ -4,7 +4,7 @@ import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
 import type { LeafPrompt, PromptEntry, PromptExampleFormat, PromptExamples, PromptsRegistry, PromptTokenEstimate, ResolvedLeafPrompt } from '~/types'
 import { BoundedTextCapture, buildCaptureMetadata } from '~/utils/bounded-capture'
-import { AppError, CLIUsageError, hasErrorCode } from '~/utils/error-handler'
+import { AppError, UsageError, hasErrorCode } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import { validateData } from '~/utils/validate/validation'
 
@@ -181,7 +181,7 @@ const collectLeafPromptsFromRegistry = (
     }
 
     if (!registry[name]) {
-      throw CLIUsageError(`Unknown prompt "${name}". Available: ${available.join(', ')}`)
+      throw UsageError(`Unknown prompt "${name}". Available: ${available.join(', ')}`)
     }
 
     const entry = registry[name] as PromptEntry

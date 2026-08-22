@@ -7,7 +7,6 @@ import {
   isLikelyUrl,
   isRawXSpaceId
 } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
-import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import type {
   DownloadCommandOptions,
   DownloadMatrixEntry,
@@ -28,14 +27,10 @@ import type {
   SingleTargetCommandOptions,
   SingleTargetInputCategory,
   SingleTargetIntent,
-  SingleTargetRoute,
-  WriteMatrixEntry,
-  WriteRuntimeOptions,
-  WriteSingleTargetRoute,
-  WriteSingleTargetIntent
+  SingleTargetRoute
 } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import type { OptionsAssertion } from '~/types'
 import { createOptionsAssertion } from '~/cli/commands/process-steps/command-option-assertion'
 import { throwUnrecognizedExtractInput } from './single-target-errors'
@@ -82,29 +77,13 @@ const EXTRACT_ROUTES = {
   missing: 'missing'
 } as const satisfies Record<SingleTargetInputCategory, ExtractMatrixEntry>
 
-const WRITE_ROUTES = {
-  url_streaming: 'media',
-  url_direct_media: 'media',
-  url_direct_document: 'temporary-document',
-  url_html_article: 'article',
-  url_x_space: 'x-space',
-  local_html_article: 'article',
-  local_document: 'document',
-  local_media: 'media',
-  local_unsupported: 'media',
-  x_space_identifier: 'x-space',
-  missing: 'missing'
-} as const satisfies Record<SingleTargetInputCategory, WriteMatrixEntry>
-
 const isRoutingFailure = (
-  entry: MetadataMatrixEntry | DownloadMatrixEntry | ExtractMatrixEntry | WriteMatrixEntry
+  entry: MetadataMatrixEntry | DownloadMatrixEntry | ExtractMatrixEntry
 ): entry is RoutingFailure => {
   switch (entry) {
     case 'missing':
     case 'unrecognized-extract':
     case 'download-passthrough':
-    case 'text-url':
-    case 'text-path':
       return true
     default:
       return false
@@ -118,15 +97,11 @@ const throwRoutingFailure = (
 ): never => {
   switch (failure) {
     case 'missing':
-      throw CLIUsageError(`Input does not exist: ${item}. Run: bun autoshow help ${command}`)
+      throw UsageError(`Input does not exist: ${item}. Run: bun autoshow help ${command}`)
     case 'unrecognized-extract':
       return throwUnrecognizedExtractInput(item)
     case 'download-passthrough':
-      throw CLIUsageError(`yt-dlp passthrough args (--) are only supported for media URL downloads. Got: ${item}`)
-    case 'text-url':
-      throw CLIUsageError('write --text-input only accepts local .md or .txt files or directories')
-    case 'text-path':
-      throw CLIUsageError(`write --text-input only accepts .md or .txt files. Got: ${item}`)
+      throw UsageError(`yt-dlp passthrough args (--) are only supported for media URL downloads. Got: ${item}`)
   }
 }
 
@@ -136,11 +111,8 @@ const assertMetadataOptions: OptionsAssertion<SingleTargetCommandOptions, Metada
 const assertDownloadOptions: OptionsAssertion<SingleTargetCommandOptions, DownloadCommandOptions> =
   createOptionsAssertion('Download command options are incomplete', ['keepOriginalMedia', 'ytDlpPassthroughArgs'])
 
-const assertWriteOptions: OptionsAssertion<SingleTargetCommandOptions, WriteRuntimeOptions> =
-  createOptionsAssertion('Write command options are incomplete', ['llmProviderConcurrency', 'skipLLM'])
-
-const assertExtractOrWriteOptions: OptionsAssertion<SingleTargetCommandOptions, ExtractCommandOptions | WriteRuntimeOptions> =
-  createOptionsAssertion('Extract/write command options are incomplete', ['whisperModel', 'sttProviderConcurrency'])
+const assertExtractOptions: OptionsAssertion<SingleTargetCommandOptions, ExtractCommandOptions> =
+  createOptionsAssertion('Extract command options are incomplete', ['sttProviderConcurrency'])
 
 export const normalizeSingleTargetIntent = (
   command: ProcessCommand,
@@ -154,12 +126,9 @@ export const normalizeSingleTargetIntent = (
       assertDownloadOptions(opts)
       return { command, opts }
     case 'extract':
-      assertExtractOrWriteOptions(opts)
+      assertExtractOptions(opts)
       return { command, opts }
     case 'write':
-      assertExtractOrWriteOptions(opts)
-      assertWriteOptions(opts)
-      return { command, opts }
     case 'tts':
     case 'image':
     case 'video':
@@ -189,10 +158,7 @@ export const classifySingleTargetInput = async (
   intent: SingleTargetIntent
 ): Promise<SingleTargetClassifiedInput> => {
   if (isLikelyUrl(item)) {
-    const urlClassificationOptions = intent.command === 'write' && intent.opts.textInput
-      ? { urlBackendExplicit: true }
-      : intent.opts
-    return { kind: 'url', subtype: await classifyUrlInput(item, urlClassificationOptions) }
+    return { kind: 'url', subtype: await classifyUrlInput(item, intent.opts) }
   }
 
   if (!await fileExists(item)) {
@@ -235,19 +201,6 @@ const singleTargetInputCategory = (
   }
 }
 
-const isUrlCategory = (category: SingleTargetInputCategory): boolean => {
-  switch (category) {
-    case 'url_streaming':
-    case 'url_direct_media':
-    case 'url_direct_document':
-    case 'url_html_article':
-    case 'url_x_space':
-      return true
-    default:
-      return false
-  }
-}
-
 const allowsDownloadPassthrough = (
   category: SingleTargetInputCategory
 ): boolean =>
@@ -272,20 +225,9 @@ export const resolveSingleTargetRouteDecision = (
   category: SingleTargetInputCategory,
   item: string,
   modifiers: {
-    textInput?: boolean | undefined
     downloadPassthrough?: boolean | undefined
   } = {}
 ): SingleTargetRoute => {
-  if (command === 'write' && modifiers.textInput) {
-    if (isUrlCategory(category)) {
-      return throwRoutingFailure('text-url', command, item)
-    }
-    if (!isTextInputPath(item)) {
-      return throwRoutingFailure('text-path', command, item)
-    }
-    return { command, action: 'text' }
-  }
-
   if (category === 'missing') {
     return throwRoutingFailure('missing', command, item)
   }
@@ -301,8 +243,6 @@ export const resolveSingleTargetRouteDecision = (
       return resolveEntry(command, DOWNLOAD_ROUTES[category], item)
     case 'extract':
       return resolveEntry(command, EXTRACT_ROUTES[category], item)
-    case 'write':
-      return resolveEntry(command, WRITE_ROUTES[category], item)
   }
 }
 
@@ -322,11 +262,6 @@ export function resolveSingleTargetRoute (
   item: string
 ): ExtractSingleTargetRoute
 export function resolveSingleTargetRoute (
-  intent: WriteSingleTargetIntent,
-  input: SingleTargetClassifiedInput,
-  item: string
-): WriteSingleTargetRoute
-export function resolveSingleTargetRoute (
   intent: SingleTargetIntent,
   input: SingleTargetClassifiedInput,
   item: string
@@ -341,7 +276,6 @@ export function resolveSingleTargetRoute (
     singleTargetInputCategory(input),
     item,
     {
-      ...(intent.command === 'write' ? { textInput: intent.opts.textInput } : {}),
       ...(intent.command === 'download'
         ? { downloadPassthrough: (intent.opts.ytDlpPassthroughArgs?.length ?? 0) > 0 }
         : {})

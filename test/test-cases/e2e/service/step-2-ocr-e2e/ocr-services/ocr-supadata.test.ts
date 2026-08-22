@@ -11,7 +11,7 @@ import { expectArtifact } from '../../../../../test-utils/value-assertions'
 
 const articleUrl = 'https://ajcwebdev.com'
 
-budgetedTest('extract-supadata-url', 'bun autoshow extract https://ajcwebdev.com --url-provider supadata', async () => {
+budgetedTest('extract-supadata-url', 'bun autoshow extract https://ajcwebdev.com --provider supadata', async () => {
   await requireConfiguredEnvVar('SUPADATA_API_KEY', 'SUPADATA_API_KEY not configured')
 
   let outputDir: string | null = null
@@ -19,8 +19,8 @@ budgetedTest('extract-supadata-url', 'bun autoshow extract https://ajcwebdev.com
   try {
     outputDir = await runCommandAndExpectOutputDir(
       'Supadata URL extraction',
-      ['src/cli/create-cli.ts', 'extract', articleUrl, '--url-provider', 'supadata'],
-      { testName: 'bun autoshow extract https://ajcwebdev.com --url-provider supadata' }
+      ['src/cli/create-cli.ts', 'extract', articleUrl, '--provider', 'supadata'],
+      { testName: 'bun autoshow extract https://ajcwebdev.com --provider supadata' }
     )
 
     await expectArtifact(`${outputDir}/extraction.txt`)

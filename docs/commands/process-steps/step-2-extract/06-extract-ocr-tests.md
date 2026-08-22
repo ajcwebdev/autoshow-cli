@@ -24,12 +24,12 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 
 ## Local Coverage
 
-- `test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/` covers local Tesseract OCR for PDF and image input, EPUB text extraction, `--chapters` / `--no-chapters` / `--length`, `--format json`, and local `--url-provider defuddle` article extraction.
+- `test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/` covers local Tesseract OCR for PDF and image input, EPUB text extraction, `--chapters` / `--no-chapters` / `--length`, `--format json`, and local `--provider defuddle` article extraction.
 
 ## Service Coverage
 
 - Hosted OCR tests under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction for Anthropic, DeepInfra, fal.ai, Gemini, GLM, Grok, Kimi, Mistral, OpenAI, and Replicate.
-- The same directory covers remote article extraction with `--url-provider` for Firecrawl, GLM Reader, and Supadata.
+- The same directory covers remote article extraction with `--provider` for Firecrawl, GLM Reader, and Supadata.
 
 ## Price Preflight
 

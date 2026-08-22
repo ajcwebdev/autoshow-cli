@@ -2,7 +2,7 @@ import { SUPPORTED_WHISPER_MODELS, validateWhisperModel, validateWhisperfileMode
 import { downloadWhisperModel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/bootstrap'
 import { downloadWhisperfileBinary } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
 import * as l from '~/utils/app-logger/app-logger'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 
 const downloadWhisper = async (model: string): Promise<void> => {
   const whisperModel = validateWhisperModel(model)
@@ -28,7 +28,7 @@ const runModelDownload = async (model: string): Promise<void> => {
       case 'whisper': await downloadWhisper(value); return
       case 'whisperfile': await downloadWhisperfile(value); return
       default:
-        throw CLIUsageError(`Unknown model prefix "${prefix}". Expected whisper:<model> or whisperfile:<model>.`)
+        throw UsageError(`Unknown model prefix "${prefix}". Expected whisper:<model> or whisperfile:<model>.`)
     }
   }
 
@@ -38,7 +38,7 @@ const runModelDownload = async (model: string): Promise<void> => {
     return
   }
 
-  throw CLIUsageError(`Unknown local model "${trimmed}". Expected a Whisper model name or whisperfile:<model>.`)
+  throw UsageError(`Unknown local model "${trimmed}". Expected a Whisper model name or whisperfile:<model>.`)
 }
 
 export const runModelDownloads = async (models: readonly string[]): Promise<void> => {

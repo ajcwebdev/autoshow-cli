@@ -8,7 +8,7 @@ import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { MinimaxCreateResponseSchema, MinimaxQueryResponseSchema, isMinimaxTaskFailure, isMinimaxTaskSuccess, minimaxFetchJson, minimaxJsonRequestInit, readMinimaxTaskStatus, resolveMinimaxFileId } from '~/utils/minimax-client/minimax-client'
@@ -70,7 +70,7 @@ export const runMinimaxTts = async (
   outputDir: string,
   options: MinimaxTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = requireApiKey('MINIMAX_API_KEY', 'tts:minimax', 'MiniMax TTS')
+  const apiKey = requireProviderKey('minimax', 'tts:minimax', 'MiniMax TTS')
 
   const baseURL = MINIMAX_DEFAULT_BASE_URL
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.minimax)

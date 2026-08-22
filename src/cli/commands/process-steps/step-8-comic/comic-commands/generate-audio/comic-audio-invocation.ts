@@ -12,7 +12,7 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { selectCheapestDefaultHostedTtsSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { preparePresentationVisualInputs, resolvePresentationVisualInputs } from '../../comic-utils/comic-presentation-inputs'
 import { reconcilePresentationDialogue } from '../../comic-utils/comic-presentation-plan'
@@ -32,13 +32,13 @@ const repeatableStrings = (value: unknown): string[] => Array.isArray(value)
 
 const parseInteger = (value: unknown, fallback: number, label: string): number => {
   if (value === undefined) return fallback
-  if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0) throw CLIUsageError(`${label} must be a positive integer.`)
+  if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0) throw UsageError(`${label} must be a positive integer.`)
   return Number(value)
 }
 
 const parseOptionalPositiveInteger = (value: unknown, label: string): number | undefined => {
   if (value === undefined) return undefined
-  if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0 || !Number.isSafeInteger(Number(value))) throw CLIUsageError(`${label} must be a positive safe integer.`)
+  if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0 || !Number.isSafeInteger(Number(value))) throw UsageError(`${label} must be a positive safe integer.`)
   return Number(value)
 }
 
@@ -46,31 +46,31 @@ const parseRolePolicies = (values: readonly string[]): ComicAudioRolePolicy[] =>
   const separator = value.indexOf('=')
   const speakerLabel = value.slice(0, separator).trim()
   const subjectKey = value.slice(separator + 1).trim()
-  if (separator <= 0 || !speakerLabel || !/^(?:role|voice):[a-z0-9][a-z0-9_-]{0,127}$/.test(subjectKey)) throw CLIUsageError(`Invalid --role "${value}". Expected LABEL=role:key or LABEL=voice:key.`)
+  if (separator <= 0 || !speakerLabel || !/^(?:role|voice):[a-z0-9][a-z0-9_-]{0,127}$/.test(subjectKey)) throw UsageError(`Invalid --role "${value}". Expected LABEL=role:key or LABEL=voice:key.`)
   return { speakerLabel, subjectKey }
 })
 
 const parseMode = (value: unknown): ComicAudioMode => {
   const mode = value ?? 'auto'
-  if (mode !== 'auto' && mode !== 'native' && mode !== 'segmented') throw CLIUsageError('--mode must be auto, native, or segmented.')
+  if (mode !== 'auto' && mode !== 'native' && mode !== 'segmented') throw UsageError('--mode must be auto, native, or segmented.')
   return mode
 }
 
 const parseDeliveryPolicy = (value: unknown): ComicAudioDeliveryPolicy => {
   const policy = value ?? 'strict'
-  if (policy !== 'strict' && policy !== 'best-effort') throw CLIUsageError('--delivery-policy must be strict or best-effort.')
+  if (policy !== 'strict' && policy !== 'best-effort') throw UsageError('--delivery-policy must be strict or best-effort.')
   return policy
 }
 
 const parsePacingProfile = (value: unknown): ComicAudioPacingProfile => {
   const profile = value ?? 'none'
-  if (profile !== 'none' && profile !== 'loose-comedy') throw CLIUsageError('--pacing-profile must be none or loose-comedy.')
+  if (profile !== 'none' && profile !== 'loose-comedy') throw UsageError('--pacing-profile must be none or loose-comedy.')
   return profile
 }
 
 const parseSoundscapeTimingPolicy = (value: unknown): ComicAudioSoundscapeTimingPolicy => {
   const policy = value ?? 'strict'
-  if (policy !== 'strict' && policy !== 'proportional') throw CLIUsageError('--soundscape-timing-policy must be strict or proportional.')
+  if (policy !== 'strict' && policy !== 'proportional') throw UsageError('--soundscape-timing-policy must be strict or proportional.')
   return policy
 }
 
@@ -132,13 +132,7 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
     const cheapest = selectCheapestDefaultHostedTtsSelection()
     providerNormalized.flags[`${cheapest.provider}-tts`] = cheapest.model
   }
-  const baseOptions = withoutInheritedVoiceSelection(buildOptsFromFlags(
-    true,
-    providerNormalized.flags,
-    {},
-    providerNormalized.explicitFlags,
-    { flagOccurrences: providerNormalized.flagOccurrences }
-  ) as TtsOptions)
+  const baseOptions = withoutInheritedVoiceSelection(buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences }) as TtsOptions)
   baseOptions.ttsAllowAmbiguousRedispatch = allowAmbiguousRedispatch
   baseOptions.ttsMaxGenerationSlots = maxGenerationSlots
   if (allowAmbiguousRedispatch) l.write('warn', 'Ambiguous TTS redispatch is explicitly authorized for this run; a provider-admitted slot without retained audio may be purchased again.', { category: 'tts' })

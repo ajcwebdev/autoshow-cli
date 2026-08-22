@@ -1,5 +1,5 @@
 import type { CanonicalAudioProviderProjection, CreateCurrentTtsRenderAttemptOptions, PipelineProviderState, PlannedInputs, PureCurrentTtsReadinessPlan, PureCurrentTtsRenderPlan, PureCurrentTtsRenderPlanOptions, ProviderRenderBranchCandidate, ProviderRenderBranchPlan, ProviderRenderPlan, ProviderRenderStrategy, SanitizedProviderError, TtsTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, canonicalTtsJson, computeRenderIdentity, computeVoiceContextKey, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { projectCanonicalAudioProviderStatus, validateProviderRenderPlanIdentity } from './contract-validation'
 import { SCHEMA_VERSION, withIdentity } from './attempt-shared'
@@ -17,7 +17,7 @@ export const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabi
 
 export const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions): PureCurrentTtsRenderPlan => {
   const operation = options.comicContext ? 'comic-audio' as const : 'tts-synthesis' as const
-  if (options.target.operation && options.target.operation !== operation) throw CLIUsageError('TTS target operation does not match its render context.')
+  if (options.target.operation && options.target.operation !== operation) throw UsageError('TTS target operation does not match its render context.')
   const transport = options.target.transport ?? 'hosted-api'
   const targetKey = options.target.targetKey ?? canonicalTargetKey(operation, options.target.service, options.target.model, transport)
   const capabilitySeed = hashCanonicalTtsValue({ schemaVersion: 1, provider: options.target.service, model: options.target.model, transport, adapterSchemaVersion: SCHEMA_VERSION })
@@ -54,12 +54,12 @@ export const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanO
   const resolvedNodes = planned.dialoguePlan.nodes.map((node) => {
     if (node.kind === 'turn') {
       const turn = resolvedTurnById.get(node.turn.turnId)
-      if (!turn) throw CLIUsageError(`Provider render plan lost dialogue turn ${node.turn.turnId}.`)
+      if (!turn) throw UsageError(`Provider render plan lost dialogue turn ${node.turn.turnId}.`)
       return { kind: 'turn' as const, turn }
     }
     const turns = node.turns.map((sourceTurn) => {
       const turn = resolvedTurnById.get(sourceTurn.turnId)
-      if (!turn) throw CLIUsageError(`Provider render plan lost overlap turn ${sourceTurn.turnId}.`)
+      if (!turn) throw UsageError(`Provider render plan lost overlap turn ${sourceTurn.turnId}.`)
       return turn
     })
     return { kind: 'overlap' as const, groupId: node.groupId, turns }

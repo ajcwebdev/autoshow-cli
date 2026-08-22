@@ -14,7 +14,7 @@ import type {
   SuccessPublicationInput,
   WrittenJson,
 } from '~/types'
-import { AppUsageError, CLIUsageError, InternalError } from '~/utils/error-handler'
+import { AppUsageError, UsageError, InternalError } from '~/utils/error-handler'
 import { concatAndConvertToWav } from '../tts-utils/audio-utils'
 import {
   hardlinkContainedArtifact,
@@ -303,11 +303,11 @@ const assembleMasteredAudio = async (
   const { options, purePlan } = ctx
   const masteringProfile = options.ttsOptions.ttsMasteringProfile
   if (options.comicContext && purePlan.planned.strategy === 'segmented') {
-    if (!masteringProfile) throw CLIUsageError('Comic segmented assembly requires an explicit mastering profile.')
+    if (!masteringProfile) throw UsageError('Comic segmented assembly requires an explicit mastering profile.')
     const resultBySlot = new Map(batchResultFiles.map((file) => [file.value.generationSlotId, file] as const))
     const outputPathsBySlot = new Map<string, readonly string[]>(purePlan.planned.slots.map((slot) => {
       const file = resultBySlot.get(slot.generationSlotId)
-      if (!file) throw CLIUsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
+      if (!file) throw UsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
       return [
         slot.generationSlotId,
         file.value.outputs.map((output) => resolveRetainedPath(output.artifactRef.includes('/') ? options.outputDir : dirname(file.path), output.artifactRef, `Comic generation slot ${slot.generationSlotId} provider output`)),
@@ -366,9 +366,9 @@ const publishReportedAudio = async (
 }
 
 const requireSuccessPreconditions = (ctx: AttemptContext): void => {
-  if (ctx.terminalState) throw CLIUsageError('TTS render attempt was already finalized.')
+  if (ctx.terminalState) throw UsageError('TTS render attempt was already finalized.')
   if (ctx.requestedSlotLimit !== undefined && !ctx.localCompositionOnly) {
-    throw CLIUsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
+    throw UsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
   }
   if (
     (!ctx.localCompositionOnly && ctx.runtimeRequests.length === 0)
@@ -376,7 +376,7 @@ const requireSuccessPreconditions = (ctx: AttemptContext): void => {
       !ctx.recoveredBySlot.has(slot.generationSlotId)
       && !(ctx.outputsBySlot.get(slot.generationSlotId)?.length))
   ) {
-    throw CLIUsageError('TTS target returned success without serializer-observed or verified recovered output for every planned generation slot.')
+    throw UsageError('TTS target returned success without serializer-observed or verified recovered output for every planned generation slot.')
   }
 }
 
@@ -391,7 +391,7 @@ export const finalizeSuccess = async (
     ? await closeLocalComposition(ctx)
     : await closeProviderAttempt(ctx)
   if (!resultFile || resultFile.value.status !== 'succeeded') {
-    throw CLIUsageError('TTS provider attempt did not close as a complete success.')
+    throw UsageError('TTS provider attempt did not close as a complete success.')
   }
 
   const audioRunRoot = `${renderRoot}/results/${resultFile.value.resultIdentity}/audio-run`
@@ -490,13 +490,13 @@ export const finalizeCheckpoint = async (ctx: AttemptContext): Promise<{
   remainingGenerationSlotCount: number
 }> => {
   const { options, purePlan, attemptSlots, targetDir, targetRelativeDir, attemptNumber, recoveredBySlot } = ctx
-  if (ctx.terminalState) throw CLIUsageError('TTS render attempt was already finalized.')
-  if (ctx.requestedSlotLimit === undefined) throw CLIUsageError('An unbounded TTS render cannot finalize as a generation checkpoint.')
+  if (ctx.terminalState) throw UsageError('TTS render attempt was already finalized.')
+  if (ctx.requestedSlotLimit === undefined) throw UsageError('An unbounded TTS render cannot finalize as a generation checkpoint.')
   if (
     ctx.runtimeRequests.length === 0
     || attemptSlots.some((slot) => !(ctx.outputsBySlot.get(slot.generationSlotId)?.length))
   ) {
-    throw CLIUsageError('Bounded TTS execution did not durably complete every admitted generation slot.')
+    throw UsageError('Bounded TTS execution did not durably complete every admitted generation slot.')
   }
   const checkpointReason: SanitizedProviderError = {
     phase: 'synthesis',
@@ -506,7 +506,7 @@ export const finalizeCheckpoint = async (ctx: AttemptContext): Promise<{
   }
   const { resultFile, batchResultFiles } = await closeProviderAttempt(ctx, checkpointReason)
   if (!resultFile || (resultFile.value.status !== 'partial' && resultFile.value.status !== 'succeeded')) {
-    throw CLIUsageError('Bounded TTS generation checkpoint did not close with durable successful slot evidence.')
+    throw UsageError('Bounded TTS generation checkpoint did not close with durable successful slot evidence.')
   }
   const at = ctx.now()
   requireJournalFile(ctx)

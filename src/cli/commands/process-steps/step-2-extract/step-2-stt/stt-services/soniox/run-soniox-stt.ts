@@ -10,7 +10,7 @@ import {
   runAsyncSttJobLifecycle
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { SONIOX_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { requireApiKey } from '~/utils/validate/env-utils'
+import { requireProviderKey } from '~/utils/validate/env-utils'
 import { InternalError } from '~/utils/error-handler'
 import { lifecycleMetricsToCallbacks } from '../stt-stage-request'
 import {
@@ -40,7 +40,7 @@ export const runSonioxStt = async (
     lifecycle?: AsyncSttLifecycleHooks | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = requireApiKey('SONIOX_API_KEY', 'stt:soniox', 'Soniox transcription')
+  const apiKey = requireProviderKey('soniox', 'stt:soniox', 'Soniox transcription')
 
   const {
     model: modelName,

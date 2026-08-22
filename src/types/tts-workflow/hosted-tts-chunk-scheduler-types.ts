@@ -63,5 +63,4 @@ export type HostedTtsChunkSchedulerOptions = {
   maxActiveChunksPerJob?: number | undefined
   concurrencyMode?: HostedConcurrencyMode | undefined
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
-  legacySuccessRamp?: boolean | undefined
 }

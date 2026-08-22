@@ -3,7 +3,7 @@ import type {
   PipelineProviderState,
   Step4Metadata,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson } from './contract-identity'
 import { projectCanonicalAudioProviderStatus } from './contract-validation'
 
@@ -17,7 +17,7 @@ export const buildCurrentTtsProviderState = (
     || !metadata.artifactDir
     || !metadata.ttsAudio
   ) {
-    throw CLIUsageError(`TTS metadata for ${metadata.ttsService}/${metadata.ttsModel} is missing canonical render evidence.`)
+    throw UsageError(`TTS metadata for ${metadata.ttsService}/${metadata.ttsModel} is missing canonical render evidence.`)
   }
   const projected = projectCanonicalAudioProviderStatus(metadata.ttsAudio)
   return {
@@ -47,7 +47,7 @@ const getTtsProjectionOrThrow = (
     || !metadataProjection
     || canonicalTtsJson(resultProjection) !== canonicalTtsJson(metadataProjection)
   ) {
-    throw CLIUsageError(`TTS provider state ${state.targetKey ?? `${state.service}/${state.model ?? ''}`} is missing one canonical projection.`)
+    throw UsageError(`TTS provider state ${state.targetKey ?? `${state.service}/${state.model ?? ''}`} is missing one canonical projection.`)
   }
   return resultProjection as CanonicalAudioProviderProjection
 }
@@ -94,7 +94,7 @@ const appendCurrentTtsProjection = (
     const existing = branchHistory.find((candidate) => candidate.branchPlanId === entry.branchPlanId)
     if (existing) {
       if (existing.branchPlanSha256 !== entry.branchPlanSha256) {
-        throw CLIUsageError(`TTS resume found conflicting branch-plan evidence for ${entry.branchPlanId}.`)
+        throw UsageError(`TTS resume found conflicting branch-plan evidence for ${entry.branchPlanId}.`)
       }
       continue
     }
@@ -155,7 +155,7 @@ const appendCurrentTtsProjection = (
         outputProfileHash: incomingRender.outputProfileHash
       }
       if (canonicalTtsJson(currentHeader) !== canonicalTtsJson(incomingHeader)) {
-        throw CLIUsageError(`TTS resume found conflicting immutable render evidence for ${incomingRender.renderIdentity}.`)
+        throw UsageError(`TTS resume found conflicting immutable render evidence for ${incomingRender.renderIdentity}.`)
       }
       const remappedIncomingEvents = incomingRender.events.map(remapEventReadiness)
       const hasBootstrapMissing = remappedIncomingEvents[0]?.status === 'missing'
@@ -295,7 +295,7 @@ export const appendCurrentTtsProviderState = (
     || incoming.model !== current.model
     || (incoming.artifactDir !== current.artifactDir && !getTtsProjectionOrThrow(incoming).archive)
   ) {
-    throw CLIUsageError('TTS resume cannot change operation-scoped target identity or its stable artifact directory. Rebuild this TTS output with the current command before resuming it.')
+    throw UsageError('TTS resume cannot change operation-scoped target identity or its stable artifact directory. Rebuild this TTS output with the current command before resuming it.')
   }
   const projection = appendCurrentTtsProjection(
     getTtsProjectionOrThrow(current),

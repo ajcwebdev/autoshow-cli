@@ -36,7 +36,7 @@ const readJsonBody = (body: RequestInit['body'] | null | undefined): Record<stri
 
 describe('music provider contracts', () => {
   test('MiniMax music accepts 3.0 and rejects previous-generation and unsupported models', () => {
-    const opts = buildOptsFromFlags(false, {
+    const opts = buildOptsFromFlags({
       'minimax-music': ['music-3.0']
     })
 
@@ -45,10 +45,10 @@ describe('music provider contracts', () => {
       'minimax:music-3.0'
     ])
     const previousModel = 'music-2' + '.6'
-    expect(() => buildOptsFromFlags(false, {
+    expect(() => buildOptsFromFlags({
       'minimax-music': previousModel
     })).toThrow(`Invalid model "${previousModel}" for --provider/--music minimax[=model]`)
-    expect(() => buildOptsFromFlags(false, {
+    expect(() => buildOptsFromFlags({
       'minimax-music': 'music-cover'
     })).toThrow('Invalid model "music-cover" for --provider/--music minimax[=model]')
   })
@@ -82,7 +82,7 @@ describe('music provider contracts', () => {
         }
         throw new Error(`Unexpected MiniMax mock fetch: ${init?.method ?? 'GET'} ${url}`)
       }) as typeof fetch, async () => {
-        const opts = buildOptsFromFlags(false, {
+        const opts = buildOptsFromFlags({
           'minimax-music': 'music-3.0',
           'music-instrumental': true
         })

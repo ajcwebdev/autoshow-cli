@@ -122,19 +122,25 @@ const renderGroupedFlags = (
   const groupedKeys = new Set<string>()
   const lines: string[] = []
   for (const [groupKey, label] of groups) {
-    const groupFlags = Object.fromEntries(
-      entries.filter(([, definition]) => flagGroup(definition) === groupKey)
-    ) as CliFlagsDefinition
-    if (Object.keys(groupFlags).length === 0) {
+    const groupEntries = entries.filter(([, definition]) => flagGroup(definition) === groupKey)
+    if (groupEntries.length === 0) {
       continue
     }
-    lines.push(`  ${label}`, ...renderFlagRows(groupFlags, '    '), '')
-    for (const key of Object.keys(groupFlags)) {
+    for (const [key] of groupEntries) {
       groupedKeys.add(key)
     }
+    const visibleGroupFlags = Object.fromEntries(
+      groupEntries.filter(([, definition]) => !isFlagHidden(definition))
+    ) as CliFlagsDefinition
+    if (Object.keys(visibleGroupFlags).length === 0) {
+      continue
+    }
+    lines.push(`  ${label}`, ...renderFlagRows(visibleGroupFlags, '    '), '')
   }
 
-  const ungrouped = Object.fromEntries(entries.filter(([name]) => !groupedKeys.has(name))) as CliFlagsDefinition
+  const ungrouped = Object.fromEntries(
+    entries.filter(([name, definition]) => !groupedKeys.has(name) && !isFlagHidden(definition))
+  ) as CliFlagsDefinition
   if (Object.keys(ungrouped).length > 0) {
     lines.push(...renderFlagRows(ungrouped, '  '), '')
   }

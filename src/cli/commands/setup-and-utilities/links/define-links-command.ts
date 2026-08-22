@@ -1,13 +1,13 @@
 import { httpResponseError, isRecord } from '~/utils/rest-client'
-import { basename, extname, resolve } from 'node:path'
+import { basename, extname, join } from 'node:path'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
 import { runFirecrawlUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/firecrawl/run-firecrawl-url'
+import { createGenerationOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import type { CliFlagsDefinition, FetchFn, FetchUrlResult, LinksChangeStatus, LinksParsedCommand, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode, ModelLinksData, RunLinksOptions } from '~/types'
-import { CLIUsageError, InfraError, serializeDiagnosticError } from '~/utils/error-handler'
-import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { UsageError, InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { countReferenceTokens, REFERENCE_TOKENIZER_METADATA } from '~/utils/reference-tokenizer'
@@ -18,7 +18,6 @@ import modelLinks from './model-links'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
 const data = modelLinks as ModelLinksData
-const LINKS_OUTPUT_DIR = Bun.pathToFileURL(`${resolve(PROJECT_ROOT, 'project/links')}/`)
 const HTML_MIME_HINTS = ['text/html', 'application/xhtml+xml'] as const
 const normalizeTokens = (tokens: string[]): string[] => [...new Set(tokens.map(token => token.toLowerCase()))].sort()
 const isHtmlContentType = (contentType: string): boolean =>
@@ -74,11 +73,6 @@ export const getDefaultLinksOutputFileName = (
   return `${stem}-links.md`
 }
 
-const getDefaultOutputPath = (
-  serviceSelections: Map<string, string[]>,
-  globalSections: string[]
-): URL => new URL(getDefaultLinksOutputFileName(serviceSelections, globalSections), LINKS_OUTPUT_DIR)
-
 const sanitizeInputFileStem = (inputFilePath: string): string => {
   const extension = extname(inputFilePath)
   const rawStem = basename(inputFilePath, extension)
@@ -87,9 +81,6 @@ const sanitizeInputFileStem = (inputFilePath: string): string => {
 
 export const getDefaultLinksInputOutputFileName = (inputFilePath: string): string =>
   `${sanitizeInputFileStem(inputFilePath)}-links.md`
-
-const getDefaultInputFileOutputPath = (inputFilePath: string): URL =>
-  new URL(getDefaultLinksInputOutputFileName(inputFilePath), LINKS_OUTPUT_DIR)
 
 const getDirectUrlOutputStem = (directUrl: string): string => {
   try {
@@ -103,8 +94,18 @@ const getDirectUrlOutputStem = (directUrl: string): string => {
 export const getDefaultLinksDirectUrlOutputFileName = (directUrl: string): string =>
   `${sanitizeLinksOutputStem(getDirectUrlOutputStem(directUrl), 'url', 120)}-links.md`
 
-const getDefaultDirectUrlOutputPath = (directUrl: string): URL =>
-  new URL(getDefaultLinksDirectUrlOutputFileName(directUrl), LINKS_OUTPUT_DIR)
+const getDefaultLinksFileName = (selection: LinksSelection): string => {
+  if (selection.directUrl) return getDefaultLinksDirectUrlOutputFileName(selection.directUrl)
+  if (selection.inputFilePath) return getDefaultLinksInputOutputFileName(selection.inputFilePath)
+  return getDefaultLinksOutputFileName(selection.serviceSelections, selection.globalSections)
+}
+
+const resolveDefaultLinksOutputPath = async (selection: LinksSelection): Promise<string> => {
+  const fileName = getDefaultLinksFileName(selection)
+  const stem = fileName.replace(/\.md$/i, '')
+  const outputDir = await createGenerationOutputDir(stem)
+  return join(outputDir, fileName)
+}
 
 export const getLinksRefreshMetadataPath = (outputPath: string | URL): string => {
   const resolvedOutputPath = typeof outputPath === 'string'
@@ -184,7 +185,7 @@ const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
       if (equalsIndex !== -1) {
         const flagValue = raw.slice(equalsIndex + 1)
         const sectionHint = flagValue.trim() ? `, e.g. "--${name} ${flagValue}"` : ''
-        throw CLIUsageError(`links provider selector "--${name}" does not accept inline values; pass sections as separate arguments after the provider selector${sectionHint}.`)
+        throw UsageError(`links provider selector "--${name}" does not accept inline values; pass sections as separate arguments after the provider selector${sectionHint}.`)
       }
       currentService = name
       if (!serviceSelections.has(currentService)) {
@@ -196,12 +197,12 @@ const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
     const arg = token.value
     if (isRemoteUrlToken(arg)) {
       if (directUrl) {
-        throw CLIUsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
+        throw UsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
       }
       directUrl = arg
     } else if (isLinksInputFileArg(arg)) {
       if (inputFilePath) {
-        throw CLIUsageError('links accepts only one input file')
+        throw UsageError('links accepts only one input file')
       }
       inputFilePath = arg
     } else if (currentService) {
@@ -212,15 +213,15 @@ const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
   }
 
   if (parsed.rawParsed.doubleDash.length > 0) {
-    throw CLIUsageError(`Unknown links selector "--". Known providers: ${knownProviders.join(', ')}. Known sections: ${knownSections.join(', ')}.`)
+    throw UsageError(`Unknown links selector "--". Known providers: ${knownProviders.join(', ')}. Known sections: ${knownSections.join(', ')}.`)
   }
 
   if (directUrl && (inputFilePath || serviceSelections.size > 0 || globalSections.length > 0)) {
-    throw CLIUsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
+    throw UsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
   }
 
   if (inputFilePath && (serviceSelections.size > 0 || globalSections.length > 0)) {
-    throw CLIUsageError('links input file mode cannot be combined with provider or section selectors')
+    throw UsageError('links input file mode cannot be combined with provider or section selectors')
   }
 
   const refreshOnly = parsed.flags['refresh-only'] === true
@@ -247,14 +248,14 @@ const assertKnownSections = (
 ): void => {
   const unknownGlobalSections = globalSections.filter(sectionName => !globalSectionKeySet.has(sectionName))
   if (unknownGlobalSections.length > 0) {
-    throw CLIUsageError(`Unknown links section(s): ${unknownGlobalSections.join(', ')}. Known sections: ${knownSections.join(', ')}`)
+    throw UsageError(`Unknown links section(s): ${unknownGlobalSections.join(', ')}. Known sections: ${knownSections.join(', ')}`)
   }
 
   for (const [serviceName, sections] of serviceSelections) {
     const serviceSections = serviceSectionKeyMap.get(serviceName)
     const unknownSections = sections.filter(sectionName => !serviceSections?.has(sectionName))
     if (unknownSections.length > 0) {
-      throw CLIUsageError(`Unknown links section(s) for --${serviceName}: ${unknownSections.join(', ')}`)
+      throw UsageError(`Unknown links section(s) for --${serviceName}: ${unknownSections.join(', ')}`)
     }
   }
 }
@@ -339,14 +340,14 @@ export const readLinksInputFile = async (inputFilePath: string): Promise<string[
   const inputFile = Bun.file(inputFilePath)
   const exists = await inputFile.exists()
   if (!exists) {
-    throw CLIUsageError(`Links input file not found: ${inputFilePath}`)
+    throw UsageError(`Links input file not found: ${inputFilePath}`)
   }
 
   let content: string
   try {
     content = await inputFile.text()
   } catch (error) {
-    throw CLIUsageError(
+    throw UsageError(
       `Failed to read links input file ${inputFilePath}: ${formatErrorMessage(error)}`,
       undefined,
       error instanceof Error ? { cause: error } : {}
@@ -354,12 +355,12 @@ export const readLinksInputFile = async (inputFilePath: string): Promise<string[
   }
 
   if (content.trim().length === 0) {
-    throw CLIUsageError(`Links input file is empty: ${inputFilePath}`)
+    throw UsageError(`Links input file is empty: ${inputFilePath}`)
   }
 
   const urls = extractLinksInputUrls(content)
   if (urls.length === 0) {
-    throw CLIUsageError(`No valid remote URLs found in links input file: ${inputFilePath}`)
+    throw UsageError(`No valid remote URLs found in links input file: ${inputFilePath}`)
   }
 
   return urls
@@ -632,16 +633,10 @@ const runLinks = async (
     : collectLinks(serviceSelections, globalSections)
 
   if (links.length === 0) {
-    throw CLIUsageError('No documentation links matched the provided selections')
+    throw UsageError('No documentation links matched the provided selections')
   }
 
-  const outputPath = options.outputPath ?? (
-    directUrl
-      ? getDefaultDirectUrlOutputPath(directUrl)
-      : inputFilePath
-      ? getDefaultInputFileOutputPath(inputFilePath)
-      : getDefaultOutputPath(serviceSelections, globalSections)
-  )
+  const outputPath = options.outputPath ?? await resolveDefaultLinksOutputPath(selection)
   const fetchImpl = options.fetchImpl ?? fetch
 
   const fetchConcurrency = DEFAULT_CLI_CONCURRENCY

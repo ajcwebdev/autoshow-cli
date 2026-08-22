@@ -1,6 +1,6 @@
 # write
 
-Run the full download plus transcription or extraction pipeline, then generate structured step-3 output with a hosted LLM. The default is the cheapest hosted model.
+Generate structured step-3 LLM output from local markdown or plaintext. The default model is the cheapest hosted LLM. Transcribe URLs, media, documents, or X Spaces with `extract` first, then pass the extracted `.txt` / `.md` to `write`.
 
 ## Outline
 
@@ -56,9 +56,6 @@ GLM_API_KEY=...
 KIMI_API_KEY=...
 TOGETHER_API_KEY=...
 CEREBRAS_API_KEY=...
-
-# required only for X Space / X post inputs
-X_BEARER_TOKEN=...
 ```
 
 ## Usage
@@ -67,26 +64,30 @@ X_BEARER_TOKEN=...
 bun autoshow write [input] [flags]
 ```
 
-Media inputs route through STT, documents and images through OCR or native text extraction, HTML and article inputs through URL article extraction, and X Space or X post inputs through X Space collection. `--llm` then generates the step-3 text.
+`write` accepts only local `.md` / `.txt` files or directories of those files. A `.md` or `.txt` file is always treated as source text, not as a URL or file-path list. `--llm` selects one or more hosted writers. URLs, media, documents, HTML, and X Spaces must go through `extract` first; then pass the extracted `.txt` / `.md` to `write`.
 
-Project lyric draft mode is enabled when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory. In that mode, `write` treats the input as raw text, reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
+```bash
+bun autoshow extract video.mp4 --provider deepgram
+bun autoshow write output/<extract-run>/transcription.txt --llm openai --prompt shortSummary --rendered-text
+```
+
+Project lyric draft mode is enabled when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory. In that mode, `write` reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
 
 ## Shared Write Options
 
 | Flag                                                                | Description                                                                                                                                                                       |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--stt`, `--ocr`, `--llm`                                           | Select a pipeline step provider as `provider[=model]`; repeat to run multiple providers/models                                                                                    |
-| `--all-providers <step>`                                            | Enable every hosted/API-backed provider for one write step: `stt`, `ocr`, `url`, or `llm`                                                                                         |
-| `--all-local <step>`                                                | Enable every local engine/backend for one write step: `stt`, `ocr`, or `url`                                                                                                      |
+| `--llm <provider[=model]>`                                          | Select an LLM provider as `provider[=model]`; repeat to run multiple providers/models                                                                                             |
+| `--all-providers`                                                   | Run every hosted LLM provider                                                                                                                                                     |
 | `--reasoning-effort <policy>`                                       | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max`                                                                       |
 | `--batch-limit <n\|all>`                                             | Limit batch size or process all items (`all`); default `5`                                                                                                                        |
 | `--batch-order <newest\|oldest>`                                    | Choose batch item order; default `newest`                                                                                                                                         |
 | `--batch-concurrency <n>`                                           | Batch items to process concurrently; default `7`                                                                                                                                  |
 | `--provider-concurrency <n>`                                        | Hosted providers/models to run concurrently per write item; default `7`                                                                                                           |
-| `--local-concurrency <n>`                                           | Local providers/models to run concurrently per write item; default `7`                                                                                                            |
+
 | `--concurrency-mode <ramp\|immediate>`                              | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--prompt <name...>`                                                | Select prompt presets                                                                                                                                                             |
-| `--text-input`                                                      | Treat local `.md` / `.txt` files and directories as raw source text                                                                                                               |
+
 | `--prompt-file <file>`                                              | Prepend instructions from a local text file before named prompt presets                                                                                                           |
 | `--rendered-text`                                                   | Save rendered step-3 markdown output inside the run directory                                                                                                                     |
 | `--rendered-out-dir <dir>`                                          | Also write rendered step-3 markdown files to this directory                                                                                                                       |
@@ -94,14 +95,11 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 | `--prompt-md`                                                       | Save a second prompt file (`prompt-md.md`) with markdown examples alongside the JSON prompt                                                                                       |
 | `--price`                                                           | Show the aggregated estimate and exit                                                                                                                                             |
 
-Without `--text-input`, `write` inspects a `.md` / `.txt` target to decide how to treat it: when at least half of its non-empty, non-`#` lines resolve to URLs, X Space ids, or existing local file paths it runs as a newline-delimited batch input list, and otherwise it runs as raw source text automatically. Pass `--text-input` to force text mode for a file the detection would treat as a list.
-
 See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, and pricing matrix.
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --prompt shortSummary longSummary
-bun autoshow write https://example.com/article --all-providers url --price
-bun autoshow write https://x.com/i/spaces/1DXxyRYNejbKM --price
+bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --prompt shortSummary longSummary
+bun autoshow write notes.md --llm openai=gpt-5.5 --prompt blog
 bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
 ```
@@ -121,9 +119,8 @@ Step selectors accept `provider[=model]`. Omitting the model resolves to the che
 | Default  | Passing `--llm openai` uses `gpt-5.6-luna`                                                |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.6-sol
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --stt deepgram --llm openai=gpt-5.5
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --llm openai=gpt-5.4-mini
+bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.6-sol
+bun autoshow write output/<extract-run>/transcription.txt --llm openai=gpt-5.5 --llm openai=gpt-5.4-mini
 ```
 
 ### Anthropic
@@ -135,7 +132,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=g
 | Default  | Passing `--llm anthropic` uses `claude-haiku-4-5`                                                                |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropic=claude-fable-5
+bun autoshow write output/<extract-run>/transcription.txt --llm anthropic=claude-fable-5
 ```
 
 Claude Fable 5 requires 30-day data retention and is unavailable under ZDR.
@@ -149,7 +146,7 @@ Claude Fable 5 requires 30-day data retention and is unavailable under ZDR.
 | Default  | Passing `--llm gemini` uses `gemini-3.5-flash-lite`                                       |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
+bun autoshow write output/<extract-run>/transcription.txt --llm gemini=gemini-3.6-flash
 ```
 
 Gemini 3.7 Flash `--price` estimates use the standard `$1.50 / $7.50` rates effective 2027-01-01, overstating cost during the introductory `$0.75 / $3.75` window through 2026-12-31. Gemini 3.1 Pro Preview is `$4.00 / $18.00` per 1M tokens above 200K.
@@ -163,7 +160,7 @@ Gemini 3.7 Flash `--price` estimates use the standard `$1.50 / $7.50` rates effe
 | Default  | Passing `--llm groq` uses `openai/gpt-oss-20b` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm groq=openai/gpt-oss-20b
+bun autoshow write output/<extract-run>/transcription.txt --llm groq=openai/gpt-oss-20b
 ```
 
 ### MiniMax
@@ -175,7 +172,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm groq=ope
 | Default  | Passing `--llm minimax` uses `MiniMax-M3` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm minimax=MiniMax-M3
+bun autoshow write output/<extract-run>/transcription.txt --llm minimax=MiniMax-M3
 ```
 
 Above 512K input tokens, MiniMax is `$1.20 / 1M input` and `$4.80 / 1M output`.
@@ -189,7 +186,7 @@ Above 512K input tokens, MiniMax is `$1.20 / 1M input` and `$4.80 / 1M output`.
 | Default  | Passing `--llm grok` uses `grok-4.3` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.5
+bun autoshow write output/<extract-run>/transcription.txt --llm grok=grok-4.5
 ```
 
 Grok 4.5 and Grok 4.6 price estimates use `$2 / 1M input` and `$6 / 1M output` through 200K input tokens, then `$4 / 1M input` and `$12 / 1M output` above 200K.
@@ -203,7 +200,7 @@ Grok 4.5 and Grok 4.6 price estimates use `$2 / 1M input` and `$6 / 1M output` t
 | Default  | Passing `--llm glm` uses `glm-5.1` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm glm=glm-5.1
+bun autoshow write output/<extract-run>/transcription.txt --llm glm=glm-5.1
 ```
 
 ### Kimi
@@ -215,7 +212,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm glm=glm-
 | Default  | Passing `--llm kimi` uses `kimi-k2.6` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k3
+bun autoshow write output/<extract-run>/transcription.txt --llm kimi=kimi-k3
 ```
 
 Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
@@ -229,7 +226,7 @@ Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
 | Default  | Passing `--llm together` uses `glm-5.1` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=kimi-k2.6
+bun autoshow write output/<extract-run>/transcription.txt --llm together=kimi-k2.6
 ```
 
 ### Cerebras
@@ -241,7 +238,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together
 | Default  | Passing `--llm cerebras` uses `gpt-oss-120b` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=gpt-oss-120b
+bun autoshow write output/<extract-run>/transcription.txt --llm cerebras=gpt-oss-120b
 ```
 
 ## Prompts
@@ -311,7 +308,6 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras
 
 ## Notes
 
-- `write` accepts the same step-2 STT flags documented in [`extract STT`](../step-2-extract/02-extract-stt.md#shared-stt-options) and the same step-2 OCR flags documented in [`extract OCR`](../step-2-extract/03-extract-ocr.md#shared-ocr-options).
 - Resume of a write run uses the top-level [`resume`](../../setup-and-utilities/resume/resume.md) command, not a `write` flag.
 - Shorthands such as `write demo` or `write ./output/demo` do not enable project lyric draft mode; the input must be `./output/<name>/text` or a file under that directory.
 - Project lyric draft mode requires `./output/<name>/prompt.md` unless `--prompt-file` is supplied. Explicit `--prompt-file`, `--track-list`, and `--rendered-out-dir` values override the project defaults.
@@ -321,11 +317,12 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras
 `write` stops at step 3. Generate speech, images, video, or music with the standalone commands against rendered markdown:
 
 ```bash
-bun autoshow write video.mp4 --llm openai --prompt shortSummary --rendered-text
-bun autoshow tts output/<run-dir>/text.md --provider elevenlabs
-bun autoshow music output/<run-dir>/text.md --provider elevenlabs
-bun autoshow image "$(cat output/<run-dir>/text.md)" --provider openai
-bun autoshow video "$(cat output/<run-dir>/text.md)" --provider grok
+bun autoshow extract video.mp4 --provider deepgram
+bun autoshow write output/<extract-run>/transcription.txt --llm openai --prompt shortSummary --rendered-text
+bun autoshow tts output/<write-run>/text.md --provider elevenlabs
+bun autoshow music output/<write-run>/text.md --provider elevenlabs
+bun autoshow image "$(cat output/<write-run>/text.md)" --provider openai
+bun autoshow video "$(cat output/<write-run>/text.md)" --provider grok
 ```
 
 Lyric drafts pair with `music --lyrics-file`.
