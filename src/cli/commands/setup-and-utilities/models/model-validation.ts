@@ -13,11 +13,6 @@ import {
 
 export const formatAllowedValues = (values: readonly string[]): string => values.join(', ')
 
-// Validator keys are internal target flag names (`mistral-ocr`, `groq-tts`, `openai`) that the
-// selector normalizers generate; none of them is a flag a user can type. Each category maps its
-// internal names back to the public spellings that produce them, using the dual-naming form
-// `target-validation.ts` already uses: `--provider` on extract and the standalone
-// tts/image/video/music commands, and the step selector in the write pipeline.
 const SELECTOR_CATEGORIES = [
   { stepFlag: 'stt', targets: WRITE_STT_PROVIDER_TARGETS },
   { stepFlag: 'ocr', targets: WRITE_OCR_PROVIDER_TARGETS },
@@ -27,8 +22,6 @@ const SELECTOR_CATEGORIES = [
   { stepFlag: 'music', targets: STANDALONE_MUSIC_PROVIDER_TARGETS }
 ] as const satisfies readonly { stepFlag: string, targets: Record<string, string> }[]
 
-// Two local STT keys predate the `<provider>-<category>` convention and cannot be split by
-// suffix, so they would otherwise read as bare LLM providers.
 const IRREGULAR_SELECTORS: Record<string, string> = {
   whisper: '--provider/--stt whisper[=model]',
   whisperfile: '--provider/--stt whisperfile[=model]'
@@ -36,11 +29,8 @@ const IRREGULAR_SELECTORS: Record<string, string> = {
 
 const modelValidatorFlags = new Set<string>()
 
-// Every flag key handed to createModelValidator, for the drift guard in
-// model-selector-messages.test.ts. Populated as the model modules are imported.
 export const getModelValidatorFlags = (): readonly string[] => [...modelValidatorFlags]
 
-// Returns undefined when a key resolves to no public spelling, which the guard treats as drift.
 export const describeModelSelector = (flag: string): string | undefined => {
   const irregular = IRREGULAR_SELECTORS[flag]
   if (irregular !== undefined) {
@@ -58,7 +48,6 @@ export const describeModelSelector = (flag: string): string | undefined => {
     }
   }
 
-  // Bare keys are write-pipeline LLM providers, whose only public spelling is --llm.
   if ((WRITE_LLM_PROVIDER_TARGETS as Record<string, string>)[flag] === flag) {
     return `--llm ${flag}[=model]`
   }
@@ -95,13 +84,6 @@ const throwRetiredModelSelection = (
   )
 }
 
-/**
- * A model validator that redirects retired identities before validating against the active
- * list. Twelve validators across the model modules had hand-copied this wrapper, and
- * `image-models.ts` had instead hardcoded its own literal comparisons; routing every one
- * through the retirement registry means adding a retired model to
- * `RETIRED_MODEL_REPLACEMENTS` is all a provider refresh has to do.
- */
 export const createRetiringModelValidator = <T extends string>(
   category: ModelCategory,
   service: string,

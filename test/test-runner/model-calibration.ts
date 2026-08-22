@@ -464,7 +464,6 @@ const computeGroupRates = (group: CalibrationStepObservation[]): CalibrationGrou
   return { costRatios, timeRates }
 }
 
-/** An unset or non-positive current value has no usable baseline, so the observed value always wins. */
 const driftGate = (current: number | null, next: number, threshold: number): boolean => {
   if (current === null) return true
   const drift = current > 0 ? Math.abs((next - current) / current) : 1

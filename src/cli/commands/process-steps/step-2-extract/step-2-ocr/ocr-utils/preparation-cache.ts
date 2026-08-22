@@ -90,7 +90,6 @@ export const cleanupOcrPreparationCache = async (
     try {
       await cleanup()
     } catch {
-      // Best-effort cleanup; provider-specific callers log remote cleanup failures.
     }
   }))
   if (cache.tempDir) {

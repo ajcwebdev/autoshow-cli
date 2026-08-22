@@ -24,9 +24,6 @@ const UNKNOWN_COMMANDS = [
   { argv: ['ocr', 'https://example.com/a.mp3'], name: 'ocr' }
 ] as const
 
-// `stt` and `ocr` are reserved names, not retired ones. Nothing in the parser
-// reserves them: they fall through the generic unknown-command path.
-
 const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['image', 'a sunset', '--imagen-count', '2'], flag: '--imagen-count' },
   { argv: ['extract', 'https://example.com/a.mp3', '--refresh-cache'], flag: '--refresh-cache' },
@@ -138,9 +135,6 @@ describe('removed CLI spellings', () => {
     }
   })
 
-  // The provider itself is retired, so `minimax` is no longer a video selector value at all.
-  // A bare selector names the surviving providers; a model-qualified one still reports the
-  // retired-model replacement before the provider lookup runs.
   test('minimax is not a video provider selector', () => {
     const command = commandNamed('video')
     expect(() => parseCommandInvocation(['video', 'a sunset', '--provider', 'minimax'], command, GLOBAL_FLAG_DEFINITIONS)).not.toThrow()
@@ -153,7 +147,6 @@ describe('removed CLI spellings', () => {
     )).toThrow('Unknown provider "minimax" for --provider. Expected gemini|grok|ltx|replicate|lumalabs|fal.')
   })
 
-  // `voice list` absorbed every one of these; the aliases are gone rather than hidden.
   test('retired voice subcommand aliases are not registered', () => {
     for (const action of ['discover', 'materialize', 'revoke-consent', 'reconcile', 'revoke', 'status', 'inspect']) {
       const voice = commandNamed('voice')
@@ -166,7 +159,6 @@ describe('removed CLI spellings', () => {
     expectUnknownFlag(['voice', 'clone', 'hero', '--kind', 'professional'], '--kind')
   })
 
-  // These steps installed nothing; `setup --doctor` is the surviving way to see key presence.
   test('setup rejects the retired install-nothing step values', () => {
     for (const step of ['write', 'tts', 'image', 'video']) {
       expect(SETUP_STEP_IDS as readonly string[]).not.toContain(step)

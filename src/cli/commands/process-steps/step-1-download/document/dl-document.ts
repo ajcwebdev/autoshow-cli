@@ -117,7 +117,6 @@ export const prepareDocumentMetadata = async (
   let title = baseTitle
   let author: string | undefined
 
-  // Normalizable ebook inputs are converted once, then routed through EPUB extraction.
   let effectiveFilePath: string | undefined
   let tempDir: string | undefined
   let tempCleanup: (() => Promise<void>) | undefined
@@ -137,7 +136,6 @@ export const prepareDocumentMetadata = async (
     }
 
     const convResult = await normalizeEbookToEpub(filePath, tempDir).catch(async (err) => {
-      // cleanup on failure
       if (tempDir) await rm(tempDir, { recursive: true, force: true })
       throw err
     })

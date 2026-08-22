@@ -178,8 +178,6 @@ describe('resumable downloads', () => {
       attempt += 1
 
       if (attempt === 1) {
-        // Deliver a prefix, then fail before the body completes. The chunk must
-        // be delivered on a separate pull: error() discards anything still queued.
         let pulls = 0
         return new Response(new ReadableStream<Uint8Array>({
           pull (controller) {
@@ -199,7 +197,6 @@ describe('resumable downloads', () => {
 
     await expect(downloadFile({ url: 'https://example.test/large.bin', destination }))
       .rejects.toThrow()
-    // The prefix survives so the retry does not refetch from zero.
     expect(await Bun.file(`${destination}.part`).text()).toBe(payload.slice(0, 10))
 
     await downloadFile({ url: 'https://example.test/large.bin', destination })
@@ -232,7 +229,6 @@ describe('resumable downloads', () => {
     await Bun.write(`${destination}.part`, 'partial')
     await Bun.write(`${destination}.part.json`, JSON.stringify({ url: 'https://example.test/asset.bin' }))
 
-    // Status 200 rather than 206 means the peer replayed from byte 0.
     installMockFetch(async () => new Response('complete payload\n', { status: 200 }))
 
     await downloadFile({ url: 'https://example.test/asset.bin', destination })
@@ -242,13 +238,10 @@ describe('resumable downloads', () => {
 
 describe('download timeout budgets', () => {
   test('large-asset flows get a longer total budget than the default flow', () => {
-    // A flat total-transfer deadline is what made multi-GB models fail on any
-    // link slower than the deadline implied, regardless of connection health.
     const defaultTimeouts = resolveDownloadTimeouts({ url: '', destination: '' })
     const modelTimeouts = resolveDownloadTimeouts({ url: '', destination: '', flowId: 'whisper-model' })
 
     expect(modelTimeouts.totalTimeoutMs).toBeGreaterThan(defaultTimeouts.totalTimeoutMs)
-    // Inactivity, not elapsed transfer time, is what aborts a download.
     expect(modelTimeouts.stallTimeoutMs).toBe(defaultTimeouts.stallTimeoutMs)
   })
 
@@ -270,7 +263,6 @@ describe('download timeout budgets', () => {
     installMockFetch(async (_call, _input, init) => new Response(new ReadableStream<Uint8Array>({
       start (controller) {
         controller.enqueue(new TextEncoder().encode('partial'))
-        // Never closes; only the stall watchdog can end this.
         init?.signal?.addEventListener('abort', () => controller.error(new Error('aborted')))
       }
     })))
@@ -317,8 +309,6 @@ describe('setup download admission budget', () => {
         destination: join(dir, `asset-${index}.bin`)
       }))
 
-      // Which two win the race depends on which mkdir lands first; that only
-      // two are in flight at all is the contract.
       await waitFor(() => started.length >= 2)
       await settle()
       expect(started.length).toBe(2)
@@ -376,8 +366,6 @@ describe('setup download admission budget', () => {
 
     setSetupDownloadConcurrency(1)
     try {
-      // The first download's checksum pass is local work. If the slot were held
-      // across it, the second download could not start until the first resolved.
       const first = downloadFile({
         url: 'https://example.test/first.bin',
         destination: join(dir, 'first.bin'),

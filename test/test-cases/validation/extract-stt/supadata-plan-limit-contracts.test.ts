@@ -23,8 +23,6 @@ describe('Supadata plan-limit contracts', () => {
     expect(isSupadataPlanLimitExhausted(undefined)).toBe(false)
   })
 
-  // The retry storm this prevents: without the flag, a quota-exhausted 429 was retried at every
-  // layer, spending more denied requests and stalling the run for minutes before failing anyway.
   test('a plan-limit 429 stops retrying while a burst 429 keeps retrying', () => {
     const planLimit = toSupadataHttpError(
       'create',

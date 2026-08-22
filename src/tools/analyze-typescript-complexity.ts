@@ -336,7 +336,6 @@ const analyzeExecutableFile = (filePath: string, source: string): {
   }
 
   visit(sourceFile)
-  // parseDiagnostics is populated by createSourceFile but marked @internal in the public typings.
   const { parseDiagnostics } = sourceFile as ts.SourceFile & { parseDiagnostics: readonly ts.Diagnostic[] }
   return {
     callables,
@@ -416,8 +415,5 @@ const parseScopes = (argv: string[]): AnalysisScope[] => {
 
 if (import.meta.main) {
   const analyses = analyzeScopes(parseScopes(process.argv.slice(2)))
-  // Standalone `bun run` tool: stdout is the machine-readable report document itself,
-  // so it is written directly rather than through the app logger. Declared exempt from
-  // the no-raw-stdout contract alongside the other src/tools scripts.
   process.stdout.write(`${JSON.stringify(analyses.map(({ files: _files, callableMetrics: _callableMetrics, ...analysis }) => analysis), null, 2)}\n`)
 }

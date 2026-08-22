@@ -121,7 +121,6 @@ describe('Supadata shared async lifecycle contracts', () => {
 
     expect(calls.map((call) => new URL(call.url).pathname)).toEqual(['/v1/transcript/supadata-resumed-1'])
     expect(actual.metadata).toMatchObject({
-      // The credits the interrupted attempt already paid for are carried forward.
       billing: { creditsUsed: 5, source: 'response_header' },
       runtime: { mode: 'resumed', stage: 'completed', remoteJobId: 'supadata-resumed-1' }
     })

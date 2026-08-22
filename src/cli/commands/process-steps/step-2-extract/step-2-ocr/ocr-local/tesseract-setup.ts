@@ -12,8 +12,6 @@ import { InternalError } from '~/utils/error-handler'
 const shouldPrintCompletion = (): boolean => !isCompactSetupMode()
 
 const installTesseract = async (): Promise<void> => {
-  // The managed tesseract is a wrapper that exports DYLD_LIBRARY_PATH into a
-  // separate install tree, so running it is the only way to know it works.
   if (await isRuntimeToolHealthy('tesseract', ['--version'])) {
     if (detectPlatform() === 'darwin') {
       await ensureManagedTessdataSupportFiles()
@@ -56,8 +54,6 @@ const ensureEnglishLanguageData = async (): Promise<void> => {
   }
 
   l.warn('Could not find eng.traineddata in tessdata path', { category: 'command' })
-  // The CLI sets TESSDATA_PREFIX itself when spawning tesseract and never reads
-  // it back, so pointing users at the env var would be a dead end.
   l.write('info', `Add eng.traineddata to ${resolveTessdataPrefix()} (the CLI points tesseract at this directory)`, {
       category: 'command',
       metadata: { tool: 'tesseract', tessdataPrefix: resolveTessdataPrefix() }

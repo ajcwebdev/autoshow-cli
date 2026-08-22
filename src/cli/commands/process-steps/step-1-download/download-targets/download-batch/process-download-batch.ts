@@ -15,11 +15,6 @@ import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-ex
 import { serializeDiagnosticError } from '~/utils/error-handler'
 import { createResourceGate, runWithGate } from '~/utils/resource-gate'
 
-/**
- * Validates inputs, creates the batch directory, and writes the initial canonical manifest.
- * Returns `{ done: true }` with an early result when there is nothing to
- * process, otherwise the resolved batch directory and pipeline item records.
- */
 const prepareBatchRun = async (
   items: string[],
   batchLabel: string,
@@ -98,10 +93,6 @@ const prepareBatchRun = async (
   return { done: false, batchDir, batchDirName, batchSource, itemRecords }
 }
 
-/**
- * Accumulates per-item outcomes into batch counters and item records, unifying the
- * serial and concurrent execution paths behind a single `applyItemResult`.
- */
 const createBatchTallyAccumulator = (
   itemRecords: PipelineItemRecord[],
   resultEntryIndexes: number[]
@@ -172,9 +163,6 @@ const createBatchTallyAccumulator = (
   }
 }
 
-/**
- * Logs the partial-failure and completion tables and writes the final canonical manifest.
- */
 const finalizeBatch = async ({
   command,
   batchDir,
@@ -266,9 +254,6 @@ export const processBatch = async <TOptions extends object>(
     category: 'pipeline',
     metadata: { itemCount: items.length, concurrency }
   })
-    // A 50ms busy-wait used to poll for a free slot here while every other concurrency
-    // limiter in the CLI waits on the shared FIFO gate; a released slot now hands off
-    // immediately instead of on the next tick of a timer.
     const gate = createResourceGate({ capacity: concurrency })
     const results = await Promise.allSettled(
       items.map((item, index) =>

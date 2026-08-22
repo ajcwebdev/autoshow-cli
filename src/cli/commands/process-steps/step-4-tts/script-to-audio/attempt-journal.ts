@@ -76,9 +76,6 @@ export const ensureJournalStarted = async (ctx: AttemptContext): Promise<void> =
       journalPath: ctx.journalRelativePath,
     })
   } catch (error) {
-    // A create-only write losing to an existing attempt file is benign here. Classified on
-    // the artifact-state marker rather than the message text, so a wording change cannot
-    // silently turn a benign conflict into a hard failure.
     if (!isArtifactConflictError(error)) throw error
   }
   ctx.journalFile = await writeJournalLine(ctx, ctx.journal)

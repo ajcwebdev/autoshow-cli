@@ -20,7 +20,6 @@ export const registerComicAndVoiceHelpCases = (): void => {
     }
     expect(subcommandSection).toContain('Run panel prompt bundles to review sketches and/or final panel images')
     expect(result.stdout).toContain('bun autoshow comic <subcommand> --help')
-    // The parent lists subcommands; it must not inline their flags.
     expect(getCommandFlagsSection(result.stdout)).toBe('')
   })
 
@@ -40,7 +39,6 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(result.stdout).toContain('final default: 1; sketch default: 6')
     expect(result.stdout).toContain('bun autoshow comic draft-scenes <script-path> --only panel-prompts')
     expect(result.stdout).not.toContain('[--target prompts|images|sketches|both]')
-    // Other subcommands' exclusive flags must not leak into this page.
     const flagsSection = getCommandFlagsSection(result.stdout)
     expect(flagsSection).not.toContain('--only')
     expect(flagsSection).not.toContain('--character')
@@ -93,7 +91,6 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(viaHelp.exitCode).toBe(0)
     expect(viaHelp.stdout).toBe(viaFlag.stdout)
   })
-
 
   test.concurrent('comic generate-audio help shows --slideshow and hides the --panel-video alias', async () => {
     const result = await loadHelp(['comic', 'generate-audio', '--help'])

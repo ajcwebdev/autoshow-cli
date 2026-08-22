@@ -304,7 +304,6 @@ const addAllExtractGroups = (groups: Set<AdaptiveProviderGroup>, input: string |
   addAllGroups(groups, 'extract', OCR_REMOTE_PROVIDERS)
 }
 
-/** `write --all-providers <step>` fans out over every remote provider for that step. */
 const WRITE_ALL_PROVIDER_STEPS: Record<string, { kind: AdaptiveProviderGroupKind, providers: readonly string[] }> = {
   stt: { kind: 'transcribe', providers: STT_REMOTE_PROVIDERS },
   ocr: { kind: 'extract', providers: OCR_REMOTE_PROVIDERS },
@@ -312,7 +311,6 @@ const WRITE_ALL_PROVIDER_STEPS: Record<string, { kind: AdaptiveProviderGroupKind
   llm: { kind: 'write', providers: LLM_REMOTE_PROVIDERS },
 }
 
-/** `write <flag> <provider>` selects a single remote provider for that step. */
 const WRITE_FLAG_GROUPS: Record<string, { kind: AdaptiveProviderGroupKind, remoteSet: Set<string> }> = {
   'stt': { kind: 'transcribe', remoteSet: STT_REMOTE_SET },
   'ocr': { kind: 'extract', remoteSet: OCR_REMOTE_SET },
@@ -320,7 +318,6 @@ const WRITE_FLAG_GROUPS: Record<string, { kind: AdaptiveProviderGroupKind, remot
   'llm': { kind: 'write', remoteSet: LLM_REMOTE_SET },
 }
 
-/** Commands whose only provider surface is `--provider`/`--<command>` plus `--all-providers`. */
 const SIMPLE_MEDIA_COMMANDS = {
   tts: { kind: 'tts', remoteSet: TTS_REMOTE_SET, providers: TTS_REMOTE_PROVIDERS },
   image: { kind: 'image', remoteSet: IMAGE_REMOTE_SET, providers: IMAGE_REMOTE_PROVIDERS },

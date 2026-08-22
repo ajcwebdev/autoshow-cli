@@ -19,11 +19,6 @@ export const assertAdvancedVoiceInspectionIdentity = (
   return voice
 }
 
-/**
- * The account-scope and ownership barrier every managed deletion must clear: the request
- * names the resource we registered, the resource is a project-owned account voice that
- * has been eligibility-checked, and the caller's credentials belong to the same account.
- */
 export const assertAdvancedVoiceDeletable = (
   identity: AdvancedVoiceProviderIdentity,
   policy: AdvancedVoiceDeletionPolicy,
@@ -68,17 +63,10 @@ export const buildAdvancedVoiceInspection = (
   checkedAt: input.checkedAt
 })
 
-/**
- * The lifecycle shape shared by providers that read one voice by resource ID and delete
- * it with a single request. Providers whose deletion needs extra proof (Hume's unique
- * name check) or whose response must be re-verified (MiniMax) keep their own port and
- * call the guards above directly.
- */
 export const createRemoteResourceVoiceLifecycle = (
   identity: AdvancedVoiceProviderIdentity,
   policy: AdvancedVoiceDeletionPolicy,
   operations: {
-    /** Fetches and maps the provider's current view of one registered voice. */
     fetchVoice: (voice: RemoteVoiceResourceRef) => Promise<{
       state: ProviderVoiceInspection['state']
       sanitizedMetadata: SanitizedProviderVoiceMetadata
@@ -103,11 +91,6 @@ export const createRemoteResourceVoiceLifecycle = (
   }
 })
 
-/**
- * No sample may leave the machine before consent and provenance are on record. Providers
- * supply only the trailing clause because each names the external action it is about to
- * take ("before any external upload" versus "before any provider action").
- */
 export const assertAdvancedVoiceCloneAuthorized = (
   identity: AdvancedVoiceProviderIdentity,
   cloneRequest: { consentRecordRef?: string | undefined, provenanceRef?: string | undefined },
@@ -118,7 +101,6 @@ export const assertAdvancedVoiceCloneAuthorized = (
   }
 }
 
-/** The account-scoped, project-owned voice reference a completed clone produces. */
 export const buildClonedProviderVoiceRef = (
   identity: AdvancedVoiceProviderIdentity,
   input: {

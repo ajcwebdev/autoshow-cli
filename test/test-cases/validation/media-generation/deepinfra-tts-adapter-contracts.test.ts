@@ -25,8 +25,6 @@ describe('DeepInfra Phase 4 Contracts', () => {
     expect(targets[0]?.service).toBe('deepinfra')
     expect(targets[0]?.model).toBe('ResembleAI/chatterbox-turbo')
     expect(targets[0]?.voice).toBe('standard')
-    // DeepInfra used to carry a private 8-attempt/3s policy while every other hosted TTS
-    // provider ran the shared 4-attempt one. There is now a single retriable-create tier.
     expect(getRetryPolicyForClass('runtime_http_create_retriable')).toEqual({ maxAttempts: 4, baseDelayMs: 2_000, maxDelayMs: 30_000, jitter: true, exponential: true })
   })
 

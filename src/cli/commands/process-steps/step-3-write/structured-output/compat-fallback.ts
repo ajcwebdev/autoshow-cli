@@ -54,14 +54,10 @@ export const runCompatFallback = async (
 
     lastIssue = validated.issue ?? 'Unknown compat validation failure'
     if (attempt < maxAttempts) {
-      // The same `Retry Attempt` record every other retry site emits, rather than a
-      // second wording for the same event.
       logRetryAttempt({
         operation: `structured-compat-${target.label.toLowerCase()}`,
         attempt,
         maxAttempts,
-        // Deliberately no delay: the model may emit valid JSON on the next pass and no
-        // provider backoff applies to a 200 response.
         reason: 'structured_response',
         delayMs: 0
       }, { provider: target.label, model, issue: lastIssue })

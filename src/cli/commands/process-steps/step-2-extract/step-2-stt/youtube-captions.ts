@@ -408,9 +408,6 @@ const syncRootArtifact = async (
 ): Promise<void> => {
   const fromPath = join(providerDir, fileName)
   const toPath = join(outputDir, fileName)
-  // Root-level copies are conveniences over the provider directory, so a failure is not
-  // fatal — but it must not vanish either, or a missing root artifact looks like the
-  // provider never produced one.
   await copyFile(fromPath, toPath).catch((error: unknown) => {
     l.write('debug', `Failed to mirror ${fileName} into the run output directory`, {
       category: 'artifact',

@@ -12,9 +12,6 @@ import type {
 } from '~/types'
 
 const SCENE_SLUG = '01-co-work-smarter'
-// Pin an explicit run directory so the suite is hermetic and never resumes or
-// deletes a real timestamped run for this slug. The leading dot keeps it out of
-// findLatestSceneRunDirectory (which requires a timestamp prefix).
 const RUN_DIR = 'output/.test-run_01-co-work-smarter'
 
 beforeAll(() => {
@@ -23,8 +20,6 @@ beforeAll(() => {
 
 afterAll(async () => {
   resetPinnedRunDir()
-  // Commands may mkdir the per-run scene directory even with mocked stages; remove
-  // the pinned run directory without clobbering any other real output.
   await rm(RUN_DIR, { recursive: true, force: true })
 })
 
@@ -69,8 +64,6 @@ const removedLogFragments = [
   'Skipping existing output',
 ]
 
-// Comic assertions target the stdout channel, so force an interactive human sink:
-// under the non-TTY runner the default sink would route info events to stderr.
 const captureComicOutput = (fn: () => Promise<void>) =>
   captureConsoleText(fn, { strip: true, interactiveHumanSink: true })
 

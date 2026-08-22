@@ -25,21 +25,6 @@ const parseStatusFromGeminiError = (error: unknown): number | undefined => {
   return undefined
 }
 
-/**
- * Gemini reports the HTTP status inside the response body rather than on the error
- * object, so the shared classifier cannot see it. This restates the parsed status as a
- * structured field and then lets `classifyFetchRetry` apply the caller's retry class.
- *
- * The previous shape ran the conservative rule and then *overrode* its refusal for
- * 408/425/429/>=500, which meant a paid Gemini create redispatched after a 5xx — the
- * exact ambiguous-admission case the conservative tier exists to refuse — while its
- * logs and `retry_exhausted` metadata still claimed the conservative class. The class
- * now decides: conservative callers (image creates, LLM writes, TTS chunks) stop on a
- * 5xx, and the documented retriable tier (STT submissions, OCR requests) still retries.
- *
- * Defaults to the conservative class so a site that forgets to declare one gets the
- * safe posture rather than the spending one.
- */
 export const classifyGeminiRetry = (
   error: unknown,
   retryClass: RetryClass = 'runtime_http_create_conservative'

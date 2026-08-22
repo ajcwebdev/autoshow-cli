@@ -19,8 +19,6 @@ const installFfmpeg = async (): Promise<void> => {
   const hasBoth = hasRuntimeTool('ffmpeg') && hasRuntimeTool('ffprobe')
 
   if (platform === 'darwin') {
-    // An existing managed binary may predate the libmp3lame build — only the
-    // build stamp (not binary existence) proves the managed install is current.
     if (hasBoth && resolveRuntimeToolInfo('ffmpeg')?.source === 'override') return
     if (await hasManagedFfmpegBuild()) return
     l.write('info', 'Installing FFmpeg', { category: 'command' })
@@ -60,9 +58,6 @@ const installYtDlp = async (): Promise<void> => {
   }
 
   if (platform === 'linux') {
-    // The Pinned Versions table reports the same yt-dlp version on every
-    // platform, so Linux must install that pinned build rather than whatever
-    // `releases/latest` happens to serve, and verify it like every other tool.
     const { url, sha256 } = await readDependencyUrlAndSha256('yt-dlp', 'linux')
     await mkdir(dirname(ytDlpManagedBinaryPath), { recursive: true })
     await withRetry(

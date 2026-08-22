@@ -9,15 +9,12 @@ const DEFAULT_POLL_DEADLINE_MS = 10 * 60 * 1000
 const MAX_POLL_DEADLINE_MS = 30 * 60 * 1000
 const POLL_DEADLINE_AUDIO_MULTIPLIER_MS = 250
 const ASYNC_STT_RESUME_PROBE_DELAYS_MS = [0, 30_000, 60_000, 120_000, 240_000] as const
-// The probe ladder is bounded by its own step count; this deadline only exists so the
-// probe requests themselves cannot hang the loop past the ladder.
 const ASYNC_STT_RESUME_PROBE_REQUEST_BUDGET_MS = 5 * 60 * 1000
 
 const getAsyncSttProgressKey = (segmentNumber: number | undefined): string =>
   segmentNumber === undefined
     ? 'whole'
     : `segment-${String(segmentNumber).padStart(3, '0')}`
-
 
 const parseCleanupState = (value: unknown): Step2RuntimeMetadata['cleanup'] | undefined => {
   if (!isRecord(value)) {
@@ -136,16 +133,6 @@ const resolveAsyncSttPollDeadlineMs = (
   )
 }
 
-/**
- * Waits for a hosted transcription job on the central poll loop.
- *
- * This was a second polling engine: its own deadline arithmetic, its own adaptive
- * interval doubling, its own `Retry-After` pacing, its own resume-probe ladder, and no
- * abort support — and because it raised prose-shaped deadline errors, downstream retry
- * accounting had to recognise them by matching their message. `pollUntil` grew the
- * features this loop had that it lacked, so the behavior is unchanged and there is one
- * engine again.
- */
 export const pollAsyncSttJobUntilComplete = async <TStatus>(
   options: AsyncSttPollLoopOptions<TStatus>
 ): Promise<{ status: TStatus, pollCount: number, pollSleepMs: number }> => {
@@ -156,9 +143,6 @@ export const pollAsyncSttJobUntilComplete = async <TStatus>(
       : await runPoll()
     await options.onProgress?.(pollResult.status)
 
-    // The provider's own terminal-failure error is raised here rather than through
-    // `pollUntil`'s `isFailed` so its message and `stt:async` stage reach the caller
-    // exactly as before.
     const failureReason = options.isFailed(pollResult.status)
     if (failureReason) {
       throw InfraError(failureReason, { stage: 'stt:async' })
@@ -254,13 +238,6 @@ export const attachAsyncSttValidationContext = <TError extends Error & { stage?:
   throw source
 }
 
-/**
- * Poll exhaustion is `retry_exhausted`, like every other exhausted retry in the CLI.
- * These used to be prose-shaped provider errors, which is why the STT failure classifier
- * had to recognise a poll deadline with a regex over the message; it now reads the kind.
- * The wording is unchanged because users read it, and the underlying poll error is kept
- * as the cause so its last-poll snapshot survives.
- */
 export const buildAsyncSttPollingDeadlineError = (
   provider: string,
   jobId: string,
@@ -449,8 +426,6 @@ const createFreshAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   metrics.createMs += Date.now() - createStartedAt
   metrics.createCount += 1
 
-  // Some providers answer a small request synchronously; there is no remote job to
-  // poll, persist, or clean up, so the lifecycle jumps straight to result assembly.
   if (createResponse.kind === 'completed') {
     return { kind: 'completed', transcript: createResponse.transcript }
   }
@@ -610,11 +585,6 @@ const pollAndPersistAsyncSttJob = async <TStatus, TTranscript, TUpload>(
   }
 }
 
-/**
- * Shared tail for both completion paths: stamp timings against the run clock, hand the
- * transcript to the provider's result builder, record it for cleanup, and close out the
- * segment log. `runtime` is absent when creation returned the transcript directly.
- */
 const finalizeAsyncSttBuiltResult = async <TStatus, TTranscript, TUpload>(
   context: AsyncSttLifecycleContext<TStatus, TTranscript, TUpload>,
   transcript: TTranscript,

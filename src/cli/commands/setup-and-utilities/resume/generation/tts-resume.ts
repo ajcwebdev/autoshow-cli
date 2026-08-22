@@ -353,7 +353,6 @@ export const resolveStoredTtsTargetsForResume = async (
               candidates.push({ options: speakerOptions, target: candidate, speakerMappings })
             }
           } catch {
-            // The alternative dialogue grammar is tested below against the exact retained plan.
           }
         }
       }

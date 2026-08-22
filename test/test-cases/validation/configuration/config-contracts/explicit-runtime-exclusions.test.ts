@@ -32,18 +32,12 @@ describe('config explicit flag and runtime exclusion contracts', () => {
     })
   })
 
-  // `buildConfigPatchFromFlags` skips runtime-only flags before it looks for a config
-  // destination, so an entry present in both sets would shadow a real destination and
-  // the flag would silently stop being persisted.
   test('RUNTIME_ONLY_FLAGS stays disjoint from FLAG_TO_CONFIG_PATH', () => {
     const overlap = [...RUNTIME_ONLY_FLAGS].filter(flag => FLAG_TO_CONFIG_PATH[flag] !== undefined)
 
     expect(overlap).toEqual([])
   })
 
-  // `prompt` is written by the multi-destination pass rather than through
-  // FLAG_TO_CONFIG_PATH, so the disjointness check above cannot see it. Its own guard
-  // reads `!RUNTIME_ONLY_FLAGS.has('prompt')`; pin the premise or that becomes a no-op.
   test('prompt is not runtime-only, so the prompt config pass stays reachable', () => {
     expect(RUNTIME_ONLY_FLAGS.has('prompt')).toBe(false)
   })

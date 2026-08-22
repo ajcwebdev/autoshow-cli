@@ -24,9 +24,9 @@ Live TTS synthesis tests need the matching provider key: `CARTESIA_API_KEY`, `DE
 
 ## Current Coverage
 
-- Model-level service files under `test/test-cases/e2e/service/step-4-tts-e2e/tts-services/` cover live synthesis for Cartesia, Deepgram, ElevenLabs, Gemini, Grok, Groq, Hume, MiniMax, Mistral, OpenAI, and Speechify using `defineTTSServiceTest`, which asserts the generated `speech.wav` artifact plus its manifest metadata.
-- DeepInfra and Inworld files in that directory collect targets for price preflight and do not call providers. `mistral-validation.test.ts` covers invalid-model rejection locally.
-- Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/tts-provider-contracts/` (mocked Cartesia, Deepgram, ElevenLabs, Grok, Groq, Hume, MiniMax, Mistral, OpenAI, and Speechify requests) and `test/test-cases/validation/cli/option-resolution-contracts/tts-custom-voices/` (ElevenLabs custom voices).
+- Live synthesis files under `test/test-cases/e2e/service/step-4-tts-e2e/tts-services/` cover Cartesia, Deepgram, ElevenLabs, Gemini, Grok, Groq, Hume, MiniMax, Mistral, OpenAI, and Speechify.
+- DeepInfra and Inworld files in that directory do not call providers. `mistral-validation.test.ts` covers invalid-model rejection locally.
+- Zero-cost validation lives in `test/test-cases/validation/providers/tts-provider-contracts/` and `test/test-cases/validation/cli/option-resolution-contracts/tts-custom-voices/`.
 - Focused `--price` validation lives in `test/test-cases/price-flag/tts-price/`.
 
 ## Price Preflight
@@ -36,7 +36,7 @@ bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --price
 bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --budget 2500
 ```
 
-The mapped TTS price preflight covers the live synthesis files plus DeepInfra and Inworld target-collection files. Fal and Replicate TTS price mappings come from their adapter-contract tests under `test/test-cases/validation/media-generation/`.
+The mapped TTS price preflight covers the live synthesis files plus DeepInfra and Inworld. Fal and Replicate TTS price coverage is under `test/test-cases/validation/media-generation/`.
 
 ## Related Docs
 

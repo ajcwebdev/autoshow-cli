@@ -23,9 +23,6 @@ const runReadOnlyProbe: MistralReferenceAudioProbeRunner = async (command, args)
   }
 }
 
-// This is deliberately a decode-to-null probe: it verifies both stream selection and the exact
-// local conversion path without creating a temporary output or exposing the protected edge path in
-// errors/artifacts. Global readiness separately explains missing/broken ffmpeg prerequisites.
 export const assertMistralReferenceAudioDecodable = async (
   sourcePath: string,
   runner: MistralReferenceAudioProbeRunner = runReadOnlyProbe

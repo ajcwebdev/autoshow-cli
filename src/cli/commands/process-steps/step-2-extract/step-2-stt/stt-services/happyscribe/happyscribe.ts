@@ -155,9 +155,6 @@ export const buildHappyScribeOrganizationResolutionError = (
       ? 'Happy Scribe execution requires an explicit organization because this API key can access multiple organizations.'
       : 'No Happy Scribe organizations are available for this API key.'
 
-  // The remediation belongs in `hints`, not baked into the message: this is a
-  // configuration mistake the user fixes with a flag, so it should exit 2 and print
-  // the follow-up command through the standard usage-hint channel.
   return CLIUsageError(
     [
       baseMessage,

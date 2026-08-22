@@ -108,7 +108,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(result.stdout).not.toContain('--elevenlabs-tts-optimize-streaming-latency')
   })
 
-
   test.concurrent('music help includes hosted generation and lyric-video flags', async () => {
     const result = await loadHelp(['music', '--help'])
 
@@ -209,12 +208,10 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(videoResult.stdout).not.toContain('--grok-video-storage-expires-after')
   })
 
-
   test.concurrent('Luma, ratio, and music duration descriptions match supported behavior', async () => {
     const image = await loadHelp(['image', '--help'])
     const music = await loadHelp(['music', '--help'])
 
-    // Seedream's odd-one-out ratio is match_input_image; `adaptive` belongs to Seedance video.
     expect(image.stdout).toContain('Replicate Seedream also supports match_input_image')
     expect(image.stdout).not.toContain('Replicate Seedream also supports adaptive')
     expect(image.stdout).toContain(`Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS}`)
@@ -235,6 +232,4 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(write.stdout).not.toContain('--replicate-video-multi-prompt')
   })
 
-  // Each entry pins one help description to the constant its validator uses, so adding a
-  // supported value without documenting it fails here instead of shipping a stale list.
 }

@@ -16,8 +16,6 @@ export const downloadGeneratedFile = async (options: {
     {
       operationName: options.operationName,
       retryClass: 'runtime_http_read',
-      // The TTS result downloads set a per-attempt deadline and this one did not, so with
-      // the REST layer's `timeout: false` an image or video download could hang forever.
       timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS
     },
     async (signal) => {

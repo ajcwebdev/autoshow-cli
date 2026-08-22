@@ -8,7 +8,6 @@ import { InfraError, ProviderError, ValidationError } from '~/utils/error-handle
 import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
-// Re-exported: two download/url modules already import this name from here.
 export { formatErrorMessage }
 
 const HTML_FETCH_TIMEOUT_MS = 15000
@@ -120,8 +119,6 @@ const createUrlProviderTimeoutError = (
     metadata: { timeoutMs, provider: providerLabel },
     ...(cause instanceof Error ? { cause } : {})
   })
-  // `isAbortError` and `classifyFetchRetry` key on the name, so the abort spelling has to
-  // survive the move onto AppProviderError.
   error.name = 'AbortError'
   return error
 }
@@ -131,8 +128,6 @@ export const createUrlProviderHttpError = (
   action: string,
   response: Response,
   message: string | undefined,
-  // Providers that answer both burst throttling and terminal quota exhaustion with the same
-  // retryable status pass true here to suppress retries for the terminal case.
   terminal = false
 ): Error => httpResponseError(
   `${providerLabel} ${action} failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`,

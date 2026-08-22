@@ -9,11 +9,9 @@
 
 ## Context
 
-AutoShow is a Bun-native, run-to-completion CLI. It has no compile or bundle stage, exposes no HTTP server or port, and uses the offline `bun autoshow setup --doctor` command rather than a web health endpoint. Native onboarding otherwise requires Bun plus a host setup flow that installs or builds local tools and optional model assets.
+AutoShow is a Bun-native, run-to-completion CLI, not a server. Native onboarding requires Bun plus a host setup flow that installs or builds local tools and optional model assets.
 
-The Docker distribution must provide a useful local baseline without containing every AutoShow capability. Its local-lite contract includes `ffmpeg`, `ffprobe`, `yt-dlp`, Tesseract OCR with English data, MuPDF `mutool`, `qpdf`, and Calibre `ebook-convert`. Heavy local STT, LLM, and TTS engines, model weights, Defuddle, and hosted-provider credentials remain outside the image.
-
-The CLI has no container-only setup or health path. System tools resolve through the standard Linux `PATH` fallback, and omitted tools surface as real setup, doctor, or workflow failures rather than being masked by container detection.
+The Docker image should give container users a useful local baseline without shipping every AutoShow capability. That local-lite set is `ffmpeg`, `ffprobe`, `yt-dlp`, Tesseract OCR with English data, MuPDF `mutool`, `qpdf`, and Calibre `ebook-convert`. Heavy local STT, LLM, and TTS engines, model weights, Defuddle, and hosted-provider credentials stay outside the image.
 
 Alpine Bun images cannot install Calibre from their package repositories. Debian slim can install the full local-lite set through `apt`.
 
@@ -83,32 +81,31 @@ Why now: container users were paying the full native onboarding cost for a tool 
 
 ## Decision
 
-AutoShow distributes an additive Debian slim local-lite Docker image alongside native host setup. The image is based on `oven/bun:1.3.14-slim`, runs as the non-root `bun` user from `/app`, and uses the CLI as its entrypoint, so arguments after the image name are AutoShow arguments. Bare container runs print help and exit. It exposes no ports and defines no HTTP health check; `setup --doctor` remains the offline diagnostic.
+AutoShow distributes an additive Debian slim local-lite Docker image alongside native host setup. The image is based on `oven/bun:1.3.14-slim`, runs as the non-root `bun` user from `/app`, and uses the CLI as its entrypoint, so arguments after the image name are AutoShow arguments. A bare container run prints help and exits. The image exposes no ports and defines no HTTP health check; `setup --doctor` remains the offline diagnostic. The supported command surfaces are native `bun autoshow` and direct `docker run`.
 
-The image includes the local-lite tools listed in Context. `yt-dlp` is checksum-pinned to the same Linux artifact native setup uses. Credentials arrive at runtime through `--env-file`, `-e`, or a read-only `.env` mount and are never baked into the image. User data stays on the host via bind mounts: the working directory at `/workspace`, or input, output, and runtime paths under `/app`. Linux hosts that need host-owned output use `--user "$(id -u):$(id -g)"`. Binding over `/app/runtime` must not break Tesseract English data.
+The image includes the local-lite tools listed in Context. `yt-dlp` matches the native Linux pin. Credentials arrive at runtime through `--env-file`, `-e`, or a read-only `.env` mount and are never baked into the image. User data stays on the host via bind mounts: the working directory at `/workspace`, or input, output, and runtime paths under `/app`. Linux hosts that need host-owned output use `--user "$(id -u):$(id -g)"`. A bind mount over `/app/runtime` must still leave Tesseract English data available.
 
-Multi-architecture images (`linux/amd64` and `linux/arm64`) publish to `ghcr.io/ajcwebdev/autoshow-cli` on every push to `main`, tagged `latest` and by full commit SHA, with OCI provenance.
+Image tools are discovered on the normal Linux `PATH`. The CLI does not special-case containers, so omitted tools fail in setup, doctor, or the workflow the same way they would on a native Linux host.
+
+Multi-architecture images (`linux/amd64` and `linux/arm64`) publish to `ghcr.io/ajcwebdev/autoshow-cli` on every push to `main`, tagged `latest` and by full commit SHA.
 
 This applies to:
 
 - Image contents, entrypoint, non-root user, and doctor diagnostics.
 - Direct `docker run` invocation, bind mounts, credential injection, and Linux host ownership.
 - GHCR multi-architecture publication.
-- Standard Linux tool resolution without container-specific code branches.
 
 It does not apply to:
 
 - Heavyweight local engines, model weights, Defuddle, provider credentials, server ports, or HTTP health checks.
-- Native host setup lifecycle (governed by [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)) or third-party container launcher scripts.
+- Native host setup lifecycle (governed by [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)).
 
 ## Rationale
 
 - Debian slim is the smallest base that provides the complete local-lite package set, including Calibre, through one package manager.
-- Standard Linux `PATH` resolution discovers image tools without container-specific runtime branches.
 - A run-to-completion CLI needs a direct entrypoint and offline doctor checks, not open ports or HTTP probes.
-- Direct image execution and native `bun autoshow` are the only supported command surfaces.
-- Checksum-pinned `yt-dlp`, non-root execution, and runtime credential injection keep the image inspectable and free of secrets.
-- GHCR colocates prebuilt `amd64` and `arm64` images with the repository.
+- Runtime credential injection and a non-root user keep secrets out of the image and avoid running as root.
+- GHCR colocates prebuilt `amd64` and `arm64` images with the repository so users do not have to rebuild locally.
 - Additive distribution preserves native host workflows and heavyweight local capabilities that do not belong in the image.
 
 ## Consequences
@@ -135,8 +132,8 @@ Negative outcomes:
 
 **Trade-off 2**
 
-- **Gain:** Standard Linux tool resolution with no container bypasses
-- **Sacrifice:** Omitted or misconfigured tools fail at runtime
+- **Gain:** Missing tools fail the same way they would on a native Linux host
+- **Sacrifice:** The image does not hide omitted capabilities behind a container-specific setup or health path
 
 **Trade-off 3**
 
@@ -160,7 +157,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The image recipe, build exclusions, user documentation, and entrypoint live in `Dockerfile`, `.dockerignore`, `docs/docker.md`, and `README.md`. Publishing lives in `.github/workflows/docker-publish.yml`. Local `docker build` remains supported.
+The image recipe, build exclusions, user documentation, and entrypoint live in `Dockerfile`, `.dockerignore`, `docs/docker.md`, and `README.md`. Publishing lives in `.github/workflows/docker-publish.yml`.
 
 ## Test Plan
 
@@ -170,7 +167,7 @@ bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 ```
 
 1. Typecheck and unique source check pass.
-2. Docker `yt-dlp` URL and SHA-256 match native Linux dependency metadata, and documentation shows direct `docker run` with no wrapper scripts.
+2. Image `yt-dlp` URL and SHA-256 match native Linux metadata, and documentation shows direct `docker run`.
 
 ## References
 
@@ -183,3 +180,4 @@ bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 - `docs/docker.md`
 - `test/test-cases/validation/cli/docker-image-contracts.test.ts`
 - `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`
+```

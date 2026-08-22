@@ -43,7 +43,6 @@ export class SyncCommandError extends Error {
 const decodeOutput = (output: Uint8Array | null | undefined): string =>
   output === null || output === undefined ? '' : Buffer.from(output).toString('utf8')
 
-/** Run a child process synchronously and normalize Bun's byte/result surface. */
 export const runSyncCommand = (
   command: string,
   args: readonly string[] = [],
@@ -68,7 +67,6 @@ export const runSyncCommand = (
   }
 }
 
-/** Match execFileSync's throw-on-failure and decoded-stdout contract. */
 export const runSyncCommandOrThrow = (
   command: string,
   args: readonly string[] = [],

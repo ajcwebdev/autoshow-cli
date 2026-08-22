@@ -10,11 +10,6 @@ import { runSyncCommandOrThrow } from '~/utils/sync-subprocess'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
-// In-repository replacement for the retired Repomix dependency. It reproduces
-// the previous `bun repo` snapshot byte for byte: the same include set
-// (top-level files plus src/), the same ignore rules, the same Markdown layout
-// (# Directory Structure, # Files with four-backtick fences, # Instruction),
-// and o200k_base token counts from the reference tokenizer.
 const INCLUDED = (path: string): boolean => !path.includes('/') || path.startsWith('src/')
 
 const IGNORE_PATHS = [
@@ -29,8 +24,6 @@ const TOP_FILES_LENGTH = 20
 
 const DEFAULT_INSTRUCTION = "I'm going to ask you to refactor my code, write a new feature, or fix a bug.\n"
 
-// The subset of Repomix's extension-to-language table this repository can
-// realistically contain; unknown extensions render an untagged fence.
 const FENCE_LANGUAGES: Record<string, string> = {
   ts: 'typescript',
   tsx: 'typescript',
@@ -77,8 +70,6 @@ const looksBinary = (bytes: Uint8Array): boolean => {
   return window.includes(0)
 }
 
-// Tracked plus untracked-but-not-ignored, exactly the visibility .gitignore
-// already defines for the repository.
 const listCandidatePaths = (): string[] => {
   const output = runSyncCommandOrThrow(
     'git',
@@ -113,8 +104,6 @@ const byNameCaseInsensitive = (left: string, right: string): number => {
   return left < right ? -1 : left > right ? 1 : 0
 }
 
-// Depth-first, directories before files, both case-insensitively sorted: the
-// traversal order Repomix used for the tree section and the file sections.
 const walkTree = (
   node: TreeNode,
   prefix: string,
@@ -173,8 +162,6 @@ const run = async (): Promise<number> => {
   const outputFile = await resolveOutputFile()
 
   try {
-    // Binary files stay in the directory tree but get no file section, the
-    // same split Repomix made.
     const decoder = new TextDecoder('utf-8', { fatal: false })
     const contentByPath = new Map<string, string>()
     const tree = newTreeNode()
@@ -227,8 +214,6 @@ const run = async (): Promise<number> => {
       const share = totalTokens > 0 ? ((file.tokens / totalTokens) * 100).toFixed(1) : '0.0'
       return {
         rank: index + 1,
-        // Deliberately not named `path`: the ranked listing is the payload here, so the
-        // wide-path detail lifting that suits artifact summaries would break it apart.
         module: file.path,
         tokens: formatCount(file.tokens),
         chars: formatCount(file.chars),

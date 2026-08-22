@@ -263,8 +263,6 @@ describe('canonical TTS resume', () => {
       }, null, 2)}\n`)
       const ranTargetKeys: string[] = []
 
-      // A provider state with no operation/targetKey is not readable at all now; the
-      // manifest is rejected before resume can see it, and nothing is dispatched.
       await expect(readManifest(dir)).rejects.toThrow('Invalid canonical manifest')
       await expect(resumeGenerationTarget(
         resumeTarget(dir),

@@ -7,12 +7,6 @@ import { buildSttBatchItemDetail, logBatchItemStatus } from './download-batch-su
 const formatProviderFailureDetail = (count: number): string =>
   String(count) + ' provider failure' + (count === 1 ? '' : 's')
 
-/**
- * Runs a single batch item to completion and classifies the result into an ok / partial /
- * incomplete / failed outcome. All errors are caught here: the three catch-classification
- * paths (STT-partial, non-STT `errorOutputDir`, generic) reduce to a resolved outcome so
- * the caller only tallies.
- */
 export const executeBatchItem = async <TOptions extends object>(
   ctx: ExecuteBatchItemContext<TOptions>,
   item: string,

@@ -61,7 +61,6 @@ const expectResumeLacksFlags = (flags: readonly string[]): void => {
   }
 }
 
-// Every provider name resume can select through --provider provider[=model].
 const RESUME_PROVIDER_NAMES = [...new Set([
   ...Object.keys(EXTRACT_PUBLIC_SELECTOR_FLAGS),
   ...Object.keys(WRITE_LLM_PROVIDER_TARGETS),
@@ -71,9 +70,6 @@ const RESUME_PROVIDER_NAMES = [...new Set([
   ...Object.keys(STANDALONE_MUSIC_PROVIDER_TARGETS)
 ])]
 
-// Provider-named option flags resume used to inherit by stripping whole command
-// flag sets with omitFlags. Provider tuning now comes from the originating
-// command or autoshow.config, never from resume's own flag surface.
 const REMOVED_PROVIDER_NAMED_FLAGS = [
   'minimax-tts-language-boost',
   'minimax-tts-volume',

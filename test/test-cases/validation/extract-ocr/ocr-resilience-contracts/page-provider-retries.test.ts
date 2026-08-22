@@ -506,8 +506,6 @@ describe('OCR resilience contracts', () => {
   })
 
   test('retry-exhausted OCR failures surface attemptsMade in the provider failure summary', async () => {
-    // Produced by the real retry loop rather than hand-assembled: the previous lookalike
-    // carried a message that had already drifted from withRetry's actual format.
     const previousSleep = Bun.sleep
     ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
     let exhausted: unknown

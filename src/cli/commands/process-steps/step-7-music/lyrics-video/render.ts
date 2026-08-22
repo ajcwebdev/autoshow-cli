@@ -22,7 +22,6 @@ const escapeAssText = (text: string): string =>
     .replace(/\}/g, '\\}')
     .replace(/\r?\n/g, '\\N')
 
-/** ASS colours are &HBBGGRR&, the reverse byte order of a #RRGGBB hex string. */
 const toAssColor = (hexColor: string): string => {
   const match = hexColor.trim().match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
   if (!match) {
@@ -86,7 +85,6 @@ const TRANSCRIPT_ASS_THEME: AssTheme = {
     const labelOutline = Math.max(2, Math.round(speakerSize * 0.08))
     return [
       { name: 'TranscriptActive', fontSize: activeSize, primaryColor: '&H00FFFFFF', bold: true, outline: Math.max(3, Math.round(activeSize * 0.08)), shadow: 2, alignment: 5 },
-      // Kept for byte compatibility even though speaker identity is currently carried by line colour.
       { name: 'TranscriptSpeaker', fontSize: speakerSize, primaryColor: '&H004FE7FF', bold: true, outline: labelOutline, shadow: 1, alignment: 5 },
       { name: 'TranscriptContext', fontSize: contextSize, primaryColor: '&H00C0C0C0', bold: false, outline: Math.max(2, Math.round(contextSize * 0.08)), shadow: 1, alignment: 5 },
       { name: 'TranscriptTitle', fontSize: titleSize, primaryColor: '&H00FFFFFF', bold: true, outline: labelOutline, shadow: 1, alignment: 8 }
@@ -377,17 +375,12 @@ export const findMatchingImage = async (audioPath: string, directory: string): P
   return undefined
 }
 
-/** Lyric lines are short and may wrap; spacing is measured from what actually rendered. */
 const DEFAULT_OVERLAY_TEXT_LAYOUT: OverlayTextLayout = {
   activeFontScale: 0.045,
   contextFontScale: 0.038,
   wrapWidthRatio: 0.6
 }
 
-/**
- * Transcript lines are sized down and given a wide wrap width so a full cue always fits on one line.
- * That keeps every line one row tall, which is what lets the fixed line spacing hold every frame.
- */
 export const TRANSCRIPT_OVERLAY_TEXT_LAYOUT: OverlayTextLayout = {
   activeFontScale: 0.030,
   contextFontScale: 0.026,
@@ -395,8 +388,6 @@ export const TRANSCRIPT_OVERLAY_TEXT_LAYOUT: OverlayTextLayout = {
   lineSpacingRatio: 0.06
 }
 
-// Speaker colours, assigned by order of first appearance so a given speaker keeps one colour for the
-// whole video. Chosen to stay legible on the dark spectrogram/image backgrounds.
 const SPEAKER_COLORS = ['#4FE7FF', '#FFC24F', '#8BE77F', '#FF8FB1', '#C79BFF', '#7FD4FF'] as const
 
 const buildSpeakerColorMap = (cues: ReadonlyArray<CaptionCue>): Map<string, string> => {
@@ -409,11 +400,6 @@ const buildSpeakerColorMap = (cues: ReadonlyArray<CaptionCue>): Map<string, stri
   return colors
 }
 
-/**
- * Turn a stored diarization label into something readable on screen. Providers disagree on shape:
- * Soniox stores "1", most store "speaker-0", AssemblyAI "speaker-A", Reverb "SPEAKER_00", and Happy
- * Scribe can store a real name. Only short ids get the "Speaker" prefix; names pass through untouched.
- */
 export const formatSpeakerDisplayLabel = (speaker: string): string => {
   const trimmed = speaker.trim()
   if (trimmed.length === 0) {
@@ -577,7 +563,6 @@ const renderOverlayCard = async (options: {
     await renderPangoLayer({
       text: options.currentText,
       font: options.font,
-      // Speaker identity is carried by colour alone; no label is drawn.
       fill: options.speakerColor ?? '#FFFFFF',
       pointSize: Math.round(options.height * layout.activeFontScale),
       width: options.width,
@@ -596,9 +581,6 @@ const renderOverlayCard = async (options: {
     })
   ] as const
 
-  // With a fixed line spacing the three lines sit at the same y on every frame, so nothing shifts as
-  // the text changes. That is only safe when lines cannot wrap, so callers that allow wrapping omit
-  // it and get offsets measured from each layer's real height instead.
   const [previousHeight, currentHeight, nextHeight] = layout.lineSpacingRatio === undefined
     ? await Promise.all([
         readImageHeight(convert, layerPaths[1]),

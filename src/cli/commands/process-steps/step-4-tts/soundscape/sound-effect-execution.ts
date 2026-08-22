@@ -440,9 +440,6 @@ export const executeSoundEffectRenderPlan = async (input: {
               const disposition = error instanceof SoundEffectProviderError ? error.admissionDisposition : 'ambiguous'
               if (!(error instanceof SoundEffectProviderError) || !error.retryable || disposition !== 'rejected' || attempt >= maxAttempts) break
 
-              // This redispatch used to be immediate and completely silent, with the
-              // admission journal on disk as its only evidence. It now backs off like
-              // every other paid create and reports the attempt in the shared shape.
               const delayMs = Math.round(SOUND_EFFECT_REDISPATCH_POLICY.baseDelayMs * Math.pow(2, attempt - 1))
               retriedDispatch = true
               dispatchAttempts = attempt

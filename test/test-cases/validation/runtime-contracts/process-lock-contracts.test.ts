@@ -125,11 +125,6 @@ test('process lock serializes concurrent contenders', async () => {
   expect(events).toEqual(['first-enter', 'first-exit', 'second-enter'])
 })
 
-/**
- * Both cross-process serialization contracts wait for the first child to publish the
- * lock owner, then assert the second child only entered after the first exited. The
- * options differ (a late heartbeat still counts as a live owner), so they stay explicit.
- */
 const expectSerializedLockChildren = async (
   lockRoot: string,
   options?: { blockHeartbeat?: boolean, staleMs?: number } | undefined

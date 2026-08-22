@@ -4,12 +4,6 @@ import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { writeShowNoteArtifacts } from './show-note-artifacts'
 import { writeRenderedTextArtifacts } from './text-input-utils'
 
-/**
- * Writes the rendered-text and show-note artifacts both write flows produce, and reports
- * the external render directory when one was used. `showNoteResults` is separate because
- * the text flow re-formats each rendered body before the show notes are generated, while
- * the document flow passes its runs through unchanged.
- */
 export const writeWriteFlowArtifacts = async (input: {
   outputDir: string
   results: StructuredRunResult[]
@@ -53,17 +47,11 @@ export const writeWriteFlowArtifacts = async (input: {
   return { renderedArtifacts, showNoteArtifacts }
 }
 
-/** A single run serializes as one object; multiple runs stay an array. */
 export const serializeStep3Results = (
   step3Results: readonly Step3Metadata[]
 ): Step3Metadata | Step3Metadata[] =>
   step3Results.length === 1 ? step3Results[0] as Step3Metadata : [...step3Results]
 
-/**
- * Names the summary artifact(s) in place. A single run gets the plain `summary` key;
- * a fan-out keeps each model's file under its own `summary-<model>` key so the report
- * lists them separately.
- */
 export const applySummaryArtifactNames = (
   artifactFiles: Record<string, string>,
   step3Results: readonly Step3Metadata[]

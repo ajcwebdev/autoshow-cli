@@ -1,29 +1,5 @@
 #!/usr/bin/env bun
 
-/**
- * Build a combined cross-run OCR provider comparison report.
- *
- * Reads every `provider-comparison-report.json` (plus its run's
- * `page-metrics.json` for page counts) under a root directory, aggregates each
- * provider by `providerKey` across the runs it appears in, and re-ranks
- * providers within the same OCR groups (local / thirdPartyService). Pure
- * aggregates follow the combined-OCR methodology:
- *   - quality: unweighted mean of `metrics.score` (higher is better)
- *   - weighted WER / CER evidence: summed breakdown errors divided by summed
- *     reference counts, so longer runs count proportionally more
- *   - speed: aggregate pages per minute = sum(pageCount) / sum(timeMs / 60000)
- *   - price: USD per 100 pages = sum(costCents) / sum(pageCount)
- *     (cents per page is numerically equal to dollars per 100 pages)
- *
- * Per group it also emits eight weighted composite rankings and divides the
- * quality + cost ranking into deterministic contiguous tiers
- * (`quality-cost-terciles-v1`); local and service providers are never ranked
- * against each other and no cross-group leaderboard is emitted.
- *
- * Writes `combined-comparison-report.json` and `combined-comparison-report.md`
- * to the root directory.
- */
-
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
@@ -270,7 +246,6 @@ function aggregate(
     const costedSamples = samples.filter((sample) => isFiniteNumber(sample.costCents));
     const costedPages = sum(costedSamples.map((sample) => sample.pageCount));
     const costedCents = sum(costedSamples.map((sample) => sample.costCents));
-    // Cents per page is numerically equal to USD per 100 pages.
     const costPer100PagesUSD = costedPages !== null && costedPages > 0 && costedCents !== null ? costedCents / costedPages : null;
     aggregated.push({
       providerKey,
@@ -293,7 +268,6 @@ function aggregate(
 }
 
 function priceValue(provider: AggregatedProvider): number | null {
-  // Local providers are zero monetary cost in this report.
   if (provider.group === "local") {
     return 0;
   }
@@ -556,7 +530,6 @@ function main(): number {
         runName: sample.runName,
         quality: sample.score,
         timeMs: sample.processingTimeMs,
-        // Local providers are zero monetary cost, matching priceValue().
         costCents: group === "local" ? 0 : sample.costCents,
       })),
     }));

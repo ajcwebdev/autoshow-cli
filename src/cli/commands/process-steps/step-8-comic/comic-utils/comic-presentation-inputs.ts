@@ -294,12 +294,6 @@ const loadPresentationVisualSource = async (
   return { scene, sceneRef, panels, sourceDir: sceneRunDir }
 }
 
-/**
- * Resolves reviewed visual inputs without mutating either workspace. Provider-comparison audio
- * directories may intentionally live beside the canonical reviewed scene directory, named with
- * the exact script slug. Content coverage, dialogue reconciliation at the caller, and panel bytes
- * remain the authority; the sibling directory name is only a deterministic candidate location.
- */
 export const resolvePresentationVisualInputs = async (
   compatible: CompatibleComicSceneRun
 ): Promise<Omit<PresentationVisualInputs, 'imported'>> => {
@@ -317,10 +311,6 @@ export const resolvePresentationVisualInputs = async (
   )
 }
 
-/**
- * Imports external reviewed visuals into an immutable presentation-owned bundle so every path in
- * the presentation plan remains contained by, and portable with, the audio run directory.
- */
 export const preparePresentationVisualInputs = async (
   compatible: CompatibleComicSceneRun,
   resolvedInputs?: Omit<PresentationVisualInputs, 'imported'>

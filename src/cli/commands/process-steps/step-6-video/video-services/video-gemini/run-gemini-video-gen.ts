@@ -29,7 +29,6 @@ export const runGeminiVideoGen = async (
     lastFrameImage?: string | undefined
     referenceImages?: string[] | undefined
     inputVideo?: string | undefined
-    // Without this, Ctrl-C could not interrupt the video generation poll.
     abortSignal?: AbortSignal | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {

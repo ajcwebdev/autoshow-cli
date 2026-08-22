@@ -53,7 +53,6 @@ export type UrlSelectionOptions = Step2SelectionOriginOptions & {
   urlBackends: HtmlArticleBackend[] | undefined
 }
 
-
 export type ResolvedStep2Provider = ProviderIdentityBase & {
   origin?: Step2ProviderSelectionOrigin | undefined
 }
@@ -124,7 +123,6 @@ export type Step2ProviderRegistryEntry =
   | Step2ModelProviderRegistryEntry
   | Step2FixedProviderRegistryEntry
 
-
 export type ProviderRunStateBase<TService extends string, TError> = ProviderIdentityBase<TService> & {
   artifactDir: string
   status: 'running' | 'succeeded' | 'missing' | 'failed' | 'skipped'
@@ -141,11 +139,8 @@ export type ProviderErrorSummaryFields = {
   retryAfterMs?: number | undefined
   errorFile?: string | undefined
   rawResponseFile?: string | undefined
-  // Set when the failure came from `requireApiKey`; lets batch scheduling recognise a
-  // missing credential structurally instead of matching the message text.
   missingEnvVar?: string | undefined
 }
-
 
 export type OcrStep2ResolutionOptions = OcrSelectionOptions & Partial<UrlSelectionOptions> & {
   preparedMarkdown?: string | undefined

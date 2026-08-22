@@ -60,8 +60,6 @@ export const buildPrompt = (
     }
   }
 
-  // Whole-second stamps: the instructions ask for chapter timestamps in exact HH:MM:SS form and the
-  // structured-output schema rejects anything else, so the transcript must not model a different shape.
   const transcriptWithTimestamps = formatTranscriptText(transcription.segments, { precision: 'seconds' })
 
   return `${frontmatter}

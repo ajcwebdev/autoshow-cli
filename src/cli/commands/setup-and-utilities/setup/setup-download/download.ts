@@ -7,9 +7,6 @@ import { withSetupDownloadSlot } from './download-admission'
 import { hasErrorCode, InfraError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
 
-// Downloads abort on inactivity, not on elapsed transfer time: a flat total
-// deadline made every multi-GB asset fail on any link slower than the deadline
-// implied, regardless of connection health.
 const DEFAULT_STALL_TIMEOUT_MS = 60_000
 const DEFAULT_TOTAL_TIMEOUT_MS = 15 * 60_000
 const LARGE_ASSET_TOTAL_TIMEOUT_MS = 60 * 60_000
@@ -87,8 +84,6 @@ const writePartialDownloadMetadata = async (destination: string, url: string): P
   await Bun.write(partMetadataPath(destination), JSON.stringify({ url } satisfies PartialDownloadMetadata))
 }
 
-// Only resume a partial file we can prove belongs to this exact URL; otherwise a
-// leftover fragment from another asset would be silently concatenated.
 const resolveResumeOffset = async (req: DownloadRequest): Promise<number> => {
   const size = await getFileSize(partFilePath(req.destination))
   if (size === null || size === 0) {
@@ -130,7 +125,6 @@ const createDownloadWatchdog = (timeouts: DownloadTimeouts): DownloadWatchdog =>
       if (stallTimer) clearTimeout(stallTimer)
       clearTimeout(deadlineTimer)
     },
-    // Wording keeps "timed out" so classifyFetchRetry treats this as retryable.
     timeoutMessage: () => {
       if (abortReason === 'stall') {
         return `Download timed out: no data received for ${Math.round(timeouts.stallTimeoutMs / 1000)}s`
@@ -172,8 +166,6 @@ const streamResponseToFile = async (
   return written
 }
 
-// Streams to `<destination>.part` so nothing is buffered whole in memory and an
-// interrupted transfer can resume from the bytes already on disk.
 const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts): Promise<number> => {
   const resumeFrom = await resolveResumeOffset(req)
   const partPath = partFilePath(req.destination)
@@ -188,7 +180,6 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
 
     if (!response.ok) {
       if (response.status === 416) {
-        // The partial file is at or past the full length; restart clean.
         await discardPartialDownload(req.destination)
       }
       throw httpResponseError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, response, {
@@ -200,7 +191,6 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
 
     const resumed = resumeFrom > 0 && response.status === 206
     if (resumeFrom > 0 && !resumed) {
-      // Server ignored the range request and is replaying from byte 0.
       await rm(partPath, { force: true })
     }
 
@@ -240,12 +230,8 @@ export const downloadFile = async (req: DownloadRequest): Promise<void> => {
 
   await mkdir(dirname(partPath), { recursive: true })
 
-  // Only the transfer holds a slot: hashing and extraction below are local work,
-  // and a 1.5 GB checksum pass must not keep another download queued.
   const bytes = await withSetupDownloadSlot(async () => await fetchToPartFile(req, timeouts))
 
-  // Both guards below mean the bytes on disk are wrong rather than merely
-  // incomplete, so the partial file is discarded instead of resumed.
   if (req.sha256) {
     const actual = await hashFile(partPath)
     const expected = normalizeSha256(req.sha256)

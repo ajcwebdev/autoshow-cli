@@ -7,9 +7,6 @@ import type {
 } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 
-// Protected references are execution-only capabilities, not runtime options. A WeakMap keeps the
-// resolver out of logs/artifacts and deliberately binds it to one exact, sanitized options object:
-// spreading or otherwise cloning that object cannot copy or reuse the capability.
 const bindingByOptions = new WeakMap<TtsOptions, MistralProtectedReferenceBinding>()
 const speakerBindingByOptions = new WeakMap<TtsOptions, MistralProtectedSpeakerReferenceBinding>()
 

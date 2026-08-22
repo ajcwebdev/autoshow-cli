@@ -191,9 +191,6 @@ describe('Gemini REST contracts', () => {
         8192,
         8192
       ])
-      // The schema retry is now the one central `Retry Attempt` record rather than a
-      // second provider-specific warn line; Gemini's diagnostics ride on its metadata,
-      // alongside the stacked paid-request ceiling the loop can reach.
       const retryEvents = events.filter((event) => event.level === 'warn' && event.message === 'Retry Attempt')
       expect(retryEvents).toHaveLength(1)
       const retryMetadata = requireDefined(retryEvents[0], 'schema retry event').metadata as Record<string, unknown>

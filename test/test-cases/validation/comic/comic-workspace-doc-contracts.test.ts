@@ -14,10 +14,6 @@ const docs = [
   {
     path: resolve(import.meta.dir, '../../../../docs/diagrams/05-types-and-output.md'),
     section: '### Comic character and run layout'
-  },
-  {
-    path: resolve(import.meta.dir, '../../../../docs/release-v0.1.md'),
-    section: '### Step 8: comic'
   }
 ]
 const workspaceDirectories = [

@@ -49,11 +49,6 @@ export const withHostedTtsRetry = async <T>(
   operation: (signal: AbortSignal | undefined, attempt: HostedTtsRetryAttemptContext) => Promise<T>
 ): Promise<T> => {
   options.abortSignal?.throwIfAborted()
-  // An ambiguous provider admission is never redispatched in flight, for any provider.
-  // Three providers used to forward `--allow-ambiguous-redispatch` down here and
-  // re-purchase the chunk mid-run while the other nine only reconciled at resume; the
-  // flag now has exactly one meaning — it authorizes reconciliation of a stored slot on
-  // resume (see recovery-reconciliation.ts and tts-resume.ts), never an in-flight buy.
   const classifier = options.classifier ?? classifyHostedTtsRetry
   let attempt = 0
   let retryReasonCode: string | undefined
@@ -63,8 +58,6 @@ export const withHostedTtsRetry = async <T>(
       operationName: options.operationName,
       timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS,
       abortSignal: options.abortSignal,
-      // Hosted TTS chunks are the documented retriable-create tier; the class table owns
-      // the numbers so every provider shares them.
       ...(options.policy ? { policy: options.policy } : {}),
       retryHookCanExtendAttempts: options.chunkScheduler?.usesSharedHostedRateLimitRecovery() === true,
       onRetryAttempt: (error, decision) => {

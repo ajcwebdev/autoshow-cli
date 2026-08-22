@@ -75,12 +75,8 @@ const TTS_GENERIC_OPTION_TARGETS = {
   targets: Record<string, string>
 }>
 
-// Every provider flag `--tts-voice` can normalize into. Derived so a provider added above is
-// covered without a second list to keep in step.
 const TTS_VOICE_OPTION_TARGETS = new Set<string>(Object.values(TTS_GENERIC_OPTION_TARGETS['tts-voice'].targets))
 
-// Every generic row must classify itself above. The guard is then derived from that classification,
-// so adding another voice-identity option cannot leave it outside the dialogue conflict check.
 const TTS_VOICE_IDENTITY_OPTION_TARGETS = new Set<string>(
   Object.values(TTS_GENERIC_OPTION_TARGETS)
     .filter((definition) => definition.voiceIdentity)

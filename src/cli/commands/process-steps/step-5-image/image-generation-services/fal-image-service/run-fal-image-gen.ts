@@ -112,7 +112,6 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
   aspectRatio?: string | undefined
   count?: number | undefined
   outputFormat?: string | undefined
-  /** Test-only override that keeps queue-polling contract tests fast. */
   pollIntervalMs?: number | undefined
 }): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   if (!prompt.trim()) throw CLIUsageError('fal.ai image prompt cannot be empty.')

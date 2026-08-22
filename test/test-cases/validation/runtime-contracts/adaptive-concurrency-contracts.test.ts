@@ -407,14 +407,9 @@ describe('adaptive scheduler contracts', () => {
     expect(classifyAdaptivePressure('retryable status 503 service unavailable', 1, false)).toBe('transient')
     expect(classifyAdaptivePressure('validation failed', 1, false)).toBeNull()
 
-    // Deterministic failures must not be treated as transient just because their
-    // output contains a 5xx-looking number (e.g. "535 characters" in the estimate).
     expect(classifyAdaptivePressure('Cartesia TTS failed (402): quota_exceeded; 535 characters', 1, false)).toBeNull()
     expect(classifyAdaptivePressure('Together transcription failed (503)', 1, false)).toBe('transient')
 
-    // Production's own deterministic refusal is not pressure. Re-running the command
-    // would re-spend money on a request the CLI already decided was malformed, and mask
-    // a request-shape regression for another two paid attempts.
     expect(classifyAdaptivePressure(
       'openai-tts-chunk-1 failed after 2/4 attempts (non-retryable status 400, 812ms elapsed)',
       1,
@@ -425,14 +420,11 @@ describe('adaptive scheduler contracts', () => {
       1,
       false
     )).toBeNull()
-    // Budget exhaustion still is pressure.
     expect(classifyAdaptivePressure(
       'openai-tts-chunk-1 failed after 4/4 attempts (max attempts reached, 9100ms elapsed)',
       1,
       false
     )).toBe('transient')
-    // And a run carrying both a deterministic refusal and independent transient evidence
-    // still counts, because the transient signal stands on its own.
     expect(classifyAdaptivePressure(
       'a failed after 2/4 attempts (non-retryable status 400, 1ms elapsed)\nb: service unavailable',
       1,

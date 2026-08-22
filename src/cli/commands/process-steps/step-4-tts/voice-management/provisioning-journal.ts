@@ -226,8 +226,6 @@ export const runCrashSafeVoiceProvisioning = async (
       if (attempt.outcome?.state === 'failed') return attempt
       assertSameProvisioningIntent(attempt, initial)
       if (attempt.transitions.length === 1 && attempt.transitions[0]?.phase === 'prepared' && attempt.outcome === undefined) {
-        // The durable journal proves the provider mutation was never admitted, so resuming this exact
-        // attempt is safe. Preserve the original lease and prepared transition.
       } else if (attempt.outcome === undefined && attempt.transitions.some(entry => entry.phase === 'request-sent')) {
         await markAmbiguous(path, attempt, InfraError('Provisioning stopped after request dispatch without a durable terminal outcome.', { stage: 'tts:voice-provisioning', retryable: false }))
         throw CLIUsageError('Voice provisioning may have reached the provider; automatic redispatch is blocked pending reconciliation. Pass --reconcile to safely complete the durable attempt without recreating the voice.')

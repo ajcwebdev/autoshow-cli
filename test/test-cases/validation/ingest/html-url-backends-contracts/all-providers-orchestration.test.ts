@@ -365,9 +365,6 @@ test('local HTML with a single hosted URL provider still runs and records defudd
     expect(resolvedStep2).toMatchObject({
       providers: [{ service: 'defuddle', model: 'defuddle' }]
     })
-    // `providers` is the sole persisted backend record. The legacy `backend`/`backends`
-    // keys were write-only and are no longer emitted; resume reconstructs the backend
-    // set from `requestedProviders` instead.
     expect(resolvedStep2.backend).toBeUndefined()
     expect(resolvedStep2.backends).toBeUndefined()
   } finally {

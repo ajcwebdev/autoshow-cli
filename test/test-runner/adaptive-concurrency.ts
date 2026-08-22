@@ -372,10 +372,6 @@ export const classifyAdaptivePressure = (
   if (TIMEOUT_PATTERN.test(clean)) {
     return 'timeout'
   }
-  // A retry-exhaustion banner only counts as pressure when its stop reason is transient:
-  // "failed after 2/4 attempts (non-retryable status 400, …)" is production's deterministic
-  // refusal, and re-running the command would re-spend money on a request it already
-  // decided was wrong.
   if (isTransientPressureOutput(clean)) {
     return 'transient'
   }

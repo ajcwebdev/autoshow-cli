@@ -1,22 +1,15 @@
 import type { TranscriptionSegment } from '~/types'
 
-/** Word-count approximation for token counting. */
 export const countTokens = (text: string): number => {
   return text.split(/\s+/).filter(word => word.length > 0).length
 }
 
-/**
- * Convert seconds to an HH:MM:SS.mmm timestamp. Sub-second precision is kept because segment
- * boundaries feed caption/video timing; flooring to whole seconds used to collapse distinct segments
- * into the same second and desync rendered transcripts.
- */
 export const toTimestamp = (seconds: number): string => {
   const totalMilliseconds = Math.max(0, Math.round(seconds * 1000))
   const milliseconds = totalMilliseconds % 1000
   return `${toWholeSecondTimestamp(Math.floor(totalMilliseconds / 1000))}.${String(milliseconds).padStart(3, '0')}`
 }
 
-/** Convert seconds to a whole-second HH:MM:SS timestamp, for surfaces that require exactly that shape. */
 const toWholeSecondTimestamp = (seconds: number): string => {
   const s = Math.max(0, Math.floor(seconds))
   const hh = Math.floor(s / 3600)
@@ -25,7 +18,6 @@ const toWholeSecondTimestamp = (seconds: number): string => {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
 }
 
-/** Punctuation-aware word joining for building text from tokens. */
 export const appendToken = (current: string, token: string): string => {
   if (!current) {
     return token
@@ -36,19 +28,11 @@ export const appendToken = (current: string, token: string): string => {
   return `${current} ${token}`
 }
 
-/** Build transcription output base path from outputDir and optional segment number. */
 export const buildTranscriptionOutputBase = (outputDir: string, segmentNumber: number | undefined): string => {
   const suffix = segmentNumber ? `_segment_${String(segmentNumber).padStart(3, '0')}` : ''
   return `${outputDir}/transcription${suffix}`
 }
 
-/**
- * Format transcript segments to the standard [HH:MM:SS.mmm] [speaker] text line format.
- *
- * `precision: 'seconds'` truncates the stamps to [HH:MM:SS]. Use it for LLM prompt input: the show-notes
- * prompt asks for chapter timestamps in exact HH:MM:SS form and the structured-output schema rejects
- * anything else, so the transcript the model reads must not model a different shape.
- */
 export const formatTranscriptText = (
   segments: TranscriptionSegment[],
   options: { precision?: 'milliseconds' | 'seconds' | undefined } = {}
@@ -62,7 +46,6 @@ export const formatTranscriptText = (
   }).join('\n')
 }
 
-/** Resolve final segments and final text, creating a single-segment fallback when needed. */
 export const resolveTranscriptionOutput = (
   segments: TranscriptionSegment[],
   text: string,
@@ -75,7 +58,6 @@ export const resolveTranscriptionOutput = (
   return { finalSegments, finalText }
 }
 
-/** Format a speaker id (string or number) to a display label. */
 export const formatSpeakerLabel = (speakerId: string | number | null | undefined): string | undefined => {
   if (speakerId === undefined || speakerId === null) return undefined
   if (typeof speakerId === 'number') return `speaker-${speakerId}`
@@ -83,7 +65,6 @@ export const formatSpeakerLabel = (speakerId: string | number | null | undefined
   return trimmed.length > 0 ? trimmed : undefined
 }
 
-/** Build TranscriptionSegment[] from a normalized word list using the standard flush-on-punctuation algorithm. */
 export const buildSegmentsFromWords = (
   words: ReadonlyArray<{ start: number, end: number, text: string, speaker?: string | undefined }>,
   offsetSeconds: number

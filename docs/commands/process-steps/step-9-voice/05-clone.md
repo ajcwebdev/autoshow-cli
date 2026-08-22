@@ -4,19 +4,13 @@ Create a protected consent-gated instant provider voice clone.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
-## Outline
-
-- [clone](#clone)
-
 ## clone
 
 ```bash
 bun autoshow voice clone <subject-key> [flags]
 ```
 
-Store [consent](./02-consent.md) first. The consent command prints an opaque `protected-consent:v1:...` locator. Use that locator as `--consent-ref`. Remove `--price` only when you intend to execute the provider mutation.
-
-Clone is instant clone only. Providers without an instant API use the provider console, then [import](./03-import.md) the approved ID with `voice import --voice-id`. If a Fish provisioning journal is unambiguous, the next `clone` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`.
+Store [consent](./02-consent.md) first and pass its locator as `--consent-ref`. Clone is instant only. Providers without an instant API use the provider console, then [import](./03-import.md) the approved ID with `voice import --voice-id`. If a previous Fish clone is still in progress, the next `clone` completes it without recreating the voice. If that completion is ambiguous, pass `--reconcile`. Remove `--price` only when you intend to execute the provider mutation.
 
 ### Options
 

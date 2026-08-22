@@ -28,17 +28,6 @@ project/test-output
 **/*.mp4
 **/*.wav
 
-# input/ ships a small set of example fixtures and nothing else; everything else under it is
-# personal media. Git will not re-include a file whose parent directory is excluded, so the
-# chain below excludes each level with `/*` and negates the next directory down before that
-# directory's own contents are excluded. There is no brace expansion in .gitignore, so every
-# subdirectory is named on its own line.
-#
-# This whole block must stay at the bottom of the file, below the global binary globs above:
-# last matching pattern wins, so `**/*.mp3`, `**/*.png`, and `**/*.jpeg` would otherwise
-# re-ignore the audio and image fixtures the file-level negations allow. A new global glob
-# appended after this block would silently drop fixtures;
-# `test/test-cases/validation/fixtures/shipped-fixture-contracts.test.ts` fails when that happens.
 input/*
 !input/examples/
 input/examples/*
@@ -55,12 +44,6 @@ input/examples/document/*
 input/examples/lyrics/*
 input/examples/tts/*
 
-# input/examples/video/ is deliberately absent above: the only 2-video.mp4 references in the
-# repo are to the hosted https://ajc.pics/autoshow/examples/2-video.mp4 copy, not a local file.
-#
-# The shipped fixtures, named one per line. Personal media sits in these same directories
-# (5-audio.mp3, anthony-voice-8-seconds.mp3, unreferenced tts drafts) and
-# stays ignored by omission, so this list is an allowlist and must not become a glob.
 !input/examples/audio/0-audio-short.mp3
 !input/examples/audio/1-audio.mp3
 !input/examples/audio/anthony-voice.mp3

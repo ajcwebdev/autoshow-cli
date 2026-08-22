@@ -243,9 +243,6 @@ export const runGeminiStt = async (
     {
       retryClass: 'runtime_http_create_retriable',
       operationName: 'gemini-stt',
-      // An attempt here covers an upload, a file-activation poll, and generation. Without
-      // a per-attempt deadline it could hang indefinitely, so the retry budget was
-      // unreachable in exactly the case it exists for.
       timeoutMs: LLM_REQUEST_TIMEOUT_MS
     },
     async (signal) => {

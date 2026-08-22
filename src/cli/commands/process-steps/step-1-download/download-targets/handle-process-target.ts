@@ -89,9 +89,6 @@ const runRawYtDlp = async (args: string[]): Promise<void> => {
   })
   const exitCode = await proc.exited
   if (exitCode !== 0) {
-    // Passthrough mode deliberately surfaces yt-dlp's own exit code as the CLI's, so the
-    // caller sees what the tool reported. Carried explicitly rather than duck-typed onto
-    // a plain Error, with the child code also in metadata for diagnostics.
     throw InfraError(`yt-dlp exited with code ${exitCode}`, {
       stage: 'download:yt-dlp-passthrough',
       exitCode,

@@ -12,12 +12,6 @@ import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
 import { withMergedStep2Timings } from './recorded-step2'
 import { serializeDiagnosticError } from '~/utils/error-handler'
 
-/**
- * Mutable state shared across every provider target run in a multi-provider STT batch.
- * The worker functions read and mutate `successes`, `failuresByIndex`, and
- * `providerStateMap` in place, and queue a prompt refresh after each success.
- */
-
 export const markSttTargetSkipped = async (
   ctx: SttBatchWorkerContext,
   index: number,

@@ -189,11 +189,6 @@ export const formatTimedOutputPrefix = (atMs: number = Date.now()): string => {
   return `[${hours}:${minutes}:${seconds}.${milliseconds}]`
 }
 
-/**
- * `[i/n] name` progress prefix and the tail dumps that follow a failure. Both were
- * hand-inlined at their call sites; keeping them beside `formatTimedOutputPrefix` means the
- * runner's line shapes are defined in one place.
- */
 export const formatProgressCounter = (index: number, total: number): string =>
   `[${index + 1}/${total}]`
 

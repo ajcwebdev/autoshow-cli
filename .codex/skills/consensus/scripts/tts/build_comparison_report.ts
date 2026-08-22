@@ -386,8 +386,6 @@ function loadVoiceQualityScores(runDir: string): Map<string, { qualityScore: num
   return scores;
 }
 
-// Natural speaking rate for English: ~120-180 chars/sec
-// Deviation from midpoint (150 c/s) is penalized
 const NATURAL_RATE_MID = 150;
 const NATURAL_RATE_RANGE = 30;
 
@@ -619,7 +617,6 @@ export async function buildReport(
     });
   }
 
-  // Partition into local and cloud groups
   const providerDataWithOverall = addOverallScores(providerData);
   const localData = providerDataWithOverall.filter((p) => isLocalService(p.ttsService));
   const cloudData = providerDataWithOverall.filter((p) => !isLocalService(p.ttsService));
@@ -728,7 +725,6 @@ export async function buildReport(
     );
   }
 
-  // Build reports
   const scoreFormula = scoringMethod === "voice-quality"
     ? "humanSpeechScore from voice-quality-report.json (55% naturalness + 45% speech quality)"
     : scoringMethod === "roundtrip-wer"

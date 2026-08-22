@@ -189,8 +189,6 @@ describe('retry error contracts', () => {
       }
     )).rejects.toBe(ambiguous)
 
-    // `--allow-ambiguous-redispatch` authorizes reconciliation of a stored slot on resume,
-    // never an in-flight re-purchase — and it no longer reaches this layer for any provider.
     expect(attempts).toBe(1)
   })
 

@@ -4,12 +4,6 @@ import { isRecord } from '~/utils/value-helpers'
 
 const STORED_PROVIDER_STATUSES = ['running', 'succeeded', 'missing', 'failed', 'skipped'] as const
 
-/**
- * The fields every persisted provider-state entry carries regardless of step. A stored
- * entry that fails these checks is dropped rather than repaired, so a manifest written by
- * a newer schema degrades to "not recorded" instead of resuming against a partial state.
- * Target identity and the step's failure shape are decoded by the caller and merged in.
- */
 export const parseStoredProviderStateCore = (value: unknown): {
   status: ProviderStateLike['status']
   artifactDir: string
@@ -109,14 +103,6 @@ export const buildRequestedProviderList = <TTarget extends ProviderIdentityLike,
     .map(toRequestedProvider)
 }
 
-/**
- * The single spelling of "a batch or resume finished with work still outstanding".
- *
- * Exit code 2 (rather than the infrastructure default of 1) marks partial completion as
- * distinct from an outright failure. It used to be expressed three ways — this class, an
- * unrelated `SttBatchIncompleteError`, and eight `InfraError(..., { exitCode: 2 })` resume
- * sites — so callers could not classify it without knowing which spelling they had.
- */
 const PARTIAL_COMPLETION_EXIT_CODE = 2
 
 export class ProviderBatchCompletionError extends AppInfrastructureError {
@@ -136,7 +122,6 @@ export class ProviderBatchCompletionError extends AppInfrastructureError {
   }
 }
 
-/** Non-provider partial completions (resume flows) that need the same classification. */
 export const partialCompletionError = (
   message: string,
   options: { stage: string, metadata?: Record<string, unknown> }

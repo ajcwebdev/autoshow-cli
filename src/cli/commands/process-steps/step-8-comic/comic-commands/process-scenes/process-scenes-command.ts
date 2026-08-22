@@ -33,7 +33,6 @@ export const processScene = async ({ sceneSlug, sceneJsonPath, outputDir, concur
     validateSceneSourceSegmentCoverage(sceneData, structuredScript.sourceSegments)
     await validateSceneRecapMontageExpansion(sceneData, structuredScript)
 
-    // Validate every required live asset before writing a single panel bundle.
     const visibleKeys = sceneData.panels.flatMap(panel => panel.characterKeys.map(key => catalog.requireKey(key)))
     const workspaceDirectory = getSceneWorkspaceDirectoryForPanelPrompt(join(outputDir, getPanelDirectoryName(1)))
     const manifest = await createCharacterReferenceSnapshot(workspaceDirectory, visibleKeys, catalog)

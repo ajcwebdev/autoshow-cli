@@ -13,14 +13,6 @@ const CHANNEL: Readonly<Record<ConsoleMethod, keyof ConsoleCapture>> = {
   error: 'stderr'
 }
 
-/**
- * Single console-capture helper for the whole suite.
- *
- * Captured lines are replayed into the preloaded test harness once the capture
- * window closes, so a capture no longer swallows output that a failing test
- * needs: the harness still buffers it and dumps it only when the test fails
- * (ADR-019). Restoration happens in `finally`, including when `fn` throws.
- */
 export const captureConsole = async (
   fn: () => void | Promise<void>,
   options: CaptureConsoleOptions = {}
@@ -58,7 +50,6 @@ export const captureConsole = async (
     }
     l.config.suppressedCategories.length = 0
     l.config.suppressedCategories.push(...originalSuppressed)
-    // Replay through the restored (harness-owned) console so failures stay debuggable.
     for (const line of captured.stdout) original.log(line)
     for (const line of captured.stderr) original.error(line)
   }
@@ -66,7 +57,6 @@ export const captureConsole = async (
   return captured
 }
 
-/** `captureConsole` for suites that assert against one joined string per channel. */
 export const captureConsoleText = async (
   fn: () => void | Promise<void>,
   options: CaptureConsoleOptions = {}
@@ -75,17 +65,10 @@ export const captureConsoleText = async (
   return { stdout: captured.stdout.join('\n'), stderr: captured.stderr.join('\n') }
 }
 
-/**
- * Structured counterpart to `captureConsole`: swaps the global logger's sinks for a
- * collector, so assertions read `LogSinkEvent` fields (category, metadata, humanTable)
- * instead of re-parsing rendered text.
- */
 export const captureLogEvents = async <T>(
   run: () => Promise<T> | T
 ): Promise<{ result: T, events: LogSinkEvent[] }> => {
   const originalSinks = [...l.config.sinks]
-  // Category suppression is process-wide state a command under test may set; snapshot it so
-  // one suite cannot silently mute another's events.
   const originalSuppressed = [...l.config.suppressedCategories]
   const events: LogSinkEvent[] = []
   l.config.sinks.length = 0
@@ -103,11 +86,6 @@ export const captureLogEvents = async <T>(
   }
 }
 
-/**
- * In-memory `Logger` for the many modules that accept an injected `TableLogger`.
- * Records the `write` arguments verbatim so table-builder contracts can assert on
- * the structured options rather than rendered output.
- */
 export const createCapturingLogger = (): {
   logger: Logger
   writes: Array<{ message: string; options?: LogWriteOptions }>
@@ -126,7 +104,6 @@ export const createCapturingLogger = (): {
   return { logger, writes }
 }
 
-/** Swap the global logger's sinks for the duration of `run`, restoring in `finally`. */
 export const withLogSinks = async <T>(sinks: readonly LogSink[], run: () => Promise<T> | T): Promise<T> => {
   const originalSinks = [...l.config.sinks]
   const originalSuppressed = [...l.config.suppressedCategories]

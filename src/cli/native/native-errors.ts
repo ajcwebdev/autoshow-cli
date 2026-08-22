@@ -1,13 +1,6 @@
 import type { NativeCliUsageErrorCode } from '~/types'
 import { AppUsageError } from '~/utils/error-handler'
 
-/**
- * Native parser failures are usage errors, so they extend `AppUsageError` rather than
- * duck-typing an `exitCode` onto a plain Error (ADR-006 §A.2). Each subclass supplies the
- * longer `usageMessage` the top-level handler prints, which keeps the "Run: bun autoshow
- * help" follow-up next to the error that needs it instead of in a formatter that
- * `error-handler.ts` had to import back — a cycle now removed.
- */
 class NativeCliUsageError extends AppUsageError {
   readonly code: NativeCliUsageErrorCode
 

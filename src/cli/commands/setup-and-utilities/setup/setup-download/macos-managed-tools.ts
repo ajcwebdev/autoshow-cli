@@ -191,8 +191,6 @@ const downloadSource = async (
   flowId: DownloadFlowId
 ): Promise<void> => {
   const { url, sha256 } = await readDependencyUrlAndSha256(name)
-  // A build that fails after extraction used to re-download the tarball on every
-  // retry, because recreateDir wiped the already-verified source tree first.
   const sourceCached = await hasExtractedSource(buildDir, sha256)
   await recordSetupPerformancePhase(name, 'archive-preparation', async () => {
     if (sourceCached) return
@@ -210,8 +208,6 @@ const downloadSource = async (
   }, { sourceCached })
 }
 
-// Source and object trees are inputs to the installed artifacts under
-// runtime/tools; once an install validates, keeping them only costs disk.
 const discardBuildTree = async (buildDir: string): Promise<void> => {
   await rm(buildDir, { recursive: true, force: true })
 }

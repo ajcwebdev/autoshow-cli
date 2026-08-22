@@ -1,9 +1,6 @@
 import type { CliCommandHandler, CliFlagDefinition, CliFlagsDefinition } from '~/types'
 import { AppUsageError, isCLIUsageError } from '~/utils/error-handler'
 
-// An omitted default must omit the `default` key entirely — native-parser and
-// help-renderer test `'default' in definition`, so `default: undefined` would
-// change parse and help behavior.
 export const strFlag = (description: string, defaultValue?: string): CliFlagDefinition =>
   defaultValue === undefined
     ? { description, type: String }
@@ -37,9 +34,6 @@ export const withHelpGroup = (flags: CliFlagsDefinition, group: string): CliFlag
   return grouped
 }
 
-// Rewrites internal flag spellings into the public ones a surface registers. Help text and
-// usage errors both need it: a command that renames `--image-size` to `--size` must never
-// print a flag name the user cannot type on that surface.
 export const renameFlagSpellings = (
   text: string,
   publicNameByInternalName: Record<string, string>
@@ -49,9 +43,6 @@ export const renameFlagSpellings = (
     text
   )
 
-// Shared validators name the pipeline flags they receive (`--video-duration`, etc.).
-// Standalone generation commands register shorter spellings, so translate usage errors at
-// the command boundary while preserving non-usage errors and any existing usage hints.
 export const retargetUsageErrorsToCommandSpellings = (
   handler: CliCommandHandler,
   publicNameByInternalName: Record<string, string>
@@ -88,21 +79,15 @@ export const renameFlags = (
 export const formatProviderList = (providers: Record<string, unknown>): string =>
   Object.keys(providers).join('|')
 
-// Renders an allowed-value list into help text straight from the constant the
-// validator uses, so a new supported value cannot go undocumented.
 export const formatValueList = (values: readonly (string | number)[]): string =>
   values.join('|')
 
-// Negative lower bounds get the spelled-out form so "-1-15" never appears in help.
 export const formatRange = (range: readonly [number, number]): string =>
   range[0] < 0 ? `${range[0]} to ${range[1]}` : `${range[0]}-${range[1]}`
 
 export const formatUniqueValueList = (...valueLists: readonly (readonly string[])[]): string =>
   [...new Set(valueLists.flat())].join('|')
 
-// Renders "<values> (<providers>)" clauses, collapsing providers that accept the exact
-// same values into one clause. If two providers' registries diverge later, the clause
-// splits on its own instead of silently claiming shared support.
 export const formatValuesByProvider = (
   entries: readonly { provider: string, values: readonly (string | number)[], note?: string }[]
 ): string => {

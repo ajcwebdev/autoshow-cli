@@ -45,10 +45,6 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
           const failure = options.readFailure
             ? await options.readFailure(response)
             : { message: await response.text(), rawResponse: undefined }
-          // AppProviderError rather than a bare Error: the duck-typed extras below stay
-          // readable by `extractErrorMetadata`, but the error now carries `kind`, so the
-          // provider_http hint branch fires and the fatal handler prints the message
-          // instead of "payload redacted".
           throw httpResponseError(
             `${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${failure.message}`,
             response,

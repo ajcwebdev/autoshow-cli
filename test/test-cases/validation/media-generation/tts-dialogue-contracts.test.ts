@@ -49,8 +49,6 @@ describe('TTS dialogue contracts', () => {
     }))).toThrow('requires exactly one TTS provider')
   })
 
-  // Speaker mappings are the mode switch. A stored `ttsDialogueFormat` used to force dialogue mode
-  // and abort every pipeline TTS run at step 4; it must now be inert, and only a typed flag errors.
   test('a dialogue format without speakers is inert unless it was typed explicitly', () => {
     const opts = buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
@@ -67,7 +65,6 @@ describe('TTS dialogue contracts', () => {
     expect(() => assertDialogueFormatIsUsable(opts, new Set(['tts-dialogue-format'])))
       .toThrow('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping.')
 
-    // With mappings present the format is load-bearing again, so neither arm fires.
     const dialogueOpts = buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
       'tts-dialogue-format': 'screenplay',

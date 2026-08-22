@@ -35,7 +35,6 @@ describe('OCR resume contracts', () => {
       })
 
       expect(fullAttempts).toBe(0)
-      // Pages run concurrently, so attemptedPages records completion order; compare as a set.
       expect([...attemptedPages].sort((a, b) => a - b)).toEqual([3, 4])
       expect(result.pages.map((page) => page.pageNumber)).toEqual([1, 2, 3, 4])
       expect(await Bun.file(pageTextPath(tempDir, 1)).text()).toBe('page 1\n')

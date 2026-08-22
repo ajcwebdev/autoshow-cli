@@ -75,8 +75,6 @@ const prepareOwnerOnlyDirectory = async (path: string, label: string): Promise<v
     await mkdir(path, { recursive: true, mode: DIRECTORY_MODE })
     await chmod(path, DIRECTORY_MODE)
   } catch (error) {
-    // The message stays deliberately non-specific (it must not leak the protected path),
-    // but the underlying fs error is preserved as the cause so diagnostics can see it.
     throw ValidationError(`Unable to prepare ${label.toLowerCase()}.`, {
       stage: 'tts:protected-assets',
       ...(error instanceof Error ? { cause: error } : {})
@@ -405,8 +403,6 @@ const ingestManagedProtectedVoiceAsset = async (
     throw ValidationError('Authorized reference audio changed after protected planning; no asset was ingested.', { stage: 'tts:protected-assets' })
   }
   const { canonicalPoliciesRoot } = await prepareStore(config)
-  // Persist policy authority before sensitive bytes. A crash can leave an harmless orphan policy,
-  // but never a newly managed asset with no retention/authorization record.
   await writePolicy(canonicalPoliciesRoot, planned.protectedAsset, policy)
   const materialized = await ingestProtectedVoiceAsset(config, input, planned.protectedAsset)
   return materialized

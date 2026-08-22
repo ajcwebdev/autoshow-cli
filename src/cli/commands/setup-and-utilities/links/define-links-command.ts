@@ -371,8 +371,6 @@ const downloadUrl = async (
 ): Promise<{ contentType: string, finalUrl: string, fetchedText: string, requestUrl: string }> => withRetry(
   {
     retryClass: 'runtime_http_read',
-    // The URL used to be interpolated into the operation name, so every fetch grouped
-    // as its own operation in the logs. Identity belongs in metadata.
     operationName: 'links-fetch',
     timeoutMs: LINKS_FETCH_TIMEOUT_MS
   },
@@ -468,7 +466,6 @@ const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUrlResult
     }
   }
 }
-
 
 const readPreviousLinksRefreshMetadata = async (
   sidecarPath: string

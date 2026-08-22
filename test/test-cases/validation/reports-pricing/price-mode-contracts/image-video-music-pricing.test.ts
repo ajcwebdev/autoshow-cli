@@ -556,11 +556,6 @@ describe('price mode contracts', () => {
       ])
     })
 
-  // The 2026 hosted-model refresh (docs/reports) replaced MiniMax music-2.6 with music-3.0 and required the retired
-  // model to keep repricing in historical readers. It has no registry row, so
-  // without the retired-rate table `getMusicModelMeta` returns undefined and the
-  // four committed `docs/benchmarks/music/2026-05-21_*` runs silently reprice to
-  // $0 — a wrong number that reads exactly like a free provider.
   test('retired MiniMax music-2.6 still reprices from historical rates', () => {
       const archived: Step7MusicMetadata = {
         musicService: 'minimax',
@@ -584,7 +579,6 @@ describe('price mode contracts', () => {
         step7: { ...archived, lyricsSource: 'provided' }
       }).steps[0]).toMatchObject({ cost: 15 })
 
-      // A provider quote still wins over the historical rate.
       expect(computeActualCosts({
         step7: { ...archived, providerCostCents: 21 }
       }).steps[0]).toMatchObject({ cost: 21 })

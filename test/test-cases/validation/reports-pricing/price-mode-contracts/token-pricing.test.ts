@@ -169,7 +169,6 @@ describe('price mode contracts', () => {
       expect(cost.pricingNote).toContain('higher context pricing')
     })
 
-  /** The two Grok tiers share every band except their cached-input rates and review date. */
   const GROK_LLM_BAND_CASES = [
     { model: 'grok-4.5', pricingCheckedAt: '2026-07-23', cachedInputCostPer1MCents: 30, longBandCachedInputCostPer1MCents: 60 },
     { model: 'grok-4.6', pricingCheckedAt: '2026-08-18', cachedInputCostPer1MCents: 50, longBandCachedInputCostPer1MCents: 100 }
@@ -388,10 +387,6 @@ describe('price mode contracts', () => {
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
 
-  /**
-   * Both providers must route token-priced OCR through the same context-tier helper,
-   * so only provider identity and the published long-context cost differ.
-   */
   const TOKEN_PRICED_OCR_CASES = [
     {
       name: 'token-priced OCR estimates and actuals use the shared context-tier helper',

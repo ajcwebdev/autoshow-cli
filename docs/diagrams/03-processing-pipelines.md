@@ -1,6 +1,6 @@
 # Processing Pipelines
 
-Current processing flows for media, documents/articles, text-input writing, transcript-video rendering, and lyric-video rendering.
+Media, document, article, text-input writing, transcript-video, and lyric-video flows.
 
 ## Outline
 
@@ -31,8 +31,6 @@ stage one shared audio artifact for transcription
 Step 2: STT or YouTube captions
 ```
 
-Multi-provider runs reuse that staged artifact instead of normalizing the input again for each provider.
-
 When `--youtube-captions` is set, YouTube inputs first try caption extraction:
 
 ```
@@ -52,7 +50,7 @@ caption extraction
          fall back to selected STT providers
 ```
 
-STT providers run in a local pool (`whisper`, `whisperfile`) and a hosted pool.
+Local STT providers are `whisper` and `whisperfile`. All others are hosted.
 
 Output layout:
 

@@ -11,7 +11,6 @@ export type ChildEnvOptions = {
   source?: Readonly<Record<string, string | undefined>> | undefined
 }
 
-/** Build an explicit child environment without forwarding ambient provider credentials. */
 export const childEnv = (options: ChildEnvOptions = {}): Record<string, string> => {
   const source = options.source ?? process.env
   const result: Record<string, string> = {}

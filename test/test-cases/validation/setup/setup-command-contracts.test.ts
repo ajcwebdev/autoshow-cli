@@ -226,9 +226,6 @@ describe('setup command contracts', () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre.ts').text()
     const setupSource = source.slice(source.indexOf('export const setupCalibreDocumentTools'))
 
-    // Deliberately serial: splitting this chain moved the calibre DMG into the
-    // opening burst and cost more than the overlap saved, so a reintroduced
-    // concurrent group here is a regression, not an optimization.
     expect(setupSource).toContain('await setupDocumentTools({ printCompletion: false })')
     expect(setupSource).not.toContain('runSettledSetupTasks')
     expect(setupSource.indexOf('await setupDocumentTools(')).toBeLessThan(setupSource.indexOf('await setupCalibreTools()'))

@@ -26,10 +26,6 @@ export const configCommand = defineCliCommand({
 
   if (flags['show'] === true) {
     const config = await loadConfig(resolvedPath)
-    // The config is the result, so it goes through the sanctioned structured-result
-    // channel: NDJSON under --json, a rendered view otherwise. It used to be a
-    // pretty-printed JSON blob shoved into the message string, which the JSON sink then
-    // had to re-escape into an unparseable field.
     l.report.result(
       { configPath: resolvedPath, config },
       { message: 'Config', category: 'command' }

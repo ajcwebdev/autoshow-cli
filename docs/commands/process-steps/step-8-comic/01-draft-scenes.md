@@ -45,8 +45,6 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only pan
 - `--only structure` parses episode Markdown into structured script JSON locally, and adds an LLM review pass only when `--llm-model` is passed explicitly.
 - `--only prompt` builds the scene-drafting prompt bundle without calling an API.
 - `--only scene` drafts scene JSON from an existing prompt bundle. Invalid model output is saved as `scene.invalid.json` with validation details.
-- `--only panel-prompts` builds stable panel prompt bundles from existing scene JSON without calling an API. Register [character and location references](./02-reference-sketch.md) first.
-- Script staging, cast, and dialogue take precedence over inferred shot details. Location layout stays the same unless the script changes the set as a story event.
-- On-screen character speakers must be visible; offscreen character speakers must not.
+- `--only panel-prompts` builds panel prompt bundles from existing scene JSON without calling an API. Register [character and location references](./02-reference-sketch.md) first.
 
 Next: [reference-sketch](./02-reference-sketch.md).

@@ -23,11 +23,6 @@ export const dispatchNativeCli = async (
 ): Promise<void> => {
   const parsed = parseNativeCli(argv, commands, root.globalFlags)
 
-  // Help and --version are sanctioned stdout payloads rather than diagnostics: they
-  // are the requested document, and sink decoration (timestamps, level symbols,
-  // indentation) would corrupt them. The bare "no command" status line that used to
-  // precede the help text was a diagnostic, and the help output below says the same
-  // thing, so it is gone rather than relocated.
   if (parsed.mode === 'help') {
     if (parsed.command) {
       console.log(renderCommandHelp(root, parsed.command))
@@ -76,8 +71,6 @@ export const dispatchNativeCli = async (
     ? logFormatFlag as Exclude<LogFormat, 'auto'>
     : undefined
 
-  // Category suppression is per-command state (comic opts in mid-handler), so it is reset
-  // here rather than left to accumulate on the process-wide logger.
   clearSuppressedLogCategories()
   reconfigureLogger({
     verbose: parsed.flags['verbose'] === true,

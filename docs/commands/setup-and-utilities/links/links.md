@@ -2,8 +2,6 @@
 
 Fetch curated or ad hoc documentation pages and write one combined markdown file under `project/links/`.
 
-`bun autoshow` is the canonical command used throughout this guide. `bun as` is an equivalent shorthand, so `bun as links --help` and `bun autoshow links --help` invoke the same command.
-
 ## Outline
 
 - [Usage](#usage)
@@ -22,31 +20,25 @@ Fetch curated or ad hoc documentation pages and write one combined markdown file
 
 ```bash
 bun autoshow links
-bun autoshow links https://example.com/docs
-bun autoshow links urls.md
-bun autoshow links --refresh
-bun autoshow links --refresh https://example.com/docs
-bun autoshow links --refresh urls.md
 bun autoshow links <global-section>...
 bun autoshow links --<provider> [section...]
 bun autoshow links <global-section>... --<provider> [section...] [--<provider> [section...]]
+bun autoshow links https://example.com/docs
+bun autoshow links urls.md
 ```
+
+Add `--refresh` or `--refresh-only` to any of these invocations.
 
 ## Overview
 
 `links` fetches matched pages from the curated documentation registry and concatenates them into a single local file. It can also fetch one remote documentation URL or read a local `.md` or `.txt` file of remote documentation URLs.
 
-- Output path: `project/links/<normalized-selection>-links.md`, for example `project/links/all-all-links.md` or `project/links/gemini-general-tts-links.md`
+- Curated selections write `project/links/<normalized-selection>-links.md`, for example `project/links/all-all-links.md` or `project/links/gemini-general-tts-links.md`
+- Direct URL mode writes `project/links/<normalized-host-and-path>-links.md`, for example `project/links/blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
+- Input file mode writes `project/links/<input-basename>-links.md`, for example `project/links/urls-links.md` from `urls.md`
 - Existing output is overwritten on each run
-- There is no flag to choose a different output path
 - Duplicate URLs are fetched once
 - Raw markdown and text docs are appended as-is; HTML pages are converted to markdown before they are appended
-- `--refresh` also writes a JSON sidecar with per-link freshness, token-count, and content-change metadata
-- `--refresh-only` updates that sidecar without overwriting an existing markdown bundle
-
-Direct URL mode writes `project/links/<normalized-host-and-path>-links.md`; for example, `bun autoshow links https://blog.railway.com/p/railway-for-agents` writes `project/links/blog-railway-com-p-railway-for-agents-links.md`.
-
-Input file mode writes `project/links/<input-basename>-links.md`; for example, `bun autoshow links urls.md` writes `project/links/urls-links.md`.
 
 ## Selection syntax
 
@@ -66,7 +58,7 @@ Pass one remote `http://` or `https://` URL to fetch only that page instead of t
 bun autoshow links https://example.com/docs
 ```
 
-`blob:http://` and `blob:https://` documentation URLs are also accepted. They are fetched through the underlying HTTP URL while preserving the original source marker in the output.
+`blob:http://` and `blob:https://` documentation URLs are also accepted.
 
 Direct URL mode is standalone. Do not combine it with provider selectors, section selectors, input file mode, or another direct URL.
 
@@ -167,14 +159,8 @@ bun autoshow links models
 # Fetch one remote docs page
 bun autoshow links https://example.com/docs
 
-# Fetch one remote docs page and write refresh metadata
-bun autoshow links --refresh https://example.com/docs
-
 # Fetch remote docs listed in urls.md
 bun autoshow links urls.md
-
-# Fetch remote docs listed in urls.md and write refresh metadata
-bun autoshow links --refresh urls.md
 
 # Fetch every curated OpenAI doc
 bun autoshow links --openai
@@ -206,8 +192,6 @@ If a fetch fails, the command keeps going and writes:
 <!-- Failed to fetch https://example.com/page.md -->
 ```
 
-Failed fetches are retried for transient network errors, then recorded as placeholders so the rest of the run continues. Each attempt times out after 60 seconds.
-
 If a response is empty, it writes:
 
 ```md
@@ -224,7 +208,7 @@ bun autoshow links --refresh --openai models
 
 The sidecar path replaces `.md` with `.refresh.json`; for example, `project/links/openai-models-links.md` gets `project/links/openai-models-links.refresh.json`. Direct URL and input file modes use the same rule after their normal markdown filenames.
 
-The sidecar records the selection, output paths, refresh time, aggregate success/change/failure and token/byte/character totals, and per-link fetch status, change status, hash, token count, timestamps, and failure reason when applicable.
+`--refresh-only` updates that sidecar without overwriting an existing markdown bundle.
 
 Change status is one of:
 
@@ -237,7 +221,7 @@ Token counts are local estimates for comparison and rough context sizing, not ex
 
 ## Flags
 
-| Flag             | Type    | Description                                                                                               |
-| ---------------- | ------- | --------------------------------------------------------------------------------------------------------- |
-| `--refresh`      | Boolean | Write a refresh metadata sidecar with per-link SHA-256 hashes, reference token counts, and change status. |
-| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing Markdown bundle file.                 |
+| Flag             | Type    | Description                                                                               |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------- |
+| `--refresh`      | Boolean | Write a refresh metadata sidecar with per-link hashes, token counts, and change status.   |
+| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing markdown bundle file. |

@@ -17,8 +17,6 @@ export const executeLlmRequest = async <TPrepared = undefined>(
   spec: ExecuteLlmRequestSpec<TPrepared>
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
   try {
-    // Resolve credentials/configuration inside the logged boundary but before the retry loop. Missing
-    // configuration is deterministic and must not be mistaken for a retryable request failure.
     const prepared = spec.prepare?.() as TPrepared
     const apiCall = (): Promise<LlmApiCallResult> => withRetry(
       {

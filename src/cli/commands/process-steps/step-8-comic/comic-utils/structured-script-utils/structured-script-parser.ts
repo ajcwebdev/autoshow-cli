@@ -71,8 +71,6 @@ const attachSourceSpans = (source: string, beats: StructuredScriptBeat[]): Struc
     const block = source.slice(blockStart, spanSearchEnd)
     const spans: StructuredSourceSpan[] = []
 
-    // A zero-length span is never a valid half-open range, and indexOf('') returns the
-    // search cursor rather than -1, so an empty beat text would otherwise emit start === end.
     if (textIndex >= 0 && beat.text.length > 0) spans.push(sourceSpan(source, beat.type === 'transition' ? 'scene-boundary' : 'spoken-text', textIndex, textIndex + beat.text.length))
     else if (beat.type === 'dialogue' || beat.type === 'narration') spans.push(...spokenSourceSpans(source, beat.text, textSearchStart, spanSearchEnd))
     if (beat.delivery) {

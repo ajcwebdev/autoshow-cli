@@ -248,7 +248,6 @@ export const splitPdfPages = async (
       return { tool: 'mutool', ...result, attempts }
     }
   } catch {
-    // output file doesn't exist
   }
 
   return { tool: 'mutool', ...result, attempts }

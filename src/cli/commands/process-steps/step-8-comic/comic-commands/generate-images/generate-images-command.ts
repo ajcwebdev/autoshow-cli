@@ -39,7 +39,6 @@ const panelPromptsExist = async (sceneSlug: string): Promise<boolean> => {
   return entries.some(entry => entry.isDirectory() && !entry.name.startsWith('.'))
 }
 
-
 const mergeImageStats = (target: ImageRunStats, source: ImageRunStats | void): void => {
   if (!source) return
 
@@ -182,8 +181,6 @@ const runGenerateImagesCommand = async (
 ): Promise<void> => {
   const { sceneSlug } = options
 
-  // Image generation is a controlled consumer: it only resumes a reviewed run and
-  // never drafts, upgrades, or rewrites scene/panel artifacts. --force is image-only.
   const latestRunDir = findLatestSceneRunDirectory(sceneSlug)
   const resumeLatest = latestRunDir !== undefined
     && existsSync(join(getSceneMetadataDirectoryForWorkspace(latestRunDir), 'scene.json'))
@@ -354,12 +351,6 @@ const runGenerateImagesCommand = async (
   comicLog.outputDirectory(sceneRunDir)
 }
 
-/**
- * Comic prints its own per-image output line with the real path, so the shared image
- * services' interim `pipeline` logs (which show the throwaway scratch path) are suppressed
- * for the duration of this run — and only this run, so a direct caller is unaffected after
- * it returns.
- */
 export const generateImagesCommand = async (
   options: GenerateImagesCommandOptions,
   dependencies: GenerateImagesWorkflowDependencies = {}

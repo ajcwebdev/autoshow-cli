@@ -5,12 +5,6 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { ProviderError } from '~/utils/error-handler'
 import { createSyntheticWavBytes } from './media-fixtures'
 
-/**
- * The reconciliation semantics a resume or recovery test is actually exercising.
- * These are not interchangeable: whether the provider was admitted before the
- * failure decides which recovery branch the lifecycle must take, so the mode is a
- * required discriminated union rather than a set of optional flags.
- */
 const DEFAULT_VOICE = 'alloy'
 
 const defaultAudioBytes = (): Uint8Array =>

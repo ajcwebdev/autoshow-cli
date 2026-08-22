@@ -269,7 +269,6 @@ export const generateComicPages = async (
     options.runId
   )
 
-  // Preflight validation across all intended pages
   const pendingReferenceFailures = new Set<string>()
   for (const { variation, model } of pageStreams) {
     for (const pageChunk of pageChunks) {

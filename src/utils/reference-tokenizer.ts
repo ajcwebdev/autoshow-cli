@@ -2,12 +2,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ReferenceTokenizerMetadata } from '~/types'
 
-// In-repository o200k_base BPE encoder. The vendored rank data in src/tools/
-// is the complete o200k_base mergeable-rank table (199,998 entries,
-// byte-identical to tiktoken@1.0.22's), stored as gzipped canonical
-// `<base64 token> <rank>` lines. Counting matches tiktoken's encode_ordinary
-// exactly: special tokens like <|endoftext|> are encoded as plain text, never
-// as special ids. Golden vectors generated with tiktoken pin the parity.
 export const REFERENCE_TOKENIZER_METADATA: ReferenceTokenizerMetadata = {
   name: 'o200k_base',
   implementation: 'in-repository-bpe',
@@ -16,10 +10,6 @@ export const REFERENCE_TOKENIZER_METADATA: ReferenceTokenizerMetadata = {
 
 export const REFERENCE_TOKENIZER_RANK_DATA_FILE = join(import.meta.dir, '..', 'tools', 'o200k-base-ranks.tiktoken.gz')
 
-// tiktoken's o200k_base pattern, hand-translated for JS RegExp: the `(?i:...)`
-// contraction groups become explicit case pairs, and `\s`/`\S` become an
-// explicit Unicode White_Space class because JS `\s` differs from the Rust
-// regex `\s` tiktoken used (JS adds U+FEFF and drops U+0085).
 const CONTRACTION_SUFFIX = "'(?:[sS]|[tT]|[rR][eE]|[vV][eE]|[mM]|[lL][lL]|[dD])"
 const WHITESPACE_CLASS = '\\t\\n\\x0B\\f\\r \\x85\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000'
 const PIECE_PATTERN = new RegExp(
@@ -37,8 +27,6 @@ const PIECE_PATTERN = new RegExp(
 
 const utf8Encoder = new TextEncoder()
 
-// Rank keys are the token's raw bytes mapped one-to-one onto char codes 0-255,
-// so byte-slice lookups stay plain string Map hits.
 const bytesToKey = (bytes: Uint8Array): string => {
   let key = ''
   for (const byte of bytes) key += String.fromCharCode(byte)
@@ -65,9 +53,6 @@ const getRanks = (): Map<string, number> => {
 
 const MAX_RANK = Number.MAX_SAFE_INTEGER
 
-// Direct port of tiktoken's _byte_pair_merge: parts[i] is [byte offset,
-// rank of the pair starting at that offset]; each round merges the lowest
-// ranked adjacent pair and recomputes only the two affected neighbor ranks.
 const bytePairEncode = (piece: string, ranks: Map<string, number>): number[] => {
   const parts: [number, number][] = []
   let minRank = MAX_RANK
@@ -122,8 +107,6 @@ const bytePairEncode = (piece: string, ranks: Map<string, number>): number[] => 
   return tokens
 }
 
-// Equivalent of tiktoken's encode_ordinary: regex-split the text, UTF-8 encode
-// each piece, emit its whole-piece rank or its byte-pair merge.
 export const encodeReferenceTokens = (content: string): number[] => {
   const ranks = getRanks()
   const tokens: number[] = []

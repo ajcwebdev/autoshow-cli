@@ -96,13 +96,6 @@ export const selectPrimaryPromptProvider = (
     })[0]?.entry
 }
 
-
-/**
- * Serialises prompt-file regeneration across concurrent STT provider completions.
- * Each `queue()` chains a refresh that rebuilds `prompt.md` from the current best
- * transcription, skipping when the winning provider has not changed. `flush()` awaits
- * the outstanding chain and rethrows the first refresh error, if any.
- */
 export const createPromptRefreshController = ({
   outputDir,
   preparedMedia,

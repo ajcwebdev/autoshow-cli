@@ -301,8 +301,6 @@ const removeCurrentSelectionUnlocked = async (
   if (selections.length === current.selections.length) return current
   const next: CurrentVoiceRegistrationIndex = { schemaVersion: 2, revision: current.revision + 1, selections }
   validateCurrentVoiceRegistrationIndex(next)
-  // Removing authority before recording the terminal generation is conservative across a crash:
-  // an interrupted revocation/retirement can leave no current selection, never a revoked one.
   await atomicWriteJson(paths.current, next)
   void at
   return next

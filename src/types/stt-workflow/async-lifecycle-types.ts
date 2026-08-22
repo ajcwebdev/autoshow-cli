@@ -25,11 +25,6 @@ export type AsyncSttPoll<TStatus> = {
   retryAfterMs: number | null
 }
 
-/**
- * Creation either hands back a job to poll, or — for providers that can answer a small
- * request synchronously — the finished transcript itself. `kind` is optional on the job
- * branch so adapters that can only ever return a job stay unchanged.
- */
 type AsyncSttCreateJobResult<TStatus, TTranscript> =
   | { kind?: 'job' | undefined, jobId: string, status?: TStatus | undefined }
   | { kind: 'completed', transcript: TTranscript }
@@ -42,7 +37,6 @@ type AsyncSttActiveJob<TStatus> = {
 
 type AsyncSttLifecycleResultBuilderParams<TTranscript> = {
   transcript: TTranscript
-  /** Absent when creation returned the transcript directly, so no remote job exists. */
   runtime: Step2RuntimeMetadata | undefined
   processingTime: number
   timings?: Step2Metadata['timings'] | undefined
@@ -137,7 +131,6 @@ export type AsyncSttCompletedJobContext<TStatus, TTranscript, TUpload = unknown>
     built: { result: TranscriptionResult, metadata: Step2Metadata }
   }
 
-/** Creation resolved a job to poll, or already produced the transcript. */
 export type AsyncSttCreationOutcome<TStatus, TTranscript, TUpload = unknown> =
   | { kind: 'job', context: AsyncSttActiveJobContext<TStatus, TTranscript, TUpload> }
   | { kind: 'completed', transcript: TTranscript }

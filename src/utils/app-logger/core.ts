@@ -131,8 +131,6 @@ export const createLogger = (options: CreateLoggerOptions = {}): Logger => {
           metadata: { ...writeOptions.metadata, error: errorObj }
         })
         if (errorObj.stack) {
-          // The stack is a continuation of the same event, so it keeps the caller's
-          // category: category filtering must not be able to split a failure from its trace.
           write('error', errorObj.stack, {
             category: writeOptions.category,
             ...(writeOptions.context ? { context: writeOptions.context } : {}),

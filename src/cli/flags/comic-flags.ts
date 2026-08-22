@@ -20,8 +20,6 @@ import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { sharedConcurrencyFlags } from './shared-flags'
 
-// These tables are both the native parser definitions and the comic help metadata.
-
 const comicPriceFlag = {
   price: boolFlag(colorizeHelpDescription('Dry run: estimate API cost without making any calls'))
 } as const satisfies CliFlagsDefinition

@@ -7,11 +7,6 @@ import { findHostedTtsCredential } from '~/cli/commands/setup-and-utilities/setu
 import { childEnv } from '~/utils/child-env'
 import { parseHumeVoiceCatalogEnvelope } from '../tts-services/hume/hume-advanced-provider'
 
-/**
- * A blocked pre-ingest observation stays authoritative because protected capabilities were not
- * materialized. Otherwise a fresh observation may narrow ready to blocked, but never widen a
- * previously blocked target back to ready inside the same execution admission.
- */
 export const mergeTtsExecutionReadinessObservations = (
   preIngest: readonly TtsExecutionReadinessObservation[],
   fresh: readonly TtsExecutionReadinessObservation[]
@@ -230,8 +225,6 @@ const checkAdvancedVoiceReadiness = async (
     const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
     const metadata = extractErrorMetadata(error)
     const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
-    // A probe that failed deterministically (malformed catalog, 200-with-bad-body) is not
-    // worth retrying; only transport-level failures are.
     const retryable = metadata['retryable'] === false ? false : true
     return advancedVoiceBlockedObservation(
       targetKey,

@@ -463,9 +463,6 @@ function symmetricAnchorDistance(
 }
 
 function approximateLongSequenceDistance(left: string[], right: string[]): number {
-  // Exact dynamic-programming Levenshtein is quadratic. For article-sized
-  // sequences, use bounded exact wavefronts before order-preserving anchors and
-  // conservative edit lower bounds, while retaining exact prefix/suffix behavior.
   let prefix = 0;
   while (prefix < left.length && prefix < right.length && left[prefix] === right[prefix]) {
     prefix += 1;
@@ -524,10 +521,6 @@ function approximateLongSequenceDistance(left: string[], right: string[]): numbe
   );
   if (contentAnchorEstimate !== null) return contentAnchorEstimate;
 
-  // A failed bounded search proves that the distance exceeds its limit. Token
-  // count differences add a second lower bound. Equal-length sequences retain
-  // their full positional edit magnitude; unequal unanchored sequences use the
-  // lower bound instead of inventing substitutions from shifted sample grids.
   const minimumDistance = Math.max(
     EXTENDED_WAVEFRONT_DISTANCE_LIMIT + 1,
     tokenCountDistanceLowerBound(leftMiddle, rightMiddle),

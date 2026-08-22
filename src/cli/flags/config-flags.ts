@@ -45,9 +45,6 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
 const configOcrInputFlags = omitFlags(ocrInputFlags, ['password'])
 const configPromptFlags = omitFlags(promptFlag, ['prompt-md'])
 
-// Per-run inputs, not defaults: each names a specific file, mask, or one-shot
-// switch for a single generation. They used to be accepted here and silently
-// dropped, because `FLAG_TO_CONFIG_PATH` never had a destination for them.
 const configImageGenFlags = omitFlags(imageGenFlags, [
   'image-input',
   'image-mask',

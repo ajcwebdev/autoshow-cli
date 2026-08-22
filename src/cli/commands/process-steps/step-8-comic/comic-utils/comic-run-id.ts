@@ -1,10 +1,3 @@
-/**
- * Builds a filesystem-safe run identifier using the project-wide
- * `YYYY-MM-DD_HH-MM-SS-mmm` datetime convention (see createUniqueDirectoryName
- * in step-1-download/audio/metadata-utils.ts). Comic image outputs nest under a
- * folder named with this id so every generation run is preserved separately
- * while the scene workspace (scene.json, panel-prompts) stays stable.
- */
 export const createComicRunId = (): string => {
   const now = new Date()
   const year = now.getFullYear()

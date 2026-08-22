@@ -4,7 +4,6 @@ import { TRANSCRIPT_CUE_LIMITS, buildTranscriptionCues } from '~/cli/commands/pr
 import { formatSpeakerDisplayLabel } from '~/cli/commands/process-steps/step-7-music/lyrics-video/render'
 import type { SonioxTranscriptResponse, TranscriptionResult } from '~/types'
 
-// Soniox streams sub-word tokens and marks a word boundary only with a leading space.
 const sonioxResponse = {
   id: 'fixture',
   text: 'James Perkins, welcome to the show.',
@@ -31,9 +30,7 @@ test('Soniox sub-word tokens merge into whole evidence words', () => {
     speaker: '1',
     timingSource: 'native'
   })
-  // The merged word keeps the least confident piece.
   expect(words[1]?.confidence).toBeCloseTo(0.79, 5)
-  // A speaker change always starts a new word even without a leading space.
   expect(words[3]).toMatchObject({ text: 'Thanks', speaker: '2' })
 })
 
@@ -47,7 +44,6 @@ test('segment stamps keep sub-second precision', () => {
 test('transcript cues use native word timings instead of interpolating segment spans', () => {
   const transcription: TranscriptionResult = {
     text: 'one two three four',
-    // A single coarse segment: interpolation would place every cue evenly inside 0-10s.
     segments: [{ start: '00:00:00.000', end: '00:00:10.000', text: 'one two three four', speaker: '1' }],
     evidence: {
       words: [
@@ -65,7 +61,6 @@ test('transcript cues use native word timings instead of interpolating segment s
 
   expect(source).toBe('whisper-words')
   expect(cues[0]?.start).toBeCloseTo(4.1, 5)
-  // A speaker change breaks the cue, and each cue is bounded by real word times.
   expect(cues).toHaveLength(2)
   expect(cues[0]).toMatchObject({ text: 'one two', speaker: '1' })
   expect(cues[1]).toMatchObject({ text: 'three four', speaker: '2' })
@@ -88,13 +83,11 @@ test('transcript cues fall back to segment stamps when a provider has no word ti
 })
 
 test('every diarized provider label shape renders readably', () => {
-  // One case per shape found across the diarized normalizers.
   expect(formatSpeakerDisplayLabel('1')).toBe('Speaker 1')
   expect(formatSpeakerDisplayLabel('speaker-0')).toBe('Speaker 0')
   expect(formatSpeakerDisplayLabel('speaker-A')).toBe('Speaker A')
   expect(formatSpeakerDisplayLabel('SPEAKER_00')).toBe('Speaker 0')
   expect(formatSpeakerDisplayLabel('Speaker 2')).toBe('Speaker 2')
-  // Real names are never mangled into "Speaker <name>".
   expect(formatSpeakerDisplayLabel('Host')).toBe('Host')
   expect(formatSpeakerDisplayLabel('Guest')).toBe('Guest')
 })

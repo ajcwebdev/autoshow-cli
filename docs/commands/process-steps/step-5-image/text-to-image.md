@@ -18,8 +18,6 @@ Generate images from a text prompt with hosted image providers.
   - [fal.ai](#falai)
 - [Output](#output)
 - [Provider Capabilities](#provider-capabilities)
-  - [Reference Images](#reference-images)
-  - [1–5 Reference Images](#15-reference-images)
 
 ## Setup
 
@@ -45,32 +43,32 @@ FAL_API_KEY=...
 bun autoshow image <prompt> [flags]
 ```
 
-Bare `--provider` flags without a model value resolve to the cheapest supported model. Model selection flags are repeatable.
+Bare `--provider` flags without a model value resolve to the cheapest supported model. `--provider` is repeatable.
 
 ## Shared Image Options
 
 The standalone `image` command uses `--size`. `config` and `resume` use `--image-size`.
 
-| Flag                                   | Description                                                                                                                                                                       |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--all-providers`                      | Select every supported image provider/model                                                                                                                                       |
-| `--provider-concurrency <n>`           | Hosted image providers/models to run concurrently per item; default `7`                                                                                                           |
-| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--aspect-ratio <ratio>`               | Provider-dependent aspect ratio control                                                                                                                                           |
-| `--size <size>`                        | Provider-dependent size or resolution control                                                                                                                                     |
-| `--quality <q>`                        | OpenAI quality: `low`, `medium`, `high`, or `auto`                                                                                                                                |
-| `--format <fmt>`                       | Output format: `png`, `jpeg`, or `webp` depending on provider                                                                                                                     |
-| `--background <bg>`                    | OpenAI background mode: `transparent`, `opaque`, or `auto`                                                                                                                        |
-| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Replicate Wan/fal.ai: `1-4`)                                                                                                   |
-| `--input <path-or-url>`                | Repeatable source/reference image for edits or image-to-image workflows                                                                                                           |
-| `--mask <path>`                        | OpenAI mask image for inpainting                                                                                                                                                  |
-| `--compression <0-100>`                | OpenAI JPEG/WebP output compression                                                                                                                                               |
-| `--response-mode <image\|text-image>`  | Gemini response mode                                                                                                                                                              |
-| `--search-grounding`                   | Enable Gemini search grounding                                                                                                                                                    |
-| `--price`                              | Show the aggregated estimate and exit                                                                                                                                             |
-| `--output-dir <dir>`                   | Global flag: pin output directory instead of `output/<timestamp>_image-gen/`                                                                                                      |
+| Flag                                   | Description                                                                                             |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `--all-providers`                      | Select every supported image provider/model                                                             |
+| `--provider-concurrency <n>`           | Image providers/models to run concurrently; default `7`                                                 |
+| `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                    |
+| `--aspect-ratio <ratio>`               | Provider-dependent aspect ratio control                                                                 |
+| `--size <size>`                        | Provider-dependent size or resolution control                                                           |
+| `--quality <q>`                        | OpenAI quality: `low`, `medium`, `high`, or `auto`                                                      |
+| `--format <fmt>`                       | Output format: `png`, `jpeg`, or `webp` depending on provider                                           |
+| `--background <bg>`                    | OpenAI background mode: `transparent`, `opaque`, or `auto`                                              |
+| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Replicate Wan/fal.ai: `1-4`)                         |
+| `--input <path-or-url>`                | Repeatable source/reference image for edits or image-to-image workflows                                 |
+| `--mask <path>`                        | OpenAI mask image for inpainting                                                                        |
+| `--compression <0-100>`                | OpenAI JPEG/WebP output compression                                                                     |
+| `--response-mode <image\|text-image>`  | Gemini response mode                                                                                    |
+| `--search-grounding`                   | Enable Gemini search grounding                                                                          |
+| `--price`                              | Show the aggregated estimate and exit                                                                   |
+| `--output-dir <dir>`                   | Global flag: pin output directory instead of `output/<timestamp>_image-gen/`                            |
 
-See [Provider Capabilities](#provider-capabilities) for the per-model reference, resolution, aspect-ratio, count, and format matrix.
+See [Provider Capabilities](#provider-capabilities) for the per-model reference, resolution, aspect-ratio, count, format, and price matrix.
 
 ```bash
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
@@ -112,12 +110,11 @@ bun autoshow image "a detailed editorial data visualization" --provider gemini=g
 | Edit/reference    | `--input` with optional `--mask`                                        |
 
 ```bash
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png
 bun autoshow image "a product sketch of the same travel mug concept" --provider openai=gpt-image-2 --size 1024x1024 --quality low
 bun autoshow image "replace the background with a sunlit forest" --provider openai=gpt-image-2 --input input/product.png --mask input/mask.png --format webp
 ```
 
-OpenAI is the only provider that accepts `--mask`. `gpt-image-2` rejects `--background transparent`. Low quality is fastest, and JPEG output is faster than PNG.
+OpenAI is the only provider that accepts `--mask`. `gpt-image-2` rejects `--background transparent`.
 
 ### Grok
 
@@ -179,7 +176,6 @@ bun autoshow image "place the subject on a rustic breakfast table" --provider re
 
 ```bash
 bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png
-bun autoshow image "a serene mountain lake at dawn" --provider lumalabs=uni-1-max --aspect-ratio 16:9
 bun autoshow image "make the subject matte black and keep the same camera angle" --provider lumalabs=uni-1 --input input/subject.png
 ```
 
@@ -208,33 +204,25 @@ bun autoshow image "turn this into a dusk scene" --provider fal=reve/2.1 --input
 
 ## Provider Capabilities
 
-✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Recency marks: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. References use ✅ 8 or more, ⚠️ 1–7, and ❌ none. Max resolution uses ✅ 4K or 4MP and above, ⚠️ 2K/3K or about 2MP, and ❌ 1K-only or unpublished. Count uses ✅ 4 or more and ❌ 1. Formats use ✅ png/jpeg/webp, ⚠️ two formats, and ❌ a single format. Pricing is the per-image estimate. Cost rank orders models cheapest-first within each table (1 = cheapest) and ties share a rank; combined rows list prices and ranks in the same order as the models.
+Rows are newest first. Pricing is the per-image estimate.
 
-### Reference Images
-
-| Provider                                        | Released      | References  | Max resolution        | Aspect ratio    | Count   | Formats                                | Pricing                         | Cost rank            |
-| ----------------------------------------------- | ------------- | ----------- | --------------------- | --------------- | ------- | -------------------------------------- | ------------------------------- | -------------------- |
-| Replicate `bytedance/seedream-5-pro`            | ✅ 2026-07-08 | ✅ Up to 10 | ⚠️ 2K                 | ✅ 9 ratios     | ❌ 1    | ⚠️ png/jpeg                            | $0.045/image                    | 9/15                 |
-| Gemini `gemini-3.1-flash-lite-image`            | ✅ 2026-06-30 | ✅ Up to 14 | ❌ 1K                 | ✅ 10 ratios    | ❌ 1    | ❌ PNG                                 | $0.0336/image                   | 5/15                 |
-| Gemini `gemini-3.1-flash-image`                 | ✅ 2026-05-28 | ✅ Up to 14 | ✅ 4K                 | ✅ 14 ratios    | ❌ 1    | ❌ PNG                                 | $0.067/image                    | 12/15                |
-| Gemini `gemini-3-pro-image`                     | ✅ 2026-05-28 | ✅ Up to 14 | ✅ 4K                 | ✅ 10 ratios    | ❌ 1    | ❌ PNG                                 | $0.134/image                    | 15/15                |
-| fal.ai `fal-ai/hidream-o1-image`                | ✅ 2026-05-09 | ✅ Up to 9  | ⚠️ Custom 256–2048    | ❌ Use `--size` | ✅ 1–4  | ✅ png/jpeg/webp                       | $0.01/image                     | 1/15                 |
-| Luma Labs `uni-1` / `uni-1-max`                 | ✅ 2026-05-05 | ✅ Up to 9  | ❌ Unpublished        | ✅ 9 ratios     | ❌ 1    | ⚠️ png/jpeg                            | $0.0404 / $0.10 per image       | 8/15 / 14/15         |
-| OpenAI `gpt-image-2`                            | ✅ 2026-04-21 | ✅ Up to 16 | ✅ Custom ≤3840       | ❌ Use `--size` | ✅ 1–10 | ⚠️ png/jpeg/webp; transparent rejected | $0.053/image                    | 10/15                |
-| Replicate `wan-video/wan-2.7-image-pro`         | ✅ 2026-04-01 | ✅ Up to 9  | ✅ 4K text-to-image   | ❌ Use `--size` | ✅ 1–4  | ❌ PNG                                 | $0.03/image                     | 2/15                 |
-| Replicate `wan-video/wan-2.7-image`             | ✅ 2026-04-01 | ✅ Up to 9  | ⚠️ 2K                 | ❌ Use `--size` | ✅ 1–4  | ❌ PNG                                 | $0.03/image                     | 2/15                 |
-| Replicate `bytedance/seedream-5-lite`           | ✅ 2026-02-24 | ✅ Up to 14 | ⚠️ 3K                 | ✅ 9 ratios     | ❌ 1    | ⚠️ png/jpeg                            | $0.035/image                    | 6/15                 |
-| Replicate `bytedance/seedream-4.5`              | ⚠️ 2025-12-03 | ✅ Up to 14 | ✅ 4K                 | ✅ 9 ratios     | ❌ 1    | ❌ JPEG                                | $0.04/image                     | 7/15                 |
-| BFL `flux-2-pro` / `flux-2-max` / `flux-2-flex` | ⚠️ 2025-11-25 | ✅ Up to 8  | ⚠️ Custom WxH, min 64 | ❌ Use `--size` | ❌ 1    | ✅ jpeg/png/webp                       | $0.03 / $0.07 / $0.06 per image | 2/15 / 13/15 / 11/15 |
-
-### 1–5 Reference Images
-
-| Provider                                           | Released      | References | Max resolution           | Aspect ratio    | Count   | Formats          | Pricing                   | Cost rank |
-| -------------------------------------------------- | ------------- | ---------- | ------------------------ | --------------- | ------- | ---------------- | ------------------------- | --------- |
-| fal.ai `alibaba/qwen-image-3`                      | ✅ 2026-07-21 | ⚠️ Up to 3 | ⚠️ 2048 text / 1440 edit | ❌ Use `--size` | ✅ 1–4  | ✅ png/jpeg/webp | $0.0051/image             | 1/7       |
-| fal.ai `reve/2.1`                                  | ✅ 2026-07-09 | ⚠️ 1       | ❌ Unpublished           | ✅ 18 ratios    | ✅ 1–4  | ✅ png/jpeg/webp | $0.25/image               | 7/7       |
-| Grok `grok-imagine-image-quality`                  | ✅ 2026-04-03 | ⚠️ Up to 3 | ⚠️ 2K                    | ✅ 14 ratios    | ✅ 1–10 | ❌ JPEG          | $0.05/image               | 5/7       |
-| Replicate `qwen/qwen-image-2-pro` / `qwen-image-2` | ✅ 2026-03-04 | ⚠️ 1       | ❌ Unpublished           | ✅ 9 ratios     | ❌ 1    | ❌ PNG           | $0.075 / $0.035 per image | 6/7 / 4/7 |
-| BFL `flux-2-klein-4b` / `flux-2-klein-9b`          | ✅ 2026-01-15 | ⚠️ Up to 4 | ⚠️ Custom WxH, min 64    | ❌ Use `--size` | ❌ 1    | ✅ jpeg/png/webp | $0.014 / $0.015 per image | 2/7 / 3/7 |
-
-Image test coverage is documented in [Step 5 Service Tests: Image](image-tests.md).
+| Provider                                           | Released   | References | Max resolution           | Aspect ratio    | Count | Formats        | Pricing                         |
+| -------------------------------------------------- | ---------- | ---------- | ------------------------ | --------------- | ----- | -------------- | ------------------------------- |
+| fal.ai `alibaba/qwen-image-3`                      | 2026-07-21 | Up to 3    | 2048 text / 1440 edit    | Use `--size`    | 1–4   | png/jpeg/webp  | $0.0051/image                   |
+| fal.ai `reve/2.1`                                  | 2026-07-09 | 1          | Unpublished              | 18 ratios       | 1–4   | png/jpeg/webp  | $0.25/image                     |
+| Replicate `bytedance/seedream-5-pro`               | 2026-07-08 | Up to 10   | 2K                       | 9 ratios        | 1     | png/jpeg       | $0.045/image                    |
+| Gemini `gemini-3.1-flash-lite-image`               | 2026-06-30 | Up to 14   | 1K                       | 10 ratios       | 1     | PNG            | $0.0336/image                   |
+| Gemini `gemini-3.1-flash-image`                    | 2026-05-28 | Up to 14   | 4K                       | 14 ratios       | 1     | PNG            | $0.067/image                    |
+| Gemini `gemini-3-pro-image`                        | 2026-05-28 | Up to 14   | 4K                       | 10 ratios       | 1     | PNG            | $0.134/image                    |
+| fal.ai `fal-ai/hidream-o1-image`                   | 2026-05-09 | Up to 9    | Custom 256–2048          | Use `--size`    | 1–4   | png/jpeg/webp  | $0.01/image                     |
+| Luma Labs `uni-1` / `uni-1-max`                    | 2026-05-05 | Up to 9    | Unpublished              | 9 ratios        | 1     | png/jpeg       | $0.0404 / $0.10 per image       |
+| OpenAI `gpt-image-2`                               | 2026-04-21 | Up to 16   | Custom ≤3840             | Use `--size`    | 1–10  | png/jpeg/webp  | $0.053/image                    |
+| Grok `grok-imagine-image-quality`                  | 2026-04-03 | Up to 3    | 2K                       | 14 ratios       | 1–10  | JPEG           | $0.05/image                     |
+| Replicate `wan-video/wan-2.7-image-pro`            | 2026-04-01 | Up to 9    | 4K text-to-image         | Use `--size`    | 1–4   | PNG            | $0.03/image                     |
+| Replicate `wan-video/wan-2.7-image`                | 2026-04-01 | Up to 9    | 2K                       | Use `--size`    | 1–4   | PNG            | $0.03/image                     |
+| Replicate `qwen/qwen-image-2-pro` / `qwen-image-2` | 2026-03-04 | 1          | Unpublished              | 9 ratios        | 1     | PNG            | $0.075 / $0.035 per image       |
+| Replicate `bytedance/seedream-5-lite`              | 2026-02-24 | Up to 14   | 3K                       | 9 ratios        | 1     | png/jpeg       | $0.035/image                    |
+| BFL `flux-2-klein-4b` / `flux-2-klein-9b`          | 2026-01-15 | Up to 4    | Custom WxH, min 64       | Use `--size`    | 1     | jpeg/png/webp  | $0.014 / $0.015 per image       |
+| Replicate `bytedance/seedream-4.5`                 | 2025-12-03 | Up to 14   | 4K                       | 9 ratios        | 1     | JPEG           | $0.04/image                     |
+| BFL `flux-2-pro` / `flux-2-max` / `flux-2-flex`    | 2025-11-25 | Up to 8    | Custom WxH, min 64       | Use `--size`    | 1     | jpeg/png/webp  | $0.03 / $0.07 / $0.06 per image |
+|

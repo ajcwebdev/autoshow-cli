@@ -1,28 +1,5 @@
 #!/usr/bin/env bun
 
-/**
- * Build a combined cross-run STT provider comparison report.
- *
- * Reads every `reference-comparison-report.json` under a root directory (one per
- * run), aggregates each provider by `providerKey` across the runs it appears in,
- * and re-ranks providers within the same STT groups
- * (local / thirdPartyServiceNonDiarization / thirdPartyServiceDiarization) using
- * the same metric-ranking contract as the single-run report: full Price, Speed,
- * and Quality Score rankings per group. Per group it also emits eight weighted
- * composite rankings and divides the quality + cost ranking into deterministic
- * contiguous tiers (`quality-cost-terciles-v1`); groups are never compared
- * against each other and no cross-group leaderboard is emitted.
- *
- * Aggregation is the mean across the runs a provider appears in:
- *   - quality score   (speaker-aware WER-derived score, higher is better)
- *   - speaker-aware WER, text-only WER
- *   - processing time
- *   - per-run cost (mean and total are both reported)
- *
- * Writes `combined-comparison-report.json` and `combined-comparison-report.md`
- * to the root directory.
- */
-
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
@@ -272,7 +249,6 @@ function aggregate(
 }
 
 function priceValue(provider: AggregatedProvider): number | null {
-  // Local providers are zero monetary cost in this report.
   if (provider.group === "local") {
     return 0;
   }
@@ -617,7 +593,6 @@ function main(): number {
         runName: sample.runName,
         quality: sample.score,
         timeMs: sample.processingTimeMs,
-        // Local providers are zero monetary cost, matching priceValue().
         costCents: group === "local" ? 0 : sample.costCents,
       })),
     }));

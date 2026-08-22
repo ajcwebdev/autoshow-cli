@@ -76,7 +76,4 @@ export type AdaptiveLease = {
   release: () => Promise<void>
 }
 
-// Reverse-derived from SIMPLE_MEDIA_COMMANDS in test/test-runner/adaptive-provider-groups.ts;
-// that const is constrained with `satisfies Record<SimpleMediaCommand, ...>`, which is
-// bidirectional -- adding or removing a command without updating this union fails tsc.
 export type SimpleMediaCommand = 'tts' | 'image' | 'video' | 'music'

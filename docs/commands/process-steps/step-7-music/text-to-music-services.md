@@ -1,6 +1,6 @@
 # music
 
-Generate music from a text prompt with hosted providers, or render local lyric videos from repo audio.
+Generate music from a text prompt with hosted providers, or render local lyric videos from audio files.
 
 ## Outline
 
@@ -24,12 +24,7 @@ Generate music from a text prompt with hosted providers, or render local lyric v
 bun autoshow setup --step music
 ```
 
-The music setup step checks hosted music API readiness and local lyric-video prerequisites:
-
-- `ffmpeg` and `ffprobe`
-- ffmpeg `ass` subtitle filter, or `pango-view` plus ImageMagick `convert` for fallback overlays
-- `whisper-cli`
-- Local Whisper `large-v3-turbo` model
+The music setup step checks hosted music API keys and lyric-video tools: `ffmpeg`, `ffprobe`, `whisper-cli`, and the local Whisper `large-v3-turbo` model.
 
 ### Environment
 
@@ -91,7 +86,7 @@ Lyric-video flags:
 | `--model <name>`    | Local Whisper model: `tiny`, `base`, `small`, `medium`, `large-v3-turbo`; default `large-v3-turbo` |
 | `--font <name>`     | Font family for lyric overlays; default `DejaVu Sans`                                              |
 
-See [Provider Capabilities](#provider-capabilities) for the per-model release date, duration, duration-control, instrumental, lyrics, and output matrix.
+See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
 
 Repeating `--provider` runs each selected model independently and writes its own output file.
 
@@ -115,10 +110,9 @@ bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider 
 ```bash
 bun autoshow music "cinematic orchestral trailer, dramatic strings and percussion" --provider elevenlabs=music_v2
 bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v2 --duration 20 --instrumental
-bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v2 --price
 ```
 
-When `--duration` is omitted, ElevenLabs chooses the track length and `--price` still estimates 180 seconds. With `--lyrics-file`, headers such as `Verse 1` or `Chorus` become song sections (at most 30), the prompt supplies the musical style, and `--duration` or the 180-second estimate is split across those sections. `--instrumental` takes precedence over `--lyrics-file` and logs a warning.
+With `--lyrics-file`, headers such as `Verse 1` or `Chorus` become song sections (at most 30) and the prompt supplies the musical style. `--instrumental` takes precedence over `--lyrics-file` and logs a warning.
 
 ### MiniMax
 
@@ -133,7 +127,6 @@ When `--duration` is omitted, ElevenLabs chooses the track length and `--price` 
 bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0
 bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --lyrics-file input/examples/tts/1-tts.md
 bun autoshow music "ambient piano instrumental with soft tape saturation" --provider minimax=music-3.0 --instrumental
-bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --price
 ```
 
 MiniMax ignores `--duration`. When `--lyrics-file` is omitted, generated lyrics are included in the `--price` estimate. Prompts are capped at 2000 characters and lyrics at 3500 characters.
@@ -144,17 +137,16 @@ MiniMax ignores `--duration`. When `--lyrics-file` is omitted, generated lyrics 
 | ------------------- | ------------------------------------------------------------------------------------ |
 | Selector            | `--provider gemini[=<model>]`                                                        |
 | Models              | `lyria-3-pro-preview`                                                                |
-| Duration            | `--duration <seconds>` adds a prompt duration instruction; estimates default to 120s |
+| Duration            | `--duration <seconds>` is a prompt hint; `--price` estimates 120s when omitted       |
 | Lyrics/instrumental | `--lyrics-file <path>` or `--instrumental`                                           |
 
 ```bash
 bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-pro-preview
 bun autoshow music "cinematic synth pop with verses, chorus, and bridge" --provider gemini=lyria-3-pro-preview --duration 120
 bun autoshow music input/examples/tts/1-tts.md --provider gemini=lyria-3-pro-preview --lyrics-file input/examples/tts/1-tts.md
-bun autoshow music "ambient piano and strings" --provider gemini=lyria-3-pro-preview --price
 ```
 
-When `--duration` is omitted, `--price` estimates 120 seconds. `--lyrics-file` appends lyrics to the prompt. `--instrumental` takes precedence over `--lyrics-file` and logs a warning.
+`--instrumental` takes precedence over `--lyrics-file` and logs a warning.
 
 ### Lyric-Video Rendering
 
@@ -165,13 +157,13 @@ bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions 
 bun autoshow music --batch input/examples/lyrics --model small
 ```
 
-In rerender mode (`--captions`), output stems come from the caption filename. If an image beside the audio file matches by exact basename or track number, it is used as the background; otherwise a spectrogram background is rendered.
+With `--captions`, output names come from the caption file, not the audio file. If an image beside the audio file matches by exact basename or track number, it is used as the background; otherwise a spectrogram background is rendered.
 
 ## Output
 
 - **Single-target hosted runs**: write `output/<timestamp>_music-gen/generated-music.mp3` and `manifest.json`.
 - **Multi-target hosted runs**: write `generated-music-<provider>-<sanitized-model>.mp3` per target and `manifest.json`.
-- **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`. Failed runs keep a `.lyrics-tmp/` workspace for debugging.
+- **Lyric-video single runs**: write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
 - **Lyric-video batch runs**: write `<slug>/<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
 - **`--output-dir`**: pins an exact output directory; filenames remain provider-deterministic.
 - **`manifest.json`**: records single-run metadata including `music` array, `cost`, and `timing`.
@@ -179,11 +171,10 @@ In rerender mode (`--captions`), output stems come from the caption filename. If
 ## Notes
 
 - When multiple providers are specified, each generates independently. A failure from one provider does not cancel the others; a warning is logged and the run succeeds if at least one provider succeeds.
-- Music generation tests cover validation and `--price`; live provider-generation tests require API keys. See [Step 7 Tests: Music](music-tests.md).
 
 ## Provider Capabilities
 
-Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.md#provider-capabilities): ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Rows are newest first. Duration uses ✅ 5 minutes or longer, ⚠️ 1–4 minutes, and ❌ under 1 minute. Duration control uses ✅ `--duration` honored, ⚠️ prompt-only, and ❌ ignored. Pricing is the AutoShow registry rate. Cost rank orders models cheapest-first (1 = cheapest) for a default-length track: ElevenLabs at its 180-second estimate, MiniMax per track up to five minutes.
+✅ supported, ⚠️ partial or qualified, ❌ not exposed. Rows are newest first. Pricing is the AutoShow registry rate.
 
 | Provider                      | Released      | Duration                          | Duration control | Instrumental        | Lyrics                          | Output                     | Pricing                                        | Cost rank |
 | ----------------------------- | ------------- | --------------------------------- | ---------------- | ------------------- | ------------------------------- | -------------------------- | ---------------------------------------------- | --------- |

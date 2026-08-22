@@ -4,7 +4,6 @@ import type {
   WorkingTtsResultInput
 } from '~/types'
 
-/** The audio projection lands under the key that matches the operation it was rendered for. */
 const projectionEnvelope = (
   artifacts: Pick<CurrentTtsRenderArtifacts, 'operation' | 'projection'>
 ): Pick<WorkingTtsResult, 'comicAudio' | 'ttsAudio'> =>
@@ -12,10 +11,6 @@ const projectionEnvelope = (
     ? { comicAudio: artifacts.projection }
     : { ttsAudio: artifacts.projection }
 
-/**
- * Attaches the render artifacts a terminal result carries. `_renderArtifacts` is internal
- * to this run — the manifest writer strips it before the metadata is serialized.
- */
 const terminalRenderFields = (renderArtifacts: CurrentTtsRenderArtifacts) => ({
   operation: renderArtifacts.operation,
   targetKey: renderArtifacts.targetKey,

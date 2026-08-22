@@ -1,10 +1,5 @@
 import type { PipelineProviderState, PolicySkippedTtsProviderStateOptions, TtsTarget } from '~/types'
 
-/**
- * The distinguishing dimensions of a policy-skipped provider state are its target
- * identity, where the artifacts live, and which skip evidence the manifest carries.
- * Those are required; the harness-labelling fields have fixture defaults.
- */
 export const policySkippedTtsProviderStateFrom = (
   options: PolicySkippedTtsProviderStateOptions
 ): PipelineProviderState => {
@@ -43,7 +38,6 @@ export const policySkippedTtsProviderStateFrom = (
   }
 }
 
-/** Target-and-root spelling used by the canonical manifest and resume-setup suites. */
 export const policySkippedTtsProviderState = (
   target: TtsTarget,
   artifactRoot = 'providers'

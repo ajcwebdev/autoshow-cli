@@ -1,12 +1,8 @@
 # voice consent
 
-Create a protected consent policy record with explicit per-action grants, or revoke an existing locator. Omitted grant actions default to denied. Contact PII must not be used as the actor or provenance reference.
+Create a protected consent policy record with explicit per-action grants, or revoke an existing locator.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
-
-## Outline
-
-- [consent](#consent)
 
 ## consent
 
@@ -14,9 +10,9 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice consent [subject-key] [flags]
 ```
 
-Grant requires `<subject-key>` plus `--allow` with at least one explicit action. Revoke uses `--revoke <consent-ref>` and `--reason`. `--revoke` cannot be combined with `--allow` or a subject key.
+Grant requires `<subject-key>` plus `--allow` with at least one explicit action. Omitted actions stay denied. Revoke uses `--revoke <consent-ref>` and `--reason`. `--revoke` cannot be combined with `--allow` or a subject key.
 
-Consent records cannot be edited. After revoke, the original locator fails every consent-gated action.
+Consent records cannot be edited. After revoke, the original locator fails every consent-gated action. Do not put contact PII in `--actor-id` or `--provenance-ref`. A grant prints a `protected-consent:v1:...` locator for [clone](./05-clone.md) and other consent-gated actions.
 
 ### Options
 
@@ -37,7 +33,5 @@ Consent records cannot be edited. After revoke, the original locator fails every
 bun autoshow voice consent hero --provenance-ref release:hero-v1 --allow upload,new-synthesis,retention,deletion --actor-id casting_editor
 bun autoshow voice consent --revoke protected-consent:v1:STORE:ASSET:SHA256 --reason "Authorization withdrawn" --actor-id casting_editor
 ```
-
-A grant prints an opaque `protected-consent:v1:...` locator. Use that locator with [clone](./05-clone.md) and other consent-gated actions.
 
 Next: [import](./03-import.md).

@@ -11,8 +11,6 @@ export const buildArticleEstimates = (
 ): ArticleEstimateResult => {
   const estimates: ExtractStepEstimate[] = []
   const notes: string[] = []
-  // `resolveArticleStep2` emits exactly one provider per requested backend, keyed by
-  // backend name, so every `service` on the article route is an HtmlArticleBackend.
   const backends = resolvedStep2.providers.map(provider => provider.service as HtmlArticleBackend)
 
   for (const backend of backends) {

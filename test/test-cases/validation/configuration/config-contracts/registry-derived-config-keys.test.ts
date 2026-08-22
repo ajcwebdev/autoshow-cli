@@ -9,11 +9,6 @@ import { AutoshowConfigSchema } from '~/types'
 import type { Step2Command } from '~/types'
 import { writeTempConfig } from './shared'
 
-// `config --stt together=<model>` used to write a file no later command could
-// load: the write path derives its keys from the step-2 provider registry, while
-// the read schema was a hand-maintained list that stopped tracking it. These
-// assertions fail the moment the two diverge again.
-
 const unwrap = (schema: unknown): { entries: Record<string, unknown> } => {
   const candidate = schema as { wrapped?: unknown, entries?: Record<string, unknown> }
   return (candidate.wrapped !== undefined ? candidate.wrapped : candidate) as { entries: Record<string, unknown> }
@@ -43,7 +38,6 @@ const setNested = (target: Record<string, unknown>, path: readonly string[], val
 const step2ConfigKeysByStep = (step: Step2Command): string[] =>
   [...new Set(
     getStep2ProviderEntries(step)
-      // URL providers all share one fixed `provider` key rather than one key each.
       .filter((entry) => entry.selection.type !== 'fixed')
       .map((entry) => entry.configPath[entry.configPath.length - 1] as string)
   )]
@@ -71,8 +65,6 @@ describe('registry-derived config key contracts', () => {
       const key = entry.configPath[entry.configPath.length - 1] as string
       const schemaKeys = new Set(schemaKeysAtPath(entry.configPath.slice(0, -1)))
       if (!schemaKeys.has(key)) continue
-      // Model providers persist arrays; boolean providers and the fixed URL
-      // provider persist a scalar, so probe with a shape each accepts.
       const probe = key === 'provider' ? 'defuddle' : key === 'tesseract' ? true : ['probe-model']
       setNested(value, entry.configPath, probe)
     }

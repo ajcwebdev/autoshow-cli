@@ -84,11 +84,6 @@ export const extractSingleBoldLine = (block: string): string | null => {
   return match?.[1]?.trim() ?? null
 }
 
-// A delivery parenthetical is frequently italicised as "_(beat)_" or "*(quietly)*".
-// The emphasis is markdown, not screenplay content, so it must be removed before the
-// parenthetical test. Without this, the block falls through to the dialogue path and
-// the parenthetical is consumed as the spoken line, which then pushes the real
-// dialogue into the following block and misclassifies it as a stage direction.
 export const isParentheticalBlock = (block: string): boolean => {
   return /^\((?:[\s\S]+)\)$/.test(stripEmphasisWrapper(block))
 }
@@ -109,8 +104,6 @@ export const isTransitionText = (text: string): boolean => {
   return TRANSITION_PATTERNS.some(pattern => pattern.test(text.trim()))
 }
 
-// Screenplay timing notation such as "(beat)" or "(a long pause)" is performance
-// pacing, never spoken words, so it must not survive into text an artist letters.
 const TIMING_DIRECTION_MODIFIERS = 'a|an|another|one|two|long|short|brief|slight|small|awkward|uncomfortable|heavy|dead|stunned|very'
 const TIMING_DIRECTION_NOUNS = 'beat|beats|pause|pauses|silence|moment|moments'
 const TIMING_DIRECTION_BODY = `(?:(?:${TIMING_DIRECTION_MODIFIERS})\\s+)*(?:${TIMING_DIRECTION_NOUNS})`
@@ -136,17 +129,12 @@ export const extractInlineTimingDelivery = (text: string): string[] => [...text.
 
 const EMPHASIS_WRAPPER_PATTERN = /^(\*\*\*|\*\*|\*|___|__|_)([\s\S]+?)\1$/
 
-// Action blocks are authored as "*They stare at the floor.*". The asterisks are
-// markdown emphasis, not part of the staging text, and reach image prompts as
-// literal characters unless they are removed here.
 export const stripEmphasisWrapper = (text: string): string => {
   const trimmed = text.trim()
   const match = trimmed.match(EMPHASIS_WRAPPER_PATTERN)
   return match?.[2]?.trim() ?? trimmed
 }
 
-// A caption is the only staging-adjacent block that is deliberately lettered, so
-// it must be opted into with an explicit "**CAPTION**" label above the text.
 const CAPTION_SPEAKER_LABEL_PATTERN = /^(?:CAPTION|NARRATION)(?:\s*\d+)?$/i
 
 export const isCaptionSpeakerLabel = (label: string): boolean => {

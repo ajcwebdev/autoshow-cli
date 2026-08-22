@@ -315,10 +315,6 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
 
   const verifier: LineageVerifier = { verifyRef, verifyJson, fail, verified }
 
-  // Read the canonical envelope, falling back to the raw manifest when the canonical
-  // read either rejects or yields a shape that is not a single comic item. This used to
-  // be spelled as a throw-as-goto sentinel caught two lines below; the plain conditional
-  // says the same thing without putting a control-flow signal through the error vocabulary.
   const manifest = await readManifest(sceneRunDir).catch(() => undefined)
   const item = manifest?.items[0]
   let comic: CanonicalComicItemMetadata | undefined = manifest

@@ -14,7 +14,6 @@ const CHAT_OCR_OPTIONS = { dpi: 300, password: undefined, outputDir: '', ocrPrep
 const dataUrl = (mime: string, bytes: Uint8Array): string =>
   `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`
 
-/** Both OpenAI reasoning tiers must request the same native `ocr_pages` schema. */
 const STRUCTURED_OUTPUT_MODELS = ['gpt-5.5', 'gpt-5.4-mini'] as const
 
 describe('OpenAI REST OCR contracts', () => {

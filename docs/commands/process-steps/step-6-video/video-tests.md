@@ -4,14 +4,6 @@ Provider-backed video-generation coverage for the `video` command.
 
 Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.
 
-## Outline
-
-- [Quick Start](#quick-start)
-- [Provider Env Vars](#provider-env-vars)
-- [Current Coverage](#current-coverage)
-- [Price Preflight](#price-preflight)
-- [Related Docs](#related-docs)
-
 ## Quick Start
 
 ```bash
@@ -24,8 +16,8 @@ Live video generation tests need a configured provider key: `FAL_API_KEY`, `GEMI
 
 ## Current Coverage
 
-- Model-level service files under `test/test-cases/e2e/service/step-6-video-gen-e2e/` cover live generation for fal.ai, Gemini, Grok, LTX, and Replicate.
-- Focused `--price` validation lives in `test/test-cases/price-flag/video-price.test.ts`.
+- `test/test-cases/e2e/service/step-6-video-gen-e2e/` covers live generation for fal.ai, Gemini, Grok, LTX, and Replicate.
+- `test/test-cases/price-flag/video-price.test.ts` covers `--price` validation.
 
 ## Price Preflight
 

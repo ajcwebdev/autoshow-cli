@@ -100,16 +100,11 @@ const shouldStreamCompactSetupOutput = (): boolean =>
 const formatTaskFailureReason = (reason: unknown): string =>
   reason instanceof Error ? reason.message : String(reason)
 
-// Each concurrent task announces its start and its finish but nothing in
-// between, so a source build that takes minutes is indistinguishable from a
-// hang. Recording per-task durations at least makes the cost visible afterwards.
 const setupStepTimings: { label: string, durationMs: number, ok: boolean }[] = []
 
 const getSetupStepTimings = (): readonly { label: string, durationMs: number, ok: boolean }[] =>
   setupStepTimings
 
-// Runs tasks concurrently and aggregates every failure instead of surfacing only
-// the first. Shared with nested groups that must not record their own timings.
 const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]): Promise<void> => {
   const results = await Promise.allSettled(tasks.map(async (task) => await task.run()))
   const failures = results.flatMap((result, index) => {
@@ -122,10 +117,6 @@ const runSettledSetupTasks = async (tasks: readonly ConcurrentSetupTask[]): Prom
 
   if (failures.length === 0) return
 
-  // An AggregateError flattens every child's kind, hints, and exit code into one exit-1
-  // failure with no hints. Wrapping preserves them: the child hints are surfaced on the
-  // wrapper so the top-level handler still prints them, and each child is serialized into
-  // metadata so `serializeDiagnosticError` output keeps the full picture.
   throw InfraError(
     [
       'Setup tasks failed:',
@@ -235,8 +226,6 @@ const ensureRuntimeDirs = async (): Promise<void> => {
   ])
 }
 
-// Iterates the pinned set rather than restating a subset of it, so a dependency
-// that is pinned and built (leptonica, lame, tessdata) cannot be built silently.
 const logPinnedVersions = async (): Promise<void> => {
   const formatVersion = (value: string): string =>
     /^[a-f0-9]{40}$/i.test(value) ? value.slice(0, 12) : value
@@ -283,8 +272,6 @@ const logSetupProviderConfiguration = (
     mode: shouldUseVerboseHumanOutput() ? 'all' : 'missing'
   })
 
-// Binary units so the reported figure matches what `du -h` prints for the same
-// directory; a decimal figure next to a du-shaped path invites a false mismatch.
 const formatBytes = (bytes: number): string => {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GiB`
   if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MiB`
@@ -308,7 +295,6 @@ const walkDirectorySize = async (root: string): Promise<number> => {
         try {
           total += (await stat(path)).size
         } catch {
-          // Raced with cleanup; a missing file contributes nothing.
         }
       }
     }
@@ -336,7 +322,6 @@ export const collectReclaimableWhisperCoremlArtifacts = async (options: {
       .sort()
     paths.push(...encoderPackages)
   } catch {
-    // A fresh install has no Whisper model directory yet.
   }
 
   return await Promise.all(paths.map(async (path) => ({
@@ -366,11 +351,6 @@ const logReclaimableWhisperCoremlArtifacts = async (): Promise<void> => {
   })
 }
 
-// runtime/build only ever holds transient source and object trees. Individual
-// installers now drop their own tree on success, but an install that predates
-// that, or one whose guard short-circuits, leaves the tree behind forever.
-// The threshold keeps trivial leftovers (empty scaffolding, stray manifests)
-// from producing a reclaim table that reports nothing worth reclaiming.
 const RECLAIMED_BUILD_TREE_MIN_BYTES = 10 * 1024 * 1024
 
 export const shouldReportReclaimedBuildTrees = (bytes: number): boolean =>
@@ -394,9 +374,6 @@ const logSetupStepTimings = (): void => {
   const timings = [...getSetupStepTimings()].sort((a, b) => b.durationMs - a.durationMs)
   if (timings.length === 0) return
 
-  // Wall clock, not work: these tasks run concurrently and contend for CPU and
-  // I/O, so a task's duration here can be an order of magnitude above what the
-  // same task costs when run alone via `--step`.
   l.write('info', 'Setup Step Timings (concurrent wall clock)', {
     category: 'command',
     humanTable: createHumanTable(
@@ -481,8 +458,6 @@ const logSetupSummary = async (
         detail: missingModels.length === 0 ? 'default local assets available' : missingModels.join(', ')
       },
       {
-        // "present" rather than "configured": this only proves the variable is
-        // non-empty, never that the key is valid.
         item: 'hosted providers',
         status: `${providerSummary.configured}/${providerSummary.total} present`,
         detail: providerSummary.missing === 0 ? 'all env vars set' : `${providerSummary.missing} missing`
@@ -606,8 +581,6 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
     case 'whisperfile': return [whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL)]
     case 'defuddle': return [defuddleRuntimeDir]
     case 'music': return [whisperBinaryPath, whisperBuildDir, lyricsWhisperModelPath]
-    // 'all' is the union of every step above plus the managed tool trees, so the
-    // documented "reinstall everything" hatch does not quietly keep artifacts.
     case 'all': return [
       whisperBinaryPath,
       whisperBuildDir,
@@ -648,8 +621,6 @@ const applyRunOptions = async (step: SetupStepId, options?: { forceRedownload?: 
   }, { category: 'artifact', columns: ['step', 'clearedArtifacts'] })
 }
 
-// Returns whether the step left the install in a healthy state. Only the full
-// setup produces a verdict; focused steps throw on failure instead.
 const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
   switch (step) {
     case 'all': return await runCompleteSetup()

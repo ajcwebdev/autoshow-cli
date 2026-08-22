@@ -10,6 +10,8 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice import <subject-key> [flags]
 ```
 
+A `provider-stock` import becomes current immediately. Other origins require `--account-scope-hash` and still need [audition](./06-audition.md) and [approve](./07-approve.md).
+
 ### Options
 
 | Flag | Description |
@@ -27,7 +29,7 @@ bun autoshow voice import <subject-key> [flags]
 ### Examples
 
 ```bash
-bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --origin provider-stock --provenance-ref project:casting
+bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting
 ```
 
 Next: [design](./04-design.md).

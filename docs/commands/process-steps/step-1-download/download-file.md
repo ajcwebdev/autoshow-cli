@@ -1,12 +1,12 @@
 # download
 
-Download media or documents and collect metadata without running transcription, extraction, or LLM steps.
+Download media, documents, articles, or X Space audio and collect metadata only.
 
 ## Outline
 
 - [Supported Inputs](#supported-inputs)
 - [Flags](#flags)
-- [Advanced yt-dlp / FFmpeg Passthrough](#advanced-yt-dlp--ffmpeg-passthrough)
+- [yt-dlp Passthrough](#yt-dlp-passthrough)
 - [Output](#output)
 - [Examples](#examples)
 - [Setup and Environment](#setup-and-environment)
@@ -17,30 +17,27 @@ bun autoshow download <input>
 
 ## Supported Inputs
 
-| Input                                                         | Behavior                                                                                                               |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| YouTube / Twitch / TikTok URL                                 | Download and normalize to compressed audio, collect media metadata                                                     |
-| Direct media URL (`.mp3`, `.mp4`, etc.)                       | Download and normalize to compressed audio, collect media metadata                                                     |
-| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | Download and collect document metadata                                                                                 |
-| Direct document URL without an extension                      | Download, detect format, and collect document metadata                                                                 |
-| Remote article / HTML URL                                     | Article extraction through `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` via `--url-provider` |
-| X/Twitter Space URL or raw Space ID                           | Download Space audio, normalize to compressed audio, collect media metadata                                            |
-| X/Twitter post URL                                            | Resolve the linked Space, then download Space audio                                                                    |
-| Local `.html` / `.htm` file                                   | Article extraction with local `defuddle`                                                                               |
-| Local media file                                              | Normalize to compressed audio, collect media metadata                                                                  |
-| Local document file                                           | Detect format and collect document metadata                                                                            |
-| YouTube channel or playlist URL                               | Batch the latest videos                                                                                                |
-| RSS / podcast feed URL                                        | Batch the latest episodes                                                                                              |
-| URL list file (`.md` / `.txt`)                                | Batch each listed input                                                                                                |
-| Directory                                                     | Batch each supported local input                                                                                       |
+| Input                                                         | Behavior                                                                              |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| YouTube / Twitch / TikTok URL                                 | Download and normalize to compressed audio, collect media metadata                    |
+| Direct media URL (`.mp3`, `.mp4`, etc.)                       | Download and normalize to compressed audio, collect media metadata                    |
+| Direct document URL (`.pdf`, `.epub`, `.docx`, etc.)          | Download and collect document metadata                                                |
+| Remote article / HTML URL                                     | Collect article metadata; choose a backend with `--url-provider`                      |
+| X/Twitter Space URL or raw Space ID                           | Download Space audio, normalize to compressed audio, collect media metadata           |
+| X/Twitter post URL                                            | Resolve the linked Space, then download Space audio                                   |
+| Local `.html` / `.htm` file                                   | Collect article metadata with local `defuddle`                                        |
+| Local media file                                              | Normalize to compressed audio, collect media metadata                                 |
+| Local document file                                           | Collect document metadata                                                             |
+| YouTube channel or playlist URL                               | Batch the latest videos                                                               |
+| RSS / podcast feed URL                                        | Batch the latest episodes                                                             |
+| URL list file (`.md` / `.txt`)                                | Batch each listed input                                                               |
+| Directory                                                     | Batch each supported local input                                                      |
 
 **Supported document formats:** PDF, EPUB, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
 
 **Supported image formats:** PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF
 
-Convertible ebook inputs (MOBI, AZW/AZW3, PRC, FB2, and LIT) are converted to EPUB with Calibre during download.
-
-`.acsm` files are not supported. Provide a readable EPUB or PDF instead.
+Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 
 ## Flags
 
@@ -56,27 +53,20 @@ Convertible ebook inputs (MOBI, AZW/AZW3, PRC, FB2, and LIT) are converted to EP
 --price              Show aggregated cost estimate for all active pipeline steps and exit
 ```
 
-## Advanced yt-dlp / FFmpeg Passthrough
+## yt-dlp Passthrough
 
 Use `--` after the AutoShow input and flags to pass extra arguments to yt-dlp:
 
 ```bash
-# Override yt-dlp format selection
 bun autoshow download https://youtube.com/watch?v=abc -- --format bestvideo+bestaudio
-
-# Pass FFmpeg args through yt-dlp
-bun autoshow download https://youtube.com/watch?v=abc -- --postprocessor-args "ffmpeg:-vf scale=1280:720"
-
-# Compose passthrough with AutoShow batch flags
 bun autoshow download input/examples/batch/2-urls.md --batch-limit 3 -- --format bestaudio
 ```
 
-Passthrough is supported only for media URL downloads, including direct media URLs, podcast feed items, and X Space downloads. Local files, documents, and articles reject passthrough with a usage error.
+Passthrough works for media URL downloads, including direct media URLs, podcast feed items, and X Space downloads. Local files, documents, and articles reject it.
 
-Without a positional AutoShow input, `download --` runs yt-dlp directly and skips AutoShow manifests, normalization, output directories, pricing, and batch handling:
+Without an AutoShow input, `download --` runs yt-dlp directly:
 
 ```bash
-bun autoshow download -- --list-extractors
 bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" https://youtube.com/watch?v=abc
 ```
 
@@ -90,7 +80,7 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-With `--best-quality`, streaming sources keep the best available video+audio instead of the default compressed audio-only file. Those outputs may be `.mkv`, `.mp4`, or `.webm`. Direct media URLs and local media files keep their source file as-is because there is no quality ladder to select.
+With `--best-quality`, streaming sources keep the best available video+audio instead of the default compressed audio-only file. Those outputs may be `.mkv`, `.mp4`, or `.webm`. Direct media URLs and local media files keep the source file as-is.
 
 **Document inputs**
 
@@ -126,7 +116,7 @@ With `--keep-original-media --flat-batch`, downloaded media files keep their ori
 # Download a YouTube video
 bun autoshow download https://www.youtube.com/watch?v=u1-WHqATSQU
 
-# Download the best available video+audio media from a YouTube video
+# Download the best available video+audio from a YouTube video
 bun autoshow download https://www.youtube.com/watch?v=u1-WHqATSQU --best-quality
 
 # Download a direct media URL
@@ -141,7 +131,7 @@ bun autoshow download https://x.com/i/spaces/1DXxyRYNejbKM
 # Download 3 latest episodes from an RSS feed
 bun autoshow download https://example.com/feed --batch-limit 3
 
-# Download every podcast episode MP3 into one batch directory
+# Download every podcast episode into one batch directory
 bun autoshow download https://example.com/feed --batch-limit all --keep-original-media --flat-batch
 
 # Download 2 latest videos from a YouTube channel
@@ -149,12 +139,6 @@ bun autoshow download https://www.youtube.com/@channelname --batch-limit 2
 
 # Download all items from a URL list
 bun autoshow download input/examples/batch/2-urls.md --batch-limit all
-
-# Download one item with extra yt-dlp flags
-bun autoshow download https://youtube.com/watch?v=abc -- --write-thumbnail
-
-# Run yt-dlp directly
-bun autoshow download -- --version
 ```
 
 ## Setup and Environment

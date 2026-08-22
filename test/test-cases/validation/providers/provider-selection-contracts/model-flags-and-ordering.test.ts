@@ -40,8 +40,6 @@ describe('provider selection contracts', () => {
       ['together-stt', 'nvidia/nemotron-3-asr-streaming-0.6b']
     ]
 
-    // Cases are keyed by internal target flag, which is not a spelling a user can type;
-    // formatModelSelector maps it to the public selector the error must name.
     for (const [flag, model] of cases) {
       expect(() => buildOptsFromFlags(false, { [flag]: model }))
         .toThrow(`Invalid model "${model}" for ${formatModelSelector(flag)}`)
@@ -103,9 +101,6 @@ describe('provider selection contracts', () => {
       'zyte'
     ])
     expect(LOCAL_URL_ARTICLE_BACKENDS).toEqual(['defuddle'])
-    // isLocalUrlBackend derives from the registry's all-local-url label, so local and hosted
-    // must stay a partition: an entry whose allShortcut drifts would silently move a backend
-    // between the local and hosted concurrency pools without failing anywhere else.
     for (const backend of URL_ARTICLE_BACKENDS) {
       expect(isLocalUrlBackend(backend)).toBe(
         !(HOSTED_URL_ARTICLE_BACKENDS as readonly string[]).includes(backend)

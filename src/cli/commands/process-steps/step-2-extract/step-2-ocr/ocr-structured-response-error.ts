@@ -3,8 +3,6 @@ import type { OcrProviderFailureSummary } from '~/types'
 import { AppValidationError, collectErrorChain, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 
-// A provider returned a 200 whose body does not parse as the requested structure:
-// deterministic, so re-requesting the same response would fail identically.
 export class OcrStructuredResponseError extends AppValidationError {
   readonly rawResponse: string
 
@@ -15,8 +13,6 @@ export class OcrStructuredResponseError extends AppValidationError {
   }
 }
 
-// Uses the shared `collectErrorChain` rather than a private cause walker, so cycle and
-// depth handling stay identical to the rest of the diagnostics layer.
 export const findOcrStructuredResponseError = (
   error: unknown
 ): OcrStructuredResponseError | undefined =>

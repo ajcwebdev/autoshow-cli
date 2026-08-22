@@ -75,8 +75,6 @@ describe('general retry-on-any-error contracts', () => {
       })
       expect(result.exitCode).toBe(0)
       expect(result.stdout.trim()).toBe('ok')
-      // The subprocess tier owns the numbers; exec no longer carries its own attempt
-      // count, delay math, or abort-aware sleep.
       expect(getRetryPolicyForClass('runtime_subprocess_transient')).toEqual({
         maxAttempts: 2,
         baseDelayMs: 1_000,

@@ -16,7 +16,6 @@ import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/process-steps/sha
 import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { httpResponseError } from '~/utils/rest-client'
 
-
 let ytDlpVersionVerified = false
 
 const isDirectMediaUrl = (url: string): boolean => {
@@ -113,8 +112,6 @@ const downloadDirectMediaUrl = async (url: string, outputDir: string): Promise<s
       operationName: 'direct-media-download',
       timeoutMs: MEDIA_DOWNLOAD_TIMEOUT_MS
     },
-    // The per-attempt signal has to reach `fetch`, or the deadline above cannot cancel
-    // anything and a stalled download holds the attempt open indefinitely.
     async (signal) => {
       const r = await fetch(url, { ...(signal ? { signal } : {}) })
       if (!r.ok) {

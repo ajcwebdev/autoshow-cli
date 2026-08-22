@@ -25,11 +25,6 @@ export const withTempDir = async <T,>(fn: (dir: string) => Promise<T>): Promise<
   return await tempDirs.withDir(fn)
 }
 
-/**
- * Writes one source document and its metadata into a temp dir. Every OCR contract
- * here starts from the same three-byte page; only the slug, format, and page count
- * vary, so those stay explicit at the call site.
- */
 export const withOcrDocumentFixture = async <T,>(
   document: { slug: string, format: DocumentMetadata['format'], pageCount?: number | undefined, bytes?: Uint8Array | undefined },
   fn: (fixture: { dir: string, path: string, bytes: Uint8Array, metadata: DocumentMetadata }) => Promise<T>

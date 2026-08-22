@@ -178,13 +178,6 @@ const INCOMPLETE_ENVELOPE_MARKER = 'minimaxMusicIncompleteEnvelope'
 const isIncompleteEnvelopeError = (error: unknown): boolean =>
   extractErrorMetadata(error)[INCOMPLETE_ENVELOPE_MARKER] === true
 
-/**
- * MiniMax answers an unusable create with `status_code: 0` and no payload at all. The
- * provider *responded*, so no job was admitted: this is a definite rejection, not the
- * ambiguous admission the conservative tier refuses, and it is the only condition under
- * which this paid create is redispatched. Saying so here rather than in an inline
- * sleep-and-re-POST keeps every paid redispatch decision in the retry vocabulary.
- */
 const classifyMinimaxMusicCreateRetry: RetryClassifier = (error) =>
   isIncompleteEnvelopeError(error)
     ? {

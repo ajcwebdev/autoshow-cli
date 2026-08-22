@@ -17,7 +17,6 @@ import {
 import { expectProviderHttpError } from '../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../test-utils/value-assertions'
 
-/** `expectProviderHttpError` returns a plain Error; these assertions read AppError fields. */
 const expectAppError = async (
   fn: () => Promise<unknown>,
   expectation: { kind: 'retry_exhausted' | 'infrastructure' }
@@ -58,7 +57,6 @@ describe('retry delay computation', () => {
       () => ({ shouldRetry: true, delayMs: 0, reason: 'forced' })
     ))
 
-    // Three delays for four attempts: 1s, 2s and 4s bases, each scaled into [0.5, 1.0).
     expect(sleeps).toHaveLength(3)
     for (const [index, delayMs] of sleeps.entries()) {
       const base = 1_000 * Math.pow(2, index)
@@ -145,7 +143,6 @@ describe('status vocabulary', () => {
       })
     }
 
-    // Not in the table, but >= 500 — the catch-all Anthropic's overload status lands in.
     expect(isRetryableStatus(529)).toBe(true)
     expect(classifyFetchRetry(ProviderError('overloaded', { status: 529 }), 'runtime_http_read')).toMatchObject({
       shouldRetry: true,
@@ -187,8 +184,6 @@ describe('status vocabulary', () => {
   })
 
   test('classification reads the status through a wrapping error', () => {
-    // Reading only the top-level error meant a deterministic 401 wrapped once fell through
-    // to the default branch and was retried as an "unclassified error".
     const wrapped = InfraError('target failed', { cause: ProviderError('unauthorized', { status: 401 }) })
 
     expect(classifyFetchRetry(wrapped, 'runtime_http_read')).toMatchObject({
@@ -291,11 +286,6 @@ describe('exhaustion contract', () => {
     expect(error.status).toBe(503)
   })
 
-  /**
-   * The adaptive test harness classifies runs on this exact wording. Pinning it from the
-   * production side means a rewording fails here instead of silently disabling pressure
-   * detection in the runner.
-   */
   test('the exhaustion message wording the harness classifies on is stable', async () => {
     expect(formatRetryExhaustedMessage('some-op', 2, 4, 'max attempts reached', 1_200))
       .toBe('some-op failed after 2/4 attempts (max attempts reached, 1200ms elapsed)')
@@ -377,7 +367,6 @@ describe('the retry policy table', () => {
 
     expect(conservative.maxAttempts).toBe(2)
     expect(conservative.maxDelayMs).toBe(retriable.maxDelayMs)
-    // The two classes must not share one object: tuning either used to tune both.
     expect(conservative).not.toBe(retriable)
   })
 
@@ -481,7 +470,6 @@ describe('pollUntil', () => {
       stats
     }))
 
-    // 1s, then doubling, then the provider's Retry-After takes over, then doubling again.
     expect(sleeps).toEqual([1_000, 2_000, 4_000, 7_000, 8_000])
     expect(stats.pollCount).toBe(5)
   })

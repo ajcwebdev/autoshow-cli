@@ -1,10 +1,5 @@
 import { extname } from 'node:path'
 
-/**
- * Extension-to-MIME lookup shared by the OCR adapters that inline a source document as
- * a data URL. Each adapter passes the set it actually declares support for, so adding a
- * format here does not silently widen another provider's accepted inputs.
- */
 export const OCR_IMAGE_MIME_TYPES: ReadonlyMap<string, string> = new Map([
   ['.png', 'image/png'],
   ['.jpg', 'image/jpeg'],

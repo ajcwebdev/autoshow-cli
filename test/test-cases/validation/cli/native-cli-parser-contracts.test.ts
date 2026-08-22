@@ -286,8 +286,6 @@ describe('native CLI parser contracts', () => {
     expect(() => parseCommandInvocation(argv, runCommand, globalFlags)).toThrow(expectedMessage)
     await expect(dispatchNativeCli(argv, root, commands)).rejects.toThrow(expectedMessage)
 
-    // Sentinel outside the try (via `expect.unreachable`) so a parse that wrongly succeeds
-    // reports exactly that instead of being swallowed by this catch.
     let unknownFlagError: NativeUnknownFlagError | undefined
     try {
       parseCommandInvocation(argv, runCommand, globalFlags)

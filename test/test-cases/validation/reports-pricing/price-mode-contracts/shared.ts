@@ -4,8 +4,6 @@ import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { CommandPricingOptions, ExtractionMetadata, Step2Metadata } from '~/types'
 
-// One record narrowing for the suite; re-exported so the price-mode files keep their
-// local import path.
 import { isRecord } from '../../../../test-utils/test-helpers'
 export { isRecord }
 

@@ -73,10 +73,6 @@ describe('Gemini REST contracts', () => {
   })
 
   test('a Gemini status parsed out of the response body is judged by the caller\'s retry class', () => {
-    // Gemini reports the HTTP status inside the body, so the shared classifier cannot see
-    // it. The classifier restates it as a structured field and lets the class decide;
-    // it used to override the conservative refusal outright, which meant a paid create
-    // redispatched after a 5xx while still labelled conservative.
     const bodyStatusError = new Error('Gemini API request failed: {"error":{"code":500,"message":"internal"}}')
 
     expect(classifyGeminiRetry(bodyStatusError, 'runtime_http_create_conservative')).toMatchObject({
@@ -87,7 +83,6 @@ describe('Gemini REST contracts', () => {
       shouldRetry: true,
       reason: 'retryable status 500'
     })
-    // Conservative is the default, so a site that declares no class gets the safe posture.
     expect(classifyGeminiRetry(bodyStatusError)).toMatchObject({ shouldRetry: false })
 
     const rateLimited = new Error('Gemini API request failed: {"error":{"code":429,"message":"quota"}}')
@@ -119,7 +114,6 @@ describe('Gemini REST contracts', () => {
         .rejects.toThrow()
     })
 
-    // A 500 after the request may already have been admitted is not re-purchased.
     expect(calls).toHaveLength(1)
   })
 

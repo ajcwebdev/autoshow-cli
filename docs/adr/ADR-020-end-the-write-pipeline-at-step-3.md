@@ -9,7 +9,7 @@
 
 ## Context
 
-The `write` command used to run steps 0 through 7: metadata inspection, download, STT/OCR/URL extraction, LLM writing, then TTS, image, video, and music generation. That meant `write` advertised more than 130 generation flags, the step selectors `--tts`, `--image`, `--video`, and `--music`, and `tts|image|video|music` arguments for `--all-providers`.
+The `write` command used to run steps 0 through 7: metadata inspection, download, STT/OCR/URL extraction, LLM writing, then TTS, image, video, and music generation. That meant `write` advertised more than 130 generation flags plus the generation step selectors `--tts`, `--image`, `--video`, and `--music`.
 
 The coupling caused four problems:
 
@@ -41,22 +41,19 @@ Why now: saved `config` generation defaults were charging users on `write` runs 
 The `write` command runs only steps 0–3: metadata inspection, source download, STT/OCR/URL extraction, and LLM text writing. TTS, image, video, and music are not executed, priced, selected, or flagged from `write`. Run those standalone commands against `write` output:
 
 ```bash
-# 1. Run write to produce rendered markdown
 bun autoshow write video.mp4 --llm openai --prompt shortSummary --rendered-text
-
-# 2. Invoke standalone commands on write artifacts
 bun autoshow tts output/<run-dir>/text.md --provider elevenlabs
 bun autoshow music output/<run-dir>/text.md --provider elevenlabs
 bun autoshow image "$(cat output/<run-dir>/text.md)" --provider openai
 bun autoshow video "$(cat output/<run-dir>/text.md)" --provider grok
 ```
 
-With a single `--llm` target the rendered file is `text.md`; multiple targets write one `text-<model>.md` per model. Lyric drafts from project lyric draft mode land under `./output/<name>/lyrics` and pair with `music --lyrics-file`.
+A single `--llm` target writes `text.md`; multiple targets write one `text-<model>.md` per model.
 
 This applies to:
 
 - The `write` command's execution, help, flags, and `--price` estimates.
-- `--all-providers` and `--all-local` on `write`, which select only `stt`, `ocr`, `url`, or `llm`.
+- `--all-providers` and `--all-local` on `write`, which select extraction and LLM steps only.
 - Follow-on generation from write artifacts via `tts`, `image`, `video`, and `music`.
 - Resume of write runs, which covers steps 0–3 only.
 
@@ -64,14 +61,13 @@ It does not apply to:
 
 - The six resume domains (`extract`, `write`, `tts`, `image`, `video`, `music`), which remain independent ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
 - `config` generation defaults and step selectors (`--tts`, `--image`, `--video`, `--music`), which still persist defaults for the standalone commands.
-- `resume` provider-neutral generation options and repeatable `--provider provider[=model]` selection.
-- Type-file layout and export cleanup ([ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)).
+- The standalone `tts`, `image`, `video`, and `music` commands' own flags, pricing, and resume.
 
 ## Rationale
 
 - Saved generation defaults must not bill users during `write`.
 - `write` help and `--price` should describe only the work `write` performs.
-- The standalone `tts`, `image`, `video`, and `music` commands already accept write artifacts (files, directories, prompt strings, lyrics files) and have their own `--price` estimates.
+- The standalone `tts`, `image`, `video`, and `music` commands already accept write artifacts and have their own `--price` estimates.
 
 ## Consequences
 
@@ -99,7 +95,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-`write` no longer runs or prices generation stages. Generation flags and selectors remain on `config` and on `tts`, `image`, `video`, and `music`. The write flag surface lives in `src/cli/flags/write-flags.ts`; step-3 execution lives in `src/cli/commands/process-steps/step-3-write/run-text-write.ts`.
+Shipped as a step-3-only `write` command in `src/cli/flags/write-flags.ts` and `src/cli/commands/process-steps/step-3-write/run-text-write.ts`.
 
 ## Test Plan
 
@@ -120,7 +116,6 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 ## References
 
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
-- Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
 - `src/cli/flags/write-flags.ts`
 - `src/cli/commands/process-steps/step-3-write/run-text-write.ts`
 - `docs/commands/process-steps/step-3-write/write-text.md`

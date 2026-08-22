@@ -7,8 +7,6 @@ export const KIMI_OCR_LIMIT_SOURCE = 'project/links/kimi-general-ocr-text-links.
 export const resolveKimiBaseUrl = (): string =>
   KIMI_DEFAULT_BASE_URL.trim().replace(/\/+$/, '')
 
-// The stage comes from the call site: write and OCR callers share this helper,
-// and a hardcoded stage made write failures report `ocr:kimi`.
 export const ensureKimiApiKey = (serviceName: string, stage: string): string =>
   requireApiKey('KIMI_API_KEY', stage, serviceName)
 

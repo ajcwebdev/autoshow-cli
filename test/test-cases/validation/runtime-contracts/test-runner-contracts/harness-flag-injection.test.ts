@@ -17,7 +17,6 @@ describe('harness global flag injection', () => {
   })
 
   test('inserts injected flags before a passthrough separator so AutoShow parses them', () => {
-    // Flags placed after `--` would be forwarded to yt-dlp instead of parsed by AutoShow.
     expect(injectGlobalCliFlags(
       [CLI_SOURCE_ENTRY, 'download', 'https://example.com/v', '--', '-f', 'ba'],
       OUTPUT_ROOT,

@@ -174,7 +174,6 @@ export const resolveReferenceImages = (
 ): ResolvedReferenceImages => {
   const primary = resolvePrimaryCharacterReferences(panelDirectory, entries, bundleData)
   const prior: string[] = []
-  // Arbitrary images in panel directories are never promoted into identity refs.
   const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const designs = resolveDesignReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const required = [...primary.primaryCharacterRefs, ...locations.map(location => location.path), ...designs.map(design => design.path)]

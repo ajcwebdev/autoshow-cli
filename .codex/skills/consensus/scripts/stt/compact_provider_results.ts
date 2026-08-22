@@ -1,34 +1,8 @@
 #!/usr/bin/env bun
 
-/**
- * Compact STT provider result.json files so a run directory can be committed to
- * git without multi-megabyte payloads, while keeping everything the consensus
- * packet and reference report actually read.
- *
- * What is removed:
- *   - result.evidence.words      (per-word timing/confidence; never read by any
- *                                 consensus script)
- *   - result.evidence.rawResponse for providers that never consume it. Only the
- *                                 whisper / gemini-stt advisory Quality
- *                                 Flags read rawResponse, so it is preserved for
- *                                 exactly those providers and dropped otherwise.
- *
- * What is kept (the full report/packet input surface):
- *   provider, model, metadata.tokenCount, metadata.processingTime,
- *   result.text, result.segments[{start,end,speaker,text}],
- *   result.evidence.timingQuality, result.evidence.capabilities, and
- *   result.evidence.rawResponse for whisper/gemini-stt.
- *
- * Output is written minified (generated artifacts, not hand-edited) and the
- * operation is idempotent: re-running on an already-compacted directory is a
- * no-op aside from re-minifying.
- */
-
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
-// Providers whose `provider` field marks them as rawResponse consumers. The
-// reference report's buildQualityWarnings reads rawResponse only for these.
 const RAW_RESPONSE_CONSUMERS = new Set(["whisper", "gemini-stt"]);
 
 interface CompactionStat {

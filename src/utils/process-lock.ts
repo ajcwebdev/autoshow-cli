@@ -204,13 +204,6 @@ const removeStaleProcessLock = async (
   ) && (owner?.ownerId === undefined || takenOverOwner?.ownerId === owner.ownerId)
 
   if (!tookObservedLock) {
-    // A third contender can acquire the canonical path before this restore and make
-    // it fail. That residual window is accepted; orphaned .reap-* directories are
-    // ignored because acquisition only considers the canonical lock directory.
-    //
-    // Both outcomes return false, but they mean different things: "another contender holds
-    // the lock" is routine, while "the restore itself failed" leaves an orphaned .reap-*
-    // directory worth knowing about. The warn keeps them distinguishable.
     try {
       await rename(reapDir, lockDir)
     } catch (error) {
@@ -329,8 +322,6 @@ export const withProcessLock = async <T,>(
         )
       }
 
-      // The wait used to be completely silent for up to two hours. Report it on a slow
-      // cadence so a run blocked on another process says so.
       waitAttempts += 1
       if (waitedMs - lastWaitLogAtMs >= LOCK_WAIT_LOG_INTERVAL_MS) {
         lastWaitLogAtMs = waitedMs

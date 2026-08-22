@@ -123,9 +123,6 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     if (sourcePaths.has(normalizedSourcePath)) fail(configPath, `duplicate source image path "${authored.image}"`)
     const normalizedOutlineSheetPath = outlineSheetPath.replace(/\\/g, '/')
     if (outlineSheetPaths.has(normalizedOutlineSheetPath)) fail(configPath, `duplicate outline sheet path "${authored.outlineSheet}"`)
-    // A character may intentionally use one canonical image for both fields.
-    // Paths must still be exclusive to that character so references cannot be
-    // silently shared or mislabeled across catalog entries.
     if (assetPaths.has(normalizedSourcePath) || assetPaths.has(normalizedOutlineSheetPath)) {
       fail(configPath, 'character asset paths must be unique across source images and outline sheets')
     }

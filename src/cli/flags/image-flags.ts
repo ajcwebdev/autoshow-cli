@@ -12,8 +12,6 @@ import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-i
 import { REPLICATE_QWEN_ASPECT_RATIO_VALUES, REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES, REPLICATE_WAN_IMAGE_COUNT_RANGE } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
 import { FAL_IMAGE_COUNT_RANGE, FAL_REVE_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/fal-image-service/run-fal-image-gen'
 
-// Values Seedream accepts that no other image provider does, so the clause stays right
-// if the shared ratios change.
 const imageAspectRatioLists = [
   GROK_IMAGE_ASPECT_RATIO_VALUES,
   GEMINI_NATIVE_ASPECT_RATIO_VALUES,
@@ -45,10 +43,6 @@ export const imageGenFlags = {
   'image-compression': strFlag(`OpenAI output compression for jpeg/webp images, ${formatRange(OPENAI_IMAGE_COMPRESSION_RANGE)}`),
 } as const satisfies CliFlagsDefinition
 
-// The standalone `image` command drops the `image-` prefix every other surface keeps
-// (ADR-002). It is the single home for that mapping: `imageCommandFlags` renames the flag
-// definitions with it, `define-image-command.ts` normalizes argv and retargets usage errors
-// with it, so the two spellings cannot drift apart.
 export const imageCommandOptionNames = {
   'image-aspect-ratio': 'aspect-ratio',
   'image-size': 'size',

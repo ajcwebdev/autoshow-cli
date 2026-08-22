@@ -190,8 +190,6 @@ describe('ADR-017 Phase 7 Replicate AudioGen contracts', () => {
   })
 
   test('createReplicateAudioGenAdapter requires an API token', () => {
-    // Reports the missing credential through the single gate, so the message, exit code,
-    // and hints match every other provider rather than being adapter-specific.
     expect(() => createReplicateAudioGenAdapter({ apiToken: '' }))
       .toThrow(/REPLICATE_API_TOKEN environment variable is required/)
     try {

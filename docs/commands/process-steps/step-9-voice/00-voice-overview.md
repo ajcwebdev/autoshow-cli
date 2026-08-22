@@ -8,7 +8,7 @@ Manage durable provider voice registrations separately from speech synthesis. `c
 - [Setup](#setup)
 - [Typical Flow](#typical-flow)
 - [Artifacts](#artifacts)
-- [Voice Price Safety](#voice-price-safety)
+- [Pricing](#pricing)
 - [Command Docs](#command-docs)
 
 ## Overview
@@ -63,31 +63,24 @@ SPEECHIFY_API_KEY=...
 2. [List](./01-list.md) provider or account catalogs, or [import](./03-import.md) an existing voice ID.
 3. Optionally [design](./04-design.md) candidates and save one with `--save`, or [clone](./05-clone.md) from local samples.
 4. [Audition](./06-audition.md) the draft registration, then [approve](./07-approve.md) it.
-5. [List](./01-list.md) the local catalog or one registration.
-6. [Retire](./08-retire.md) or [delete](./09-delete.md) when the registration should leave the current index. Use `voice consent --revoke` to revoke a consent locator.
-
-If a Fish create is interrupted, the next matching `design --save`, `clone`, `delete`, or `list <id>` completes it when the saved state is unambiguous. Pass `--reconcile` when the CLI reports the state as ambiguous.
+5. [Retire](./08-retire.md) or [delete](./09-delete.md) when the registration should no longer be current. Use `voice consent --revoke` to revoke a consent locator.
 
 ## Artifacts
 
 Sample audio, previews, auditions, and consent records stay in a separate owner-only store, not under ordinary project output.
 
-Project files under `input/characters/` hold metadata and locators for those protected assets:
+You author profiles in `input/characters/character-voices.json`. The CLI writes registration metadata beside it:
 
-- `input/characters/character-voices.json`
 - `input/characters/character-voice-registrations.json`
 - `input/characters/character-voice-current.json`
-- `input/characters/voice-candidates/<candidate-id>.json`
-- `input/characters/voice-references/<subject>/<provider>/<registration>/<generation>/registration-snapshot.json`
-- `input/characters/voice-references/<subject>/<provider>/<registration>/<generation>/audition-manifest.json`
+- `input/characters/voice-candidates/`
+- `input/characters/voice-references/`
 
-The catalog keeps every prior generation. The current index contains only approved, ready registrations.
+The catalog keeps history. Only approved, ready voices are current.
 
-## Voice Price Safety
+## Pricing
 
-`design --price` reports a preview estimate from the synthesis model's character rate and the preview text length, plus the provider, creation model, and candidate count. ElevenLabs, Fish, and Inworld charge the preview text once, so the candidate count does not multiply the estimate. `design --save --price` reports zero estimated provider cost because the supported design flows include saving the selected resource.
-
-Provider prices and eligibility can change. Treat the estimate as a preflight from AutoShow's dated pricing configuration and use the provider console when account-specific terms matter.
+`design --price` estimates one preview for ElevenLabs, Fish, and Inworld even when you request multiple candidates. `design --save --price` reports zero provider cost because saving a selected candidate does not add a billed preview. Treat estimates as a preflight; use the provider console for account-specific terms.
 
 ## Command Docs
 

@@ -1,7 +1,7 @@
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, RetryClass } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
-import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
   usage: 2,
   provider_http: 1,
@@ -46,9 +46,6 @@ export class AppError extends Error {
 }
 
 export class AppUsageError extends AppError {
-  // The phrasing the top-level handler prints on the "Usage error: …" line. Defaults to
-  // `message`; subclasses (notably the native parser errors) set a longer form that adds
-  // the follow-up command without changing the message the throw site chose.
   readonly usageMessage: string
 
   constructor(
@@ -57,10 +54,6 @@ export class AppUsageError extends AppError {
     options: {
       usageMessage?: string
       cause?: Error | undefined
-      // Usage errors carry the same structural fields as every other kind: the credential
-      // gate needs `stage`/`retryable`/`metadata.missingEnvVar` on the error it throws, and
-      // reaching them through a post-construction `Object.assign` bypassed the constructor
-      // that normalizes them.
       stage?: string
       retryable?: boolean
       metadata?: Record<string, unknown>
@@ -108,8 +101,6 @@ class AppInternalError extends AppError {
   }
 }
 
-// `cause` matters even for usage errors: a re-wrap that drops it leaves `collectErrorChain`
-// with a one-element chain, so the underlying failure never reaches diagnostics.
 export const CLIUsageError = (
   message: string,
   hint?: string,
@@ -140,33 +131,12 @@ export const ValidationError = (
   options: Omit<AppErrorOptions, 'kind'> = {}
 ): AppValidationError => new AppValidationError(message, options)
 
-// Generated from the credential specification so labels, URLs, and names cannot drift.
-export const MISSING_ENV_HINTS: Readonly<Record<string, string>> = Object.fromEntries(
-  HOSTED_PROVIDER_ENV_CHECKS.map(spec => [
-    spec.envVar,
-    `Set ${spec.envVar} environment variable to use ${spec.label} (${spec.hintUrl})`
-  ])
-)
-
-/**
- * Structured remediation hint(s) for a missing environment variable. Keeps the
- * env-var wording centralized so throw sites can attach `hints: hintsForMissingEnv(key)`.
- */
-export const hintsForMissingEnv = (key: string): string[] => [
-  MISSING_ENV_HINTS[key] ?? `Set ${key} environment variable to use this provider`
-]
-
 export const isAppError = (error: unknown): error is AppError =>
   error instanceof AppError
 
 export const isCLIUsageError = (error: unknown): error is AppUsageError =>
   error instanceof AppUsageError
 
-/**
- * True when a retry or poll loop gave up anywhere in the cause chain. Downstream
- * accounting used to detect this by matching the wording of the messages those loops
- * produce; asking about the kind means a rewording cannot silently change behavior.
- */
 export const isRetryExhaustedError = (error: unknown): boolean => {
   const seen = new Set<unknown>()
   let current: unknown = error
@@ -180,22 +150,12 @@ export const isRetryExhaustedError = (error: unknown): boolean => {
   return false
 }
 
-/**
- * The one filesystem/system errno check. ENOENT in particular used to be detected three
- * different ways (this predicate defined twice locally, plus a `/does not exist|no such
- * file/` message regex), so a probe could silently classify differently depending on which
- * spelling the call site happened to use.
- */
 export const hasErrorCode = (error: unknown, code: string): boolean =>
   typeof error === 'object'
   && error !== null
   && 'code' in error
   && (error as { code?: unknown }).code === code
 
-/**
- * Runs `fn` and re-wraps any non-usage throw as a `CLIUsageError` (usage errors pass
- * through untouched). Consolidates the validator-wrapping idiom at command boundaries.
- */
 export function rethrowAsUsage<T>(fn: () => Promise<T>, fallbackHint?: string): Promise<T>
 export function rethrowAsUsage<T>(fn: () => T, fallbackHint?: string): T
 export function rethrowAsUsage<T>(
@@ -223,8 +183,6 @@ export function rethrowAsUsage<T>(
   }
 }
 
-// The whole usage family now extends AppUsageError, so one instanceof check covers it;
-// the native-parser duck-type bridge this used to need is gone.
 export const isUsageError = (error: unknown): boolean => isCLIUsageError(error)
 
 export const normalizeExitCode = (error: unknown): number => {
@@ -292,11 +250,6 @@ const addMetadataValue = (
   }
 }
 
-/**
- * Reads the HTTP status a provider error carries. Five modules had reimplemented this and
- * two had reimplemented the headers probe beside it; both are provider-agnostic error shape
- * questions, so they live with the rest of the error helpers.
- */
 export const getErrorStatus = (error: unknown): number | undefined => {
   if (error && typeof error === 'object' && 'status' in error) {
     const status = (error as { status: unknown }).status

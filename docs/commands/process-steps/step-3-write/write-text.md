@@ -41,11 +41,9 @@ bun autoshow setup
 bun autoshow setup --doctor
 ```
 
-Write has no local LLM. Step 3 always uses a hosted provider. Omitting `--llm` selects the cheapest hosted model.
+Write has no local LLM; step 3 always uses a hosted provider.
 
 ### Environment
-
-Hosted LLM providers need API keys:
 
 ```bash
 OPENAI_API_KEY=...
@@ -69,7 +67,7 @@ X_BEARER_TOKEN=...
 bun autoshow write [input] [flags]
 ```
 
-`write` uses standard step 1 and step 2 routing. The LLM flag you choose controls step 3. Media inputs route through STT, documents/images route through OCR or native text extraction, HTML/article inputs route through URL article extraction, and X Space or X post inputs route through X Space collection before the LLM runs.
+Media inputs route through STT, documents and images through OCR or native text extraction, HTML and article inputs through URL article extraction, and X Space or X post inputs through X Space collection. `--llm` then generates the step-3 text.
 
 Project lyric draft mode is enabled when the input is `./output/<name>/text` or a `.md` / `.txt` file under that directory. In that mode, `write` treats the input as raw text, reads `./output/<name>/prompt.md` by default, uses `./output/<name>/tracks.md` when present, and writes rendered markdown drafts to `./output/<name>/lyrics`.
 
@@ -98,7 +96,7 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 
 Without `--text-input`, `write` inspects a `.md` / `.txt` target to decide how to treat it: when at least half of its non-empty, non-`#` lines resolve to URLs, X Space ids, or existing local file paths it runs as a newline-delimited batch input list, and otherwise it runs as raw source text automatically. Pass `--text-input` to force text mode for a file the detection would treat as a list.
 
-See [Provider Capabilities](#provider-capabilities) for the per-model release date, reasoning, context, and structured-output matrix.
+See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, and pricing matrix.
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --prompt shortSummary longSummary
@@ -108,11 +106,11 @@ bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
 ```
 
-Write `--price` estimates use the selected prompt and source text. The `Cost Estimate` table shows `step`, `provider`, `model`, estimated `input` tokens, `cost`, and `estimated` processing time; use `--json` for structured token estimates and rates.
+Write `--price` estimates use the selected prompt and source text. Use `--json` for structured token estimates and rates.
 
 ## Write Services
 
-Step selectors accept `provider[=model]`. Omitting `--llm` uses the cheapest hosted model. Omitting the model on a provider selector resolves to the cheapest supported model for that provider unless the provider section below documents a different default. Model-selecting flags are repeatable, including repeated selectors from the same provider.
+Step selectors accept `provider[=model]`. Omitting the model resolves to the cheapest supported model for that provider unless the provider section below documents a different default. Model-selecting flags are repeatable, including repeated selectors from the same provider.
 
 ### OpenAI
 
@@ -124,11 +122,8 @@ Step selectors accept `provider[=model]`. Omitting `--llm` uses the cheapest hos
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.6-sol
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.4-nano
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --stt deepgram --llm openai=gpt-5.5
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --llm openai=gpt-5.4-mini
-bun autoshow write ./output/demo/text/01-track-one.md --llm openai=gpt-5.5 --prompt folkSong
 ```
 
 ### Anthropic
@@ -141,8 +136,6 @@ bun autoshow write ./output/demo/text/01-track-one.md --llm openai=gpt-5.5 --pro
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropic=claude-fable-5
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropic=claude-opus-4-8
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropic=claude-opus-5
 ```
 
 Claude Fable 5 requires 30-day data retention and is unavailable under ZDR.
@@ -156,11 +149,10 @@ Claude Fable 5 requires 30-day data retention and is unavailable under ZDR.
 | Default  | Passing `--llm gemini` uses `gemini-3.5-flash-lite`                                       |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.5-flash-lite
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
 ```
 
-Gemini 3.7 Flash `--price` estimates use the standard `$1.50 / $7.50` rates effective 2027-01-01, overstating cost during the introductory `$0.75 / $3.75` window through 2026-12-31. Gemini 3.1 Pro Preview uses `$2.00 / 1M input` and `$12.00 / 1M output` up to 200K tokens, and `$4.00 / 1M input` and `$18.00 / 1M output` above 200K.
+Gemini 3.7 Flash `--price` estimates use the standard `$1.50 / $7.50` rates effective 2027-01-01, overstating cost during the introductory `$0.75 / $3.75` window through 2026-12-31. Gemini 3.1 Pro Preview is `$4.00 / $18.00` per 1M tokens above 200K.
 
 ### Groq
 
@@ -186,7 +178,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm groq=ope
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm minimax=MiniMax-M3
 ```
 
-MiniMax Standard pay-as-you-go bands: up to 512K input tokens at `$0.60 / 1M input` and `$2.40 / 1M output`; over 512K input tokens at `$1.20 / 1M input` and `$4.80 / 1M output`.
+Above 512K input tokens, MiniMax is `$1.20 / 1M input` and `$4.80 / 1M output`.
 
 ### Grok
 
@@ -197,7 +189,6 @@ MiniMax Standard pay-as-you-go bands: up to 512K input tokens at `$0.60 / 1M inp
 | Default  | Passing `--llm grok` uses `grok-4.3` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.3
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.5
 ```
 
@@ -224,7 +215,6 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm glm=glm-
 | Default  | Passing `--llm kimi` uses `kimi-k2.6` |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k2.6
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k3
 ```
 
@@ -240,7 +230,6 @@ Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=kimi-k2.6
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=glm-5.1
 ```
 
 ### Cerebras
@@ -253,12 +242,9 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=gpt-oss-120b
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=zai-glm-4.7
 ```
 
 ## Prompts
-
-Available prompts organized by category:
 
 ### Summary and Overview
 
@@ -322,16 +308,12 @@ Available prompts organized by category:
 - Single-target runs write `text.json`.
 - Multi-target runs write `text-<model>.json` for each selected LLM target.
 - `--rendered-text` writes rendered markdown inside the run directory: `text.md` for a single `--llm` target, or `text-<model>.md` per model when multiple targets are selected.
-- `--rendered-out-dir <dir>` also writes rendered markdown to another directory.
-- `--prompt-md` writes a second prompt file (`prompt-md.md`) with markdown-formatted examples alongside the JSON prompt.
-- Project lyric draft mode defaults `--rendered-out-dir` to `./output/<name>/lyrics`.
 
 ## Notes
 
-- `write` accepts the same step-2 STT flags documented in [`extract STT`](../step-2-extract/02-extract-stt.md#shared-stt-options) and provider sections, plus the same step-2 OCR flags documented in [`extract OCR`](../step-2-extract/03-extract-ocr.md#shared-ocr-options) and provider sections. Provider/model flags are repeatable, so routed step-2 media and document work can fan out across multiple selected providers.
-- Resume is exposed as the top-level `resume` command for extract, write, TTS, image, video, and music outputs, not as a `write` flag.
-- `--batch-concurrency` controls how many batch items run at once. `--provider-concurrency` and `--local-concurrency` control provider fan-out inside each write item. Hosted work from batch children shares the run-scoped provider/account ramp; local work remains immediate.
-- `write ./output/<name>/text` and files under that directory automatically enable project lyric draft mode. Shorthands such as `write demo` or `write ./output/demo` do not.
+- `write` accepts the same step-2 STT flags documented in [`extract STT`](../step-2-extract/02-extract-stt.md#shared-stt-options) and the same step-2 OCR flags documented in [`extract OCR`](../step-2-extract/03-extract-ocr.md#shared-ocr-options).
+- Resume of a write run uses the top-level [`resume`](../../setup-and-utilities/resume/resume.md) command, not a `write` flag.
+- Shorthands such as `write demo` or `write ./output/demo` do not enable project lyric draft mode; the input must be `./output/<name>/text` or a file under that directory.
 - Project lyric draft mode requires `./output/<name>/prompt.md` unless `--prompt-file` is supplied. Explicit `--prompt-file`, `--track-list`, and `--rendered-out-dir` values override the project defaults.
 
 ## Generate Media from Write Output
@@ -346,11 +328,11 @@ bun autoshow image "$(cat output/<run-dir>/text.md)" --provider openai
 bun autoshow video "$(cat output/<run-dir>/text.md)" --provider grok
 ```
 
-Lyric drafts from project lyric draft mode land under `./output/<name>/lyrics` and pair with `music --lyrics-file`.
+Lyric drafts pair with `music --lyrics-file`.
 
 ## Provider Capabilities
 
-Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.md#provider-capabilities): ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Recency marks follow the TTS convention: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. Context uses ✅ 1M or more, ⚠️ 200K to under 1M, and ❌ under 200K or unpublished. Pricing is the AutoShow registry rate per 1M tokens (input / output). Cost rank orders models cheapest-first (1 = cheapest) by the sum of the input and output prices, the same blend cheapest-model selection uses, and ties share a rank.
+Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Recency: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. Context uses ✅ 1M or more, ⚠️ 200K to under 1M, and ❌ under 200K or unpublished. Pricing is per 1M tokens (input / output). Cost rank orders models cheapest-first (1 = cheapest); ties share a rank.
 
 | Provider                        | Released      | Reasoning                    | Context       | Structured output         | Pricing                       | Cost rank |
 | ------------------------------- | ------------- | ---------------------------- | ------------- | ------------------------- | ----------------------------- | --------- |
@@ -384,5 +366,3 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 | Groq `openai/gpt-oss-20b`       | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.075 / $0.30 per 1M tokens  | 1/30      |
 | Groq `openai/gpt-oss-120b`      | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.15 / $0.60 per 1M tokens   | 2/30      |
 | Cerebras `gpt-oss-120b`         | ❌ 2025-08-05  | ❌ Unsupported                | ❌ 131K        | ⚠️ Strict-mode normalized | $0.35 / $0.75 per 1M tokens   | 3/30      |
-
-Write test coverage is documented in [Step 3 Service Tests: Write](write-tests.md).

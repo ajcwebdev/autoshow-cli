@@ -68,22 +68,16 @@ export type RunCommandArtifacts = {
 }
 
 export type RunAndExpectOutputDirOptions = {
-  // Retry a single transient provider failure before treating it as fatal.
   transient?: {
     isTransient: (output: string) => boolean
     providerLabel: string
     persistedLabel: string
   }
-  // Runs before the generic exit-code handling, so a suite can convert a known provider
-  // account state into its own terminal message.
   onResult?: (result: RunCommandResult) => void
-  // Set false for suites that report the raw command failure without classifying it as a
-  // live-provider availability problem. Defaults to true.
   classifyAvailability?: boolean
 }
 
 export type CommandFailureExpectation = {
-  // Defaults to 2: the usage exit code, which is what nearly every caller means.
   exitCode?: number
   contains?: string | readonly string[]
   notContains?: string | readonly string[]
@@ -96,11 +90,7 @@ export type ConsoleCapture = {
 }
 
 export type CaptureConsoleOptions = {
-  // Strip ANSI before recording, so assertions do not depend on the color regime.
   strip?: boolean
-  // Swap in an interactive human sink for the duration. Under the non-TTY test
-  // runner the default sink routes info-level events to stderr, which leaves
-  // `stdout` empty for tests that mean to assert on the stdout channel.
   interactiveHumanSink?: boolean
 }
 

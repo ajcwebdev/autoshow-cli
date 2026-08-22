@@ -160,15 +160,10 @@ const requireBrief = async (subjectKey: string, profileKey: string) => {
   return brief
 }
 
-// Voice management results are structured payloads rather than file-producing
-// completions, so they travel the sanctioned `report.result` channel: NDJSON on
-// stdout under --json/--log-format, a human detail table otherwise. Both honor
-// --quiet and the configured log level, which the raw stdout writes did not.
 const reportVoiceResult = (message: string, data: Record<string, unknown>): void => {
   l.report.result(data, { message })
 }
 
-// `--price` previews are dry runs: no mutation and no provider call.
 const reportVoicePrice = (message: string, data: Record<string, unknown>): void => {
   l.report.result({ dryRun: true, ...data }, { message, category: 'pricing' })
 }

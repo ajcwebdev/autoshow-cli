@@ -173,8 +173,6 @@ export const planStandaloneMistralReference = async <T extends TtsOptions>(
   }
   const sourceExtension = extname(sourcePath).toLowerCase()
 
-  // This is the privacy boundary: the raw edge input never enters the runtime bag. Keep it only in
-  // a capability bound to this exact sanitized options object.
   pendingReferenceByOptions.set(options, { ...edgeInput, sourceExtension, store })
   return attachMistralProtectedReference(options, {
     materialization: 'non-materialized',
@@ -216,7 +214,6 @@ export const materializeStandaloneMistralReference = async <T extends TtsOptions
     await assertProtectedStoreOutputDisjoint(outputPath, root)
   }
 
-  // Consume before the first write attempt so one options capability cannot ingest twice.
   pendingReferenceByOptions.delete(options)
   pendingSpeakerReferencesByOptions.delete(options)
   if (pending) {

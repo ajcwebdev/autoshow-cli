@@ -3,19 +3,12 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { writePageQaReports } from './comic-page-qa'
 
-/**
- * Runs one comic image work list concurrently, folds each item's counters into the run
- * totals, groups QA entries by output directory, and writes one QA report per directory.
- * A failed item is counted rather than thrown so the whole list still finishes and its
- * artifacts and QA reports are preserved before the run is reported as failed.
- */
 export const runComicImageWorkItems = async <TItem>(input: {
   concurrency: number
   items: readonly TItem[]
   render: (item: TItem) => Promise<ComicImageWorkItemResult>
   stats: ImageRunStats
   qaEnabled: boolean
-  /** Page generation treats a QA hard failure as a run failure; panel generation does not. */
   qaHardFailure?: { message: (count: number) => string, stage: string } | undefined
   itemFailure: { message: (count: number) => string, stage: string }
 }): Promise<ImageRunStats> => {

@@ -4,11 +4,6 @@ export const HELP_COMMAND_GROUPS = [
   ['processing', 'Processing & Generation']
 ] as const
 
-// Section order for grouped flag help on *every* command, not just `config`.
-// `renderGroupedFlags` walks this list and prints each group that some flag
-// claims via `withHelpGroup`, then dumps whatever is left in an unlabeled
-// trailing block — so a group missing from here does not error, it silently
-// renders ungrouped. `help-flag-groups.test.ts` pins the two sides equal.
 export const HELP_FLAG_GROUPS = [
   ['config', 'Config'],
   ['document-options', 'Document Options'],

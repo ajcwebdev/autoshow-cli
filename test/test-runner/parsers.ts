@@ -84,14 +84,6 @@ const FAILURE_TAG_PATTERN = /<failure\b([^>]*)>([\s\S]*?)<\/failure>|<failure\b(
 const ERROR_TAG_PATTERN = /<error\b([^>]*)>([\s\S]*?)<\/error>|<error\b([^>]*)\/>/
 const SKIPPED_TAG_PATTERN = /<skipped\b([^>]*)\/?>(?:[\s\S]*?<\/skipped>)?/
 
-/**
- * Failure/error/skipped cascade for one `<testcase>` body. Both tag patterns alternate between a
- * paired form (attrs in group 1, body text in group 2) and a self-closing form (attrs in group 3),
- * so attrs and body text are each resolved by walking failure-then-error across both groups. That
- * cross-tag walk is preserved verbatim from the pre-refactor parser: a body carrying a
- * self-closing `<failure />` next to a paired `<error>text</error>` reports the failure tag's
- * (empty) attrs with the error tag's body text.
- */
 export const resolveTestcaseStatus = (body: string): { status: TestStatus, failureMessage: string | null } => {
   const failureTag = body.match(FAILURE_TAG_PATTERN)
   const errorTag = body.match(ERROR_TAG_PATTERN)

@@ -10,9 +10,6 @@ import { imageReferenceToInlineDataPart } from '../../image-utils/image-inputs'
 import { getProviderReturnedModel } from '../../image-utils/image-output'
 import { InfraError } from '~/utils/error-handler'
 
-// A 200 response carrying no image part is the shape Gemini uses for a refusal or a filtered
-// prompt. The reason lives in promptFeedback.blockReason / candidates[].finishReason, so surface
-// it: without it the failure is indistinguishable from a provider outage.
 const describeGeminiEmptyImageReason = (
   response: { promptFeedback?: { blockReason?: string | undefined } | undefined, candidates?: Array<{ finishReason?: string | undefined }> | undefined }
 ): string => {

@@ -74,7 +74,6 @@ export const generateSceneJson = async (
 
     const parsed = parseSceneJsonResponse(text, { lenient: true })
 
-    // Strip null tone values before validation
     if (parsed && typeof parsed === 'object' && 'panels' in parsed && Array.isArray(parsed.panels)) {
       for (const panel of parsed.panels) {
         if (

@@ -122,11 +122,8 @@ export type CreateCurrentTtsRenderAttemptOptions = {
   sourceIdentity?: GenericTtsSourceIdentity | undefined
   dialoguePlan?: GenericTtsDialoguePlan | undefined
   comicContext?: ComicTtsRenderContext | undefined
-  /** Canonical provider-attempt count retained before preparing this render. */
   priorAttemptCount?: number | undefined
-  /** Verified completed slots from an earlier attempt of this exact render. */
   recoveredSlots?: readonly CurrentTtsRecoveredGenerationSlot[] | undefined
-  /** Planned provider spend already represented by retained canonical dispatch attempts. */
   retainedCumulativePlannedCost?: PlannedCost | undefined
   onProviderState?: ((state: PipelineProviderState) => Promise<void>) | undefined
   now?: (() => string) | undefined

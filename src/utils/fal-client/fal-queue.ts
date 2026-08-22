@@ -39,7 +39,6 @@ const cancelFalQueueRequest = async (apiKey: string, cancelUrl: string): Promise
   try {
     await fetch(cancelUrl, { method: 'PUT', headers: headersFor(apiKey) })
   } catch {
-    // Cancellation is best-effort while preserving the original queue error.
   }
 }
 
@@ -47,11 +46,9 @@ export const runFalQueue = async <T>(options: {
   apiKey: string
   endpointId: string
   input: Record<string, unknown>
-  /** Test-only override that keeps queue-polling contract tests fast. */
   pollIntervalMs?: number | undefined
   operationName: string
   onStatus?: ((status: FalQueueStatus) => void) | undefined
-  // Without this, Ctrl-C could not interrupt a ten-minute queue poll.
   abortSignal?: AbortSignal | undefined
 }): Promise<{ requestId: string, output: T }> => {
   const baseUrl = getFalQueueBaseUrl()

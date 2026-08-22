@@ -16,12 +16,6 @@ import { formatSttTargetLabel } from '../stt-targets'
 import { YOUTUBE_CAPTIONS_SERVICE } from '../youtube-captions'
 import { formatProviderStateIssue, resolveRecordedSttStep2 } from './recorded-step2'
 
-
-/**
- * Derives the per-provider completion picture (successes, failures, provider states,
- * completion status and the various filtered slices) from the mutable batch state once
- * all targets have finished running.
- */
 export const computeSttBatchDerivedState = ({
   requestedTargets,
   successes,
@@ -59,10 +53,6 @@ export const computeSttBatchDerivedState = ({
   }
 }
 
-
-/**
- * Computes estimated/actual cost and timing for the batch, then writes the canonical manifest.
- */
 export const finalizeSttBatchCostTiming = async ({
   outputDir,
   requestedTargets,
@@ -157,10 +147,6 @@ export const finalizeSttBatchCostTiming = async ({
   return { cost, timing }
 }
 
-/**
- * Reports batch success via {@link l.report.complete}, or logs the failure summary and
- * throws {@link SttPartialCompletionError} when the run did not complete every provider.
- */
 export const reportSttBatchOutcome = ({
   outputDir,
   requestedTargets,

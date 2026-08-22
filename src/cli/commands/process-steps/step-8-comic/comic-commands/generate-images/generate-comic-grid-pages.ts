@@ -70,7 +70,6 @@ export const generateComicGridPages = async (
     `groups=${gridChunks.length}`,
   ])
 
-  // Grid composites are independent local operations across chunk/variation/model.
   const gridTasks = gridChunks.flatMap(gridChunk =>
     variations.flatMap(variation =>
       options.models.map(model => async () => {

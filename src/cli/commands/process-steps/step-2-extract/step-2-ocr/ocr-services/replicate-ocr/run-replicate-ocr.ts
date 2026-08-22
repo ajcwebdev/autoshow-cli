@@ -17,8 +17,6 @@ const pageText = (page: unknown): string | undefined => {
 const isMarkerModel = (model: string): boolean => model === 'datalab-to/marker'
 const isDeepSeekOcrModel = (model: string): boolean => model === 'lucataco/deepseek-ocr'
 
-// Community Replicate models can change their default deployment without notice.
-// Keep the reviewed DeepSeek OCR version explicit at every dispatch.
 export const REPLICATE_DEEPSEEK_OCR_VERSION = 'cb3b474fbfc56b1664c8c7841550bccecbe7b74c30e45ce938ffca1180b4dff5'
 
 export const runReplicateOcr = async (

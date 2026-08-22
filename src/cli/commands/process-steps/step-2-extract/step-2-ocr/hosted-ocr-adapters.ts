@@ -36,7 +36,6 @@ const renderedPngPages = (opts: ExtractionOptions): HostedOcrFallbackOptions => 
   chunkExtension: 'png'
 })
 
-/** Options shared by the adapters that render and dispatch their own PDF pages. */
 const pageRenderingProviderOptions = (request: HostedOcrAdapterRequest) => ({
   dpi: request.opts.dpi,
   password: request.opts.password,
@@ -55,10 +54,6 @@ const tokenUsage = (run: { promptTokens?: number | undefined, completionTokens?:
   ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
 })
 
-/**
- * Ordered exactly as dispatch evaluates providers; the first descriptor whose
- * `selectModel` resolves wins.
- */
 export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
   {
     service: 'mistral',
@@ -98,7 +93,6 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
         extractionMethod: run.extractionMethod,
         ocrService: 'glm',
         ocrModel,
-        // GLM returns canonical Markdown alongside its per-page text.
         canonicalText: run.markdown,
         ...(typeof run.totalPages === 'number' ? { totalPages: run.totalPages } : {}),
         ...tokenUsage(run)
@@ -220,7 +214,6 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
         ocrModel,
         totalPages: run.totalPages,
         ...tokenUsage(run),
-        // Gemini is the only adapter that reports its own per-request usage rows.
         ...(run.providerUsage && run.providerUsage.length > 0 ? { providerUsage: run.providerUsage } : {})
       }
     },
@@ -271,7 +264,6 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
         ...(typeof run.totalPages === 'number' ? { totalPages: run.totalPages } : {})
       }
     },
-    // Marker accepts whole documents; DeepSeek only reads one rendered page at a time.
     fallbackOptions: (opts, ocrModel) => ocrModel === 'lucataco/deepseek-ocr'
       ? renderedPngPages(opts)
       : {}

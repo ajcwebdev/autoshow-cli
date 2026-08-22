@@ -114,7 +114,6 @@ export const defineTTSServiceTest = ({
       ]
 
       const outputDir = await runCommandAndExpectOutputDir(inputTitle, args, undefined, {
-        // MiniMax is the one TTS provider whose transport failures are worth a single retry.
         ...(ttsService === 'minimax'
           ? {
               transient: {
@@ -125,7 +124,6 @@ export const defineTTSServiceTest = ({
             }
           : {}),
         onResult: (result) => { throwOnKnownProviderFailure(ttsService, model, args, result) },
-        // TTS reports the raw command failure; live-availability classification is not applied.
         classifyAvailability: false
       })
 

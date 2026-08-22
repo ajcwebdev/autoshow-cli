@@ -95,9 +95,6 @@ const normalizeHostedImageWithBun = async (
   try {
     await normalizeImageToPngWithBun(imagePath, pngPath)
   } catch (error) {
-    // A conversion failure is a tooling/infrastructure problem, not a usage mistake:
-    // the format was accepted by `resolveHostedDirectImageInputStrategy`, so exiting 2
-    // here would report "you typed it wrong" for a decoder failure.
     const message = error instanceof Error ? error.message : String(error)
     throw InfraError(
       `Failed to normalize ${basename(imagePath)} for --${engine}. Bun.Image could not convert ${normalizedFormat.toUpperCase()} to PNG: ${message}`,

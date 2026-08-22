@@ -5,8 +5,6 @@ import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
 
-// The CLI assertion helpers live in test-utils so every directory shares one
-// implementation; `parseRoot` stays as this suite's local spelling of `parseRootCli`.
 export {
   commandNamed,
   expectUnknownCommand,

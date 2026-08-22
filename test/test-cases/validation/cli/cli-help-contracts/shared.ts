@@ -61,8 +61,6 @@ export const visibleFlagNames = (flags: CliFlagsDefinition | undefined): string[
 const findHelpCommand = (name: string) =>
   helpSurfaces.find((command) => command.name === name)
 
-// These contracts assert help structure, not palette. Spawned help checks force
-// NO_COLOR; the in-process renderer honors FORCE_COLOR, so strip ANSI here.
 export const loadHelp = async (args: string[]): Promise<HelpResult> => {
   if (args[0] === 'benchmark') {
     return {
@@ -110,7 +108,6 @@ export const getFlagGroupSection = (output: string, label: string): string => {
   return output.slice(sectionStart, Math.min(nextGroupEnd, globalFlagsEnd))
 }
 
-// Command-specific flags only; excludes the shared Global Flags block.
 export const getCommandFlagsSection = (output: string): string => {
   const start = output.indexOf('\nFlags\n')
   if (start === -1) {

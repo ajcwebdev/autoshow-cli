@@ -12,13 +12,9 @@ export const createJsonProfileStore = <const TVersion extends number, TEntry>(op
   acceptVersions?: readonly number[] | undefined
   parseEntry: (value: unknown) => TEntry | undefined
   resolvePath: () => string
-  /** Required to call `publish`; read-only stores omit it. */
   publishPolicy?: {
-    /** Identifies the cross-process lock guarding this store. */
     lockName: string
-    /** Entries are capped after merging and ordering. */
     maxEntries: number
-    /** Orders entries before the cap is applied. */
     compareForRetention: (left: TEntry, right: TEntry) => number
   } | undefined
 }): {
@@ -60,11 +56,6 @@ export const createJsonProfileStore = <const TVersion extends number, TEntry>(op
         return emptyStore()
       }
     },
-    /**
-     * Read-merge-cap-write under the store's process lock, publishing through a
-     * temporary file and an atomic rename so a concurrent reader never sees a torn
-     * store. The domain merge decides how one sample folds into an existing profile.
-     */
     publish: async (samples, merge, profilePath = options.resolvePath()): Promise<void> => {
       const policy = options.publishPolicy
       if (!policy) {
@@ -89,11 +80,6 @@ export const createJsonProfileStore = <const TVersion extends number, TEntry>(op
   }
 }
 
-/**
- * Picks the best-matching calibration profile: highest score wins, then the profile
- * backed by more samples, then the most recently seen. A negative score means the
- * profile is not a candidate at all, so it is dropped before ordering.
- */
 export const selectBestScoredProfile = <TEntry extends { sampleCount: number, lastSeenAt: string }>(
   profiles: readonly TEntry[],
   score: (profile: TEntry) => number

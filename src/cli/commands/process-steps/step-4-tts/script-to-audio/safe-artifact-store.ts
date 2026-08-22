@@ -26,15 +26,10 @@ export class ArtifactReservationConflictError extends AppInfrastructureError {
   }
 }
 
-// Marker for "the artifact this probe asked about is not there". Existence probes used to
-// spot it with a `/does not exist|no such file/` regex over the message, which matched this
-// module's own wording; classifying on the marker (or a real ENOENT) keeps the probe honest
-// when that wording changes.
 const MISSING_ARTIFACT_STATE = 'missing'
 
 const ARTIFACT_CONFLICT_STATE = 'conflict'
 
-/** True when a create-only artifact write lost to an existing file with different bytes. */
 export const isArtifactConflictError = (error: unknown): boolean =>
   hasErrorCode(error, 'EEXIST')
   || extractErrorMetadata(error)['artifactState'] === ARTIFACT_CONFLICT_STATE

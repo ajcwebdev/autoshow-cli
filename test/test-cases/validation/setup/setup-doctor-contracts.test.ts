@@ -310,9 +310,6 @@ describe('setup doctor contracts', () => {
     expect(findDoctorCheck(withFallback, 'music lyric-video renderer').detail).toContain('fallback renderer')
   })
 
-  // `setup --step image` / `--step video` report credentials for a derived env-key
-  // set. These pin the derivation to the provider registries, so a provider added
-  // to `provider-targets.ts` cannot silently go unreported the way fal.ai did.
   for (const [step, targets, prefix] of [
     ['image', STANDALONE_IMAGE_PROVIDER_TARGETS, 'defaults.post.image.'],
     ['video', STANDALONE_VIDEO_PROVIDER_TARGETS, 'defaults.post.video.']

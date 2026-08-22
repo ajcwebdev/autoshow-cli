@@ -75,10 +75,4 @@ With more than one STT or LLM selection, provider-specific files move under `pro
 
 Hosted provider API keys are listed in [Providers, Models & Setup](04-providers-and-setup.md#hosted-provider-env-checks). This example uses local Whisper, so it needs no STT key; Step 3 still requires a configured LLM key.
 
-Runtime settings come from flags and `config/autoshow.json`. The CLI reads environment variables only for provider API keys and `NO_COLOR` / `FORCE_COLOR`.
-
-- TTS: `--tts-voice`, `--tts-ref-audio`, `--tts-language`, and related per-run flags
-- Output and tools: `--output-root`, `--bin-dir`
-- URL backends: `--url-provider`
-- Logging and color: `--log-level`, `--log-format`, `--verbose`, `--quiet`, `--json`; `--color` / `--no-color` override `NO_COLOR` / `FORCE_COLOR`
-- yt-dlp cookies: `bun autoshow config --cookies` and `bun autoshow config --cookies-from-browser`
+Runtime settings come from flags and `config/autoshow.json`. The CLI reads environment variables only for provider API keys and `NO_COLOR` / `FORCE_COLOR`. `--color` / `--no-color` override those color variables.

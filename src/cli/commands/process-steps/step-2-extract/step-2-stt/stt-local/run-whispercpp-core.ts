@@ -25,8 +25,6 @@ const waitForWhisperJson = async (jsonFile: string, providerName: string): Promi
     })
     return true
   } catch (error) {
-    // Only a poll that ran out of time falls back to a direct check; a bare catch here
-    // also swallowed aborts and programming errors.
     if (!isRetryExhaustedError(error)) throw error
     return await fileExists(jsonFile)
   }

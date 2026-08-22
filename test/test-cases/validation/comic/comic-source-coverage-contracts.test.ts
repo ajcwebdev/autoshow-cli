@@ -436,7 +436,6 @@ describe('comic source coverage contracts', () => {
 
     expect(captainBeat?.text).toBe('Respectfully, sir, that doesn’t matter. We have five cycles.')
     expect(commanderBeat?.text).toBe('Something strong. Something hot.')
-    // "(pause)" is pacing, not an acting note, so it must not become a speech tone.
     expect(engineerBeat?.text).toBe('Hire a doctor?')
     expect(engineerBeat?.delivery).toBeUndefined()
     expect(pilotBeat?.delivery).toBe('checking')
@@ -477,7 +476,6 @@ describe('comic source coverage contracts', () => {
 
     expect(silenceBeat?.type).toBe('direction')
     expect(thenBeat?.type).toBe('direction')
-    // Emphasis markers are markdown, not staging text, and must not reach image prompts.
     expect(silenceBeat?.text).toBe('Silence again. Everyone stares at the floor, like it might offer a solution.')
     expect(thenBeat?.text).toBe('Then—')
     expect(captionBeat?.type).toBe('narration')
@@ -732,7 +730,6 @@ describe('comic source coverage contracts', () => {
       'Stations.',
     ])
     expect(dialogue.map(beat => beat.speakerLabel)).toEqual(['CAPTAIN', 'ENGINEER', 'PILOT'])
-    // Timing notation is pacing, so "(beat)" must not survive as an acting note.
     expect(dialogue[0]!.delivery).toBeUndefined()
     expect(dialogue[1]!.delivery).toBe('already standing, delighted')
     expect(dialogue[2]!.delivery).toBe('quietly')

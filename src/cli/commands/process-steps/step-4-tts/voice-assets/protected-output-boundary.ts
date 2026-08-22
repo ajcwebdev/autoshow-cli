@@ -2,8 +2,6 @@ import { lstat, realpath } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { CLIUsageError, hasErrorCode } from '~/utils/error-handler'
 
-// Canonicalize the longest existing prefix, then reattach an unresolved suffix. This catches an
-// overlap through a symlink even when the eventual output/store child does not exist yet.
 const canonicalProspectivePath = async (input: string): Promise<string> => {
   let cursor = resolve(input)
   const suffix: string[] = []

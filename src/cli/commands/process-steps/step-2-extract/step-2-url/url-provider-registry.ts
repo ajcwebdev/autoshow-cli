@@ -37,9 +37,6 @@ const enrichUrlRetryError = (
   const causeMessage = error.cause?.message ?? error.message
   const attempts = typeof error.metadata['attemptsMade'] === 'number' ? error.metadata['attemptsMade'] : attemptsMade
   const max = typeof error.metadata['maxAttempts'] === 'number' ? error.metadata['maxAttempts'] : maxAttempts
-  // Enrich in place rather than downgrading to a plain Error plus Object.assign: the
-  // original is an AppError{retry_exhausted}, and rebuilding it as a bare Error dropped the
-  // kind and exit code that the top-level handler and retry classification depend on.
   return new AppError(
     `${providerLabel} request failed after ${attempts}/${max} attempts with ${timeoutMs}ms timeout` +
     `${typeof elapsedMs === 'number' ? ` (${elapsedMs}ms elapsed)` : ''}: ${causeMessage}`,

@@ -1,8 +1,8 @@
 # Docker
 
-AutoShow publishes a Debian slim Docker image with the CLI and common local tools so you can run without installing Bun or those tools on the host. Pre-built `linux/amd64` and `linux/arm64` images are on GitHub Container Registry (GHCR), tagged `latest` and by full commit SHA.
+AutoShow publishes a Docker image with the CLI and common local tools so you can run without installing Bun or those tools on the host. Pre-built `linux/amd64` and `linux/arm64` images are on GitHub Container Registry (GHCR), tagged `latest` and by full commit SHA.
 
-The image is based on `oven/bun:1.3.14-slim` and includes:
+The image includes:
 
 - `ffmpeg` and `ffprobe`
 - `yt-dlp`
@@ -15,8 +15,6 @@ It does not include heavyweight local STT, LLM, or TTS engines, model weights, D
 
 ## Pull or Build
 
-To pull the published image:
-
 ```bash
 docker pull ghcr.io/ajcwebdev/autoshow-cli:latest
 ```
@@ -27,17 +25,11 @@ To build locally from source:
 docker build -t autoshow-cli:local .
 ```
 
-To use a different Bun base image:
-
-```bash
-docker build \
-  --build-arg BUN_BASE_IMAGE=oven/bun:1.3.14-slim \
-  -t autoshow-cli:local .
-```
+The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 
 ## Run
 
-The image entrypoint is the CLI, so arguments after the image name are AutoShow arguments:
+Arguments after the image name are AutoShow arguments:
 
 ```bash
 # Native checkout
@@ -62,15 +54,7 @@ docker run --rm -i \
 
 Only the mounted directory is visible. If a source is outside it, run from a common ancestor or add another mount. Paths are interpreted inside the container; do not pass an unmounted host-absolute path.
 
-The image runs as the non-root `bun` user. On Linux, add `--user "$(id -u):$(id -g)"` when bind-mounted output should be owned by your host user:
-
-```bash
-docker run --rm -i \
-  --user "$(id -u):$(id -g)" \
-  --mount "type=bind,src=$(pwd),dst=/workspace" \
-  --workdir /workspace \
-  autoshow-cli:local extract content/book/book.epub
-```
+On Linux, add `--user "$(id -u):$(id -g)"` so bind-mounted output is owned by your host user.
 
 ### Separate input and output mounts
 
@@ -97,18 +81,8 @@ docker run --rm \
   autoshow-cli:local write input/example.md --llm openai=gpt-5.5
 ```
 
-If the `.env` lives elsewhere, mount it at `/app/.env`:
+If the `.env` lives elsewhere, mount it at `/app/.env`. Values from `-e` and `--env-file` override a mounted `.env`.
 
-```bash
-docker run --rm \
-  -v /path/to/autoshow-cli/.env:/app/.env:ro \
-  -v "$(pwd)/content:/app/input:ro" \
-  -v "$(pwd)/output:/app/output" \
-  autoshow-cli:local tts input/book/text/chapter-00.txt --provider grok
-```
+## Doctor
 
-Do not bake `.env` into the image. Real environment variables (`-e`, `--env-file`) win over values from a mounted `.env`.
-
-## Doctor Expectations
-
-`setup --doctor` checks more than this image includes. Calibre, Tesseract English data, and the other local-lite tools listed above are present. Warnings for heavyweight local engines, model weights, Defuddle, or missing provider API keys are expected unless you mount or configure those assets separately.
+`setup --doctor` checks more than this image includes. Warnings for heavyweight local engines, model weights, Defuddle, or missing provider API keys are expected unless you mount or configure those assets separately.

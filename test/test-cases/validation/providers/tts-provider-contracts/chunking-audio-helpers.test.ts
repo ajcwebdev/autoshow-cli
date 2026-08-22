@@ -414,8 +414,6 @@ describe('TTS provider service contracts', () => {
         abortSignal: controller.signal
       })
 
-      // No gate to release here — the abort below is what unblocks the run — but the
-      // assertion still has to survive until after the cancellation is observed.
       const rethrowGatedAssertions = await captureGatedAssertions(async () => {
         await waitForCondition(
           () => scheduler.getProviderSnapshot('grok').queued === 2,

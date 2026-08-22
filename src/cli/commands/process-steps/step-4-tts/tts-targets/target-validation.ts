@@ -21,8 +21,6 @@ export const validateTtsTargetSelection = (
 ): void => {
   if (selection.multiSpeakerRequested) {
     resolveDialogueFormat(options)
-    // multiSpeakerRequested is exactly "at least one --tts-speaker mapping parsed", so the registry
-    // is always present and non-empty here; this only narrows the optional selection field.
     const registry = selection.speakerVoiceRegistry
     if (!registry) {
       throw InternalError('Multi-speaker TTS selection is missing its speaker registry', { stage: 'tts:targets' })

@@ -39,16 +39,6 @@ export const waitForCondition = async (
   message: string
 ): Promise<void> => await waitFor(predicate, { timeoutMs: 1_000, intervalMs: 5, label: message })
 
-/**
- * Runs gated assertions without letting a failure hang the test.
- *
- * These scheduler contracts hold provider chunks open behind manual release callbacks. An
- * assertion that throws before the gate opens leaves those promises pending, so the test
- * times out instead of reporting the assertion — which is why every site pasted the same
- * `try/catch/finally + rethrow-after-await` shape. Here it is once: the failure is captured,
- * the gate is always released, and the returned function rethrows once the caller has
- * awaited the in-flight work.
- */
 export const captureGatedAssertions = async (
   assertions: () => Promise<void> | void,
   release: () => void

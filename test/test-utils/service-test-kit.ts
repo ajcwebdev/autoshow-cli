@@ -94,8 +94,6 @@ export const defineBudgetedLiveServiceTest = (
   fn: () => void | Promise<void>,
   timeoutMs: number = E2E_TEST_TIMEOUT_MS
 ): void => {
-  // Always run the test. A missing API key fails it (via requireConfiguredEnvVar in the
-  // body) rather than being silently skipped. Over-budget skipping still applies.
   budgetedTest(budgetKey, name, fn, timeoutMs)
 }
 
@@ -169,13 +167,6 @@ export const formatCommandFailureDiagnostics = (
   tailLines(result.stderr, lineCount)
 ].join('\n')
 
-/**
- * Run a command, fail loudly with tail diagnostics, and return its output directory.
- *
- * The `transient` and `onResult` hooks exist so the LLM-write and TTS factories can reuse
- * this instead of keeping verbatim copies of the body — the two things they varied were a
- * single-retry transient predicate and a provider-specific terminal-failure check.
- */
 export const runCommandAndExpectOutputDir = async (
   title: string,
   args: string[],
@@ -207,10 +198,6 @@ export const runCommandAndExpectOutputDir = async (
   return outputDir
 }
 
-// Runs a command once; if it fails with a transient provider error (per `isTransient`), warns,
-// waits, and retries a single time. Throws if the transient failure persists; otherwise returns
-// the result for the caller to handle (success or a non-transient failure). Any factory can opt
-// in by passing the relevant provider predicate from `./provider-failure-classifiers`.
 const runCommandWithTransientRetry = async (
   commandArgs: string[],
   opts: {

@@ -69,11 +69,6 @@ const readProvidedLyrics = async (lyricsFile: string): Promise<string> => {
   return text
 }
 
-/**
- * Resolve the request body for ElevenLabs music generation. A lyrics file
- * switches the request to a composition plan, which is mutually exclusive with
- * the text prompt.
- */
 const buildElevenLabsMusicRequest = async (
   prompt: string,
   options: {

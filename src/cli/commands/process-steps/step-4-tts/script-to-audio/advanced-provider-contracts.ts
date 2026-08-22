@@ -4,7 +4,7 @@ import type {
   CapabilityDocumentationEvidence,
   TtsProvider,
 } from '~/types'
-import { CLIUsageError, ProviderError } from '~/utils/error-handler'
+import { CLIUsageError, InternalError, ProviderError } from '~/utils/error-handler'
 import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -93,7 +93,12 @@ export const buildAdvancedCapabilityFixture = <T extends readonly AnyCapabilityR
 
 export const providerAccountScopeHash = (provider: TtsProvider, credential: string): string => {
   const spec = findHostedTtsCredential(provider)
-  if (!spec) throw new TypeError(`TTS provider ${provider} has no credential specification.`)
+  if (!spec) {
+    throw InternalError(`TTS provider ${provider} has no credential specification.`, {
+      stage: 'tts:account-scope',
+      retryable: false
+    })
+  }
   const normalized = requireProvidedApiKey(
     credential,
     spec.envVar,

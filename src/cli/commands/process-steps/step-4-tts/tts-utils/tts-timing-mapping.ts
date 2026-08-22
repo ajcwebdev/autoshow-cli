@@ -1,10 +1,5 @@
 import type { PreparedProviderText } from '~/types'
 
-/**
- * Maps a provider-space text offset back onto the canonical text using the prepared
- * source map. Only width-preserving mapped spans can carry a timing offset across, so a
- * rewritten span reports `undefined` rather than a misaligned canonical position.
- */
 export const canonicalOffsetForProviderOffset = (
   prepared: PreparedProviderText,
   providerOffset: number

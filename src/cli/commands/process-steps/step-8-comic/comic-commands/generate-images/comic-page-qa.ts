@@ -5,8 +5,6 @@ import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
 
-// Bumped when every judge verdict field became required: v1 reports predate the
-// location/continuity/shot-plan fields, so they are discarded rather than reused.
 export const PAGE_QA_REPORT_SCHEMA_VERSION = 2
 
 const HARD_SET_CONTINUITY_STATUSES: ReadonlySet<string> = new Set(['missing', 'relocated', 'duplicated', 'mirrored', 'redesigned'])

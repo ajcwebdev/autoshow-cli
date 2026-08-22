@@ -11,9 +11,6 @@ import type {
   TtsTargetInvocationControls
 } from '~/types'
 
-// Reverse-derived from MATRIX_ENV_KEYS in tts-explicit-voice-dispatch.test.ts; that
-// const is constrained with `satisfies readonly TtsVoiceMatrixEnvKey[]` so widening it
-// without widening this union fails tsc.
 export type TtsVoiceMatrixEnvKey =
   | 'ELEVENLABS_API_KEY'
   | 'SPEECHIFY_API_KEY'

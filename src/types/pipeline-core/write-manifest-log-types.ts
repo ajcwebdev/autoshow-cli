@@ -10,8 +10,6 @@ export type ManifestLogCostEntryLike = {
   inputValue?: number
 }
 
-// Read back from a persisted manifest rather than produced by the pricing layer:
-// costSource is present only when the manifest recorded a known vocabulary value.
 export type ManifestLogActualCostBreakdown = {
   totalCost: number
   steps: Array<Omit<ManifestLogCostEntryLike, 'costSource'> & { costSource?: CostSource }>

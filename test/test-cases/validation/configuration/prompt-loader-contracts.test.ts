@@ -47,8 +47,6 @@ const MARKDOWN_PROMPT_SNAPSHOT = {
   youtubeDescription: '5765d2ffa00b65c9e090ae1e543e6baa06ccc760994785859cd495488f3d0634'
 } as const
 
-// rockSong and rapSong are pinned by their own schema-shape tests below, so this
-// list is the remainder that would otherwise have no preset coverage at all.
 const STANDARD_SONG_LYRIC_PROMPTS = [
   'countrySong',
   'folkSong',
@@ -192,9 +190,6 @@ describe('prompt loader contracts', () => {
     expect(prompt).toContain('Create chapter titles and descriptions based on the topics discussed throughout')
   })
 
-  // Asserted through resolveStructuredSchema rather than a preset-name lookup, so a
-  // prompt whose structuredPreset is dropped and a preset deleted from preset-registry.ts
-  // both surface here as an empty presetNames array.
   test('resolves song lyric prompts to the standardSongLyrics preset', async () => {
     for (const promptName of STANDARD_SONG_LYRIC_PROMPTS) {
       const schema = await resolveStructuredSchema([promptName])
@@ -311,9 +306,6 @@ describe('prompt loader contracts', () => {
     expect(required).not.toContain('lyrics')
   })
 
-  // Line counts are asserted through parseAndValidateStructured because the provider
-  // JSON schema deliberately strips maxItems and clamps minItems; the valibot preset
-  // schema is the only place the exact counts are enforced.
   test('rap song lyric validation enforces 8-line verses and 4-line choruses', async () => {
     const schema = await resolveStructuredSchema(['rapSong'])
 

@@ -25,8 +25,6 @@ const writeVideoInfoCache = async (url: string, data: YtDlpVideoInfo): Promise<v
       value: data
     })
   } catch (error) {
-    // Best-effort cache write: the run continues without it. Logged at debug so a
-    // silently unwritable cache directory is diagnosable instead of invisible.
     l.write('debug', 'Failed to cache yt-dlp video info', {
       category: 'artifact',
       metadata: { cachePath: VIDEO_INFO_CACHE_FILE, url, error: serializeDiagnosticError(error) }

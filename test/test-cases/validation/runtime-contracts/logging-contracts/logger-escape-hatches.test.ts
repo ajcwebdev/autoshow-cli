@@ -67,8 +67,6 @@ test('suppressLogCategories filters the global logger and clears back to normal'
     l.write('info', 'suppressed', { category: 'pipeline' })
     expect(events).toHaveLength(0)
 
-    // The returned handle scopes suppression to one run, so a direct caller cannot leave
-    // the process-wide logger muted for everyone after it.
     restore()
     l.write('info', 'restored', { category: 'pipeline' })
     expect(events.map((event) => event.message)).toEqual(['restored'])
@@ -97,9 +95,6 @@ test('interpolation arguments ride in options.args rather than trailing paramete
   const { sink, events } = collectEvents()
   const logger = createLogger({ sinks: [sink], minLevel: 'debug' })
 
-  // The shorthands used to guess whether a trailing object was options or an ordinary
-  // interpolation argument by checking its keys. Args are now declared, so a payload that
-  // happens to share a key name with LogWriteOptions can no longer be mistaken for options.
   logger.warn('count', { category: 'pipeline', args: [3, 'items'] })
   logger.warn('payload', { category: 'pipeline', args: [{ slot: 3 }] })
   logger.warn('error arg', { category: 'pipeline', args: [new Error('boom')] })

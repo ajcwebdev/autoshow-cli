@@ -215,7 +215,6 @@ export const generatePanelImages = async (
     }
   }
 
-  // Preflight validation
   const preflightFailures: string[] = []
   for (const panelEntry of panelDirectories) {
     const panelDirectory = join(sceneDirectory, panelEntry.name)

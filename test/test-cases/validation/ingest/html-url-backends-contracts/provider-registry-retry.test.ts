@@ -106,8 +106,6 @@ test('URL article provider retry wrapper enriches exhausted timeout errors', asy
     expect(message).toContain('Zyte request failed after 2/2 attempts with 25ms timeout')
     expect(message).toContain('ms elapsed')
     expect(message).toContain('Zyte request timed out after 25ms')
-    // The enriched error stays an AppError, so the attempt count lives in its metadata
-    // rather than being pinned on as an own property.
     expect(extractErrorMetadata(error)['attemptsMade']).toBe(2)
     expect(isAppError(error) && error.kind).toBe('retry_exhausted')
   } finally {

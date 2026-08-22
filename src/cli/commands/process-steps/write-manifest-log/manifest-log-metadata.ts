@@ -48,9 +48,6 @@ const isTimingEntry = (value: unknown): value is TimingEntryLike =>
   && typeof value['model'] === 'string'
   && typeof value['processingTimeMs'] === 'number'
 
-// Manifests written by this CLI always record one of the known vocabulary values.
-// Anything else is left unset so the summary renders an empty source rather than
-// asserting a cost provenance the manifest never claimed.
 const readManifestCostSource = (value: unknown): CostSource | undefined =>
   isCostSource(value)
     ? value

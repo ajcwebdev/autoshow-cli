@@ -8,8 +8,6 @@ import { hasErrorCode } from '~/utils/error-handler'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from './safe-artifact-store'
 import { childEnv } from '~/utils/child-env'
-// Canonical definition lives in error-handler; re-exported so the existing sibling
-// imports in this directory keep working.
 export { hasErrorCode }
 
 export const contained = (root: string, path: string): string => {

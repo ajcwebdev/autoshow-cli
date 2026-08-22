@@ -1,11 +1,5 @@
 #!/usr/bin/env bun
 
-/**
- * Build a combined cross-run URL provider comparison report from committed
- * single-run report artifacts. No extraction provider or external service is
- * invoked by this script.
- */
-
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { loadCanonicalRunRecord, PIPELINE_MANIFEST_FILE } from "../shared/pipeline_manifest";

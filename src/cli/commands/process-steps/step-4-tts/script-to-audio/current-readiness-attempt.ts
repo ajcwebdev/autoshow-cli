@@ -91,10 +91,6 @@ const PEER_READINESS_ERROR: SanitizedProviderError = {
   blockedReason: 'dependency-readiness-failed'
 }
 
-/**
- * Retains execution-readiness failure without ever freezing or writing a final render plan.
- * The returned state is suitable for an all-target canonical before-dispatch barrier.
- */
 export const createCurrentTtsBlockedReadinessState = async (
   options: CreateCurrentTtsBlockedReadinessStateOptions
 ): Promise<PipelineProviderState> => {

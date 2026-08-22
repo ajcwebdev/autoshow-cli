@@ -89,9 +89,6 @@ export const setupCommand = defineCliCommand({
     })
   })
 
-  // An unconditional success line meant a run that ended with missing tools or
-  // models still reported "Setup complete" and exited 0, so `bun autoshow setup` could
-  // not be used as a gate in CI or a scripted install.
   if (!healthy) {
     throw InfraError('Setup finished with missing local tools or models. See the Setup Summary above, then run: bun autoshow setup --doctor', {
       stage: 'setup:run',

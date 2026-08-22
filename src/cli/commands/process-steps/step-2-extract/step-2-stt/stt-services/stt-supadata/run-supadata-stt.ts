@@ -64,8 +64,6 @@ export const runSupadataStt = async (
     lifecycle
   } = options
 
-  // Supadata only transcribes supported remote sources; a local file can never be routed
-  // here, so this is a skip decision rather than a provider failure.
   if (typeof sourceUrl !== 'string' || sourceUrl.length === 0 || sourceUrl.startsWith('file:')) {
     throw buildSupadataUnsupportedSourceError(sourceUrl)
   }
@@ -78,9 +76,6 @@ export const runSupadataStt = async (
   const offsetSeconds = segmentOffsetMinutes * 60
   const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
 
-  // Credits are reported in the creation response headers, so they are observed once and
-  // then carried into every persisted progress write and the final metadata. A resumed
-  // run reloads what the interrupted attempt was already billed rather than re-counting.
   const persistedProgressMetadata = await readPersistedAsyncSttProgressMetadata(lifecycle, {
     transcriptionService: 'supadata',
     transcriptionModel: modelName
@@ -160,7 +155,6 @@ export const runSupadataStt = async (
       }
       captureCreateBilling(createResult.headers)
 
-      // 202 hands back a job to poll; any other success returns the transcript inline.
       if (createResult.status === 202) {
         const jobPayload = parseSupadataJobPayload(createResult.payload)
         if (!jobPayload) {
@@ -199,7 +193,6 @@ export const runSupadataStt = async (
     },
     buildDeadlineError: (jobId, pollDeadlineMs, cause) => buildAsyncSttPollingDeadlineError('Supadata', jobId, pollDeadlineMs, cause),
     buildResumeProbeError: (jobId, probeCount, totalWaitMs, cause) => buildAsyncSttResumeProbeError('Supadata', 'transcript job', jobId, probeCount, totalWaitMs, cause),
-    // The completed poll payload already carries the transcript, so no extra fetch runs.
     getTranscript: async (_jobId, _metrics, finalStatus) => {
       const transcriptPayload = parseSupadataTranscriptPayload({
         content: finalStatus.content ?? '',

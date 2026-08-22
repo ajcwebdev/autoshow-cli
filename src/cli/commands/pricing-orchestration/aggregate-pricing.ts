@@ -138,7 +138,6 @@ export async function buildAggregatedPriceEstimate (
   }
 
   if (command === 'tts' || command === 'image' || command === 'video' || command === 'music') {
-    // The generation-command overload guarantees CommandPricingOptions; only the 'write' overload admits the narrower option shapes.
     const generationOpts = opts as CommandPricingOptions
 
     if (command === 'tts') {

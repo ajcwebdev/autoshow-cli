@@ -77,7 +77,6 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     expect(tts.stdout).toContain('repeatable (default: cheapest hosted)')
   })
 
-
   const derivedHelpLists = [
     { command: 'video', label: '--video-mode', values: VIDEO_MODES },
     { command: 'video', label: '--video-aspect-ratio (Luma Labs)', values: LUMA_ASPECT_RATIOS },
@@ -140,7 +139,6 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
       expect(result.stdout).not.toMatch(/--out(?:\s|$)/)
     }
 
-    // Commands that only read or resume an existing directory reject it instead.
     const resumeResult = await runCommand(
       ['src/cli/create-cli.ts', 'resume', 'output/does-not-exist', '--output-dir', 'output/nope'],
       { env: helpEnv }
@@ -153,7 +151,6 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
     expect(writeResult.stdout).toContain('Output format: text|json')
     expect(writeResult.stdout).not.toContain('Alias for --output-dir')
   }, HELP_TREE_TIMEOUT_MS)
-
 
   test.concurrent('command help hides --output-dir when the command cannot create a run directory', async () => {
     for (const command of helpSurfaces.filter((entry) => !commandCreatesRunDirectory(entry.name))) {

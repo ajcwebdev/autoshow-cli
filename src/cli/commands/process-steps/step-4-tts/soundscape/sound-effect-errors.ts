@@ -1,11 +1,5 @@
 import { AppProviderError } from '~/utils/error-handler'
 
-/**
- * Soundscape provider failure. Previously a full parallel re-implementation of
- * `AppProviderError` (its own retryable/status/headers fields on a plain Error); it now
- * extends the canonical class and keeps only `admissionDisposition`, the field the
- * soundscape admission ledger needs and the base class does not model.
- */
 export class SoundEffectProviderError extends AppProviderError {
   readonly admissionDisposition: 'rejected' | 'ambiguous'
 

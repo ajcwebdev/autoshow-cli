@@ -11,15 +11,12 @@ const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tt
 const MEDIA_INPUT_PATTERN = /\.(?:mp3|m4a|aac|wav|flac|ogg|opus|webm|mp4|mov|mkv|avi|m4v)(?:[?#]|$)/i
 const DOCUMENT_INPUT_PATTERN = /\.(?:pdf|epub|mobi|prc|azw3?|fb2|lit|docx|pptx|xlsx|odt|ods|odp|rtf|csv|cbz|png|jpe?g|tiff?|webp|bmp|gif)(?:[?#]|$)/i
 
-// Live write-step selectors (src/cli/flags/shared-flags.ts stepProviderSelectorFlags).
 const STEP_SELECTOR_KINDS: Record<string, string> = {
   '--stt': 'transcribe',
   '--ocr': 'extract',
   '--llm': 'write',
 }
 
-// Mirrors the canonical backend list in src/utils/extraction-provider-model.ts. `glm-reader`
-// is reported under service `glm` so it keeps matching the `glm` service hint below.
 const URL_BACKEND_PAIRS: Array<[backend: string, service: string, model: string]> = [
   ['defuddle', 'defuddle', 'defuddle'],
   ['firecrawl', 'firecrawl', 'firecrawl'],
@@ -124,8 +121,6 @@ export const isControlE2ETest = (name: string): boolean => {
     || /^requires\b/i.test(name)
 }
 
-// Only resolves kinds the CLI actually names. `resume` is deliberately absent, so provider
-// pairs harvested from a `resume` invocation stay unlabelled instead of being called `write`.
 const resolveExplicitCommandKind = (metric: ParsedCommandMetric): string | null => {
   return metric.args.find(arg => COMMAND_KIND_NAMES.has(arg)) ?? null
 }
@@ -355,12 +350,9 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
   return dedupePairs(pairs)
 }
 
-// Matches sanitizeOutputRootSegment in test/test-utils/test-helpers.ts, which names the
-// canonical manifest copies under `<runDir>/run/`.
 const sanitizeArtifactSegment = (value: string): string =>
   value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'
 
-// Mirrors unwrapCanonicalRecordValue in test/test-utils/manifest-helpers.ts.
 const unwrapManifestMetadata = (value: Record<string, unknown>): Record<string, unknown> => {
   const items = value['items']
   if (
@@ -404,8 +396,6 @@ const getMetricMetadata = async (
 ): Promise<Record<string, unknown> | null> => {
   if (!metric.outputDir) return null
 
-  // Keyed on the fully-qualified output dir: basenames such as `downloaded_audio` and
-  // `1-document` repeat across parallel workers and would cross-attribute metadata.
   const key = `${metric.outputRoot ?? ''}::${metric.outputDir}`
   if (cache.has(key)) {
     return cache.get(key) ?? null
@@ -420,8 +410,6 @@ const getMetricMetadata = async (
         return record
       }
     } catch (error) {
-      // A missing metadata file is the normal case; anything else means the report is
-      // silently losing a manifest it should have been able to read.
       if (!hasErrorCode(error, 'ENOENT')) {
         l.warn(`Could not read run metadata at ${metadataPath}; the report will omit it`, {
           category: 'artifact',

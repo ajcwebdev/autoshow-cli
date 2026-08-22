@@ -1,6 +1,6 @@
 # voice audition
 
-Synthesize and protect the canonical pre-approval audition set.
+Synthesize the pre-approval audition set.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
@@ -27,7 +27,7 @@ The set includes a neutral sample, the required representative line, emotional-c
 ### Examples
 
 ```bash
-bun autoshow voice audition vr_ID --representative-line "We leave at dawn." --takes 1 --price
+bun autoshow voice audition vr_ID --representative-line "We leave at dawn." --price
 bun autoshow voice audition vr_ID --generation-id GENERATION_SHA256 --representative-line "We leave at dawn." --approve --actor-id casting_editor
 ```
 

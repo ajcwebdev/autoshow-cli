@@ -19,9 +19,6 @@ const SpeechifySpeechResponseSchema = v.object({
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
-// Every synthesized segment is remastered into a fixed-format `speech.wav`, so the
-// intermediate is baked to Speechify's lossless WAV instead of the lossy MP3 the
-// remaster cannot recover.
 const SPEECHIFY_TTS_AUDIO_FORMAT = 'wav'
 
 const decodeSpeechifyAudioData = (audioData: string): Uint8Array => {

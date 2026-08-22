@@ -100,11 +100,8 @@ export const prefillRenderedPageCache = async (
   }
 }
 
-// Shared with every other suite; re-exported here so existing imports keep working.
 export { captureLogEvents } from '../../../../test-utils/console-capture'
 
-// Re-exported rather than redefined: this suite's copy took `(body, status)` while the
-// shared helper takes `(body, init)`, so the two spellings could drift on headers.
 export { jsonResponse } from '../../../../test-utils/rest-contract-helpers'
 export {
   buildHostedOcrImageResult,

@@ -4,14 +4,10 @@ import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { BoundedCaptureResult, ProviderRestClientProfile } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
 
-// Re-exported so the ~20 modules that already import it from the REST client keep working.
 export { isRecord }
 
 export const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, '')
 
-// Field names are unchanged from the previous plain-Error shape, so the existing call
-// sites keep working; what changes is that the result is now an AppProviderError and
-// therefore carries `kind` and survives the process-level failure handlers intact.
 export const httpResponseError = <TExtras extends object = Record<never, never>>(
   message: string,
   response: Response,
@@ -56,9 +52,6 @@ export const extractRestErrorMessage = (payload: unknown, rawText: string, statu
   return sanitizeLogText(rawText.trim()) || `HTTP ${status}`
 }
 
-// Normalizes both abort spellings to a single `AbortError` the retry classifier can read.
-// `cause` is preserved so `collectErrorChain` still reaches the original DOMException /
-// TimeoutError instead of bottoming out at this re-wrap.
 const normalizeFetchAbortError = (error: unknown): unknown => {
   const isAbortShaped = (error instanceof DOMException || error instanceof Error)
     && (error.name === 'AbortError' || error.name === 'TimeoutError')
@@ -79,10 +72,6 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
     const request = profile.buildRequest(options)
 
     try {
-      // Bun's fetch aborts after 300s of socket silence even when the caller passes its
-      // own AbortSignal (oven-sh/bun#16682). Non-streaming provider calls can legitimately
-      // stay silent longer (e.g. LLM reasoning), so disable Bun's idle timer and let each
-      // caller's AbortSignal own the deadline.
       const init: RequestInit & { timeout: false } = { ...request.init, timeout: false }
       const response = await fetch(request.url, init)
       if (response.ok) {
@@ -118,15 +107,9 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
     }
   }
 
-/**
- * Resolves a request path against a provider base URL. Four STT services had a private copy
- * of this exact one-liner. Distinct from `joinRestUrl`, which additionally applies a default
- * base URL and version-prefix collapsing.
- */
 export const resolveRestPath = (baseURL: string, path: string): string =>
   new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
 
-/** Response body text for an error message, falling back to the status line when empty. */
 export const readRestErrorText = async (response: Response): Promise<string> => {
   const text = await response.text()
   return text.trim() || `HTTP ${response.status}`

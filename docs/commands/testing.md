@@ -2,15 +2,7 @@
 
 Shared `bun t` runner behavior plus the local and service test coverage map for the AutoShow CLI. Per-step test pages live beside their command docs and are indexed in [Step Test Pages](#step-test-pages).
 
-Default agent/contributor verification is `bun run check`. For smoke coverage that avoids third-party APIs and provider costs, use only targeted local/no-cost tests:
-
-```bash
-bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
-bun test test/test-cases/validation/cli/cli-usage-errors/
-bun test test/test-cases/validation/cli/option-resolution-contracts/
-```
-
-The `bun t` commands below document the full project runner for humans. Do not use `bun t` as a default verification pass: service, e2e, and full-runner commands may call paid or quota-limited providers and must not be used for agent verification without explicit approval for that exact run.
+Default local verification is `bun run check`. The `bun t` commands below may call paid or quota-limited providers. Do not use them as a default verification pass without explicit approval for that exact run.
 
 ## Outline
 
@@ -24,7 +16,7 @@ The `bun t` commands below document the full project runner for humans. Do not u
 ## Local Quick Start
 
 ```bash
-# run all local tests
+# local e2e coverage
 bun t \
   test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts \
   test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ \
@@ -65,35 +57,40 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/
 
 ## Shared Runner Behavior
 
-- Test discovery comes from `test/test-cases/**/*.test.ts`. Selection is path-based only.
+- Pass file or directory paths under `test/test-cases/` to select tests.
 - Passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test.
-- Normal test mode defaults both `--max-concurrency` and `--parallel` to the machine's available parallelism. When every selected file sits under `test/test-cases/e2e/`, `--parallel` instead defaults to 32 and the run also passes `--retry 1`. Pass explicit `--max-concurrency=<n>` or `--parallel=<n>` values to override either knob; `--concurrency` is not a Bun test flag and is rejected with a usage error.
-- Price and budget preflight commands run with the default price concurrency of 25.
+- `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32 and retry once. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override; `--concurrency` is not a Bun test flag and is rejected.
 - Each run writes artifacts under `./project/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` cleans that directory after every run and leaves `./project/test-output/latest.log` with the run summary, failures, runner log, and command log. Use `--no-cleanup` to keep the full run directory, per-test CLI outputs, and test cache.
-- Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits for a run.
+- Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
 
 ```bash
 # keep the full run directory after completion
 bun t --no-cleanup
 
 # default cleanup still leaves a failure/debug summary
-bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/
 cat project/test-output/latest.log
 ```
 
 ## Price Preflight
 
-`--price` uses the same path filters as a normal `bun t` run: append it to the command you would otherwise run to price-check the mapped commands without running the live tests. `--budget <whole-number-hundredths-of-a-cent>` skips live tests whose estimates exceed that threshold; for example, `--budget 100` allows tests estimated at up to 1 cent. Step-specific examples live on the step test pages.
+`--price` uses the same path filters as a normal `bun t` run: append it to price-check mapped commands without running the live tests. `--budget <whole-number-hundredths-of-a-cent>` skips live tests whose estimates exceed that threshold; for example, `--budget 100` allows tests estimated at up to 1 cent. Step-specific examples live on the step test pages.
 
-Notes:
+```bash
+bun t --price
+bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --budget 2500
+```
 
 - `--price` with no path filters resolves all mapped test price commands.
 - `--budget` applies independently to each matching test; estimates are not combined into an aggregate cap. An unmapped or unevaluated test fails locally instead of calling a provider.
-- Validation paths (`test/test-cases/validation/`) are unmapped apart from `media-generation/fal-tts-adapter-contracts.test.ts` and `media-generation/replicate-tts-adapter-contracts.test.ts`, which map to the Fal and Replicate TTS price commands. Selecting any other validation path with `--price` reports a zero-cost pass.
+- Most validation paths have no mapped price commands, so `--price` on them reports a zero-cost pass.
 
 ## Cross-Cutting Coverage
 
-- `test/test-cases/validation/cli/option-resolution-contracts/`, `test/test-cases/validation/providers/provider-selection-contracts/`, and `test/test-cases/validation/reports-pricing/price-mode-contracts/` cover model-option resolution, provider-flag acceptance/rejection and shared-flag logic across all provider types, and price-mode behavior without live service calls.
-- `test/test-cases/validation/ingest/html-url-backends-contracts/` provides no-cost URL article contract coverage with mocked provider calls.
-- `test/test-cases/validation/providers/` and `test/test-cases/validation/resume-manifests/` cover mocked REST request/response payloads and manifest serialization across generation command families without live network requests.
-- `test/test-cases/price-flag/` contains focused `--price` coverage for STT, OCR, write, TTS, image, video, and music command families.
+No-cost suites that are not tied to a single step:
+
+- `test/test-cases/validation/cli/option-resolution-contracts/` covers model-option resolution.
+- `test/test-cases/validation/providers/provider-selection-contracts/` covers provider-flag acceptance, rejection, and shared flags.
+- `test/test-cases/validation/reports-pricing/price-mode-contracts/` covers price-mode behavior.
+- `test/test-cases/validation/ingest/html-url-backends-contracts/` covers URL article contracts.
+- `test/test-cases/validation/providers/` and `test/test-cases/validation/resume-manifests/` cover provider contracts and resume manifests.
+- `test/test-cases/price-flag/` covers `--price` for STT, OCR, write, TTS, image, video, and music.

@@ -78,11 +78,6 @@ export const runOpenAICompatibleChatModel = async ({
   })
 }
 
-/**
- * Builds a runner for an OpenAI-compatible provider whose only reasoning control is the
- * named `reasoning_effort` field. Providers with richer or differently shaped reasoning
- * payloads keep their own runner rather than passing another flag through here.
- */
 export const createOpenAICompatibleReasoningRunner = (descriptor: {
   service: OpenAICompatibleChatService
   providerLabel: string

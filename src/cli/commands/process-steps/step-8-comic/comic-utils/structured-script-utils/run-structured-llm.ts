@@ -7,8 +7,6 @@ import type { ComicStructuredLlmResult, ComicStructuredSchema, HostedConcurrency
 import { runComicHostedRequest } from '../hosted-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 
-// Maps a central registry LLM service name onto the matching LLMOptions model field
-// that collectLlmTargets reads.
 const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
   openai: 'openaiModels',
   groq: 'groqModels',
@@ -22,8 +20,6 @@ const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
   cerebras: 'cerebrasModels',
 }
 
-// Resolves a single central LLM model id to one shared dispatch target. Validation
-// against the central registry replaces comic's removed per-provider type guards.
 const resolveComicLlmTarget = (modelId: string): LLMTarget => {
   const service = findRegistryServiceForModel('llm', modelId)
   if (!service) {
@@ -44,10 +40,6 @@ const resolveComicLlmTarget = (modelId: string): LLMTarget => {
   return target
 }
 
-// Runs a structured-JSON prompt through the shared LLM dispatch, returning the raw
-// model text plus token metadata. Callers keep their own JSON normalization and
-// schema validation. Native-structured providers send the JSON schema server-side;
-// schema-guided providers embed it via runCompatFallback.
 export const runComicStructuredLlm = async (
   prompt: string,
   schema: ComicStructuredSchema,

@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
-import { AppUsageError, MISSING_ENV_HINTS } from '~/utils/error-handler'
+import { AppUsageError } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { MISSING_ENV_HINTS, resolveCredential } from '~/utils/validate/env-utils'
 
 const registryEnvVars = HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar)
 

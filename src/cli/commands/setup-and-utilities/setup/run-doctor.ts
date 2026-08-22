@@ -24,8 +24,8 @@ import {
 } from '~/utils/runtime-paths'
 import { validateManagedArtifact } from './setup-download/managed-artifact'
 import { pathExists } from '~/utils/filesystem'
-import { AppUsageError, hintsForMissingEnv } from '~/utils/error-handler'
-import { resolveCredential } from '~/utils/validate/env-utils'
+import { AppUsageError } from '~/utils/error-handler'
+import { hintsForMissingEnv, resolveCredential } from '~/utils/validate/env-utils'
 
 const listNames = async (path: string): Promise<string[]> => {
   try {

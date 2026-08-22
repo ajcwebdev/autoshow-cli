@@ -54,10 +54,6 @@ export const extractSttSplitDurationCapSecondsFromError = (error: unknown): numb
   return undefined
 }
 
-// Message-matching by design: the upstream source is each STT provider's own rejection
-// text (duration caps, token budgets, payload limits). Providers report these as prose in
-// the error body rather than as a distinguishable status or code, so the caps have to be
-// read back out of the message.
 const isRequestBudgetTranscriptionError = (error: unknown): boolean => {
   const message = toErrorMessage(error)
   if (!message) {

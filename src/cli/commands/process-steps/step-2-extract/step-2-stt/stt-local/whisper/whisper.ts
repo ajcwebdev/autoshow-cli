@@ -118,8 +118,6 @@ export const setupWhisper = async (): Promise<void> => {
 
   await recordSetupPerformancePhase('whisper.cpp', 'health-check', verifyWhisperBinary)
 
-  // The checked-out source and object tree are inputs to the binary we just
-  // copied into runtime/bin; keeping them only costs disk.
   await recordSetupPerformancePhase('whisper.cpp', 'cleanup', async () => {
     await cleanupPath(repoDir)
   })
@@ -143,8 +141,6 @@ export const downloadWhisperModel = async (modelName: string): Promise<void> => 
     await withRetry(
       { retryClass: 'setup_download', operationName: `whisper-model-${modelName}` },
       async () => {
-        // No cleanup between attempts: downloadFile keeps a verified partial
-        // file so a retry resumes instead of refetching gigabytes from zero.
         await downloadFile({
           url,
           destination,

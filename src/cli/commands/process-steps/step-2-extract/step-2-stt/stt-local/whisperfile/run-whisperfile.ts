@@ -14,10 +14,6 @@ export const runWhisperfileTranscribe = async (
     resolveInvocation: async (modelName, baseArgs) => {
       const whisperfileBinary = whisperfileBinaryPath(modelName)
       return {
-        // Weights are embedded in the packaged whisperfile, so no -m flag is passed.
-        // whisperfiles are Cosmopolitan APE binaries; macOS posix_spawn cannot exec
-        // them directly, so launch through a shell that reads the self-extracting
-        // script (see whisperfile troubleshooting docs).
         command: 'sh',
         args: [whisperfileBinary, ...baseArgs],
         modelDescriptor: whisperfileBinary

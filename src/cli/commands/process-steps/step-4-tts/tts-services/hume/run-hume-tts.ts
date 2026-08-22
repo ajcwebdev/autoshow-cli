@@ -15,8 +15,6 @@ const UUID_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
-// A UUID is Hume's stable voice locator and resolves against any voice the account can reach,
-// including its own custom voices. Anything else is a Hume voice-library name lookup.
 const resolveHumeVoice = (
   options: {
     voice?: string | undefined

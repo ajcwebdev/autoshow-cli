@@ -53,8 +53,6 @@ export const toSupadataHttpError = (
       stage,
       retryClass,
       rawResponse: payload,
-      // Plan-quota exhaustion is terminal for this run; retrying only spends more
-      // quota-denied requests. Burst 429s keep the default retryable behavior.
       ...(isSupadataPlanLimitExhausted(payload, message) ? { retryable: false } : {})
     } satisfies Pick<SupadataHttpError, 'stage' | 'retryClass' | 'rawResponse'> & { retryable?: false }
   )
@@ -82,8 +80,6 @@ export const buildSupadataUnsupportedSourceError = (
   {
     stage: 'create' as const,
     retryable: false,
-    // `skipped` stays an own property: `classifySttProviderFailure` reads it directly off
-    // each chain entry rather than through `extractErrorMetadata`.
     skipped: true
   }
 )

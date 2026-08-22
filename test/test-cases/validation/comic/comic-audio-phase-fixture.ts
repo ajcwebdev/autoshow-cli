@@ -97,11 +97,6 @@ export const buildComicAudioPhaseFixture = async (root: string, voiceEntries: Vo
   return { structured, structuredRef, dialoguePlan, soundscapePlan, snapshot }
 }
 
-/**
- * Every phase suite approves the same shaped stock-voice registration and varies only
- * the provider identity, so the identity fields are required and everything the
- * snapshot contract fixes stays here.
- */
 export const buildApprovedVoiceEntry = (input: {
   subjectKey: string
   resourceId: string
@@ -109,7 +104,6 @@ export const buildApprovedVoiceEntry = (input: {
   providerModel: string
   settingsSchema: string
   profileKey?: string | undefined
-  /** Suites pinned to an earlier scene clock pass their own approval timestamp. */
   approvedAt?: string | undefined
 }): ApprovedVoiceSnapshotEntry => createApprovedVoiceSnapshotEntry({
   registrationId: `registration-${input.subjectKey}`,
@@ -140,11 +134,6 @@ export const buildApprovedVoiceEntry = (input: {
   registrationApprovedAt: input.approvedAt ?? COMIC_AUDIO_PHASE_CREATED_AT,
 })
 
-/**
- * Runs the local dialogue + ElevenLabs sound-effect mix each phase suite ends with.
- * The sound-effect requests are served from synthetic WAV bytes and the call count is
- * returned so suites keep asserting their own expected frequency.
- */
 export const runMockComicSoundscape = async (input: {
   rootDir: string
   plan: SoundscapePlan

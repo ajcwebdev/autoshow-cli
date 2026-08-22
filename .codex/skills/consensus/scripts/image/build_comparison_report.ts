@@ -155,7 +155,6 @@ export async function buildReport(runDir: string) {
     let totalFileSize = 0;
 
     if (imagePaths.length > 0) {
-      // Use the first image for representative dimensions
       try {
         const props = await probeImage(imagePaths[0]!);
         width = props.width;
@@ -163,7 +162,6 @@ export async function buildReport(runDir: string) {
       } catch {
         warnings.push(`Image probe failed for ${entry.imageFileNames[0]}`);
       }
-      // Sum file sizes across all images
       for (const imagePath of imagePaths) {
         totalFileSize += Bun.file(imagePath).size;
       }
@@ -176,7 +174,7 @@ export async function buildReport(runDir: string) {
       providerKey,
       imageService: entry.imageService,
       imageModel: entry.imageModel,
-      score: 0, // computed below
+      score: 0,
       costEfficiencyScore: 50,
       processingSpeedScore: 50,
       width,
@@ -191,14 +189,12 @@ export async function buildReport(runDir: string) {
   const costValues = providerData.map((p) => p.costCents).filter(isFiniteNumber);
   const timingValues = providerData.map((p) => p.processingTimeMs).filter(isFiniteNumber);
 
-  // Score each provider
   for (const provider of providerData) {
     provider.costEfficiencyScore = normalizeLowerIsBetter(provider.costCents, costValues);
     provider.processingSpeedScore = normalizeLowerIsBetter(provider.processingTimeMs, timingValues);
     provider.score = (provider.costEfficiencyScore * 0.5) + (provider.processingSpeedScore * 0.5);
   }
 
-  // Rank providers by score descending
   const ranked: RankedProvider[] = [...providerData]
     .sort((left, right) => {
       if (left.score !== right.score) return right.score - left.score;
@@ -236,7 +232,6 @@ export async function buildReport(runDir: string) {
     "Image existence, dimensions, and file size are reported as evidence only; they are not scoring inputs.",
   );
 
-  // Build reports
   const scoreFormula = "50% cost-efficiency + 50% processing-speed";
 
   const reportJson = {
@@ -252,7 +247,6 @@ export async function buildReport(runDir: string) {
     notes,
   };
 
-  // Markdown report
   const headerCols = ["Rank", "Provider", "Score / 100", "Cost Score", "Speed Score", "Dimensions", "File Size", "Images", "Processing Time", "Cost"];
 
   const headerRow = `| ${headerCols.join(" | ")} |`;

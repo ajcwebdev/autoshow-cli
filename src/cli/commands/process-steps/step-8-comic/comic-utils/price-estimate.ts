@@ -200,12 +200,6 @@ const estimateStructureScriptsPrice = async (options: StructureScriptsCommandOpt
   )
 }
 
-/**
- * The one renderer for every per-image cost table in this module. Emits a single
- * `pricing` event carrying `humanTable` rows plus the same numbers as `metadata`; the
- * `n/a` cells and the total line stay in the human view, while a JSON consumer reads
- * `pricePerImage`/`subtotal` as numbers (or `null`) rather than parsing "$0.0420".
- */
 const logImagePriceRows = (
   title: string,
   rows: readonly ComicPriceModelRow[],

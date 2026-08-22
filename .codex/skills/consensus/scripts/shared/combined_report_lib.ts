@@ -1,20 +1,3 @@
-/**
- * Shared helpers for combined cross-run comparison reports (STT, OCR, URL).
- *
- * Provides the category-agnostic pieces of the combined-report contract:
- *   - run discovery over a root directory of per-run report JSON files
- *   - per-run, per-group min-max Q/S/C subscores and the eight weighted
- *     composite rankings (weight sets identical across categories)
- *   - the deterministic per-group three-tier structure
- *     (`quality-cost-terciles-v1`)
- *   - markdown renderers and Method-section prose for the above
- *
- * Groups are never compared against each other: every function here operates
- * on the providers of a single group at a time. Category builders own their
- * pure-metric math (means for STT, source-surface means for URL, and
- * page-weighted aggregates for OCR) and feed this lib raw per-run
- * quality/time/cost samples.
- */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -102,7 +85,6 @@ export interface CombinedProviderInput {
   providerKey: string;
   provider: string;
   model: string;
-  /** Optional table display name; defaults to `provider`. */
   display?: string;
   samples: CombinedSample[];
 }
@@ -133,15 +115,6 @@ function sampleValue(sample: CombinedSample, dimension: SubscoreDimension): numb
   return isFiniteNumber(sample.costCents) ? sample.costCents : null;
 }
 
-/**
- * Per run and per group: min-max normalize each dimension to 0-100 subscores
- * (quality higher-is-better; speed/cost lower-is-better; identical min/max
- * gives every pooled provider 100), then average each provider's per-run
- * subscores across the runs where it received one. A provider missing a value
- * in a run is excluded from that run's normalization pool for that dimension;
- * a dimension missing in every covered run scores 0 (group-worst) and is
- * listed in `missingDimensions`.
- */
 export function computeGroupSubscores(providers: CombinedProviderInput[], runNames: string[]): ProviderSubscores[] {
   const sums = new Map<string, Record<SubscoreDimension, number>>();
   const counts = new Map<string, Record<SubscoreDimension, number>>();
@@ -313,11 +286,6 @@ function tierDescription(tier: number, providers: TierProviderRow[]): string {
   return `${band} quality-cost tercile (${range}).`;
 }
 
-/**
- * Divide a group's existing qualityCost weighted ranking into three contiguous,
- * near-equal tiers. Remainder rows go to the higher tiers first, so tier sizes
- * differ by at most one and preserve the ranking's deterministic order.
- */
 export function buildQualityCostTiering(qualityCostRanking: WeightedRankingEntry[]): CombinedTiering {
   const providerCount = qualityCostRanking.length;
   const sizes = qualityCostTercileSizes(providerCount);

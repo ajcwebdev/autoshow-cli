@@ -16,11 +16,6 @@ export const makeExecutable = async (path: string, mode = 0o755): Promise<void> 
   await chmod(path, mode)
 }
 
-/**
- * Permissive existence probe: any `stat` failure reads as "absent". Callers that need an
- * unexpected error (a permissions failure, say) to surface should use `fileExists` from
- * `~/utils/cli-utils`, which only swallows ENOENT/ENOTDIR/ENAMETOOLONG.
- */
 export const pathExists = async (path: string): Promise<boolean> => {
   try {
     await stat(path)
@@ -30,16 +25,11 @@ export const pathExists = async (path: string): Promise<boolean> => {
   }
 }
 
-/** True when `candidate` resolves strictly inside `root`. */
 export const isContainedPath = (root: string, candidate: string): boolean => {
   const child = relative(root, candidate)
   return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
 }
 
-/**
- * Writes pretty-printed JSON through a sibling temp file so readers never observe a partial
- * document. The parent directory is created first, so callers may target a fresh directory.
- */
 export const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
   await mkdir(dirname(path), { recursive: true })
   const temporary = `${path}.tmp-${crypto.randomUUID()}`

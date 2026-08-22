@@ -1,25 +1,3 @@
-/**
- * Self-contained HTML dashboard renderer for combined cross-run comparison
- * reports (STT, OCR, URL).
- *
- * `renderCombinedDashboard` is a pure function from a category-agnostic view
- * model to a single HTML document string: all data is embedded at generation
- * time, all CSS/JS is inline, and nothing references the network or other
- * files. Category differences (column labels, value formatting, display
- * names) are data in the view model, not code branches here.
- *
- * Design notes:
- *   - One consolidated provider table per group replaces the eleven markdown
- *     ranking tables; a weight-set button strip re-sorts it from precomputed
- *     data attributes (no math happens in the browser).
- *   - Magnitude is always the single blue hue (subscore bars, heat cells);
- *     tier chips are an ordinal wash of the same hue and always carry their
- *     text label; values/labels stay in ink tokens, never the data color.
- *   - The document is fully readable with JavaScript disabled: the strip
- *     stays hidden, the table ships in balanced-composite order, and the
- *     complete weighted rankings live in a <details> matrix.
- *   - Deterministic: the only run-varying value is `generatedAt`.
- */
 
 import { WEIGHT_SETS, WEIGHT_SET_KEYS, formatWeight, type ProviderSubscores, type WeightSetKey } from "./combined_report_lib";
 
@@ -33,7 +11,6 @@ export interface DashboardWeightedCell {
   composite: number;
 }
 
-/** Balanced-composite ranking (composite desc, providerKey asc) keyed by providerKey. */
 export function balancedCells(subscored: ProviderSubscores[]): Map<string, DashboardWeightedCell> {
   const sorted = [...subscored].sort(
     (left, right) => right.balancedComposite - left.balancedComposite || left.providerKey.localeCompare(right.providerKey),
@@ -112,7 +89,6 @@ function esc(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-/** Escape, then render the two inline markdown forms the method prose uses. */
 function mdInline(value: string): string {
   return esc(value)
     .replace(/`([^`]+)`/g, "<code>$1</code>")

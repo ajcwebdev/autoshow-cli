@@ -577,10 +577,6 @@ export const createHostedConcurrencyCoordinator = (
   options: HostedConcurrencyCoordinatorOptions = {}
 ): HostedConcurrencyCoordinator => new HostedConcurrencyCoordinatorImpl(options)
 
-// Walks the cause chain for a duck-typed diagnostic field. AppError carries such fields
-// in `metadata` rather than as own properties, so both are consulted (own property first)
-// — otherwise a structured AppProviderError would be invisible to pressure classification
-// that a hand-assembled plain error still matched.
 const readNestedErrorValue = (error: unknown, key: string): unknown => {
   const seen = new Set<unknown>()
   let current = error
@@ -623,9 +619,6 @@ const toHeaders = (headers: unknown): Headers | undefined => {
   return [...normalized.keys()].length > 0 ? normalized : undefined
 }
 
-// Message-matching by design: the upstream source is provider rate-limit prose, which
-// varies per vendor and is often the only signal when a 429 status is absent. Structured
-// fields (status, category, code) are consulted first, including AppError metadata.
 export const classifyHostedRateLimitPressure = (
   error: unknown
 ): ProviderLanePressureFeedback | undefined => {

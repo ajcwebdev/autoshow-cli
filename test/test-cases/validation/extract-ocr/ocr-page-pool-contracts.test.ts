@@ -236,8 +236,6 @@ describe('pooled OCR page scheduler contracts', () => {
       requestedTargets: targets,
       targetsToRun: targets,
       processPage: async ({ pageNumber, target }) => {
-        // `ambiguous` is a marker this test's own classifyFailure reads off the error
-        // object, so it stays an own property rather than moving into AppError metadata.
         if (target.service === 'openai') throw Object.assign(ProviderError('uncertain network result'), { ambiguous: true })
         return {
           ...pageResult(pageNumber, target),
@@ -287,7 +285,6 @@ describe('pooled OCR page scheduler contracts', () => {
       providerConcurrency: 3,
       processPage: async ({ pageNumber, target }) => {
         if (target.service === 'openai' && target.model === 'gpt-5.6-sol') {
-          // Marker read directly by this test's classifyFailure; see the note above.
           throw Object.assign(ProviderError('account blocked'), { laneWide: true })
         }
         await Bun.sleep(target.service === 'mistral' ? 1 : 3)

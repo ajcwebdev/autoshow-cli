@@ -7,7 +7,6 @@ import { parseHappyScribeExport, parseHappyScribeOrder, parseHappyScribeSignedUp
 import { attachHappyScribeErrorContext, buildHappyScribeRetryHeaders, toHappyScribeHttpError } from './happyscribe-utils'
 import { parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 
-
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
 
@@ -81,7 +80,6 @@ export const createHappyScribeApiClient = (
       signal: signal ?? null
     })
 
-  /** Runs one authenticated request and parses it, keeping the raw payload on failures. */
   const requestParsed = async <T>(
     requestOptions: Omit<HappyScribeJsonRequestOptions, 'onResponse'> & { parse: (payload: unknown) => T }
   ): Promise<T> => {
@@ -93,7 +91,6 @@ export const createHappyScribeApiClient = (
     }
   }
 
-  /** Same as `requestParsed`, but also surfaces the provider's Retry-After hint. */
   const pollParsed = async <T>(
     requestOptions: Omit<HappyScribeJsonRequestOptions, 'onResponse'> & { parse: (payload: unknown) => T }
   ): Promise<HappyScribePollResult<T>> => {

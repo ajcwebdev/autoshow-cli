@@ -3,7 +3,6 @@ import { WhisperJsonOutputSchema } from '~/types'
 import { validateJson } from '~/utils/validate/validation'
 import { clampSegmentsToKnownEnd, clampWordTimingsToKnownEnd } from '../../stt-utils/stt-timing-quality'
 
-
 export const parseWhisperJson = (
   jsonContent: string,
   options: { maxEndSeconds?: number | undefined } = {}
@@ -141,8 +140,6 @@ const aggregateWordSegments = (wordSegments: WhisperJsonOutput['transcription'])
   return segments
 }
 
-// whisper.cpp already emits HH:MM:SS.mmm; keep the milliseconds so segment stamps match the
-// sub-second precision every other engine now stores.
 const formatTimestampForDisplay = (timestamp: string): string => {
   const cleaned = timestamp.replace(',', '.')
   const parts = cleaned.split(':')

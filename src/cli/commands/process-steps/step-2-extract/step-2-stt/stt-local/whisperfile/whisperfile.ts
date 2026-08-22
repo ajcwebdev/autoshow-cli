@@ -7,17 +7,10 @@ import { withRetry } from '~/utils/retries'
 import { makeExecutable } from '~/utils/filesystem'
 import { InternalError } from '~/utils/error-handler'
 
-// Prebuilt packaged whisperfiles (binary + embedded GGML weights) live at
-// huggingface.co/Mozilla/whisperfile. Each supported model maps to a single
-// self-contained whisper-<model>.llamafile artifact that runs with no toolchain.
 const WHISPERFILE_BASE_URL = 'https://huggingface.co/Mozilla/whisperfile/resolve/main'
 
 const artifactFileName = (modelName: string): string => `whisper-${modelName}.llamafile`
 
-// whisperfiles are Cosmopolitan APE binaries. macOS posix_spawn cannot exec the
-// APE format directly (ENOEXEC), so they must be launched through a shell, which
-// reads the file as a self-extracting shell script. See the whisperfile
-// troubleshooting docs ("try saying `sh -c ./llamafile`").
 const verifyWhisperfileBinary = async (binaryPath: string): Promise<boolean> => {
   const result = await runCapture('sh', [binaryPath, '--help'], { allowFailure: true })
   return result.exitCode === 0

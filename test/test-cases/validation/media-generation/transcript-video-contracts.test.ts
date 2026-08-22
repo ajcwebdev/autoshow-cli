@@ -97,7 +97,6 @@ test('extract transcript-video renders from a media extract output directory', a
     expect((metadata['transcript'] as Record<string, unknown>)['cueSource']).toBe('extract-evidence-segments')
     expect((metadata['transcript'] as Record<string, unknown>)['speakerCount']).toBe(2)
 
-    // Captions carry the readable display label, not the raw provider id.
     const vtt = await Bun.file(`${result.outputDir}/0-audio-short.vtt`).text()
     expect(vtt).toContain('Speaker 1: Hello there.')
     expect(vtt).toContain('Speaker 2: Thanks for joining.')

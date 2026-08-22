@@ -121,7 +121,6 @@ const createElevenLabsTtsIvcVoice = async (
       operationName: 'elevenlabs-ivc-create',
       timeoutMs: MEDIA_GENERATION_TIMEOUT_MS
     },
-    // The operation took no signal parameter at all, so nothing could cancel an attempt.
     async (signal) => {
       const form = new FormData()
       form.append('name', voiceName)

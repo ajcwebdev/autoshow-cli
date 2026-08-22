@@ -147,7 +147,6 @@ describe('setup progress contracts', () => {
   })
 
   test('an empty build tree is not reported as reclaimed disk', () => {
-    // `du -sk` charges an empty APFS directory 8 KiB for its own inode.
     expect(shouldReportReclaimedBuildTrees(8192)).toBe(false)
     expect(shouldReportReclaimedBuildTrees(64 * 1024 * 1024)).toBe(true)
   })

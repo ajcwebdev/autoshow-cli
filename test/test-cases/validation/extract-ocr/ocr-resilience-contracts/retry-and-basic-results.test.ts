@@ -21,9 +21,6 @@ describe('OCR resilience contracts', () => {
     expect(OCR_PAGE_REQUEST_TIMEOUT_MS).toBe(5 * 60_000)
     expect(HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD).toBe(20)
     expect(OCR_SCHEMA_RETRY_ATTEMPTS).toBe(3)
-    // Both OCR policies are now the shared retriable-create tier rather than private
-    // literals with their own ceilings; only the page request's shorter attempt budget
-    // (with the 429 extension above) still differs.
     expect(OCR_CREATE_RETRY_POLICY).toEqual(getRetryPolicyForClass('runtime_http_create_retriable'))
     expect(OCR_PAGE_REQUEST_RETRY_POLICY).toEqual({
       ...getRetryPolicyForClass('runtime_http_create_retriable'),

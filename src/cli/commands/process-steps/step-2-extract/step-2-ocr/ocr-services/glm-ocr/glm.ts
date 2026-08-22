@@ -9,8 +9,6 @@ export const resolveGlmBaseUrl = (baseUrl?: string): string => {
     : `${override}/api/paas/v4`
 }
 
-// The stage comes from the call site: write, OCR, and URL-reader callers share
-// this helper, and a hardcoded stage made write failures report `ocr:glm`.
 export const ensureGlmApiKey = (serviceName: string, stage: string): string =>
   requireApiKey('GLM_API_KEY', stage, serviceName)
 

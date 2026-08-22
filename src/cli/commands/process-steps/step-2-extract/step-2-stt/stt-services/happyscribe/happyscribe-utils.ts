@@ -73,8 +73,6 @@ export const toHappyScribeHttpError = (
       rawResponse: payload
     } satisfies Pick<HappyScribeHttpError, 'stage' | 'retryClass' | 'rawResponse'>
   ),
-  // Happy Scribe reports its retry delay in the body, not the header, so the retry
-  // headers are rebuilt from the payload and overwrite the raw response headers.
   { headers: buildHappyScribeRetryHeaders(response, payload) }
 )
 

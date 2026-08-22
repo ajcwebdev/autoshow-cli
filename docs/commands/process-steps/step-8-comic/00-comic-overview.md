@@ -1,6 +1,6 @@
 # comic
 
-Draft comic scene JSON with shot plans, build reviewed panel prompt bundles, generate QA-approved panel and page images, manage approved character voices, render multi-speaker scene audio, and synchronize canonical panels into a local still-image MP4.
+Draft comic scenes from episode scripts, generate panel and page images, manage character voices, render multi-speaker scene audio, and synchronize panels into a local still-image MP4.
 
 ## Outline
 
@@ -34,27 +34,21 @@ GEMINI_API_KEY=...
 XAI_API_KEY=...
 ```
 
-- `OPENAI_API_KEY` is required for OpenAI text and image models.
-- `GEMINI_API_KEY` is required for Gemini text and image models.
-- `XAI_API_KEY` is required for Grok text and image models.
-- Other image providers (BFL, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../step-4-tts/text-to-speech-and-voice.md), and [voice](../step-9-voice/00-voice-overview.md).
-- `--price` estimates cost without provider calls or writes. `draft-scenes --only prompt` and `draft-scenes --only panel-prompts` are local assembly stages and make no provider calls.
+Other image providers (BFL, Replicate, Luma Labs) and TTS or sound-effect providers need their own keys. See [Supported Models](#supported-models), [TTS](../step-4-tts/text-to-speech-and-voice.md), and [voice](../step-9-voice/00-voice-overview.md).
 
-Hosted generation defaults to `--concurrency-mode ramp`. Use `--concurrency-mode immediate` to start at the command's concurrency cap.
+`--price` estimates cost without provider calls or writes. `draft-scenes --only prompt` and `draft-scenes --only panel-prompts` are local and make no provider calls.
 
 ### Character and Location Catalogs
 
-`draft-scenes` and `reference-sketch` require `input/characters/characters-reference.json`, or the equivalent file under `--characters-root`. The catalog lists character keys, relative `image` and `outlineSheet` paths, aliases, optional group aliases, and optional `sceneTextRules` (`required` or `forbidden` patterns). Scene drafting validates panels against catalog descriptions and rules. A character with one canonical reference image sets `image` and `outlineSheet` to the same relative path. A prose-defined character may declare an existing root-relative `generationReference` and optional `generationInstructions`.
+`draft-scenes` and `reference-sketch` require `input/characters/characters-reference.json`, or the same file under `--characters-root`. The catalog names each character and points to its reference images. Run `reference-sketch` before panel-prompt creation and after revising a character.
 
-Character paths must stay within the character root and use PNG/WebP/JPG/JPEG files. Canonical source images must exist when the catalog loads, except when bootstrap generation creates a new character using `generationReference`. Run `reference-sketch` before panel-prompt creation and after revising a character.
-
-Location configuration lives in `input/locations/locations-reference.json`. Set `styleImage` to any project image whose visual language should guide new location views. A location entry may set a root-relative `referenceDirectory`, an establishing `referenceFilename` ending in `--reference.png`, or both. Reverse and side filenames use `-reverse` or `-side` before `.png`. When the location catalog does not exist, comic commands initialize it using the first character catalog image as the style reference.
+Location configuration lives in `input/locations/locations-reference.json`. Set `styleImage` to a project image whose visual language should guide new location views. If the location catalog does not exist, comic creates it using the first character catalog image as the style reference.
 
 ## Runtime Paths
 
 - Episode scripts: `input/scripts/NN-script/*.md`
-- Character catalog, outline sheets, and sketch provenance: `input/characters/`
-- Location catalog, reference views, and sketch provenance: `input/locations/`
+- Character catalog and outline sheets: `input/characters/`
+- Location catalog and reference views: `input/locations/`
 - Scene run (prompts, scene JSON, panels, pages, sketches, audio, slideshow): `output/<YYYY-MM-DD_HH-MM-SS-mmm>_<scene-slug>/`
 
 ## Usage
@@ -70,13 +64,9 @@ bun autoshow comic generate-slideshow <script-path> [--audio-target <provider=mo
 
 `<script-path>` also accepts episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/01-script/` whose filename starts with `01-`.
 
-Per-command flags are in the [command docs](#command-docs).
-
 ## Walkthrough: 01-opening
 
-This walkthrough starts from `input/scripts/01-script/01-opening.md`. The equivalent shorthand is `01-01`.
-
-`draft-scenes` is required first because later stages consume the scene run and reviewed artifacts.
+This walkthrough starts from `input/scripts/01-script/01-opening.md` (`01-01`). Later stages consume the scene run from `draft-scenes`.
 
 ### 1. Draft the scene in stages
 
@@ -89,11 +79,9 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only sce
 bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only scene
 ```
 
-`--only scene` calls the selected text model.
-
 ### 2. Create character and location references
 
-Panel prompts require a registered canonical image for every visible character and a registered reference image for the scene location:
+Panel prompts require a registered reference image for every visible character and for the scene location:
 
 ```bash
 bun autoshow comic reference-sketch --character hero
@@ -123,7 +111,7 @@ To generate sketches and final images in one run after bundles exist:
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target both
 ```
 
-Final panel images land under `output/<timestamp>_01-opening/panels/`. Grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used.
+Final panel images land under `output/<timestamp>_01-opening/panels/`.
 
 ### 5. Register voices, render audio, and build the slideshow
 
@@ -170,24 +158,22 @@ input/locations/
   <key>--reference-side.png          # optional
 ```
 
-Later stages resume the **latest** existing run directory for the scene. A full `draft-scenes` run or `--only structure` starts a **fresh** run directory. `generate-images` resumes only a run that already contains `metadata/scene.json`. Pass global `--output-dir <path>` to pin an explicit run directory for both reading and writing.
+Later stages resume the latest existing run directory for the scene. A full `draft-scenes` run or `--only structure` starts a fresh run directory. `generate-images` resumes only a run that already contains `metadata/scene.json`. Pass global `--output-dir <path>` to pin an explicit run directory.
 
-`draft-scenes --only panel-prompts` copies registered character and location references into the run under `assets/`. Reviewed panels may also declare `designReferences` (`key`, a `sourcePath` under `input/`, and a `usage` description); those images are snapshotted the same way.
+`draft-scenes --only panel-prompts` copies registered character and location references into `assets/`.
 
 ## Supported Models
 
 ### Image Models
 
-`--image-model` accepts model IDs from the central image registry. Comic generates images with OpenAI, Google Gemini, xAI Grok, BFL, Replicate, and Luma Labs. fal.ai image models are not supported.
+`--image-model` accepts OpenAI, Google Gemini, xAI Grok, BFL, Replicate, and Luma Labs model IDs. fal.ai image models are not available on comic. The default is `gpt-image-2`. See [`image`](../step-5-image/text-to-image.md) for the full catalog.
 
-The default is `gpt-image-2`. Common choices:
-
-| Model                         | Provider | Notes                                                                                 |
-| ----------------------------- | -------- | ------------------------------------------------------------------------------------- |
-| `gpt-image-2`                 | OpenAI   | Default. Honors `--size` and `--quality`, including custom `WIDTHxHEIGHT` dimensions. |
-| `gemini-3.1-flash-lite-image` | Google   | Low-latency Gemini native image generation at 1K.                                     |
-| `gemini-3.1-flash-image`      | Google   | Gemini native image generation at 1K, 2K, or 4K with optional Search grounding.       |
-| `gemini-3-pro-image`          | Google   | Highest-quality Gemini native image generation at 1K, 2K, or 4K with optional Search grounding. |
+| Model                         | Provider |
+| ----------------------------- | -------- |
+| `gpt-image-2`                 | OpenAI   |
+| `gemini-3.1-flash-lite-image` | Google   |
+| `gemini-3.1-flash-image`      | Google   |
+| `gemini-3-pro-image`          | Google   |
 
 Pass multiple models with `--image-model` to generate each panel with every model for comparison:
 
@@ -197,25 +183,7 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 
 ### Text Models (LLM)
 
-`--llm-model` accepts model IDs from the central LLM registry for OpenAI, Groq, Google Gemini, Anthropic, MiniMax, xAI Grok, Z.AI GLM, Moonshot Kimi, Together, and Cerebras.
-
-The default is `gpt-5.6-sol`. Common choices:
-
-| Model                    | Provider  | Notes                                                     |
-| ------------------------ | --------- | --------------------------------------------------------- |
-| `gpt-5.6-sol`            | OpenAI    | Default. Used for scene drafting and panel prompts.       |
-| `gpt-5.6-terra`          | OpenAI    | Balanced GPT-5.6 tier.                                    |
-| `gpt-5.6-luna`           | OpenAI    | Efficient GPT-5.6 tier.                                   |
-| `gpt-5.5`                | OpenAI    | High-capability flagship model.                           |
-| `gpt-5.4-mini`           | OpenAI    | Fast and affordable text model.                           |
-| `gpt-5.4-nano`           | OpenAI    | Smallest and fastest OpenAI model.                        |
-| `gemini-3.1-pro-preview` | Google    | High-intelligence Gemini pro tier text model.             |
-| `gemini-3.6-flash`       | Google    | Balanced Gemini text model.                               |
-| `gemini-3.5-flash-lite`  | Google    | High-throughput low-cost Gemini text model.               |
-| `claude-opus-5`          | Anthropic | Opus-tier Claude model with thinking enabled by default.  |
-| `kimi-k3`                | Moonshot  | Flagship Kimi text model with 1M context and reasoning.   |
-| `grok-4.3`               | xAI       | Grok structured text model with 200K context.             |
-| `grok-4.5`               | xAI       | Grok structured text model with 500K context.             |
+`--llm-model` accepts the same hosted text model IDs as [`write`](../step-3-write/write-text.md). The default is `gpt-5.6-sol` for scene drafting.
 
 ## Command Docs
 

@@ -13,10 +13,6 @@ import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-ev
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
-// Every synthesized segment is remastered into a fixed-format `speech.wav`, so the
-// intermediate is baked to Deepgram's lossless PCM/WAV pair instead of the lossy
-// default the remaster cannot recover. Bit rate and sample rate stay unset so aura
-// returns its native rate.
 const DEEPGRAM_TTS_ENCODING = 'linear16'
 const DEEPGRAM_TTS_CONTAINER = 'wav'
 

@@ -104,8 +104,6 @@ export type ManagedPrebuiltReleaseManifest = {
   licenseReviewReferences: string[]
 }
 
-// Phase 3 candidates enter only through typed dependency injection. There is no
-// production metadata entry, URL resolver, flag, or environment-variable path.
 export type ManagedPrebuiltCandidate = {
   tool: ManagedArtifactToolId
   version: string
@@ -181,7 +179,6 @@ export type ManagedArtifactValidation =
     }
 
 export type ManagedSourceArtifactValidation = Extract<ManagedArtifactValidation, { healthy: false } | { distribution: 'source' }>
-
 
 export type ManagedSourceRecipe = {
   binaryRelativePath: string

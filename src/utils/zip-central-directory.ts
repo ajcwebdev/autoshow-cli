@@ -1,12 +1,6 @@
 import type { ZipArchiveOptions, ZipEntry } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 
-/**
- * Minimal ZIP central-directory reader. The document (DOCX/PPTX/XLSX/ODF) and EPUB paths each
- * carried a full hand-written copy of this format parser; they are now one implementation
- * parameterized by the caller's error stage and optional entry-name normalization.
- */
-
 const EOCD_SIG = 0x06054b50
 const CD_SIG = 0x02014b50
 const LFH_SIG = 0x04034b50
@@ -67,11 +61,6 @@ export const readZipEntryData = (buffer: Buffer, entry: ZipEntry, options: ZipAr
   throw ValidationError(`Unsupported ZIP compression method ${entry.method} for entry: ${entry.name}`, { stage: options.stage })
 }
 
-/**
- * `list` preserves central-directory order and any duplicate names; `entries` is the
- * by-name lookup, where a later duplicate wins. Callers that enumerate an archive want
- * `list`; callers that resolve a known path want `entries`.
- */
 export const openZipArchive = async (
   filePath: string,
   options: ZipArchiveOptions

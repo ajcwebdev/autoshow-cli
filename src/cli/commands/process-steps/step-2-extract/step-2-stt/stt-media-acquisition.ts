@@ -14,10 +14,8 @@ import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
 import { getAudioDuration } from './stt-utils/audio-splitter'
 
-
 const DEFAULT_STT_ACQUIRE_CONCURRENCY = 2
 
-// New hosted STT providers default to shared mp3 artifacts until .m4a support is explicitly confirmed.
 const HOSTED_STT_SHARED_SOURCE_MEDIA_SERVICES = new Set<SttTarget['service']>([
   'assemblyai',
   'deepgram',
@@ -28,7 +26,6 @@ const HOSTED_STT_SHARED_SOURCE_MEDIA_SERVICES = new Set<SttTarget['service']>([
   'soniox',
   'speechmatics'
 ])
-
 
 const sourceMediaAcquireQueue: Array<() => void> = []
 let activeSourceMediaAcquireCount = 0

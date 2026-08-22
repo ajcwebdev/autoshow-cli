@@ -21,9 +21,6 @@ export type RestFetchOptionsBase<TConfig extends RestClientConfigBase> = {
   errorMessagePrefix: string
 }
 
-
-// Every provider REST error is an AppProviderError, so `kind: 'provider_http'` and the
-// AppError-family process handling apply uniformly instead of only on the replicate path.
 export type RestErrorBase = AppProviderError & {
   status: number
   headers: Headers

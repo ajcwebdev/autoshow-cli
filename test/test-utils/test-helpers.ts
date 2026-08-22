@@ -53,8 +53,6 @@ const resolveTestOutputDir = (): string => {
 }
 
 export const OUTPUT_DIR = resolveTestOutputDir()
-// In-process tests call production getOutputRoot() directly; point it at the test
-// output dir. Production output selection is flag-driven.
 configureOutputRoot(OUTPUT_DIR)
 const EXAMPLE_AUDIO_URL = 'https://ajc.pics/autoshow/examples/1-audio.mp3'
 export const EXAMPLE_SHORT_AUDIO_URL = 'https://ajc.pics/autoshow/examples/0-audio-short.mp3'
@@ -453,11 +451,6 @@ const runCommandWithOptionalAdaptiveConcurrency = async (
   return { exitCode, stdout, stderr, adaptiveRecords }
 }
 
-// Production reads config from flags, not env. Translate the harness's output-root
-// and optional bin-dir conventions into the global CLI flags the child understands.
-// Only inject for processing commands (the ones that consume the output root and the
-// managed binaries); help invocations do not need either. Insert BEFORE any `--`
-// passthrough separator so the flags are parsed by AutoShow, not forwarded to yt-dlp.
 export const injectGlobalCliFlags = (
   baseChildArgs: string[],
   outputRoot: string,
@@ -486,10 +479,6 @@ export const injectGlobalCliFlags = (
 
 const buildChildEnv = (optsEnv: Record<string, string | undefined> | undefined): Record<string, string | undefined> => ({
   ...BASE_CHILD_ENV,
-  // Don't let an inherited FORCE_COLOR (set when `bun t` runs in an interactive
-  // terminal) force ANSI codes into child CLI output. FORCE_COLOR overrides both
-  // NO_COLOR and non-TTY detection (see shouldUseTerminalColors), which breaks
-  // plain-substring assertions. Tests that need color can re-enable via opts.env.
   FORCE_COLOR: '0',
   ...(optsEnv ?? {})
 })
@@ -552,8 +541,6 @@ const appendCommandMetricsRecord = async (
   try {
     await appendFile(metricsLogPath, `${JSON.stringify(record)}\n`)
   } catch (error) {
-    // Warn once per process: a broken metrics path otherwise yields empty pricing reports
-    // with no signal, while warning per command would drown the run.
     if (commandMetricsWriteWarned) return
     commandMetricsWriteWarned = true
     l.warn(`Could not append to the command metrics log at ${metricsLogPath}; pricing reports will be incomplete`, {
@@ -682,9 +669,6 @@ export const findLatestDirectory = async (
 
     return stats[stats.length - 1]?.dir ?? null
   } catch (error) {
-    // Only "the directory isn't there" means "no match". A permissions or ENOTDIR failure
-    // used to return null too, which downstream reported as a misleading
-    // `Expected output directory for <title>` instead of the real filesystem problem.
     if (hasErrorCode(error, 'ENOENT')) {
       return null
     }
@@ -692,14 +676,6 @@ export const findLatestDirectory = async (
   }
 }
 
-/**
- * Removes a known output directory, honoring the preserve flag.
- *
- * Five e2e suites spelled this inline as `process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS']
- * === '0'`, duplicating the flag's polarity beside `shouldPreserveArtifacts`'s `!== '0'` —
- * the two agreed only by coincidence, and a change to the flag's default would have split
- * them silently.
- */
 export const cleanupOutputDir = async (dir: string | null | undefined): Promise<void> => {
   if (!dir || shouldPreserveArtifacts()) {
     return
@@ -749,7 +725,6 @@ export const readConfiguredEnvVarSync = (key: string): string | undefined => {
   return undefined
 }
 
-/** The one record narrowing for the suite; re-exported so existing test imports keep working. */
 export { isRecord }
 
 export const toRecordArray = (value: unknown): Record<string, unknown>[] => {

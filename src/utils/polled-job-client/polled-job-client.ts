@@ -48,10 +48,8 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
   isFailed?: ((value: TPoll) => PolledJobFailure) | undefined
   onPoll?: ((value: TPoll) => void) | undefined
   validateCreate?: ((value: TCreate) => void) | undefined
-  // Without this, Ctrl-C could not interrupt a ten-minute poll.
   abortSignal?: AbortSignal | undefined
 }): Promise<{ created: TCreate, result: TPoll }> => {
-  // Create is intentionally single-shot: retrying an ambiguous submission can duplicate a paid job.
   const created = await runStep(options.create)
   options.validateCreate?.(created)
 

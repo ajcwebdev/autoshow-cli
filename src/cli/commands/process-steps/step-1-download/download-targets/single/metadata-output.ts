@@ -22,9 +22,6 @@ export const buildDocumentMetadataView = (
 
 export const writeMetadataTerminalOutput = (metadata: Record<string, unknown>, markdown: boolean): void => {
   if (markdown) {
-    // Sanctioned stdout payload, not a diagnostic: `--markdown` exists so the
-    // frontmatter document can be piped verbatim, and sink decoration would
-    // corrupt it. Same class of exception as the help and --version payloads.
     process.stdout.write(formatMetadataAsFrontmatter(metadata) + '\n')
     return
   }

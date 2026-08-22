@@ -23,21 +23,15 @@ const expectOnlyPublicCommandSpellings = (
 }
 
 describe('image command flag spellings', () => {
-  // Both directions: a flag the standalone command renames must be registered under its short
-  // name only, so the rename map and the registered flag set cannot drift apart.
   test('the standalone image command registers the renamed spellings and none of the pipeline ones', () => {
     expectOnlyPublicCommandSpellings(imageCommandFlags, imageCommandOptionNames)
   })
 
-  // The retarget is a `replaceAll` over the map, so a key that is a prefix of another key would
-  // rewrite it into a spelling nobody registers. Round-tripping every key catches that.
   test('every internal spelling retargets to exactly its public spelling', () => {
     expect(renameFlagSpellings(internalNames.map((name) => `--${name}`).join(' '), imageCommandOptionNames))
       .toBe(publicNames.map((name) => `--${name}`).join(' '))
   })
 
-  // Step-5 validators are shared with write/config/resume and name the `--image-*` flags. The
-  // standalone command retargets their usage errors, so a rejection names a flag it accepts.
   test('shared step-5 rejections retarget to the spellings the image command accepts', () => {
     const grokMessage = thrownMessage(() => collectImageTargets(buildOptsFromFlags(false, {
       'grok-image': 'grok-imagine-image-quality',

@@ -1,7 +1,6 @@
 import { stripAnsi } from '~/utils/terminal-colors'
 import { withEnvSync } from '../../../../test-utils/rest-contract-helpers'
 
-// The capture helpers live in test-utils so every suite shares one implementation.
 export { captureConsole, createCapturingLogger } from '../../../../test-utils/console-capture'
 
 export const withColorEnv = <T>(

@@ -9,57 +9,50 @@
 
 ## Context
 
-`src/types` had accumulated two kinds of drag. Many declarations existed only to name a shape used once: exported aliases imported by a single file, and private aliases referenced by a single parent. Those names added indirection without protecting a module boundary. Most type files also lived under a `migrated/` staging namespace that no longer matched the subsystems they supported, so ownership looked historical rather than current.
+`src/types` had two problems. Many declarations existed only to name a shape used once: exported aliases imported by a single file, and private aliases referenced by a single parent. Those names added indirection without protecting a module boundary. Most type files also lived under a `migrated/` staging namespace that no longer matched the subsystems they supported.
 
 The ingestion, pipeline-state, and extract boundaries in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) already described durable architecture. Type files did not follow it.
 
-Why now: type ownership had to match those subsystem boundaries before further work in those areas could be reviewed against a single tree, and declaration cleanup had to happen first so the move would not churn names that were about to disappear.
+Why now: type ownership had to match those subsystem boundaries so later work in those areas could be reviewed against a single tree.
 
 ## Options Considered
 
 **Option 1 (selected)**
 
-- **Option:** Three-phase cleanup: remove or inline single-use exports, fold private single-parent aliases, then reorganize `src/types` by subsystem ownership while keeping `src/types/index.ts` as the public barrel
+- **Option:** Remove or inline single-use exports, fold private single-parent aliases, and organize remaining files by durable subsystem and workflow ownership, keeping `src/types/index.ts` as the public barrel
 - **Pros:** Shrinks exported `~/types`, aligns file ownership with durable architecture, retires `migrated/`, and preserves the central public barrel
 - **Cons:** Requires import churn and a careful barrel update
-- **Quantitative Notes:** 149 type files at decision time (106 in `migrated/`); 262 exported single-use candidates; 68 non-exported single-parent candidates
+- **Quantitative Notes:** Majority of the type tree was under `migrated/` at decision time
 
 **Option 2**
-
-- **Option:** Inline every single-use declaration and keep the explicit local aliases
-- **Pros:** Preserves named local annotations
-- **Cons:** Leaves aliases where TypeScript inference already checks the same shape
-- **Quantitative Notes:** 222 inline-capable of 262 exported candidates
-
-**Option 3**
 
 - **Option:** Include multi-use and cross-referenced declarations in the same cleanup
 - **Pros:** Broadest single pass
 - **Cons:** Mixes simple single-use edits with type hierarchies that still justify a shared name
-- **Quantitative Notes:** 412 additional candidates deferred
+- **Quantitative Notes:** Rejected; remaining multi-use names stay out of this record
 
-**Option 4**
+**Option 3**
 
 - **Option:** Strict 1:1 directory mirroring between `src/` and `src/types/`
 - **Pros:** Highly predictable structure
 - **Cons:** Overfits ephemeral modules and produces thin folders
 - **Quantitative Notes:** n/a
 
-**Option 5**
+**Option 4**
 
 - **Option:** Co-locate type files beside implementation files in `src/`
 - **Pros:** Strong file locality
 - **Cons:** Conflicts with the central `~/types` barrel and the project-wide import pattern
 - **Quantitative Notes:** n/a
 
-**Option 6**
+**Option 5**
 
 - **Option:** Collapse types into fewer monolithic domain files
 - **Pros:** Fewer files to manage
 - **Cons:** Recreates mixed-purpose files and hides subsystem ownership
 - **Quantitative Notes:** n/a
 
-**Option 7**
+**Option 6**
 
 - **Option:** Leave `src/types` and `migrated/` unchanged
 - **Pros:** Zero edit risk
@@ -68,13 +61,13 @@ Why now: type ownership had to match those subsystem boundaries before further w
 
 ## Decision
 
-Clean up single-use type declarations, then keep `src/types` organized by durable subsystem and workflow ownership with `src/types/index.ts` as the sole public `~/types` barrel.
+Keep `src/types` organized by durable subsystem and workflow ownership, with `src/types/index.ts` as the sole public `~/types` barrel.
 
-Do not export a type whose only consumer is a single importing file. Fold a private alias into its parent when that parent is the only reference. Reorganize remaining files by subsystem and workflow domain rather than by a strict `src/` mirror. Place genuinely cross-cutting contracts in shared subsystem directories such as `pipeline-core/` and `runtime-core/`, not at the `src/types` root. Retire `src/types/migrated/` with no deep-path compatibility shims.
+Do not export a type whose only consumer is a single importing file. Fold a private alias into its parent when that parent is the only reference. Place remaining files by subsystem and workflow domain rather than by a strict `src/` mirror. Place genuinely cross-cutting contracts in shared subsystem directories such as `pipeline-core/` and `runtime-core/`, not at the `src/types` root. Do not use `src/types/migrated/` or deep-path compatibility shims.
 
 This applies to:
 
-- Exported single-use and non-exported single-parent type cleanup across `src/types/`.
+- Exported single-use and non-exported single-parent declarations in `src/types/`.
 - Subsystem- and workflow-scoped directories under `src/types/`.
 - Preserving `src/types/index.ts` as the single public `~/types` barrel.
 
@@ -88,7 +81,7 @@ It does not apply to:
 
 - A type imported from one file, and unused by other `src/types` declarations, does not protect a boundary and should not occupy the public barrel.
 - A private alias with one parent is local structure, not a shared contract, so folding it keeps the parent as the named shape.
-- `migrated/` was staging, not architecture. Durable subsystem directories match the source, pipeline-state, and extract boundaries already recorded in ADR-001, ADR-002, and ADR-009.
+- `migrated/` was staging, not architecture. Durable subsystem directories match the source, pipeline-state, and extract boundaries already recorded in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
 - A partial mirror of those boundaries avoids thin folders around ephemeral modules, and keeping the central barrel avoids rewriting every import.
 
 ## Consequences
@@ -124,13 +117,11 @@ Negative outcomes:
 
 ## Implementation Note
 
-- Single-use exported declarations were removed or inlined across `src/types/`. Private single-parent aliases were folded into their parent interfaces.
-- Files under `src/types/migrated/` moved into subsystem and workflow directories (`pipeline-core/`, `provider-core/`, `runtime-core/`, `cli-surface/`, and workflow-specific folders). `src/types/migrated/` was removed without compatibility shims.
-- `src/types/index.ts` is the only file at the `src/types` root and remains the sole public `~/types` barrel.
+Single-use exports were removed or inlined and private single-parent aliases were folded into their parents. Remaining files live in subsystem and workflow directories under `src/types/`. `src/types/index.ts` is the only root file and the sole public `~/types` barrel. `src/types/migrated/` was removed without compatibility shims.
 
 ## API / Type Impact
 
-Some previously exported names disappeared from `~/types` when they had a single in-repo consumer. In-tree imports continue to use `~/types`. Deep paths under `src/types/` follow subsystem directories and are not a supported public API.
+Single-use names are not part of the public `~/types` barrel. In-tree imports continue to use `~/types`. Deep paths under `src/types/` follow subsystem directories and are not a supported public API.
 
 ## Test Plan
 
@@ -142,8 +133,10 @@ bun run check
 
 ## Follow-up Actions
 
-- [ ] Review the excluded exported buckets (257 one-file multiple-use, 155 internal-reference) as a separate cleanup — Deferred
-- [ ] Review the 39 multi-reference non-exported declarations as a separate cleanup — Deferred
+- [ ] Review remaining multi-use exported declarations as a separate cleanup — Pending
+  These names were excluded because they still have more than one consumer.
+- [ ] Review remaining multi-reference non-exported declarations as a separate cleanup — Pending
+  These names were excluded because more than one parent still references them.
 
 ## References
 

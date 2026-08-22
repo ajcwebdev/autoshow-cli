@@ -83,9 +83,6 @@ const toSegments = (
   return segments
 }
 
-// Soniox streams sub-word tokens ("James", " P", "erk", "in", "s,") and the leading space is the only
-// word-boundary marker it gives. Merge them back into whole words so evidence words are words, keeping
-// the first token's start and the last token's end, and the lowest confidence across the pieces.
 const toEvidenceWords = (
   tokens: SonioxTranscriptResponse['tokens'],
   offsetSeconds: number

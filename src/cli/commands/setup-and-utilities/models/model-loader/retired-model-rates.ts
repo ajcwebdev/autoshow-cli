@@ -2,10 +2,6 @@ import type { ModelCategory, RetiredModelRate, RetiredModelRates, RetiredModelRe
 
 export const modelRateKey = (service: string, model: string): string => `${service}:${model}`
 
-// Historical pricing only. These models remain absent from active validation,
-// defaults, help, and provider expansion. Rates are the cents fields present in
-// the registry immediately before retirement; the one never-priced Opus OCR
-// identity retains the explicit zero rate recorded in the benchmark corpus.
 export const RETIRED_MODEL_RATES: RetiredModelRates = {
   stt: {},
   extract: {

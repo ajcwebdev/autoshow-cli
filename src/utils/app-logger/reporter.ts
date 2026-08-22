@@ -186,8 +186,6 @@ const buildCompleteResultData = (
   return resultData
 }
 
-// Default human rendering for `report.result`: a flat label/value detail table so
-// the payload stays readable without every caller hand-building a table.
 const buildResultDetailTable = (data: Record<string, unknown>): HumanLogTable =>
   createDetailTable(Object.entries(data).map(([label, value]) => [label, value] as const))
 

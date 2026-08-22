@@ -100,7 +100,6 @@ test('comic reference-voice is a nested alias of the public voice verbs', async 
     ['comic', 'reference-voice', 'consent', '--revoke', 'protected-consent:v1:STORE:ASSET:SHA256', '--actor-id', 'casting_editor'],
     '--reason is required.'
   )
-  // The mirror tracks `voice` exactly, so the retired aliases are gone from it too.
   for (const action of ['discover', 'materialize', 'revoke-consent', 'reconcile', 'revoke', 'status', 'inspect']) {
     expectUnknownCommand(['comic', 'reference-voice', action], `comic reference-voice ${action}`)
   }

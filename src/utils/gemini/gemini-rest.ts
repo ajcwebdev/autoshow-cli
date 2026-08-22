@@ -263,7 +263,6 @@ const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => 
     ...(raw['error'] !== undefined ? { error: raw['error'] } : {})
   }
   const response = isObjectLike(raw['response']) ? raw['response'] : undefined
-  // Raw Gemini REST provenance: https://ai.google.dev/gemini-api/docs/veo and the Google Gen AI SDK's ML Developer API converters at https://github.com/googleapis/js-genai/blob/4489991a7c40b22dff75348748048b0b14ac687e/src/converters/_models_converters.ts.
   const generateVideoResponse = response && isObjectLike(response['generateVideoResponse'])
     ? response['generateVideoResponse']
     : undefined
@@ -420,12 +419,6 @@ const geminiGetFile = async (
 const GEMINI_FILE_ACTIVATION_DEADLINE_MS = 120_000
 const GEMINI_FILE_ACTIVATION_INTERVAL_MS = 1_000
 
-/**
- * Waits for an uploaded Files API object to become usable. This was a hand-written
- * `while (Date.now() < deadline)` loop duplicated byte-for-byte in the Gemini OCR and STT
- * services: silent, un-abortable, and running inside an outer retry attempt that could
- * not cancel it. One copy, on the central poll loop, with a real abort signal.
- */
 export const waitForGeminiFileActive = async (
   apiKey: string,
   fileName: string,

@@ -72,9 +72,6 @@ const nonEmpty = (value: string | undefined): string | undefined => {
 
 let overrideBinDir: string | undefined
 
-// Override directory for external tool binaries, fed by the global --bin-dir flag.
-// When set, a tool whose file exists under this directory takes precedence over the
-// managed runtime/bin install and PATH.
 export const configureBinDir = (dir: string): void => {
   overrideBinDir = nonEmpty(dir)
 }

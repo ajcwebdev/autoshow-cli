@@ -133,8 +133,6 @@ describe('canonical location reference registration', () => {
 
   test('price preflight estimates one initial image and one permitted repair for one view', async () => {
     await fixture()
-    // Comic price estimates emit structured `pricing` events, so the call counts are
-    // asserted on metadata rather than on the rendered line.
     const { events } = await captureLogEvents(async () => {
       await estimateLocationReferencePrice({ location: 'cargo-bay', view: 'establishing', maxRepairs: 1 })
     })

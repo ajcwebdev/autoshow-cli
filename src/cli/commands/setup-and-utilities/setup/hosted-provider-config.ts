@@ -1,5 +1,7 @@
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import type { AutoshowConfig, HostedProviderConfigurationLogMode, HostedProviderConfigurationRow, HostedProviderConfigurationSummary, HostedProviderEnvCheck, HostedProviderStatus, HumanLogTable, TableLogger } from '~/types'
+import { InternalError } from '~/utils/error-handler'
+
 export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'openai',
@@ -373,10 +375,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   }
 ] as const satisfies readonly HostedProviderEnvCheck[]
 
-// Focused setup steps used to carry their own literal env-key lists, which drifted
-// as providers were added and removed. Derive them from the config paths the
-// master list already records, so a new provider only has to be registered once.
-// Setup provider-coverage contracts pin each derived set to its selector registry.
 export const getHostedProviderEnvKeysForConfigPrefix = (
   configPathPrefix: string
 ): string[] => [...new Set(
@@ -449,12 +447,13 @@ const resolveHostedProviderChecks = (
   const selected = new Set(envVars)
   const resolved = HOSTED_PROVIDER_ENV_CHECKS.filter(check => selected.has(check.envVar))
 
-  // A per-step subset that names a variable the master list does not carry used
-  // to be filtered away silently, so the step under-reported its own providers.
   if (resolved.length !== selected.size) {
     const known = new Set<string>(HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar))
     const unknown = [...selected].filter(envVar => !known.has(envVar))
-    throw new TypeError(`Unknown hosted provider env vars requested: ${unknown.join(', ')}. Add them to HOSTED_PROVIDER_ENV_CHECKS or remove them from the step subset.`)
+    throw InternalError(
+      `Unknown hosted provider env vars requested: ${unknown.join(', ')}. Add them to HOSTED_PROVIDER_ENV_CHECKS or remove them from the step subset.`,
+      { stage: 'setup:hosted-providers', retryable: false }
+    )
   }
 
   return resolved
@@ -500,9 +499,6 @@ export const buildHostedProviderConfigurationTable = (
 ): HumanLogTable =>
   createHumanTable(rows, ['provider', 'status', 'envKey', 'detail'])
 
-// "present" rather than "configured": this check only proves the variable is
-// non-empty. A revoked, truncated, or typo'd key still counts, and the
-// surrounding rows report functional readiness, which invites over-reading.
 export const buildHostedProviderConfigurationSummaryTable = (
   summary: HostedProviderConfigurationSummary
 ): HumanLogTable =>

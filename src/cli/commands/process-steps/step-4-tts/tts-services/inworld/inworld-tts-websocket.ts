@@ -251,9 +251,9 @@ export const synthesizeInworldWebSocket = async (input: Readonly<{
   } finally {
     if (connection) {
       if (state.terminalKind !== 'contextClosed') {
-        try { await connection.send(JSON.stringify({ close_context: {}, contextId })) } catch { /* Best-effort context cleanup. */ }
+        try { await connection.send(JSON.stringify({ close_context: {}, contextId })) } catch {}
       }
-      try { await connection.close(1000, 'synthesis complete') } catch { /* Best-effort socket cleanup. */ }
+      try { await connection.close(1000, 'synthesis complete') } catch {}
     }
   }
 }

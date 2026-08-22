@@ -11,7 +11,6 @@ import { describeScrapeCreatorsUnsupportedSource, getScrapeCreatorsBaseUrl, isSc
 const REQUEST_TIMEOUT_MS = 60_000
 const DEFAULT_LANGUAGE = 'en'
 
-
 const parseFiniteNumber = (value: unknown): number | undefined => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : undefined
@@ -128,8 +127,6 @@ const buildScrapeCreatorsUnsupportedSourceError = (
   {
     stage: 'create',
     retryable: false,
-    // `skipped` stays an own property: `classifySttProviderFailure` reads it directly off
-    // each chain entry rather than through `extractErrorMetadata`.
     skipped: true
   } satisfies Partial<ScrapeCreatorsHttpError>
 )

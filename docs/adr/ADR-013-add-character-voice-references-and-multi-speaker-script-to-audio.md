@@ -9,7 +9,7 @@
 
 ## Context
 
-AutoShow can synthesize single-voice speech through 16 providers and already has a generic multi-speaker parser, speaker mappings, turn files, local concatenation, and a native Gemini branch. Comic already supplies structured scripts with stable source-segment IDs, character keys, speaker labels, spoken text, delivery notes, and scene locations.
+AutoShow can synthesize single-voice speech through 16 providers and already has a generic multi-speaker parser, speaker mappings, turn files, local concatenation, and a native Gemini branch. Comic already supplies structured scripts with stable source-segment IDs, character keys, speaker labels, spoken text, and delivery notes.
 
 Those pieces do not form a trustworthy multi-character script-to-audio workflow. Comic has no command for creating, selecting, auditioning, approving, or snapshotting a character voice, and no command for turning a structured script into multi-character audio. The generic TTS speaker map is only a speaker string plus a provider-agnostic voice string or path. It cannot express provider-specific castings, design or clone state, access restrictions, consent, delivery controls, remote-resource lifecycle, or immutable voice identity.
 
@@ -97,7 +97,7 @@ It does not apply to:
 
 ### Commands and ownership
 
-`tts` synthesizes with one existing stock, designed, or cloned voice ID and remains compatible with every implemented TTS model. `voice` and `comic reference-voice` manage durable catalog, design, clone, inspect, and delete resources only for the five voice-managed models. Hume, MiniMax, DeepInfra, Mistral, Replicate, fal.ai, and every stock-only model stay synthesis-only. Hume `octave-1` remains acting-direction synthesis; Hume `octave-2` may use native utterances. Speculative Replicate reference or dialogue models remain excluded. fal.ai Maya stays off the voice surface until it exposes a durable voice port. Current catalog sizes, stock-voice lists, and request-control flags live in the TTS command docs and the TTS model report.
+`tts` synthesizes with one existing stock, designed, or cloned voice ID and remains compatible with every implemented TTS model. `voice` and `comic reference-voice` manage durable catalog, design, clone, inspect, and delete resources only for the five voice-managed models. Every other implemented TTS model stays synthesis-only.
 
 ```text
 structured-script.json
@@ -133,43 +133,13 @@ structured-script.json
 
 ### Voice-managed expressiveness
 
-Each voice-managed model must expose a working expressiveness path. The methods are not unified:
-
-**Model 1: ElevenLabs `eleven_v3`**
-
-- **Model:** ElevenLabs `eleven_v3`
-- **Expressiveness method:** v3 audio tags plus style, stability, and similarity
-- **Compatible path:** Authored `[whispers]`/`[laughs]` stay in spoken text; dialogue `delivery` converts to the documented v3 tag allowlist; `--elevenlabs-tts-style`, `--elevenlabs-tts-stability`, and `--elevenlabs-tts-similarity-boost` serialize as `voice_settings`
-
-**Model 2: Inworld `realtime-tts-2`**
-
-- **Model:** Inworld `realtime-tts-2`
-- **Expressiveness method:** Request-level instruction plus inline vocal tags
-- **Compatible path:** `--tts-instructions` serializes as `instruction`; `[happy]`, `[laugh]`, and `[breathe]` stay in `text`
-
-**Model 3: Fish `s2.1-pro`**
-
-- **Model:** Fish `s2.1-pro`
-- **Expressiveness method:** In-text `[emotion]` and delivery markup
-- **Compatible path:** Dialogue `delivery` converts to the documented Fish tag allowlist; inline `[emotion]` stays in spoken text
-
-**Model 4: Cartesia `sonic-3.5-2026-05-04`**
-
-- **Model:** Cartesia `sonic-3.5-2026-05-04`
-- **Expressiveness method:** SSML-like performance tags plus `[laughter]`
-- **Compatible path:** `<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`, and `[laughter]` stay in the transcript
-
-**Model 5: Speechify `simba-3.2`**
-
-- **Model:** Speechify `simba-3.2`
-- **Expressiveness method:** SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style`
-- **Compatible path:** Authored SSML stays in `input`; wrap SSML in `<speak>`
+Each voice-managed model must expose a working expressiveness path. The methods are not unified: ElevenLabs uses v3 audio tags plus style, stability, and similarity; Inworld uses a request-level instruction plus inline vocal tags; Fish uses in-text emotion and delivery markup; Cartesia uses SSML-like performance tags plus `[laughter]`; Speechify uses SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style`. Exact tag allowlists and request-control flags live in the TTS command docs.
 
 ### Scene-run artifacts and protected voice store
 
-Every comic scene run owns exactly one canonical, unversioned `<scene-run>/manifest.json`. A scene run uses `command: 'comic'`, `scope: 'single'`, and one item whose input is the normalized canonical script path. Comic drafting, image generation, and audio generation update that item. Audio render directories are provider artifact directories inside the scene run, not independent run roots, and never contain another file named `manifest.json`.
+Every comic scene run owns exactly one canonical, unversioned `<scene-run>/manifest.json`. Audio render directories are provider artifact directories inside that scene run, not independent run roots, and never contain another `manifest.json`.
 
-The manifest records the structured script, dialogue and snapshot identities, selected audio runs, mix, timeline, and checksums. Domain records such as `voice-reference-snapshot.json`, `render.json`, and `audio-run.json` are referenced by relative path and checksum. Bare `manifest.json` and `result.json` remain reserved canonical names.
+The manifest records the structured script, dialogue and snapshot identities, selected audio runs, mix, timeline, and checksums. Domain records such as `voice-reference-snapshot.json`, `render.json`, and `audio-run.json` are referenced by relative path and checksum.
 
 The protected voice store is kept outside output roots. It holds voice assets, consent records, and provisioning journals under owner-only permissions. Visual character schemas remain unchanged and do not embed voice fields.
 
@@ -197,7 +167,7 @@ Preflight has three named phases:
 
 Gemini native dialogue is exactly two distinct speakers; other speaker counts use segmented synthesis. Authored overlaps and local voice-effect filters also force segmented rendering.
 
-Per-turn synthesis passes an explicit voice to the provider. Dialogue work runs under the shared hosted TTS lanes from [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md), bounded by `--tts-chunk-concurrency`, `--provider-concurrency`, `--local-concurrency`, and `--concurrency-mode`. Ambiguous paid admissions are never redispatched inside the running command. Resuming one requires `--allow-ambiguous-redispatch`, which must warn that the slot may be purchased again.
+Per-turn synthesis passes an explicit voice to the provider. Dialogue work runs under the shared hosted TTS lanes from [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md). Ambiguous paid admissions are never redispatched inside the running command. Resuming one requires `--allow-ambiguous-redispatch`, which must warn that the slot may be purchased again.
 
 Completed audio is reused by content-addressed slot files at `audio/slots/<slotHash>.wav`. A later render with the same slot identity spends nothing. A changed voice snapshot creates a new render identity but does not invalidate unrelated completed slots. `--price` subtracts retained slots and reports zero spend when a render can be assembled locally. `--max-generation-slots` can checkpoint after a bounded number of new slots without publishing a final WAV.
 
@@ -300,12 +270,8 @@ Negative outcomes:
 
 ## API / Type Impact
 
-- `tts` synthesizes with one existing stock, designed, or cloned voice ID and remains compatible with every implemented TTS model.
-- `voice` and `comic reference-voice` add catalog, design, clone, inspect, and delete only for the five voice-managed models.
-- `comic generate-audio` consumes approved registrations and never creates or deletes voices.
-- Speaker maps carry provider-qualified voice bindings instead of a single voice string.
-- `--mode` is `auto|native|segmented`. `--delivery-policy` is `strict|best-effort`. `--allow-ambiguous-redispatch` is the only authorization for resuming an ambiguous paid slot.
-- Each comic scene run keeps one unversioned `manifest.json`. Audio artifacts live inside that run as `audio/slots/`, `audio/final/`, and compact `render.json` records.
+- Before: a speaker map was a speaker string plus a provider-agnostic voice string or path, and synthesis options mixed voice selection with invocation.
+- After: speaker maps carry provider-qualified voice bindings. `tts` and `comic generate-audio` synthesize with an existing voice and never create or delete remote voices. `voice` and `comic reference-voice` own catalog, design, clone, inspect, and delete for the five voice-managed models. Public controls are `--mode auto|native|segmented`, `--delivery-policy strict|best-effort`, and `--allow-ambiguous-redispatch` for resuming an ambiguous paid slot. Each comic scene run keeps one unversioned `manifest.json`; audio artifacts live inside that run as `audio/slots/`, `audio/final/`, and compact `render.json` records.
 
 ## Test Plan
 

@@ -45,7 +45,6 @@ export const isPdfEncrypted = async (
     const qpdfResult = await isPdfEncryptedViaQpdf(filePath)
     if (qpdfResult !== undefined) return qpdfResult
   } catch {
-    // qpdf unavailable or errored, fall through to mutool
   }
   try {
     const result = await showPdfObject(filePath, 'trailer/Encrypt', password)

@@ -124,9 +124,6 @@ export const parseSpeakerVoiceMappings = (
   return { entries, bySpeaker }
 }
 
-// Speaker mappings alone are the mode switch. A dialogue format without them can only ever fail,
-// so counting it here turned a `ttsDialogueFormat` stored in config defaults into a step-4 abort
-// for every pipeline run. `assertDialogueFormatIsUsable` reports that case instead.
 export const isMultiSpeakerRequested = (options: TtsOptions): boolean =>
   (options.ttsSpeakers?.length ?? 0) > 0
 
@@ -138,8 +135,6 @@ export const resolveDialogueFormat = (options: TtsOptions): TtsDialogueFormat =>
   throw CLIUsageError('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
 }
 
-// A format with no speaker mappings selects nothing. Typed on the command line that is a usage
-// error; inherited from config defaults it is inert, so say so rather than failing the run.
 export const assertDialogueFormatIsUsable = (
   options: TtsOptions,
   explicitFlags?: ReadonlySet<string>

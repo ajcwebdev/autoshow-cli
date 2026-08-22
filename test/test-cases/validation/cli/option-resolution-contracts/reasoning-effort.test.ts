@@ -55,7 +55,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
   describe('resolveReasoningPolicy - Adapter Defaults & Explicit Overrides', () => {
     it('returns adapter defaults only when the flag is omitted', () => {
-      // Groq write default
       const groqPolicy = resolveReasoningPolicy({
         step: 'llm',
         service: 'groq',
@@ -64,7 +63,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       })
       expect(groqPolicy.effective).toBe('low')
 
-      // An explicit default delegates to the provider instead of preserving AutoShow's legacy low override.
       const geminiOcrPolicy = resolveReasoningPolicy({
         step: 'extract',
         service: 'gemini',
@@ -74,7 +72,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(geminiOcrPolicy.requested).toBe('default')
       expect(geminiOcrPolicy.effective).toBe('default')
 
-      // Kimi K2.6 write default
       const kimiK26Policy = resolveReasoningPolicy({
         step: 'llm',
         service: 'kimi',
@@ -83,7 +80,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       })
       expect(kimiK26Policy.effective).toBe('disabled')
 
-      // Kimi K3 write default
       const kimiK3Policy = resolveReasoningPolicy({
         step: 'llm',
         service: 'kimi',

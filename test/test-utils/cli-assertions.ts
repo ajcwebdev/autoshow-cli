@@ -16,25 +16,14 @@ export const commandNamed = (name: string): CliCommandDefinition => {
   return command
 }
 
-/**
- * The CLI writes usage failures across both channels (hints to stderr, partial help to
- * stdout), so assertions read the pair as one string. Kept here rather than hand-written
- * per site so the joining rule has exactly one definition.
- */
 const combinedOutput = (result: Pick<CommandResultBase, 'stdout' | 'stderr'>): string =>
   `${result.stdout}\n${result.stderr}`
 
-/**
- * Asserts the message a user would actually see for a usage error: the message plus the
- * structured hints the top-level handler prints. Built on `extractErrorHints` rather than
- * duck-typing `err.hints`, so a hint source the handler honors is honored here too.
- */
 export const expectUsageMessage = (error: unknown, expected: string): void => {
   const err = error instanceof Error ? error : new Error(String(error))
   expect([err.message, ...extractErrorHints(err)].join('\n')).toContain(expected)
 }
 
-/** As `expectUsageMessage`, and additionally pins the AppError classification. */
 export const expectUsageClassification = (error: unknown, expected: string): void => {
   expectUsageMessage(error, expected)
   expect(isAppError(error)).toBe(true)
@@ -42,12 +31,6 @@ export const expectUsageClassification = (error: unknown, expected: string): voi
   expect(normalizeExitCode(error)).toBe(2)
 }
 
-/**
- * The message a throwing call produced, for the assertions `expectUsageThrow` cannot make:
- * an exact `toBe` comparison, or a transformation of the message (the standalone image
- * command retargets flag spellings before asserting). Two suites had their own copy of
- * this and of the async variant below.
- */
 export const thrownMessage = (fn: () => unknown): string => {
   try {
     fn()
@@ -87,11 +70,6 @@ export const expectUnknownFlag = (argv: string[], flag: string): void => {
   expect(() => parseCommandInvocation(argv, command, GLOBAL_FLAG_DEFINITIONS)).toThrow(`Unexpected flag: ${flag}`)
 }
 
-/**
- * Runs the CLI and pins the failure contract: exact exit code plus combined-output
- * content. `not.toBe(0)` is deliberately not offered — an exact code is what distinguishes
- * a usage rejection (2) from an execution failure (1).
- */
 const expectCommandFailure = async (
   args: string[],
   expectation: CommandFailureExpectation = {}
@@ -111,7 +89,6 @@ const expectCommandFailure = async (
   return result
 }
 
-/** Spawned-CLI counterpart to `expectUsageThrow`: exit 2 plus the message. */
 export const expectUsageExit = async (args: string[], expectedMessage: string): Promise<void> => {
   await expectCommandFailure(args, { exitCode: 2, contains: expectedMessage })
 }

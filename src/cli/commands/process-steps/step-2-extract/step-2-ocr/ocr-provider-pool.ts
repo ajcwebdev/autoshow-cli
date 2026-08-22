@@ -6,7 +6,6 @@ import { createOcrPoolState, finalizeOcrPoolLedger, markOcrPoolTerminalPages } f
 import { runOcrPoolWorkers } from './ocr-page-pool-workers'
 import { buildIndexedOcrTargetsToRun, getHostedOcrExecutionPriority, isLocalOcrTarget } from './ocr-pool-scheduling'
 
-// Re-exported: the pooled batch runner and a contract test import this name from here.
 export { isLocalOcrTarget }
 
 export const runOcrProviderTargetPools = async (

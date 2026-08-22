@@ -11,8 +11,6 @@ const DependencyEntrySchema = v.object({
   ref: v.optional(v.string(), undefined),
   url: v.optional(v.string(), undefined),
   sha256: v.optional(v.string(), undefined),
-  // Platform-specific assets for a single pinned version, so the version the
-  // Pinned Versions table reports is the version every platform installs.
   linuxUrl: v.optional(v.string(), undefined),
   linuxSha256: v.optional(v.string(), undefined)
 })
@@ -117,7 +115,6 @@ export const readDependencyUrlAndSha256 = async (
   return { url, sha256 }
 }
 
-// The pinned set, in the order the Pinned Versions table should present it.
 export const listPinnedDependencies = async (): Promise<{ name: string, version: string }[]> => {
   const metadata = await readDependencyMetadata()
   return Object.entries(metadata).map(([name, entry]) => ({

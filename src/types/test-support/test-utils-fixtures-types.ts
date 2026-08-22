@@ -130,11 +130,6 @@ export type MultiProviderManifestFixtureOptions = {
 
 type PolicySkipIdentity = Pick<TtsTarget, 'service' | 'model' | 'transport' | 'targetKey'>
 
-/**
- * The distinguishing dimensions of a policy-skipped provider state are its target
- * identity, where the artifacts live, and which skip evidence the manifest carries.
- * Those are required; the harness-labelling fields have fixture defaults.
- */
 export type PolicySkippedTtsProviderStateOptions = {
   target: PolicySkipIdentity
   artifactDir: string
@@ -145,29 +140,11 @@ export type PolicySkippedTtsProviderStateOptions = {
   local?: boolean | undefined
 }
 
-/**
- * The reconciliation semantics a resume or recovery test is actually exercising.
- * These are not interchangeable: whether the provider was admitted before the
- * failure decides which recovery branch the lifecycle must take, so the mode is a
- * required discriminated union rather than a set of optional flags.
- */
 type TtsFixtureTargetMode =
-  /** Provider accepts, writes audio, and completes. */
   | { kind: 'success' }
-  /** Provider rejects the request before admission, so no work was authorized. */
   | { kind: 'reject' }
-  /** The fixture throws before it ever dispatches, so no request evidence exists. */
   | { kind: 'failBeforeDispatch' }
-  /**
-   * The provider admitted the request and the fixture then failed, leaving an
-   * ambiguous in-flight slot. `sourceIndex` narrows the failure to one dialogue
-   * source; omit it to fail on every invocation.
-   */
   | { kind: 'failAfterAdmission', sourceIndex?: number | undefined }
-  /**
-   * Repeated admitted-then-failed attempts until `succeedOnAttempt`, recording
-   * each attempt number so redispatch accounting can be asserted.
-   */
   | { kind: 'ambiguousRetry', attempts: number[], succeedOnAttempt: number, maxAttempts: number }
 
 export type TtsFixtureTargetOptions = {
@@ -177,11 +154,8 @@ export type TtsFixtureTargetOptions = {
   transport?: string | undefined
   voice?: string | undefined
   multiSpeakerStrategy?: MultiSpeakerStrategy | undefined
-  /** `nested` mirrors the OpenAI speech body; `flat` mirrors the phase-0 resume evidence. */
   requestShape?: 'flat' | 'nested' | undefined
   providerRequestId?: ((sourceIndex: number, attempt: number) => string) | undefined
-  /** Records every invocation; dialogue suites use it to assert which sources ran. */
   onRun?: ((sourceIndex: number) => void) | undefined
-  /** Materializes the audio bytes for an invocation, keyed by dialogue source index. */
   audioBytes?: ((sourceIndex: number) => Uint8Array) | undefined
 }

@@ -31,18 +31,12 @@ const collectClaimedGroups = (): Set<string> => {
 const declaredGroupKeys = (): string[] => HELP_FLAG_GROUPS.map(([key]) => key)
 
 describe('help flag group catalog contracts', () => {
-  // A group key nothing claims is invisible: `renderGroupedFlags` skips empty
-  // groups, so a stale entry survives every `--help` run without a symptom.
   test('every declared group is claimed by at least one flag', () => {
     const claimed = collectClaimedGroups()
 
     expect(declaredGroupKeys().filter((key) => !claimed.has(key))).toEqual([])
   })
 
-  // The failure this one catches is user-visible but quiet: `renderGroupedFlags`
-  // dumps flags whose group is missing from the catalog into an unlabeled block
-  // after every labeled section, so the flags still print — just detached from
-  // any heading. That is how the fal.ai video flags went unnoticed.
   test('every claimed group is declared, so no flag renders ungrouped', () => {
     const declared = new Set(declaredGroupKeys())
 

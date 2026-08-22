@@ -96,7 +96,6 @@ export const runFalVideoGen = async (prompt: string, outputDir: string, options:
   referenceVideos?: string[] | undefined
   referenceAudios?: string[] | undefined
   generateAudio?: boolean | undefined
-  /** Test-only override that keeps queue-polling contract tests fast. */
   pollIntervalMs?: number | undefined
 }): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   if (!prompt.trim()) throw CLIUsageError('fal.ai video prompt cannot be empty.')

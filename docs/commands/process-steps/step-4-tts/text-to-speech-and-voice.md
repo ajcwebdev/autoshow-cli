@@ -30,10 +30,6 @@ Durable voice registrations are documented separately in [`voice`](../step-9-voi
 - [Pricing Notes](#pricing-notes)
 - [Output](#output)
 - [Provider Capabilities](#provider-capabilities)
-  - [Advanced](#advanced)
-  - [Advanced Runner Ups](#advanced-runner-ups)
-  - [Voice Cloning and Design without Expressiveness](#voice-cloning-and-design-without-expressiveness)
-  - [Stock Voices](#stock-voices)
 
 ## Setup
 
@@ -78,37 +74,35 @@ bun autoshow tts <input> [flags]
 
 ## Shared TTS Options
 
-| Flag                                               | Description                                                                                                                                                                       |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--provider provider[=model]`                      | TTS provider/model selector; repeat to run multiple targets                                                                                                                       |
-| `--all-providers`                                  | Select the default all-provider TTS target set                                                                                                                                    |
-| `--provider-concurrency <n>`                       | Hosted TTS provider/model targets to run concurrently per item; this does not limit chunks inside one target; default `7`                                                         |
-| `--batch-concurrency <n>`                          | Batch text files to process concurrently; default `7`                                                                                                                             |
-| `--concurrency-mode <ramp\|immediate>`             | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--tts-voice <provider=value\|value>`              | Generic TTS voice selector                                                                                                                                                        |
-| `--tts-speed <provider=value\|value>`              | Generic TTS speed                                                                                                                                                                 |
-| `--tts-language <provider=value\|value>`           | Generic TTS language                                                                                                                                                              |
-| `--tts-ref-audio <provider=path\|path>`            | Explicit one-off Mistral reference input                                                                                                                                          |
-| `--tts-text-normalization <provider=value\|value>` | Generic text normalization                                                                                                                                                        |
-| `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                                                                                                  |
-| `--tts-chunk-concurrency <n>`                      | Hosted TTS chunk starts allowed in parallel per provider; default `30` (or `50` for Grok-only)                                                                                    |
-| `--allow-ambiguous-redispatch`                     | Explicitly authorize resuming a stored generation slot whose provider admission cannot be reconciled to retained audio, which may repurchase it                                    |
-| `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                                                             |
-| `--tts-speaker SPEAKER=VOICE\|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                                                                |
-| `--price`                                          | Show the aggregated estimate and exit                                                                                                                                             |
-| `--output-dir <dir>`                               | Global flag: pin an exact run directory instead of a timestamped output directory                                                                                                 |
+| Flag                                               | Description                                                                                          |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `--provider provider[=model]`                      | TTS provider/model selector; repeat to run multiple targets                                          |
+| `--all-providers`                                  | Select the default all-provider TTS target set                                                       |
+| `--provider-concurrency <n>`                       | Hosted TTS provider/model targets to run concurrently per item; this does not limit requests inside one target; default `7` |
+| `--batch-concurrency <n>`                          | Batch text files to process concurrently; default `7`                                                |
+| `--concurrency-mode <ramp\|immediate>`             | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                 |
+| `--tts-voice <provider=value\|value>`              | Generic TTS voice selector                                                                           |
+| `--tts-speed <provider=value\|value>`              | Generic TTS speed                                                                                    |
+| `--tts-language <provider=value\|value>`           | Generic TTS language                                                                                 |
+| `--tts-ref-audio <provider=path\|path>`            | Explicit one-off Mistral reference input                                                             |
+| `--tts-text-normalization <provider=value\|value>` | Generic text normalization                                                                           |
+| `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                     |
+| `--tts-chunk-concurrency <n>`                      | Parallel requests allowed inside one hosted target; default `30` (or `50` for Grok-only)             |
+| `--allow-ambiguous-redispatch`                     | Resume a stored generation that has no recoverable audio; may repurchase it                          |
+| `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                |
+| `--tts-speaker SPEAKER=VOICE\|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                   |
+| `--price`                                          | Show the aggregated estimate and exit                                                                |
+| `--output-dir <dir>`                               | Global flag: pin an exact run directory instead of a timestamped output directory                    |
 
 You can combine multiple TTS targets in one run. `--provider` is repeatable. Shared voice flags apply to every selected model for that provider.
 
-See [Provider Capabilities](#provider-capabilities) for the per-provider stock-voice, catalog, design, clone, native multi-speaker, prompt, selector, and SSML/emotion-control matrix. A catalog, design, or clone capability does not authorize `tts` or `comic generate-audio` to create a remote voice. Use [`voice`](../step-9-voice/00-voice-overview.md) for those mutations.
+See [Provider Capabilities](#provider-capabilities) for catalog, design, clone, multi-speaker, prompt, selector, and SSML or emotion-control support. Catalog, design, and clone are not available on `tts` or `comic generate-audio`. Use [`voice`](../step-9-voice/00-voice-overview.md) to create or change remote voices.
 
-Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-format`, and exactly one of ElevenLabs, MiniMax, Groq, Grok, Mistral, OpenAI, Gemini, Deepgram, Speechify, Hume, or Cartesia. Reference-audio speaker paths work only with Mistral. Gemini, ElevenLabs `eleven_v3`, and Hume `octave-2` use native multi-speaker synthesis when the plan is representable; other selectable targets synthesize each turn and concatenate into `speech.wav`. Fish, Inworld, DeepInfra, Replicate, and fal.ai are not standalone `tts` dialogue targets.
+Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-format`, and exactly one of ElevenLabs, MiniMax, Groq, Grok, Mistral, OpenAI, Gemini, Deepgram, Speechify, Hume, or Cartesia. Reference-audio speaker paths work only with Mistral. Gemini, ElevenLabs `eleven_v3`, and Hume `octave-2` can synthesize multiple speakers in one request; other selectable targets synthesize each turn and concatenate into `speech.wav`. Fish, Inworld, DeepInfra, Replicate, and fal.ai are not standalone `tts` dialogue targets.
 
-When a hosted target fails after producing some chunks, AutoShow retains the target's `.tts-tmp-*` workspace and completed audio files. Do not delete that directory before resuming; completed segments are reused. Successful finalization removes the temporary files.
+If a hosted target fails after producing some audio, keep the run's `.tts-tmp-*` directory so completed files can be reused. Successful finalization removes those files. If the run stops with a recovery checkpoint, pass `--allow-ambiguous-redispatch` on the next run to resume. That may purchase the interrupted request a second time.
 
-A paid request whose provider admission is ambiguous is never redispatched inside the running command. The run stops and reports a recovery checkpoint. Pass `--allow-ambiguous-redispatch` on the next run to reconcile that slot and resume, which may purchase it a second time.
-
-TTS text is split into 2000-character chunks except Groq Orpheus (200), DeepInfra MiMo (1000), DeepInfra Qwen (4000), and DeepInfra Chatterbox and ElevenLabs `eleven_v3` (5000). `--provider-concurrency` limits how many provider/model targets run at once. `--tts-chunk-concurrency` limits parallel chunk starts within one target (default `30`, or `50` for Grok-only). To cap a single Inworld target at five simultaneous chunks, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` does not.
+`--provider-concurrency` limits how many provider/model targets run at once. `--tts-chunk-concurrency` limits parallel requests within one target. To cap a single Inworld target at five simultaneous requests, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` does not.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
@@ -133,9 +127,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
 ```
 
-ElevenLabs synthesis uses existing voices only. Single-voice text is limited to 5,000 characters. Multi-speaker `eleven_v3` uses Text-to-Dialogue when turn boundaries, voices (max 10), and documented v3 audio tags can be represented natively.
-
-Use [`voice`](../step-9-voice/00-voice-overview.md) to list, design, and clone voices.
+ElevenLabs synthesis uses existing voices only. Single-voice text is limited to 5,000 characters. Multi-speaker `eleven_v3` supports up to 10 voices and documented v3 audio tags such as `[whispers]` and `[laughs]`.
 
 ### MiniMax
 
@@ -151,7 +143,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo
 bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-hd --tts-language English --tts-speed 1.15 --minimax-tts-emotion calm
 ```
 
-MiniMax TTS uses existing or preset voices. Multi-speaker dialogue is segmented.
+MiniMax TTS uses existing or preset voices. Multi-speaker dialogue synthesizes each turn separately. Pause markers `<#x#>` and interjections such as `(laughs)` are supported.
 
 ### Groq
 
@@ -233,7 +225,7 @@ bun autoshow tts input/examples/tts/tts-dialogue.txt \
   --tts-speaker Guest=Puck
 ```
 
-Gemini multispeaker mode uses native two-speaker synthesis when eligible. Explicit speaker labels (e.g. `Host:`, `Guest:`) in the input text match configured speaker names. Inline delivery tags like `[whispers]` are passed through unchanged.
+Gemini multispeaker mode uses native two-speaker synthesis when both speakers are configured. Explicit speaker labels (e.g. `Host:`, `Guest:`) in the input text match configured speaker names. Inline delivery tags like `[whispers]` are passed through unchanged.
 
 ### Deepgram
 
@@ -265,8 +257,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tt
 
 Input may be plain text or SSML. Wrap SSML in `<speak>` to control pitch, rate, volume, pauses, emphasis, substitutions, and emotion via `<speechify:style emotion="...">`. Simba 3.2 is English-only.
 
-Use [`voice`](../step-9-voice/00-voice-overview.md) to list and clone voices.
-
 ### Hume
 
 | Option   | Value                                                    |
@@ -280,7 +270,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice "Male English Actor"
 ```
 
-Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`. A UUID is treated as a voice ID and resolves against any voice the account can reach; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID.
+Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`. A UUID is treated as a voice ID; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID.
 
 ### Cartesia
 
@@ -298,8 +288,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-
 
 Transcripts may include SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`, and `<spell>` tags plus `[laughter]`.
 
-Use [`voice`](../step-9-voice/00-voice-overview.md) to list and clone voices.
-
 ### Fish
 
 | Option   | Value                                                          |
@@ -313,7 +301,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider fish=s2.1-pro
 bun autoshow tts input/examples/tts/1-tts.md --provider fish=s2.1-pro --tts-voice 7f92f8afb8ec43bf81429cc1c9199cb1
 ```
 
-Voice Design is a `s2.1-pro` capability, not a separate synthesis selector. Use `voice design --creation-model voice-design-1` for protected preview candidates, then `voice design --save` to register a selected voice.
+Voice design is a `s2.1-pro` capability, not a separate synthesis selector. Use [`voice`](../step-9-voice/00-voice-overview.md) to design and save a voice, then pass that ID to `tts`.
 
 ### Inworld
 
@@ -329,9 +317,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2
 bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2 --tts-voice Dennis --tts-instructions "Sound reassuring"
 ```
 
-`--tts-instructions` is accepted; inline emotion and vocalization tags are preserved.
-
-Use [`voice`](../step-9-voice/00-voice-overview.md) to list, design, and clone voices.
+`--tts-instructions` is accepted. Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]` are preserved.
 
 ### DeepInfra
 
@@ -385,89 +371,66 @@ There is no voice-management command.
 
 ## Pricing Notes
 
-This table ranks every hosted TTS selector by the AutoShow registry's nominal price. Character-priced entries show the equivalent rate per 1K characters. Replicate uses a typical per-prediction cost rather than a character tariff. fal.ai Maya's character rate is derived from a per-audio-second price. Provider credits, taxes, volume discounts, and retry variance are excluded.
+Ranks every hosted TTS selector by the AutoShow registry's nominal price. Character-priced entries show the rate per 1K characters. Replicate uses a typical per-prediction cost. fal.ai Maya's character rate is derived from a per-audio-second price. Provider credits, taxes, volume discounts, and retries are excluded.
 
-| Rank |                  Nominal price | Selectors                                                                                                                                | Count |
-| ---: | -----------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------- | ----: |
-|    1 | Promotional `$0.00` / 1K chars | `deepinfra/XiaomiMiMo/MiMo-V2.5-tts`, `deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign`                                                   |     2 |
-|    2 |  About `$0.00022` / prediction | `replicate/jaaari/kokoro-82m`                                                                                                            |     1 |
-|    3 |            `$0.001` / 1K chars | `deepinfra/ResembleAI/chatterbox-turbo`                                                                                                  |     1 |
-|    4 |    Derived `$0.005` / 1K chars | `fal/fal-ai/maya` (`$0.002` per generated audio second)                                                                                  |     1 |
-|    5 |             `$0.01` / 1K chars | `fal/async/tts-pro/v1.0`, `speechify/simba-3.2`                                                                                          |     2 |
-|    6 |           `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` (`$0.0006` input + `$0.012` output)                                                                  |     1 |
-|    7 |            `$0.015` / 1K chars | `fish/s2.1-pro`, `grok/grok-tts`                                                                                                         |     2 |
-|    8 |     `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603`                                                                                                          |     1 |
-|    9 |             `$0.02` / 1K chars | `deepinfra/Qwen/Qwen3-TTS`, `deepinfra/Qwen/Qwen3-TTS-VoiceDesign`                                                                       |     2 |
-|   10 |            `$0.021` / 1K chars | `gemini/gemini-3.1-flash-tts-preview` (`$0.001` input + `$0.02` output)                                                                  |     1 |
-|   11 |            `$0.022` / 1K chars | `groq/canopylabs/orpheus-v1-english`                                                                                                     |     1 |
-|   12 |            `$0.025` / 1K chars | `inworld/realtime-tts-2`                                                                                                                 |     1 |
-|   13 |             `$0.03` / 1K chars | `fal/fal-ai/bytedance/seed-speech/tts/v2` plus all 91 `deepgram/aura-2-*` voice models                                                    |    92 |
-|   14 |         `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04`                                                                                                          |     1 |
-|   15 |             `$0.06` / 1K chars | `minimax/speech-2.8-turbo`                                                                                                               |     1 |
-|   16 |             `$0.10` / 1K chars | `elevenlabs/eleven_v3`, `minimax/speech-2.8-hd`                                                                                          |     2 |
-|   17 |             `$0.15` / 1K chars | `hume/octave-1`, `hume/octave-2`                                                                                                         |     2 |
+| Rank |                  Nominal price | Selectors                                                                                             |
+| ---: | -----------------------------: | ----------------------------------------------------------------------------------------------------- |
+|    1 | Promotional `$0.00` / 1K chars | `deepinfra/XiaomiMiMo/MiMo-V2.5-tts`, `deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign`                |
+|    2 |  About `$0.00022` / prediction | `replicate/jaaari/kokoro-82m`                                                                         |
+|    3 |            `$0.001` / 1K chars | `deepinfra/ResembleAI/chatterbox-turbo`                                                               |
+|    4 |    Derived `$0.005` / 1K chars | `fal/fal-ai/maya` (`$0.002` per generated audio second)                                               |
+|    5 |             `$0.01` / 1K chars | `fal/async/tts-pro/v1.0`, `speechify/simba-3.2`                                                       |
+|    6 |           `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` (`$0.0006` input + `$0.012` output)                               |
+|    7 |            `$0.015` / 1K chars | `fish/s2.1-pro`, `grok/grok-tts`                                                                      |
+|    8 |     `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603`                                                                       |
+|    9 |             `$0.02` / 1K chars | `deepinfra/Qwen/Qwen3-TTS`, `deepinfra/Qwen/Qwen3-TTS-VoiceDesign`                                    |
+|   10 |            `$0.021` / 1K chars | `gemini/gemini-3.1-flash-tts-preview` (`$0.001` input + `$0.02` output)                               |
+|   11 |            `$0.022` / 1K chars | `groq/canopylabs/orpheus-v1-english`                                                                  |
+|   12 |            `$0.025` / 1K chars | `inworld/realtime-tts-2`                                                                              |
+|   13 |             `$0.03` / 1K chars | `fal/fal-ai/bytedance/seed-speech/tts/v2` plus all 91 `deepgram/aura-2-*` voice models                 |
+|   14 |         `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04`                                                                       |
+|   15 |             `$0.06` / 1K chars | `minimax/speech-2.8-turbo`                                                                            |
+|   16 |             `$0.10` / 1K chars | `elevenlabs/eleven_v3`, `minimax/speech-2.8-hd`                                                       |
+|   17 |             `$0.15` / 1K chars | `hume/octave-1`, `hume/octave-2`                                                                      |
 
 ## Output
 
 - Single-target runs write `speech.wav` and `manifest.json`.
 - Multi-target runs write `speech-<service>-<sanitized-model>.wav` per successful target and `manifest.json`.
-- Dialogue runs write `dialogue-normalized.txt`. Segmented runs retain per-turn WAVs under `segments/`.
-- Managed/custom voice runs record the resource ID, voice name, or reference tag as `speaker` in metadata.
-- `manifest.json` records metadata including `tts` targets array, `cost`, and `timing`.
+- Dialogue runs write `dialogue-normalized.txt`. Multi-speaker runs that synthesize one turn at a time retain per-turn WAVs under `segments/`.
+- Managed or custom voice runs record the voice ID, name, or reference as `speaker` in metadata.
+- `manifest.json` records `tts` targets, `cost`, and `timing`.
 - `--output-dir` sets the output directory; output filenames remain provider-deterministic.
 
 ## Provider Capabilities
 
-Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Recency marks: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first.
+Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Recency: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. Delivery control is split into natural-language prompts, request-level selectors, and in-text SSML or emotion markup. Pricing is the AutoShow registry rate.
 
-Delivery control is split into natural-language prompts, request-level specific selectors, and in-text SSML or emotion markup.
-
-Pricing is the AutoShow registry rate. Cost rank orders models cheapest-first within each table (1 = cheapest) and ties share a rank, comparing effective cost per 1,000 characters: dual-rate models sum input and output character rates, and Replicate Kokoro spreads its per-request price across its 2,000-character request chunks.
-
-### Advanced
-
-| Provider                        | Released      | Expansive catalog                                                       | Design                                          | Instant clone                                                                  | Native multi-speaker                                       | Natural-language prompts                | Specific selectors                               | SSML and emotion control                                                                                                  | Pricing          | Cost rank |
-| ------------------------------- | ------------- | ----------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------- | --------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ---------------- | --------- |
-| ElevenLabs `eleven_v3`          | ⚠️ 2025-06-03 | ✅ 10,000+ Voice Library plus account voices                            | ✅ Design and remix                             | ✅ Instant clone from protected samples                                        | ⚠️ Text-to-Dialogue when the plan is exactly representable | ❌ Not exposed                          | ✅ Style exaggeration, stability, and similarity | ✅ v3 audio tags such as `[whispers]` and `[laughs]`, plus `/IPA/` pronunciation; no SSML `<break>`                       | $0.10/1k chars   | 6/6       |
-| Inworld `realtime-tts-2`        | ✅ 2026-05-05 | ⚠️ System and account voices via `voice list --provider`                | ✅ Prompt design plus publish of one selected preview | ✅ Instant clone from protected samples                                  | ❌ No; segmented rendering                                 | ✅ `--tts-instructions`                 | ❌ Not exposed                                   | ✅ Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]`                                     | $0.025/1k chars  | 4/6       |
-| Fish `s2.1-pro`                 | ✅ 2026-08-15 | ✅ Thousands of public and account voices via `voice list --provider`   | ✅ Protected preview, then save a selected model | ✅ Instant clone from protected samples                                       | ✅ Native multi-speaker dialogue                           | ❌ Not exposed                          | ❌ Not exposed                                   | ✅ In-text `[emotion]` and delivery markup                                                                                | $0.015/1k chars  | 3/6       |
-| fal.ai `fal-ai/maya`            | ⚠️ 2025-10-18 | ❌ Not exposed                                                          | ✅ Per-request voice-description prompt         | ❌ Not exposed                                                                 | ❌ No; segmented rendering                                 | ✅ Voice-description prompt             | ❌ Not exposed                                   | ✅ In-text emotion tags such as `<excited>` and `<laugh>`                                                                 | $0.005/1k chars  | 1/6       |
-| Cartesia `sonic-3.5-2026-05-04` | ✅ 2026-05-04 | ✅ Hundreds of public and account voices via `voice list --provider`    | ❌ Not exposed                                  | ✅ Instant clone                                                               | ❌ No; segmented rendering                                 | ❌ Not exposed                          | ❌ Not exposed                                   | ✅ SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`, and `<spell>` plus `[laughter]`                               | $0.0374/1k chars | 5/6       |
-| Speechify `simba-3.2`           | ✅ 2026-07-08 | ✅ Hundreds of shared and personal voices via `voice list --provider`   | ❌ Not exposed                                  | ✅ Personal voice clone with protected 10–30 second sample and consent payload | ❌ No; segmented rendering                                 | ❌ Not exposed                          | ❌ Not exposed                                   | ✅ SSML `<speak>` with `<prosody>`, `<break>`, `<emphasis>`, `<sub>`, and `<speechify:style emotion="...">` (13 emotions) | $0.01/1k chars   | 2/6       |
-
-### Advanced Runner Ups
-
-| Provider                   | Released      | Expansive catalog                                  | Design                                                   | Instant clone                                                              | Native multi-speaker       | Natural-language prompts                                | Specific selectors                                                         | SSML and emotion control                                                        | Pricing        | Cost rank |
-| -------------------------- | ------------- | -------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------- | --------- |
-| MiniMax `speech-2.8-hd`    | ✅ 2026-01-23 | ⚠️ System, generated, and cloned voices            | ⚠️ One temporary generated candidate                     | ✅ One protected mp3/m4a/wav sample, 10 seconds–5 minutes and no larger than 20 MiB | ❌ No; segmented rendering | ❌ Not exposed                                          | ✅ Explicit emotion selectors (happy, sad, angry, etc.), pitch, and volume | ✅ Pause markers `<#x#>` and interjection tags such as `(laughs)` and `(sighs)` | $0.10/1k chars | 2/4       |
-| MiniMax `speech-2.8-turbo` | ✅ 2026-01-23 | ⚠️ System, generated, and cloned voices            | ⚠️ One temporary generated candidate                     | ✅ One protected mp3/m4a/wav sample, 10 seconds–5 minutes and no larger than 20 MiB | ❌ No; segmented rendering | ❌ Not exposed                                          | ✅ Explicit emotion selectors (happy, sad, angry, etc.), pitch, and volume | ✅ Pause markers `<#x#>` and interjection tags such as `(laughs)` and `(sighs)` | $0.06/1k chars | 1/4       |
-| Hume `octave-1`            | ❌ 2025-02-26 | ⚠️ Stock and custom account voices                 | ✅ Octave 1 design, compatible with Octave 1/2 synthesis | ❌ Not exposed                                                             | ❌ No; segmented rendering | ✅ Natural-language acting description and tone prompts | ❌ Not exposed                                                             | ⚠️ In-text `[pause]` and `[long pause]`                                         | $0.15/1k chars | 3/4       |
-| Hume `octave-2`            | ⚠️ 2025-10-01 | ⚠️ Stock and custom account voices                 | ✅ Octave 1 design, compatible with Octave 1/2 synthesis | ❌ Not exposed                                                             | ✅ Native utterances       | ❌ Not exposed                                          | ❌ Not exposed                                                             | ⚠️ In-text `[pause]` and `[long pause]`                                         | $0.15/1k chars | 3/4       |
-
-### Voice Cloning and Design without Expressiveness
-
-| Provider                                         | Released      | Expansive catalog | Design                                              | Instant clone                                  | Native multi-speaker       | Natural-language prompts | Specific selectors | SSML and emotion control | Pricing                                    | Cost rank |
-| ------------------------------------------------ | ------------- | ----------------- | --------------------------------------------------- | ---------------------------------------------- | -------------------------- | ------------------------ | ------------------ | ------------------------ | ------------------------------------------ | --------- |
-| DeepInfra `ResembleAI/chatterbox-turbo`          | ⚠️ 2025-12-02 | ❌ Not exposed    | ❌ Not exposed                                      | ✅ Instant create from protected samples       | ❌ No; segmented rendering | ❌ Not exposed           | ❌ Not exposed     | ❌ Not exposed           | $0.001/1k chars                            | 2/5       |
-| DeepInfra `Qwen/Qwen3-TTS`                       | ✅ 2026-01-21 | ❌ Not exposed    | ❌ Not exposed                                      | ✅ Instant create from protected samples       | ❌ No; segmented rendering | ✅ `instruct`            | ❌ Not exposed     | ❌ Not exposed           | $0.02/1k chars                             | 4/5       |
-| DeepInfra `XiaomiMiMo/MiMo-V2.5-tts-voicedesign` | ✅ 2026-04-27 | ❌ Not exposed    | ✅ Request-time VoiceDesign; saved voices are account-owned | ❌ Not exposed                         | ❌ No; segmented rendering | ❌ Not exposed           | ❌ Not exposed     | ❌ Not exposed           | $0 promotional                             | 1/5       |
-| DeepInfra `Qwen/Qwen3-TTS-VoiceDesign`           | ✅ 2026-01-21 | ❌ Not exposed    | ✅ Request-time VoiceDesign; saved voices are account-owned | ❌ Not exposed                         | ❌ No; segmented rendering | ❌ Not exposed           | ❌ Not exposed     | ❌ Not exposed           | $0.02/1k chars                             | 4/5       |
-| Mistral `voxtral-mini-tts-2603`                  | ✅ 2026-03-23 | ❌ Not exposed    | ❌ Not exposed                                      | ✅ Project-owned saved-reference voice from a protected sample | ❌ No; segmented rendering | ❌ Not exposed           | ❌ Not exposed     | ❌ Not exposed           | $16.00 out per 1M chars (≈$0.016/1k chars) | 3/5       |
-
-### Stock Voices
-
-| Provider                                     | Released      | Stock voices                       | Native multi-speaker                                                            | Natural-language prompts                 | Specific selectors          | SSML and emotion control                                                           | Pricing                                                | Cost rank |
-| -------------------------------------------- | ------------- | ---------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------- | --------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------ | --------- |
-| Groq                                         | ❌ 2025-03-17 | ✅ 6 English                       | ❌ No; segmented rendering                                                      | ❌ Not exposed                           | ❌ Not exposed              | ⚠️ English Orpheus accepts in-text bracketed vocal directions such as `[cheerful]` | $0.022/1k chars                                        | 7/9       |
-| Grok                                         | ✅ 2026-05-15 | ✅ 26                              | ❌ No; segmented rendering                                                      | ❌ Not exposed                           | ❌ Not exposed              | ❌ Not exposed                                                                     | $0.015/1k chars                                        | 5/9       |
-| OpenAI                                       | ⚠️ 2025-12-15 | ✅ 13                              | ❌ No; segmented rendering                                                      | ✅ `--tts-instructions`                  | ❌ Not exposed              | ❌ Not exposed                                                                     | $0.60 in / $12.00 out per 1M chars (≈$0.0126/1k chars) | 4/9       |
-| Gemini                                       | ✅ 2026-02-15 | ✅ 30                              | ⚠️ Native only for exactly two speakers when representable; otherwise segmented | ❌ Not exposed                           | ❌ Not exposed              | ⚠️ Inline delivery tags such as `[whispers]` passed through unchanged              | $1.00 in / $20.00 out per 1M chars (≈$0.021/1k chars)  | 6/9       |
-| Deepgram                                     | ❌ 2025-04-02 | ✅ 91                              | ❌ No; segmented rendering                                                      | ❌ Not exposed                           | ❌ Not exposed              | ❌ Not exposed                                                                     | $0.03/1k chars                                         | 8/9       |
-| DeepInfra `XiaomiMiMo/MiMo-V2.5-tts`         | ✅ 2026-04-27 | ✅ 8                               | ❌ No; segmented rendering                                                      | ✅ `instruct`                            | ❌ Not exposed              | ⚠️ In-text `(style)` and `[audio tag]` controls                                    | $0 promotional                                         | 1/9       |
-| Replicate `jaaari/kokoro-82m`                | ❌ 2025-01-27 | ✅ 46                              | ❌ No; segmented rendering                                                      | ❌ Not exposed                           | ❌ Not exposed              | ❌ Not exposed                                                                     | $0.00022/request (≈$0.00011/1k chars)                  | 2/9       |
-| fal.ai `fal-ai/bytedance/seed-speech/tts/v2` | ✅ 2026-03-15 | ✅ 41                              | ❌ No; segmented rendering                                                      | ✅ `voice_instruction` delivery steering | ⚠️ Speed, volume, and pitch | ❌ Not exposed                                                                     | $0.03/1k chars                                         | 8/9       |
-| fal.ai `async/tts-pro/v1.0`                  | ✅ 2026-01-15 | ⚠️ Curated Async voice-library IDs | ❌ No; segmented rendering                                                      | ❌ Not exposed                           | ❌ Not exposed              | ⚠️ In-text pause, emphasis, and timing markup                                      | $0.01/1k chars                                         | 3/9       |
+| Provider                                         | Released      | Catalog                                                        | Design                                          | Instant clone            | Native multi-speaker                                       | Natural-language prompts                 | Specific selectors                               | SSML and emotion control                                                                                                  | Pricing                                    |
+| ------------------------------------------------ | ------------- | -------------------------------------------------------------- | ----------------------------------------------- | ------------------------ | ---------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Fish `s2.1-pro`                                  | ✅ 2026-08-15 | ✅ Thousands of public and account voices via `voice list`     | ✅ Design, then save a selected model           | ✅ Instant clone         | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ✅ In-text `[emotion]` and delivery markup                                                                                | $0.015/1k chars                            |
+| Speechify `simba-3.2`                            | ✅ 2026-07-08 | ✅ Hundreds of shared and personal voices via `voice list`     | ❌ Not exposed                                  | ✅ Instant clone         | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ❌ Not exposed                                   | ✅ SSML `<speak>` with `<prosody>`, `<break>`, `<emphasis>`, `<sub>`, and `<speechify:style emotion="...">` (13 emotions) | $0.01/1k chars                             |
+| Grok                                             | ✅ 2026-05-15 | ✅ 26 stock voices                                             | ❌ Not exposed                                  | ❌ Not exposed           | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.015/1k chars                            |
+| Inworld `realtime-tts-2`                         | ✅ 2026-05-05 | ⚠️ System and account voices via `voice list`                  | ✅ Prompt design                                | ✅ Instant clone         | ❌ Not a `tts` dialogue target                             | ✅ `--tts-instructions`                  | ❌ Not exposed                                   | ✅ Inline tags such as `[happy]`, `[laugh]`, and `[breathe]`                                                              | $0.025/1k chars                            |
+| Cartesia `sonic-3.5-2026-05-04`                  | ✅ 2026-05-04 | ✅ Hundreds of public and account voices via `voice list`      | ❌ Not exposed                                  | ✅ Instant clone         | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ❌ Not exposed                                   | ✅ SSML-like `<speed>`, `<volume>`, `<emotion>`, `<break>`, and `<spell>` plus `[laughter]`                               | $0.0374/1k chars                           |
+| DeepInfra `XiaomiMiMo/MiMo-V2.5-tts-voicedesign` | ✅ 2026-04-27 | ❌ Not exposed                                                 | ✅ Request-time VoiceDesign                     | ❌ Not exposed           | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0 promotional                             |
+| DeepInfra `XiaomiMiMo/MiMo-V2.5-tts`             | ✅ 2026-04-27 | ✅ 8 stock voices                                              | ❌ Not exposed                                  | ❌ Not exposed           | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ⚠️ In-text `(style)` and `[audio tag]` controls                                                                           | $0 promotional                             |
+| Mistral `voxtral-mini-tts-2603`                  | ✅ 2026-03-23 | ❌ Not exposed                                                 | ❌ Not exposed                                  | ✅ Saved-reference voice | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $16.00 out per 1M chars (≈$0.016/1k chars) |
+| fal.ai `fal-ai/bytedance/seed-speech/tts/v2`     | ✅ 2026-03-15 | ✅ 41 stock voices                                             | ❌ Not exposed                                  | ❌ Not exposed           | ❌ Not a `tts` dialogue target                             | ✅ `--tts-instructions`                  | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.03/1k chars                             |
+| Gemini                                           | ✅ 2026-02-15 | ✅ 30 stock voices                                             | ❌ Not exposed                                  | ❌ Not exposed           | ⚠️ Native only for exactly two speakers                    | ❌ Not exposed                           | ❌ Not exposed                                   | ⚠️ Inline delivery tags such as `[whispers]`                                                                              | $1.00 in / $20.00 out per 1M chars (≈$0.021/1k chars) |
+| MiniMax `speech-2.8-hd`                          | ✅ 2026-01-23 | ⚠️ System, generated, and cloned voices                        | ⚠️ One temporary generated candidate            | ✅ Instant clone         | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ✅ Emotion, pitch, and volume                    | ✅ Pause markers `<#x#>` and interjections such as `(laughs)`                                                             | $0.10/1k chars                             |
+| MiniMax `speech-2.8-turbo`                       | ✅ 2026-01-23 | ⚠️ System, generated, and cloned voices                        | ⚠️ One temporary generated candidate            | ✅ Instant clone         | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ✅ Emotion, pitch, and volume                    | ✅ Pause markers `<#x#>` and interjections such as `(laughs)`                                                             | $0.06/1k chars                             |
+| DeepInfra `Qwen/Qwen3-TTS`                       | ✅ 2026-01-21 | ❌ Not exposed                                                 | ❌ Not exposed                                  | ✅ Instant create        | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.02/1k chars                             |
+| DeepInfra `Qwen/Qwen3-TTS-VoiceDesign`           | ✅ 2026-01-21 | ❌ Not exposed                                                 | ✅ Request-time VoiceDesign                     | ❌ Not exposed           | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.02/1k chars                             |
+| fal.ai `async/tts-pro/v1.0`                      | ✅ 2026-01-15 | ⚠️ Curated Async voice-library IDs                             | ❌ Not exposed                                  | ❌ Not exposed           | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ⚠️ In-text pause, emphasis, and timing markup                                                                             | $0.01/1k chars                             |
+| OpenAI                                           | ⚠️ 2025-12-15 | ✅ 13 stock voices                                             | ❌ Not exposed                                  | ❌ Not exposed           | ❌ No; turn-by-turn                                        | ✅ `--tts-instructions`                  | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.60 in / $12.00 out per 1M chars (≈$0.0126/1k chars) |
+| DeepInfra `ResembleAI/chatterbox-turbo`          | ⚠️ 2025-12-02 | ❌ Not exposed                                                 | ❌ Not exposed                                  | ✅ Instant create        | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.001/1k chars                            |
+| fal.ai `fal-ai/maya`                             | ⚠️ 2025-10-18 | ❌ Not exposed                                                 | ✅ Per-request voice-description prompt         | ❌ Not exposed           | ❌ Not a `tts` dialogue target                             | ✅ Voice-description prompt              | ❌ Not exposed                                   | ✅ In-text emotion tags such as `<excited>` and `<laugh>`                                                                 | $0.005/1k chars                            |
+| Hume `octave-2`                                  | ⚠️ 2025-10-01 | ⚠️ Stock and custom account voices                             | ✅ Octave 1 design                              | ❌ Not exposed           | ✅ Native utterances                                       | ❌ Not exposed                           | ❌ Not exposed                                   | ⚠️ In-text `[pause]` and `[long pause]`                                                                                  | $0.15/1k chars                             |
+| ElevenLabs `eleven_v3`                           | ⚠️ 2025-06-03 | ✅ 10,000+ Voice Library plus account voices                   | ✅ Design and remix                             | ✅ Instant clone         | ⚠️ Native when the dialogue can be sent as-is              | ❌ Not exposed                           | ✅ Style exaggeration, stability, and similarity | ✅ v3 audio tags such as `[whispers]` and `[laughs]`, plus `/IPA/` pronunciation                                          | $0.10/1k chars                             |
+| Deepgram                                         | ❌ 2025-04-02 | ✅ 91 stock voices                                             | ❌ Not exposed                                  | ❌ Not exposed           | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.03/1k chars                             |
+| Groq                                             | ❌ 2025-03-17 | ✅ 6 English stock voices                                      | ❌ Not exposed                                  | ❌ Not exposed           | ❌ No; turn-by-turn                                        | ❌ Not exposed                           | ❌ Not exposed                                   | ⚠️ English Orpheus accepts in-text directions such as `[cheerful]`                                                        | $0.022/1k chars                            |
+| Hume `octave-1`                                  | ❌ 2025-02-26 | ⚠️ Stock and custom account voices                             | ✅ Octave 1 design                              | ❌ Not exposed           | ❌ No; turn-by-turn                                        | ✅ Natural-language acting description   | ❌ Not exposed                                   | ⚠️ In-text `[pause]` and `[long pause]`                                                                                  | $0.15/1k chars                             |
+| Replicate `jaaari/kokoro-82m`                    | ❌ 2025-01-27 | ✅ 46 stock voices                                             | ❌ Not exposed                                  | ❌ Not exposed           | ❌ Not a `tts` dialogue target                             | ❌ Not exposed                           | ❌ Not exposed                                   | ❌ Not exposed                                                                                                            | $0.00022/request                           |
 
 Use [`voice`](../step-9-voice/00-voice-overview.md) for catalog, design, clone, and delete on ElevenLabs, Inworld, Fish, Cartesia, and Speechify. Other providers are synthesis-only: pass an existing `--tts-voice`. `tts` never creates a remote voice.
-
-TTS test coverage is documented in [Step 4 Service Tests: TTS](tts-tests.md).

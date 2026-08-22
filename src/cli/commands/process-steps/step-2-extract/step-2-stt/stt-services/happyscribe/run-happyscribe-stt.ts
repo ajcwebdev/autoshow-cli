@@ -231,7 +231,6 @@ export const runHappyScribeStt = async (
           const structuredPayload = await apiClient.fetchDownloadPayload(transcription.downloadUrl)
           return parseHappyScribeTranscriptPayload(structuredPayload, { offsetSeconds })
         } catch {
-          // Fall through to the export workflow when the direct artifact is absent or transiently unavailable.
         }
       }
 

@@ -174,7 +174,6 @@ describe('manifest validator agreement harness', () => {
           expect(read?.items).toHaveLength(itemCount)
           expect(read?.updatedAt).toBe(written.updatedAt)
 
-          // Test derivePipelineItemRecord and createPipelineItemFromRecord roundtrip
           for (const item of read?.items ?? []) {
             const derived = derivePipelineItemRecord(caseDir, item)
             expect(derived).toBeDefined()
@@ -187,7 +186,6 @@ describe('manifest validator agreement harness', () => {
             expect(recreated.providers.length).toBe(item.providers.length)
           }
 
-          // Test updateManifest
           if (command !== 'tts') {
             const updated = await updateManifest(caseDir, (curr) => ({
               ...curr,

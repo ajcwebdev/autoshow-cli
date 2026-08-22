@@ -18,7 +18,6 @@ const titleCaseLabel = (label: string): string =>
     .replace(/\s+/g, ' ')
     .replace(/\b[a-z]/g, (character) => character.toUpperCase())
 
-/** Split section-labeled lyrics text into ordered sections. */
 const parseLyricsSections = (lyrics: string): LyricsSection[] => {
   const sections: LyricsSection[] = []
   let current: LyricsSection | undefined
@@ -47,10 +46,6 @@ const parseLyricsSections = (lyrics: string): LyricsSection[] => {
   return sections.filter((section) => section.lines.length > 0)
 }
 
-/**
- * Split a free-text style prompt into ElevenLabs style descriptors. An optional
- * trailing `Negative styles: a, b` line supplies negative styles for every chunk.
- */
 const parseStylePrompt = (prompt: string): { positiveStyles: string[], negativeStyles: string[] } => {
   const positiveStyles: string[] = []
   const negativeStyles: string[] = []
@@ -96,10 +91,6 @@ const dedupe = (values: string[]): string[] => {
   return result
 }
 
-/**
- * Allocate per-chunk durations proportional to line count while honoring the
- * per-chunk 3s-120s bounds and keeping the total at the requested length.
- */
 const allocateChunkDurations = (weights: number[], totalMs: number): number[] => {
   const count = weights.length
   const minTotal = count * ELEVENLABS_CHUNK_MIN_MS
@@ -132,10 +123,6 @@ const allocateChunkDurations = (weights: number[], totalMs: number): number[] =>
   return durations
 }
 
-/**
- * Build a `music_v2` composition plan from section-labeled lyrics. The first
- * chunk carries the full style list because it sets the genre for the song.
- */
 export const buildElevenLabsCompositionPlan = (
   lyrics: string,
   options: {

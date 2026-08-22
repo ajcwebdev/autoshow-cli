@@ -54,8 +54,6 @@ export const runOpenAIImageGen = async (
         if (typeof options.compression === 'number') {
           form.append('output_compression', String(options.compression))
         }
-        // gpt-image edits require the array field name when more than one
-        // reference image is supplied; a single image uses the scalar field.
         const inputs = options.inputs ?? []
         const imageFieldName = inputs.length > 1 ? 'image[]' : 'image'
         for (const input of inputs) {

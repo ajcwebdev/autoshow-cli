@@ -4,7 +4,6 @@ import { CLIUsageError } from '~/utils/error-handler'
 import { safeKeyPart } from '~/utils/value-helpers'
 import { sha256Bytes } from '~/utils/value-helpers'
 
-// Re-exported: ~20 TTS and comic modules already import this name from here.
 export { sha256Bytes }
 export { canonicalTargetKey } from '~/utils/canonical-target-key'
 

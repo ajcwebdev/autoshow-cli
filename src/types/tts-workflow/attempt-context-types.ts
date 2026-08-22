@@ -68,7 +68,6 @@ export type AttemptContext = {
   readinessFile: WrittenJson<ProviderReadinessResult>
   readinessAuthorization: ReadinessAuthorization
   journalId: string
-  // Mutable state
   journal: RenderAdmissionJournalSnapshot
   journalSequence: number
   journalFile: WrittenJson<RenderAdmissionJournalSnapshot> | undefined

@@ -100,12 +100,6 @@ export const restoreEnv = (snapshot: EnvSnapshot): void => {
   }
 }
 
-/**
- * Scoped env override for the tests whose variables change per case rather than per suite.
- * Snapshot/restore comes from `snapshotEnv`/`restoreEnv` so the "undefined means delete"
- * rule has one definition — the hand-rolled copies this replaced each re-derived it, and
- * one of them spelled the preserve check with the opposite polarity.
- */
 export const withEnv = async <T>(
   env: Readonly<Record<string, string | undefined>>,
   run: () => Promise<T> | T
@@ -119,7 +113,6 @@ export const withEnv = async <T>(
   }
 }
 
-/** Synchronous counterpart to `withEnv`, for assertions that never await. */
 export const withEnvSync = <T>(
   env: Readonly<Record<string, string | undefined>>,
   run: () => T
@@ -173,18 +166,6 @@ export const setupContractSuiteLifecycle = (
   return tempDirs
 }
 
-/**
- * Asserts a provider call rejects with the expected HTTP-error shape.
- *
- * The sentinel lives outside the `try`, via `expect.unreachable`, so a call that
- * unexpectedly *succeeds* reports exactly that. The widespread hand-rolled spelling put
- * `throw new Error('Expected … to fail')` inside the try, where its own catch swallowed
- * it and asserted against the sentinel as if it were the provider error — turning a
- * missing rejection into a confusing message mismatch.
- *
- * Fields are read through `extractErrorMetadata`, the same duck-typed reader production
- * retry classification uses, so an assertion here pins what the app actually sees.
- */
 export const expectProviderHttpError = async (
   fn: () => Promise<unknown>,
   expectation: ProviderHttpErrorExpectation = {}
@@ -229,11 +210,6 @@ export const expectProviderHttpError = async (
   return error
 }
 
-/**
- * Mock-fetch guard for suites that must not reach the network. Counting the calls (rather
- * than only throwing) means a swallowed rejection still fails the test, and the thrown
- * message names the URL so the offending call is identifiable.
- */
 export const unexpectedFetch = (label = 'test'): { fetchImpl: typeof fetch, attempts: () => number } => {
   let attempts = 0
   const fetchImpl = ((input: Parameters<typeof fetch>[0]): Promise<Response> => {
@@ -243,11 +219,6 @@ export const unexpectedFetch = (label = 'test'): { fetchImpl: typeof fetch, atte
   return { fetchImpl, attempts: () => attempts }
 }
 
-/**
- * Factory for the "this callback must never run" guards used in negative fixtures. The
- * thrown error names the callback, so the failure is distinguishable from a real
- * assertion failure in the same test.
- */
 export const unexpectedCall = (label: string): (...args: unknown[]) => never =>
   () => {
     throw new Error(`Unexpected call to ${label}`)

@@ -13,9 +13,6 @@ const audioBytes = new Uint8Array([1, 2, 3, 4])
 const audioHex = Buffer.from(audioBytes).toString('hex')
 const audioBase64 = Buffer.from(audioBytes).toString('base64')
 
-// Env varies per test here, so the scope stays a wrapper rather than a suite-level
-// lifecycle — but the snapshot/restore rules come from the shared helpers instead of a
-// second hand-rolled copy.
 const withEnvAndFetch = async <T,>(
   env: Record<string, string | undefined>,
   fetchImpl: typeof fetch,

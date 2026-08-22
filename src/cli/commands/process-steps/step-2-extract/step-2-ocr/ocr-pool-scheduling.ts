@@ -1,13 +1,6 @@
 import type { IndexedOcrTarget, OcrTarget } from '~/types'
 import { getOcrTargetKey } from './ocr-run-state'
 
-/**
- * Scheduling policy shared by the page pool and the provider pool. Both modules previously
- * carried private copies of all three helpers — including the hosted priority table, which
- * is a policy: a provider added to one copy and not the other silently changed scheduling
- * order without failing a type check.
- */
-
 export const isLocalOcrTarget = (
   target: Pick<OcrTarget, 'service'>
 ): target is Pick<OcrTarget, 'service'> & { service: 'tesseract' } =>
@@ -24,10 +17,6 @@ export const getHostedOcrExecutionPriority = (target: OcrTarget): number => {
   return 0
 }
 
-/**
- * Pairs each target that still has to run with its position in the originally requested list,
- * consuming one available index per duplicate target key.
- */
 export const buildIndexedOcrTargetsToRun = (
   requestedTargets: OcrTarget[],
   targetsToRun: OcrTarget[]

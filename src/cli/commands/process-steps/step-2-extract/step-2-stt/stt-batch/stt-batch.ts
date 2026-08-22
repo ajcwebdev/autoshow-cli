@@ -12,8 +12,6 @@ import { processStt } from '../process-stt'
 import { createMistralSttPassController } from '../stt-services/stt-mistral/mistral-stt-pass-controller'
 import { partialCompletionError } from '../../step-2-shared/provider-batch-state'
 
-// Was a separate error hierarchy duplicating ProviderBatchCompletionError's job; it now
-// uses the one shared "partial completion -> exit 2" spelling, with the counts as metadata.
 const sttBatchIncompleteError = (result: BatchProcessResult) => partialCompletionError(
   `STT batch incomplete: ${result.ok} full, ${result.incomplete} incomplete, ${result.fail} failed${result.batchDir ? `. See ${result.batchDir}` : ''}`,
   {

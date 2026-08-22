@@ -52,13 +52,6 @@ export type HumanLogSection = {
   table: HumanLogTable
 }
 
-/**
- * `category` is required rather than defaulted (ADR-006). It used to be optional and 245 of
- * 291 emission sites omitted it, so every one of those events silently landed in `general`
- * and `suppressLogCategories`/JSON-sink category filtering could only discriminate a
- * minority of the stream. Requiring it in the type is what keeps that gap from reopening —
- * a source-scan contract would only catch the spellings it thought to grep for.
- */
 export type LogWriteOptions = {
   category: LogCategory
   metadata?: LogMetadata
@@ -69,11 +62,6 @@ export type LogWriteOptions = {
   humanSections?: readonly HumanLogSection[]
 }
 
-/**
- * Options for `l.error`. The error object rides in the options object rather than in a
- * positional parameter so error events carry a `category` like every other event; the
- * logger appends `error.message` to the line and emits the stack as a follow-up event.
- */
 type LogErrorOptions = LogWriteOptions & {
   error?: unknown
 }
@@ -99,24 +87,9 @@ export type LogSink = (event: LogSinkEvent) => void
 export type MutableLoggerConfig = {
   sinks: LogSink[]
   minLevel: LogLevel
-  // Shared by reference with loggers derived through `withContext`, so a single
-  // `suppressLogCategories` call reaches every live logger.
   suppressedCategories: LogCategory[]
 }
 
-
-/**
- * Spelling rules for the emission surface (ADR-006):
- *
- * - `write(level, message, options)` is the one spelling for `info`/`success` and for any
- *   computed level. It is also the only method on `TableLogger`, which is why it stays
- *   first-class instead of growing `info`/`success` shorthands beside it — adding those
- *   would put two spellings on the levels most often emitted through an injected logger.
- * - `debug`/`warn`/`error` are the spelling for their own level, and take the identical
- *   options object, so there is one options contract rather than one per method.
- * - `error` additionally accepts `options.error`; when it is an `Error` the logger appends
- *   its message to the line and emits the stack as a follow-up event.
- */
 export interface Logger {
   write: (level: LogLevel, message: string, options: LogWriteOptions) => void
   debug: (message: string, options: LogWriteOptions) => void
@@ -127,7 +100,6 @@ export interface Logger {
 }
 
 export type TableLogger = Pick<Logger, 'write'>
-
 
 export type LocationTableRow = {
   artifact: string
@@ -146,7 +118,6 @@ export type HumanTableLogOptions = {
   category?: LogCategory
   metadata?: LogMetadata
 }
-
 
 export type StepTimingCost = {
   label: string
@@ -185,8 +156,6 @@ export type Reporter = {
   expectedOutput: (outputDir: string, files: string[]) => void
   estimate: (estimate: AggregatedPriceEstimate) => void
   complete: (outputDir: string, files: Record<string, string>, options?: CompleteOptions) => void
-  // Sanctioned structured-result channel for commands whose result is neither a
-  // price estimate nor a file-producing completion.
   result: (data: Record<string, unknown>, options?: ReportResultOptions) => void
 }
 

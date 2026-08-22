@@ -70,12 +70,6 @@ const sttHourlyCost = (model: {
   costPerHourCents: number
 }): number => model.costPerHourCents
 
-/**
- * The one ordering every cheapest-model selection uses: lowest cost wins, then any
- * family-specific dimensions in the order given (shorter runtime, lower quality tier),
- * then the faster-sounding model name, then stable lexical identity so ties never depend
- * on registry iteration order.
- */
 const beatsCurrentBest = <TCandidate>(
   candidate: TCandidate,
   best: NoInfer<TCandidate> | null | undefined,

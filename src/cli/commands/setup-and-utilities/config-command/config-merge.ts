@@ -29,19 +29,11 @@ const VIDEO_PROVIDER_FLAGS = Object.values(STANDALONE_VIDEO_PROVIDER_TARGETS)
 const MUSIC_PROVIDER_FLAGS = Object.values(STANDALONE_MUSIC_PROVIDER_TARGETS)
 const REPEATABLE_CONFIG_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
 const CONFIG_INJECTED_FLAGS_KEY = '__autoshowConfigInjectedFlags'
-// Written by the passes after the main loop rather than through
-// FLAG_TO_CONFIG_PATH, because each fans out to several config keys.
 const MULTI_DESTINATION_FLAGS = new Set(['provider-concurrency', 'local-concurrency', 'prompt'])
 const STEP2_PROVIDER_CONFIG_PATHS = Object.fromEntries(
   getStep2ProviderConfigPathEntries().map(({ flagName, configPath }) => [flagName, [...configPath]])
 ) as Record<string, string[]>
 
-// Provider-selection defaults are injected as whole groups: naming any provider
-// in a group on the command line drops the configured defaults for every provider
-// in it, so an explicit `--openai` is not joined by a configured `--groq`.
-// `gate` is the explicit-flag guard, `flags` is what actually gets injected — the
-// two differ only for URL, whose guard also covers the `all-*` bundles that
-// select providers indirectly and have no config destination of their own.
 const PROVIDER_SELECTION_GROUPS: readonly { gate: readonly string[], flags: readonly string[] }[] = [
   { gate: STT_PROVIDER_FLAGS, flags: STT_PROVIDER_FLAGS },
   { gate: LLM_PROVIDER_FLAGS, flags: LLM_PROVIDER_FLAGS },
@@ -53,11 +45,6 @@ const PROVIDER_SELECTION_GROUPS: readonly { gate: readonly string[], flags: read
   { gate: URL_PROVIDER_DEFAULT_GROUP_FLAGS, flags: URL_PROVIDER_FLAGS }
 ]
 
-// Flags the group pass owns, which the flag-by-flag pass must therefore skip.
-// Step-2 registry flags are excluded wholesale rather than by group membership:
-// an entry that is not `resumeSelectable` is absent from the groups but still
-// lands in FLAG_TO_CONFIG_PATH through the spread, and such a flag has never
-// been injected as a default.
 const GROUP_INJECTED_FLAGS = new Set<string>([
   ...PROVIDER_SELECTION_GROUPS.flatMap(({ flags }) => [...flags]),
   ...Object.keys(STEP2_PROVIDER_CONFIG_PATHS)
@@ -104,11 +91,6 @@ export const mergeConfigIntoRawFlags = (
     }
   }
 
-  // Everything else is a one-flag-one-destination default, so the table is the
-  // whole mapping. Section gating is implicit: a missing config section makes
-  // readNestedValue return undefined and inject skip the flag. Paths outside
-  // `defaults` (`max-cents`, cookie auth) are not CLI defaults and stay excluded,
-  // as does `prompt`, which has no table entry and is handled below.
   for (const [flagName, path] of Object.entries(FLAG_TO_CONFIG_PATH)) {
     if (GROUP_INJECTED_FLAGS.has(flagName) || path[0] !== 'defaults') continue
     inject(flagName, path)
@@ -267,10 +249,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'cookies-from-browser': ['auth', 'cookiesFromBrowser'],
 }
 
-// Per-run inputs that are never persisted. `buildConfigPatchFromFlags` skips these
-// before the FLAG_TO_CONFIG_PATH lookup, which is also what keeps them out of the
-// "no config destination" warning. An entry here must therefore not also have a
-// config destination — pinned by explicit-runtime-exclusions.test.ts.
 export const RUNTIME_ONLY_FLAGS = new Set([
   'price',
   'allow-over-budget',
@@ -354,8 +332,6 @@ export const buildConfigPatchFromFlags = (
   for (const flagName of explicitFlags) {
     if (RUNTIME_ONLY_FLAGS.has(flagName)) continue
     const configPath = FLAG_TO_CONFIG_PATH[flagName]
-    // A flag with no destination used to be dropped in silence, so `config
-    // --image-mask x` reported success and wrote nothing. Say so instead.
     if (!configPath) {
       if (!MULTI_DESTINATION_FLAGS.has(flagName)) discardedFlags.push(flagName)
       continue

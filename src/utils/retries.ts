@@ -3,12 +3,6 @@ import { AppError, extractErrorMetadata } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
-/**
- * The status and network vocabulary every retry decision in the CLI is made from.
- * These are exported because the test suite's transient-failure predicates used to
- * re-encode the same knowledge by hand and drifted from it; they now build their
- * patterns from these lists so there is one place to change.
- */
 export const NON_RETRYABLE_STATUS_CODES = [400, 401, 402, 403, 404, 422] as const
 export const RETRYABLE_STATUS_CODES = [408, 425, 429, 500, 502, 503, 504] as const
 export const NETWORK_FAILURE_SPELLINGS = [
@@ -27,14 +21,7 @@ export const NETWORK_FAILURE_SPELLINGS = [
 const NON_RETRYABLE_STATUSES: ReadonlySet<number> = new Set(NON_RETRYABLE_STATUS_CODES)
 const RETRYABLE_STATUSES: ReadonlySet<number> = new Set(RETRYABLE_STATUS_CODES)
 
-/**
- * One number per operation class. The audit found the same operation shape running
- * under 2/3/4 attempts and under 10s/30s/60s ceilings depending on which provider
- * module happened to declare it; the satellite constants those modules owned were
- * folded into this table so tuning a tier happens in one place.
- */
 const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
-  // Multi-gigabyte model/binary downloads: few attempts, long ceiling.
   setup_download: {
     maxAttempts: 3,
     baseDelayMs: 2_000,
@@ -42,7 +29,6 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: true,
     exponential: true
   },
-  // Local subprocesses (ffmpeg, yt-dlp, whisper.cpp, tesseract, calibre) via `exec()`.
   runtime_subprocess_transient: {
     maxAttempts: 2,
     baseDelayMs: 1_000,
@@ -50,7 +36,6 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: false,
     exponential: false
   },
-  // Idempotent reads: status polls, result downloads, metadata lookups.
   runtime_http_read: {
     maxAttempts: 4,
     baseDelayMs: 1_000,
@@ -58,8 +43,6 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: true,
     exponential: true
   },
-  // Paid creates that only redispatch on a definite provider rejection (425/429).
-  // Two attempts is deliberate: the second one exists for the rejection case alone.
   runtime_http_create_conservative: {
     maxAttempts: 2,
     baseDelayMs: 2_000,
@@ -67,9 +50,6 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: true,
     exponential: true
   },
-  // The documented "retriable create" tier: hosted TTS chunks, OCR create/page
-  // requests, and STT job submissions, whose per-unit cost is accepted as
-  // re-billable. Single source for what used to be four separate constants.
   runtime_http_create_retriable: {
     maxAttempts: 4,
     baseDelayMs: 2_000,
@@ -81,28 +61,11 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
 
 export const getRetryPolicyForClass = (retryClass: RetryClass): RetryPolicy => ({ ...RETRY_POLICIES[retryClass] })
 
-/**
- * Hosted transcription poll lifecycles all wait on the same kind of job. Supadata's
- * poll and HappyScribe's export status ran 4 attempts against everyone else's 6; this
- * is the one number they now share.
- */
 export const STT_POLL_RETRY_POLICY: Partial<RetryPolicy> = { maxAttempts: 6 }
 
-/**
- * The retry policy for one request in a hosted transcription lifecycle. Submissions run
- * the shared retriable-create tier; status polls and result reads get the wider poll
- * budget because exhausting them aborts the whole job, not just one request. Every STT
- * service used to restate these numbers per call site, which is how the same submission
- * shape ended up running under 2, 3 and 4 attempts.
- */
 export const getSttStageRetryPolicy = (retryClass: RetryClass): Partial<RetryPolicy> | undefined =>
   retryClass === 'runtime_http_read' ? STT_POLL_RETRY_POLICY : undefined
 
-/**
- * URL article backends are third-party scrapers that rate-limit harder than the API reads
- * the read tier is tuned for, so they back off from 2s rather than 1s. The attempt count
- * stays with the caller because `--url-request-attempts` exposes it.
- */
 export const URL_ARTICLE_RETRY_POLICY: Partial<RetryPolicy> = {
   baseDelayMs: 2_000,
   maxDelayMs: 10_000,
@@ -141,10 +104,6 @@ const matchesNetworkSpelling = (message: string): boolean => {
   return NETWORK_FAILURE_SPELLINGS.some((spelling) => msg.includes(spelling))
 }
 
-// A `TypeError` is how fetch reports a transport failure, but it is also how an
-// ordinary in-process programming mistake surfaces. Requiring the message to name a
-// network condition keeps the label honest; an unrecognised TypeError still retries
-// under the default retry-on-any-error rule, just as "unclassified error".
 const isNetworkError = (error: unknown): boolean => {
   if (error instanceof Error) {
     return matchesNetworkSpelling(error.message)
@@ -174,12 +133,6 @@ export const isTimeoutError = (error: unknown): boolean => {
   return false
 }
 
-/**
- * Reads the fields a retry decision is made from. Both classifiers walk the cause
- * chain through `extractErrorMetadata`: reading only the top-level error meant a
- * deterministic 401 wrapped one level deep reached the default branch and was
- * retried as an "unclassified error".
- */
 const readRetrySignals = (error: unknown): RetrySignals => {
   const metadata = extractErrorMetadata(error)
   return {
@@ -206,11 +159,6 @@ const getWrappedRetryCause = (error: unknown): unknown => {
   return current
 }
 
-/**
- * Retry a paid create request only when the provider definitely rejected it
- * before admitting work. Network failures, timeouts, 408/409 responses, and
- * 5xx responses are ambiguous and must be reconciled instead of redispatched.
- */
 export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
   const { status, headers } = readRetrySignals(error)
   if (status !== 425 && status !== 429) {
@@ -230,14 +178,6 @@ export const classifyPaidCreateRetry = (error: unknown): RetryDecision => {
   }
 }
 
-/**
- * The floor every retry decision sits on, classifier or not: an explicit
- * `retryable: false` and the deterministic status set always stop the loop, and a
- * provider's `Retry-After` always paces it. `withRetry` applies this when a caller
- * passes no classifier, so the project's "mark deterministic errors non-retryable"
- * convention holds at classifier-less sites (the `setup_download` binaries and model
- * files) instead of silently doing nothing there.
- */
 export const classifyRetryFloor = (error: unknown): RetryDecision => {
   const { status, retryable, headers } = readRetrySignals(error)
 
@@ -264,17 +204,12 @@ export const classifyFetchRetry = (
   const noRetry = (reason: string): RetryDecision => ({ shouldRetry: false, delayMs: 0, reason })
   const doRetry = (delayMs: number, reason: string): RetryDecision => ({ shouldRetry: true, delayMs, reason })
 
-  // The conservative paid-create rule had a byte-for-byte second copy here; it now defers
-  // to the single implementation so the two cannot drift apart.
   if (retryClass === 'runtime_http_create_conservative') {
     return classifyPaidCreateRetry(error)
   }
 
   const { status, retryable, headers } = readRetrySignals(error)
 
-  // An explicit retryable flag always wins: deterministic errors (e.g. a 200
-  // response with a malformed/business-rejected body) mark themselves
-  // non-retryable so the default retry-on-any-error behavior skips them.
   if (retryable === false) {
     return noRetry('error marked non-retryable')
   }
@@ -301,9 +236,6 @@ export const classifyFetchRetry = (
     return doRetry(0, 'network error')
   }
 
-  // Default: retry on the simple fact that a failure happened. Deterministic
-  // client errors (4xx above) and side-effecting aborts are the only cases we
-  // refuse to retry; any other unrecognized error is treated as transient.
   return doRetry(0, 'unclassified error')
 }
 
@@ -389,11 +321,6 @@ export const buildRetryAttemptTable = (
     ['delayMs', summary.delayMs]
   ])
 
-/**
- * The one retry-attempt record. Exported so the hand-rolled loops that cannot run under
- * `withRetry` — a paid redispatch gated on an admission ledger, for one — still report
- * their attempts in the same shape rather than silently or in their own wording.
- */
 export const logRetryAttempt = (
   summary: RetryAttemptLog,
   metadata: Record<string, unknown> = {}
@@ -408,11 +335,6 @@ export const logRetryAttempt = (
   })
 }
 
-/**
- * Builds the exhaustion message `withRetry` and the poll loops throw. The adaptive
- * test harness classifies runs on this exact wording, so it is produced in one place
- * and pinned by a production-side contract test.
- */
 export const formatRetryExhaustedMessage = (
   operationName: string,
   attemptsMade: number,
@@ -428,7 +350,6 @@ export const withRetry = async <T>(
 ): Promise<T> => {
   ctx.abortSignal?.throwIfAborted()
   const policy = getRetryPolicy(ctx.retryClass, ctx.policy)
-  // Classifier-less callers get the floor rather than unconditional retry-on-any-error.
   const decide: RetryClassifier = classifier ?? classifyRetryFloor
   let maxAttempts = policy.maxAttempts
   const startedAt = Date.now()
@@ -568,8 +489,6 @@ const throwPollExhausted = (
       elapsedMs,
       stopReason,
       pollCount,
-      // The reason the job was still pending used to be discarded here, which is
-      // what forced downstream accounting to regex-match the message prose.
       ...(lastPoll ? { lastPoll } : {})
     }
   })

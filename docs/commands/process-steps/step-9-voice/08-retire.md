@@ -4,19 +4,13 @@ Retire or revoke a registration generation and remove it from the current index.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
-## Outline
-
-- [retire](#retire)
-
 ## retire
 
 ```bash
 bun autoshow voice retire <registration-id> [flags]
 ```
 
-Without `--reason`, `retire` removes the generation from the current index. It is local: it does not call a provider and does not delete remote resources.
-
-With `--reason`, the same command revokes the generation instead. It records the reason and can flag protected assets for later cleanup. It still does not delete remote resources. Use [delete](./09-delete.md) to delete a remote provider resource.
+Without `--reason`, `retire` removes the generation from the current index. With `--reason`, it revokes the generation instead and records the reason. Both actions are local: they do not call a provider and do not delete remote resources. Use [delete](./09-delete.md) to delete a remote provider resource.
 
 ### Options
 

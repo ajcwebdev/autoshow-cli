@@ -1,11 +1,6 @@
 import * as v from 'valibot'
 import { validateDataSafe } from '~/utils/validate/validation'
 
-// Baked intermediate for every ElevenLabs synthesis request. The segment is remastered
-// into a fixed-format `speech.wav` afterwards, so this only picks what crosses the wire.
-// It stays MP3 at the model's native 44.1 kHz rather than a lossless container: pcm_44100
-// is gated behind ElevenLabs Pro, and the untiered pcm_* formats return headerless raw
-// streams that the shared chunk pipeline would have to wrap before concatenating.
 export const ELEVENLABS_TTS_OUTPUT_FORMAT = 'mp3_44100_128'
 
 const ElevenLabsErrorSchema = v.object({

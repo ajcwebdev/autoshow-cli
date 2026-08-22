@@ -56,7 +56,6 @@ describe('comic presentation reconciliation', () => {
     const plan = dialoguePlan([{ turnId: 'turn-1', sourceSegmentId: 'turn-source', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Exact words.' }])
     expect(() => reconcilePresentationDialogue({ scene: exactMismatch, dialoguePlan: plan })).toThrow('no exact speaker-and-text entry matches')
 
-    // Content that matches by text alone is no longer enough; the turn needs panel provenance.
     const unowned = scene([panel(1, ['old'], [characterSpeech('pilot', 'Repeated.'), characterSpeech('pilot', 'Repeated.')])])
     const unownedPlan = dialoguePlan([{ turnId: 'turn-1', sourceSegmentId: 'new', subjectKey: 'pilot', originalSpeakerLabel: 'PILOT', canonicalText: 'Repeated.' }])
     expect(() => reconcilePresentationDialogue({ scene: unowned, dialoguePlan: unownedPlan })).toThrow('is not assigned to any panel')
@@ -298,7 +297,6 @@ describe('comic presentation manifest stage', () => {
       expect(initialComic.stages.presentation).toEqual({ requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] })
       expect(initialComic.presentation).toEqual({})
 
-      // A manifest predating the presentation stage is no longer defaulted into shape.
       const withoutStage = JSON.parse(JSON.stringify(written)) as typeof written
       delete withoutStage.items[0]?.metadata.comic.stages['presentation']
       delete withoutStage.items[0]?.metadata.comic.presentation

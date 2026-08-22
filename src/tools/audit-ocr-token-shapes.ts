@@ -1,10 +1,6 @@
 import { CLIUsageError } from '~/utils/error-handler'
 import { auditOcrTokenShapes } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-token-shape-audit'
 
-// Standalone `bun run` tool, not a CLI command: its entire stdout is the machine-readable
-// audit document, so it writes the payload directly rather than through the app logger.
-// Declared exempt from the no-raw-stdout contract alongside the other src/tools scripts.
-
 const args = Bun.argv.slice(2)
 const runDirectories: string[] = []
 let profilePath: string | undefined

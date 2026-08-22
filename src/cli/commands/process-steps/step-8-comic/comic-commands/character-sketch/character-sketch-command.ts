@@ -168,9 +168,6 @@ const runCharacterSketchCommand = async (
         if (sheetPromoted) await rm(character.outlineSheetPath, { force: true }).catch(() => undefined)
         if (hadSheet) {
           await rename(sheetBackupPath, character.outlineSheetPath).catch((rollbackError: unknown) => {
-            // Two failures produced this throw. The rollback failure is the `cause` because it
-            // is the one that left the tree inconsistent; the promotion failure that triggered
-            // the rollback rides in metadata so neither is lost from the chain.
             throw InfraError(`Character sketch promotion failed and rollback also failed for "${key}": ${String(rollbackError)}`, {
               stage: 'comic:character-sketch',
               metadata: { promotionError: serializeDiagnosticError(promotionError) },
@@ -192,12 +189,6 @@ const runCharacterSketchCommand = async (
   }
 }
 
-/**
- * Comic prints its own per-image output line with the real path, so the shared image
- * services' interim `pipeline` logs (which show the throwaway scratch path) are suppressed
- * for the duration of this run — and only this run, so a direct caller is unaffected after
- * it returns.
- */
 export const characterSketchCommand = async (
   options: CharacterSketchCommandOptions,
   dependencies: CharacterSketchCommandDependencies = {}

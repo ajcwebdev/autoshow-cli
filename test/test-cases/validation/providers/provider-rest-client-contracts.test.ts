@@ -72,8 +72,6 @@ const clients: ClientCase[] = [
   }
 ]
 
-// Built on the shared helper so an unexpectedly-succeeding request reports exactly that,
-// rather than being swallowed by this function's own catch.
 const captureError = async (client: ClientCase): Promise<Error & Record<string, unknown>> =>
   await expectProviderHttpError(client.request) as Error & Record<string, unknown>
 
@@ -94,8 +92,6 @@ describe('provider REST client differential contracts', () => {
 
       const jsonError = await captureError(client)
       expect(jsonError.name).toBe(client.errorName)
-      // Uniform since the Phase 5 consolidation: every provider REST client throws an
-      // AppProviderError, so `kind` and process-level handling no longer vary by provider.
       expect(jsonError instanceof AppError).toBe(true)
       expect((jsonError as unknown as AppError).kind).toBe('provider_http')
       expect(jsonError['status']).toBe(400)
@@ -150,9 +146,6 @@ describe('provider REST client differential contracts', () => {
     expect(replicateCalls).toHaveLength(1)
   })
 
-  // Bun's fetch kills any request after 300s of socket silence unless timeout: false is
-  // passed — an AbortSignal alone does not suppress it (oven-sh/bun#16682) — so every
-  // provider request must carry the opt-out or long non-streaming calls die at 5 minutes.
   test('every provider client disables Bun\'s default fetch idle timeout', async () => {
     for (const client of clients) {
       let capturedInit: Parameters<typeof fetch>[1]

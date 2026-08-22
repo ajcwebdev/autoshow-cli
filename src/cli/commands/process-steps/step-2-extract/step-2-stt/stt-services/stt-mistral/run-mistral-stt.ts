@@ -17,8 +17,6 @@ import { getErrorHeaders, getErrorStatus } from '~/utils/error-handler'
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const MISTRAL_RATE_LIMIT_FALLBACK_COOLDOWN_MS = 60_000
 
-// Classified on the AppError kind rather than on `withRetry`'s own exhaustion message,
-// which this repo generates: the prose can change, the kind cannot.
 const isMistralRetryWrapper = (error: unknown): error is Error & { cause: Error } =>
   isAppError(error)
   && error.kind === 'retry_exhausted'

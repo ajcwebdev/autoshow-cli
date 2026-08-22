@@ -243,14 +243,6 @@ const matchDirectPasses = (
   return remaining
 }
 
-/**
- * Positional pass for metrics that share a caller file/line: when one call site logs several
- * metrics (a helper looping over variants), JUnit reports one test case per invocation at that
- * same line. Pairing the Nth remaining metric with the Nth still-unmatched case at that line is
- * the only signal available, so the contract is index order in, index order out. Metrics with no
- * caller location, and any leftovers past the shorter of the two lists, stay unmatched for the
- * heuristic pass.
- */
 const matchGroupOrder = (
   remaining: ParsedCommandMetric[],
   byFileLine: Map<string, ParsedJunitCase[]>,

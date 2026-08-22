@@ -215,8 +215,6 @@ export const createMiniMaxAdvancedProvider = (options: MiniMaxAdvancedProviderOp
     const remote = assertAdvancedVoiceInspectionIdentity(identity, voice)
     const page = await catalog.list({ source: remote.namespace === 'account' ? 'account' : 'provider-library' })
     const entry = page.entries.find(candidate => candidate.resourceId === remote.resourceId)
-    // A MiniMax clone stays invisible to the catalog until it is activated, so a missing
-    // entry with a live expiry is pending rather than gone.
     const expired = remote.expiresAt !== undefined && Date.parse(remote.expiresAt) <= Date.parse(page.checkedAt)
     return buildAdvancedVoiceInspection(identity, {
       voice: remote,

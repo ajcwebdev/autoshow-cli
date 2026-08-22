@@ -448,8 +448,6 @@ export const SUPPORTED_HUME_TTS_MODELS = [
 ] as const satisfies readonly string[]
 
 export const HUME_DEFAULT_TTS_VOICE = 'Male English Actor'
-// Hume resolves a voice by name only within one namespace. Named lookups go to the shared Hume
-// library; account-owned custom voices are addressed by their stable UUID through --tts-voice.
 export const HUME_LIBRARY_VOICE_PROVIDER = 'HUME_AI'
 
 export const validateHumeTtsModel = createModelValidator<HumeTtsModel>(SUPPORTED_HUME_TTS_MODELS, 'hume-tts')

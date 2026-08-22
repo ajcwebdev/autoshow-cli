@@ -82,7 +82,6 @@ const execOnce = async (
     try {
       proc.kill()
     } catch {
-      // The process may already have exited between the abort and this callback.
     }
   }
   opts?.signal?.addEventListener('abort', onAbort, { once: true })
@@ -114,15 +113,6 @@ const execOnce = async (
   }
 }
 
-/**
- * Retried subprocesses run on the shared `runtime_subprocess_transient` policy rather
- * than a private attempt loop with its own delay math and its own abort-aware sleep.
- *
- * Exhaustion deliberately returns the last failed result instead of throwing: every
- * caller reads `exitCode` and builds a domain error from `stderr`, which diagnoses the
- * failure better than a generic `retry_exhausted` would. The exhaustion is still recorded
- * structurally so a run that burned its whole attempt budget is visible in the log.
- */
 export const exec = async (
   command: string,
   args: string[] = [],

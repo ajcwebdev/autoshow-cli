@@ -21,7 +21,6 @@ const TRANSCRIPT_LINE_PATTERN = /^\[(\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)\]\s+(?:\
 const MAX_TRANSCRIPT_WORDS_PER_CUE = 12
 const MAX_TRANSCRIPT_CHARACTERS_PER_CUE = 78
 
-
 const materializeAudioInput = async (
   value: string
 ): Promise<{ audioPath: string, audioDisplayPath?: string | undefined, cleanup: () => Promise<void> }> => {
@@ -163,8 +162,6 @@ const repairCueDurations = (
 const buildCuesFromTranscriptionResult = (
   result: TranscriptionResult
 ): { cues: TranscriptCue[], cueSource: TranscriptCueSource } => {
-  // Native per-word timings are exact. Segment stamps only bound a whole utterance, so splitting them
-  // into displayed lines has to interpolate, which drifts by up to a second on long segments.
   if ((result.evidence?.words?.length ?? 0) > 0) {
     const { cues } = buildTranscriptionCues(result, TRANSCRIPT_CUE_LIMITS)
     const wordCues = cues.map((cue, index) => ({
@@ -277,8 +274,6 @@ const buildCuesFromTranscriptText = (
   }
 }
 
-// Captions carry the speaker inline because .vtt/.srt have no second line to attribute with; the
-// rendered video instead draws the label as its own coloured chip.
 const toCaptionCuesWithSpeakerLabels = (cues: TranscriptCue[]): CaptionCue[] =>
   cues.map((cue, index) => ({
     index,
@@ -287,8 +282,6 @@ const toCaptionCuesWithSpeakerLabels = (cues: TranscriptCue[]): CaptionCue[] =>
     text: cue.speaker ? `${formatSpeakerDisplayLabel(cue.speaker)}: ${cue.text}` : cue.text
   }))
 
-// The rendered video keeps the label out of the text so it can be drawn as its own coloured chip on
-// the active line only; context lines above and below stay unlabelled.
 const toRenderCues = (cues: TranscriptCue[]): CaptionCue[] =>
   cues.map((cue, index) => ({
     index,

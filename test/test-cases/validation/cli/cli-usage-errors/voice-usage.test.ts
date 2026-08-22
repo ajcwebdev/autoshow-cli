@@ -94,8 +94,6 @@ const writeCurrentIndex = async (root: string, selections: Array<{ registrationI
   }, null, 2)}\n`)
 }
 
-// Voice results now travel `l.report.result`, so assertions read the structured
-// payload off the sink event instead of scraping stdout.
 const captureLogs = async (run: () => Promise<void>): Promise<string[]> => {
   const { events } = await captureLogEvents(run)
   return events.filter((event) => event.metadata).map((event) => JSON.stringify(event.metadata))

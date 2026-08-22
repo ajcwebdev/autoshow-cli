@@ -28,8 +28,6 @@ const requireServiceRunPrerequisites = async (
     return
   }
 
-  // "Readiness returned false" and "the readiness probe itself threw" are different
-  // failures; collapsing them into one message hid which had happened.
   let ready: boolean
   try {
     ready = !await shouldSkipReadiness()

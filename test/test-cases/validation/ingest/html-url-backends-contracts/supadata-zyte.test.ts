@@ -75,9 +75,6 @@ test('Supadata URL backend reports provider HTTP errors with message/details', a
   ).rejects.toThrow('Supadata scrape failed (401 Unauthorized): Unauthorized')
 })
 
-// Supadata uses 429 for both burst throttling and terminal plan exhaustion. Retrying the
-// terminal case spends more quota-denied requests and stalls the run for minutes, so the
-// error must carry retryable: false while an ordinary 429 stays retryable.
 test('Supadata URL backend marks plan-limit 429 non-retryable but keeps burst 429 retryable', async () => {
   process.env['SUPADATA_API_KEY'] = 'supadata-test-key'
 

@@ -8,8 +8,6 @@ export const SUPPORTED_WHISPER_MODELS = [
   'large-v3-turbo'
 ] as const satisfies readonly string[]
 
-// Prebuilt packaged whisperfiles hosted at huggingface.co/Mozilla/whisperfile.
-// Each entry maps to a whisper-<model>.llamafile artifact (binary + embedded weights).
 export const SUPPORTED_WHISPERFILE_MODELS = [
   'tiny',
   'tiny.en',
@@ -21,14 +19,9 @@ export const SUPPORTED_WHISPERFILE_MODELS = [
   'large-v3'
 ] as const satisfies readonly string[]
 
-// Default whisperfile model used by `bun autoshow setup --step whisperfile` and the
-// on-demand bootstrap fallback (smallest packaged whisperfile).
 export const DEFAULT_WHISPERFILE_MODEL = 'tiny'
 
 export const SUPPORTED_DEEPGRAM_STT_MODELS = [
-  // Keep the concrete general-purpose family selector only. Domain and
-  // specialization variants such as nova-3-medical and nova-3-general are
-  // intentionally outside the hosted STT refresh scope.
   'nova-3'
 ] as const satisfies readonly string[]
 

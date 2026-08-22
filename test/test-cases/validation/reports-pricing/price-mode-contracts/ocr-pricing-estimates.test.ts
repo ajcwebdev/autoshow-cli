@@ -21,11 +21,6 @@ import {
 } from './shared'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
-/**
- * Token-priced OCR providers all report the same estimate and timing shape for a
- * two-page heuristic run; only provider identity varies, so the shared prelude lives
- * here and each suite keeps its own provider-specific follow-up assertions.
- */
 const expectTokenPricedOcrEstimate = (target: { provider: 'deepinfra' | 'kimi', model: string }): void => {
   const extractTargets = [{
     provider: target.provider,

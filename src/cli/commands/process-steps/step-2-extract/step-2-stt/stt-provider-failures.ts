@@ -52,14 +52,8 @@ export const classifySttProviderFailure = (
   if (explicitRetryable !== undefined) {
     retryable = explicitRetryable
   } else if (isRetryExhaustedError(error)) {
-    // A poll or retry loop that ran out of budget is transient by construction. This used
-    // to be a regex over the deadline message prose, which broke the moment that wording
-    // moved; the loops now raise `retry_exhausted` and this asks for the kind.
     retryable = true
   } else if (retryClass) {
-    // Reclassifying needs an error carrying the status/headers we extracted; build a real
-    // AppProviderError rather than an Object.assign impostor, so the classifier sees the
-    // same shape production throws.
     retryable = classifyFetchRetry(
       ProviderError(message, {
         ...(typeof status === 'number' ? { status } : {}),
@@ -126,9 +120,6 @@ export const shouldBlockSttProviderForBatch = (
     return false
   }
 
-  // A missing credential blocks the whole provider for the batch. Recognised from the
-  // structural marker `requireApiKey` sets, not from its message prose — the regex list
-  // this replaced was ADR-006's retired LEGACY_ERROR_HINTS pattern under a new name.
   if (failure.missingEnvVar !== undefined) {
     return true
   }
@@ -153,9 +144,6 @@ export const extractProviderRawResponse = (error: unknown): unknown => {
   return metadata['rawResponse'] ?? metadata['body']
 }
 
-// A diagnostic serializer that itself throws (circular structure, a hostile toJSON) must
-// not take the run down, but it also should not vanish: the fallback records why the
-// structured form is missing instead of silently degrading to a bare string.
 const toDiagnosticJson = (value: unknown): string => {
   try {
     const json = JSON.stringify(serializeDiagnosticError(value), null, 2)

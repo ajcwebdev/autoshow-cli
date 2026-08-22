@@ -28,7 +28,7 @@ No input argument is required. Flags passed to `config` are written to `config/a
 
 ## Config File Location
 
-Default path: `config/autoshow.json` in the project root (the directory that contains `package.json`).
+Default path: `config/autoshow.json` in the project root.
 
 Override with `--config-path <path>`:
 
@@ -57,6 +57,8 @@ bun autoshow config --max-cents 100
 bun autoshow config --cookies-from-browser chrome
 bun autoshow config --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 ```
+
+`--concurrency-mode ramp` (the native default) starts hosted provider traffic gradually up to the configured cap. `immediate` starts at that cap.
 
 Model selector flags are repeatable. Repeating a provider selector saves all selected models in first-seen order:
 
@@ -134,97 +136,11 @@ Model-selecting fields are arrays of models, not single strings. Use `bun autosh
 
 ## Persisted Defaults
 
-### defaults.concurrency
-
-| Field  | Flag                                 |
-| ------ | ------------------------------------ |
-| `mode` | `--concurrency-mode ramp\|immediate` |
-
-The default mode is `ramp`, which starts hosted provider traffic gradually up to the configured cap. `immediate` starts at that cap. Local engines stay immediate.
-
-### defaults.extract.stt
-
-| Flag family | Examples |
-| ----------- | -------- |
-| Model selectors | `--stt provider[=model]`, `--youtube-captions` |
-| Provider options | `--stt-happyscribe-organization-id`, `--stt-supadata-lang`, `--stt-scrapecreators-lang` |
-| Diarization | `--speaker-count`, `--split` |
-| Concurrency | `--provider-concurrency`, `--local-concurrency`, `--stt-segment-concurrency`, `--stt-preflight-concurrency` |
-
-### defaults.extract.ocr
-
-| Flag family | Examples |
-| ----------- | -------- |
-| Engine and models | `--ocr tesseract`, `--ocr provider[=model]` |
-| Tuning | `--ocr-language`, `--format`, `--ocr-dpi`, `--ocr-concurrency`, `--ocr-provider-mode` |
-| Chapters | `--chapters`, `--length`, `--pdf-chapter-mode` |
-| Concurrency | `--provider-concurrency`, `--local-concurrency` |
-
-`--ocr-language` is saved as `lang`, `--format` as `out`, and `--ocr-dpi` as `dpi`.
-
-### defaults.extract.url
-
-`config` has no `--url-provider` flag, so this default has to be written into `config/autoshow.json` by hand as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). Once saved, `extract` and `write` inherit it like any other default.
-
-### defaults.llm
-
-| Flag family | Examples |
-| ----------- | -------- |
-| Model selectors | `--llm provider[=model]` |
-| Concurrency | `--provider-concurrency`, `--local-concurrency` |
-
-### defaults.post.tts
-
-| Flag family | Examples |
-| ----------- | -------- |
-| Model selectors | `--tts provider[=model]` |
-| Shared synthesis | `--tts-voice`, `--tts-language`, `--tts-speed`, `--tts-text-normalization`, `--tts-instructions`, `--tts-dialogue-format`, `--tts-speaker` |
-| Provider synthesis | `--elevenlabs-tts-*`, `--minimax-tts-*` |
-| Concurrency | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
+`config` has no `--url-provider` flag, so set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). Once saved, `extract` and `write` inherit it like any other default.
 
 Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Custom-voice provisioning and clone-creation audio files are runtime-only and managed via `voice`; synthesis defaults require an existing provider voice ID.
 
-`ttsSpeakers` is what selects multi-speaker TTS, so a saved `ttsDialogueFormat` with no saved `ttsSpeakers` is inert: runs that inherit it log a warning and continue as single-speaker.
-
-### defaults.post.image
-
-| Flag family | Examples |
-| ----------- | -------- |
-| Model selectors | `--image provider[=model]` |
-| Reusable options | `--image-aspect-ratio`, `--image-size`, `--image-quality`, `--image-format`, `--image-background`, `--image-count` |
-| Concurrency | `--provider-concurrency`, `--local-concurrency` |
-
-One-shot image inputs, masks, and edit controls are per-generation flags accepted by processing commands and rejected by `config`.
-
-### defaults.post.video
-
-| Flag family | Examples |
-| ----------- | -------- |
-| Model selectors | `--video provider[=model]` |
-| Reusable options | `--video-duration`, `--video-aspect-ratio`, `--video-resolution`, `--video-mode`, `--video-generate-audio` |
-| Reference inputs | `--video-input-image`, `--video-last-frame`, `--video-reference-image`, `--video-input-video`, `--video-reference-video`, `--video-reference-audio` |
-| Replicate options | `--replicate-video-seed`, `--replicate-video-negative-prompt` |
-| Concurrency | `--provider-concurrency`, `--local-concurrency` |
-
-### defaults.post.music
-
-| Flag family | Examples |
-| ----------- | -------- |
-| Model selectors | `--music provider[=model]` |
-| Reusable options | `--music-duration`, `--music-instrumental` |
-| Concurrency | `--provider-concurrency`, `--local-concurrency` |
-
-One-shot lyrics files describe single generations and are not persisted defaults.
-
-### defaults.batch, defaults.prompts, pricing, auth
-
-| Field | Flag |
-| ----- | ---- |
-| `defaults.batch.limit`, `defaults.batch.order`, `defaults.batch.concurrency` | `--batch-limit`, `--batch-order`, `--batch-concurrency` |
-| `defaults.prompts` | repeated `--prompt` |
-| `pricing.maxCents` | `--max-cents` |
-| `auth.cookies` | `--cookies` |
-| `auth.cookiesFromBrowser` | `--cookies-from-browser` |
+`--tts-speaker` selects multi-speaker TTS. A saved `--tts-dialogue-format` with no saved `--tts-speaker` is inert: runs that inherit it log a warning and continue as single-speaker.
 
 Cookie auth persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
 
@@ -238,27 +154,15 @@ Explicit CLI flags > config file defaults > native CLI defaults
 
 Only flags explicitly typed on the command line override config values. Native CLI defaults do not overwrite saved config defaults.
 
-An explicit `--concurrency-mode` overrides `defaults.concurrency.mode`; otherwise the saved value overrides the native `ramp` default.
-
-If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured `defaults.llm.gemini` and `defaults.llm.groq` entries for that run.
+If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured Gemini and Groq LLM defaults for that run.
 
 ## Pricing And Budgets
 
-Hosted or mixed-provider process and generation commands run cost preflight before execution.
-
-To show the estimate and exit:
-
-```bash
-bun autoshow write input/examples/audio/1-audio.mp3 --price
-```
-
-Set a hard budget:
+Set a hard budget with `--max-cents`. Hosted and mixed-provider commands fail before execution when the estimate exceeds that limit. `--allow-over-budget` is a one-off runtime override and is never persisted.
 
 ```bash
 bun autoshow config --max-cents 50
 ```
-
-When the estimate exceeds the limit, the command fails before execution. Use `--allow-over-budget` for a one-off runtime override; it is never persisted.
 
 ## Recommended Configs
 

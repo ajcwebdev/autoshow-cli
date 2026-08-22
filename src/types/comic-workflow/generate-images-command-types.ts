@@ -1,7 +1,5 @@
 import type { GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageRunStats, PageQaEntry, SourceCoverageReport } from '~/types'
 
-// Resolved options for the final-image stage: the command computes a single
-// per-run timestamp and concurrency value and threads them through.
 export type FinalPanelImageStageOptions = GenerateImagesCommandOptions & {
   runId: string
   concurrency: number

@@ -33,11 +33,8 @@ bun autoshow comic generate-slideshow 01-01 --price
 
 ### Behavior
 
-- Automatic selection uses the sole complete soundscape run when one exists, and otherwise the sole complete dialogue run. Multiple eligible runs require `--audio-target provider=model`, which selects a matching soundscape run before a matching dialogue run.
+- Automatic selection uses the sole complete soundscape run when one exists, otherwise the sole complete dialogue run. Multiple eligible runs require `--audio-target provider=model`.
 - Every reviewed panel must exist as `panels/panel-NN.png` in the current run or a matching run of the same script. Panels must share identical even dimensions.
-- Inline sound effects follow their dialogue panel; block effects follow the panel owning the nearest preceding authored action or panel note. Missing or ambiguous ownership fails.
-- Dialogue and effects within one panel keep their relative timing and overlap. Audio across panels plays in reviewed order. Untimed panels hold for `--untimed-panel-ms`.
-- Ambience loops for the full presentation; runs without an ambience bed use silence. Source audio files are left unchanged.
-- Rendering is local FFmpeg hard-cut stills: H.264 video with AAC audio, and no motion, transitions, or rescaling.
-- On success, the command writes `presentation/presentation.json`, `presentation/final/slideshow.wav`, and `presentation/final/slideshow.mp4`.
-- `--price` reports `$0.00` without writes.
+- Inline sound effects follow their dialogue panel; block effects follow the nearest preceding action or panel note. Missing or ambiguous ownership fails.
+- Dialogue and effects within one panel keep their relative timing and overlap. Audio across panels plays in reviewed order. Untimed panels hold for `--untimed-panel-ms`. Ambience loops for the full presentation, or silence if none exists.
+- Rendering is local hard-cut stills: H.264 video with AAC audio, and no motion, transitions, or rescaling. Success writes `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`.

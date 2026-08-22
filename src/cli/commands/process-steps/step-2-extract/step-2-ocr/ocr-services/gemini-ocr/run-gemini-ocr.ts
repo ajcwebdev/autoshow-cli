@@ -377,8 +377,6 @@ export const runGeminiOcr = async (
 
       return buildResult(parseOcrResponse(rawText, expectedPageCount), expectedPageCount)
     },
-    // Per-attempt billing accumulation: a malformed response is still a purchased
-    // response, so its tokens are carried into the successful run's usage record.
     onSchemaFailure: ({ error, response, attempt }) => {
       const usage = response.usageMetadata
       const retryUsageEntry = buildGeminiOcrUsageEntry(usage, model, attempt, 'schema-retry', {

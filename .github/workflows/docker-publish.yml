@@ -1,11 +1,5 @@
 name: Publish Docker Image to GHCR
 
-# De-actioned publish workflow: every step is a plain `run:` command, so the
-# only mutable third-party surfaces are the runner image and its apt archive.
-# Layer caching uses a registry cache image (`:buildcache` in GHCR) instead of
-# the former `type=gha` backend because the GHA cache API token is only issued
-# to JavaScript actions, not to run steps.
-
 on:
   push:
     branches:

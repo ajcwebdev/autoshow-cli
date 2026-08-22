@@ -1,6 +1,6 @@
 # System Overview & CLI Surface
 
-Architecture overview for the CLI, command routing, global flags, provider selectors, and the process command surface.
+Command surface, routing, global flags, and provider selectors.
 
 ## Outline
 
@@ -8,7 +8,6 @@ Architecture overview for the CLI, command routing, global flags, provider selec
 - [Dispatch](#dispatch)
 - [Command Surface](#command-surface)
 - [Flag System](#flag-system)
-- [Provider Selectors](#provider-selectors)
 
 ## System Layers
 
@@ -23,9 +22,9 @@ bun autoshow <command> [<subcommand>] <target> [flags]
 ```
 
 1. CLI layer: parse arguments, render help and version, reject unknown flags, and apply global runtime settings.
-2. Target layer: resolve the target, merge config defaults, normalize provider selectors, and plan a single run or batch.
+2. Target layer: resolve the target, merge config defaults, and plan a single run or batch.
 3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 standalone TTS/image/video/music generation, and Step 8 comic utilities.
-4. Output layer: every run or batch root owns one `manifest.json`. Provider directories hold generated artifacts and optional raw `result.json` payloads, not a second control file.
+4. Output layer: every run or batch root owns one `manifest.json`. Generated files live next to it, with optional per-provider `result.json` payloads.
 
 ## Dispatch
 
@@ -41,15 +40,7 @@ unknown flags?
         +--> usage error
         |
         v
-apply global runtime settings
-        |
-        +--> --verbose / --quiet / --json / --log-level / --log-format
-        +--> --output-root
-        +--> --output-dir
-        +--> --characters-root
-        +--> --bin-dir
-        +--> --color / --no-color
-        +--> config cookies for yt-dlp
+apply global flags and config
         |
         v
 run the selected command
@@ -98,7 +89,7 @@ Processing and generation:
   comic     nested draft-scenes, generate-images, generate-audio, generate-slideshow, reference-sketch, and reference-voice workflows
 ```
 
-Help and version are built into the root command. Process commands share the same target planning except for standalone generation modes. `extract --transcript-video` runs before normal target processing and renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
+Help and version are built into the root command. Process commands share the same target planning except for standalone generation modes. `extract --transcript-video` renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
 
 ## Flag System
 
@@ -134,33 +125,6 @@ config pipeline defaults
   --music provider[=model]
 ```
 
-`extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections are normalized before execution.
+`extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections apply to the matching route.
 
-## Provider Selectors
-
-Current selector families:
-
-| Step        | Providers                                                                                                                                                                                                                                                         |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| STT         | `whisper`, `whisperfile`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`; `youtube-captions` is a special caption-backed service. |
-| OCR         | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`.                                                                                                                                                  |
-| URL article | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                                                                                              |
-| LLM         | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`.                                                                                                                                                                |
-| TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                                                                          |
-| Image       | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                                                |
-| Video       | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is retired; `--provider minimax` is rejected.                                                                                                                                               |
-| Music       | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                                                                |
-
-Command-to-flag mapping:
-
-| Command                       | Primary flags                                                                                                                          |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `metadata`                    | `--save`, document password, URL backend, batch flags.                                                                                 |
-| `download`                    | download/media flags, URL backend, batch flags.                                                                                        |
-| `extract`                     | STT/OCR/URL selectors, advanced OCR flags, `--youtube-captions`, batch flags, `--price`, `--transcript-video`.                         |
-| `write`                       | Step selectors for STT/OCR/URL/LLM, prompt/text-input flags, rendered text flags, batch flags, pricing flags.                          |
-| `resume`                      | target-aware provider selectors for missing or failed providers.                                                                       |
-| `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors.                                                                                    |
-| `voice`                       | standalone voice registration, audition, approval, consent, listing, retirement, and deletion flags.                                   |
-| `comic`                       | comic drafting, panel image generation, audio rendering, local slideshow presentation, and reference flags.                            |
-| `config`                      | persisted defaults for supported selectors and options; runtime-only flags are ignored.                                                |
+The provider catalog is in [Providers, Models & Setup](04-providers-and-setup.md).

@@ -56,10 +56,8 @@ test('a pinned output directory is claimed by a single run', async () => {
   configurePinnedRunDir(pinnedDir)
   await expect(createGenerationOutputDir('image-gen')).resolves.toBe(pinnedDir)
 
-  // The same run resolving its directory again is idempotent.
   await expect(createGenerationOutputDir('image-gen')).resolves.toBe(pinnedDir)
 
-  // A second, independent run cannot share one pinned directory.
   await expect(createGenerationOutputDir('video-gen'))
     .rejects
     .toThrow('--output-dir cannot be used for a run that creates more than one output directory')

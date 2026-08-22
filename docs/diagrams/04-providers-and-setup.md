@@ -1,18 +1,18 @@
 # Providers, Models & Setup
 
-Provider selection, LLM fan-out, setup flow, and dependency/env readiness reference.
+Hosted and local provider families, LLM fan-out, setup flow, and API-key requirements.
 
 ## Outline
 
 - [LLM Provider Fan-Out](#llm-provider-fan-out)
-- [Selector Conventions](#selector-conventions)
+- [Provider Families](#provider-families)
 - [Setup Pipeline](#setup-pipeline)
 - [Hosted Provider Env Checks](#hosted-provider-env-checks)
 - [Setup Dependencies](#setup-dependencies)
 
 ## LLM Provider Fan-Out
 
-`write` fans out `--llm` selections (plus config defaults) across the hosted LLM pool:
+`write` runs each `--llm` selection (plus config defaults) through the hosted LLM pool. `--provider-concurrency` caps how many models run at once (default `7`). One model writes `text.json`; more than one writes `text-<model>.json`.
 
 ```
 write --llm
@@ -20,50 +20,16 @@ write --llm
   v
 hosted LLM pool
 concurrency: --provider-concurrency
-default 7
-  |
-  +--> openai
-  +--> groq
-  +--> gemini
-  +--> anthropic
-  +--> minimax
-  +--> grok
-  +--> glm
-  +--> kimi
-  +--> together
-  +--> cerebras
   |
   v
 text.json or text-<model>.json
 ```
 
-Current LLM models:
+Current model IDs are listed in command help.
 
-| Provider    | Models                                                                                                           |
-| ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| `openai`    | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano`                        |
-| `groq`      | `openai/gpt-oss-20b`, `openai/gpt-oss-120b`                                                                      |
-| `gemini`    | `gemini-3.1-pro-preview`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`    |
-| `anthropic` | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
-| `minimax`   | `MiniMax-M3`                                                                                                     |
-| `grok`      | `grok-4.3`, `grok-4.5`, `grok-4.6`                                                                               |
-| `glm`       | `glm-5.1`                                                                                                        |
-| `kimi`      | `kimi-k2.6`, `kimi-k3`                                                                                           |
-| `together`  | `kimi-k2.6`, `glm-5.1`                                                                                           |
-| `cerebras`  | `gpt-oss-120b`, `zai-glm-4.7`                                                                                    |
+## Provider Families
 
-## Selector Conventions
-
-Provider selectors use `provider[=model]`. Repeating a selector creates a multi-provider run.
-
-| Surface                                  | Selector flags                                                                                                                   |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `extract`, `resume`                      | `--provider`, `--all-providers`, `--all-local`, `--provider-concurrency`, `--local-concurrency`                                  |
-| standalone `tts`/`image`/`video`/`music` | `--provider`, `--all-providers`, `--provider-concurrency` (no `--local-concurrency`; these commands are hosted-only)             |
-| `write`                                  | `--stt`, `--ocr`, `--llm`, plus `--all-providers stt|ocr|url|llm` and `--all-local stt|ocr|url`                                  |
-| `config`                                 | `--stt`, `--ocr`, `--llm`, `--tts`, `--image`, `--video`, `--music` (persisted defaults; no `--all-providers`/`--all-local`)     |
-
-Current hosted/local provider families:
+Selectors use `provider[=model]`. Repeat a flag to run more than one provider. Flags by command are in [System Overview](01-system-overview-cli.md#flag-system).
 
 | Step  | Providers                                                                                                                                                                                                                |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -73,7 +39,7 @@ Current hosted/local provider families:
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
 | TTS   | Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                         |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
-| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is retired; `--provider minimax` is rejected on `video`.                                                                                           |
+| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                 |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
 
 ## Setup Pipeline
@@ -81,37 +47,22 @@ Current hosted/local provider families:
 `bun autoshow setup` installs local tools and reports hosted provider API-key readiness:
 
 ```
-create runtime/ if needed
-  |
-  v
 report which hosted API keys are set
   |
   v
 install local tools in parallel
   |
   +--> ffmpeg, ffprobe, yt-dlp
-  +--> Defuddle CLI for HTML/article extraction
-  +--> whisper.cpp binary and Whisper models (tiny, large-v3-turbo)
+  +--> Defuddle
+  +--> Whisper binary and models (tiny, large-v3-turbo)
   +--> mutool, qpdf, ebook-convert
-  +--> Tesseract OCR
+  +--> Tesseract
   |
   v
-print setup summary (local tools, local models, hosted providers)
+print setup summary
 ```
 
-`--step` runs one piece of that pipeline in isolation and assumes the other prerequisites are already installed:
-
-| `--step` value   | Work performed                                                                                    |
-| ---------------- | ------------------------------------------------------------------------------------------------- |
-| `all` (default)  | The full pipeline above.                                                                          |
-| `yt-dlp`         | ffmpeg, ffprobe, and yt-dlp.                                                                      |
-| `defuddle`       | Defuddle CLI for HTML/article extraction.                                                         |
-| `whisper-binary` | Build the whisper.cpp `whisper-cli` binary.                                                       |
-| `whisper-model`  | Download the default Whisper model (`tiny`).                                                      |
-| `whisperfile`    | Download the default whisperfile model (`tiny`) into `runtime/bin/whisperfile/`.                  |
-| `calibre`        | mutool, qpdf, and Calibre `ebook-convert`.                                                        |
-| `transcription`  | Download the Whisper `large-v3-turbo` model, then report hosted STT env checks.                   |
-| `music`          | Check music API keys, verify ffmpeg/ffprobe (including subtitle rendering), and download Whisper `large-v3-turbo`. |
+`--step` runs one of `yt-dlp`, `defuddle`, `whisper-binary`, `whisper-model`, `whisperfile`, `calibre`, `transcription`, or `music` in isolation.
 
 ## Hosted Provider Env Checks
 
@@ -159,21 +110,21 @@ Hosted commands require the matching environment variable:
 
 ## Setup Dependencies
 
-| Command/route                | Local dependencies                                                                           | Hosted/config dependencies                                                                                                                                                |
-| ---------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `metadata` media             | ffprobe for local files, yt-dlp metadata for streaming URLs.                                 | Cookies for authenticated downloads when needed.                                                                                                                          |
-| `metadata` X Space           | none                                                                                         | `X_BEARER_TOKEN`.                                                                                                                                                         |
-| `download` media             | ffmpeg/ffprobe, yt-dlp.                                                                      | Same cookie support.                                                                                                                                                      |
-| `download` X Space           | ffmpeg/ffprobe, yt-dlp.                                                                      | `X_BEARER_TOKEN` for post URL lookup; cookies for playback when needed.                                                                                                   |
-| `extract` media              | ffmpeg/ffprobe, yt-dlp, `whisper-cli` for `whisper`, whisperfile for `whisperfile`.          | Selected hosted STT key.                                                                                                                                                  |
-| `extract` document OCR       | MuPDF/Tesseract as selected; Calibre for conversion.                                         | Selected hosted OCR key.                                                                                                                                                  |
-| `extract` article            | Defuddle for local/default article extraction.                                               | Firecrawl, GLM, Spider, Supadata, or Zyte keys for hosted URL backends.                                                                                                   |
-| `extract` X Space            | none                                                                                         | `X_BEARER_TOKEN`.                                                                                                                                                         |
-| `extract --transcript-video` | ffmpeg plus source audio and transcript files.                                               | none                                                                                                                                                                      |
-| `write`                      | Same extract dependencies as the chosen route. Write has no local LLM.                       | Selected hosted LLM key.                                                                                                                                                  |
-| `write --text-input`         | local `.md`/`.txt` files.                                                                    | Selected hosted LLM key.                                                                                                                                                  |
-| `tts`                        | none                                                                                         | Selected hosted TTS key.                                                                                                                                                  |
-| `image`                      | none                                                                                         | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.                                         |
-| `video`                      | source image or video when required.                                                         | `GEMINI_API_KEY`, `XAI_API_KEY`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.                                                           |
-| `music` hosted               | none                                                                                         | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`.                                                                                                             |
-| `music --audio`/`--batch`    | ffmpeg, ffprobe, `whisper-cli`, local Whisper `large-v3-turbo`.                              | none                                                                                                                                                                      |
+| Command/route                | Local dependencies                                              | Hosted/config dependencies      |
+| ---------------------------- | --------------------------------------------------------------- | ------------------------------- |
+| `metadata` media             | ffprobe for local files, yt-dlp for streaming URLs              | Cookies when needed             |
+| `metadata` X Space           | none                                                            | `X_BEARER_TOKEN`                |
+| `download` media             | ffmpeg/ffprobe, yt-dlp                                          | Cookies when needed             |
+| `download` X Space           | ffmpeg/ffprobe, yt-dlp                                          | `X_BEARER_TOKEN`; cookies when needed |
+| `extract` media              | ffmpeg/ffprobe, yt-dlp, plus Whisper or whisperfile for local STT | Selected hosted STT key       |
+| `extract` document OCR       | mutool and Tesseract when selected; Calibre for conversion      | Selected hosted OCR key         |
+| `extract` article            | Defuddle                                                        | Selected hosted URL key         |
+| `extract` X Space            | none                                                            | `X_BEARER_TOKEN`                |
+| `extract --transcript-video` | ffmpeg plus source audio and transcript files                   | none                            |
+| `write`                      | Same extract dependencies as the chosen route                   | Selected hosted LLM key         |
+| `write --text-input`         | local `.md`/`.txt` files                                        | Selected hosted LLM key         |
+| `tts`                        | none                                                            | Selected hosted TTS key         |
+| `image`                      | none                                                            | Selected hosted image key       |
+| `video`                      | source image or video when required                             | Selected hosted video key       |
+| `music` hosted               | none                                                            | Selected hosted music key       |
+| `music --audio`/`--batch`    | ffmpeg, ffprobe, and local Whisper `large-v3-turbo`             | none                            |

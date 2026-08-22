@@ -1,5 +1,3 @@
-// Commands that only read, resume, or configure existing directories. Accepting --output-dir there
-// would silently do nothing, so it is rejected instead.
 const COMMANDS_WITHOUT_RUN_DIRECTORIES = new Set([
   'config',
   'setup',

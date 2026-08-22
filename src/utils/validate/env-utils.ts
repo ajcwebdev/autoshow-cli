@@ -1,24 +1,23 @@
-import { AppUsageError, extractErrorMetadata, hintsForMissingEnv } from '~/utils/error-handler'
-import { findHostedProviderCredential, findHostedProviderCredentialByEnvVar } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import { AppUsageError, extractErrorMetadata, InternalError } from '~/utils/error-handler'
+import { findHostedProviderCredential, findHostedProviderCredentialByEnvVar, HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import type { HostedProviderEnvCheck } from '~/types'
+
+export const MISSING_ENV_HINTS: Readonly<Record<string, string>> = Object.fromEntries(
+  HOSTED_PROVIDER_ENV_CHECKS.map(spec => [
+    spec.envVar,
+    `Set ${spec.envVar} environment variable to use ${spec.label} (${spec.hintUrl})`
+  ])
+)
+
+export const hintsForMissingEnv = (key: string): string[] => [
+  MISSING_ENV_HINTS[key] ?? `Set ${key} environment variable to use this provider`
+]
 
 export const readEnv = (key: string): string | undefined => {
   const val = process.env[key]?.trim()
   return val || undefined
 }
 
-/**
- * The single credential gate.
- *
- * Kind is `usage` (exit 2), not `internal` (exit 1): a missing environment variable is a
- * user-fixable configuration mistake, and it is the one thing `hintsForMissingEnv` exists
- * to tell the user how to fix. Ten TTS/soundscape sites and three validation sites used to
- * spell the same concern their own way, so the identical mistake produced exit 1 or 2 with
- * hints or nothing depending on the provider selected.
- *
- * `metadata.missingEnvVar` is the structural marker callers classify on — it replaces
- * regexes that matched this function's own message text.
- */
 const missingCredentialError = (envVar: string, stage: string, description?: string): Error =>
   new AppUsageError(
     `${envVar} environment variable is required${description ? ` for ${description}` : ''}`,
@@ -48,7 +47,12 @@ type CredentialResolutionOptions = {
 
 const requireKnownCredential = (providerId: string): HostedProviderEnvCheck => {
   const spec = findHostedProviderCredential(providerId)
-  if (!spec) throw new TypeError(`Unknown hosted provider credential: ${providerId}`)
+  if (!spec) {
+    throw InternalError(`Unknown hosted provider credential: ${providerId}`, {
+      stage: 'credential',
+      retryable: false
+    })
+  }
   return spec
 }
 
@@ -113,15 +117,15 @@ export const ensureProvider = (
 
 export const requireApiKey = (envVar: string, stage: string, description?: string): string => {
   const spec = findHostedProviderCredentialByEnvVar(envVar)
-  if (!spec) throw new TypeError(`Unknown hosted provider credential environment variable: ${envVar}`)
+  if (!spec) {
+    throw InternalError(`Unknown hosted provider credential environment variable: ${envVar}`, {
+      stage,
+      retryable: false
+    })
+  }
   return resolveCredential(spec.providerId, 'require', { stage, ...(description ? { description } : {}) })
 }
 
-/**
- * Same contract for adapters handed a credential by their caller rather than reading the
- * environment themselves: the defensive guard reports the missing variable identically
- * instead of inventing its own message and kind.
- */
 export const requireProvidedApiKey = (
   value: string | undefined,
   envVar: string,
@@ -129,7 +133,12 @@ export const requireProvidedApiKey = (
   description?: string
 ): string => {
   const spec = findHostedProviderCredentialByEnvVar(envVar)
-  if (!spec) throw new TypeError(`Unknown hosted provider credential environment variable: ${envVar}`)
+  if (!spec) {
+    throw InternalError(`Unknown hosted provider credential environment variable: ${envVar}`, {
+      stage,
+      retryable: false
+    })
+  }
   return resolveCredential(spec.providerId, 'require', {
     stage,
     providedValue: value,
@@ -138,7 +147,6 @@ export const requireProvidedApiKey = (
   })
 }
 
-/** True when `error` (or any cause) is a missing-credential failure from `requireApiKey`. */
 export const missingCredentialEnvVar = (error: unknown): string | undefined => {
   const value = extractErrorMetadata(error)['missingEnvVar']
   return typeof value === 'string' ? value : undefined

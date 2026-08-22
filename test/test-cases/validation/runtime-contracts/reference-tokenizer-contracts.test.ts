@@ -50,8 +50,6 @@ describe('reference tokenizer', () => {
   })
 
   test('special tokens are encoded as ordinary text, never as special ids', () => {
-    // encode_ordinary parity: <|endoftext|> (special id 199999) and
-    // <|endofprompt|> (200018) must decompose into ordinary tokens.
     expect(encodeReferenceTokens('<|endoftext|>')).not.toContain(199999)
     expect(encodeReferenceTokens('<|endofprompt|>')).not.toContain(200018)
     expect(countReferenceTokens('<|endoftext|>')).toBeGreaterThan(1)

@@ -163,7 +163,6 @@ describe('option resolution contracts', () => {
         '--llm-model', 'grok-4.5'
       ])
 
-      // --llm-model now resolves against the central LLM registry instead of a comic-local list.
       expect(findRegistryServiceForModel('llm', 'gpt-5.5')).toBe('openai')
       expect(findRegistryServiceForModel('llm', 'grok-4.5')).toBe('grok')
       expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')

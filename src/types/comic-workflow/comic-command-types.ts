@@ -30,8 +30,6 @@ type ComicImageRunOptionsBase = ComicHostedConcurrencyOptions & {
   size: ImageGenerationSize
   quality: ImageGenerationQuality
   force: boolean
-  // Per-run timestamp folder that generated images nest under, and the number of
-  // image requests to run concurrently within a stage.
   runId: string
   concurrency: number
 }
@@ -67,7 +65,6 @@ export type ReferenceSketchCommandOptions = Omit<ComicImageCommandOptionsBase, '
 }
 
 export type ParsedReferenceSketchArgs = ReferenceSketchCommandOptions & { showHelp: boolean; price?: boolean }
-
 
 export type DraftScenesStage = 'structure' | 'prompt' | 'scene' | 'panel-prompts'
 
@@ -165,7 +162,6 @@ export type ComicPageChunk<T> = {
   panels: T[]
 }
 
-
 export type SketchPanelChunk<T> = {
   startPanelNumber: number
   endPanelNumber: number
@@ -177,14 +173,12 @@ export type GenerateSceneSketchesOptions = ComicImageRunOptionsBase & {
   panelsPerImage?: number
 }
 
-
 export type GenerateSketchesCommandOptions = ComicSceneCommandOptionsBase & ComicImageCommandOptionsBase & {
   sketchPanels?: GenerateSceneSketchesOptions['sketchPanels']
   panelsPerImage?: GenerateSceneSketchesOptions['panelsPerImage']
   runId?: string
   concurrency?: number
 }
-
 
 export type PanelPromptsCommandOptions = ComicSceneCommandOptionsBase & {
   force?: boolean
@@ -198,7 +192,6 @@ export type StructureScriptsCommandOptions = ComicScriptSceneCommandOptionsBase 
 export type CharacterMention = StructuredScriptData['beats'][number]['rawMentions'][number]
 
 export type StructuredScriptBeat = StructuredScriptData['beats'][number]
-
 
 export type StructuredScriptReviewResponse = {
   model: string

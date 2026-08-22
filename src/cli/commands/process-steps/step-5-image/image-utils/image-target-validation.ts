@@ -60,9 +60,6 @@ export const validateImageCount = (
   return count
 }
 
-// Pipeline spellings, which `write`, `config`, and `resume` register verbatim. The standalone
-// `image` command drops the `image-` prefix, so it retargets these through
-// `imageCommandOptionNames` on the way out; write messages here in the `--image-*` form.
 const IMAGE_OPTION_LABELS = {
   geminiImageModels: '--gemini-image',
   geminiImageModel: '--gemini-image',
@@ -96,11 +93,6 @@ const IMAGE_OPTION_LABELS = {
   generationResourceGate: 'generation resource gate'
 }
 
-/**
- * Validates an `--image-format` value against one provider's supported set. The allowed
- * list, default, and provider label are explicit because each provider publishes its own
- * format support and its own error wording.
- */
 export const normalizeImageOutputFormat = <TFormat extends string>(
   format: string | undefined,
   policy: { allowed: readonly TFormat[], fallback: TFormat, providerLabel: string, expected: string }

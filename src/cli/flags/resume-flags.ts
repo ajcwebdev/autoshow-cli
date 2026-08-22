@@ -42,10 +42,6 @@ const resumeProviderSelectionFlags = {
   ...sharedConcurrencyFlags
 } as const satisfies CliFlagsDefinition
 
-// Resume never accepts provider-named option flags. Provider choice belongs to
-// --provider provider[=model], and per-provider tuning belongs to the original
-// command or autoshow.config, so every group below is an explicit allow-list of
-// provider-neutral options rather than a deny-list that leaks new provider flags.
 const resumeTranscriptionOptionNames = [
   'youtube-captions',
   'speaker-count',

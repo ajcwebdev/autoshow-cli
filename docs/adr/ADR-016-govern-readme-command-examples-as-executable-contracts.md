@@ -13,17 +13,15 @@ Every command printed in project documentation is a product promise. Readers can
 
 Restricting automated verification to the root `README.md` leaves the command references and the rest of `docs/` unverified. Those files hold most user-facing invocations, including combinations of providers, models, inputs, and flags. Ungoverned examples drift: they cite missing fixtures, invalid options, mutated configuration, unrouted providers, or live network and paid endpoints.
 
-Safe documentation integrity requires an inventory of every shell-like command in `README.md` and `docs/`, with parse-only, stubbed, or never-execute rules for non-executable, historical, paid, and stateful examples, and deterministic offline `--price` runs for priceable workflows.
-
 Why now: A repository-wide documentation audit found 1,424 shell-like candidates across 199 Markdown files, including 803 concrete AutoShow invocations. Scoping contracts to the README alone leaves the primary command-reference surface exposed to silent drift.
 
 ## Options Considered
 
 **Option 1 (selected)**
 
-- **Option:** Govern every command occurrence in the root `README.md` and all Markdown beneath `docs/` through one classified inventory and policy-aware harness
-- **Pros:** Matches the user-facing surface, catches cross-document drift, makes unsafe examples explicit, supports deduplicated execution with occurrence-based reporting, and covers generated and historical material safely
-- **Cons:** Requires a Markdown-aware extractor, a typed inventory, risk-specific policies, and committed offline fixtures
+- **Option:** Govern every command in the root `README.md` and all Markdown beneath `docs/` through one classified inventory and local verification policy
+- **Pros:** Matches the user-facing surface, catches cross-document drift, makes unsafe examples explicit, and covers generated and historical material safely
+- **Cons:** Requires a classified inventory, risk-specific policies, and committed offline fixtures
 - **Quantitative Notes:** Covers 199 files, 1,424 candidates, and 803 concrete AutoShow occurrences
 
 **Option 2**
@@ -56,19 +54,15 @@ Why now: A repository-wide documentation audit found 1,424 shell-like candidates
 
 ## Decision
 
-Govern every shell-like command occurrence in the root `README.md` and every Markdown document recursively beneath `docs/` through a single typed inventory and a local-only documentation contract test suite.
+Govern every shell-like command in the root `README.md` and every Markdown document under `docs/` as a documentation contract. Each example is classified and verified locally without mutating repository files or user configuration and without contacting paid services.
 
-Every extracted candidate maps to exactly one inventory entry, and every inventory entry resolves to a valid candidate in the active documentation corpus. Each entry declares one primary classification (`priceable`, `local-runnable`, `utility`, `stateful`, `paid-execution`, `staged`, `template`, `invalid-example`, `historical`, `generated-evidence`, `expected-output`, or `external-tool`) and one execution policy (`price`, `local-execute`, `parse-only`, `help-only`, `stubbed`, `generated-source`, or `never-execute`).
-
-Priceable workflows run with `--price`, make no provider or network calls, and report a numeric estimated cost, including explicit zero for free workflows. Contract tests use isolated configuration, cache, and output directories so repository files and user configuration stay unmodified. A process-wide guard fails any outbound provider request during those runs. Commands that mutate configuration, install software, build or run Docker, perform Git mutations, or invoke paid services default to `parse-only` or `never-execute`. Staged media, comic, voice, document, OCR, and batch examples use committed offline fixtures rather than live URLs or artifacts from prior paid runs.
-
-Identical command strings that share policy, fixtures, and route may share one execution run. Coverage, failure reporting, and cost aggregation stay occurrence-based, mapping results to every file and section where the command appears.
+Priceable workflows run with `--price`, make no provider or network calls, and report a numeric estimated cost, including explicit zero for free workflows. Commands that mutate configuration, install software, build or run Docker, perform Git mutations, or invoke paid services are parsed or rejected, never executed. Staged media, comic, voice, document, OCR, and batch examples use committed offline fixtures rather than live URLs or artifacts from prior paid runs. `config` does not accept `--price`; `autoshow config --price` is an unexpected-flag usage error.
 
 This applies to:
 
 - The root `README.md` and all `*.md` files recursively under `docs/`.
 - Fenced shell blocks, console-prompted lines, continued commands, indented code blocks, and command-looking inline code spans.
-- Standard AutoShow workflows, utilities, stateful commands, external tools, package managers, and Docker invocations in documentation.
+- AutoShow workflows, utilities, stateful commands, external tools, package managers, and Docker invocations in documentation.
 - Historical quotations, generated report evidence, templates, placeholders, and deliberately invalid examples, which are verified statically without execution.
 
 It does not apply to:
@@ -80,32 +74,31 @@ It does not apply to:
 ## Rationale
 
 - Command references hold most user-facing invocations and configuration variants, so README-only contracts miss the primary surface.
-- Exhaustive inventory plus selective execution gives complete coverage without running unsafe examples.
-- Occurrence identity evaluates the same command string by document purpose: current guidance, historical quotation, or expected output.
-- Isolated `--price` runs and a fail-closed provider guard prove zero spend and zero network traffic.
+- Classifying examples and executing only the safe subset gives complete coverage without running paid, stateful, or destructive commands.
+- Isolated `--price` runs prove documented workflows have a known cost and make no network or provider calls.
 - Committed offline fixtures let staged workflows validate in a clean checkout.
 
 ## Consequences
 
 Positive outcomes:
 
-- Documented commands stay verified against the CLI parser, options registry, and model catalog.
-- Paid, destructive, and stateful examples are governed without unexpected execution, cost, or data mutation.
+- Documented commands stay verified against the CLI parser, options, and model catalog.
+- Paid, destructive, and stateful examples cannot run by accident.
 - Missing fixtures, broken routes, deprecated flags, and malformed syntax fail in local CI.
-- Documentation cost estimates, free-utility counts, and template ratios can be aggregated deterministically.
+- Documentation cost estimates can be aggregated without spend.
 
 Negative outcomes:
 
-- Adding, moving, or refactoring documentation examples requires inventory updates.
-- Generated reports and benchmark docs need generator metadata or inventory snapshots when they change.
+- Adding or moving documentation examples requires inventory updates.
+- Generated reports need inventory updates when they change.
 - Offline fixtures for document, media, voice, and comic pipelines enlarge the test-fixture surface.
 
 ## Trade-offs
 
 **Trade-off 1**
 
-- **Gain:** Full documentation coverage across all Markdown files
-- **Sacrifice:** A typed inventory and Markdown-aware extraction
+- **Gain:** Full documentation coverage and cross-document drift detection
+- **Sacrifice:** A classified inventory of every documented command
 
 **Trade-off 2**
 
@@ -119,41 +112,18 @@ Negative outcomes:
 
 **Trade-off 4**
 
-- **Gain:** Cross-document drift detection
-- **Sacrifice:** Occurrence-based inventory for duplicated command strings
-
-**Trade-off 5**
-
 - **Gain:** Auditable documentation cost estimates
-- **Sacrifice:** Snapshot updates when CLI pricing or models change
-
-## Implementation Note
-
-`config` does not accept `--price`. `autoshow config --price` fails as an unexpected-flag usage error before any state access (`src/cli/flags/config-flags.ts`).
-
-## Test Plan
-
-Verification of this ADR remains local and zero-cost:
-
-```bash
-bun run check
-bun t --price
-bun test test/test-cases/validation/cli/doc-command-flags-contract.test.ts
-```
-
-1. Typecheck and unique source check pass.
-2. The default price suite estimates without provider calls.
-3. Command-reference flag tables stay aligned with CLI parsers.
+- **Sacrifice:** Estimates must be refreshed when CLI pricing or models change
 
 ## Follow-up Actions
 
-- [ ] Implement fail-closed provider/network guards and isolated documentation-test harnesses — Pending
-- [ ] Build the Markdown-aware extractor, typed occurrence inventory, and bidirectional coverage tests — Pending
-- [ ] Standardize structured `--price` result envelopes across AutoShow commands — Pending
-- [ ] Commit offline fixtures for document, transcript, batch, image, video, comic, and voice workflows — Pending
-- [ ] Define static risk and parse-only policies for utilities, Docker, Git, external tools, and credentials — Pending
-- [ ] Cross-check documented flags and models against CLI parsers and model registries — Pending
-- [ ] Generate occurrence-based and deduplicated documentation cost reports — Pending
+- [ ] Isolate documentation verification so it cannot call providers, use the network, or write to repository or user configuration — Pending
+- [ ] Inventory every documented command and fail when documentation and the inventory disagree — Pending
+- [ ] Make `--price` results consistent across commands so priceable examples verify the same way — Pending
+- [ ] Commit offline fixtures for document, transcript, batch, image, video, comic, and voice examples — Pending
+- [ ] Classify utilities, Docker, Git, external tools, and credential commands as parse-only or never-execute — Pending
+- [ ] Cross-check documented flags and models against CLI parsers and the model catalog — Pending
+- [ ] Publish documentation cost reports that map each example to its estimated cost — Pending
 
 ## References
 
@@ -168,5 +138,4 @@ bun test test/test-cases/validation/cli/doc-command-flags-contract.test.ts
 - Related ADR: [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)
 - [`README.md`](../../README.md)
 - [`docs/commands/`](../commands/)
-- `src/cli/flags/config-flags.ts`
 - `test/test-cases/validation/cli/doc-command-flags-contract.test.ts`

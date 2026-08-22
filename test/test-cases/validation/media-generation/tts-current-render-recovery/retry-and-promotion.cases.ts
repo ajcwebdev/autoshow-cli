@@ -23,15 +23,10 @@ const ambiguousAdmissionScenario = async (dir: string): Promise<void> => {
   const sourceIdentity = createInlineTtsSourceIdentity(text)
   const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text, new Date(0).toISOString())
   const attempts: number[] = []
-  // Even with the flag set, a provider-admitted request that then fails is left for
-  // reconciliation at resume rather than re-purchased mid-run. The flag's only effect is
-  // on the stored-slot blockers, which is the one behavior every provider now shares.
   await expect(runTtsForTargets(text, dir, { ttsAllowAmbiguousRedispatch: true }, [createAmbiguousAdmissionFixtureTarget(attempts)], { sourceIdentity, dialoguePlan }))
     .rejects.toThrow('1 unresolved slot has ambiguous provider admission')
   expect(attempts).toEqual([1])
 
-  // The admitted-then-failed request stays on the slot as unresolved provider work rather
-  // than being re-purchased, which is what the resume-time reconciliation blockers read.
   const resultPath = requireDefined((await readdir(dir, { recursive: true })).find((name) => name.endsWith('/provider-batch-result.json')), 'ambiguous admission batch result')
   const result = await Bun.file(join(dir, resultPath)).json()
   expect(result.observedRequests).toHaveLength(1)

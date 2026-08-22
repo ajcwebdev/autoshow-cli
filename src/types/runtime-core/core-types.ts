@@ -5,6 +5,5 @@ export type CreateLoggerOptions = {
   context?: LogContext
   sinks?: readonly LogSink[]
   minLevel?: LogLevel
-  // Passed by reference (not copied) so derived loggers observe later suppression changes.
   suppressedCategories?: LogCategory[]
 }

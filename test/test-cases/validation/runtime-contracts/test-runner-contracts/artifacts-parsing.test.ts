@@ -205,8 +205,6 @@ describe('test-runner contracts', () => {
         .toEqual({ status: 'skipped', failureMessage: null })
       expect(resolveTestcaseStatus('<system-out>noise</system-out>'))
         .toEqual({ status: 'passed', failureMessage: null })
-      // Preserved from the pre-refactor parser: a self-closing failure alongside a paired error
-      // takes the failure tag's (empty) attrs and falls through to the error tag's body text.
       expect(resolveTestcaseStatus('<failure /><error>error body</error>'))
         .toEqual({ status: 'failed', failureMessage: 'error body' })
     })
