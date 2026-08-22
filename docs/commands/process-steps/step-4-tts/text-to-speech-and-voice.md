@@ -1,6 +1,6 @@
 # tts
 
-Generate speech audio from a local `.md` or `.txt` file with hosted TTS providers.
+Generate speech audio from a local `.md` or `.txt` file, or from a directory of text files, with hosted TTS providers.
 
 Durable voice registrations are documented separately in [`voice`](../step-9-voice/00-voice-overview.md).
 
@@ -74,7 +74,7 @@ FAL_API_KEY=...
 bun autoshow tts <input> [flags]
 ```
 
-`<input>` must be a local `.md` or `.txt` file. If no engine flag is provided, `tts` defaults to the cheapest hosted TTS provider.
+`<input>` must be a local `.md` or `.txt` file, or a directory containing text files that are batched through `--batch-concurrency`. If no engine flag is provided, `tts` defaults to the cheapest hosted TTS provider.
 
 ## Shared TTS Options
 
@@ -93,8 +93,8 @@ bun autoshow tts <input> [flags]
 | `--tts-instructions <provider=value\|value>`       | Generic voice/style instructions                                                                                                                                                  |
 | `--tts-chunk-concurrency <n>`                      | Hosted TTS chunk starts allowed in parallel per provider; default `30` (or `50` for Grok-only)                                                                                    |
 | `--allow-ambiguous-redispatch`                     | Explicitly authorize resuming a stored generation slot whose provider admission cannot be reconciled to retained audio, which may repurchase it                                    |
-| `--tts-dialogue-format <screenplay|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                                                             |
-| `--tts-speaker SPEAKER=VOICE|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                                                                |
+| `--tts-dialogue-format <screenplay\|labeled>`      | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                                                             |
+| `--tts-speaker SPEAKER=VOICE\|path`                | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                                                                |
 | `--price`                                          | Show the aggregated estimate and exit                                                                                                                                             |
 | `--output-dir <dir>`                               | Global flag: pin an exact run directory instead of a timestamped output directory                                                                                                 |
 
@@ -106,7 +106,7 @@ When a hosted target fails after producing some chunks, AutoShow retains the tar
 
 A paid request whose provider admission is ambiguous is never redispatched inside the running command, for any provider. The run stops and reports a recovery checkpoint instead. `--allow-ambiguous-redispatch` authorizes the *next* invocation to reconcile that stored slot and resume, which may purchase the same immutable generation slot a second time. Every attempt is recorded in the admission journal, completed slots remain reusable, and an exhausted run reports the exact retained/unresolved checkpoint for the next invocation.
 
-AutoShow generally splits TTS text into 2000-character chunks, with provider/model registry limits taking precedence: Groq Orpheus uses 200, DeepInfra MiMo uses 1000, DeepInfra Qwen uses 4000, and DeepInfra Chatterbox uses 5000. `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that.
+AutoShow generally splits TTS text into 2000-character chunks, with provider/model registry limits taking precedence: Groq Orpheus uses 200, DeepInfra MiMo uses 1000, DeepInfra Qwen uses 4000, and DeepInfra Chatterbox and ElevenLabs `eleven_v3` use 5000. `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
@@ -172,7 +172,7 @@ Groq voices are validated against the selected model. Text is split into 200-cha
 | ------------------ | -------------------------------------------------------------------------------------------------------------- |
 | Selector           | `--provider grok[=<model>]`                                                                                    |
 | Models             | `grok-tts`                                                                                                     |
-| Voice              | `--tts-voice <id>`, default `eve`; built-ins `eve`, `ara`, `rex`, `sal`, `leo`, or 8-character custom voice ID |
+| Voice              | `--tts-voice <id>`, default `eve`; 26 stock voices including `eve`, `ara`, `rex`, `sal`, and `leo`, or an 8-character custom voice ID |
 | Language           | `--tts-language <code>`, default `auto`                                                                        |
 | Text normalization | `--tts-text-normalization true`                                                                                |
 
@@ -195,16 +195,16 @@ Grok TTS text is split into 2000-character chunks.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-voice voice_abc123
-bun autoshow tts input/chat-and-duco.txt \
+bun autoshow tts input/examples/tts/tts-dialogue.txt \
   --provider mistral=voxtral-mini-tts-2603 \
-  --tts-dialogue-format screenplay \
-  --tts-speaker DUCO=input/examples/audio/anthony-voice.mp3 \
-  --tts-speaker CHAT=https://ajc.pics/autoshow/examples/1-audio.mp3
+  --tts-dialogue-format labeled \
+  --tts-speaker Host=input/examples/audio/anthony-voice.mp3 \
+  --tts-speaker Guest=input/examples/audio/1-audio.mp3
 ```
 
 Mistral Voxtral TTS requires an existing voice ID or an authorized one-off local reference file. `voice` does not create or manage Mistral saved voices.
 
-Dialogue mode uses `--tts-speaker SPEAKER=VOICE|path` and `--tts-dialogue-format`. Gemini, ElevenLabs `eleven_v3`, and Hume `octave-2` use native dialogue serializers when eligible; all other targets synthesize per-turn segments and concatenate them into `speech.wav`.
+Dialogue mode uses `--tts-speaker SPEAKER=VOICE|path` and `--tts-dialogue-format`, and requires exactly one selected provider from ElevenLabs, MiniMax, Groq, Grok, Mistral, OpenAI, Gemini, Deepgram, Speechify, Hume, and Cartesia. Reference-audio speaker paths are accepted only by Mistral. Gemini, ElevenLabs `eleven_v3`, and Hume `octave-2` use native dialogue serializers when eligible; all other selectable targets synthesize per-turn segments and concatenate them into `speech.wav`.
 
 ### OpenAI
 
@@ -246,7 +246,7 @@ Gemini multispeaker mode uses native two-speaker synthesis when eligible. Explic
 | Option               | Value                                                                                                                              |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Selector             | `--provider deepgram[=<model>]`                                                                                                    |
-| Models               | Aura 2 voice models listed by `bun autoshow tts --help`; default `aura-2-thalia-en`                                                |
+| Models               | 91 Aura 2 voice models registered in `src/cli/commands/setup-and-utilities/models/tts-config/tts-deepgram.json`; default `aura-2-thalia-en` |
 | Voice/model override | `--tts-voice <model>`, default selected model                                                                                      |
 | Controls             | `--tts-speed <0.5..2>`                                                                                                             |
 
@@ -290,7 +290,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voic
 bun autoshow config --tts hume=octave-2 --tts-voice 00000000-0000-4000-8000-000000000000
 ```
 
-Single-voice Hume TTS uses Octave 2 via `POST /v0/tts/file`. Multi-speaker plans use ordered Octave 2 utterances via `POST /v0/tts`. Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`. A UUID is sent as a stable voice ID and resolves against any voice the account can reach, including account-owned custom voices; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID, which `voice list` reports.
+Single-voice Hume TTS posts the selected Octave version to `POST /v0/tts/file`. Multi-speaker plans use ordered Octave 2 utterances via `POST /v0/tts`. Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`. A UUID is sent as a stable voice ID and resolves against any voice the account can reach, including account-owned custom voices; any other value is looked up by name in the Hume voice library. Address a custom voice by its ID, which `voice list` reports.
 
 ### Cartesia
 
@@ -322,10 +322,9 @@ Cartesia TTS uses `POST /tts/bytes` requesting 24000 Hz PCM WAV bytes converted 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider fish=s2.1-pro
 bun autoshow tts input/examples/tts/1-tts.md --provider fish=s2.1-pro --tts-voice 7f92f8afb8ec43bf81429cc1c9199cb1
-bun autoshow tts input/examples/tts/1-tts.md --provider fish=s2.1-pro --tts-dialogue-format labeled --tts-speaker Host=VOICE_A --tts-speaker Guest=VOICE_B
 ```
 
-Fish TTS converts output to `speech.wav`. Single-voice text is split into 2000-character chunks. `s2.1-pro` uses native multi-speaker dialogue with timestamped streaming when turn boundaries and voices can be represented natively. Voice Design is a `s2.1-pro` capability, not a separate synthesis selector: use `voice design --creation-model voice-design-1` for protected preview candidates, then `voice design --save` to register a selected voice. Use `voice list --provider` for catalogs.
+Fish TTS converts output to `speech.wav`. Single-voice text is split into 2000-character chunks. The `s2.1-pro` adapter implements native multi-speaker dialogue with timestamped streaming, but `--tts-speaker` does not currently select Fish as a standalone `tts` dialogue target. Voice Design is a `s2.1-pro` capability, not a separate synthesis selector: use `voice design --creation-model voice-design-1` for protected preview candidates, then `voice design --save` to register a selected voice. Use `voice list --provider` for catalogs.
 
 ### Inworld
 
@@ -342,7 +341,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2
 bun autoshow tts input/examples/tts/1-tts.md --provider inworld=realtime-tts-2 --tts-voice Dennis --tts-instructions "Sound reassuring"
 ```
 
-Inworld selectors serialize as provider IDs `inworld-tts-2` and `inworld-tts-2-flash`. Text is split into 2000-character chunks. Steering via `--tts-instructions` is accepted on `realtime-tts-2` only; inline emotion and vocalization tags are preserved. Multi-speaker dialogue uses the segmented renderer. Use `voice list --provider` for system and account catalogs.
+The `realtime-tts-2` selector serializes as provider ID `inworld-tts-2`. Text is split into 2000-character chunks. Steering via `--tts-instructions` is accepted; inline emotion and vocalization tags are preserved. `--tts-speaker` does not currently select Inworld as a standalone `tts` dialogue target. Use `voice list --provider` for system and account catalogs.
 
 ### DeepInfra
 
@@ -351,16 +350,16 @@ Inworld selectors serialize as provider IDs `inworld-tts-2` and `inworld-tts-2-f
 | Selector     | `--provider deepinfra[=<model>]`                                                                                                                                                                                      |
 | Models       | `ResembleAI/chatterbox-turbo`, `XiaomiMiMo/MiMo-V2.5-tts`, `XiaomiMiMo/MiMo-V2.5-tts-voicedesign`, `Qwen/Qwen3-TTS`, `Qwen/Qwen3-TTS-VoiceDesign`                                                                     |
 | Voice        | `--tts-voice <id>`; Chatterbox defaults to the provider stock voice, MiMo TTS defaults to `mimo_default`, Qwen TTS defaults to `Vivian`; VoiceDesign models use a narration description when `--tts-voice` is omitted |
-| Controls     | `--tts-instructions <text>` (MiMo TTS and Qwen TTS `instruct` only)                                                                                                                                                   |
+| Controls     | None; the MiMo TTS and Qwen TTS `instruct` field is reachable only through per-character invocation controls, not `--tts-instructions`                                                                                |
 | API settings | `DEEPINFRA_API_KEY`                                                                                                                                                                                                   |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=ResembleAI/chatterbox-turbo
-bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS --tts-voice Vivian --tts-instructions "Warm documentary narration"
+bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS --tts-voice Vivian
 bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS-VoiceDesign
 ```
 
-DeepInfra request fields are model-specific: Chatterbox uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Registry chunk limits take precedence over the 2000-character default: MiMo uses 1000, Qwen uses 4000, and Chatterbox uses 5000. Paid requests with ambiguous admission are not redispatched in flight; `--allow-ambiguous-redispatch` authorizes reconciling the stored slot on the next run. Multi-speaker dialogue uses the segmented renderer. DeepInfra is synthesis-only: pass an existing account or VoiceDesign voice ID with `--tts-voice`.
+DeepInfra request fields are model-specific: Chatterbox uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Registry chunk limits take precedence over the 2000-character default: MiMo uses 1000, Qwen uses 4000, and Chatterbox uses 5000. Paid requests with ambiguous admission are not redispatched in flight; `--allow-ambiguous-redispatch` authorizes reconciling the stored slot on the next run. `--tts-speaker` does not currently select DeepInfra as a standalone `tts` dialogue target. DeepInfra is synthesis-only: pass an existing account or VoiceDesign voice ID with `--tts-voice`.
 
 ### Replicate
 
@@ -369,15 +368,15 @@ DeepInfra request fields are model-specific: Chatterbox uses `text` with optiona
 | Selector     | `--provider replicate[=<model>]`                                             |
 | Models       | `jaaari/kokoro-82m`                                                          |
 | Voice        | `--tts-voice <name>`, default `af_bella`; validated Kokoro stock voices only |
-| Controls     | `--tts-speed <0.1..5>`                                                       |
+| Controls     | None; the Kokoro speed control is reachable only through per-character invocation controls, not `--tts-speed` |
 | API settings | `REPLICATE_API_TOKEN`                                                        |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider replicate=jaaari/kokoro-82m
-bun autoshow tts input/examples/tts/1-tts.md --provider replicate=jaaari/kokoro-82m --tts-voice am_adam --tts-speed 1.1
+bun autoshow tts input/examples/tts/1-tts.md --provider replicate=jaaari/kokoro-82m --tts-voice am_adam
 ```
 
-Replicate TTS uses the version-pinned Kokoro stock-voice target and converts output to `speech.wav`. Text is split into 2000-character chunks. Multi-speaker dialogue uses the segmented renderer. Reference-audio clone models are not exposed; there is no voice-management port.
+Replicate TTS uses the version-pinned Kokoro stock-voice target and converts output to `speech.wav`. Text is split into 2000-character chunks. `--tts-speaker` does not currently select Replicate as a standalone `tts` dialogue target. Reference-audio clone models are not exposed; there is no voice-management port.
 
 ### fal.ai
 
@@ -395,30 +394,31 @@ bun autoshow tts input/examples/tts/1-tts.md --provider fal=fal-ai/maya --tts-in
 bun autoshow tts input/examples/tts/1-tts.md --provider fal=async/tts-pro/v1.0 --tts-voice Jennie
 ```
 
-fal.ai TTS submits to the queue API and converts output to `speech.wav`. Text is split into 2000-character chunks. Multi-speaker dialogue uses the segmented renderer. There is no voice-management port.
+fal.ai TTS submits to the queue API and converts output to `speech.wav`. Text is split into 2000-character chunks. `--tts-speaker` does not currently select fal.ai as a standalone `tts` dialogue target. There is no voice-management port.
 
 ## Pricing Notes
 
-The registry contains 111 active hosted TTS selectors. This table ranks every selector by the registry's nominal price. Character-priced entries show the equivalent rate per 1K characters; Replicate is separately marked because its published figure is a variable typical per-prediction cost rather than a character tariff. Provider credits, taxes, volume discounts, and retry variance are excluded.
+The registry contains 114 active hosted TTS selectors. This table ranks every selector by the registry's nominal price. Character-priced entries show the equivalent rate per 1K characters; Replicate is separately marked because its published figure is a variable typical per-prediction cost rather than a character tariff, and fal.ai Maya is separately marked because its character rate is derived from a per-audio-second price. Provider credits, taxes, volume discounts, and retry variance are excluded.
 
-| Rank |                  Nominal price | Selectors                                                                                   | Count |
-| ---: | -----------------------------: | ------------------------------------------------------------------------------------------- | ----: |
-|    1 | Promotional `$0.00` / 1K chars | `deepinfra/XiaomiMiMo/MiMo-V2.5-tts`, `deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign`      |     2 |
-|    2 |  About `$0.00022` / prediction | `replicate/jaaari/kokoro-82m`                                                               |     1 |
-|    3 |            `$0.001` / 1K chars | `deepinfra/ResembleAI/chatterbox-turbo`                                                     |     1 |
-|    4 |             `$0.01` / 1K chars | `speechify/simba-3.2`                                                                       |     1 |
-|    5 |           `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` (`$0.0006` input + `$0.012` output)                     |     1 |
-|    6 |            `$0.015` / 1K chars | `fish/s2.1-pro`, `grok/grok-tts`                                                            |     2 |
-|    7 |     `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603`                                                             |     1 |
-|    8 |             `$0.02` / 1K chars | `deepinfra/Qwen/Qwen3-TTS`, `deepinfra/Qwen/Qwen3-TTS-VoiceDesign`                          |     2 |
-|    9 |            `$0.021` / 1K chars | `gemini/gemini-3.1-flash-tts-preview` (`$0.001` input + `$0.02` output)                     |     1 |
-|   10 |            `$0.022` / 1K chars | `groq/canopylabs/orpheus-v1-english`                                                        |     1 |
-|   11 |            `$0.025` / 1K chars | `inworld/realtime-tts-2`                                                                    |     1 |
-|   12 |             `$0.03` / 1K chars | All 91 active `deepgram/aura-2-*` voice-model selectors listed by `bun autoshow tts --help` |    91 |
-|   13 |         `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04`                                                             |     1 |
-|   14 |             `$0.06` / 1K chars | `minimax/speech-2.8-turbo`                                                                  |     1 |
-|   15 |             `$0.10` / 1K chars | `elevenlabs/eleven_v3`, `minimax/speech-2.8-hd`                                             |     2 |
-|   16 |             `$0.15` / 1K chars | `hume/octave-1`, `hume/octave-2`                                                            |     2 |
+| Rank |                  Nominal price | Selectors                                                                                                                                | Count |
+| ---: | -----------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------- | ----: |
+|    1 | Promotional `$0.00` / 1K chars | `deepinfra/XiaomiMiMo/MiMo-V2.5-tts`, `deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign`                                                   |     2 |
+|    2 |  About `$0.00022` / prediction | `replicate/jaaari/kokoro-82m`                                                                                                            |     1 |
+|    3 |            `$0.001` / 1K chars | `deepinfra/ResembleAI/chatterbox-turbo`                                                                                                  |     1 |
+|    4 |    Derived `$0.005` / 1K chars | `fal/fal-ai/maya` (`$0.002` per generated audio second)                                                                                  |     1 |
+|    5 |             `$0.01` / 1K chars | `fal/async/tts-pro/v1.0`, `speechify/simba-3.2`                                                                                          |     2 |
+|    6 |           `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` (`$0.0006` input + `$0.012` output)                                                                  |     1 |
+|    7 |            `$0.015` / 1K chars | `fish/s2.1-pro`, `grok/grok-tts`                                                                                                         |     2 |
+|    8 |     `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603`                                                                                                          |     1 |
+|    9 |             `$0.02` / 1K chars | `deepinfra/Qwen/Qwen3-TTS`, `deepinfra/Qwen/Qwen3-TTS-VoiceDesign`                                                                       |     2 |
+|   10 |            `$0.021` / 1K chars | `gemini/gemini-3.1-flash-tts-preview` (`$0.001` input + `$0.02` output)                                                                  |     1 |
+|   11 |            `$0.022` / 1K chars | `groq/canopylabs/orpheus-v1-english`                                                                                                     |     1 |
+|   12 |            `$0.025` / 1K chars | `inworld/realtime-tts-2`                                                                                                                 |     1 |
+|   13 |             `$0.03` / 1K chars | `fal/fal-ai/bytedance/seed-speech/tts/v2` plus all 91 active `deepgram/aura-2-*` voice-model selectors registered in `tts-deepgram.json` |    92 |
+|   14 |         `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04`                                                                                                          |     1 |
+|   15 |             `$0.06` / 1K chars | `minimax/speech-2.8-turbo`                                                                                                               |     1 |
+|   16 |             `$0.10` / 1K chars | `elevenlabs/eleven_v3`, `minimax/speech-2.8-hd`                                                                                          |     2 |
+|   17 |             `$0.15` / 1K chars | `hume/octave-1`, `hume/octave-2`                                                                                                         |     2 |
 
 ## Output
 

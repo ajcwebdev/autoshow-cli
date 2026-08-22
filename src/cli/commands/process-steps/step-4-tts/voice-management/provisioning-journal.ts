@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -40,7 +39,7 @@ const loadAttemptPath = async (path: string): Promise<VoiceProvisioningAttempt> 
 }
 
 const lockName = (root: string, registrationDraftId: string): string =>
-  `voice-provision-${createHash('sha256').update(`${resolve(root)}\0${registrationDraftId}`).digest('hex').slice(0, 32)}`
+  `voice-provision-${new Bun.CryptoHasher('sha256').update(`${resolve(root)}\0${registrationDraftId}`).digest('hex').slice(0, 32)}`
 
 export const loadVoiceProvisioningAttempt = async (
   journalRoot: string,

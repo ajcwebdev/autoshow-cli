@@ -1,4 +1,4 @@
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { readdir, readFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
@@ -42,7 +42,7 @@ const PROMPT_FILE_EXTENSION = '.json'
 let cachedRegistry: PromptsRegistry | undefined
 
 const collectPromptFilePaths = async (directory: string): Promise<string[]> => {
-  let dirEntries: Dirent[]
+  let dirEntries: DirectoryEntry[]
   try {
     dirEntries = await readdir(directory, { withFileTypes: true })
   } catch (error) {

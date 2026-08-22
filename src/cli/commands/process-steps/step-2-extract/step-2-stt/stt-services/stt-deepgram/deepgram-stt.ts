@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureDeepgramSttSetup = ensureApiKeySetup('DEEPGRAM_API_KEY', 'stt:deepgram', 'Deepgram transcription')
+export const ensureDeepgramSttSetup = ensureProvider('deepgram', 'stt:deepgram', 'Deepgram transcription')

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-17
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -77,7 +77,7 @@ Integrate comic workflows with the central model registry, shared hosted coordin
 This applies to:
 
 - Comic model resolution, client dispatch, pricing, structured-LLM collectors, and image target collectors.
-- Native CLI command definitions supporting single-level subcommands, shared dispatcher, and unified help rendering for comic (`draft-scenes`, `generate-images`, `generate-audio`, `reference-sketch`, `reference-voice`).
+- Native CLI command definitions supporting nested subcommands, shared dispatcher, and unified help rendering for comic (`draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, `reference-voice`).
 - Native grammar adoption for comic commands (inline assignments, `--` separator, last-occurrence scalar flags, and typed unknown-flag diagnostics).
 - `links` provider selection parsing via ordered native flag and positional metadata instead of raw argv tokenization.
 - Comic hosted admission for LLM, image, QA, dialogue, and sound-effect tasks via the shared hosted coordinator.
@@ -86,7 +86,7 @@ It does not apply to:
 
 - Comic domain workflow logic, prompt assembly, schemas, panel ordering, QA/repair rules, audio mixing, or presentation rendering.
 - `links` provider-scoped grammar semantics or provider execution logic.
-- Arbitrary multi-level subcommand nesting beyond the single level required by the CLI.
+- Voice management verb semantics, which `comic reference-voice` re-exposes through the shared `voice` handlers without changing them.
 
 ### 1. Shared model infrastructure
 
@@ -94,7 +94,7 @@ Comic resolves LLM and image model IDs against `getModelRegistry()` and routes g
 
 ### 2. A first-class native command tree
 
-`CliCommandDefinition` supports one level of `subcommands`. `comicCommand` registers `draft-scenes`, `generate-images`, `generate-audio`, `reference-sketch`, and `reference-voice` directly. The native parser resolves the child once, creates the final child context, and the dispatcher configures global state and invokes exactly that handler. Parent and child help both use `renderCommandHelp`; `help comic <subcommand>` and `comic <subcommand> --help` resolve the same definition.
+`CliCommandDefinition` carries a `subcommands` tree that the native parser resolves recursively. `comicCommand` registers `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice` directly, and `comic reference-voice` nests one level deeper by re-exposing the shared voice verbs under fully qualified names. The native parser resolves each child in turn, creates the final child context, and the dispatcher configures global state and invokes exactly that handler. Parent and child help both use `renderCommandHelp`; `help comic <subcommand>` and `comic <subcommand> --help` resolve the same definition.
 
 Subcommand definitions use their real required parameters and native excess-positional rejection. Comic no longer uses `allowUnknownFlags`, `allowExcessParameters`, or `passThroughHelpAfterFirstPositional`. The second dispatcher, parse-time required-to-optional mutation, global-argument stripping pass, bespoke help routing, unknown-flag scan, positional cardinality checks, and repeated-scalar checks are removed.
 
@@ -123,7 +123,7 @@ Comic work selectors retain panel ordering, QA/repair sequencing, cancellation, 
 ## Rationale
 
 - The repository already had the right reusable boundaries: the model registry and target collectors own provider/model mechanics, while `CliCommandDefinition`, `parseCommandArgv`, the dispatcher, and the help renderer own command mechanics. Comic-local or links-local copies made common behavior conditional on which command a user entered.
-- Native subcommands are limited to one level because that is the only hierarchy the product exposes; a recursive command framework would add policy with no consumer.
+- Subcommand resolution is one recursive walk over the definition tree rather than a per-command shell, so a nested verb such as `comic reference-voice import` reaches the same parse, help, and dispatch path as a top-level command.
 - Parsing directly into the final child context keeps the global-state invariant simple: a flag occurrence is tokenized once and global configuration is applied once.
 - Links cannot be flattened without changing its grammar, but it does not need a tokenizer to preserve that grammar. The native parser validates and records real selectors and positionals; the links reducer only assigns already parsed positional tokens to the current provider scope.
 
@@ -156,8 +156,8 @@ Negative outcomes:
 
 **Trade-off 3**
 
-- **Gain:** One-level command tree matches the real product hierarchy
-- **Sacrifice:** No arbitrary-depth subcommand framework
+- **Gain:** One recursive command tree covers every level the product exposes
+- **Sacrifice:** Nested definitions carry fully qualified names and delegate to the shared handlers they re-expose
 
 **Trade-off 4**
 
@@ -171,7 +171,7 @@ Negative outcomes:
 
 ## API / Type Impact
 
-- `CliCommandDefinition` gains `subcommands?: readonly CliCommandDefinition[]`.
+- `CliCommandDefinition` gains `subcommands?: readonly CliCommandDefinition[]` and `defaultSubcommand?: string`, which resolves a bare parent invocation to one child.
 - `CliRawParsed` gains `flagOccurrenceIndices`, parallel to `flagOccurrences`.
 - Parsed comic draft/image arguments require `scriptPath` because native parameter validation runs before coercion.
 - `NativeUnknownFlagError` gains `flagSpellings`; `flagNames` remains an alias, and `code: 'unknown-flag'` and exit code 2 are unchanged.
@@ -184,7 +184,7 @@ Negative outcomes:
 - Baseline verification: `bun run check`.
 - Local contract validation suites (no paid or quota-limited provider calls):
   - `bun test test/test-cases/validation/cli/native-cli-parser-contracts.test.ts`
-  - `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`
+  - `bun test test/test-cases/validation/cli/cli-usage-errors/`
   - `bun test test/test-cases/validation/cli/option-resolution-contracts/`
   - `bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/selector-validation.test.ts`
   - `bun test test/test-cases/validation/comic/character-handling-contracts.test.ts`

@@ -96,7 +96,7 @@ const runSpiderScrape = async (
   options?: UrlRequestOptions,
   baseUrl: string = SPIDER_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = requireHostedUrlProviderApiKey('SPIDER_API_KEY', 'spider', 'url:spider', baseUrl === SPIDER_DEFAULT_API_URL)
+  const apiKey = requireHostedUrlProviderApiKey('spider', 'url:spider', baseUrl === SPIDER_DEFAULT_API_URL)
   const requestOptions = {
     ...options,
     timeoutMs: getUrlRequestTimeoutMs(options)

@@ -87,7 +87,7 @@ The standalone `video` command drops the `video-` prefix these options carry els
 | `--mode <mode>`                                | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `extend`, or `edit`; default `text`                                                                                     |
 | `--input-image <path-or-url>`                  | Input image for `image-to-video`; first frame for `interpolate`                                                                                                                        |
 | `--last-frame <path-or-url>`                   | Last-frame image for `interpolate`                                                                                                                                                     |
-| `--reference-image <path-or-url>`              | Reference image for `reference-to-video`; repeat up to 3 times (Replicate Seedance/Happy Horse accepts up to 9; fal.ai MiniMax H3 accepts up to 9; fal.ai PixVerse C1 accepts up to 7) |
+| `--reference-image <path-or-url>`              | Reference image for `reference-to-video`; repeat up to 3 times (Replicate Seedance/Happy Horse and fal.ai MiniMax H3 accept up to 9; Replicate Kling Omni and fal.ai PixVerse C1 accept up to 7; Grok 1.5 accepts up to 5) |
 | `--input-video <path-or-url>`                  | Input MP4 for `extend` or `edit`                                                                                                                                                       |
 | `--price`                                      | Show the estimate and exit                                                                                                                                                             |
 | `--output-dir <dir>`                           | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                                                                                     |
@@ -138,17 +138,17 @@ bun autoshow video "extend clip" --provider grok=grok-imagine-video --mode exten
 
 ### LTX
 
-| Option          | Value                                                                                                                       |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Selector        | `--provider ltx[=<model>]`                                                                                                  |
-| Models          | `ltx-2-3-fast`, `ltx-2-3-pro`                                                                                               |
-| Duration        | Default `8`s; Fast `1920x1080` uses even seconds `6`–`20`; Pro/other Fast use `6`, `8`, or `10`; extend clamps to `2`–`20`s |
-| Size/resolution | `--size` accepts `1920x1080`, `1080x1920`, `2560x1440`, `1440x2560`, `3840x2160`, `2160x3840`; or `--resolution 1080p\|4k`  |
-| Aspect ratio    | `16:9` or `9:16`                                                                                                            |
+| Option       | Value                                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Selector     | `--provider ltx[=<model>]`                                                                                                                    |
+| Models       | `ltx-2-3-fast`, `ltx-2-3-pro`                                                                                                                 |
+| Duration     | Default `8`s; Fast at `1080p`/`16:9` uses even seconds `6`–`20`; every other combination uses `6`, `8`, or `10`; extend clamps to `2`–`20`s |
+| Resolution   | `--resolution 1080p\|4k`; combined with the aspect ratio this renders `1920x1080`, `1080x1920`, `3840x2160`, or `2160x3840`                    |
+| Aspect ratio | `--aspect-ratio 16:9\|9:16`                                                                                                                   |
 
 ```bash
 bun autoshow video "clean product reveal shot" --provider ltx=ltx-2-3-fast --duration 8 --resolution 1080p
-bun autoshow video "transition between studio frames" --provider ltx=ltx-2-3-pro --mode interpolate --input-image input/start.png --last-frame input/end.png --size 1440x2560
+bun autoshow video "transition between studio frames" --provider ltx=ltx-2-3-pro --mode interpolate --input-image input/start.png --last-frame input/end.png --resolution 1080p --aspect-ratio 9:16
 ```
 
 ### Replicate
@@ -176,7 +176,7 @@ bun autoshow video "multi-shot launch" --provider replicate=kwaivgi/kling-v3-vid
 | Selector     | `--provider lumalabs[=<model>]`                                    |
 | Models       | `ray-3.2`                                                          |
 | Duration     | `--duration <seconds>`; normalized to `5s` (`<8`) or `10s` (`>=8`) |
-| Resolution   | `--resolution 540p|720p|1080p`; default `720p`                   |
+| Resolution   | `--resolution 540p\|720p\|1080p`; default `720p`                |
 | Aspect ratio | `9:16`, `3:4`, `1:1`, `4:3`, `16:9`, or `21:9`; default `16:9`     |
 
 ```bash
@@ -193,7 +193,7 @@ Supports `text` and `image-to-video` modes.
 | Models     | `minimax/h3`, `fal-ai/pixverse/c1`                                             |
 | Modes      | Both support `text`, `image-to-video`, `reference-to-video`, and `interpolate` |
 | Duration   | H3 `5-15`s; PixVerse C1 `1-15`s; default `5`s                                  |
-| Resolution | H3 `768p|2k`; PixVerse C1 `360p|540p|720p|1080p`                           |
+| Resolution | H3 `768p\|2k`; PixVerse C1 `360p\|540p\|720p\|1080p`                    |
 
 ```bash
 bun autoshow video "rain-soaked detective enters diner" --provider fal=minimax/h3 --duration 5 --resolution 2k
@@ -231,8 +231,10 @@ Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.m
 | Replicate `kwaivgi/kling-v3-omni-video`                             | ✅ 2026-02-16 | ✅            | ✅             | ✅                 | ✅          | ✅   | ❌     | ✅ 3–15s               | ✅ 4K          | ✅ 3 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 7 | $0.168/s at 720p ($0.224 at 1080p, $0.42 at 4K)            | 12/16         |
 | Replicate `bytedance/seedance-2.0`                                  | ✅ 2026-02-12 | ✅            | ✅             | ✅                 | ✅          | ✅   | ✅     | ✅ −1–15s              | ⚠️ 1080p       | ✅ 8 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 9 | $0.18/s at 720p ($0.08 at 480p, $0.45 at 1080p)            | 14/16         |
 | Replicate `bytedance/seedance-2.0-fast`                             | ✅ 2026-02-12 | ✅            | ✅             | ✅                 | ✅          | ✅   | ✅     | ✅ −1–15s              | ❌ 720p        | ✅ 8 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 9 | $0.15/s at 720p ($0.07 at 480p)                            | 11/16         |
-| Grok `grok-imagine-video`                                           | ✅ 2026-01    | ✅            | ✅             | ✅                 | ❌          | ✅   | ✅     | ✅ 1–15s               | ❌ 720p        | ✅ 7 ratios     | ❌ No                                 | ⚠️ Up to 3 | $0.05/s                                                    | 2/16          |
-| LTX `ltx-2-3-fast`                                                  | ✅ 2026       | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ✅ 6–20s               | ✅ 4K          | ✅ 16:9 or 9:16 | ❌ No                                 | ❌ No      | $0.06/s at 1080p (2x at 1440p, 4x at 4K)                   | 4/16          |
-| LTX `ltx-2-3-pro`                                                   | ✅ 2026       | ✅            | ✅             | ❌                 | ✅          | ❌   | ✅     | ⚠️ 6–10s; extend 2–20s | ✅ 4K          | ✅ 16:9 or 9:16 | ❌ No                                 | ❌ No      | $0.08/s at 1080p (2x at 1440p, 4x at 4K)                   | 6/16          |
+| Grok `grok-imagine-video`                                           | ✅ 2026-01    | ✅            | ✅             | ✅                 | ❌          | ✅   | ✅     | ✅ 1–15s               | ❌ 720p        | ✅ 7 ratios     | ❌ No                                 | ⚠️ Up to 3 | $0.05/s at 480p ($0.07 at 720p)                            | 2/16          |
+| LTX `ltx-2-3-fast`                                                  | ✅ 2026       | ✅            | ✅             | ❌                 | ✅          | ❌   | ❌     | ✅ 6–20s               | ✅ 4K          | ✅ 16:9 or 9:16 | ❌ No                                 | ❌ No      | $0.06/s at 1080p (4x at 4K)                                | 4/16          |
+| LTX `ltx-2-3-pro`                                                   | ✅ 2026       | ✅            | ✅             | ❌                 | ✅          | ❌   | ✅     | ⚠️ 6–10s; extend 2–20s | ✅ 4K          | ✅ 16:9 or 9:16 | ❌ No                                 | ❌ No      | $0.08/s at 1080p (4x at 4K; extend $0.10/s)                | 6/16          |
 | fal.ai `fal-ai/pixverse/c1`                                         | ✅ 2026       | ✅            | ✅             | ✅                 | ✅          | ❌   | ❌     | ✅ 1–15s               | ⚠️ 1080p       | ✅ 8 ratios     | ✅ `--video-generate-audio`           | ✅ Up to 7 | $0.005/s                                                   | 1/16          |
+| Gemini `veo-3.1-generate-preview` / `veo-3.1-fast-generate-preview` | ⚠️ 2025-10-15 | ✅            | ✅             | ✅                 | ✅          | ❌   | ✅     | ⚠️ 4 / 6 / 8s          | ✅ 4K          | ✅ Forwarded    | ❌ No                                 | ⚠️ Up to 3 | $0.40/s / $0.10/s at 720p                                  | 16/16 / 8/16  |
+
 Gemini 1080p, 4K, reference-to-video, and extend requests are forced to 8 seconds; extend also forces 720p. Veo 3.1 Lite has no 4K, references, or extend. Grok text/image/reference is 1–15 seconds; edit/extend is 1–10 seconds and rejects aspect/resolution overrides. Grok 1.5 reference-to-video is capped at 720p. Seedance `−1` is intelligent duration, billed as 5 seconds. fal.ai MiniMax H3 audio is always on and also accepts up to 3 video and 3 audio references (12 combined).

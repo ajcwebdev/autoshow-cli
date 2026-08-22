@@ -253,8 +253,7 @@ describe('music provider contracts', () => {
 
     await withTempDir('autoshow-music-provider-', async (dir) => {
       await withEnvAndFetch({
-        ELEVENLABS_API_KEY: 'test-key',
-        ELEVENLABS_BASE_URL: 'https://mock.elevenlabs.local/v1'
+        ELEVENLABS_API_KEY: 'test-key'
       }, (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
         const url = String(input)
         if (url.endsWith('/music?output_format=mp3_48000_192')) {

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-08-20
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging"; its production metadata-cache and price-verification decisions are owned by ADR-001 and ADR-002 respectively. Extended on 2026-08-20 from the error vocabulary alone to the whole diagnostic vocabulary — errors, logging, and the standing contracts that enforce both.
 
@@ -106,7 +106,7 @@ Why now: unifying error structures, test failure classifiers, and log formatting
 - **Option:** Logging and enforcement: repair the drift, close the structural gaps in the logger and error core that caused it, and convert both vocabularies into standing source-scan contract tests with explicit, documented allowlists
 - **Pros:** Failures surface in the suite rather than in the next audit; the escape hatches remove the reason callers went around the convention; allowlist entries force each exception to be named and justified; no new tooling or dependency
 - **Cons:** A grep-based contract can be defeated by an unusual spelling and needs its allowlist maintained
-- **Quantitative Notes:** Chosen; 65 plain throws and 42 raw output sites removed, 16 custom error classes folded into the `AppError` family, 6 contract tests added
+- **Quantitative Notes:** Chosen; 65 plain throws and 42 raw output sites removed, 16 custom error classes folded into the `AppError` family, 15 contract tests added
 
 **Option 11**
 
@@ -140,7 +140,7 @@ It does not apply to:
 - Provider-specific API response payload schemas or low-level HTTP transport logic.
 - Domain assertions inside leaf test files (`expect(...).toThrow(...)`), and test assertion style beyond the capture-helper consolidation; shifting the 635-prose-to-12-classification assertion balance is incremental per-suite work, not a contract.
 - Message-matching that classifies external provider or tool prose, which is retained deliberately and documented at each site with the upstream source it reads; see Keep (with rationale).
-- The unified provider-credential registry, `doctor --strict`, the spawn environment allowlist, and the salted `accountScopeHash`, which remain [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) Pass 5. This record implements only Pass 5's "one error contract and one exit code for a missing credential" half.
+- The unified provider-credential registry, `doctor --strict`, the spawn environment allowlist, and the versioned HMAC-derived `accountScopeHash`, which were completed by [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) Pass 5 on 2026-08-21. This record owns only Pass 5's shared error contract and exit-code vocabulary.
 - Alternative logger sink transports beyond the human and NDJSON sinks that exist.
 
 ### A. Production `src/` — Adopt `AppError` as the single throw vocabulary
@@ -200,7 +200,7 @@ It does not apply to:
 1. **Rate-limit classification:** HTTP 429 and provider rate/concurrency rejections report pressure against the immutable admission token for the exact request. Non-rate-limit failures (billing, auth, quota exhaustion, validation, timeouts, 5xx) retain standard failure policies unless explicitly classified as rate limits.
 2. **Bounded jittered backoff:** Hosted recovery respects `Retry-After` headers or applies half-to-full jitter backoff across exponential bases (2, 4, 8, 16, 30s), bounded to five minutes. Exhausted attempts throw a structured `retry_exhausted` error retaining status, headers, stage, retry metadata, work identity, and lane identity.
 3. **Ambiguity vs. definite rejection:** Only definite 4xx responses (excluding 408 and 409) prove rejection prior to work admission. Network failures, timeouts, and 5xx responses are treated as ambiguous. Ambiguous paid operations are not redispatched automatically.
-4. **Explicit redispatch authorization:** The `--allow-ambiguous-redispatch` flag is the sole public mechanism authorizing re-dispatch of ambiguous TTS generation slots. *Amended 2026-08-20:* it authorizes reconciliation of a **stored** slot at resume and nothing else. An ambiguous admission is never redispatched in flight, for any provider. Three providers (DeepInfra, Speechify, Grok) previously forwarded the flag into the chunk pipeline and re-purchased the chunk mid-run while the other nine only reconciled at resume; the flag now means one thing everywhere. When omitted, ambiguity halts execution to prevent duplicate billing; when provided, the reconciliation blockers clear with a duplicate-purchase warning.
+4. **Explicit redispatch authorization:** The `--allow-ambiguous-redispatch` flag is the sole public mechanism authorizing re-dispatch of ambiguous TTS generation slots. *Amended 2026-08-20:* it authorizes reconciliation of a **stored** slot at resume and nothing else. An ambiguous admission is never redispatched in flight, for any provider. Three providers (DeepInfra, Speechify, Grok) previously forwarded the flag into the chunk pipeline and re-purchased the chunk mid-run while the rest only reconciled at resume; the flag now means one thing everywhere. When omitted, ambiguity halts execution to prevent duplicate billing; when provided, the reconciliation blockers clear with a duplicate-purchase warning.
 5. **Structured aggregation and redaction:** Target and composite workflows preserve underlying cause, status, headers, stage, retryability, request ID, and redacted provider messages. All provider diagnostic text passes through the central redaction pipeline prior to logging or disk storage.
 6. **Recovery checkpoints:** Failed targets compute non-destructive recovery checkpoints. When reusable completed slots or ambiguous admissions exist, structured infrastructure errors report retained, unresolved, and reconciliation-blocked slot counts alongside required redispatch flag guidance.
 
@@ -220,14 +220,14 @@ A follow-up audit found a parallel retry layer beside the central one: nine hand
 
 1. **A sanctioned channel for every result shape.** `l.report.result(data, options)` is public: it writes one structured event carrying the payload as `metadata`, renders it for humans as a table or sections, and passes the payload through `emitResult`. A command whose output is neither a price estimate nor a file-producing completion no longer has a reason to call `console.log`.
 2. **First-class category filtering.** `suppressLogCategories(categories)` filters inside `write` before any sink is reached, so derived loggers observe it too, and returns a restore handle. Callers scope suppression to the run that asked for it; the CLI dispatcher additionally clears suppression at the start of every command.
-3. **Structured `warn` and `debug`.** Every level accepts `LogWriteOptions`, discriminated from positional arguments by `LOG_WRITE_OPTION_KEYS`, so `category` and `metadata` are available at every level rather than only through `l.write`.
+3. **Structured `warn` and `debug`.** `debug`, `warn`, and `error` take the identical `LogWriteOptions` object `write` takes, so `category` and `metadata` are available at every level rather than only through `l.write`, and `category` is required rather than defaulted.
 4. **Styling belongs to the sink.** Log call sites pass text and structure, never ANSI escape codes; baking color into a message string before it reaches the sink is what made `--no-color` and redaction unable to cleanly strip it.
 5. **Stdout payloads are declared, not incidental.** The only bytes written directly to stdout are the document the user asked for — `--help`, `--version`, `metadata --markdown` frontmatter, and the standalone `bun run` report tools — and each such file is named in the enforcement allowlist.
 
 ### F. Enforcement — standing source-scan contracts
 
-1. **The contracts live in the suite.** `test/test-cases/validation/runtime-contracts/output-vocabulary-contracts.test.ts` scans every `.ts` file under `src/` and `test/` and fails with the offending `file:line` when a raw output site, a plain `throw new Error(`, or an unsanctioned console/sink mutation appears. Its sibling `retry-vocabulary-contracts.test.ts` (added 2026-08-20) does the same for the retry vocabulary: a backoff sleep outside the retry engine, a policy number outside the policy modules, a second copy of the delay math or the abort-aware sleep, a retry class with no callers, or a test predicate that re-types production's status vocabulary.
-2. **Every exception is named.** Allowlists are in-file constants — `LOGGER_SINK_FILES`, `PAYLOAD_STDOUT_FILES`, `PLAIN_THROW_ALLOWLIST` (empty), `TEST_CAPTURE_OWNERS` — each with a comment stating why the file is exempt. Adding an exemption is a reviewable diff rather than a silent omission.
+1. **The contracts live in the suite.** `test/test-cases/validation/runtime-contracts/output-vocabulary-contracts.test.ts` scans every `.ts` file under `src/` and `test/` and fails with the offending `file:line` when a raw output site, a plain `throw new Error(` or other builtin error throw, a duck-typed `Object.assign(new Error(...))`, a `process.exit` outside the failure handlers, or an unsanctioned console/sink mutation appears. Its sibling `retry-vocabulary-contracts.test.ts` (added 2026-08-20) shares the same scanning helpers in `source-vocabulary-scanner.ts` and does the same for the retry vocabulary: a backoff sleep outside the retry engine, a policy number outside the policy modules, a second copy of the delay math or the abort-aware sleep, a retry class with no callers, or a test predicate that re-types production's status vocabulary.
+2. **Every exception is named.** Allowlists are in-file constants — `LOGGER_SINK_FILES`, `PAYLOAD_STDOUT_FILES`, `PLAIN_THROW_ALLOWLIST` (empty), `ASSIGNED_ERROR_ALLOWLIST` (empty), `PROCESS_EXIT_ALLOWLIST`, `TEST_CAPTURE_OWNERS` — each with a comment stating why the file is exempt, and a companion contract fails when an entry names a file that no longer exists. Adding an exemption is a reviewable diff rather than a silent omission.
 3. **Verification is standing, not one-time.** This record's `Verification Status` now means the contracts pass, not that a sweep was performed on a date.
 
 ## Rationale
@@ -323,7 +323,7 @@ The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`,
 
 The 2026-08-19 logging and enforcement work shipped across the logger core (`src/utils/app-logger/`), the error core (`src/utils/error-handler.ts`), and the call sites the audit named:
 
-- **Logger escape hatches** — `l.report.result` (`reporter.ts`), category suppression with a restore handle (`app-logger.ts`, `core.ts`), and options-carrying `l.warn`/`l.debug` (`core.ts`, discriminated by `LOG_WRITE_OPTION_KEYS`).
+- **Logger escape hatches** — `l.report.result` (`reporter.ts`), category suppression with a restore handle (`app-logger.ts`, `core.ts`), and options-carrying `l.warn`/`l.debug` (`core.ts`, taking the same required-`category` options object as `l.write`).
 - **Output migration** — `define-voice-command.ts` (26 sites), `src/tools/repo-snapshot.ts` (7), `metadata-output.ts`, `dispatcher.ts`, and `define-config-command.ts`; `audit-ocr-token-shapes.ts` moved from `cli/commands/` to `src/tools/`.
 - **Error sweep** — all 65 plain throws typed by kind with `retryable` set where the failure is deterministic; the two throw-as-goto sentinels restructured into ordinary control flow.
 - **Class consolidation** — native parser errors extend `AppUsageError` (removing the duck-type bridge and the `error-handler` ↔ `native-errors` import cycle); `GeminiRestError`, `OpenAIRestError`, `SoundEffectProviderError`, `ArtifactReservationConflictError`, `OcrStructuredResponseError`, and `XApiError` extend the family; `httpResponseError` and the anthropic/mistral REST profiles return `AppProviderError`; batch and resume partial completion collapsed onto `ProviderBatchCompletionError`/`partialCompletionError`.
@@ -335,13 +335,13 @@ The 2026-08-19 logging and enforcement work shipped across the logger core (`src
 
 Counted against the 2026-08-19 audit's own baseline:
 
-- **Raw `console.*` and stdout writes in `src/`:** 50 sites, 42 of them violations, reduced to 11 — 4 logger-sink primitives and 7 stdout payloads, each allowlisted and documented.
+- **Raw `console.*` and stdout writes in `src/`:** 50 sites, 42 of them violations, reduced to 15 — 8 logger-sink primitives and 7 stdout payloads, each allowlisted and documented.
 - **Plain `throw new Error(` in `src/`:** 65 reduced to 0, with an empty allowlist.
 - **Custom error classes not extending `AppError`:** 14 of 16 reduced to 0.
 - **Hand-rolled console-capture helpers in `test/`:** 5 helpers plus 3 `captureLogEvents` copies and 2 inline sink swaps, reduced to 1 shared module.
 - **`Object.assign(new Error(...))` provider fixtures:** 53 reduced to 4 — the deliberate impostors that `app-error-contracts.test.ts` uses to prove duck-typed lookalikes are rejected.
 - **Loose `expect(result.exitCode).not.toBe(0)` assertions:** 11 reduced to 0.
-- **Mechanical enforcement:** none, replaced by 6 standing contract tests.
+- **Mechanical enforcement:** none, replaced by 15 standing contract tests.
 
 ### Deliberate departures from the audit's plan
 
@@ -367,7 +367,7 @@ Counted against the 2026-08-19 audit's own baseline:
 **Pattern 1: The existing `AppError` kinds (no new `pipeline` kind)**
 
 - **Pattern:** The existing `AppError` kinds (no new `pipeline` kind)
-- **Reason kept:** `infrastructure`, `internal`, `validation`, and `usage` cover all runtime scenarios and map cleanly to process exit codes.
+- **Reason kept:** `usage`, `provider_http`, `retry_exhausted`, `validation`, `infrastructure`, and `internal` cover all runtime scenarios and map cleanly to process exit codes.
 
 **Pattern 2: Provider and tool prose matchers**
 
@@ -427,10 +427,10 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 bun test test/test-cases/validation/
 ```
 
-1. `bun run check` proves the unique-source-name invariant, the linter, and that the whole repository type-checks after the class hierarchy and type-surface changes.
+1. `bun run check` proves the unique-source-name invariant and that the whole repository type-checks after the class hierarchy and type-surface changes.
 2. `runtime-contracts/` proves the enforcement greps, the `AppError` contracts (including `AppUsageError.name`, the usage exit code, and that usage errors exit 2 while operational errors exit 1 with structured hints), the retry contracts over production-shaped fixtures including `retry_exhausted` metadata preservation, and the three logger escape hatches.
 3. The three CLI suites prove help output, usage-error exit codes and messages, and option resolution across the native parser errors extending `AppUsageError`.
-4. `validation/` proves the full no-cost surface: 1,875 tests across 290 files covering the migrated voice-management result payloads, provider REST error uniformity, OCR and STT classification, comic logging, single `[HH:MM:SS.MMM]` prefixes with no duplicate runner prefix, and the runner's own contracts.
+4. `validation/` proves the full no-cost surface: 1,929 tests across 294 files covering the migrated voice-management result payloads, provider REST error uniformity, OCR and STT classification, comic logging, single `[HH:MM:SS.MMM]` prefixes with no duplicate runner prefix, and the runner's own contracts.
 5. Grep verification confirms `LEGACY_ERROR_HINTS` is absent from `src/`; the enforcement contracts confirm the same for plain `throw new Error(` and unallowlisted raw output.
 
 ## References

@@ -1,4 +1,4 @@
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as v from 'valibot'
@@ -239,7 +239,7 @@ const getChunkCharacterKeys = (
 
 const readSketchPanelSource = async (
   sceneDirectory: string,
-  panelEntry: Dirent
+  panelEntry: DirectoryEntry
 ): Promise<ComicPanelSource> => {
   const panelNumber = getPanelNumberFromName(panelEntry.name)
   if (!panelNumber) {

@@ -27,8 +27,11 @@ load config + merge config flags + compose command/domain option slices
         +--> extract: normalize generic provider flags after preliminary route checks
         +--> write: normalize step selectors (STT, OCR, LLM)
         +--> write text project defaults:
-             <project>/text -> --text-input mode with prompt.md,
-             tracks.md, and rendered lyrics defaults when present
+             <project>/text with prompt.md -> --text-input mode,
+             plus tracks.md and lyrics render defaults when present
+        +--> write auto text input:
+             a .md/.txt target that does not parse as an input list
+             -> --text-input mode
         |
         v
 resolveProcessTargetPlan(command, resolvedTarget, opts)
@@ -69,7 +72,7 @@ After planning, `planProcessTargetBatchExecution()` converts directory/list/sour
 
 ## Input Routing
 
-Single extract/write items call `resolveInputRoutingForCommand()`:
+Extract and write inputs call `resolveInputRoutingForCommand()`, both for a single target and for each planned batch item:
 
 ```
 target
@@ -97,20 +100,20 @@ Extract route mapping:
 | `media`        | STT                               | `media`                                  |
 | `document`     | OCR or native document extraction | `document`                               |
 | `html_article` | URL/article extraction            | `article`                                |
-| `x_space`      | X Space metadata extraction       | `x-space`                                |
+| `x_space`      | none; dedicated X Space route     | `x-space`                                |
 | `unsupported`  | none                              | skipped in batch, usage error for single |
 
 The document family includes `.pdf`, `.epub`, `.docx`, `.pptx`, `.xlsx`, `.odt`, `.ods`, `.odp`, `.mobi`, `.prc`, `.azw3`, `.azw`, `.fb2`, `.lit`, `.cbz`, `.rtf`, `.csv`, and image files `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`. Local `.html`/`.htm` files classify as `html_article`. `.acsm` follows the ordinary unsupported route.
 
 ## Command Matrix
 
-| Family         | `metadata`            | `download`                     | `extract`                 | `write`                            |
-| -------------- | --------------------- | ------------------------------ | ------------------------- | ---------------------------------- |
-| Media          | metadata only         | download/stage media           | STT route                 | STT + LLM                          |
-| Document/image | metadata only         | download/copy document         | OCR/native document route | OCR/native document + LLM          |
-| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | URL/article + LLM                  |
-| X Space        | X API metadata lookup | Space audio download           | X Space route             | X Space report + LLM               |
-| Text input     | unsupported           | unsupported                    | unsupported               | only when `--text-input` is active |
+| Family         | `metadata`            | `download`                     | `extract`                 | `write`                                   |
+| -------------- | --------------------- | ------------------------------ | ------------------------- | ----------------------------------------- |
+| Media          | metadata only         | download/stage media           | STT route                 | STT + LLM                                 |
+| Document/image | metadata only         | download/copy document         | OCR/native document route | OCR/native document + LLM                 |
+| HTML/article   | metadata only         | article prep/download metadata | URL/article route         | URL/article + LLM                         |
+| X Space        | X API metadata lookup | Space audio download           | X Space route             | X Space report + LLM                      |
+| Text input     | unsupported           | unsupported                    | unsupported               | `--text-input`, project, or auto-detected |
 
 Unsupported batch items are kept in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`. They are not sent to child batch execution.
 

@@ -85,7 +85,7 @@ describe('Replicate Kokoro TTS contracts', () => {
     await expect(runReplicateTts('Hello from Replicate open-source speech suite test', 'test-out', {
       model: REPLICATE_KOKORO_MODEL_ID,
       apiKey: '',
-    })).rejects.toThrow('Replicate API token is required')
+    })).rejects.toThrow('REPLICATE_API_TOKEN environment variable is required for Replicate TTS')
   })
 
   test('rejects out-of-range speed before prediction admission', async () => {

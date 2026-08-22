@@ -34,7 +34,7 @@ describe('Inworld AI Phase 3 Contracts', () => {
     await expect(runInworldTts('Hello from Inworld AI test [happy]', 'test-out', {
       model: 'realtime-tts-2',
       apiKey: '',
-    })).rejects.toThrow('Inworld AI API key is required')
+    })).rejects.toThrow('INWORLD_API_KEY environment variable is required for Inworld AI TTS')
   })
 
   test('advanced provider normalizes the voice catalog and declares Phase 3C capabilities', async () => {

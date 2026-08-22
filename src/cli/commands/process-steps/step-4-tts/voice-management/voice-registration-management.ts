@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import type {
   CharacterVoiceBrief,
@@ -397,7 +396,7 @@ export const provisionMistralSavedReferenceRegistration = async (input: {
       registrationDraftId: plan.registrationId,
       operation: 'save-reference',
       accountScopeHash,
-      lockLeaseId: `lease_${randomUUID().replace(/-/g, '')}`,
+      lockLeaseId: `lease_${crypto.randomUUID().replace(/-/g, '')}`,
       requestFingerprint: hashCanonicalTtsValue({ provider: 'mistral', operation: 'save-reference', name: input.voiceName, slug: plan.slug, sourceSha256: plan.source.sha256, languages: input.languages ?? [] }),
       protectedRequestEvidence: materialized.protectedAsset,
       reconciliation: { strategy: 'provider-search', providerHandle: plan.slug, protectedLookupEvidence: lookupEvidence },

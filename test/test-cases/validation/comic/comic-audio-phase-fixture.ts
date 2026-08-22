@@ -13,6 +13,49 @@ import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 export const COMIC_AUDIO_PHASE_CREATED_AT = '2026-08-14T00:00:00.000Z'
 export const COMIC_AUDIO_PHASE_HASH_A = 'a'.repeat(64)
 export const COMIC_AUDIO_PHASE_HASH_B = 'b'.repeat(64)
+export const COMIC_AUDIO_PHASE_2_CREATED_AT = '2026-08-11T00:00:00.000Z'
+export const COMIC_AUDIO_PHASE_2_HASH_A = 'a'.repeat(64)
+export const COMIC_AUDIO_PHASE_2_HASH_B = 'b'.repeat(64)
+
+export const buildComicAudioPhase2Structured = (
+  sourceIdentity: Awaited<ReturnType<typeof createComicSourceIdentity>>,
+  exactSource?: string
+): StructuredScriptData => {
+  const readyQuestionStart = exactSource ? [...exactSource.slice(0, exactSource.indexOf('Ready?'))].length : 0
+  const readyAnswerStart = exactSource ? [...exactSource.slice(0, exactSource.lastIndexOf('Ready.'))].length : 7
+  return {
+    schemaVersion: 5,
+    scriptSlug: sourceIdentity.scriptSlug,
+    sourceFile: sourceIdentity.canonicalPath,
+    sourceIdentity,
+    document: { heading: 'Episode', title: 'Episode', metadata: [] },
+    scene: { heading: 'Scene', title: 'Scene', location: { key: 'bridge', raw: 'INT. BRIDGE' }, soundscape: { cues: [], ambientBeds: [] } },
+    characterKeys: ['pilot', 'navigator'],
+    beats: [],
+    sourceSegments: [
+      { id: 'beat-0001', type: 'dialogue', text: 'Ready?', beatIndex: 1, speakerKey: 'pilot', speakerKeys: ['pilot'], speakerLabel: 'PILOT', sourceSpans: [{ kind: 'spoken-text', start: readyQuestionStart, end: readyQuestionStart + 6, indexUnit: 'unicode-scalar-value', text: 'Ready?' }], location: { key: 'bridge', raw: 'INT. BRIDGE' } },
+      { id: 'beat-0002', type: 'dialogue', text: 'Ready.', beatIndex: 2, speakerKey: 'navigator', speakerKeys: ['navigator'], speakerLabel: 'NAVIGATOR', sourceSpans: [{ kind: 'spoken-text', start: readyAnswerStart, end: readyAnswerStart + 6, indexUnit: 'unicode-scalar-value', text: 'Ready.' }], location: { key: 'bridge', raw: 'INT. BRIDGE' } },
+    ],
+  }
+}
+
+export const buildComicAudioPhase2SnapshotEntry = (
+  subjectKey: string,
+  resourceId: string,
+  provider: 'gemini' | 'inworld' | 'openai' = 'gemini',
+  providerModel = provider === 'gemini'
+    ? 'gemini-2.5-pro-preview-tts'
+    : provider === 'inworld'
+      ? 'realtime-tts-2'
+      : 'gpt-4o-mini-tts-2025-12-15'
+) => buildApprovedVoiceEntry({
+  subjectKey,
+  resourceId,
+  provider,
+  providerModel,
+  settingsSchema: `${provider}.tts.phase-2-v1`,
+  approvedAt: COMIC_AUDIO_PHASE_2_CREATED_AT,
+})
 
 export const buildComicAudioPhaseFixture = async (root: string, voiceEntries: VoiceReferenceManifest['entries']) => {
   const source = '# Episode\n\n## Bridge\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n\n**SFX:**\nHatch slams.\n\n**AMBIENCE:**\nEngine hum.\n'

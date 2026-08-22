@@ -4,9 +4,9 @@ import {
   expect,
   test
 } from 'bun:test'
-import { spawnSync } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { runSyncCommand } from '~/utils/sync-subprocess'
 import {
   buildUrlCombinedReport,
   rankUrlProviderGroup,
@@ -146,12 +146,53 @@ const sampleAggregate = (
   perRun: {}
 })
 
+type UrlSummaryMetric = 'price' | 'speed' | 'automatedQuality'
+
+const URL_SUMMARY_METRICS: readonly UrlSummaryMetric[] = ['price', 'speed', 'automatedQuality']
+const URL_SUMMARY_GROUPS = ['local', 'service'] as const
+
+export const normalizeMarkdownTable = (text: string): string =>
+  text.split('\n').map(line => line.split('|').map(cell => cell.trim()).join(' | ')).join('\n')
+
+export const formatUrlSummaryMetricValue = (metric: UrlSummaryMetric, value: number | null): string | null => {
+  if (value === null) return null
+  switch (metric) {
+    case 'price':
+      return value === 0 ? '$0.00' : `$${value.toFixed(4)}`
+    case 'speed':
+      return `${(value / 1000).toFixed(2)}s`
+    case 'automatedQuality':
+      return `${value.toFixed(2)}/100`
+  }
+}
+
+export const expectedUrlRankingRows = (
+  report: Pick<UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>, 'metricRankings' | 'runCount'>
+): string[] => URL_SUMMARY_GROUPS.flatMap(group =>
+  URL_SUMMARY_METRICS.flatMap(metric =>
+    report.metricRankings[group][metric].flatMap((entry) => {
+      const average = formatUrlSummaryMetricValue(metric, entry.value)
+      return average === null
+        ? []
+        : [`| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${report.runCount} runs | ${average} |`]
+    })
+  )
+)
+
 describe('URL combined-report aggregation', () => {
+  test('formats retained URL summary values and omits null rankings', () => {
+    expect(formatUrlSummaryMetricValue('price', 0)).toBe('$0.00')
+    expect(formatUrlSummaryMetricValue('price', 1.23456)).toBe('$1.2346')
+    expect(formatUrlSummaryMetricValue('speed', 1234)).toBe('1.23s')
+    expect(formatUrlSummaryMetricValue('automatedQuality', 98.765)).toBe('98.77/100')
+    expect(formatUrlSummaryMetricValue('price', null)).toBeNull()
+  })
+
   test('exposes URL combined reports through unified help', () => {
     const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
-    const result = spawnSync('bun', [runner, 'url', '--help'], { encoding: 'utf8' })
+    const result = runSyncCommand('bun', [runner, 'url', '--help'])
 
-    expect(result.status).toBe(0)
+    expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('bun scripts/run.ts url build-combined-report <root_dir>')
   })
 
@@ -326,8 +367,8 @@ describe('URL combined-report aggregation', () => {
     }))
 
     const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
-    const result = spawnSync('bun', [runner, 'url', 'build-report', root], { encoding: 'utf8' })
-    expect(result.status).toBe(0)
+    const result = runSyncCommand('bun', [runner, 'url', 'build-report', root])
+    expect(result.exitCode).toBe(0)
 
     const report = JSON.parse(
       readFileSync(join(root, 'provider-comparison-report.json'), 'utf8')
@@ -485,29 +526,15 @@ describe('committed URL combined dashboard', () => {
     const summary = readFileSync(join(benchmarkRoot, 'summary.md'), 'utf8')
     const urlSection = summary.split('## URL\n')[1]?.split('\n## Video')[0] ?? ''
 
-    const normalizeTable = (text: string) =>
-      text.split('\n').map((line) => line.split('|').map((c) => c.trim()).join(' | ')).join('\n')
-    const normalizedSummary = normalizeTable(summary)
-    const normalizedUrlSection = normalizeTable(urlSection)
+    const normalizedSummary = normalizeMarkdownTable(summary)
+    const normalizedUrlSection = normalizeMarkdownTable(urlSection)
 
     expect(normalizedSummary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
     expect(normalizedSummary).toContain('| **Total** | **38** | **610** | **5 groups** |')
     expect(urlSection).not.toContain('2/2 runs')
 
-    for (const group of ['local', 'service'] as const) {
-      for (const metric of ['price', 'speed', 'automatedQuality'] as const) {
-        for (const entry of report.metricRankings[group][metric]) {
-          if (entry.value === null) continue
-          const average = metric === 'price'
-            ? entry.value === 0 ? '$0.00' : `$${entry.value.toFixed(4)}`
-            : metric === 'speed'
-              ? `${(entry.value / 1000).toFixed(2)}s`
-              : `${entry.value.toFixed(2)}/100`
-          expect(normalizedUrlSection).toContain(
-            `| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${report.runCount} runs | ${average} |`
-          )
-        }
-      }
+    for (const expectedRow of expectedUrlRankingRows(report)) {
+      expect(normalizedUrlSection).toContain(expectedRow)
     }
   })
 

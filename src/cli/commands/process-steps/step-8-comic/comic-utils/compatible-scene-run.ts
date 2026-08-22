@@ -1,4 +1,5 @@
-import { mkdir, readdir, readFile, stat } from 'node:fs/promises'
+import { mkdir, readdir, readFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { join, resolve } from 'node:path'
 import * as v from 'valibot'
 import type { CanonicalComicItemMetadata, ComicSourceIdentity, CompatibleComicSceneRun } from '~/types'

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { join } from 'node:path'
 import { makeExecutable, walkPaths } from '~/utils/filesystem'
 import { fileExists } from '~/utils/cli-utils'

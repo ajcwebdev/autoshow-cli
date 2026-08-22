@@ -14,7 +14,7 @@ Install local runtimes and prerequisite tools. Focused setup utilities also cove
 
 ## Step Setup Docs
 
-- Step 2 Extract: [`01-extract.md`](../../process-steps/step-2-extract/01-extract.md) — [STT setup](../../process-steps/step-2-extract/02-extract-stt.md#stt-setup) | [OCR setup](../../process-steps/step-2-extract/03-extract-ocr.md#ocr-setup) | [URL setup](../../process-steps/step-2-extract/04-extract-url.md#url-setup)
+- Step 2 Extract: [`01-extract.md`](../../process-steps/step-2-extract/01-extract.md) — [STT environment](../../process-steps/step-2-extract/02-extract-stt.md#stt-environment) | [OCR setup](../../process-steps/step-2-extract/03-extract-ocr.md#ocr-setup) | [URL environment](../../process-steps/step-2-extract/04-extract-url.md#url-and-x-environment)
 - Step 3 Write: [`write-text.md#setup`](../../process-steps/step-3-write/write-text.md#setup)
 - Step 4 TTS: [`text-to-speech-and-voice.md#setup`](../../process-steps/step-4-tts/text-to-speech-and-voice.md#setup)
 - Step 5 Image: [`text-to-image.md#setup`](../../process-steps/step-5-image/text-to-image.md#setup)
@@ -33,7 +33,7 @@ Use full setup on a clean machine when you want local download, OCR, STT, or wri
 
 A full `bun autoshow setup` downloads several gigabytes and builds a number of tools from source. Budget roughly **10 GB free** and expect 5-10 minutes on a fast connection. A re-run with everything already installed takes a few seconds.
 
-Setup writes outside the repo checkout as well:
+Everything setup installs lives under the project checkout:
 
 | Location   | Holds                                      | Approx. size |
 | ---------- | ------------------------------------------ | ------------ |
@@ -45,7 +45,7 @@ Notes:
 - Installs created before the Whisper CoreML pipeline was retired may retain `runtime/bin/whisper-coreml-env` and encoder directories under `runtime/models/whisper`. Full setup reports those legacy artifacts and their sizes as safe to delete.
 - `runtime/build` holds only transient source trees. Each installer removes its own tree on success, and a full setup prunes whatever is left over.
 - Downloads stream to a `<file>.part` alongside the destination and resume from there, so an interrupted transfer does not restart from zero. Large assets abort only after **60 seconds with no bytes received**, not after a fixed total transfer time, so a slow connection does not by itself cause a failure.
-- At most three downloads transfer at once. Setup starts eight tasks in parallel, and letting all of them pull at once divides the connection rather than finishing anything sooner.
+- At most three downloads transfer at once. Setup starts five tasks in parallel, and letting all of them pull at once divides the connection rather than finishing anything sooner.
 - Every 30 seconds, any step still running and not already printing its own progress is listed on a single `Still running:` line, so a long source build is distinguishable from a hang without burying the rest of the output.
 - The Setup Step Timings table reports **concurrent wall clock**. Tasks run in parallel and contend, so a step's figure there can be far above what the same step costs alone via `--step`.
 - Every full setup writes a schema-versioned phase artifact under `runtime/setup-performance/`. It records relative build-phase timestamps, compile overlap, task timings, pinned versions, and non-sensitive host facts; use verbose logging to print the detailed phase table.
@@ -57,9 +57,10 @@ Check prerequisites, configuration, and which provider API keys are set without 
 
 ```bash
 bun autoshow setup --doctor
+bun autoshow setup --doctor --strict
 ```
 
-API-key checks are presence-only: doctor reports whether each managed variable is set (non-empty), not whether the key is valid, and warnings never change the exit code. `.env` handling matches every other command — Bun auto-loads `.env` from the working directory and real exported environment variables win over file values.
+API-key checks are presence-only: doctor reports whether each managed variable is set (non-empty), not whether the key is valid. The default doctor remains advisory and warnings do not change its exit code. `--strict` exits 2 when a provider credential required by a configured default is missing, which makes the command suitable for a no-cost CI or deployment readiness gate; it does not make live provider calls. `.env` handling matches every other command — Bun auto-loads `.env` from the working directory and real exported environment variables win over file values.
 
 Doctor also reports YouTube cookie state separately:
 
@@ -81,16 +82,16 @@ The same precedence rules apply everywhere in the CLI:
 The `setup` command currently supports:
 
 ```text
-yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | all | transcription | write | tts | image | video | music
+yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | all | transcription | music
 ```
 
 Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`.
 
 ```bash
-# Step 1 download: yt-dlp for media inputs
+# Step 1 download: yt-dlp plus managed ffmpeg and ffprobe for media inputs
 bun autoshow setup --step yt-dlp
 
-# Step 1/2 document inputs: mutool and Calibre ebook-convert
+# Step 1/2 document inputs: mutool, qpdf, and Calibre ebook-convert
 bun autoshow setup --step calibre
 
 # Step 2 extract: local URL article extraction
@@ -125,4 +126,4 @@ bun autoshow setup --models whisperfile:large-v3
 
 Supported whisperfile models: `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3`.
 
-Setup test coverage is documented in [Setup Service Tests](setup-tests.md).
+Setup test coverage is documented in [Setup Tests](setup-tests.md).

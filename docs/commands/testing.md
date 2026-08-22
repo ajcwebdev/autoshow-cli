@@ -25,7 +25,7 @@ The `bun t` commands below document the full project runner for humans. Do not u
 
 ```bash
 # run all local tests
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ test/test-cases/e2e/local/step-2-stt-e2e/stt-local/ test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts
+bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ test/test-cases/e2e/local/step-2-stt-e2e/stt-local/ test/test-cases/e2e/local/step-3-write-e2e/write-local/ test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts
 ```
 
 ```bash
@@ -70,7 +70,7 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --price
 
 ## Step Test Pages
 
-- [Setup Service Tests](setup-and-utilities/setup/setup-tests.md)
+- [Setup Tests](setup-and-utilities/setup/setup-tests.md)
 - [Step 1 Tests: Download](process-steps/step-1-download/download-tests.md)
 - [Step 2 Tests: STT](process-steps/step-2-extract/05-extract-stt-tests.md)
 - [Step 2 Tests: OCR](process-steps/step-2-extract/06-extract-ocr-tests.md)
@@ -85,13 +85,13 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --price
 - Test discovery comes from `test/test-cases/**/*.test.ts`.
 - Passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test. JUnit stays a post-run sidecar for `report.json`; it is not the live reporter.
 - Selection is path-based only.
-- Normal test mode passes `--max-concurrency=10 --parallel=10` to `bun test` by default. Pass explicit `--max-concurrency=<n>` or `--parallel=<n>` values to override either knob for a run.
+- Normal test mode defaults both `--max-concurrency` and `--parallel` to the machine's available parallelism. When every selected file sits under `test/test-cases/e2e/`, `--parallel` instead defaults to 32 and the run also passes `--retry 1`. Pass explicit `--max-concurrency=<n>` or `--parallel=<n>` values to override either knob for a run; `--concurrency` is not a Bun test flag and is rejected with a usage error.
 - Price and budget preflight commands run with the default price concurrency of 25.
 - `--price` uses the same normal `test/test-cases/...` path filters as `bun t`: append it to the command you would otherwise run to price-check the mapped commands without running the live tests. The same flag is used by regular AutoShow commands. `--budget <whole-number-hundredths-of-a-cent>` remains a live-test skip mechanism for the selected normal test paths. For example, `--budget 100` allows tests estimated at up to 1 cent.
 - Each run writes artifacts under `./project/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`, including `runner.log`, `commands.log`, `metrics.ndjson`, `metadata/`, and `report.json`. Normal test mode also writes `junit.xml`, `e2e-report.json`, and `model-calibration.json` with read-only model calibration recommendations.
 - By default, `bun t` cleans test outputs after every run and leaves `./project/test-output/latest.log` with the run summary, failures, runner log, and command log. Normal test mode also sets `AUTOSHOW_TEST_PRESERVE_ARTIFACTS=0`, which deletes per-test output directories as tests finish.
 - The runner prebuilds the CLI to `project/test-output/.test-cache/cli.js` and points tests at it with `AUTOSHOW_TEST_CLI_BUNDLE`; bundle-mode CLI spawns also receive `AUTOSHOW_PROJECT_ROOT` so the prebuilt bundle resolves `runtime/` against the checkout instead of its own location. `AUTOSHOW_TEST_CONCURRENT` is the runner-to-worker switch that enables `test.concurrent` for budgeted e2e tests; exporting it yourself before a run wins over the runner's value. These are runner-internal transport variables, not user configuration.
-- Use `--no-cleanup` to keep the full run directory, per-test CLI outputs, and test cache under `./project/test-output/`.
+- Use `--no-cleanup` to keep the full run directory, per-test CLI outputs, and test cache under `./project/test-output/`. Use `--no-adaptive-concurrency` to disable the runner's adaptive per-provider lane limits for a run.
 
 ```bash
 # keep the full run directory after completion
@@ -109,7 +109,7 @@ Price and budget commands use the same path filters as normal runs; step-specifi
 Notes:
 - `--price` with no path filters resolves all mapped test price commands.
 - `--budget` in normal mode applies its threshold independently to each matching `budgetedTest()` key; runnable estimates are not combined into an aggregate cap. Every component key must be mapped and successfully evaluated by preflight. An unmapped, malformed, or otherwise unevaluated key fails locally without executing the test callback or calling a provider.
-- Validation (`test/test-cases/validation/`) and setup (`test/test-cases/setup/`) paths do not have mapped price commands.
+- Validation paths (`test/test-cases/validation/`) are unmapped apart from `media-generation/fal-tts-adapter-contracts.test.ts` and `media-generation/replicate-tts-adapter-contracts.test.ts`, which map to the Fal and Replicate TTS price commands. Selecting any other validation path with `--price` resolves zero commands and reports a zero-cost pass.
 
 ## Cross-Cutting Coverage
 

@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
@@ -24,7 +23,7 @@ const fileNameFromUrl = (value: string): string => {
   } catch {
   }
   const name = basename(decoded).replace(SAFE_FILE_NAME_PATTERN, '_').replace(/^_+|_+$/g, '')
-  return name || `media-${randomUUID()}`
+  return name || `media-${crypto.randomUUID()}`
 }
 
 export const materializeMediaInput = async (

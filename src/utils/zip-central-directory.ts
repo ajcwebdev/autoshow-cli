@@ -1,4 +1,3 @@
-import { inflateRawSync } from 'node:zlib'
 import type { ZipArchiveOptions, ZipEntry } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 
@@ -64,7 +63,7 @@ export const readZipEntryData = (buffer: Buffer, entry: ZipEntry, options: ZipAr
   const compressed = buffer.subarray(dataStart, dataStart + entry.compSize)
 
   if (entry.method === 0) return Buffer.from(compressed)
-  if (entry.method === 8) return inflateRawSync(compressed)
+  if (entry.method === 8) return Buffer.from(Bun.inflateSync(Uint8Array.from(compressed), { windowBits: -15 }))
   throw ValidationError(`Unsupported ZIP compression method ${entry.method} for entry: ${entry.name}`, { stage: options.stage })
 }
 

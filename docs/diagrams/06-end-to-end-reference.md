@@ -46,16 +46,15 @@ define-write-command.ts
             +--> single target plan
             |
             v
-       +--> resolveInputRoutingForCommand("write", target, opts)
-            |
-            +--> classify URL as media/streaming
-            +--> resolvedStep2 route: STT
-            |
-            v
        +--> handleSingleTarget()
             |
             v
 processSingleTarget()
+  |
+  +--> normalizeSingleTargetIntent()
+  +--> classifySingleTargetInput()
+  |    classify URL as streaming media
+  +--> resolveSingleTargetRoute() -> write route: media
   |
   +--> processMediaSingle()
        |
@@ -72,24 +71,24 @@ processSingleTarget()
             |    write transcription.txt and provider result
             |
             +--> Step 3:
-            |    buildPrompt()
-            |    write prompt.md
-            |    write prompt-md.md because --prompt-md is set
-             |    runLLM() through the hosted LLM pool
-            |    write text.json
+            |    runLLM() through the hosted LLM pool
+            |      buildPrompt()
+            |      write prompt.md
+            |      write prompt-md.md because --prompt-md is set
+            |      write text.json
             |
             +--> rendered/show-note artifacts:
             |    writeRenderedTextArtifacts() -> text.md
             |    writeShowNoteArtifacts() -> show-note.md
             |
-            +--> writeManifest(createManifest("write", "single", items))
+            +--> writeManifest(outputDir, createManifest("write", "single", items))
 ```
 
 ## Expected Artifacts
 
 ```
-output/YYYY-MM-DD_HH-MM-SS-mmm_<video-title>/
-  audio.(mp3|m4a|ogg|flac)
+output/YYYY-MM-DD_HH-MM-SS-mmm_<title-slug>/
+  <publish-date>-<title-slug>.(mp3|m4a|ogg|flac)
   transcription.txt
   result.json                 # raw STT domain payload for a single provider
   prompt.md
@@ -174,7 +173,7 @@ Runtime configuration is flag- and config-driven. The CLI reads only provider AP
 
 | Area                                        | Mechanism                                                                                                                                                                                                                                                                          |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TTS voices / reference audio / API versions | Per-run flags (`--tts-voice`, `--tts-ref-audio`, `--tts-language`, …); defaults are defined in [`tts-models.ts`](../../src/cli/commands/setup-and-utilities/models/tts-models.ts). Cartesia `Cartesia-Version` and Hume `version` headers are fixed protocol constants. |
+| TTS voices / reference audio / API versions | Per-run flags (`--tts-voice`, `--tts-ref-audio`, `--tts-language`, …); defaults are defined in [`tts-models.ts`](../../src/cli/commands/setup-and-utilities/models/tts-models.ts). The Cartesia `Cartesia-Version` header is a fixed protocol constant, and the Hume request `version` follows the selected Octave model. |
 | Output / external binaries                  | `--output-root`, `--bin-dir` flags.                                                                                                                                                                                                                                                |
 | URL backend                                 | `--url-provider` flag.                                                                                                                                                                                                                                                             |
 | Logging / color                             | `--log-level`, `--log-format` (plus `--verbose` / `--quiet` / `--json`); `NO_COLOR` / `FORCE_COLOR` honored, with `--color` / `--no-color` taking precedence.                                                                                                                      |

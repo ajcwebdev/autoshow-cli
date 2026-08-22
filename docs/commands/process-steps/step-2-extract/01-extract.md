@@ -33,7 +33,7 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 | Direct media URLs (`.mp3`, `.mp4`, `.wav`, `.webm`, and other audio/video extensions)                     | [STT](./02-extract-stt.md)                           |
 | Local media files                                                                                         | [STT](./02-extract-stt.md)                           |
 | RSS or podcast feed batches                                                                               | [STT](./02-extract-stt.md)                           |
-| YouTube channel batches                                                                                   | [STT](./02-extract-stt.md)                           |
+| YouTube channel or playlist batches                                                                       | [STT](./02-extract-stt.md)                           |
 | PDF, EPUB, convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT), DOCX, PPTX, XLSX, ODF, RTF, CSV, CBZ       | [OCR](./03-extract-ocr.md)                           |
 | PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF                                                                 | [OCR](./03-extract-ocr.md)                           |
 | Remote article URLs (`text/html`)                                                                         | [URL / HTML extraction](./04-extract-url.md)         |
@@ -164,7 +164,7 @@ bun autoshow setup --step defuddle
 
 Remote article URLs default to `defuddle`. Local `.html` / `.htm` files always use `defuddle` and skip hosted backends. `--all-local` runs `defuddle`. Do not combine `--url-provider` with `--all-providers` or `--all-local`.
 
-In single-backend mode, `defuddle` falls back to `firecrawl` if extraction fails. `--all-providers` includes `defuddle` first, then the hosted backends, and disables that automatic fallback. `defuddle` runs in a single-slot lane.
+In single-backend mode, `defuddle` falls back to `firecrawl` if extraction fails. `--all-local` selects `defuddle` and `--all-providers` selects the hosted backends; combining them runs `defuddle` first, and either group run disables that automatic fallback. `defuddle` runs in a single-slot lane.
 
 #### Defuddle
 
@@ -183,7 +183,7 @@ Use `--bin-dir <dir>` to supply a custom `defuddle` binary path.
 
 | Provider            | Released   | Inputs                                   | Markdown        | Local HTML | Remote URLs |
 | ------------------- | ---------- | ---------------------------------------- | --------------- | ---------- | ----------- |
-| Defuddle `defuddle` | ❌ 2024-10 | Remote article URLs and local HTML files | ✅ Article text | ✅ Always  | ✅ Default  |
+| Defuddle `defuddle` | ⚠️ 2025-02 | Remote article URLs and local HTML files | ✅ Article text | ✅ Always  | ✅ Default  |
 
 ## Batch Inputs
 
@@ -193,7 +193,7 @@ Directory batches and URL-list batches classify each item independently. A singl
 # Process every item in a URL list
 bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
 
-# Compare every URL article backend for one remote article
+# Compare every hosted URL article backend for one remote article
 bun autoshow extract https://example.com/article --all-providers
 
 # Process a whole YouTube channel batch with caption-first STT routing

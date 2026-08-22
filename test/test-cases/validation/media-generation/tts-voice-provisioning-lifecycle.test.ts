@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { join } from 'node:path'
 import type { CharacterVoiceBrief, MistralVoiceManagementRequest, ProtectedAssetRef, ProviderVoiceRef, VoiceConsentRecord, VoiceProvisioningAttempt } from '~/types'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/process-steps/step-4-tts/voice-assets/protected-voice-asset-store'

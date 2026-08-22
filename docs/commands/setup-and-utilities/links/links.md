@@ -95,12 +95,12 @@ Accepted provider selectors are the lowercase names below.
 | `--cartesia`       | `general`, `models`, `tts`                                                  |
 | `--cerebras`       | `general`, `models`, `text`                                                 |
 | `--claude`         | `general`, `models`, `ocr`, `text`                                          |
-| `--deapi`          | `models`, `stt`                                                             |
+| `--deapi`          | `general`, `models`, `stt`                                                  |
 | `--deepgram`       | `models`, `stt`, `tts`                                                      |
 | `--deepinfra`      | `general`, `models`, `ocr`, `stt`                                           |
 | `--drive`          | `general`                                                                   |
-| `--elevenlabs`     | `models`, `music`, `tts`                                                    |
-| `--fal`            | `general`, `image`, `video`                                                 |
+| `--elevenlabs`     | `general`, `models`, `music`, `tts`                                         |
+| `--fal`            | `general`, `image`, `tts`, `video`                                          |
 | `--firecrawl`      | `general`, `url`                                                            |
 | `--fish`           | `general`, `models`, `tts`                                                  |
 | `--gemini`         | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
@@ -112,10 +112,9 @@ Accepted provider selectors are the lowercase names below.
 | `--hume`           | `general`, `tts`                                                            |
 | `--inworld`        | `general`, `models`, `tts`                                                  |
 | `--kimi`           | `general`, `models`, `ocr`, `text`                                          |
-| `--whisperfile`    | `stt`                                                                       |
 | `--ltx`            | `models`, `video`                                                           |
 | `--lumalabs`       | `general`, `image`, `models`, `video`                                       |
-| `--minimax`        | `general`, `music`, `text`, `tts`                                           |
+| `--minimax`        | `general`, `music`, `text`, `tts`, `video`                                  |
 | `--mistral`        | `general`, `models`, `ocr`, `stt`, `tts`                                    |
 | `--openai`         | `general`, `image`, `models`, `ocr`, `text`, `tts`                          |
 | `--replicate`      | `general`, `models`                                                         |
@@ -130,6 +129,7 @@ Accepted provider selectors are the lowercase names below.
 | `--spider`         | `general`, `url`                                                            |
 | `--supadata`       | `general`, `stt`, `url`                                                     |
 | `--together`       | `general`, `models`, `stt`, `text`                                          |
+| `--whisperfile`    | `stt`                                                                       |
 | `--x`              | `general`, `url`                                                            |
 | `--zyte`           | `general`, `url`                                                            |
 
@@ -219,10 +219,9 @@ bun autoshow links --whisperfile stt
 # Fetch LTX video API docs
 bun autoshow links --ltx video
 
-# Fetch Luma Labs image and video docs
+# Fetch Luma Labs and fal image and video docs
 bun autoshow links --lumalabs image video
 bun autoshow links --fal image video
-
 
 # Fetch Replicate general and model docs
 bun autoshow links --replicate general models

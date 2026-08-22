@@ -4,9 +4,9 @@
 
 - **Decision Status:** Superseded
 - **Date Created:** 2026-07-16
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
-- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to the 2026 hosted-model refresh reports under `docs/reports/`.
+- **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to the 2026 hosted-model refresh reports under `docs/reports/`, which is gitignored and therefore local-only rather than committed.
 
 ## Context
 
@@ -291,7 +291,7 @@ The report architecture is implemented in:
 - `.codex/skills/consensus/scripts/ocr/build_combined_report.ts` for OCR schema v2 and category-specific aggregation/view-model assembly; and
 - `.codex/skills/consensus/scripts/url/build_combined_report.ts` for URL schema v1, source inventory metadata, and source-ranking aggregation/view-model assembly.
 
-The focused combined-report contract test checks the exact eight-set registry, weighted ordering and tie-breaks, tercile sizes, JSON fields, schema versions, and rank/composite parity in the committed Markdown and HTML artifacts.
+The focused combined-report contract test checks the exact eight-set registry, weighted ordering and tie-breaks, tercile sizes, JSON fields, and schema versions, asserts rank/composite parity between `tiering` and the `qualityCost` ranking in each committed JSON artifact, and asserts that the committed Markdown and HTML carry the same tier method, ranking, and rank/composite surfaces.
 
 ### 2026 hosted-model evidence ledger
 
@@ -311,8 +311,8 @@ The 2026 hosted-model refresh reports under `docs/reports/` own which selectors 
 #### TTS and music
 
 - Four retained June TTS benchmark cohorts (`tts-hard`, `tts-long`, `0-tts-short`, `1-tts`) were safely continued through exact no-cost `resume --price` preflights and approved paid passes.
-- Provider rejections exposed obsolete Inworld 1.5 identifiers and DeepInfra per-model input/schema constraints; the registry updated to current Inworld TTS-2 Flash and model-specific serialization.
-- DeepInfra Chatterbox Multilingual returned HTTP 500 on the hard input; the failed attempt was preserved with retained checkpoints without deleting cached artifacts. The cohort closed at 51 of 52 current-model outputs (12/13 on hard, 13/13 on remaining runs).
+- Provider rejections exposed obsolete Inworld 1.5 identifiers and DeepInfra per-model input/schema constraints; the registry updated to model-specific serialization and now carries Inworld Realtime TTS 2.0 (`realtime-tts-2`), while the retained artifacts still hold the earlier `realtime-tts-2-flash` outputs.
+- DeepInfra Chatterbox Multilingual returned HTTP 500 on the hard input; the failed attempt was preserved with retained checkpoints without deleting cached artifacts. DeepInfra later replaced it with Chatterbox Turbo (`ResembleAI/chatterbox-turbo`), the registry entry today, which succeeded on all four runs. As regenerated on 2026-08-14 the cohorts closed at 135 of 136 provider outputs (33 of 34 on hard, 34 of 34 on each remaining run), with that hard-input failure as the only gap.
 - Four TTS provider-comparison reports were regenerated from retained successful artifacts, exposing price, speed, and automated/human quality surfaces without unverified voice claims.
 - Music preflight and execution validated ElevenLabs Music v2 and MiniMax Music 3.0 additions, resolving an additive-resume output collision by promoting outputs to provider/model-specific filenames.
 
@@ -323,8 +323,7 @@ The 2026 hosted-model refresh reports under `docs/reports/` own which selectors 
 - [x] Validate schema versions, tie-breaks, tier sizes, and rank/composite parity across committed artifacts — Implemented in `combined-report-weighted-ranking-contracts.test.ts`
 - [ ] Regenerate combined reports from committed local benchmark artifacts when source runs change — Ongoing
 - [ ] Preserve exact paid approval, invalid-output exclusion, repair, compaction, and regeneration evidence for every benchmark refresh — Ongoing
-- [x] Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts — Implemented
-  Protected by the zero-cost plan helper (`audit:ocr-tokens --plan`) requiring explicit user approval before execution.
+- [x] Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts — Implemented, and protected by the zero-cost plan helper (`bun run audit:ocr-tokens --plan`) requiring explicit user approval before execution
 
 ## Test Plan
 
@@ -339,7 +338,7 @@ The 2026 hosted-model refresh reports under `docs/reports/` own which selectors 
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR evidence qualification and diagnostics
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — durable model and calibration policy
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — primary-source refresh metadata
-- Related reports: the 2026 hosted-model refresh reports under `docs/reports/` — dated model changes associated with this evidence
+- Related reports: the 2026 hosted-model refresh reports under `docs/reports/` (gitignored, local-only) — dated model changes associated with this evidence
 - Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — provider-specific TTS implementation phases and remaining advanced-capability gates
 - `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
 - `.codex/skills/consensus/scripts/shared/combined_report_html.ts`

@@ -40,4 +40,4 @@ bun autoshow voice consent --revoke protected-consent:v1:STORE:ASSET:SHA256 --re
 
 A grant prints an opaque `protected-consent:v1:...` locator. Use that locator with [clone](./05-clone.md) and other consent-gated actions.
 
-Next: [list](./01-list.md).
+Next: [import](./03-import.md).

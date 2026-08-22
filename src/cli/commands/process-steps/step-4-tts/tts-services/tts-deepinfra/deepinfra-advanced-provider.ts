@@ -18,6 +18,7 @@ import {
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceCloneAuthorized, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const DOCS = {
   api: 'https://docs.deepinfra.com/apis/text-to-speech',
@@ -95,8 +96,7 @@ const defaultDesignSynthesis = (apiKey: string): DeepinfraDesignSynthesis => asy
 export const createDeepinfraAdvancedProvider = (
   options: CreateDeepinfraAdvancedProviderOptions
 ): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
-  const apiKey = options.apiKey.trim()
-  if (!apiKey) throw CLIUsageError('DeepInfra API key is required for capability inspection.')
+  const apiKey = requireProvidedApiKey(options.apiKey, 'DEEPINFRA_API_KEY', 'voice:deepinfra', 'DeepInfra capability inspection')
   const request = options.request ?? createAdvancedProviderJsonRequest({
     baseUrl: 'https://api.deepinfra.com',
     apiKey: `Bearer ${apiKey}`,

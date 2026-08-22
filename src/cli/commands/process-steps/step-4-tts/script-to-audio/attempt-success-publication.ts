@@ -1,4 +1,5 @@
-import { readdir, unlink } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import type {
   AudioRun,
   CurrentTtsRenderArtifacts,

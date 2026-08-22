@@ -1,6 +1,6 @@
 import { constants } from 'node:fs'
-import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir, unlink } from 'node:fs/promises'
-import { createHash, randomUUID } from 'node:crypto'
+import { link, lstat, mkdir, open, readdir, realpath, rename, rm, rmdir } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { ContainedArtifactFile, ImmutableArtifactFile, ReservedInvocationAttemptDirectory, SafeArtifactDirectory } from '~/types'
 import { AppInfrastructureError, CLIUsageError, extractErrorMetadata, hasErrorCode } from '~/utils/error-handler'
@@ -190,7 +190,7 @@ export const readContainedArtifactFile = async (
     path,
     relativePath: normalized,
     bytes,
-    sha256: createHash('sha256').update(bytes).digest('hex')
+    sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   }
 }
 
@@ -206,7 +206,7 @@ export const writeImmutableArtifactFile = async (
   const parent = await ensureSafeArtifactDirectory(rootDir, parentRelative)
   const path = join(parent.path, fileName)
   const bytes = typeof value === 'string' ? Buffer.from(value) : Buffer.from(value)
-  const temporaryPath = join(parent.path, `.immutable-${randomUUID()}.tmp`)
+  const temporaryPath = join(parent.path, `.immutable-${crypto.randomUUID()}.tmp`)
   let created = false
   let handle
 
@@ -252,7 +252,7 @@ export const writeImmutableArtifactFile = async (
   return {
     path,
     relativePath: normalized,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
+    sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex'),
     created
   }
 }
@@ -264,7 +264,7 @@ export const writeReplaceableArtifactFile = async (
 ): Promise<ImmutableArtifactFile> => {
   const normalized = normalizeSafeRelativePath(relativeFile, 'Replaceable artifact file', false)
   const bytes = typeof value === 'string' ? Buffer.from(value) : Buffer.from(value)
-  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const sha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   try {
     const existing = await readContainedArtifactFile(rootDir, normalized)
     if (existing.bytes.equals(bytes)) {
@@ -273,7 +273,7 @@ export const writeReplaceableArtifactFile = async (
   } catch (error) {
     if (!hasErrorCode(error, 'ENOENT')) throw error
   }
-  const temporaryRelative = `${dirname(normalized)}/.archive-${randomUUID()}.tmp`
+  const temporaryRelative = `${dirname(normalized)}/.archive-${crypto.randomUUID()}.tmp`
   const temporary = await writeImmutableArtifactFile(rootDir, temporaryRelative, bytes)
   const destination = join((await inspectSafeRoot(rootDir)).absolute, normalized)
   try {
@@ -325,7 +325,7 @@ export const appendJsonlArtifactLine = async (
     path,
     relativePath: normalized,
     bytes,
-    sha256: createHash('sha256').update(bytes).digest('hex')
+    sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   }
 }
 
@@ -461,7 +461,7 @@ export const reserveInvocationAttemptDirectory = async (
   const claimName = `.attempt-${String(options.attempt).padStart(3, '0')}.claim`
   const claimRelativePath = `${attemptsDirectory}/${claimName}`
   const claimPath = join(parent.path, claimName)
-  const claimToken = randomUUID()
+  const claimToken = crypto.randomUUID()
   const claimOwnerName = `owner-${claimToken}.lock`
   const claimOwnerRelativePath = `${claimRelativePath}/${claimOwnerName}`
   const claimOwnerPath = join(claimPath, claimOwnerName)

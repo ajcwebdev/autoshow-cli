@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { lstatSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -7,6 +6,7 @@ import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import type { TreeNode } from '~/types'
 import { countReferenceTokens } from '~/utils/reference-tokenizer'
 import { serializeDiagnosticError } from '~/utils/error-handler'
+import { runSyncCommandOrThrow } from '~/utils/sync-subprocess'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
@@ -80,10 +80,10 @@ const looksBinary = (bytes: Uint8Array): boolean => {
 // Tracked plus untracked-but-not-ignored, exactly the visibility .gitignore
 // already defines for the repository.
 const listCandidatePaths = (): string[] => {
-  const output = execFileSync(
+  const output = runSyncCommandOrThrow(
     'git',
     ['ls-files', '--cached', '--others', '--exclude-standard'],
-    { cwd: PROJECT_ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+    { cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 }
   )
   return [...new Set(output.split('\n').filter(Boolean))]
 }

@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { randomUUID } from 'node:crypto'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
@@ -210,7 +209,7 @@ describe('ADR-013 compact archive contracts', () => {
   test('SFX compact keeps sfx.json plus one source file and deletes admissions', async () => {
     await withTempDir('autoshow-compact-archive-sfx-', async (dir) => {
       const renderPlan = createSoundEffectRenderPlan({
-        plan: sfxPlan(`archive-sfx-${randomUUID()}`),
+        plan: sfxPlan(`archive-sfx-${crypto.randomUUID()}`),
         target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2'),
       })
       const adapter = createElevenLabsSoundEffectAdapter({

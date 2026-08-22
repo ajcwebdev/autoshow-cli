@@ -26,7 +26,7 @@ bun autoshow config --reset
 
 No input argument is required. Flags explicitly passed to `config` are persisted to `config/autoshow.json` when they map to reusable defaults.
 
-Runtime-only options (such as `--show`, `--reset`, `--config-path`, budget overrides, input file passwords, custom-voice creation audio, and one-shot image/video references) are never persisted.
+`--show`, `--reset`, and `--config-path` are accepted but never persisted. Per-run inputs are not accepted by `config` at all and fail as unexpected flags — `--price`, `--password`, `--prompt-md`, `--tts-ref-audio`, `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, `--image-compression`, `--replicate-video-multi-prompt`, `--replicate-video-multi-clip`, and `--music-lyrics-file` — so pass those on the command that uses them. A flag `config` does accept but has no config destination is named in a warning and left unsaved.
 
 ## Config File Location
 
@@ -50,10 +50,10 @@ bun autoshow config --stt happyscribe=auto --stt-happyscribe-organization-id org
 bun autoshow config --stt supadata=auto --stt-supadata-lang en
 bun autoshow config --ocr tesseract
 bun autoshow config --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
-bun autoshow config --tts elevenlabs=eleven_v3 --elevenlabs-voice voice_123
-bun autoshow config --tts minimax=speech-2.8-hd --minimax-tts-language-boost English --tts-speed 1.15
+bun autoshow config --tts elevenlabs=eleven_v3 --tts-voice voice_123
+bun autoshow config --tts minimax=speech-2.8-hd --tts-language English --tts-speed 1.15
 bun autoshow config --tts grok=grok-tts --tts-language auto --tts-text-normalization true
-bun autoshow config --tts mistral=voxtral-mini-tts-2603 --mistral-tts-voice voice_existing
+bun autoshow config --tts mistral=voxtral-mini-tts-2603 --tts-voice voice_existing
 bun autoshow config --tts openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1
 bun autoshow config --tts deepgram=aura-2-thalia-en --tts-voice aura-2-andromeda-en --tts-speed 1.1
 bun autoshow config --tts speechify=simba-3.2 --tts-voice george --tts-language en-US
@@ -289,6 +289,8 @@ The default mode is `ramp`. It starts each hosted provider/account lane at one l
 | ---------- | ------------------------------------------------------------------------ |
 | `provider` | `--url-provider defuddle\|firecrawl\|glm-reader\|spider\|supadata\|zyte` |
 
+`config` has no `--url-provider` flag, so this default has to be written into `config/autoshow.json` by hand. Once saved, `extract` and `write` inherit it like any other default.
+
 ### defaults.llm
 
 | Field                                                                                             | Flag                                            |
@@ -301,16 +303,16 @@ The default mode is `ramp`. It starts each hosted provider/account lane at one l
 | Field                                                                                                                                                                                                                                                                                                                                                             | Flag                                                                       |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts`, `fishTts`, `inworldTts`, `deepinfraTts`, `replicateTts`, `falTts`                                                                                                                                           | `--tts provider[=model]`                                                   |
-| `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice`                                                                                                                                                                                                                                                       | generic `--tts-*` voice flags or matching provider-specific controls       |
+| `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice`                                                                                                                                                                                                                                                       | `--tts-voice`, `--tts-language`, `--tts-text-normalization`                |
 | `ttsDialogueFormat`, `ttsSpeakers`                                                                                                                                                                                                                                                                                                                                | `--tts-dialogue-format`, `--tts-speaker`                                   |
-| `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed`                                                                                                                                                                                                                                                                                                          | generic `--tts-*` flags                                                    |
-| `geminiVoice`                                                                                                                                                                                                                                                                                                                                                     | Gemini voice flag                                                          |
-| `elevenlabsVoice`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators` | ElevenLabs existing-voice and synthesis flags                              |
-| `minimaxTtsVoice`, `minimaxTtsLanguageBoost`, `minimaxTtsSpeed`, `minimaxTtsVolume`, `minimaxTtsPitch`, `minimaxTtsEmotion`, `minimaxTtsEnglishNormalization`, `minimaxTtsPronunciations`                                                                                                                                                                         | MiniMax voice and synthesis control flags                                  |
-| `deepgramVoice`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsLanguage`, `humeTtsVoice`, `cartesiaTtsVoice`, `cartesiaTtsLanguage`                                                                                               | provider voice, output, and reusable synthesis flags                       |
+| `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed`                                                                                                                                                                                                                                                                                                          | `--tts-voice`, `--tts-instructions`, `--tts-speed`                         |
+| `geminiVoice`                                                                                                                                                                                                                                                                                                                                                     | `--tts-voice`                                                              |
+| `elevenlabsVoice`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators` | `--tts-voice`, `--tts-language`, `--tts-speed`, `--tts-text-normalization`, and the `--elevenlabs-tts-*` synthesis flags |
+| `minimaxTtsVoice`, `minimaxTtsLanguageBoost`, `minimaxTtsSpeed`, `minimaxTtsVolume`, `minimaxTtsPitch`, `minimaxTtsEmotion`, `minimaxTtsEnglishNormalization`, `minimaxTtsPronunciations`                                                                                                                                                                         | `--tts-voice`, `--tts-language`, `--tts-speed`, `--tts-text-normalization`, and the `--minimax-tts-*` synthesis flags |
+| `deepgramVoice`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsLanguage`, `humeTtsVoice`, `cartesiaTtsVoice`, `cartesiaTtsLanguage`                                                                                               | `--tts-voice`, `--tts-speed`, `--tts-language`                              |
 | `providerConcurrency`, `localConcurrency`, `chunkConcurrency`                                                                                                                                                                                                                                                                                                     | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
 
-One-off custom-voice provisioning and clone creation audio files are runtime-only options managed via `voice` and cannot be persisted as defaults. Synthesis defaults require an existing provider voice ID.
+The generic `--tts-*` options resolve to the selected provider's field, so they take a bare value when one provider is selected and `provider=value` when several are. One-off custom-voice provisioning and clone creation audio files are runtime-only options managed via `voice` and cannot be persisted as defaults. Synthesis defaults require an existing provider voice ID.
 
 `ttsSpeakers` is what selects multi-speaker TTS, so a saved `ttsDialogueFormat` with no saved `ttsSpeakers` is inert: runs that inherit it log a warning and continue as single-speaker.
 
@@ -413,7 +415,7 @@ bun autoshow config \
 
 ## Flags
 
-`bun autoshow config --help` is the authoritative generated flag list for this command. It includes config controls, pricing controls, YouTube cookie auth, batch defaults, Step 2 STT/OCR defaults, Step 3 LLM defaults, and post-processing defaults for TTS, image, video, and music.
+`bun autoshow config --help` is the authoritative generated flag list for this command. It includes config controls, pricing controls, YouTube cookie auth, batch defaults, concurrency defaults, Step 2 STT/OCR defaults, Step 3 LLM defaults, and post-processing defaults for TTS, image, video, and music.
 
 Command flags:
 

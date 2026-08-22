@@ -1,5 +1,4 @@
 import { copyFile, rename, rm } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
 import { basename, extname, join } from 'node:path'
 import type { DownloadAudioOptions, Step1Metadata, VideoMetadata } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
@@ -33,7 +32,7 @@ const createTempDownloadPath = (
   outputDir: string,
   prefix: string,
   extension: string
-): string => join(outputDir, `${prefix}-${randomUUID()}${extension}`)
+): string => join(outputDir, `${prefix}-${crypto.randomUUID()}${extension}`)
 
 const inferExtensionFromContentType = (contentType: string): string => (
   contentType.includes('mpeg') ? '.mp3'

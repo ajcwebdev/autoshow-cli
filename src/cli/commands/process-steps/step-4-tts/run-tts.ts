@@ -151,293 +151,254 @@ export const validateTtsRenderInputsForTargets = (
   })
 }
 
-export const runTtsTargets = async (
+type CurrentRenderAttempt = Awaited<ReturnType<typeof createCurrentTtsRenderAttempt>>
+type CompletedRenderRecovery = Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'complete-render' }>
+type PartialRenderRecovery = Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>
+type PreparedTarget = { target: TtsTarget, attempt: CurrentRenderAttempt } | { target: TtsTarget, recovery: CompletedRenderRecovery }
+
+const resolveExecutionReadinessForRun = async (
   targets: TtsTarget[],
-  text: string,
-  outputDir: string,
-  _options: TtsOptions,
   sourceContext?: TtsRunSourceContext | undefined
-): Promise<Step4Metadata[]> => {
-  validateTtsRenderInputsForTargets(targets, text, _options, sourceContext)
-  const preObservedReadiness = sourceContext?.executionReadiness
-  const hasAuthoritativeBlock = preObservedReadiness?.some((entry) => entry.status === 'blocked') ?? false
-  const locallyObservedReadiness = hasAuthoritativeBlock
+) => {
+  const preObserved = sourceContext?.executionReadiness
+  const local = preObserved?.some(entry => entry.status === 'blocked')
     ? []
     : await validateTtsTargetsForExecution(targets)
-  const executionReadiness = resolveTtsExecutionReadiness(
-    targets,
-    preObservedReadiness
-      ? mergeTtsExecutionReadinessObservations(preObservedReadiness, locallyObservedReadiness)
-      : locallyObservedReadiness
-  )
-  if (executionReadiness.blocked.length > 0) {
-    const orderedBlockedStates = await Promise.all(targets.map(async (target) => {
-      const readiness = target.targetKey ? executionReadiness.byTargetKey.get(target.targetKey) : undefined
-      if (!readiness) {
-        throw InternalError(`TTS execution readiness is missing ${target.service}/${target.model}.`, { stage: 'tts:readiness' })
-      }
-      return await createCurrentTtsBlockedReadinessState({
-        outputDir: sourceContext?.artifactOutputDir ?? outputDir,
-        artifactRoot: sourceContext?.artifactRoot,
-        target,
-        sourceText: text,
-        ttsOptions: _options,
-        sourceIdentity: sourceContext?.sourceIdentity,
-        dialoguePlan: sourceContext?.dialoguePlan,
-        comicContext: sourceContext?.comicContext,
-        readiness,
-        peerBlocked: readiness.status === 'ready'
-      })
-    }))
-    if (sourceContext?.beforeDispatch) {
-      await sourceContext.beforeDispatch(orderedBlockedStates)
-    } else {
-      await Promise.all(orderedBlockedStates.map(async (state) => await sourceContext?.onProviderState?.(state)))
-    }
-    const messages = executionReadiness.blocked.flatMap((entry) => entry.error?.message ? [entry.error.message] : [])
-    throw CLIUsageError(
-      `TTS execution readiness failed before synthesis${messages.length > 0 ? `: ${messages.join('; ')}` : '.'}`
-    )
-  }
-  const options = withRunScopedHostedTtsChunkScheduler(_options)
-  const attempts = new Map<TtsTarget, Awaited<ReturnType<typeof createCurrentTtsRenderAttempt>>>()
-  const recoveries = new Map<TtsTarget, Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'complete-render' }>>()
-  const preparedStates = new Map<TtsTarget, PipelineProviderState>()
-  let dispatchBarrierPassed = false
-  const retainedByTargetKey = new Map(sourceContext?.retainedProviderStates?.flatMap((state) => state.targetKey ? [[state.targetKey, state] as const] : []) ?? [])
-  const preparedAttempts = await Promise.all(targets.map(async (target) => {
-    const onProviderState = async (state: PipelineProviderState): Promise<void> => {
-      if (!dispatchBarrierPassed) {
-        preparedStates.set(target, state)
-        return
-      }
-      await sourceContext?.onProviderState?.(state)
-    }
-    const retainedState = target.targetKey ? retainedByTargetKey.get(target.targetKey) : undefined
-    const retainedNamespace = retainedState?.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
-    const retainedProjection = retainedState?.result?.[retainedNamespace] as {
-      activeWork?: { kind?: unknown } | undefined
-      renderHistory?: Array<{ renderIdentity?: unknown }> | undefined
-      archive?: unknown
-      selectedSuccess?: { renderIdentity?: unknown } | undefined
-    } | undefined
-    let recoveredSlots: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['recoveredSlots'] | undefined
-    let retainedCumulativePlannedCost: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['retainedCumulativePlannedCost'] | undefined
-    const plannedRenderIdentity = retainedState
-      ? planCurrentTtsRenderIdentity({
-          target,
-          sourceText: text,
-          ttsOptions: options,
-          sourceIdentity: sourceContext?.sourceIdentity,
-          dialoguePlan: sourceContext?.dialoguePlan,
-          comicContext: sourceContext?.comicContext,
-        }).renderIdentity
-      : undefined
-    const retainedHasPlannedRender = plannedRenderIdentity !== undefined && retainedProjection?.activeWork?.kind === 'render'
-      && retainedProjection.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
-    const sameRenderArchive = Boolean(retainedProjection?.archive && retainedProjection.selectedSuccess?.renderIdentity === plannedRenderIdentity)
-    if (retainedState && (retainedHasPlannedRender || sameRenderArchive)) {
-      const recovery = await prepareCurrentTtsCompletedRecovery({
-        rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
-        state: retainedState,
-        target,
-        sourceText: text,
-        ttsOptions: options,
-        sourceIdentity: sourceContext?.sourceIdentity,
-        dialoguePlan: sourceContext?.dialoguePlan,
-        comicContext: sourceContext?.comicContext,
-        onProviderState
-      })
-      if (recovery) {
-        if (recovery.kind === 'complete-render') {
-          preparedStates.set(target, recovery.preparedState)
-          return { target, recovery }
-        }
-        if (recovery.kind === 'partial-slots') recoveredSlots = recovery.recoveredSlots
-        retainedCumulativePlannedCost = recovery.retainedCumulativePlannedCost
-      }
-    }
-    if (retainedState && !retainedHasPlannedRender && !sameRenderArchive) {
-      const compatibleRecovery = await prepareCurrentTtsCompatibleSlotRecovery({
-        rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
-        outputDir: sourceContext?.artifactOutputDir ?? outputDir,
-        artifactRoot: sourceContext?.artifactRoot,
-        state: retainedState,
-        target,
-        sourceText: text,
-        ttsOptions: options,
-        sourceIdentity: sourceContext?.sourceIdentity,
-        dialoguePlan: sourceContext?.dialoguePlan,
-        comicContext: sourceContext?.comicContext
-      })
-      if (compatibleRecovery) {
-        if (compatibleRecovery.kind === 'partial-slots') recoveredSlots = compatibleRecovery.recoveredSlots
-        retainedCumulativePlannedCost = compatibleRecovery.retainedCumulativePlannedCost
-      }
-    }
-    const priorAttemptCount = retainedState
-      ? await resolveCurrentTtsPriorAdmittedAttemptCount({
-          rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
-          state: retainedState
-        })
-      : undefined
-    return {
+  return resolveTtsExecutionReadiness(targets, preObserved ? mergeTtsExecutionReadinessObservations(preObserved, local) : local)
+}
+
+const persistBlockedReadiness = async (input: {
+  targets: TtsTarget[]
+  text: string
+  outputDir: string
+  options: TtsOptions
+  sourceContext?: TtsRunSourceContext | undefined
+  readiness: ReturnType<typeof resolveTtsExecutionReadiness>
+}): Promise<never> => {
+  const states = await Promise.all(input.targets.map(async target => {
+    const readiness = target.targetKey ? input.readiness.byTargetKey.get(target.targetKey) : undefined
+    if (!readiness) throw InternalError(`TTS execution readiness is missing ${target.service}/${target.model}.`, { stage: 'tts:readiness' })
+    return await createCurrentTtsBlockedReadinessState({
+      outputDir: input.sourceContext?.artifactOutputDir ?? input.outputDir,
+      artifactRoot: input.sourceContext?.artifactRoot,
       target,
-      attempt: await createCurrentTtsRenderAttempt({
-      outputDir: sourceContext?.artifactOutputDir ?? outputDir,
-      artifactRoot: sourceContext?.artifactRoot,
+      sourceText: input.text,
+      ttsOptions: input.options,
+      sourceIdentity: input.sourceContext?.sourceIdentity,
+      dialoguePlan: input.sourceContext?.dialoguePlan,
+      comicContext: input.sourceContext?.comicContext,
+      readiness,
+      peerBlocked: readiness.status === 'ready',
+    })
+  }))
+  if (input.sourceContext?.beforeDispatch) await input.sourceContext.beforeDispatch(states)
+  else await Promise.all(states.map(async state => await input.sourceContext?.onProviderState?.(state)))
+  const messages = input.readiness.blocked.flatMap(entry => entry.error?.message ? [entry.error.message] : [])
+  throw CLIUsageError(`TTS execution readiness failed before synthesis${messages.length > 0 ? `: ${messages.join('; ')}` : '.'}`)
+}
+
+const recoveryRoot = (outputDir: string, sourceContext?: TtsRunSourceContext | undefined): string =>
+  sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir
+
+const prepareTargetForExecution = async (input: {
+  target: TtsTarget
+  text: string
+  outputDir: string
+  options: TtsOptions
+  sourceContext?: TtsRunSourceContext | undefined
+  retainedByTargetKey: ReadonlyMap<string, PipelineProviderState>
+  preparedStates: Map<TtsTarget, PipelineProviderState>
+  dispatchBarrier: { passed: boolean }
+}): Promise<PreparedTarget> => {
+  const { target, text, outputDir, options, sourceContext } = input
+  const onProviderState = async (state: PipelineProviderState): Promise<void> => {
+    if (!input.dispatchBarrier.passed) input.preparedStates.set(target, state)
+    else await sourceContext?.onProviderState?.(state)
+  }
+  const retainedState = target.targetKey ? input.retainedByTargetKey.get(target.targetKey) : undefined
+  const retainedNamespace = retainedState?.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
+  const projection = retainedState?.result?.[retainedNamespace] as {
+    activeWork?: { kind?: unknown } | undefined
+    renderHistory?: Array<{ renderIdentity?: unknown }> | undefined
+    archive?: unknown
+    selectedSuccess?: { renderIdentity?: unknown } | undefined
+  } | undefined
+  let recoveredSlots: PartialRenderRecovery['recoveredSlots'] | undefined
+  let retainedCumulativePlannedCost: PartialRenderRecovery['retainedCumulativePlannedCost'] | undefined
+  const plannedRenderIdentity = retainedState ? planCurrentTtsRenderIdentity({
+    target,
+    sourceText: text,
+    ttsOptions: options,
+    sourceIdentity: sourceContext?.sourceIdentity,
+    dialoguePlan: sourceContext?.dialoguePlan,
+    comicContext: sourceContext?.comicContext,
+  }).renderIdentity : undefined
+  const hasPlannedRender = plannedRenderIdentity !== undefined && projection?.activeWork?.kind === 'render'
+    && projection.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
+  const sameRenderArchive = Boolean(projection?.archive && projection.selectedSuccess?.renderIdentity === plannedRenderIdentity)
+  if (retainedState && (hasPlannedRender || sameRenderArchive)) {
+    const recovery = await prepareCurrentTtsCompletedRecovery({
+      rootDir: recoveryRoot(outputDir, sourceContext),
+      state: retainedState,
       target,
       sourceText: text,
       ttsOptions: options,
       sourceIdentity: sourceContext?.sourceIdentity,
       dialoguePlan: sourceContext?.dialoguePlan,
       comicContext: sourceContext?.comicContext,
-      priorAttemptCount,
-      recoveredSlots,
-      retainedCumulativePlannedCost,
-      onProviderState
+      onProviderState,
     })
+    if (recovery?.kind === 'complete-render') {
+      input.preparedStates.set(target, recovery.preparedState)
+      return { target, recovery }
     }
-  }))
-  for (const entry of preparedAttempts) {
-    if ('attempt' in entry) attempts.set(entry.target, entry.attempt)
-    else recoveries.set(entry.target, entry.recovery)
+    if (recovery?.kind === 'partial-slots') recoveredSlots = recovery.recoveredSlots
+    if (recovery) retainedCumulativePlannedCost = recovery.retainedCumulativePlannedCost
   }
-  const orderedPreparedStates = targets.map((target) => {
-    const state = preparedStates.get(target)
+  if (retainedState && !hasPlannedRender && !sameRenderArchive) {
+    const recovery = await prepareCurrentTtsCompatibleSlotRecovery({
+      rootDir: recoveryRoot(outputDir, sourceContext),
+      outputDir: sourceContext?.artifactOutputDir ?? outputDir,
+      artifactRoot: sourceContext?.artifactRoot,
+      state: retainedState,
+      target,
+      sourceText: text,
+      ttsOptions: options,
+      sourceIdentity: sourceContext?.sourceIdentity,
+      dialoguePlan: sourceContext?.dialoguePlan,
+      comicContext: sourceContext?.comicContext,
+    })
+    if (recovery?.kind === 'partial-slots') recoveredSlots = recovery.recoveredSlots
+    if (recovery) retainedCumulativePlannedCost = recovery.retainedCumulativePlannedCost
+  }
+  const priorAttemptCount = retainedState ? await resolveCurrentTtsPriorAdmittedAttemptCount({ rootDir: recoveryRoot(outputDir, sourceContext), state: retainedState }) : undefined
+  const attempt = await createCurrentTtsRenderAttempt({
+    outputDir: sourceContext?.artifactOutputDir ?? outputDir,
+    artifactRoot: sourceContext?.artifactRoot,
+    target,
+    sourceText: text,
+    ttsOptions: options,
+    sourceIdentity: sourceContext?.sourceIdentity,
+    dialoguePlan: sourceContext?.dialoguePlan,
+    comicContext: sourceContext?.comicContext,
+    priorAttemptCount,
+    recoveredSlots,
+    retainedCumulativePlannedCost,
+    onProviderState,
+  })
+  return { target, attempt }
+}
+
+const publishPreparedStatesBeforeDispatch = async (input: {
+  targets: TtsTarget[]
+  preparedStates: ReadonlyMap<TtsTarget, PipelineProviderState>
+  sourceContext?: TtsRunSourceContext | undefined
+  dispatchBarrier: { passed: boolean }
+}): Promise<void> => {
+  const states = input.targets.map(target => {
+    const state = input.preparedStates.get(target)
     if (!state) throw InternalError(`Missing prepared TTS provider state for ${target.service}/${target.model}.`, { stage: 'tts:run' })
     return state
   })
-  if (sourceContext?.beforeDispatch) {
-    await sourceContext.beforeDispatch(orderedPreparedStates)
-  } else {
-    await Promise.all(orderedPreparedStates.map(async (state) => await sourceContext?.onProviderState?.(state)))
+  if (input.sourceContext?.beforeDispatch) await input.sourceContext.beforeDispatch(states)
+  else await Promise.all(states.map(async state => await input.sourceContext?.onProviderState?.(state)))
+  input.dispatchBarrier.passed = true
+}
+
+const runPreparedTtsTarget = async (input: {
+  target: TtsTarget
+  workspaceDir: string
+  targets: TtsTarget[]
+  text: string
+  outputDir: string
+  options: TtsOptions
+  sourceContext?: TtsRunSourceContext | undefined
+  attempts: ReadonlyMap<TtsTarget, CurrentRenderAttempt>
+  recoveries: ReadonlyMap<TtsTarget, CompletedRenderRecovery>
+}): Promise<WorkingTtsResult> => {
+  const { target, targets, sourceContext, outputDir, options } = input
+  const targetIndex = targets.indexOf(target)
+  const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator?.kind === 'batch-item' ? sourceContext.sourceIdentity.sourceLocator.itemIndex : 0
+  const schedulerJob = { jobId: `tts-input-${sourceInputIndex}-target-${targetIndex}`, label: `input-${sourceInputIndex + 1}-target-${targetIndex + 1}`, inputIndex: sourceInputIndex, targetIndex, originalOrder: sourceInputIndex * targets.length + targetIndex }
+  const defaultFileName = getTtsArtifactFileName(target, targets.length === 1)
+  const reportedOutput = sourceContext?.resolveReportedOutput?.(target, defaultFileName) ?? { path: `${outputDir}/${defaultFileName}`, fileName: defaultFileName }
+  const recovery = input.recoveries.get(target)
+  if (recovery) {
+    const startedAt = Date.now()
+    return buildWorkingTtsResult({ mode: 'local-finalize', target, reportedOutput, startedAt, chunkCount: recovery.chunkCount, renderArtifacts: await recovery.finalize(input.workspaceDir, reportedOutput.path) })
   }
-  dispatchBarrierPassed = true
+  const attempt = input.attempts.get(target)
+  if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
+  let providerRunCompleted = false
+  try {
+    if (!attempt.providerDispatchRequired) {
+      providerRunCompleted = true
+      return buildWorkingTtsResult({ mode: 'local-finalize', target, reportedOutput, startedAt: Date.now(), chunkCount: attempt.plannedChunkCount, renderArtifacts: await attempt.finalizeSuccess('', reportedOutput.path) })
+    }
+    const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
+    const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler ? {
+      ...boundedOptions,
+      hostedTtsChunkJobContext: schedulerJob,
+      hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(boundedOptions.hostedTtsChunkScheduler, { job: schedulerJob, scopeLabel: boundedOptions.hostedTtsLaneScopeLabel }),
+    } : boundedOptions
+    const { audioPath, metadata: rawMetadata } = await target.run(input.text, input.workspaceDir, executionOptions, undefined, attempt.requestEvidence)
+    providerRunCompleted = true
+    const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
+    if (attempt.executionSelection) return buildWorkingTtsResult({ mode: 'generation-checkpoint', metadata, audioPath, audioFileName: rawMetadata.audioFileName, checkpoint: await attempt.finalizeCheckpoint() })
+    return buildWorkingTtsResult({ mode: 'provider-render', metadata, reportedOutput, renderArtifacts: await attempt.finalizeSuccess(audioPath, reportedOutput.path) })
+  } catch (error) {
+    const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
+    const sanitized = failure.error as SanitizedProviderError | undefined
+    const providerDiagnostic = sanitized ? [sanitized.message, sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined, sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined].filter((value): value is string => value !== undefined).join(' ') : 'TTS target failed without exposing provider response details.'
+    const recoveryDiagnostic = await describeFailedTtsRecovery({ rootDir: recoveryRoot(outputDir, sourceContext), state: failure, target, sourceText: input.text, ttsOptions: options, sourceContext })
+    throw InfraError(recoveryDiagnostic ? `${providerDiagnostic} ${recoveryDiagnostic}` : providerDiagnostic, {
+      stage: sanitized?.stage ?? `tts:${target.service}`,
+      ...(sanitized?.status !== undefined ? { status: sanitized.status } : {}),
+      ...(sanitized?.retryable !== undefined ? { retryable: sanitized.retryable } : {}),
+      cause: error instanceof Error ? error : new Error(String(error)),
+      metadata: sanitized ? { sanitizedProviderError: sanitized } : {},
+    })
+  }
+}
+
+export const runTtsTargets = async (
+  targets: TtsTarget[],
+  text: string,
+  outputDir: string,
+  rawOptions: TtsOptions,
+  sourceContext?: TtsRunSourceContext | undefined
+): Promise<Step4Metadata[]> => {
+  validateTtsRenderInputsForTargets(targets, text, rawOptions, sourceContext)
+  const readiness = await resolveExecutionReadinessForRun(targets, sourceContext)
+  if (readiness.blocked.length > 0) await persistBlockedReadiness({ targets, text, outputDir, options: rawOptions, sourceContext, readiness })
+  const options = withRunScopedHostedTtsChunkScheduler(rawOptions)
+  const preparedStates = new Map<TtsTarget, PipelineProviderState>()
+  const dispatchBarrier = { passed: false }
+  const retainedByTargetKey = new Map(sourceContext?.retainedProviderStates?.flatMap(state => state.targetKey ? [[state.targetKey, state] as const] : []) ?? [])
+  const prepared = await Promise.all(targets.map(async target => await prepareTargetForExecution({ target, text, outputDir, options, sourceContext, retainedByTargetKey, preparedStates, dispatchBarrier })))
+  const attempts = new Map<TtsTarget, CurrentRenderAttempt>()
+  const recoveries = new Map<TtsTarget, CompletedRenderRecovery>()
+  for (const entry of prepared) {
+    if ('attempt' in entry) attempts.set(entry.target, entry.attempt)
+    else recoveries.set(entry.target, entry.recovery)
+  }
+  await publishPreparedStatesBeforeDispatch({ targets, preparedStates, sourceContext, dispatchBarrier })
   return await runTargets<TtsTarget, Step4Metadata>({
     targets,
     outputDir,
     stepLabel: 'TTS',
     noProviderMessage: 'No provider produced audio',
-    concurrency: {
-      provider: options.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
-      local: options.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
-    },
+    concurrency: { provider: options.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY, local: options.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY },
     getTargetPool: () => 'hosted',
-    getWorkspaceDir: (dir, target) =>
-      `${dir}/.tts-tmp-${target.service}-${sanitizeModelName(target.model)}`,
+    getWorkspaceDir: (dir, target) => `${dir}/.tts-tmp-${target.service}-${sanitizeModelName(target.model)}`,
     useWorkspaceForSingleTarget: true,
     preserveWorkspaceOnFailure: true,
     resourceGate: options.generationResourceGate,
-    runTarget: async (target, workspaceDir) => {
-      const targetIndex = targets.indexOf(target)
-      const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator?.kind === 'batch-item'
-        ? sourceContext.sourceIdentity.sourceLocator.itemIndex
-        : 0
-      const schedulerJob = {
-        jobId: `tts-input-${sourceInputIndex}-target-${targetIndex}`,
-        label: `input-${sourceInputIndex + 1}-target-${targetIndex + 1}`,
-        inputIndex: sourceInputIndex,
-        targetIndex,
-        originalOrder: sourceInputIndex * targets.length + targetIndex
-      }
-      const defaultFileName = getTtsArtifactFileName(target, targets.length === 1)
-      const reportedOutput = sourceContext?.resolveReportedOutput?.(target, defaultFileName)
-        ?? { path: `${outputDir}/${defaultFileName}`, fileName: defaultFileName }
-      const recovery = recoveries.get(target)
-      if (recovery) {
-        const startedAt = Date.now()
-        return buildWorkingTtsResult({
-          mode: 'local-finalize',
-          target,
-          reportedOutput,
-          startedAt,
-          chunkCount: recovery.chunkCount,
-          renderArtifacts: await recovery.finalize(workspaceDir, reportedOutput.path)
-        })
-      }
-      const attempt = attempts.get(target)
-      if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
-      let providerRunCompleted = false
-      try {
-        if (!attempt.providerDispatchRequired) {
-          providerRunCompleted = true
-          const startedAt = Date.now()
-          return buildWorkingTtsResult({
-            mode: 'local-finalize',
-            target,
-            reportedOutput,
-            startedAt,
-            chunkCount: attempt.plannedChunkCount,
-            renderArtifacts: await attempt.finalizeSuccess('', reportedOutput.path)
-          })
-        }
-        const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
-        const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler
-          ? {
-              ...boundedOptions,
-              hostedTtsChunkJobContext: schedulerJob,
-              hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(
-                boundedOptions.hostedTtsChunkScheduler,
-                {
-                  job: schedulerJob,
-                  scopeLabel: boundedOptions.hostedTtsLaneScopeLabel
-                }
-              )
-            }
-          : boundedOptions
-        const { audioPath, metadata: rawMetadata } = await target.run(text, workspaceDir, executionOptions, undefined, attempt.requestEvidence)
-        providerRunCompleted = true
-        const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
-        if (attempt.executionSelection) {
-          return buildWorkingTtsResult({
-            mode: 'generation-checkpoint',
-            metadata,
-            audioPath,
-            audioFileName: rawMetadata.audioFileName,
-            checkpoint: await attempt.finalizeCheckpoint()
-          })
-        }
-        return buildWorkingTtsResult({
-          mode: 'provider-render',
-          metadata,
-          reportedOutput,
-          renderArtifacts: await attempt.finalizeSuccess(audioPath, reportedOutput.path)
-        })
-      } catch (error) {
-        const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
-        const sanitized = failure.error as SanitizedProviderError | undefined
-        const providerDiagnostic = sanitized
-          ? [
-              sanitized.message,
-              sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined,
-              sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined
-            ].filter((value): value is string => value !== undefined).join(' ')
-          : 'TTS target failed without exposing provider response details.'
-        const recoveryDiagnostic = await describeFailedTtsRecovery({
-          rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
-          state: failure,
-          target,
-          sourceText: text,
-          ttsOptions: options,
-          sourceContext
-        })
-        const diagnosticMessage = recoveryDiagnostic
-          ? `${providerDiagnostic} ${recoveryDiagnostic}`
-          : providerDiagnostic
-        throw InfraError(diagnosticMessage, {
-          stage: sanitized?.stage ?? `tts:${target.service}`,
-          ...(sanitized?.status !== undefined ? { status: sanitized.status } : {}),
-          ...(sanitized?.retryable !== undefined ? { retryable: sanitized.retryable } : {}),
-          cause: error instanceof Error ? error : new Error(String(error)),
-          metadata: sanitized ? { sanitizedProviderError: sanitized } : {}
-        })
-      }
-    },
+    runTarget: async (target, workspaceDir) => await runPreparedTtsTarget({ target, workspaceDir, targets, text, outputDir, options, sourceContext, attempts, recoveries }),
     finalizeTarget: async (_target, result) => {
       const { _renderArtifacts: _ignoredArtifacts, ...metadata } = result as WorkingTtsResult
       return metadata as Step4Metadata
-    }
+    },
   })
 }
 

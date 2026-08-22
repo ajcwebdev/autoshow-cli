@@ -13,12 +13,12 @@ Reference for public output artifacts, the canonical pipeline manifest, runtime 
 
 ```
 output/
-  YYYY-MM-DD_HH-MM-SS_<title>/
+  YYYY-MM-DD_HH-MM-SS-mmm_<title>/
     manifest.json
 
     # media extract/write
-    audio.(mp3|m4a|ogg|flac)
-    source_media.(m4a|mp3)             # staged artifact when materialized in run dir
+    <publish-date>-<title-slug>.(mp3|m4a|ogg|flac)   # normalized media artifact
+    source_media.(mp3|m4a|ogg|flac)    # staged artifact when materialized in run dir
     transcription.txt                  # single-provider or primary text output
     youtube-captions.vtt               # when --youtube-captions succeeds
     youtube-captions.json
@@ -30,14 +30,15 @@ output/
     text-<model>.md
     show-note.md
     show-note-<model>.md
-    providers/<provider-model>/
+    providers/<service>-<model>/
       transcription.txt
       result.json                      # raw domain result payload
 
     # document/article extract/write
     extraction.txt
     result.json                        # raw structured extract/domain payload
-    providers/<provider-or-backend>/
+    providers/<service>-<model>/       # OCR targets
+    providers/<backend>/               # HTML article backends
       extraction.txt
       result.json                      # raw domain result payload
     prompt.md
@@ -46,9 +47,9 @@ output/
     text.md | text-<model>.md
     show-note.md | show-note-<model>.md
 
-    # standalone generation
-    speech.wav | speech.mp3 | ...
-    generated-image.*
+    # standalone generation; multi-target runs suffix the stem with -<provider>-<model>
+    speech.wav
+    generated-image.*                  # extra images append -<n>
     generated-video.mp4
     generated-music.mp3
 
@@ -139,7 +140,7 @@ Batch items use the same item shape. A route parent adds a child link without ch
   "input": "input/file.pdf",
   "inputFamily": "document",
   "extractRoute": "document",
-  "outputDir": "document/2026-08-10_12-00-00_file",
+  "outputDir": "document/2026-08-10-file",
   "child": {
     "route": "document",
     "index": 0,
@@ -153,31 +154,39 @@ Batch items use the same item shape. A route parent adds a child link without ch
 
 `source` is optional top-level business data for source-backed work such as podcast feeds or YouTube collections.
 
-Provider directories may retain raw user-facing domain results, but those files are not manifests and do not control resume:
+Provider directories may retain raw user-facing domain results, but those files are not manifests and do not control resume. Provider and service identity comes from the enclosing `providers/<service>-<model>` directory and the manifest provider state, so `result.json` holds the unwrapped domain payload — a `TranscriptionResult` for STT, an `ExtractionResult` for OCR and URL backends:
 
 ```json
 {
-  "provider": "whisper",
-  "model": "small",
-  "metadata": {},
-  "result": {}
+  "text": "…",
+  "segments": []
 }
 ```
 
-A single reader validates this structure, timestamps, enumerated values, status consistency, and path containment. A serialized atomic writer manages all creation and in-progress provider lifecycle updates.
+A single reader validates this structure, timestamps, enumerated values, status consistency, path containment, and the referenced projection artifacts. A serialized atomic writer manages all creation and in-progress provider lifecycle updates.
 
 ## Runtime Layout
 
 ```
 runtime/
-  bin/
+  bin/                           # managed binaries and symlinks into tools/
     whisper-cli
+    yt-dlp
+    ffmpeg, ffprobe, mutool, tesseract, qpdf, ebook-convert
     whisperfile/                 # prebuilt Mozilla whisperfiles (downloaded on demand)
-  build/
+  build/                         # source checkouts and build trees
     whisper.cpp/
+  tools/                         # installed tool prefixes
+    ffmpeg/, lame/, mupdf/, calibre/, leptonica/, tesseract/, tessdata/, qpdf/
   models/
     whisper/
+  defuddle/                      # managed defuddle CLI install
+  synthesis-cache/v1/            # sound-effect synthesis cache
+  protected-voice-assets/managed-v1/
+  setup-performance/
 ```
+
+The global `--bin-dir` flag overrides `runtime/bin` for external tool lookup; a tool present in that directory takes precedence over the managed install and `PATH`.
 
 Process locks use an internal default location under `~/.cache/autoshow-cli/process-locks`.
 
@@ -230,19 +239,23 @@ Process command and runtime option families:
 ```
 ProcessCommand =
   "metadata" | "download" | "extract" | "write" |
-  "tts" | "image" | "music" | "video" | "comic"
+  "tts" | "image" | "video" | "music" | "comic"
 
 Flag/config resolution context:
   merged/configured/explicit flags
   normalized repeatable model selections
   command-neutral resolution state
 
+WriteRuntimeOptions:
+  the composed media/document write pipeline (STT, OCR, URL, LLM, batch, prompt, pricing, download, metadata output)
+
 ProcessingOptions:
-  only the composed media/document write pipeline (STT, OCR, URL, LLM, batch, pricing)
+  the narrower per-item processing surface (source, STT, LLM, optional write controls, output dir)
 
 Domain option slices:
-  STT, OCR, URL, LLM, TTS, image, video, music, comic, batch, and pricing
+  STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing
   each consumer requests only its domain plus named shared controls
+  the comic command consumes raw CLI flags rather than a runtime option slice
 ```
 
 Provider unions:
@@ -251,7 +264,7 @@ Provider unions:
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TtsProvider`          | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
 | `ImageProvider`        | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`                                                                                                       |
-| `VideoProvider`        | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                              |
+| `VideoProvider`        | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                                                 |
 | `MusicProvider`        | `elevenlabs`, `minimax`, `gemini`                                                                                                                                       |
 | `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`                                                         |
 | `HtmlArticleBackend`   | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`                                                                                                     |
@@ -268,7 +281,7 @@ Important metadata fields by step:
 
 | Step              | Metadata highlights                                                                                                                                                                                                                                                                                                                    |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Step 1 media      | title, slug, duration, author, source URL/path, publish metadata, audio file name/size, and staged source media details.                                                                                                                                                                                                               |
+| Step 1 media      | title, slug, duration, author, source URL/path, publish metadata, audio file name/size, and original media file name/size/kind when the source media is retained.                                                                                                                                                                      |
 | Step 1 document   | title, slug, author, page count when available, format, file size, source URL/path.                                                                                                                                                                                                                                                    |
 | Step 2 STT        | transcription service, model, output files, segment counts, token/character counts, timings, runtime/provider info, billing/cost fields, caption fields `captionKind`, `captionLanguage`, `captionFormat` for YouTube captions.                                                                                                        |
 | Step 2 extraction | extraction method, provider/model/backend, format, page counts, OCR/text page counts, language/DPI/chapter fields, HTML/web/source info, conversion/normalization details, provider cost/usage and timing.                                                                                                                             |
@@ -277,6 +290,6 @@ Important metadata fields by step:
 | Step 5 image      | image provider/model, file names/sizes, image count/dimensions, size/quality/format, request mode, revised prompt, returned model, moderation/grounding, provider cost.                                                                                                                                                                |
 | Step 6 video      | video provider/model, file name/size/duration, request mode, resolution/aspect ratio, input/reference media, provider IDs/URLs/progress/moderation/storage, provider cost.                                                                                                                                                             |
 | Step 7 music      | music provider/model, file name/size/duration, lyrics source, generated lyrics/title/style fields, audio technical metadata, provider IDs/traces, provider cost.                                                                                                                                                                       |
-| Step 8 comic      | script slug, stage progress (structure, image, audio), character catalog, scene run identity, structured script, dialogue plan, snapshot, and selected audio runs.                                                                                                                                                                     |
+| Step 8 comic      | stage progress (structure, image, audio, presentation), scene run identity, structured script, dialogue plan, voice snapshot, selected audio and soundscape runs, and presentation refs. The script slug and content identity live in the manifest `source` block.                                                                     |
 
 Item metadata commonly includes cost, timing, errors, and route-specific evidence such as `resolvedStep2` and `web`. Completion and provider progress live only in the canonical item `status` and `providers` fields; requested, missing, and blocked lists are derived views rather than duplicated persisted state.

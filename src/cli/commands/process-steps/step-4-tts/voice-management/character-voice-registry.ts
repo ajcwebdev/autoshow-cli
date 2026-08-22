@@ -1,6 +1,6 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { link, mkdir, readFile, unlink } from 'node:fs/promises'
+import { link, mkdir, readFile } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, join, resolve } from 'node:path'
 import type {
   CharacterVoiceBrief,
@@ -76,7 +76,7 @@ export const writeCreateOnlyJson = async (path: string, value: unknown): Promise
     if (await readFile(path, 'utf8') !== bytes) throw ValidationError(`Create-only voice artifact conflicts with existing bytes at ${path}.`, { stage: 'comic:voice-registry' })
     return
   }
-  const temporary = `${path}.tmp-${randomUUID()}`
+  const temporary = `${path}.tmp-${crypto.randomUUID()}`
   await Bun.write(temporary, bytes)
   try {
     await link(temporary, path)
@@ -215,7 +215,7 @@ export const loadApprovedVoiceAudition = async (
 }
 
 const registryLockName = (charactersRoot: string): string =>
-  `comic-voice-registry-${createHash('sha256').update(resolve(charactersRoot)).digest('hex').slice(0, 24)}`
+  `comic-voice-registry-${new Bun.CryptoHasher('sha256').update(resolve(charactersRoot)).digest('hex').slice(0, 24)}`
 
 const withCharacterVoiceRegistryLock = async <T>(charactersRoot: string, run: () => Promise<T>): Promise<T> =>
   await withProcessLock(registryLockName(charactersRoot), run)

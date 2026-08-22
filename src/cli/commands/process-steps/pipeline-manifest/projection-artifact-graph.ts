@@ -1,12 +1,11 @@
-import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { createHash } from 'node:crypto'
 import type {
   PipelineManifest,
   PipelineManifestItem,
   ProviderRenderPlan
 } from '~/types'
 import { isRecord } from '~/utils/rest-client'
+import { readFileBytes } from '~/utils/bun-file-io'
 import {
   validateGenericTtsDialoguePlan,
   validateProviderRenderPlanIdentity
@@ -68,8 +67,8 @@ export const verifyManifestProjectionArtifacts = async (
     for (const ref of references) {
       if (!isSafeRelativePath(rootDir, ref.path)) return false
       try {
-        const bytes = await readFile(resolve(rootDir, ref.path))
-        if (createHash('sha256').update(bytes).digest('hex') !== ref.sha256) return false
+        const bytes = await readFileBytes(resolve(rootDir, ref.path))
+        if (new Bun.CryptoHasher('sha256').update(bytes).digest('hex') !== ref.sha256) return false
       } catch {
         return false
       }
@@ -102,8 +101,8 @@ export const verifyManifestProjectionArtifacts = async (
         for (const render of projection['renderHistory']) {
           if (!isRecord(render) || typeof render['renderPlanRef'] !== 'string' || !isSha256(render['renderPlanSha256'])) return false
           const planPath = resolve(rootDir, provider.artifactDir, render['renderPlanRef'])
-          const planBytes = await readFile(planPath)
-          if (createHash('sha256').update(planBytes).digest('hex') !== render['renderPlanSha256']) return false
+          const planBytes = await readFileBytes(planPath)
+          if (new Bun.CryptoHasher('sha256').update(planBytes).digest('hex') !== render['renderPlanSha256']) return false
           const planValue = JSON.parse(planBytes.toString('utf8')) as unknown
           if (!isRecord(planValue)) return false
           const renderPlan = validateProviderRenderPlanIdentity(planValue as unknown as ProviderRenderPlan)

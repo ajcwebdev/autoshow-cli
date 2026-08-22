@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
-import { unlink, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import { getDocumentInfo } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
@@ -86,7 +86,7 @@ const tokenEstimateMetadata = (
 })
 
 const downloadToTemp = async (url: string): Promise<string> => {
-  const tempPath = join(tmpdir(), `autoshow-price-${randomUUID()}.pdf`)
+  const tempPath = join(tmpdir(), `autoshow-price-${crypto.randomUUID()}.pdf`)
   const response = await fetch(url)
   if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
   const buffer = Buffer.from(await response.arrayBuffer())

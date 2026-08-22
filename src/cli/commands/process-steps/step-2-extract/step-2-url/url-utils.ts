@@ -1,10 +1,10 @@
-import { stat } from 'node:fs/promises'
 import { basename, resolve as pathResolve } from 'node:path'
+import { statPath as stat } from '~/utils/bun-file-io'
 import * as l from '~/utils/app-logger/app-logger'
 import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlArticleScrapeRunner, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ProviderError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
+import { InfraError, ProviderError, ValidationError } from '~/utils/error-handler'
 import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
@@ -165,20 +165,16 @@ export const withUrlProviderTimeout = async <T>(
 }
 
 export const requireHostedUrlProviderApiKey = (
-  envVar: string,
   providerId: string,
   stage: string,
   usingHostedApi: boolean
 ): string | undefined => {
-  const apiKey = readEnv(envVar)
-  if (usingHostedApi && !apiKey) {
-    throw InternalError(
-      `${envVar} is required for --url-provider ${providerId} when using the hosted API. ` +
-      `Set ${envVar} or use a different URL backend.`,
-      { stage, hints: hintsForMissingEnv(envVar) }
-    )
-  }
-  return apiKey
+  const observation = resolveCredential(providerId, 'observe', {
+    description: `--url-provider ${providerId}`
+  })
+  return usingHostedApi
+    ? resolveCredential(providerId, 'require', { stage, description: `--url-provider ${providerId}` })
+    : observation.value
 }
 
 export const fetchUrlProviderJson = async (

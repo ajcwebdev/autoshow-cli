@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -155,7 +155,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The shared queue, claims, lane caps, retirement, handoff, exhaustion, and telemetry are implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`. Compatible page preparation, isolated attempt execution, composite assembly, and canonical checkpoints are implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`. Canonical manifest persistence for Step 2 records and the `ocrPool` ledger is governed by `src/cli/commands/process-steps/pipeline-manifest.ts`.
+The shared queue, claims, lane caps, retirement, handoff, exhaustion, and telemetry are implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-page-pool-state.ts`, with worker admission and claim execution in `ocr-page-pool-workers.ts` and the local/hosted lane classification and hosted priority order shared with the target pool in `ocr-pool-scheduling.ts`; `ocr-provider-pool.ts` composes them behind `runOcrPagePool` and `runOcrProviderTargetPools`. Compatible page preparation, isolated attempt execution, composite assembly, and canonical checkpoints are implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`. Canonical manifest persistence for Step 2 records and the `ocrPool` ledger is governed by `src/cli/commands/process-steps/pipeline-manifest.ts`.
 
 Option resolution exposes `--ocr-provider-mode` across `extract`, `write`, `resume`, and configuration files. Resume preserves the recorded mode, admits additive or explicitly re-enabled targets following registry validation, converts interrupted claims to unfinished work, and prices only pending pages. Hosted response cache identity incorporates pool mode alongside model, format, and reasoning parameters.
 
@@ -193,7 +193,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — Shared queue, work selection, target admission, concurrency multiplication, and lane policy
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR execution, attribution, artifacts, failures, cache identity, profiles, and diagnostics
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — Concrete model identity, lifecycle eligibility, capabilities, reasoning, pricing provenance, and hosted cache identity
-- Pool scheduler: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`
+- Pool scheduler: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-page-pool-state.ts`, `ocr-page-pool-workers.ts`, and `ocr-pool-scheduling.ts`, composed by `ocr-provider-pool.ts`
 - Pool orchestration: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`
 - Canonical manifest: `src/cli/commands/process-steps/pipeline-manifest.ts`
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`

@@ -18,7 +18,7 @@ bun autoshow resume <outputDirs...> [flags]
 - With no provider flags, it reads each canonical item’s `providers` entries and reruns only entries whose status is `missing` or `failed`. Write LLM resume requires explicit provider selection by policy.
 - Explicit provider flags are additive: selected provider/models are appended to the set derived from canonical provider entries and skipped if they already succeeded.
 - When multiple directories are provided, `resume` processes them sequentially with the same flags, continues after per-directory failures, and reports any failures together at the end.
-- Parent `extract` batch resumes follow containment-checked `{ route, index, manifestDir }` child links and route selections to the linked `media`, `document`, `article`, or `x-space` canonical child manifest.
+- Parent `extract` batch resumes follow containment-checked `{ route, index, manifestDir }` child links and route selections to the linked `media`, `document`, or `article` canonical child manifest. `x-space` runs are not resumable and are rejected with a usage error.
 - TTS/image/video/music resumes require a canonical item with an input and provider entries.
 - Write resumes require a canonical single-run manifest with `command: "write"`, `prompt.md`, and item `metadata.step3`.
 - `--price` resolves the same missing or additive providers and prints a dry-run cost estimate without calling providers or writing manifests/artifacts.
@@ -42,12 +42,12 @@ Examples of provider names:
 | Target      | Provider names                                                                                                                                                                                           |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | STT extract | `whisper`, `whisperfile`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together` |
-| OCR extract | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`                                                                                                              |
+| OCR extract | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`                                                                                          |
 | URL extract | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`                                                                                                                                      |
 | Write LLM   | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`                                                                                                        |
-| TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`                                                                                      |
+| TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`                                  |
 | Image       | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`                                                                                                                                        |
-| Video       | `gemini`, `minimax`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                                                                         |
+| Video       | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`                                                                                                                                                   |
 | Music       | `elevenlabs`, `minimax`, `gemini`                                                                                                                                                                        |
 
 ## Examples
@@ -139,7 +139,7 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 | `--ocr-dpi <n>`                     | Render DPI for OCR pages                                                                                                          |
 | `--ocr-concurrency <n>`             | Page-level OCR concurrency cap; local OCR defaults to `10`, hosted OCR defaults to auto, and explicit values are hosted hard caps |
 | `--ocr-provider-mode <fanout|pool>` | Optional stored-mode assertion for OCR resume; omission preserves the mode in `manifest.json`, and a mismatch is rejected         |
-| `--reasoning-effort <policy>`       | Reasoning effort policy: `low`, `medium`, `high`, `minimal`, or `extended` (default delegates to the provider)                    |
+| `--reasoning-effort <policy>`       | Reasoning effort policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max` (default delegates to the provider)  |
 | `--chapters`, `--no-chapters`       | Write or suppress EPUB/PDF chapter files when rebuilding extraction artifacts                                                     |
 | `--length <thousands>`              | Hard export limit in thousands of characters for EPUB/PDF chunking                                                                |
 | `--pdf-chapter-mode <mode>`         | PDF chapter detection mode: `local`, `auto`, or `llm`                                                                             |
@@ -154,6 +154,7 @@ Resume accepts only provider-neutral TTS options. Provider-named tuning flags su
 
 | Flag                                                            | Description                                                                                                                     |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--allow-ambiguous-redispatch`                                  | Authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                               |
 | `--tts-voice <provider=value|value>`                            | Generic TTS voice selector                                                                                                      |
 | `--tts-speed <provider=value|value>`                            | Generic TTS speed                                                                                                               |
 | `--tts-language <provider=value|value>`                         | Generic TTS language                                                                                                            |

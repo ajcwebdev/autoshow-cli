@@ -9,6 +9,7 @@ import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, r
 import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, normalizeInworldTimestampInfo } from './inworld-tts-request'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 export const parseInworldMarkups = (text: string): { sanitizedText: string, markups: string[] } => {
   const markups = [...text.matchAll(/\[([^\]\r\n]+)\]/g)].map(match => match[1] as string)
@@ -20,9 +21,7 @@ export const runInworldTts = async (
   outputDir: string,
   options: RunInworldTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (!options.apiKey.trim()) {
-    throw ValidationError('Inworld AI API key is required', { stage: 'tts:inworld' })
-  }
+  const apiKey = requireProvidedApiKey(options.apiKey, 'INWORLD_API_KEY', 'tts:inworld', 'Inworld AI TTS')
   const voice = validateInworldTtsVoice(options.voiceId?.trim() || INWORLD_DEFAULT_TTS_VOICE)
   const { sanitizedText, markups } = parseInworldMarkups(text)
   const chunks = splitTextIntoChunks(sanitizedText, TTS_CHUNK_CHARACTER_LIMITS.inworld ?? 2000)
@@ -76,7 +75,7 @@ export const runInworldTts = async (
         },
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
-        const authHeader = options.apiKey.startsWith('Basic ') ? options.apiKey : `Basic ${options.apiKey}`
+        const authHeader = apiKey.startsWith('Basic ') ? apiKey : `Basic ${apiKey}`
         const res = await fetch('https://api.inworld.ai/tts/v1/voice', {
           method: 'POST',
           headers: {

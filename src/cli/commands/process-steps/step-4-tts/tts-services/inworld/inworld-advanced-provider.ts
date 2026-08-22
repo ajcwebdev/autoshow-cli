@@ -10,6 +10,7 @@ import {
 import { createProviderRecordReader, trimmedString } from '../advanced-provider-json'
 import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceCloneAuthorized, createRemoteResourceVoiceLifecycle } from '../advanced-voice-provider-shell'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const DOCS = {
   synthesis: 'https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech',
@@ -76,8 +77,7 @@ export const mapInworldVoice = (value: unknown): ProviderVoiceCatalogEntry => {
 export const createInworldAdvancedProvider = (
   options: CreateInworldAdvancedProviderOptions
 ): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
-  const apiKey = options.apiKey.trim()
-  if (!apiKey) throw CLIUsageError('Inworld AI API key is required for capability inspection.')
+  const apiKey = requireProvidedApiKey(options.apiKey, 'INWORLD_API_KEY', 'voice:inworld', 'Inworld capability inspection')
   const request = options.request ?? createAdvancedProviderJsonRequest({
     baseUrl: 'https://api.inworld.ai',
     apiKey: apiKey.startsWith('Basic ') ? apiKey : `Basic ${apiKey}`,

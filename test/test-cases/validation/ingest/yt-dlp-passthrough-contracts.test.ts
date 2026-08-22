@@ -80,7 +80,6 @@ exit 0
 
 const fakeToolEnv = (fakeBinDir: string): Record<string, string> => ({
   PATH: `${fakeBinDir}:${process.env['PATH'] ?? ''}`,
-  AUTOSHOW_BIN_DIR: fakeBinDir,
   NO_COLOR: '1'
 })
 
@@ -169,7 +168,7 @@ describe('yt-dlp passthrough execution contracts', () => {
       EMPTY_CONFIG_PATH,
       '--',
       '--version'
-    ], { env })
+    ], { env, binDir: fakeBinDir })
     expect(version.exitCode).toBe(0)
     expect(version.stdout).toContain('fake-yt-dlp-2026.05.12')
 
@@ -181,7 +180,7 @@ describe('yt-dlp passthrough execution contracts', () => {
       '--',
       '--fail-with-code',
       '7'
-    ], { env })
+    ], { env, binDir: fakeBinDir })
     expect(failed.exitCode).toBe(7)
   })
 
@@ -203,7 +202,8 @@ describe('yt-dlp passthrough execution contracts', () => {
       'bestaudio',
       '--write-thumbnail'
     ], {
-      env: fakeToolEnv(fakeBinDir)
+      env: fakeToolEnv(fakeBinDir),
+      binDir: fakeBinDir
     })
     const args = await readLoggedArgs(argsLogPath)
     const defaultFormatIndex = args.indexOf('--format')
@@ -234,7 +234,8 @@ describe('yt-dlp passthrough execution contracts', () => {
       '--',
       '--no-media-output'
     ], {
-      env: fakeToolEnv(fakeBinDir)
+      env: fakeToolEnv(fakeBinDir),
+      binDir: fakeBinDir
     })
     const output = `${result.stdout}\n${result.stderr}`
 
@@ -258,7 +259,8 @@ describe('yt-dlp passthrough execution contracts', () => {
       '--',
       '--two-media-output'
     ], {
-      env: fakeToolEnv(fakeBinDir)
+      env: fakeToolEnv(fakeBinDir),
+      binDir: fakeBinDir
     })
     const output = `${result.stdout}\n${result.stderr}`
 

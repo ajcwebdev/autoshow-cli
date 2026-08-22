@@ -29,7 +29,7 @@ bun autoshow download <input>
 | Local `.html` / `.htm` file                                   | Article extraction with local `defuddle`                                                                               |
 | Local media file                                              | normalize to compressed audio-only media, collect media metadata                                                       |
 | Local document file                                           | detect format by magic bytes first, then extension                                                                     |
-| YouTube channel URL                                           | batch the latest videos                                                                                                |
+| YouTube channel or playlist URL                               | batch the latest videos                                                                                                |
 | RSS / podcast feed URL                                        | batch the latest episodes                                                                                              |
 | URL list file (`.md` / `.txt`)                                | batch each listed input                                                                                                |
 | Directory                                                     | batch each supported local input                                                                                       |

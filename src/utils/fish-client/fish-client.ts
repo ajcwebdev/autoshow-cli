@@ -1,4 +1,5 @@
-import { CLIUsageError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { ProviderError, ValidationError } from '~/utils/error-handler'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 import {
   buildFishGlobalTimeline,
   emptyFishTimestampStreamState,
@@ -26,10 +27,7 @@ import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 export const FISH_API_BASE_URL = 'https://api.fish.audio/v1'
 
 export const createFishClient = (options: FishClientOptions) => {
-  const apiKey = options.apiKey.trim()
-  if (!apiKey) {
-    throw CLIUsageError('Fish Audio API key is required.')
-  }
+  const apiKey = requireProvidedApiKey(options.apiKey, 'FISH_API_KEY', 'tts:fish', 'Fish Audio')
 
   const baseUrl = (options.baseUrl ?? FISH_API_BASE_URL).replace(/\/+$/, '')
   const customFetch = options.fetchImpl ?? fetch

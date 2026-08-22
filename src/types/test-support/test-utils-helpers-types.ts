@@ -23,6 +23,7 @@ export type EnvSnapshot = Record<string, string | undefined>
 export type RunCommandOptions = {
   testName?: string
   env?: Record<string, string | undefined>
+  binDir?: string | undefined
   cwd?: string
   timeoutMs?: number
   forceSourceCli?: boolean

@@ -10,7 +10,6 @@ Documents and images route through hosted OCR or native text extraction dependin
 - [Shared OCR Options](#shared-ocr-options)
 - [Multi-Provider Execution Modes](#multi-provider-execution-modes)
 - [EPUB Options](#epub-options)
-  - [Inspect Modes](#inspect-modes)
   - [Native EPUB Export](#native-epub-export)
 - [PDF Chapter Detection](#pdf-chapter-detection)
 - [OCR Services](#ocr-services)
@@ -135,7 +134,7 @@ Pool mode is accepted for PDFs, CBZ archives, and supported images where selecte
 
 ## EPUB Options
 
-EPUB inputs are always read with the native Bun ZIP/XML parser, which extracts full chapter text. There is no separate inspect mode.
+EPUB inputs default to the native Bun ZIP/XML parser, which extracts full chapter text. There is no separate inspect mode.
 
 ```bash
 bun autoshow extract input/examples/document/1-epub.epub --format json
@@ -158,10 +157,10 @@ bun autoshow extract input/examples/document/1-epub.epub --no-chapters
 ## PDF Chapter Detection
 
 ```bash
-bun autoshow extract input/examples/document/book.pdf
+bun autoshow extract book.pdf
 bun autoshow extract input/examples/document/3-document.pdf --chapters
 bun autoshow extract input/examples/document/3-document.pdf --chapters --pdf-chapter-mode auto
-bun autoshow extract input/examples/document/book.pdf --no-chapters
+bun autoshow extract book.pdf --no-chapters
 ```
 
 - PDFs with at least 40 extracted pages automatically attempt local chapter detection and write chapter files under `chapters/`.

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-17
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 - **Supersession:** URL execution moved to ADR-009, and pipeline state, resume, and dry-run planning belong to ADR-002. This record remains accepted authority for source classification, supported ebook normalization, discovery caches, and the normalized handoff to execution.
 
@@ -16,7 +16,7 @@ URL sources need one stable identity model before extraction. The shared provide
 
 Discovery repeats expensive but non-authoritative work across independent CLI processes: `yt-dlp` video and collection lookups, local `ffprobe` probes, and batch-list parsing. Best-effort temporary caches may accelerate that work only when fingerprints, payload validation, stable-source checks, serialized updates, private permissions, and atomic replacement preserve the same ingestion result.
 
-AutoShow has one mature document extraction implementation, and it reads exactly two container types: EPUB and PDF. The EPUB path covers TOC/spine inspection, text cleanup, automatic chapter export, and JSON inspection; the PDF path covers page extraction and local/hosted OCR. Everything else a user thinks of as "a book" arrives in some other container, so Step 0/1 is the single place where a book-like input becomes an EPUB or PDF before Step 2 runs.
+AutoShow has one mature document extraction implementation, and only two of its input families carry chapter-aware book extraction: EPUB and PDF. The EPUB path covers TOC/spine inspection, text cleanup, automatic chapter export, and JSON inspection; the PDF path covers page extraction and local/hosted OCR. The other families it reads (DOCX/PPTX/XLSX/ODF, RTF, CSV, CBZ, and images) produce flat text or per-image OCR with no chapter semantics, so Step 0/1 is the single place where a book-like input in some other container becomes an EPUB or PDF before Step 2 runs.
 
 Several ebook formats are closer to EPUB than to PDF/image OCR workflows, but treating each separately would duplicate chapter logic. These explicitly registered formats are normalized to EPUB before extraction.
 
@@ -82,7 +82,7 @@ Shared asynchronous JSON-cache updates take a process lock, re-read while holdin
 
 ### Book-like normalization
 
-No raw book container other than EPUB and PDF is directly extractable. Every supported convertible book input is converted at the Step 1 boundary into a temporary EPUB, and only that normalized file enters Step 2 extraction. A format must be registered before conversion is attempted; AutoShow must not broadly probe unknown extensions.
+No raw book container other than EPUB and PDF gets chapter-aware extraction. Every supported convertible book input is converted at the Step 1 boundary into a temporary EPUB, and only that normalized file enters Step 2 extraction. A format must be registered before conversion is attempted; AutoShow must not broadly probe unknown extensions.
 
 Convertible ebooks. Explicitly registered non-EPUB ebook inputs are normalized to a temporary EPUB with Calibre `ebook-convert`, then routed through the existing native EPUB extraction and chapter export path. Canonical detected formats are `mobi`, `azw3`, `fb2`, and `lit`, with `.azw` treated as `azw3` and `.prc` as `mobi`. Convertible formats are maintained in a single central registry (`src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`) rather than probed dynamically.
 

@@ -454,22 +454,33 @@ export const buildMetricContext = async (
   }
 }
 
-const inferTestKind = (testCase: ParsedJunitCase): string | null => {
-  if (testCase.file.includes('/step-7-music-gen-e2e/')) return 'music'
-  if (testCase.file.includes('/step-6-video-gen-e2e/')) return 'video'
-  if (testCase.file.includes('/step-5-image-gen-e2e/')) return 'image'
-  if (testCase.file.includes('/step-4-tts-e2e/')) return 'tts'
-  if (testCase.file.includes('/step-3-write-e2e/')) return 'write'
-  if (testCase.file.includes('/step-2-stt-e2e/')) return 'transcribe'
-  if (testCase.file.includes('/step-2-ocr-e2e/')) return 'extract'
-  if (/\btranscribe\b/i.test(testCase.name)) return 'transcribe'
-  if (/\bextract\b/i.test(testCase.name)) return 'extract'
-  if (/\btts\b/i.test(testCase.name) || /speech\.wav/i.test(testCase.name)) return 'tts'
-  if (/\bimage\b/i.test(testCase.name) || /generated-image/i.test(testCase.name)) return 'image'
-  if (/\bvideo\b/i.test(testCase.name) || /\bveo\b/i.test(testCase.name)) return 'video'
-  if (/\bmusic\b/i.test(testCase.name) || /generated music/i.test(testCase.name)) return 'music'
-  return null
-}
+type TestKindRule = Readonly<{ pattern: RegExp, kind: string }>
+
+const TEST_KIND_PATH_RULES: readonly TestKindRule[] = [
+  { pattern: /\/step-7-music-gen-e2e\//, kind: 'music' },
+  { pattern: /\/step-6-video-gen-e2e\//, kind: 'video' },
+  { pattern: /\/step-5-image-gen-e2e\//, kind: 'image' },
+  { pattern: /\/step-4-tts-e2e\//, kind: 'tts' },
+  { pattern: /\/step-3-write-e2e\//, kind: 'write' },
+  { pattern: /\/step-2-stt-e2e\//, kind: 'transcribe' },
+  { pattern: /\/step-2-ocr-e2e\//, kind: 'extract' },
+]
+
+const TEST_KIND_NAME_RULES: readonly TestKindRule[] = [
+  { pattern: /\btranscribe\b/i, kind: 'transcribe' },
+  { pattern: /\bextract\b/i, kind: 'extract' },
+  { pattern: /\btts\b|speech\.wav/i, kind: 'tts' },
+  { pattern: /\bimage\b|generated-image/i, kind: 'image' },
+  { pattern: /\bvideo\b|\bveo\b/i, kind: 'video' },
+  { pattern: /\bmusic\b|generated music/i, kind: 'music' },
+]
+
+const firstMatchingTestKind = (value: string, rules: readonly TestKindRule[]): string | null =>
+  rules.find(rule => rule.pattern.test(value))?.kind ?? null
+
+export const inferTestKind = (testCase: Pick<ParsedJunitCase, 'file' | 'name'>): string | null =>
+  firstMatchingTestKind(testCase.file, TEST_KIND_PATH_RULES)
+  ?? firstMatchingTestKind(testCase.name, TEST_KIND_NAME_RULES)
 
 const inferServiceHints = (testCase: ParsedJunitCase): Set<string> => {
   const text = `${testCase.file} ${testCase.name}`

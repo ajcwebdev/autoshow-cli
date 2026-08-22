@@ -33,12 +33,12 @@ bun autoshow comic generate-slideshow 01-01 --price
 
 ### Behavior
 
-- Automatic selection prefers one complete soundscape run, then falls back to one complete dialogue run. Multiple eligible runs require `--audio-target provider=model`.
+- Automatic selection uses the sole complete soundscape run when one exists, and otherwise the sole complete dialogue run. Multiple eligible runs require `--audio-target provider=model`, which selects a matching soundscape run before a matching dialogue run.
 - Every reviewed panel must exist as `panels/panel-NN.png` in the current run or deterministic exact-script sibling. Sibling visuals are verified and copied into an immutable `presentation/inputs/` bundle inside the audio run. Panels must share identical even dimensions.
 - Dialogue ownership uses exact source-segment ID, speaker, and speech text evidence. Exact parenthetical cues classified as delivery/timing may be elided when preserved in cue evidence.
 - Inline sound effects follow their dialogue panel; block effects follow the panel owning the nearest preceding authored action or panel note. Missing or ambiguous ownership fails.
 - Dialogue and effects within one panel preserve relative timing and overlap. Audio across panels is serialized in reviewed order. Untimed panels receive the configured hold duration (`--untimed-panel-ms`).
-- Ambience loops continuously; dialogue-only runs use digital silence as the continuous bed. Presentation audio is derived from retained ranges and does not mutate source audio runs.
+- Ambience loops continuously; runs without an ambience bed record digital silence as the continuous base. Presentation audio is derived from retained ranges and does not mutate source audio runs.
 - FFmpeg renders same-size hard-cut stills as H.264/yuv420p video with AAC audio and fast-start metadata without motion or resize filters.
 - On success, presentation compact writes `presentation/presentation.json` and hardlinks `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`, cleaning up temporary working files.
 - `comic generate-audio --slideshow` validates reviewed panels, dialogue ownership, and FFmpeg H.264 encoder availability before TTS dispatch.

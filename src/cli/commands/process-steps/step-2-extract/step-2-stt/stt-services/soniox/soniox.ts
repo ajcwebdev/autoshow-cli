@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureSonioxSttSetup = ensureApiKeySetup('SONIOX_API_KEY', 'stt:soniox', 'Soniox transcription')
+export const ensureSonioxSttSetup = ensureProvider('soniox', 'stt:soniox', 'Soniox transcription')

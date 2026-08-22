@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
-import { readdir, unlink } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { join } from 'node:path'
 import { writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import { PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'

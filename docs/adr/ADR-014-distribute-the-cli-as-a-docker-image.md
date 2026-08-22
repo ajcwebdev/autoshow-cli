@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-24
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -59,9 +59,9 @@ Why now: container users were paying the full native onboarding cost for a tool 
 **Option 6 (selected)**
 
 - **Option:** Publish multi-architecture images to GHCR (`linux/amd64`, `linux/arm64`)
-- **Pros:** Colocates package with repository; provides prebuilt images for release tags and manual dispatch
+- **Pros:** Colocates package with repository; provides prebuilt images for every push to `main`
 - **Cons:** Adds registry, CI workflow, tag, cache, and provenance maintenance
-- **Quantitative Notes:** Semantic-version tags (`v*.*.*`), `latest`, and manual tag
+- **Quantitative Notes:** `latest` and full-commit-SHA tags, plus a `:buildcache` registry cache image
 
 **Option 7**
 
@@ -79,9 +79,9 @@ Why now: container users were paying the full native onboarding cost for a tool 
 
 ## Decision
 
-AutoShow distributes an additive, Debian slim, local-lite Docker image. The multi-stage `Dockerfile` defaults `ARG BUN_BASE_IMAGE` to `oven/bun:1.3.14-slim`, installs production Bun dependencies in a dependency stage, and copies only production package metadata, `node_modules`, TypeScript configuration, and `src/` into the runtime stage.
+AutoShow distributes an additive, Debian slim, local-lite Docker image. The three-stage `Dockerfile` defaults `ARG BUN_BASE_IMAGE` to `oven/bun:1.3.14-slim`, installs production Bun dependencies in a dependency stage, and copies only production package metadata, `node_modules`, TypeScript configuration, and `src/` into the runtime stage.
 
-The runtime stage installs `ffmpeg`, Tesseract OCR with English data, MuPDF tools, `qpdf`, Calibre, Python, CA certificates, and `curl` via `apt`. It downloads the Linux `yt-dlp` asset configured by `YT_DLP_URL`, verifies `YT_DLP_SHA256`, and installs it at `/usr/local/bin/yt-dlp`, keeping the pin aligned with native Linux dependency metadata.
+A dedicated `fetch` stage downloads the Linux `yt-dlp` asset configured by `YT_DLP_URL`, verifies `YT_DLP_SHA256`, and marks it executable, keeping the pin aligned with native Linux dependency metadata. The runtime stage installs `ffmpeg`, Tesseract OCR with English data, MuPDF tools, `qpdf`, Calibre, Python, and CA certificates via `apt`, then copies the verified binary to `/usr/local/bin/yt-dlp` so `curl` never enters the final image.
 
 The image runs as the non-root `bun` user, uses `/app` as the working directory, and sets `ENTRYPOINT ["bun", "/app/src/cli/create-cli.ts"]`. It exposes no ports and defines no HTTP `HEALTHCHECK`; `setup --doctor` is the offline diagnostic surface. A default `help` command ensures bare container runs terminate usefully.
 
@@ -91,7 +91,7 @@ User data remains outside the image. Direct container invocations may mount the 
 
 The image links `/app/runtime/tools/tessdata` to `/usr/share/tesseract-ocr/5/tessdata` and includes a wrapper at `/usr/local/bin/tesseract` that falls back to system data if a bind-mounted `/app/runtime` obscures the symlink.
 
-Multi-architecture images (`linux/amd64` and `linux/arm64`) are published as `ghcr.io/ajcwebdev/autoshow-cli` via `.github/workflows/docker-publish.yml` on release tags (`v*.*.*`) and manual workflow dispatch, with GitHub Actions layer caching and OCI provenance.
+Multi-architecture images (`linux/amd64` and `linux/arm64`) are published as `ghcr.io/ajcwebdev/autoshow-cli` via `.github/workflows/docker-publish.yml` on every push to `main`, tagged `latest` and by full commit SHA. The workflow uses no third-party GitHub Actions, since every step is a plain `git`, `apt`, or `docker` command, and keeps its Buildx layer cache in a GHCR `:buildcache` registry image alongside OCI provenance.
 
 This applies to:
 
@@ -112,7 +112,7 @@ It does not apply to:
 - A run-to-completion CLI requires a direct entrypoint and offline diagnostic checks rather than open ports or HTTP health probes.
 - Direct image execution and native `bun autoshow` remain the sole supported command surfaces, avoiding wrapper scripts and argument translation layers.
 - Non-root execution, minimal build context, checksum-pinned direct downloads, runtime credential injection, and OCI provenance ensure a secure, inspectable boundary.
-- GHCR colocates image publication with repository source and release workflows across `linux/amd64` and `linux/arm64`.
+- GHCR colocates image publication with repository source and the branch publish workflow across `linux/amd64` and `linux/arm64`.
 - Additive container distribution preserves native host workflows and heavyweight local capabilities that do not fit containerization.
 
 ## Consequences
@@ -175,7 +175,7 @@ Negative outcomes:
 
 The Docker recipe, build exclusions, documentation, and entrypoint are implemented in `Dockerfile`, `.dockerignore`, `docs/docker.md`, and `README.md`. The image runs as non-root `bun`, installs local-lite system packages during build, verifies `yt-dlp` via checksum, and provides the fallback Tesseract wrapper for runtime mounts.
 
-Publishing is implemented in `.github/workflows/docker-publish.yml`, building and pushing `linux/amd64` and `linux/arm64` images to GHCR on release tags and workflow dispatch with GitHub Actions caching and OCI provenance. Local builds remain supported.
+Publishing is implemented in `.github/workflows/docker-publish.yml`, building and pushing `linux/amd64` and `linux/arm64` images to GHCR on every push to `main` with registry-backed Buildx caching and OCI provenance from plain `git` and `docker` run steps. Local builds remain supported.
 
 ## Test Plan
 
@@ -186,9 +186,9 @@ bun run check
 bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 ```
 
-- `bun test test/test-cases/validation/cli/docker-image-contracts.test.ts` validates that the Docker `yt-dlp` URL and SHA-256 match native Linux dependency metadata, that installation order is verified, and that documentation reflects direct `docker run` execution without wrapper scripts.
+- `bun test test/test-cases/validation/cli/docker-image-contracts.test.ts` validates that the Docker `yt-dlp` URL and SHA-256 match native Linux dependency metadata, that download, checksum, and `chmod` order is preserved, that the runtime stage copies the binary from the `fetch` stage without installing `curl`, and that documentation reflects direct `docker run` execution without wrapper scripts.
 - Static review confirms `Dockerfile` uses non-root `bun`, absolute CLI entrypoint, declared package set, Tesseract fallback, and no baked credentials; `.dockerignore` excludes secrets and runtime state.
-- Static review confirms `.github/workflows/docker-publish.yml` targets `linux/amd64` and `linux/arm64`, triggers on release tags and workflow dispatch, enables caching and provenance, and uses least-privilege permissions (`contents: read`, `packages: write`).
+- Static review confirms `.github/workflows/docker-publish.yml` targets `linux/amd64` and `linux/arm64`, triggers on pushes to `main`, enables registry caching and provenance, and uses least-privilege permissions (`contents: read`, `packages: write`).
 - Codebase verification is confirmed with `bun run check` and `git diff --check` without invoking external paid services.
 
 ## References

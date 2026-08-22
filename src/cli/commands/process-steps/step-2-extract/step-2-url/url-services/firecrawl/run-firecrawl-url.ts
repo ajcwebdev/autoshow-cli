@@ -57,7 +57,7 @@ const runFirecrawlScrape = async (
   options?: UrlRequestOptions,
   baseUrl: string = FIRECRAWL_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = requireHostedUrlProviderApiKey('FIRECRAWL_API_KEY', 'firecrawl', 'extract:firecrawl', baseUrl === FIRECRAWL_DEFAULT_API_URL)
+  const apiKey = requireHostedUrlProviderApiKey('firecrawl', 'extract:firecrawl', baseUrl === FIRECRAWL_DEFAULT_API_URL)
   const requestOptions = {
     ...options,
     timeoutMs: getUrlRequestTimeoutMs(options)

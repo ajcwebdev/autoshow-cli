@@ -3,10 +3,11 @@ import { resolve } from 'node:path'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { CLIUsageError } from '~/utils/error-handler'
 import type { MistralReferenceAudioProbeRunner, MistralReferenceAudioProbeStatus } from '~/types'
+import { childEnv } from '~/utils/child-env'
 
 const runReadOnlyProbe: MistralReferenceAudioProbeRunner = async (command, args) => {
   try {
-    const process = Bun.spawn([command, ...args], { stdout: 'pipe', stderr: 'pipe' })
+    const process = Bun.spawn([command, ...args], { env: childEnv(), stdout: 'pipe', stderr: 'pipe' })
     const [stdout, stderr, exitCode] = await Promise.all([
       new Response(process.stdout).text(),
       new Response(process.stderr).text(),

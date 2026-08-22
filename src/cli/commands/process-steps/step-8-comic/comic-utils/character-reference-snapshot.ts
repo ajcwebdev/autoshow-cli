@@ -1,6 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { copyFile, mkdir } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
 import type { CharacterCatalogService, CharacterKey, CharacterReferenceManifest } from '~/types'
@@ -9,6 +8,7 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
 import { getCharacterReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
 import { atomicWriteJson } from '~/utils/filesystem'
+import { copyFileExact } from '~/utils/bun-file-io'
 
 const SnapshotAssetSchema = v.strictObject({
   role: v.picklist(['sketch-sheet', 'source-image']),
@@ -46,7 +46,7 @@ export const createCharacterReferenceSnapshot = async (
   }
   const prepared = preparedResults.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
 
-  const snapshotId = `${Date.now()}-${createHash('sha256').update(`${catalog.hash}:${uniqueKeys.join(',')}:${randomUUID()}`).digest('hex').slice(0, 12)}`
+  const snapshotId = `${Date.now()}-${new Bun.CryptoHasher('sha256').update(`${catalog.hash}:${uniqueKeys.join(',')}:${crypto.randomUUID()}`).digest('hex').slice(0, 12)}`
   const snapshotRoot = join(getCharacterReferencesDirectory(runDirectory), snapshotId)
   const characters: CharacterReferenceManifest['characters'] = []
 
@@ -60,8 +60,8 @@ export const createCharacterReferenceSnapshot = async (
     const sourceDestination = usesSingleReference
       ? sheetDestination
       : join(characterDirectory, `source${extname(character.sourcePath).toLowerCase()}`)
-    await copyFile(character.outlineSheetPath, sheetDestination)
-    if (!usesSingleReference) await copyFile(character.sourcePath, sourceDestination)
+    await copyFileExact(character.outlineSheetPath, sheetDestination)
+    if (!usesSingleReference) await copyFileExact(character.sourcePath, sourceDestination)
     const sheetSha256 = await checksumFile(sheetDestination)
     const sourceSha256 = usesSingleReference ? sheetSha256 : await checksumFile(sourceDestination)
     characters.push({
@@ -108,7 +108,7 @@ export const loadAndVerifyCharacterReferenceSnapshot = (
       const rel = relative(resolve(runDirectory), assetPath)
       if (rel === '' || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw ValidationError(`Unsafe snapshot asset path "${asset.path}"`, { stage: 'comic:reference-snapshot' })
       if (!existsSync(assetPath)) throw InfraError(`Snapshot asset is missing: ${asset.path}`, { stage: 'comic:reference-snapshot' })
-      const checksum = createHash('sha256').update(readFileSync(assetPath)).digest('hex')
+      const checksum = new Bun.CryptoHasher('sha256').update(readFileSync(assetPath)).digest('hex')
       if (checksum !== asset.sha256) throw ValidationError(`Snapshot asset was modified or corrupted: ${asset.path}`, { stage: 'comic:reference-snapshot' })
     }
   }

@@ -1,4 +1,4 @@
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type {
@@ -52,7 +52,7 @@ import { runComicImageWorkItems } from './comic-image-work-items'
 
 const readComicPagePanelSource = async (
   sceneDirectory: string,
-  panelEntry: Dirent
+  panelEntry: DirectoryEntry
 ): Promise<ComicPagePanelSource> => {
   const panelNumber = getPanelNumberFromName(panelEntry.name)
   if (!panelNumber) {

@@ -4,7 +4,6 @@ import {
   test
 } from 'bun:test'
 import { resolvePriceSelection } from '../../../../test-runner/price-commands/resolve'
-import { selectorMatchesFile } from '../../../../test-runner/price-commands/helpers'
 import { BUDGET_PRICE_SELECTION_REGISTRY } from '../../../../test-runner/price-commands/registry/index'
 import { evaluatePriceObservations, toObservation } from '../../../../test-runner/price-evaluation'
 import { findUnevaluatedBudgetKeys, isConcurrentBudgetedTestsEnabled, shouldSkipBudgetKeys } from '../../../../test-utils/budget'
@@ -14,6 +13,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { inspectBudgetSource } from './budget-source-inspection'
 import { loadE2eTestSources } from './e2e-test-sources'
+import { auditBudgetKeyCoverage, indexBudgetSkippableSelectors } from './budget-coverage-audit'
 
 describe('test-runner contracts', () => {
   test('budget source inspection handles nested literal shapes without scanner false positives', () => {
@@ -203,51 +203,42 @@ describe('test-runner contracts', () => {
 
   test('e2e budget keys resolve to budget-skippable price registry entries', async () => {
       const sources = await loadE2eTestSources()
-      const allFiles = sources.map(({ file }) => file)
-      const selectedKeysByFile = new Map<string, Set<string>>()
-      for (const file of allFiles) {
-        selectedKeysByFile.set(file, new Set())
-      }
-      const budgetSkippableKeys = new Set<string>()
-      for (const entry of BUDGET_PRICE_SELECTION_REGISTRY) {
-        if (!entry.budgetSkippable) {
-          continue
-        }
-        budgetSkippableKeys.add(entry.key)
-        for (const file of allFiles) {
-          if (selectorMatchesFile(entry, file)) {
-            selectedKeysByFile.get(file)?.add(entry.key)
-          }
-        }
-      }
-      const missing: string[] = []
-      const unselected: string[] = []
-      const uninspectable: string[] = []
-
-      for (const { file, source } of sources) {
-        const extracted = inspectBudgetSource(file, source)
-        uninspectable.push(...extracted.issues)
-        const budgetKeys = [...new Set(extracted.keys)]
-        if (budgetKeys.length === 0) {
-          continue
-        }
-
-        const selectedKeys = selectedKeysByFile.get(file) ?? new Set()
-
-        for (const key of budgetKeys) {
-          if (!budgetSkippableKeys.has(key)) {
-            missing.push(`${file}: ${key}`)
-            continue
-          }
-          if (!selectedKeys.has(key)) {
-            unselected.push(`${file}: ${key}`)
-          }
-        }
-      }
+      const index = indexBudgetSkippableSelectors(sources.map(({ file }) => file), BUDGET_PRICE_SELECTION_REGISTRY)
+      const { missing, unselected, uninspectable } = auditBudgetKeyCoverage(sources, index, inspectBudgetSource)
 
       expect(missing).toEqual([])
       expect(unselected).toEqual([])
       expect(uninspectable).toEqual([])
+    })
+
+  test('budget coverage audit separates missing, unselected, and uninspectable sources', () => {
+      const matchedFile = 'test/test-cases/e2e/matched.test.ts'
+      const unmatchedFile = 'test/test-cases/e2e/unmatched.test.ts'
+      const emptyFile = 'test/test-cases/e2e/empty.test.ts'
+      const registry = [{
+        name: 'known',
+        key: 'known-key',
+        args: ['command'],
+        budgetSkippable: true,
+        selector: matchedFile,
+        selectorKind: 'file' as const,
+      }]
+      const sources = [
+        { file: matchedFile, source: 'known-key' },
+        { file: unmatchedFile, source: 'known-key missing-key issue' },
+        { file: emptyFile, source: '' },
+      ]
+      const inspect = (file: string, source: string) => ({
+        keys: source.split(' ').filter(token => token.endsWith('-key')),
+        issues: source.includes('issue') ? [`${file}: dynamic key`] : [],
+      })
+      const index = indexBudgetSkippableSelectors(sources.map(source => source.file), registry)
+
+      expect(auditBudgetKeyCoverage(sources, index, inspect)).toEqual({
+        missing: [`${unmatchedFile}: missing-key`],
+        unselected: [`${unmatchedFile}: known-key`],
+        uninspectable: [`${unmatchedFile}: dynamic key`],
+      })
     })
 
   test('Replicate image live tests resolve all seven exact budget keys', () => {

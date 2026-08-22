@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto'
-
 /**
  * Small value-level helpers shared across the pipeline. This module deliberately imports
  * nothing from the project so any module can depend on it without risking an import cycle.
@@ -45,4 +43,4 @@ export const safeKeyPart = (value: string): string => {
 }
 
 export const sha256Bytes = (value: string | Uint8Array): string =>
-  createHash('sha256').update(value).digest('hex')
+  new Bun.CryptoHasher('sha256').update(value).digest('hex')

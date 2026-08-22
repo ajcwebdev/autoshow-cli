@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureOpenAITtsSetup = ensureApiKeySetup('OPENAI_API_KEY', 'tts:openai', 'OpenAI TTS')
+export const ensureOpenAITtsSetup = ensureProvider('openai', 'tts:openai', 'OpenAI TTS')

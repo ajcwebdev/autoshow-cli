@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { randomUUID } from 'node:crypto'
 import { readdir, rm } from 'node:fs/promises'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget, serializeElevenLabsSoundEffectRequest } from '~/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter'
@@ -34,7 +33,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
   test('executes through bounded mocked transport, retains evidence, and reuses the shared cache without another call', async () => {
     const root = await makeTempDir('autoshow-sfx-adapter-')
     try {
-      const prompt = `fixture hatch ${randomUUID()}`
+      const prompt = `fixture hatch ${crypto.randomUUID()}`
       const renderPlan = createSoundEffectRenderPlan({ plan: taskPlan(prompt), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
       let calls = 0
       const adapter = createElevenLabsSoundEffectAdapter({ apiKey: 'fixture', request: async (request) => {
@@ -59,7 +58,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
   test('keeps no-call price planning read-only and reports the exact unresolved duration rate', async () => {
     const root = await makeTempDir('autoshow-sfx-price-')
     try {
-      const renderPlan = createSoundEffectRenderPlan({ plan: taskPlan(`price ${randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
+      const renderPlan = createSoundEffectRenderPlan({ plan: taskPlan(`price ${crypto.randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
       const estimate = await planSoundEffectResumePrice(root, renderPlan)
       expect(estimate).toMatchObject({ unresolvedTaskCount: 1, cachedTaskCount: 0, resumedTaskCount: 0, amount: 0.002, currency: 'USD' })
       expect(await readdir(root)).toEqual([])
@@ -69,7 +68,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
   test('bounds worker fan-out and distinguishes optional omission, required failure, and cancellation', async () => {
     const root = await makeTempDir('autoshow-sfx-bounds-')
     try {
-      const prompts = Array.from({ length: 5 }, (_, index) => `bounded-${index}-${randomUUID()}`).join('|')
+      const prompts = Array.from({ length: 5 }, (_, index) => `bounded-${index}-${crypto.randomUUID()}`).join('|')
       const boundedPlan = createSoundEffectRenderPlan({ plan: taskPlan(prompts), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
       let active = 0
       let maximumActive = 0
@@ -86,7 +85,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
 
       const optionalRoot = await makeTempDir('autoshow-sfx-optional-')
       try {
-        const optionalPlan = createSoundEffectRenderPlan({ plan: taskPlan(`optional-${randomUUID()}`, false), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
+        const optionalPlan = createSoundEffectRenderPlan({ plan: taskPlan(`optional-${crypto.randomUUID()}`, false), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
         const failing = createElevenLabsSoundEffectAdapter({ apiKey: 'fixture', request: async () => ({ status: 400, headers: {}, body: new Uint8Array() }) })
         const optional = await executeSoundEffectRenderPlan({ rootDir: optionalRoot, plan: optionalPlan, adapter: failing })
         expect(optional.result.status).toBe('succeeded')
@@ -95,14 +94,14 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
 
       const requiredRoot = await makeTempDir('autoshow-sfx-required-')
       try {
-        const requiredPlan = createSoundEffectRenderPlan({ plan: taskPlan(`required-${randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
+        const requiredPlan = createSoundEffectRenderPlan({ plan: taskPlan(`required-${crypto.randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
         const failing = createElevenLabsSoundEffectAdapter({ apiKey: 'fixture', request: async () => ({ status: 400, headers: {}, body: new Uint8Array() }) })
         expect((await executeSoundEffectRenderPlan({ rootDir: requiredRoot, plan: requiredPlan, adapter: failing })).result.status).toBe('failed')
       } finally { await rm(requiredRoot, { recursive: true, force: true }) }
 
       const canceledRoot = await makeTempDir('autoshow-sfx-canceled-')
       try {
-        const canceledPlan = createSoundEffectRenderPlan({ plan: taskPlan(`canceled-${randomUUID()}|queued-${randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
+        const canceledPlan = createSoundEffectRenderPlan({ plan: taskPlan(`canceled-${crypto.randomUUID()}|queued-${crypto.randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
         const controller = new AbortController()
         controller.abort()
         let canceledCalls = 0
@@ -116,7 +115,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
   test('retries only explicit rejection and blocks ambiguous admission from automatic repurchase', async () => {
     const retryRoot = await makeTempDir('autoshow-sfx-retry-')
     try {
-      const retryPlan = createSoundEffectRenderPlan({ plan: taskPlan(`retry-${randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
+      const retryPlan = createSoundEffectRenderPlan({ plan: taskPlan(`retry-${crypto.randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
       let retryCalls = 0
       const retryAdapter = createElevenLabsSoundEffectAdapter({ apiKey: 'fixture', request: async () => {
         retryCalls++
@@ -130,7 +129,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
 
     const ambiguousRoot = await makeTempDir('autoshow-sfx-ambiguous-')
     try {
-      const ambiguousPlan = createSoundEffectRenderPlan({ plan: taskPlan(`ambiguous-${randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
+      const ambiguousPlan = createSoundEffectRenderPlan({ plan: taskPlan(`ambiguous-${crypto.randomUUID()}`), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
       let calls = 0
       const ambiguousAdapter = { generate: async () => { calls++; throw new Error('transport disconnected after request write') } }
       expect((await executeSoundEffectRenderPlan({ rootDir: ambiguousRoot, plan: ambiguousPlan, adapter: ambiguousAdapter })).result.status).toBe('failed')

@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureGroqTtsSetup = ensureApiKeySetup('GROQ_API_KEY', 'tts:groq', 'Groq TTS')
+export const ensureGroqTtsSetup = ensureProvider('groq', 'tts:groq', 'Groq TTS')

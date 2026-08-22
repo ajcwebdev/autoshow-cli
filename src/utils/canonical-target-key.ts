@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import type { CanonicalProviderOperation } from '~/types'
 import { safeKeyPart } from '~/utils/value-helpers'
 
@@ -8,7 +7,7 @@ export const canonicalTargetKey = (
   model: string,
   transport: string
 ): string => {
-  const digest = createHash('sha256').update(JSON.stringify({
+  const digest = new Bun.CryptoHasher('sha256').update(JSON.stringify({
     schemaVersion: 1,
     operation,
     service,

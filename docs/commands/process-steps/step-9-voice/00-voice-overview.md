@@ -84,7 +84,7 @@ Registration and audition generations are create-only and content-identified. Th
 
 ## Voice Price Safety
 
-Management `--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts. Voice Design reports a numeric preview estimate from the exact provider, creation model, character count, and candidate count; ElevenLabs, Fish, and Inworld charge the preview text once. Materialization reports zero estimated provider cost because the supported design flows include saving the selected resource. Ordinary `tts`, resume, configuration loading, and synthesis price paths cannot express provider resource creation.
+Management `--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts. Voice Design reports a numeric preview estimate derived from the provider's registry character rate for the synthesis model and the preview character count, alongside the exact provider, creation model, and candidate count; ElevenLabs, Fish, and Inworld charge the preview text once, so the candidate count does not multiply the estimate. Materialization reports zero estimated provider cost because the supported design flows include saving the selected resource. Ordinary `tts`, resume, configuration loading, and synthesis price paths cannot express provider resource creation.
 
 Provider prices and eligibility can change. Treat the estimate as a preflight derived from AutoShow's dated pricing configuration and use the provider console when account-specific terms matter.
 

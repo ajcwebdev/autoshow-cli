@@ -1,5 +1,4 @@
 import { rm } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
 import { extname, join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { exec } from '~/utils/cli-utils'
@@ -83,7 +82,7 @@ export const downloadVideo = async (
   options: { bestQuality?: boolean, ytDlpPassthroughArgs?: string[] | undefined } = {}
 ): Promise<string> => {
   const strictSingleOutput = (options.ytDlpPassthroughArgs?.length ?? 0) > 0
-  const downloadedPathLogFile = join(outputDir, `.autoshow-yt-dlp-files-${randomUUID()}.txt`)
+  const downloadedPathLogFile = join(outputDir, `.autoshow-yt-dlp-files-${crypto.randomUUID()}.txt`)
   try {
     const args = await buildYtDlpDownloadArgs(url, outputDir, {
       ...options,

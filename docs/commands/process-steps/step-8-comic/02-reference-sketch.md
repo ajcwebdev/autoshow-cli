@@ -17,7 +17,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 The first establishing location run scans matching scripts and asks the configured text model (`gpt-5.6-sol` by default) for stable location facts; reverse and side require an existing establishing view. Successful views are promoted and atomically registered. Existing targets no-op unless `--revise --notes` is supplied.
 
-Location `--price` preflight estimates initial and repair calls matching generation flags. Validated existing views report zero provider calls.
+Location `--price` preflight estimates specification-aggregation, initial image, and repair calls matching generation flags. Validated existing views report zero provider calls.
 
 ### Character sheets
 
@@ -28,23 +28,27 @@ For a new prose-defined character with no source image, set `image` and `outline
 ### Options
 
 | Flag                                   | Description                                                                                                                              | Default                     |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
 | `--character <key>`                    | Catalog character key (mutually exclusive with `--location`)                                                                             | required (or `--location`)  |
 | `--location <key>`                     | Canonical location key (mutually exclusive with `--character`)                                                                           | required (or `--character`) |
 | `--view <view>`                        | Location camera view: `establishing`, `reverse`, or `side`                                                                               | `establishing`              |
 | `-r, --revise`                         | Revise existing sketches using the source image and existing sketch refs                                                                 | `false`                     |
 | `--notes <text>`                       | Revision instructions; required with `--revise`                                                                                          | none                        |
-| `--concurrency <n>`                    | Number of sketch views to generate in parallel                                                                                           | `7`                         |
+| `--concurrency <n>`                    | Number of character sheet views to generate in parallel, and the hosted request cap for location work                                    | `7`                         |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted LLM, image, and QA work from one request per provider/account lane (`ramp`) or start at the configured cap (`immediate`) | `ramp`                      |
-| `--price`                              | Estimate image-generation costs without making API calls                                                                                 | `false`                     |
+| `--qa` / `--no-qa`                     | Enable or disable strict location view QA; `--character` runs have no QA stage                                                           | enabled                     |
+| `--max-repairs <n>`                    | Maximum location repair attempts after the initial view                                                                                  | `2`                         |
+| `--price`                              | Estimate generation costs without making API calls                                                                                       | `false`                     |
 
 ### Advanced Options
 
-| Flag                    | Description                                                                       | Default       |
-| ----------------------- | --------------------------------------------------------------------------------- | ------------- |
-| `--image-model <model>` | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models)) | `gpt-image-2` |
-| `--size <size>`         | Image size such as `1024x1536`, `1024x1024`, `1536x1024`, or `auto`               | `1024x1536`   |
-| `--quality <quality>`   | `low`, `medium`, `high`, or `auto`; Gemini ignores this compatibility flag        | `medium`      |
+| Flag                    | Description                                                                                                  | Default                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `--image-model <model>` | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))      | `gpt-image-2`                                               |
+| `--size <size>`         | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2` | `1024x1536` for `--character`; `1536x1024` for `--location` |
+| `--quality <quality>`   | `low`, `medium`, `high`, or `auto`; Gemini ignores this compatibility flag                                   | `medium` for `--character`; `high` for `--location`         |
+| `--llm-model <model>`   | Text model that aggregates the canonical location specification                                              | `gpt-5.6-sol`                                               |
+| `--qa-model <model>`    | Vision judge model for location views; QA requires an OpenAI vision-capable LLM                              | `gpt-5.6-sol`                                               |
 
 ### Examples
 
@@ -59,9 +63,10 @@ bun autoshow comic reference-sketch --location cargo-bay --view reverse
 ### Behavior
 
 - The three generated views and composed sheet remain in temporary storage until all views succeed; only the flat catalog `outlineSheet` is persisted.
-- Fresh generation replaces the registered reference by default. Revision never falls back to fresh generation.
+- Fresh `--character` generation replaces the registered sheet by default, while an already registered location view no-ops. Revision never falls back to fresh generation.
 - The sheet and its entry in `character-sketches.json` are promoted together with rollback protection. Source and sheet SHA-256 checksums detect stale or tampered registrations.
-- Default generation parameters are `gpt-image-2`, `1024x1536`, `medium`.
+- Default generation parameters are `gpt-image-2` at `1024x1536` and `medium` quality for `--character`, and `gpt-image-2` at `1536x1024` and `high` quality for `--location`.
+- Each location view is judged against the canonical specification, the existing views, and the style reference, then repaired up to `--max-repairs` times. Attempts and QA reports stay under `input/locations/.attempts/<key>/<generation-id>/`, and only a passing attempt is promoted.
 - After updating character sketch references, rerun `draft-scenes --only panel-prompts` for affected scenes to stage the new references.
 
 Next: [generate-images](./03-generate-images.md).

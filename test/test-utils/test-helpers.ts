@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { mkdir, readdir, rm, appendFile, copyFile, stat } from 'node:fs/promises'
+import { mkdir, readdir, rm, appendFile, copyFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path'
 import { parseCommandOutputText } from '../test-runner/utils'
 import {
@@ -29,6 +30,8 @@ import { hasErrorCode, serializeDiagnosticError } from '~/utils/error-handler'
 import { l } from '~/utils/app-logger/app-logger'
 import { isRecord } from '~/utils/value-helpers'
 import { pathExists } from '~/utils/filesystem'
+import { childEnv } from '~/utils/child-env'
+import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 
 const TEST_OUTPUT_ROOT = 'project/test-output'
 
@@ -51,7 +54,7 @@ const resolveTestOutputDir = (): string => {
 
 export const OUTPUT_DIR = resolveTestOutputDir()
 // In-process tests call production getOutputRoot() directly; point it at the test
-// output dir. (Production no longer reads AUTOSHOW_OUTPUT_DIR — it is flag-driven.)
+// output dir. Production output selection is flag-driven.
 configureOutputRoot(OUTPUT_DIR)
 const EXAMPLE_AUDIO_URL = 'https://ajc.pics/autoshow/examples/1-audio.mp3'
 export const EXAMPLE_SHORT_AUDIO_URL = 'https://ajc.pics/autoshow/examples/0-audio-short.mp3'
@@ -171,12 +174,13 @@ const resolveCliSpawnArgs = (args: string[], forceSource = false): string[] => {
 
 let commandOutputCounter = 0
 let commandMetricsWriteWarned = false
-const BASE_CHILD_ENV = Object.entries(process.env).reduce<Record<string, string>>((env, [key, value]) => {
-  if (typeof value === 'string') {
-    env[key] = value
-  }
-  return env
-}, {})
+const BASE_CHILD_ENV = childEnv({
+  allow: [
+    ...HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar),
+    'AUTOSHOW_PROJECT_ROOT',
+    'AUTOSHOW_TEST_CLI_BUNDLE'
+  ]
+})
 
 const shouldUseEmptyTestConfig = (args: string[]): boolean => {
   if (args[0] !== CLI_SOURCE_ENTRY) {
@@ -328,7 +332,7 @@ const runCommandAttempt = async (
   const spawnEnv = spawnArgs[0] !== args[0] && !env['AUTOSHOW_PROJECT_ROOT']
     ? { ...env, AUTOSHOW_PROJECT_ROOT: process.cwd() }
     : env
-  const proc = Bun.spawn(['bun', ...spawnArgs], {
+  const proc = Bun.spawn(['bun', '--no-env-file', ...spawnArgs], {
     stdout: 'pipe',
     stderr: 'pipe',
     env: spawnEnv,
@@ -568,7 +572,7 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   const timeoutMs = opts?.timeoutMs ?? SUBPROCESS_TIMEOUT
   const outputRoot = await resolveCommandOutputRoot(baseChildArgs, testName, opts?.env)
 
-  const childArgs = injectGlobalCliFlags(baseChildArgs, outputRoot, opts?.env?.['AUTOSHOW_BIN_DIR']?.trim())
+  const childArgs = injectGlobalCliFlags(baseChildArgs, outputRoot, opts?.binDir?.trim())
   const cmdStr = `bun ${childArgs.join(' ')}`
   const env = buildChildEnv(opts?.env)
 

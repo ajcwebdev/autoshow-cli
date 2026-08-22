@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -118,7 +118,7 @@ The content-addressed `presentationId` binds source identity, reviewed scene, st
 
 ## Implementation Note
 
-The workflow is implemented in `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/` and the `comic-presentation-*` utilities beside the existing comic workflow. Public types live in `src/types/comic-workflow/comic-presentation-types.ts`. Comic manifest parsing and updates live in `src/cli/commands/process-steps/pipeline-manifest.ts` and `src/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest.ts`. The native command surface is defined by `src/cli/flags/comic-flags.ts` and `src/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help.ts`.
+The workflow is implemented in `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-slideshow/` and the `comic-presentation-*` utilities beside the existing comic workflow. Public types live in `src/types/comic-workflow/` — `comic-presentation-types.ts` plus the inputs, plan, and renderer modules — and are exported only through `src/types/index.ts`. Comic manifest parsing and updates live in `src/cli/commands/process-steps/pipeline-manifest.ts` and `src/cli/commands/process-steps/step-8-comic/comic-utils/comic-manifest.ts`. The native command surface is defined by `src/cli/flags/comic-flags.ts` and `src/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help.ts`.
 
 ## Consequences
 
@@ -175,7 +175,7 @@ bun t --price
 bun test test/test-cases/validation/comic/comic-presentation-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-presentation-ffmpeg-contracts.test.ts
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
-bun test test/test-cases/validation/cli/cli-usage-errors.test.ts
+bun test test/test-cases/validation/cli/cli-usage-errors/
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 git diff --check
 ```

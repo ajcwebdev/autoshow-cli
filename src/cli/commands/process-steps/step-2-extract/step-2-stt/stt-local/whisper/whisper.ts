@@ -1,5 +1,4 @@
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
-import { cpus } from 'node:os'
 import { dirname } from 'node:path'
 import { runCapture, runInherit, detectPlatform, whisperBinaryPath, whisperBuildDir, whisperLibDir, whisperModelsDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { pathExists } from '~/utils/filesystem'
@@ -12,6 +11,7 @@ import { readDependencyTag } from '~/cli/commands/setup-and-utilities/setup/depe
 import { getWhisperModelIntegrity, resolveWhisperModelMinBytes } from './whisper-model-integrity'
 import { InternalError } from '~/utils/error-handler'
 import { recordSetupPerformancePhase } from '~/cli/commands/setup-and-utilities/setup/setup-performance'
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
 
 const whisperBaseUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main'
 const fileExists = async (path: string): Promise<boolean> => {
@@ -95,7 +95,7 @@ export const setupWhisper = async (): Promise<void> => {
     }
   })
 
-  const parallelJobs = Math.max(1, cpus().length)
+  const parallelJobs = logicalCpuCount()
   await recordSetupPerformancePhase('whisper.cpp', 'compile-link', async () => {
     await runInherit('cmake', ['--build', 'build', '-j', '--config', 'Release'], { cwd: repoDir })
   }, { parallelJobs })

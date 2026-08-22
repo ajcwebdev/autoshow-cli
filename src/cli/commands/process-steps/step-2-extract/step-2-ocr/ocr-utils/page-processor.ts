@@ -1,4 +1,3 @@
-import { cpus } from 'node:os'
 import { join } from 'node:path'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -12,6 +11,7 @@ import { getCachedRenderedPageImage } from './preparation-cache'
 import { normalizeOcrPageConcurrency } from './ocr-page-concurrency'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import { logRetryAttempt } from '~/utils/retries'
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
 
 /** Below this tesseract confidence the page is re-rendered once at a higher DPI. */
 const LOW_CONFIDENCE_RERENDER_THRESHOLD = 40
@@ -174,7 +174,7 @@ export const processPages = async (
 ): Promise<PageResult[]> => {
   const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-'))
   try {
-    const cores = Math.max(1, cpus().length)
+    const cores = logicalCpuCount()
     const renderConcurrency = options.renderConcurrency ?? Math.min(cores, 4)
     const ocrConcurrency = normalizeOcrPageConcurrency(options.ocrConcurrency)
     const renderPool = createPool(renderConcurrency)

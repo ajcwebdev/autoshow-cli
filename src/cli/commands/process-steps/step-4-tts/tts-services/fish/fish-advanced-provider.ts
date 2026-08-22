@@ -24,6 +24,7 @@ import {
 import { FISH_VOICE_DESIGN_MODEL } from './fish-tts-request'
 import type { AdvancedVoiceProviderIdentity } from '~/types'
 import { assertAdvancedVoiceInspectionIdentity, buildAdvancedVoiceInspection } from '../advanced-voice-provider-shell'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const DOCS = {
   catalog: 'https://docs.fish.audio/api-reference/endpoint/model/list-models',
@@ -51,10 +52,7 @@ const capabilityRecords = [
 export const FISH_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixture(capabilityRecords)
 
 export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
-  const apiKey = options.apiKey.trim()
-  if (!apiKey) {
-    throw CLIUsageError('Fish Audio API key is required for advanced voice operations.')
-  }
+  const apiKey = requireProvidedApiKey(options.apiKey, 'FISH_API_KEY', 'voice:fish', 'Fish Audio advanced voice operations')
 
   const client = createFishClient({
     apiKey,

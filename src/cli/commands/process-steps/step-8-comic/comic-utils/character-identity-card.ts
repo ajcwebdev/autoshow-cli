@@ -1,13 +1,13 @@
-import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
-import { spawnSync } from 'node:child_process'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getCharacterReferencesDirectory } from './project-paths'
 import type { CharacterIdentityReference, CharacterReferenceManifest, IdentityCardMetadata } from '~/types'
+import { childEnv } from '~/utils/child-env'
+import { runSyncCommand } from '~/utils/sync-subprocess'
 
-const hashFile = (path: string): string => createHash('sha256').update(readFileSync(path)).digest('hex')
+const hashFile = (path: string): string => new Bun.CryptoHasher('sha256').update(readFileSync(path)).digest('hex')
 const GLYPHS: Record<string, string[]> = {
   A:['01110','10001','10001','11111','10001','10001','10001'], B:['11110','10001','10001','11110','10001','10001','11110'], C:['01111','10000','10000','10000','10000','10000','01111'], D:['11110','10001','10001','10001','10001','10001','11110'], E:['11111','10000','10000','11110','10000','10000','11111'], F:['11111','10000','10000','11110','10000','10000','10000'], G:['01111','10000','10000','10111','10001','10001','01111'], H:['10001','10001','10001','11111','10001','10001','10001'], I:['11111','00100','00100','00100','00100','00100','11111'], J:['00111','00010','00010','00010','10010','10010','01100'], K:['10001','10010','10100','11000','10100','10010','10001'], L:['10000','10000','10000','10000','10000','10000','11111'], M:['10001','11011','10101','10101','10001','10001','10001'], N:['10001','11001','10101','10011','10001','10001','10001'], O:['01110','10001','10001','10001','10001','10001','01110'], P:['11110','10001','10001','11110','10000','10000','10000'], Q:['01110','10001','10001','10001','10101','10010','01101'], R:['11110','10001','10001','11110','10100','10010','10001'], S:['01111','10000','10000','01110','00001','00001','11110'], T:['11111','00100','00100','00100','00100','00100','00100'], U:['10001','10001','10001','10001','10001','10001','01110'], V:['10001','10001','10001','10001','10001','01010','00100'], W:['10001','10001','10001','10101','10101','10101','01010'], X:['10001','10001','01010','00100','01010','10001','10001'], Y:['10001','10001','01010','00100','00100','00100','00100'], Z:['11111','00001','00010','00100','01000','10000','11111'],
   '0':['01110','10001','10011','10101','11001','10001','01110'], '1':['00100','01100','00100','00100','00100','00100','01110'], '2':['01110','10001','00001','00010','00100','01000','11111'], '3':['11110','00001','00001','01110','00001','00001','11110'], '4':['00010','00110','01010','10010','11111','00010','00010'], '5':['11111','10000','10000','11110','00001','00001','11110'], '6':['01110','10000','10000','11110','10001','10001','01110'], '7':['11111','00001','00010','00100','01000','01000','01000'], '8':['01110','10001','10001','01110','10001','10001','01110'], '9':['01110','10001','10001','01111','00001','00001','01110'],
@@ -34,8 +34,8 @@ const bitmapLabelDraw = (value: string): string => {
 
 const resolveMagick = (): string => {
   for (const command of ['magick', 'convert']) {
-    const result = spawnSync(command, ['-version'], { stdio: 'ignore' })
-    if (result.status === 0) return command
+    const result = runSyncCommand(command, ['-version'], { env: childEnv(), stdio: 'ignore' })
+    if (result.exitCode === 0) return command
   }
   throw InfraError('Comic identity-card composition requires ImageMagick (`magick` or `convert`).', { stage: 'comic:identity-card' })
 }
@@ -79,7 +79,7 @@ const ensureCharacterIdentityCardSync = (
   const metadataPath = `${outputPath}.json`
   const { sheetPath, sourcePath } = getSources(runDirectory, character)
   if (sheetPath === sourcePath) return sheetPath
-  const sourceHash = createHash('sha256')
+  const sourceHash = new Bun.CryptoHasher('sha256')
     .update(character.key).update('\0')
     .update(hashFile(sourcePath)).update('\0')
     .update(hashFile(sheetPath)).update('\0')
@@ -99,15 +99,15 @@ const ensureCharacterIdentityCardSync = (
   const tempPath = `${outputPath}.tmp-${process.pid}.png`
   const command = resolveMagick()
   const label = `CHARACTER KEY: ${character.key}`
-  const result = spawnSync(command, [
+  const result = runSyncCommand(command, [
     '-size', '1536x1024', 'xc:#f4f0e8',
     '(', sourcePath, '-resize', '480x824>', ')', '-gravity', 'southwest', '-geometry', '+32+32', '-composite',
     '(', sheetPath, '-resize', '960x824>', ')', '-gravity', 'southeast', '-geometry', '+32+32', '-composite',
     '-fill', '#172033', '-draw', 'rectangle 0,0 1536,168',
     '-fill', 'white', '-draw', bitmapLabelDraw(label),
     '-strip', '-define', 'png:exclude-chunk=date,time', tempPath,
-  ], { encoding: 'utf8' })
-  if (result.status !== 0) {
+  ], { env: childEnv() })
+  if (result.exitCode !== 0) {
     throw InfraError(`ImageMagick failed to compose ${basename(outputPath)}: ${result.stderr || result.stdout}`, { stage: 'comic:identity-card' })
   }
   renameSync(tempPath, outputPath)

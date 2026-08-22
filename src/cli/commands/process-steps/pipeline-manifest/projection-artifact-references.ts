@@ -1,5 +1,4 @@
 import { posix } from 'node:path'
-import { createHash } from 'node:crypto'
 import type {
   ArtifactFileDescriptor,
   EventReferenceListDescriptor,
@@ -523,7 +522,7 @@ const collectRenderPlanNested: NestedCollector = (ctx) => {
     for (const [index, rawArtifact] of turnArtifacts.entries()) {
       const plannedTurn = plannedTurns[index]
       if (!isRecord(rawArtifact) || !isRecord(plannedTurn) || typeof plannedTurn['canonicalText'] !== 'string') return false
-      const expectedSha = createHash('sha256').update(plannedTurn['canonicalText'].endsWith('\n') ? plannedTurn['canonicalText'] : `${plannedTurn['canonicalText']}\n`).digest('hex')
+      const expectedSha = new Bun.CryptoHasher('sha256').update(plannedTurn['canonicalText'].endsWith('\n') ? plannedTurn['canonicalText'] : `${plannedTurn['canonicalText']}\n`).digest('hex')
       if (rawArtifact['sha256'] !== expectedSha || !add(rawArtifact, 'path', 'sha256', 'strategy-text', renderDir, undefined, { renderDir })) return false
     }
     for (const rawArtifact of slotArtifacts) {

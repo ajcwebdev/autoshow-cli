@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-17
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 - **Supersession:** Docker distribution is governed separately by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record remains accepted authority for host setup reliability and toolchain lifecycle.
 
@@ -14,7 +14,7 @@ AutoShow requires a "local-lite" tool set — FFmpeg and `ffprobe`, `yt-dlp`, Mu
 
 Several issues motivated unifying this lifecycle:
 
-1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies lived under `runtime/`. Homebrew installs mutated global system state, varied by machine configuration, and drifted from the managed runtime pattern used for tools like `uv`, `whisper-cli`, whisperfile, and local models. Linux hosts continue to use `apt`.
+1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies lived under `runtime/`. Homebrew installs mutated global system state, varied by machine configuration, and drifted from the managed runtime pattern used for tools like `whisper-cli`, whisperfile, and local models. Linux hosts continue to use `apt`.
 2. **Download reliability and integrity.** Setup downloads relied on rigid total-transfer timeouts that aborted large assets (such as multi-gigabyte models) on normal bandwidth. Retries restarted from byte zero while buffering entire bodies in memory, downloads lacked checksum verification, and unthrottled concurrent downloads saturated available bandwidth.
 3. **Truthful reporting and diagnostics.** Setup reporting could exit with code 0 despite failed steps, while `setup --doctor` inspected superficial version flags rather than verifying actual binary execution readiness.
 4. **Hermetic toolchain delivery.** Upstream MuPDF and qpdf releases do not publish prebuilt macOS CLI binaries. Default source builds risked linking against host Homebrew or OpenSSL libraries instead of hermetic, portable system linkage.
@@ -112,7 +112,7 @@ AutoShow provisions the local-lite toolchain through managed `runtime/` artifact
 1. **Host provisioning and resolver precedence:** macOS setup does not invoke Homebrew for AutoShow-managed dependencies. Tools are installed and isolated under `runtime/`. Resolver precedence is:
    1. Explicit user override (such as `--bin-dir` or configuration settings).
    2. AutoShow-managed runtime binary, environment, or shim under `runtime/`.
-   3. `PATH` only for unmanaged external host prerequisites (Xcode tools, `cmake`, compilers).
+   3. `PATH` only for tools AutoShow does not manage on that host (Linux `apt` installs; build prerequisites such as Xcode tools, `cmake`, and compilers).
 2. **Download integrity, transfer concurrency, and health:** All downloads use stall-based inactivity timeouts, stream to resumable `<destination>.part` files guarded by metadata, and verify checksums prior to atomic promotion. Concurrent network transfers are bounded by a shared capacity gate. Setup reports step timing, disk usage, and component health truthfully, exiting non-zero on partial failures. Offline doctor checks validate actual executable execution rather than surface markers.
 3. **Hermetic macOS MuPDF and qpdf builds:** Both tools are built from pinned upstream source on macOS. The qpdf build statically links a pinned libjpeg-turbo dependency, selects native crypto, and eliminates external dynamic library linkages. Builds install via isolated staging and atomic directory replacement.
 
@@ -127,11 +127,11 @@ This does not apply to:
 - External host build prerequisites (Xcode command line tools, `cmake`, compilers).
 - Linux host package management (`apt`).
 - Docker container distribution (governed by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md)).
-- Hosted provider credential validation (which requires explicit opt-in execution).
+- Hosted provider credential validity (setup and `setup --doctor` report key presence only).
 
 ## Rationale
 
-- **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with existing patterns used for `uv`, `whisper-cli`, whisperfile, Defuddle, and model assets. It guarantees reproducible versions and avoids mutating host system state.
+- **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with existing patterns used for `whisper-cli`, whisperfile, Defuddle, and model assets. It guarantees reproducible versions and avoids mutating host system state.
 - **Source builds:** Compiling MuPDF and qpdf from pinned source preserves exact versions and hermetic static linkage without requiring Apple Developer signing credentials, notarization pipelines, or binary distribution infrastructure.
 - **Acquisition and reporting:** Stall-based timeouts and chunked resumable streaming decouple download reliability from bandwidth constraints or file sizes. Bounding transfer concurrency prevents network contention, and truthful exit codes ensure automated workflows fail closed on incomplete installations.
 
@@ -176,7 +176,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-- Runtime-managed macOS dependencies — Implemented in `src/utils/runtime-paths.ts`
+- Runtime-managed macOS dependencies — Resolved in `src/utils/runtime-paths.ts` and installed in `src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts`
 - Resumable downloads, stall timeouts, and concurrency gate — Implemented in `src/cli/commands/setup-and-utilities/setup/setup-download/`
 - Honest setup summary reporting, progress heartbeats, and offline doctor checks — Implemented in `src/cli/commands/setup-and-utilities/setup/`
 - Hermetic macOS MuPDF and qpdf source builds with static linking and manifest verification — Implemented in `src/cli/commands/setup-and-utilities/setup/setup-download/`
@@ -185,7 +185,7 @@ Negative outcomes:
 
 - `config/deps.json` remains a supported user override mechanism merged over default dependency metadata.
 - HuggingFace downloads retain a dedicated per-file timeout budget while participating in shared transfer concurrency gating.
-- Reclaimed legacy build trees and conversion caches are cleaned up automatically while preserving intentional persistent caches.
+- Transient `runtime/build` trees are pruned automatically after setup, while legacy Whisper CoreML conversion artifacts are reported as reclaimable rather than deleted.
 
 ## Test Plan
 
@@ -197,7 +197,7 @@ bun test test/test-cases/validation/setup/
 ```
 
 - **Setup acquisition contracts:** Verify HTTP Range requests, invalid partial-file rejection, clean restarts on full responses (`200`), stall preservation, per-flow budgets, and checksum failure handling.
-- **Setup orchestration contracts:** Verify transfer concurrency limits, heartbeat progress reporting, serial execution chains, artifact cleanup thresholds, offline doctor checks, and exit code accuracy on partial failures.
+- **Setup orchestration contracts:** Verify transfer concurrency limits, heartbeat progress reporting, concurrent task orchestration, artifact cleanup thresholds, offline doctor checks, and exit code accuracy on partial failures.
 - **Managed source contracts:** Verify MuPDF and qpdf manifest validation, architecture/platform checks, static linking constraints (no non-system dynamic libraries), atomic directory promotion, and rollback on failure.
 
 ## References

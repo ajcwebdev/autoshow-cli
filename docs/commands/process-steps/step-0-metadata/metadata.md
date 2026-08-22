@@ -39,7 +39,7 @@ bun autoshow metadata <input>
 
 ```text
 --markdown           Output metadata as Markdown frontmatter YAML
---save               Save the canonical manifest.json (and metadata.md with --markdown)
+--save               Save manifest.json to disk (and metadata.md with --markdown)
 --password           Password for encrypted PDFs
 --url-provider       Article/HTML extraction backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
 --batch-limit        Batch: number of items to process or "all" (default 5)
@@ -50,15 +50,30 @@ bun autoshow metadata <input>
 
 ## Output
 
-By default, metadata is printed to the terminal as JSON.
+By default, metadata is printed to the terminal as a labeled key/value report. Add the global `--json` flag to emit the same payload as JSON next to the structured log records.
 
 With `--markdown`, the same metadata is printed as Markdown frontmatter YAML.
 
 **Terminal output (default)**
 
+```text
+[13:14:55.161] • Metadata
+  title: My Video Title
+  slug: 2025-07-22-my-video-title
+  duration: 12:34
+  channel: Channel Name
+  url: https://www.youtube.com/watch?v=...
+  publish date: 2025-07-22
+  thumbnail: https://i.ytimg.com/vi/.../maxresdefault.jpg
+  channel url: https://www.youtube.com/channel/...
+```
+
+**Terminal output with `--json`**
+
 ```json
 {
   "title": "My Video Title",
+  "slug": "2025-07-22-my-video-title",
   "duration": "12:34",
   "channel": "Channel Name",
   "url": "https://www.youtube.com/watch?v=...",
@@ -73,6 +88,7 @@ With `--markdown`, the same metadata is printed as Markdown frontmatter YAML.
 ```md
 ---
 title: 'My Video Title'
+slug: '2025-07-22-my-video-title'
 duration: '12:34'
 channel: 'Channel Name'
 url: 'https://www.youtube.com/watch?v=...'
@@ -91,7 +107,7 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-The saved file uses the same unversioned canonical shape as every other pipeline output: `command: "metadata"`, `scope: "single"`, timestamps, and one item. The displayed metadata is stored in that item's `metadata`; it is not a second manifest format.
+The saved file uses the same unversioned canonical shape as every other pipeline output: `command: "metadata"`, `scope: "single"`, timestamps, and one item. The displayed metadata is stored under that item's `metadata.step1`; it is not a second manifest format.
 
 With `--save --markdown`, the same directory also includes:
 
@@ -105,11 +121,11 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
 
 ```json
 {
-  "format": "pdf",
   "title": "Document Title",
   "slug": "1-document",
   "author": "Author Name",
   "pageCount": 42,
+  "format": "pdf",
   "fileSize": 1234567
 }
 ```
@@ -159,8 +175,8 @@ bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
    - `yt-dlp --dump-json` for streaming URLs (YouTube, Twitch, TikTok) — no actual download
    - `ffprobe` for local media files — extracts duration and title from filename
    - URL path parsing for direct media URLs
-2. Derives a `slug` from the input filename when one exists, otherwise falls back to a title-based slug
-3. Prints the collected metadata (title, slug, duration, channel, URL, publish date, thumbnail, chapters) as JSON by default, or as Markdown frontmatter YAML with `--markdown`
+2. Derives a `slug` from the input filename when one exists, otherwise falls back to a publish-date-prefixed title slug
+3. Prints the collected metadata (title, slug, duration, channel, URL, publish date, thumbnail, channel URL, chapters, description) as a terminal report by default, as JSON with `--json`, or as Markdown frontmatter YAML with `--markdown`
 
 **Document inputs (PDFs, EPUBs, etc.)**
 
@@ -168,7 +184,7 @@ bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save
 2. For PDF/EPUB, calls `getDocumentInfo()` via `mutool` to extract title, author, and page count
 3. Derives a `slug` from the original filename when one exists, otherwise falls back to a title-based slug
 4. Collects file size via `stat`
-5. Prints the document metadata as JSON by default, or as Markdown frontmatter YAML with `--markdown`
+5. Prints the document metadata as a terminal report by default, as JSON with `--json`, or as Markdown frontmatter YAML with `--markdown`
 
 For remote document URLs, the file is temporarily downloaded for inspection and cleaned up afterward. No permanent files are created unless `--save` is used.
 

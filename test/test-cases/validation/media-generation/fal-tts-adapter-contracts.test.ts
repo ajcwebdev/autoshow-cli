@@ -45,7 +45,7 @@ describe('fal.ai TTS contracts', () => {
   })
 
   test('rejects missing credentials and is not an SFX provider', async () => {
-    await expect(runFalTts('Hello', 'test-out', { model: FAL_SEED_SPEECH_MODEL, apiKey: '' })).rejects.toThrow('fal.ai API key is required')
+    await expect(runFalTts('Hello', 'test-out', { model: FAL_SEED_SPEECH_MODEL, apiKey: '' })).rejects.toThrow('FAL_API_KEY environment variable is required for fal.ai TTS')
     expect(() => resolveSoundEffectTarget('fal=fal-ai/maya')).toThrow(/Unsupported sound-effect provider fal/)
   })
 })

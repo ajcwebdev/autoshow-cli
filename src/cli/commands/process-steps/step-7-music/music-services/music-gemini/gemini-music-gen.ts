@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureGeminiMusicGenSetup = ensureApiKeySetup('GEMINI_API_KEY', 'music:gemini', 'Gemini music generation')
+export const ensureGeminiMusicGenSetup = ensureProvider('gemini', 'music:gemini', 'Gemini music generation')

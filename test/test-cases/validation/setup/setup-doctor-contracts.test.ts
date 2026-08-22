@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import {
   collectDoctorNextSteps,
-  collectDoctorReport
+  collectDoctorReport,
+  runDoctor
 } from '~/cli/commands/setup-and-utilities/setup/run-doctor'
 import {
   findHostedProviderEnvKeyForConfigPath,
@@ -18,6 +19,7 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { DoctorCheck, DoctorProbes, RunResult } from '~/types'
+import { AppUsageError } from '~/utils/error-handler'
 import { requireDefined } from '../../../test-utils/value-assertions'
 
 const okRun = (stdout = ''): RunResult => ({ stdout, stderr: '', exitCode: 0 })
@@ -248,6 +250,41 @@ describe('setup doctor contracts', () => {
     expect(findDoctorCheck(report, 'HAPPYSCRIBE_API_KEY (Happy Scribe STT)').severity).toBe('info')
     expect(findDoctorCheck(report, 'SUPADATA_API_KEY (Supadata STT/URL)').severity).toBe('info')
     expect(report.hasWarnings).toBe(false)
+  })
+
+  test('doctor identifies only credentials required by configured defaults', async () => {
+    const report = await collectDoctorReport(makeDoctorProbes({
+      env: { OPENAI_API_KEY: 'configured' },
+      loadConfig: async () => ({
+        defaults: {
+          llm: {
+            openai: ['gpt-5'],
+            together: ['moonshotai/Kimi-K2-Instruct']
+          }
+        }
+      })
+    }))
+
+    expect(report.missingConfiguredCredentialEnvVars).toEqual(['TOGETHER_API_KEY'])
+  })
+
+  test('strict doctor exits 2 for missing configured credentials while default doctor remains advisory', async () => {
+    const probes = makeDoctorProbes({
+      env: {},
+      loadConfig: async () => ({ defaults: { llm: { together: ['moonshotai/Kimi-K2-Instruct'] } } })
+    })
+
+    const advisory = await runDoctor({ probeOverrides: probes })
+    expect(advisory.missingConfiguredCredentialEnvVars).toEqual(['TOGETHER_API_KEY'])
+
+    try {
+      await runDoctor({ strict: true, probeOverrides: probes })
+      throw new Error('strict doctor unexpectedly succeeded')
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppUsageError)
+      expect((error as AppUsageError).exitCode).toBe(2)
+      expect((error as AppUsageError).metadata['missingCredentialEnvVars']).toEqual(['TOGETHER_API_KEY'])
+    }
   })
 
   test('doctor accepts either ffmpeg ass support or fallback lyric-video renderer tools', async () => {

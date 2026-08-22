@@ -1,6 +1,7 @@
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, RetryClass } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
+import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
   usage: 2,
   provider_http: 1,
@@ -139,47 +140,13 @@ export const ValidationError = (
   options: Omit<AppErrorOptions, 'kind'> = {}
 ): AppValidationError => new AppValidationError(message, options)
 
-// Covers every variable in HOSTED_PROVIDER_ENV_CHECKS; the env-example drift
-// contract pins the two sets together so a new provider registers a hint too.
-export const MISSING_ENV_HINTS: Readonly<Record<string, string>> = {
-  OPENAI_API_KEY: 'Set OPENAI_API_KEY environment variable to use OpenAI models (https://platform.openai.com/api-keys)',
-  XAI_API_KEY: 'Set XAI_API_KEY environment variable to use Grok models (https://console.x.ai/)',
-  GEMINI_API_KEY: 'Set GEMINI_API_KEY environment variable to use Gemini models (https://aistudio.google.com/apikey)',
-  GROQ_API_KEY: 'Set GROQ_API_KEY environment variable to use Groq models (https://console.groq.com/keys)',
-  GLM_API_KEY: 'Set GLM_API_KEY environment variable to use GLM models (https://docs.z.ai/)',
-  KIMI_API_KEY: 'Set KIMI_API_KEY environment variable to use Kimi models (https://platform.moonshot.ai/)',
-  CEREBRAS_API_KEY: 'Set CEREBRAS_API_KEY environment variable to use Cerebras models (https://cloud.cerebras.ai/)',
-  TOGETHER_API_KEY: 'Set TOGETHER_API_KEY environment variable to use Together models (https://api.together.ai/)',
-  ANTHROPIC_API_KEY: 'Set ANTHROPIC_API_KEY environment variable to use Anthropic Claude models (https://console.anthropic.com/settings/keys)',
-  MINIMAX_API_KEY: 'Set MINIMAX_API_KEY environment variable to use MiniMax models (https://platform.minimax.io/)',
-  MISTRAL_API_KEY: 'Set MISTRAL_API_KEY environment variable to use Mistral transcription/OCR/TTS (https://console.mistral.ai/api-keys)',
-  DEEPINFRA_API_KEY: 'Set DEEPINFRA_API_KEY environment variable to use DeepInfra transcription/OCR/TTS (https://deepinfra.com/)',
-  ASSEMBLYAI_API_KEY: 'Set ASSEMBLYAI_API_KEY environment variable to use AssemblyAI transcription (https://www.assemblyai.com/dashboard/signup)',
-  DEEPGRAM_API_KEY: 'Set DEEPGRAM_API_KEY environment variable to use Deepgram transcription/TTS (https://console.deepgram.com/project/api-keys)',
-  SONIOX_API_KEY: 'Set SONIOX_API_KEY environment variable to use Soniox transcription (https://console.soniox.com)',
-  ELEVENLABS_API_KEY: 'Set ELEVENLABS_API_KEY environment variable to use ElevenLabs transcription/TTS/music (https://elevenlabs.io/)',
-  SPEECHMATICS_API_KEY: 'Set SPEECHMATICS_API_KEY environment variable to use Speechmatics transcription (https://portal.speechmatics.com)',
-  REVAI_ACCESS_TOKEN: 'Set REVAI_ACCESS_TOKEN environment variable to use Rev transcription (https://www.rev.ai/)',
-  GLADIA_API_KEY: 'Set GLADIA_API_KEY environment variable to use Gladia transcription (https://app.gladia.io/apikeys)',
-  HAPPYSCRIBE_API_KEY: 'Set HAPPYSCRIBE_API_KEY environment variable to use Happy Scribe transcription (https://www.happyscribe.com/)',
-  SUPADATA_API_KEY: 'Set SUPADATA_API_KEY environment variable to use Supadata transcription and URL extraction (https://supadata.ai/)',
-  SCRAPECREATORS_API_KEY: 'Set SCRAPECREATORS_API_KEY environment variable to use ScrapeCreators YouTube transcript retrieval (https://scrapecreators.com/)',
-  FIRECRAWL_API_KEY: 'Set FIRECRAWL_API_KEY environment variable to use Firecrawl URL extraction (https://www.firecrawl.dev/)',
-  SPIDER_API_KEY: 'Set SPIDER_API_KEY environment variable to use Spider URL extraction (https://spider.cloud/)',
-  ZYTE_API_KEY: 'Set ZYTE_API_KEY environment variable to use Zyte URL extraction (https://www.zyte.com/)',
-  SPEECHIFY_API_KEY: 'Set SPEECHIFY_API_KEY environment variable to use Speechify TTS (https://console.speechify.com/)',
-  HUME_API_KEY: 'Set HUME_API_KEY environment variable to use Hume TTS (https://platform.hume.ai/)',
-  CARTESIA_API_KEY: 'Set CARTESIA_API_KEY environment variable to use Cartesia TTS (https://play.cartesia.ai/)',
-  FISH_API_KEY: 'Set FISH_API_KEY environment variable to use Fish Audio TTS (https://fish.audio/)',
-  INWORLD_API_KEY: 'Set INWORLD_API_KEY environment variable to use Inworld AI TTS (https://inworld.ai/)',
-  LTXV_API_KEY: 'Set LTXV_API_KEY environment variable to use LTX video generation (https://docs.ltx.video/)',
-  BFL_API_KEY: 'Set BFL_API_KEY environment variable to use BFL image generation (https://dashboard.bfl.ai/)',
-  LUMA_AGENTS_API_KEY: 'Set LUMA_AGENTS_API_KEY environment variable to use Luma Labs image/video generation (https://platform.lumalabs.ai/)',
-  REPLICATE_API_TOKEN: 'Set REPLICATE_API_TOKEN environment variable to use Replicate OCR/image/video/TTS (https://replicate.com/)',
-  FAL_API_KEY: 'Set FAL_API_KEY environment variable to use fal.ai OCR/image/video/TTS (https://fal.ai/dashboard/keys)',
-  STABILITY_API_KEY: 'Set STABILITY_API_KEY environment variable to use Stability AI sound effects (https://platform.stability.ai/account/keys)',
-  X_BEARER_TOKEN: 'Set X_BEARER_TOKEN environment variable to use X/Twitter Spaces; create a Bearer Token at https://developer.x.com/en/portal/dashboard'
-}
+// Generated from the credential specification so labels, URLs, and names cannot drift.
+export const MISSING_ENV_HINTS: Readonly<Record<string, string>> = Object.fromEntries(
+  HOSTED_PROVIDER_ENV_CHECKS.map(spec => [
+    spec.envVar,
+    `Set ${spec.envVar} environment variable to use ${spec.label} (${spec.hintUrl})`
+  ])
+)
 
 /**
  * Structured remediation hint(s) for a missing environment variable. Keeps the

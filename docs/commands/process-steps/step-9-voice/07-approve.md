@@ -18,10 +18,10 @@ Approval appends a new content-identified registration generation and atomically
 
 ### Options
 
-| Flag                       | Description                                     |
-| -------------------------- | ----------------------------------------------- |
+| Flag | Description |
+| --- | --- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
-| `--actor-id <id>`          | Opaque approving actor ID                       |
+| `--actor-id <id>` | Required opaque approving actor ID |
 
 ### Examples
 

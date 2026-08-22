@@ -1,6 +1,4 @@
-import { randomUUID } from 'node:crypto'
 import { cp, mkdir, rename, rm, symlink } from 'node:fs/promises'
-import { cpus } from 'node:os'
 import { dirname, join } from 'node:path'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import { runCapture, runInherit } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
@@ -26,6 +24,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact'
 import type { DownloadFlowId } from '~/types'
 import { InfraError } from '~/utils/error-handler'
+import { logicalCpuCount } from '~/utils/logical-cpu-count'
 import { makeExecutable } from '~/utils/filesystem'
 import {
   ebookConvertInstalledBinaryPath,
@@ -61,7 +60,7 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 
-const resolveSetupSourceBuildParallelJobs = (): number => Math.max(1, Math.min(cpus().length, 8))
+const resolveSetupSourceBuildParallelJobs = (): number => Math.min(logicalCpuCount(), 8)
 const leptonicaCmakeConfigDir = join(leptonicaToolDir, 'lib/cmake/leptonica')
 const leptonicaCmakeConfigPath = join(leptonicaCmakeConfigDir, 'LeptonicaConfig.cmake')
 const leptonicaManagedBuildStampPath = join(leptonicaToolDir, '.autoshow-managed-build')
@@ -79,7 +78,7 @@ const recreateDir = async (path: string): Promise<void> => {
 
 const createSymlinkShim = async (target: string, linkPath: string): Promise<void> => {
   await ensureParentDir(linkPath)
-  const tempPath = `${linkPath}.tmp-${randomUUID()}`
+  const tempPath = `${linkPath}.tmp-${crypto.randomUUID()}`
   try {
     await symlink(target, tempPath)
     await rename(tempPath, linkPath)
@@ -90,7 +89,7 @@ const createSymlinkShim = async (target: string, linkPath: string): Promise<void
 
 const writeExecutableScript = async (path: string, content: string): Promise<void> => {
   await ensureParentDir(path)
-  const tempPath = `${path}.tmp-${randomUUID()}`
+  const tempPath = `${path}.tmp-${crypto.randomUUID()}`
   try {
     await Bun.write(tempPath, content)
     await makeExecutable(tempPath)

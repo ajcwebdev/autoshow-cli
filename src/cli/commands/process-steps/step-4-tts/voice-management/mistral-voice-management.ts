@@ -5,7 +5,9 @@ import { isRecord } from '~/utils/rest-client'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { hashCanonicalTtsValue, sha256Bytes } from '../script-to-audio/contract-identity'
+import { hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { deriveProviderAccountScopeHash } from '~/utils/account-scope-hash'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const readRequiredString = (value: Record<string, unknown>, key: string): string => {
   const field = value[key]
@@ -33,8 +35,8 @@ const sanitizeVoiceResponse = (payload: unknown): { id: string, metadata: Saniti
 const requestDefault: MistralVoiceManagementRequest = async options => await mistralJsonRequest(options)
 
 export const mistralAccountScopeHash = (apiKey: string): string => {
-  if (!apiKey.trim()) throw CLIUsageError('Mistral voice management requires an API key.')
-  return sha256Bytes(`mistral-account-scope-v1\0${apiKey}`)
+  const credential = requireProvidedApiKey(apiKey, 'MISTRAL_API_KEY', 'voice:mistral', 'Mistral voice management')
+  return deriveProviderAccountScopeHash('mistral', credential)
 }
 
 export const createMistralSavedVoice = async (

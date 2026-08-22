@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import {
   countReferenceTokens,
@@ -19,7 +18,7 @@ describe('reference tokenizer', () => {
   })
 
   test('vendored rank data matches the pinned SHA-256', () => {
-    const actual = createHash('sha256').update(readFileSync(REFERENCE_TOKENIZER_RANK_DATA_FILE)).digest('hex')
+    const actual = new Bun.CryptoHasher('sha256').update(readFileSync(REFERENCE_TOKENIZER_RANK_DATA_FILE)).digest('hex')
     expect(actual).toBe(REFERENCE_TOKENIZER_METADATA.rankDataSha256)
   })
 

@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto'
-import { mkdir, open, rename, rm, stat } from 'node:fs/promises'
+import { mkdir, open, rename, rm } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { dirname } from 'node:path'
 import type { DownloadFlowId, DownloadRequest, DownloadTimeouts, DownloadWatchdog, PartialDownloadMetadata } from '~/types'
 import { extractTarGzBuffer } from './tar-gz'
@@ -54,7 +54,7 @@ const getFileSize = async (path: string): Promise<number | null> => {
 const normalizeSha256 = (value: string): string => value.replace(/^sha256:/i, '').trim().toLowerCase()
 
 const hashFile = async (path: string): Promise<string> => {
-  const hash = createHash('sha256')
+  const hash = new Bun.CryptoHasher('sha256')
   const reader = Bun.file(path).stream().getReader()
   for (;;) {
     const { done, value } = await reader.read()

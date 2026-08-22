@@ -1,4 +1,5 @@
-import { copyFile, mkdtemp, rm, stat } from 'node:fs/promises'
+import { copyFile, mkdtemp, rm } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import {
@@ -489,317 +490,277 @@ const remapChunkRun = (
   }
 }
 
+type PdfPageFallbackSession = {
+  options: RunHostedOcrPdfChunkFallbackOptions
+  totalPages: number
+  initialFallbackReason: InitialFallbackReason
+  tempDir: string
+  sourceFile: string
+  cacheValidation: { sourceFile: string, identity: RunHostedOcrPdfChunkFallbackOptions['cacheIdentity'] }
+  audit: FallbackAuditState
+  storedChunkPreparation?: PdfChunkPreparationSummary | undefined
+  adaptiveChunkCreator?: ReturnType<typeof createAdaptiveOcrPdfPageChunkCreator> | undefined
+  createChunk: NonNullable<RunHostedOcrPdfChunkFallbackOptions['createChunk']>
+  stateWrite: Promise<void>
+}
+
+const fallbackChunkPreparationSummary = (session: PdfPageFallbackSession): PdfChunkPreparationSummary | undefined => {
+  const current = session.adaptiveChunkCreator?.getSummary()
+  return hasObservedChunkPreparation(current) ? current : session.storedChunkPreparation
+}
+
+const queueFallbackStateWrite = (session: PdfPageFallbackSession): Promise<void> => {
+  session.stateWrite = session.stateWrite.then(async () => {
+    await writeFallbackState(
+      session.options.fallbackDir,
+      session.options,
+      session.totalPages,
+      fallbackChunkPreparationSummary(session),
+      session.audit
+    )
+  })
+  return session.stateWrite
+}
+
+const createPdfPageFallbackSession = async (
+  options: RunHostedOcrPdfChunkFallbackOptions,
+  totalPages: number,
+  initialFallbackReason: InitialFallbackReason,
+  initialFailure?: FallbackAuditState['initialFailure'] | undefined
+): Promise<PdfPageFallbackSession> => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pdf-pages-'))
+  const sourceFile = basename(options.filePath)
+  const session: PdfPageFallbackSession = {
+    options,
+    totalPages,
+    initialFallbackReason,
+    tempDir,
+    sourceFile,
+    cacheValidation: { sourceFile, identity: options.cacheIdentity },
+    audit: {
+      initialFallbackReason,
+      ...(initialFailure ? { initialFailure } : {}),
+      pageRange: { startPage: 1, endPage: totalPages },
+      pages: new Map(),
+    },
+    ...(options.createChunk === undefined ? { storedChunkPreparation: await readFallbackChunkPreparation(options.fallbackDir) } : {}),
+    createChunk: options.createChunk ?? ((inputPath, outputPath, range, password) =>
+      defaultCreatePdfChunk(inputPath, outputPath, range, password, options.dpi, options.serviceLabel)),
+    stateWrite: Promise.resolve(),
+  }
+  if (options.createChunk === undefined) {
+    session.adaptiveChunkCreator = createAdaptiveOcrPdfPageChunkCreator({
+      dpi: options.dpi,
+      tools: options.chunkTools,
+      logLabel: options.serviceLabel,
+      onDirectSplittingDisabled: summary => {
+        l.write('warn', formatDirectSplittingDisabledWarning(options.serviceLabel, summary), { category: 'pipeline', metadata: { chunkPreparation: summary } })
+        void queueFallbackStateWrite(session).catch((stateWriteError: unknown) => {
+          l.write('debug', `${options.serviceLabel}: deferred OCR PDF fallback state write failed`, {
+            category: 'artifact',
+            metadata: { error: serializeDiagnosticError(stateWriteError) },
+          })
+        })
+      },
+    })
+    session.createChunk = session.adaptiveChunkCreator.createChunk
+  }
+  return session
+}
+
+const logFallbackProgress = (session: PdfPageFallbackSession, completedPages: number): void => {
+  if (completedPages % 25 !== 0 && completedPages !== session.totalPages) return
+  l.write('info', `${session.options.serviceLabel}: OCR PDF page fallback completed ${completedPages}/${session.totalPages} pages`, {
+    category: 'pipeline',
+    metadata: { service: session.options.serviceLabel, completedPages, totalPages: session.totalPages },
+  })
+}
+
+const processFallbackPage = async (
+  session: PdfPageFallbackSession,
+  pageNumber: number
+): Promise<HostedOcrRun> => {
+  const { options, totalPages } = session
+  const cached = await readCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, session.cacheValidation)
+  if (cached !== undefined) {
+    setFallbackPageAudit(session.audit, pageNumber, 'cached', { chunkPreparation: fallbackChunkPreparationSummary(session) })
+    await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, session.sourceFile, cached)
+    l.write('debug', `${options.serviceLabel}: OCR fallback page ${pageNumber} already cached`, {
+      category: 'pipeline',
+      metadata: { service: options.serviceLabel, pageNumber, cached: true },
+    })
+    return cached
+  }
+
+  const range = { startPage: pageNumber, endPage: pageNumber }
+  if (session.initialFallbackReason === 'fallback-state') {
+    setFallbackPageAudit(session.audit, pageNumber, 'resumed', { chunkPreparation: fallbackChunkPreparationSummary(session) })
+  }
+  const chunkFormat = options.chunkFormat ?? 'pdf'
+  const chunkExtension = options.chunkExtension ?? (chunkFormat === 'jpg' ? 'jpg' : chunkFormat)
+  const { chunkPath, persistent } = await resolveFallbackChunkPath(options.fallbackDir, session.tempDir, options.filePath, pageNumber, chunkExtension)
+  try {
+    l.write('debug', `${options.serviceLabel}: OCR fallback ${formatRange(range)}`, {
+      category: 'pipeline',
+      metadata: { service: options.serviceLabel, startPage: range.startPage, endPage: range.endPage },
+    })
+    if (!await hasNonEmptyFile(chunkPath)) await session.createChunk(options.filePath, chunkPath, range, options.password)
+    const chunkMetadata = await buildChunkMetadata(chunkPath, options.step1Metadata, range, chunkFormat)
+    const pageRun = validateSinglePageFallbackRun(
+      remapChunkRun(await options.runChunk(chunkPath, chunkMetadata, range), range),
+      pageNumber,
+      options.serviceLabel
+    )
+    await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, session.sourceFile, pageRun)
+    setFallbackPageAudit(session.audit, pageNumber, 'succeeded', { chunkPreparation: fallbackChunkPreparationSummary(session) })
+    return pageRun
+  } catch (error) {
+    await writeInvalidFallbackPageResponse(options.fallbackDir, pageNumber, error)
+    const malformedPageRun = buildMalformedFallbackPageRun(options, error, range)
+    if (malformedPageRun !== undefined) {
+      l.warn(`${options.serviceLabel}: OCR fallback page ${pageNumber} returned malformed structured output; treating raw response as page text`, {
+        category: 'pipeline',
+        metadata: { service: options.serviceLabel, pageNumber },
+      })
+      await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, session.sourceFile, malformedPageRun)
+      setFallbackPageAudit(session.audit, pageNumber, 'succeeded', { chunkPreparation: fallbackChunkPreparationSummary(session) })
+      return malformedPageRun
+    }
+    setFallbackPageAudit(session.audit, pageNumber, 'failed', {
+      chunkPreparation: fallbackChunkPreparationSummary(session),
+      failure: summarizeFallbackFailure(error),
+    })
+    await queueFallbackStateWrite(session)
+    throw error
+  } finally {
+    if (!persistent) await rm(chunkPath, { force: true }).catch(() => {})
+  }
+}
+
+const runFallbackWorkers = async (
+  session: PdfPageFallbackSession,
+  pageNumbers: number[],
+  onResult: (
+    run: HostedOcrRun,
+    pageNumber: number,
+    index: number,
+    results: ReadonlyArray<HostedOcrRun | undefined>
+  ) => Promise<void>
+): Promise<HostedOcrRun[]> => {
+  const results: Array<HostedOcrRun | undefined> = new Array(pageNumbers.length)
+  const concurrency = normalizeOcrPageConcurrency(session.options.pageConcurrency)
+  let next = 0
+  let stopScheduling = false
+  let firstError: unknown
+  let providerWideBlocker: unknown
+  const runWorker = async (): Promise<void> => {
+    while (!stopScheduling) {
+      const index = next
+      next += 1
+      if (index >= pageNumbers.length) return
+      const pageNumber = pageNumbers[index] as number
+      try {
+        const result = await processFallbackPage(session, pageNumber)
+        results[index] = result
+        await onResult(result, pageNumber, index, results)
+      } catch (error) {
+        firstError ??= error
+        if (isProviderWideNonRetryableOcrFailure(error)) providerWideBlocker ??= error
+        stopScheduling = true
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, pageNumbers.length) }, runWorker))
+  if (providerWideBlocker !== undefined) {
+    const failure = summarizeFallbackFailure(providerWideBlocker)
+    for (let index = 0; index < pageNumbers.length; index++) {
+      const pageNumber = pageNumbers[index] as number
+      if (results[index] !== undefined || session.audit.pages.has(pageNumber)) continue
+      setFallbackPageAudit(session.audit, pageNumber, 'canceled', {
+        chunkPreparation: fallbackChunkPreparationSummary(session),
+        failure,
+      })
+    }
+    await queueFallbackStateWrite(session)
+    await session.stateWrite
+  }
+  if (firstError !== undefined) throw firstError
+  return results.map((result, index) => {
+    if (result === undefined) throw InternalError(`OCR fallback page ${pageNumbers[index]} did not produce a result.`, { stage: 'ocr:pdf-chunk-fallback' })
+    return result
+  })
+}
+
+const runPdfPageFallback = async (
+  options: RunHostedOcrPdfChunkFallbackOptions,
+  totalPages: number,
+  initialFallbackReason: InitialFallbackReason,
+  initialFailure?: FallbackAuditState['initialFailure'] | undefined
+): Promise<HostedOcrRun> => {
+  const session = await createPdfPageFallbackSession(options, totalPages, initialFallbackReason, initialFailure)
+  try {
+    await queueFallbackStateWrite(session)
+    let partialWrite = Promise.resolve()
+    const pageNumbers = Array.from({ length: totalPages }, (_value, index) => index + 1)
+    const runs = await runFallbackWorkers(session, pageNumbers, async (_run, _pageNumber, _index, results) => {
+      const completedRuns = results.filter((run): run is HostedOcrRun => run !== undefined)
+      partialWrite = partialWrite.then(async () => await writeFallbackPartialText(options.fallbackDir, completedRuns))
+      await partialWrite
+      await queueFallbackStateWrite(session)
+      logFallbackProgress(session, completedRuns.length)
+    })
+    await partialWrite
+    await writeFallbackPartialText(options.fallbackDir, runs)
+    await queueFallbackStateWrite(session)
+    await session.stateWrite
+    const stitched = stitchHostedOcrChunkRuns(runs, totalPages, fallbackChunkPreparationSummary(session))
+    if (options.keepPageInputs !== true) await cleanupFallbackPageInputs(options.fallbackDir, options.serviceLabel)
+    return stitched
+  } finally {
+    await rm(session.tempDir, { recursive: true, force: true })
+  }
+}
+
+const logInitialFallbackStrategy = (
+  options: RunHostedOcrPdfChunkFallbackOptions,
+  totalPages: number,
+  reason: InitialFallbackReason
+): void => {
+  if (reason === 'forced-page-mode') {
+    l.write('info', `${options.serviceLabel}: using resumable rendered-page OCR`, { category: 'pipeline', metadata: { service: options.serviceLabel, mode: 'rendered-page' } })
+  } else if (reason === 'large-pdf') {
+    l.write('info', `${options.serviceLabel}: PDF has ${totalPages} pages; using resumable single-page OCR`, { category: 'pipeline', metadata: { service: options.serviceLabel, totalPages, mode: 'single-page' } })
+  } else {
+    l.write('info', `${options.serviceLabel}: OCR page fallback artifacts found; resuming single-page OCR`, { category: 'pipeline', metadata: { service: options.serviceLabel, mode: 'single-page', resumed: true } })
+  }
+}
+
 export const runHostedOcrWithPdfChunkFallback = async (
   options: RunHostedOcrPdfChunkFallbackOptions
 ): Promise<HostedOcrRun> => {
   const totalPages = Math.max(1, Math.floor(options.totalPages))
-  const runPageFallback = async (
-    initialFallbackReason: InitialFallbackReason,
-    initialFailure?: FallbackAuditState['initialFailure'] | undefined
-  ): Promise<HostedOcrRun> => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pdf-pages-'))
-    const sourceFile = basename(options.filePath)
-    const cacheValidation = {
-      sourceFile,
-      identity: options.cacheIdentity
-    }
-    const storedChunkPreparation = options.createChunk === undefined
-      ? await readFallbackChunkPreparation(options.fallbackDir)
-      : undefined
-    const audit: FallbackAuditState = {
-      initialFallbackReason,
-      ...(initialFailure ? { initialFailure } : {}),
-      pageRange: { startPage: 1, endPage: totalPages },
-      pages: new Map()
-    }
-    let stateWrite = Promise.resolve()
-    let adaptiveChunkCreator: ReturnType<typeof createAdaptiveOcrPdfPageChunkCreator> | undefined
-    const getChunkPreparationSummary = (): PdfChunkPreparationSummary | undefined => {
-      const current = adaptiveChunkCreator?.getSummary()
-      return hasObservedChunkPreparation(current) ? current : storedChunkPreparation
-    }
-    const queueFallbackStateWrite = (): Promise<void> => {
-      stateWrite = stateWrite.then(async () => {
-        await writeFallbackState(options.fallbackDir, options, totalPages, getChunkPreparationSummary(), audit)
-      })
-      return stateWrite
-    }
-
-    adaptiveChunkCreator = options.createChunk === undefined
-      ? createAdaptiveOcrPdfPageChunkCreator({
-        dpi: options.dpi,
-        tools: options.chunkTools,
-        logLabel: options.serviceLabel,
-        onDirectSplittingDisabled: (summary) => {
-          l.write(
-            'warn',
-            formatDirectSplittingDisabledWarning(options.serviceLabel, summary),
-            { category: 'pipeline', metadata: { chunkPreparation: summary } }
-          )
-          // Fire-and-forget bookkeeping: nothing awaits this write at the moment it settles,
-          // so a rejection would reach Bun's `unhandledRejection` handler and `process.exit`
-          // out of an in-flight paid OCR run. Log it here; the next awaited write still
-          // surfaces the failure through the serialized chain.
-          void queueFallbackStateWrite().catch((stateWriteError: unknown) => {
-            l.write('debug', `${options.serviceLabel}: deferred OCR PDF fallback state write failed`, {
-              category: 'artifact',
-              metadata: { error: serializeDiagnosticError(stateWriteError) }
-            })
-          })
-        }
-      })
-      : undefined
-
-    const createChunk = options.createChunk
-      ?? adaptiveChunkCreator?.createChunk
-      ?? ((inputPath, outputPath, range, password) =>
-        defaultCreatePdfChunk(inputPath, outputPath, range, password, options.dpi, options.serviceLabel))
-
-    const logFallbackProgress = (completedPages: number): void => {
-      if (completedPages % 25 !== 0 && completedPages !== totalPages) {
-        return
-      }
-      l.write('info', `${options.serviceLabel}: OCR PDF page fallback completed ${completedPages}/${totalPages} pages`, {
-        category: 'pipeline',
-        metadata: { service: options.serviceLabel, completedPages, totalPages }
-      })
-    }
-
-    await queueFallbackStateWrite()
-
-    const processPage = async (pageNumber: number): Promise<HostedOcrRun> => {
-      const cached = await readCachedFallbackPage(
-        options.fallbackDir,
-        pageNumber,
-        totalPages,
-        cacheValidation
-      )
-      if (cached !== undefined) {
-        setFallbackPageAudit(audit, pageNumber, 'cached', {
-          chunkPreparation: getChunkPreparationSummary()
-        })
-        await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, sourceFile, cached)
-        l.write('debug', `${options.serviceLabel}: OCR fallback page ${pageNumber} already cached`, {
-          category: 'pipeline',
-          metadata: { service: options.serviceLabel, pageNumber, cached: true }
-        })
-        return cached
-      }
-
-      const range = { startPage: pageNumber, endPage: pageNumber }
-      if (initialFallbackReason === 'fallback-state') {
-        setFallbackPageAudit(audit, pageNumber, 'resumed', {
-          chunkPreparation: getChunkPreparationSummary()
-        })
-      }
-      const chunkFormat = options.chunkFormat ?? 'pdf'
-      const chunkExtension = options.chunkExtension ?? (chunkFormat === 'jpg' ? 'jpg' : chunkFormat)
-      const { chunkPath, persistent } = await resolveFallbackChunkPath(
-        options.fallbackDir,
-        tempDir,
-        options.filePath,
-        pageNumber,
-        chunkExtension
-      )
-      try {
-        l.write('debug', `${options.serviceLabel}: OCR fallback ${formatRange(range)}`, {
-        category: 'pipeline',
-        metadata: { service: options.serviceLabel, startPage: range.startPage, endPage: range.endPage }
-      })
-        if (!await hasNonEmptyFile(chunkPath)) {
-          await createChunk(options.filePath, chunkPath, range, options.password)
-        }
-        const chunkMetadata = await buildChunkMetadata(chunkPath, options.step1Metadata, range, chunkFormat)
-        const pageRun = validateSinglePageFallbackRun(
-          remapChunkRun(await options.runChunk(chunkPath, chunkMetadata, range), range),
-          pageNumber,
-          options.serviceLabel
-        )
-        await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, sourceFile, pageRun)
-        setFallbackPageAudit(audit, pageNumber, 'succeeded', {
-          chunkPreparation: getChunkPreparationSummary()
-        })
-        return pageRun
-      } catch (error) {
-        await writeInvalidFallbackPageResponse(options.fallbackDir, pageNumber, error)
-        const malformedPageRun = buildMalformedFallbackPageRun(options, error, range)
-        if (malformedPageRun !== undefined) {
-          l.warn(`${options.serviceLabel}: OCR fallback page ${pageNumber} returned malformed structured output; treating raw response as page text`, {
-          category: 'pipeline',
-          metadata: { service: options.serviceLabel, pageNumber }
-        })
-          await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, sourceFile, malformedPageRun)
-          setFallbackPageAudit(audit, pageNumber, 'succeeded', {
-            chunkPreparation: getChunkPreparationSummary()
-          })
-          return malformedPageRun
-        }
-        setFallbackPageAudit(audit, pageNumber, 'failed', {
-          chunkPreparation: getChunkPreparationSummary(),
-          failure: summarizeFallbackFailure(error)
-        })
-        await queueFallbackStateWrite()
-        throw error
-      } finally {
-        if (!persistent) {
-          await rm(chunkPath, { force: true }).catch(() => {})
-        }
-      }
-    }
-
-    const runFallbackPageTasks = async (
-      pageNumbers: number[],
-      onResult: (
-        run: HostedOcrRun,
-        pageNumber: number,
-        index: number,
-        results: ReadonlyArray<HostedOcrRun | undefined>
-      ) => Promise<void>
-    ): Promise<HostedOcrRun[]> => {
-      const results: Array<HostedOcrRun | undefined> = new Array(pageNumbers.length)
-      const concurrency = normalizeOcrPageConcurrency(options.pageConcurrency)
-      let next = 0
-      let stopScheduling = false
-      let firstError: unknown
-      let providerWideBlocker: unknown
-
-      const runWorker = async (): Promise<void> => {
-        while (true) {
-          if (stopScheduling) {
-            return
-          }
-          const index = next
-          next += 1
-          if (index >= pageNumbers.length) {
-            return
-          }
-          const pageNumber = pageNumbers[index] as number
-          try {
-            const result = await processPage(pageNumber)
-            results[index] = result
-            await onResult(result, pageNumber, index, results)
-          } catch (error) {
-            firstError = firstError ?? error
-            if (isProviderWideNonRetryableOcrFailure(error)) {
-              providerWideBlocker = providerWideBlocker ?? error
-            }
-            stopScheduling = true
-            return
-          }
-        }
-      }
-
-      await Promise.all(
-        Array.from({ length: Math.min(concurrency, pageNumbers.length) }, async () => {
-          await runWorker()
-        })
-      )
-
-      if (providerWideBlocker !== undefined) {
-        const failure = summarizeFallbackFailure(providerWideBlocker)
-        for (let index = 0; index < pageNumbers.length; index++) {
-          const pageNumber = pageNumbers[index] as number
-          if (results[index] !== undefined || audit.pages.has(pageNumber)) {
-            continue
-          }
-          setFallbackPageAudit(audit, pageNumber, 'canceled', {
-            chunkPreparation: getChunkPreparationSummary(),
-            failure
-          })
-        }
-        await queueFallbackStateWrite()
-        await stateWrite
-      }
-
-      if (firstError !== undefined) {
-        throw firstError
-      }
-
-      return results.map((result, index) => {
-        if (result === undefined) {
-          throw InternalError(`OCR fallback page ${pageNumbers[index]} did not produce a result.`, { stage: 'ocr:pdf-chunk-fallback' })
-        }
-        return result
-      })
-    }
-
-    try {
-      let partialWrite = Promise.resolve()
-      const pageNumbers = Array.from({ length: totalPages }, (_value, index) => index + 1)
-      const runs = await runFallbackPageTasks(
-        pageNumbers,
-        async (_run, _pageNumber, _index, results) => {
-          const completedRuns = results.filter((run): run is HostedOcrRun => run !== undefined)
-          partialWrite = partialWrite.then(async () => {
-            await writeFallbackPartialText(options.fallbackDir, completedRuns)
-          })
-          await partialWrite
-          await queueFallbackStateWrite()
-          logFallbackProgress(completedRuns.length)
-        }
-      )
-      await partialWrite
-      await writeFallbackPartialText(options.fallbackDir, runs)
-      await queueFallbackStateWrite()
-      await stateWrite
-      const stitched = stitchHostedOcrChunkRuns(runs, totalPages, getChunkPreparationSummary())
-      if (options.keepPageInputs !== true) {
-        await cleanupFallbackPageInputs(options.fallbackDir, options.serviceLabel)
-      }
-      return stitched
-    } finally {
-      await rm(tempDir, { recursive: true, force: true })
-    }
-  }
-
   const initialFallbackReason = await resolveInitialFallbackReason(options, totalPages)
   if (initialFallbackReason !== undefined) {
-    if (initialFallbackReason === 'forced-page-mode') {
-      l.write('info', `${options.serviceLabel}: using resumable rendered-page OCR`, {
-      category: 'pipeline',
-      metadata: { service: options.serviceLabel, mode: 'rendered-page' }
-    })
-    } else if (initialFallbackReason === 'large-pdf') {
-      l.write('info', `${options.serviceLabel}: PDF has ${totalPages} pages; using resumable single-page OCR`, {
-      category: 'pipeline',
-      metadata: { service: options.serviceLabel, totalPages, mode: 'single-page' }
-    })
-    } else {
-      l.write('info', `${options.serviceLabel}: OCR page fallback artifacts found; resuming single-page OCR`, {
-      category: 'pipeline',
-      metadata: { service: options.serviceLabel, mode: 'single-page', resumed: true }
-    })
-    }
-    return await runPageFallback(initialFallbackReason)
+    logInitialFallbackStrategy(options, totalPages, initialFallbackReason)
+    return await runPdfPageFallback(options, totalPages, initialFallbackReason)
   }
-
   try {
     return await options.runFull()
   } catch (error) {
-    if (!shouldFallbackToOcrPdfChunks(error)) {
-      throw error
-    }
-
+    if (!shouldFallbackToOcrPdfChunks(error)) throw error
     const failure = classifyOcrProviderFailure(error)
     const message = failure.message
     l.warn(`${options.serviceLabel}: full-document OCR failed (${message}); retrying PDF one page at a time`, {
       category: 'pipeline',
-      metadata: {
-        service: options.serviceLabel,
-        mode: 'single-page',
-        failureCategory: failure.category,
-        failureKind: failure.failureKind,
-        retryable: failure.retryable,
-        error: serializeDiagnosticError(error)
-      }
+      metadata: { service: options.serviceLabel, mode: 'single-page', failureCategory: failure.category, failureKind: failure.failureKind, retryable: failure.retryable, error: serializeDiagnosticError(error) },
     })
-    return await runPageFallback('full-document-failure', {
+    return await runPdfPageFallback(options, totalPages, 'full-document-failure', {
       message,
       category: failure.category,
       failureKind: failure.failureKind,
       retryable: failure.retryable,
       ...(failure.blockedReason ? { blockedReason: failure.blockedReason } : {}),
-      ...(typeof failure.status === 'number' ? { status: failure.status } : {})
+      ...(typeof failure.status === 'number' ? { status: failure.status } : {}),
     })
   }
 }

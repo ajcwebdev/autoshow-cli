@@ -23,8 +23,8 @@ runLlmProviderTargetPools()
    |
    v
    hosted pool
-   concurrency: llmProvider...
-   default 10
+   concurrency: --provider-concurrency
+   default 7
    |
    +--> openai
    +--> groq
@@ -64,7 +64,7 @@ Provider selectors use `provider[=model]`. Repeating a selector creates a multi-
 | Surface                                  | Selector flags                                                                                                                   |
 | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `extract`, `resume`                      | `--provider`, `--all-providers`, `--all-local`, `--provider-concurrency`, `--local-concurrency`                                  |
-| standalone `tts`/`image`/`video`/`music` | `--provider`, `--all-providers`, `--provider-concurrency`, `--local-concurrency`                                                 |
+| standalone `tts`/`image`/`video`/`music` | `--provider`, `--all-providers`, `--provider-concurrency` (no `--local-concurrency`; these commands are hosted-only)             |
 | `write`                                  | `--stt`, `--ocr`, `--llm`, plus `--all-providers stt|ocr|url|llm` and `--all-local stt|ocr|url`                                  |
 | `config`                                 | `--stt`, `--ocr`, `--llm`, `--tts`, `--image`, `--video`, `--music` (persisted defaults; no `--all-providers`/`--all-local`)     |
 
@@ -78,7 +78,7 @@ Current hosted/local provider families:
 | LLM   | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM.                                                                                       |
 | TTS   | Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                         |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                       |
-| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is fully retired; `--provider minimax` is rejected, and a model-qualified selector still reports its fal.ai `minimax/h3` replacement.                                                                    |
+| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is fully retired; `--provider minimax` is rejected as an unknown provider, and a model-qualified selector such as `--provider minimax=MiniMax-Hailuo-2.3` reports `MiniMax-H3` as the replacement identity.                                                                    |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                       |
 
 ## Setup Pipeline
@@ -94,32 +94,36 @@ log hosted provider configuration
   v
 concurrent setup tasks
   |
-  +--> setupYtDependencies()      ffmpeg, ffprobe, yt-dlp
-  +--> setupDefuddleCli()         HTML/article extraction helper
-   +--> setupWhisper()             whisper.cpp binary
-   +--> downloadWhisperModel()     tiny and large-v3-turbo models
-   +--> setupWhisperfile()         default whisperfile model
-   +--> setupCalibreDocumentTools()
-   +--> setupTesseractOcr()
-   |
-   v
-   validate whisper-cli --help
+  +--> setupYtDependencies()        ffmpeg, ffprobe, yt-dlp
+  +--> setupDefuddleCli()           HTML/article extraction helper
+  +--> setupWhisper()               whisper.cpp binary
+  |    downloadWhisperModel()       tiny and large-v3-turbo models
+  +--> setupCalibreDocumentTools()  mutool, qpdf, ebook-convert
+  +--> setupTesseractOcr()
+  |
+  v
+validate whisper-cli --help
+  |
+  v
+prune build trees, report reclaimable artifacts, log step timings
   |
   v
 log setup summary (local tools, local models, hosted providers)
 ```
 
-Step-specific setup commands reuse those pieces:
+`--step` runs one piece of that pipeline in isolation and assumes the other prerequisites are already installed:
 
-| Setup step    | Work performed                                                                   |
-| ------------- | -------------------------------------------------------------------------------- |
-| transcription | Whisper readiness, `large-v3-turbo` model, hosted STT env checks.                |
-| whisperfile   | Download the default whisperfile model (`tiny`) into `runtime/bin/whisperfile/`. |
-| write         | Hosted LLM env checks.                                                           |
-| tts           | Hosted TTS env checks.                                                           |
-| image         | Hosted image env checks.                                                         |
-| video         | Hosted video env checks.                                                         |
-| music         | Hosted music env checks plus ffmpeg/ffprobe, Whisper `large-v3-turbo`.           |
+| `--step` value   | Work performed                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| `all` (default)  | The full pipeline above.                                                                          |
+| `yt-dlp`         | ffmpeg, ffprobe, and yt-dlp.                                                                      |
+| `defuddle`       | Managed Defuddle CLI for HTML/article extraction.                                                 |
+| `whisper-binary` | Build the whisper.cpp `whisper-cli` binary.                                                       |
+| `whisper-model`  | Download the default Whisper model (`tiny`).                                                      |
+| `whisperfile`    | Download the default whisperfile model (`tiny`) into `runtime/bin/whisperfile/`.                  |
+| `calibre`        | mutool, qpdf, and Calibre `ebook-convert`.                                                        |
+| `transcription`  | Download the Whisper `large-v3-turbo` model, then log hosted STT env checks.                      |
+| `music`          | Hosted music env checks, ffmpeg/ffprobe plus subtitle-renderer validation, Whisper `large-v3-turbo`. |
 
 ## Hosted Provider Env Checks
 

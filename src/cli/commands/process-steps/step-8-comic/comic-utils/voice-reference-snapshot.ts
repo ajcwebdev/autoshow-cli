@@ -1,4 +1,3 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
@@ -28,7 +27,7 @@ import {
 } from './comic-audio-contracts'
 
 const snapshotLockName = (sceneRunDir: string): string =>
-  `comic-voice-snapshots-${createHash('sha256').update(resolve(sceneRunDir)).digest('hex').slice(0, 24)}`
+  `comic-voice-snapshots-${new Bun.CryptoHasher('sha256').update(resolve(sceneRunDir)).digest('hex').slice(0, 24)}`
 
 const selectedAuditionAsset = (audition: Awaited<ReturnType<typeof loadApprovedVoiceAudition>>) => {
   for (const item of audition.items) {
@@ -132,7 +131,7 @@ export const buildVoiceReferenceManifest = async (input: {
 }
 
 const atomicWriteIndex = async (path: string, value: VoiceReferenceSnapshotIndex): Promise<void> => {
-  const temporary = `${path}.tmp-${randomUUID()}`
+  const temporary = `${path}.tmp-${crypto.randomUUID()}`
   await mkdir(dirname(path), { recursive: true })
   try {
     await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)

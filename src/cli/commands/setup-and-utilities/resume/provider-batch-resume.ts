@@ -1,8 +1,8 @@
 import { join, resolve as resolvePath } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createPipelineItemFromRecord, derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import type { AggregatedPriceEstimate, PipelineItemRecord, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumePassResult, ProviderResumePriceConfig, ProviderResumeProcessResult, ProviderResumeSnapshot, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step1SourceRef, StepEstimate } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { fileUrlToPath } from '~/utils/file-url-path'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import * as l from '~/utils/app-logger/app-logger'
 import { logResumeItem, logResumeSummary } from './resume-logging'
@@ -16,7 +16,7 @@ export const resolveProviderResumeOutputDir = (record: PipelineItemRecord): stri
 export const toProviderResumeSource = (url: string): Step1SourceRef => {
   if (url.startsWith('file://')) {
     try {
-      return { filePath: fileURLToPath(url) }
+      return { filePath: fileUrlToPath(url) }
     } catch {
       return { filePath: decodeURIComponent(url.replace(/^file:\/\/+/, '/')) }
     }

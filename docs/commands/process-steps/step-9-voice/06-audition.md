@@ -18,15 +18,15 @@ Auditioning synthesizes a protected canonical set containing neutral, representa
 
 ### Options
 
-| Flag                         | Description                                                     |
-| ---------------------------- | --------------------------------------------------------------- |
-| `--generation-id <sha256>`   | Optional unless more than one generation could match            |
-| `--representative-line <text>` | Representative script line for the audition set               |
-| `--takes <n>`                | Takes per audition passage (1-5)                                |
-| `--max-cents <n>`            | Maximum authorized provider spend in cents                      |
-| `--approve`                  | Approve the auditioned generation in the same run               |
-| `--actor-id <id>`            | Required when `--approve` is set                                |
-| `--price`                    | Validate and estimate without provider calls or artifact writes |
+| Flag | Description |
+| --- | --- |
+| `--generation-id <sha256>` | Optional unless more than one generation could match |
+| `--representative-line <text>` | Required representative script line for the audition set |
+| `--takes <n>` | Takes per audition passage, 1-5; default `1` |
+| `--max-cents <n>` | Maximum authorized provider spend in cents |
+| `--approve` | Approve the auditioned generation in the same run |
+| `--actor-id <id>` | Required when `--approve` is set |
+| `--price` | Validate and estimate without provider calls or artifact writes |
 
 ### Examples
 

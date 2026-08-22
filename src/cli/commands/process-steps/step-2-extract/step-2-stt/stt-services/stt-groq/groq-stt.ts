@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureGroqSttSetup = ensureApiKeySetup('GROQ_API_KEY', 'stt:groq', 'Groq STT models')
+export const ensureGroqSttSetup = ensureProvider('groq', 'stt:groq', 'Groq STT models')

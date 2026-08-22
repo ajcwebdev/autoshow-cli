@@ -1,5 +1,5 @@
-import { stat } from 'node:fs/promises'
 import { join, resolve as pathResolve } from 'node:path'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { createManifest, createPipelineItemFromRecord, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { downloadDocument } from '~/cli/commands/process-steps/step-1-download/document/dl-document'

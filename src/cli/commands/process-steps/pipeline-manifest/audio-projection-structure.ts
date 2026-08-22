@@ -12,9 +12,9 @@ import {
   isSha256,
   isStrictArtifactRelativePath,
   isVoiceContextKey,
-  validatesOptionalArtifactRef,
-  PROVIDER_STATUS_SET
+  validatesOptionalArtifactRef
 } from './guards'
+import { parseAudioProjectionStatusVariants } from './audio-projection-status-parser'
 
 const resolveRenderEvent = (
   projection: Record<string, unknown>,
@@ -421,141 +421,8 @@ const validateAudioProjectionStructure = (
 export const parseAudioProjectionStatus = (
   value: unknown,
   targetKey: string
-): { status: PipelineProviderState['status'], attempts: number } | undefined => {
-  if (
-    !isRecord(value)
-    || !hasOnlyKeys(value, ['activeWork', 'selectedSuccess', 'archive', 'branchHistory', 'readinessAttempts', 'renderHistory', 'pointerEvents'])
-    || !Array.isArray(value['branchHistory'])
-    || !Array.isArray(value['readinessAttempts'])
-    || !Array.isArray(value['renderHistory'])
-    || !Array.isArray(value['pointerEvents'])
-  ) {
-    return undefined
-  }
-  if (isRecord(value['archive']) && isRecord(value['selectedSuccess']) && value['activeWork'] === undefined) {
-    const archive = value['archive']
-    const selected = value['selectedSuccess']
-    if (
-      archive['schemaVersion'] !== 1
-      || !isRecord(archive['renderRef'])
-      || !isRecord(archive['timelineRef'])
-      || !isRecord(archive['finalRef'])
-      || !Number.isInteger(archive['slotCount'])
-      || typeof selected['renderIdentity'] !== 'string'
-      || typeof selected['resultIdentity'] !== 'string'
-      || typeof selected['audioRunId'] !== 'string'
-    ) {
-      return undefined
-    }
-    return { status: 'succeeded', attempts: 0 }
-  }
-  if (!isRecord(value['activeWork']) || !validateAudioProjectionStructure(value, targetKey)) {
-    return undefined
-  }
-
-  const active = value['activeWork']
-  if (active['kind'] === 'policy-skip') {
-    const evidence = active['evidence']
-    if (
-      !hasOnlyKeys(active, ['kind', 'evidence'])
-      || !isRecord(evidence)
-      || evidence['schemaVersion'] !== 1
-      || typeof evidence['skipId'] !== 'string'
-      || typeof evidence['targetKey'] !== 'string'
-      || evidence['targetKey'] !== targetKey
-      || (evidence['reasonCode'] !== 'user-requested' && evidence['reasonCode'] !== 'project-policy' && evidence['reasonCode'] !== 'rights-policy')
-      || typeof evidence['reason'] !== 'string'
-      || evidence['reason'].trim().length === 0
-      || value['branchHistory'].length !== 0
-      || value['readinessAttempts'].length !== 0
-      || value['renderHistory'].length !== 0
-      || value['selectedSuccess'] !== undefined
-    ) {
-      return undefined
-    }
-    return { status: 'skipped', attempts: 0 }
-  }
-
-  if (active['kind'] === 'branch') {
-    if (
-      !hasOnlyKeys(active, ['kind', 'branchPlanId', 'readinessAttemptSequence'])
-      || typeof active['branchPlanId'] !== 'string'
-      || (active['readinessAttemptSequence'] !== undefined && (!Number.isInteger(active['readinessAttemptSequence']) || (active['readinessAttemptSequence'] as number) < 0))
-    ) {
-      return undefined
-    }
-    if (active['readinessAttemptSequence'] === undefined) {
-      return { status: 'missing', attempts: 0 }
-    }
-    const matches = value['readinessAttempts'].filter((attempt) =>
-      isRecord(attempt)
-      && attempt['sequence'] === active['readinessAttemptSequence']
-      && attempt['branchPlanId'] === active['branchPlanId']
-    )
-    if (matches.length !== 1) return undefined
-    const readiness = matches[0]
-    if (!readiness) return undefined
-    if (readiness['status'] === 'ready' && readiness['admissionDisposition'] === 'eligible') {
-      return { status: 'missing', attempts: 0 }
-    }
-    if (
-      (readiness['status'] === 'ready' && readiness['admissionDisposition'] === 'peer-blocked')
-      || (readiness['status'] === 'blocked' && readiness['admissionDisposition'] === 'self-blocked')
-    ) {
-      return { status: 'failed', attempts: 0 }
-    }
-    return undefined
-  }
-
-  if (
-    active['kind'] !== 'render'
-    || !hasOnlyKeys(active, ['kind', 'renderIdentity', 'eventSequence', 'journalPath', 'completedSlotHashes'])
-    || typeof active['renderIdentity'] !== 'string'
-    || !Number.isInteger(active['eventSequence'])
-  ) {
-    return undefined
-  }
-  const renderMatches = value['renderHistory'].filter((render) =>
-    isRecord(render) && render['renderIdentity'] === active['renderIdentity']
-  )
-  if (renderMatches.length !== 1) return undefined
-  const render = renderMatches[0]
-  if (!render || !Array.isArray(render['events'])) return undefined
-  const eventMatches = render['events'].filter((event) =>
-    isRecord(event) && event['sequence'] === active['eventSequence']
-  )
-  if (eventMatches.length !== 1) return undefined
-  const event = eventMatches[0]
-  if (
-    !event
-    || typeof event['status'] !== 'string'
-    || !PROVIDER_STATUS_SET.has(event['status'])
-    || !Number.isInteger(event['attempt'])
-    || (event['attempt'] as number) < 0
-  ) {
-    return undefined
-  }
-  const status = event['status'] as PipelineProviderState['status']
-  if (status === 'skipped') return undefined
-  if (status === 'succeeded') {
-    const triples = [
-      ['providerRenderResultIdentity', 'providerRenderResultRef', 'providerRenderResultSha256'],
-      ['audioRunId', 'audioRunRef', 'audioRunSha256']
-    ] as const
-    if (triples.some((keys) => keys.some((key) => typeof event[key] !== 'string'))) return undefined
-    const selected = value['selectedSuccess']
-    if (
-      !isRecord(selected)
-      || selected['renderIdentity'] !== active['renderIdentity']
-      || selected['eventSequence'] !== active['eventSequence']
-      || selected['resultIdentity'] !== event['providerRenderResultIdentity']
-      || selected['audioRunId'] !== event['audioRunId']
-    ) {
-      return undefined
-    }
-  }
-  return { status, attempts: event['attempt'] as number }
-}
+): { status: PipelineProviderState['status'], attempts: number } | undefined =>
+  parseAudioProjectionStatusVariants(value, targetKey, validateAudioProjectionStructure)
 
 export const assertAppendOnlyAudioProjection = (
   before: PipelineProviderState,

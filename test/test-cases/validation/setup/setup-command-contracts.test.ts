@@ -54,6 +54,25 @@ describe('setup command contracts', () => {
     expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid model "bogus" for --provider/--stt whisperfile[=model]')
   })
 
+  test('setup --strict requires doctor mode before any setup work starts', async () => {
+    const parsed = parseCommandInvocation(
+      ['setup', '--strict'],
+      setupCommand,
+      GLOBAL_FLAG_DEFINITIONS
+    )
+    const command = requireDefined(parsed.command, 'parsed setup command')
+    const message = await rejectionMessage(() => setupCommand.handler({
+      argv: parsed.argv,
+      command,
+      flags: parsed.flags,
+      parameters: parsed.parameters,
+      rawParsed: parsed.rawParsed,
+      store: {}
+    }))
+
+    expect(message).toContain('--strict requires --doctor')
+  })
+
   test('Linux yt-dlp setup writes the managed runtime binary without sudo chmod or mv', async () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio.ts').text()
 

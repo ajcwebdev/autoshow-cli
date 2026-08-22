@@ -31,7 +31,7 @@ bun autoshow extract "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 
 Key rules:
 
-- Cookie auth is machine-wide and configured only through `bun autoshow config`. Processing commands such as `extract`, `download`, and `metadata` no longer accept `--cookies` or `--cookies-from-browser`.
+- Cookie auth is saved once to `config/autoshow.json` and applies to every command, and it is configured only through `bun autoshow config`. Processing commands such as `extract`, `download`, and `metadata` no longer accept `--cookies` or `--cookies-from-browser`.
 - Config persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
 - A configured cookies file takes precedence over browser import.
 - If the configured cookies path is unreadable, AutoShow warns, does not pass cookies to `yt-dlp`, and does not fall back to browser import.
@@ -175,7 +175,7 @@ bun autoshow download https://youtube.com/watch?v=abc -- --user-agent "Mozilla/5
 bun autoshow download https://youtube.com/watch?v=abc -- --extractor-args "youtube:player_client=web"
 ```
 
-Passthrough is accepted only by `download`, and only for media URL inputs — not local files, and not the other commands. Give `download` no input at all and it runs `yt-dlp` directly in raw mode, which is the escape hatch for multi-output workflows:
+Passthrough is accepted only by `download`, and only for media URL inputs — including a URL list file whose entries are media URLs, but not local media or document files, and not the other commands. Give `download` no input at all and it runs `yt-dlp` directly in raw mode, which is the escape hatch for multi-output workflows:
 
 ```bash
 bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" https://youtube.com/watch?v=abc

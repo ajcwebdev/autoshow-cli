@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { StructuredScriptData } from '~/types'
@@ -32,8 +31,8 @@ const OUTPUT_URL = 'https://replicate.delivery/audiogen-mix.wav'
 const tempDirs = setupContractSuiteLifecycle({ envKeys: ['REPLICATE_API_TOKEN', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-audiogen-soundscape-' })
 
 const fixture = async (root: string) => {
-  const sfxPrompt = `Hatch slams ${randomUUID()}.`
-  const ambiencePrompt = `Engine hum ${randomUUID()}.`
+  const sfxPrompt = `Hatch slams ${crypto.randomUUID()}.`
+  const ambiencePrompt = `Engine hum ${crypto.randomUUID()}.`
   const source = `# Episode\n\n## Bridge\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n\n**SFX:**\n${sfxPrompt}\n\n**AMBIENCE:**\n${ambiencePrompt}\n`
   const sourcePath = join(root, 'scene.md')
   await Bun.write(sourcePath, source)

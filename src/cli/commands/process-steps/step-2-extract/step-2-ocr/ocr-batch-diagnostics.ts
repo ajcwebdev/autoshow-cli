@@ -1,4 +1,3 @@
-import { createHash, randomUUID } from 'node:crypto'
 import { readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
@@ -202,7 +201,7 @@ export const writeOcrBatchDiagnostics = async (
   const manifest = await readManifest(batchDir)
   if (!manifest || manifest.scope !== 'batch') return undefined
   const manifestBytes = await readFile(join(batchDir, PIPELINE_MANIFEST_FILE))
-  const sha256 = createHash('sha256').update(manifestBytes).digest('hex')
+  const sha256 = new Bun.CryptoHasher('sha256').update(manifestBytes).digest('hex')
   const report = deriveOcrBatchDiagnostics(manifest, sha256)
   const outputPath = join(batchDir, OCR_BATCH_DIAGNOSTICS_FILE)
   if (!report) {
@@ -210,7 +209,7 @@ export const writeOcrBatchDiagnostics = async (
     return undefined
   }
 
-  const temporaryPath = `${outputPath}.${randomUUID()}.tmp`
+  const temporaryPath = `${outputPath}.${crypto.randomUUID()}.tmp`
   await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`)
   await rename(temporaryPath, outputPath)
   l.write('warn', 'OCR batch diagnostics', {

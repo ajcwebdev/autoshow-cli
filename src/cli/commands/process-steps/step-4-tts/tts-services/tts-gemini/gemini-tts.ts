@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureGeminiTtsSetup = ensureApiKeySetup('GEMINI_API_KEY', 'tts:gemini', 'Gemini TTS')
+export const ensureGeminiTtsSetup = ensureProvider('gemini', 'tts:gemini', 'Gemini TTS')

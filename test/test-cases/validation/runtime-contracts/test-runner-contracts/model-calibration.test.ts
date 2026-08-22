@@ -6,7 +6,7 @@ import {
 } from 'bun:test'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { buildModelCalibrationReport } from '../../../../test-runner/model-calibration'
+import { buildModelCalibrationReport, normalizeUnitValue } from '../../../../test-runner/model-calibration'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 const tempDirs: string[] = []
@@ -36,6 +36,50 @@ afterEach(async () => {
 })
 
 describe('test-runner contracts', () => {
+  test('calibration unit normalization accepts only the metric pairs owned by each kind', () => {
+    const accepted = [
+      ['stt', 'durationMs', 2],
+      ['stt', 'durationSeconds', 2000],
+      ['extract', 'pages', 2000],
+      ['llm', 'tokens', 2000],
+      ['tts', 'characters', 2000],
+      ['image', 'images', 2000],
+      ['video', 'durationMs', 2],
+      ['video', 'durationSeconds', 2000],
+      ['music', 'durationMs', 2],
+      ['music', 'durationSeconds', 2000],
+    ] as const
+
+    for (const [kind, metric, expected] of accepted) {
+      expect(normalizeUnitValue(kind, metric, 2000)).toBe(expected)
+    }
+
+    const acceptedMetrics = {
+      stt: ['durationMs', 'durationSeconds'],
+      extract: ['pages'],
+      llm: ['tokens'],
+      tts: ['characters'],
+      image: ['images'],
+      video: ['durationMs', 'durationSeconds'],
+      music: ['durationMs', 'durationSeconds'],
+    } as const
+    const metrics = ['durationMs', 'durationSeconds', 'pages', 'tokens', 'characters', 'images'] as const
+    const kinds = Object.keys(acceptedMetrics) as Array<keyof typeof acceptedMetrics>
+    const invalidMetric = 'unsupported'
+    for (const kind of kinds) {
+      for (const metric of metrics) {
+        const normalized = normalizeUnitValue(kind, metric, 1)
+        if ((acceptedMetrics[kind] as readonly string[]).includes(metric)) expect(normalized).not.toBeNull()
+        else expect(normalized).toBeNull()
+      }
+      expect(normalizeUnitValue(kind, invalidMetric, 1)).toBeNull()
+      expect(normalizeUnitValue(kind, null, 1)).toBeNull()
+      expect(normalizeUnitValue(kind, invalidMetric, null)).toBeNull()
+      expect(normalizeUnitValue(kind, invalidMetric, 0)).toBeNull()
+      expect(normalizeUnitValue(kind, invalidMetric, Number.NaN)).toBeNull()
+    }
+  })
+
   test('model calibration scans copied canonical manifests and reports recommendations', async () => {
       const dir = await makeTempDir('autoshow-calibration-run-manifest-')
       tempDirs.push(dir)

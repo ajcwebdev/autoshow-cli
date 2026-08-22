@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
@@ -482,7 +481,7 @@ export const executeSoundEffectRenderPlan = async (input: {
             }
           )
         }
-        const temporaryRoot = join(input.rootDir, 'audio', 'sound-effects', `.work-${randomUUID()}`)
+        const temporaryRoot = join(input.rootDir, 'audio', 'sound-effects', `.work-${crypto.randomUUID()}`)
         const temporary = join(temporaryRoot, `${task.requestIdentity}.audio`)
         await mkdir(temporaryRoot, { recursive: true })
         try {

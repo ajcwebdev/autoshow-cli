@@ -1,5 +1,4 @@
 import { resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -35,7 +34,7 @@ const buildTextInputMetadata = (inputPath: string): VideoMetadata => {
     duration: 'Unknown',
     channel: 'Local',
     description: '',
-    url: pathToFileURL(resolve(inputPath)).toString(),
+    url: Bun.pathToFileURL(resolve(inputPath)).toString(),
   }
 }
 

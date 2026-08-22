@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-14
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -21,8 +21,8 @@ Why now: `links` is used as a repeatable documentation snapshot mechanism, requi
 
 - **Option:** Add opt-in refresh flags with a sidecar metadata file and align the selector registry
 - **Pros:** Makes refresh behavior explicit; preserves default markdown behavior; gives `models` a first-class global section; prevents duplicate URLs across manifest categories
-- **Cons:** Adds command flags, a metadata schema, a tokenizer dependency, a sidecar artifact, and broader selector tests
-- **Quantitative Notes:** 2 boolean flags, 1 JSON sidecar per refresh run, 1 tokenizer utility, model sections across curated providers
+- **Cons:** Adds command flags, a metadata schema, a vendored reference tokenizer, a sidecar artifact, and broader selector tests
+- **Quantitative Notes:** 2 boolean flags, 1 JSON sidecar per refresh run, 1 tokenizer utility, `Models` sections across 24 of the 43 curated providers
 
 **Option 2**
 
@@ -78,17 +78,17 @@ It does not apply to:
 ## Implementation Note
 
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts` parses `--refresh` and `--refresh-only`, supports direct URL and input file selection modes, enriches fetch results, and writes sidecars when requested.
-- `src/utils/reference-tokenizer.ts` centralizes the reference tokenizer using `tiktoken` with `o200k_base`.
+- `src/utils/reference-tokenizer.ts` centralizes the reference tokenizer as an in-repository `o200k_base` BPE encoder over the vendored rank table at `src/tools/o200k-base-ranks.tiktoken.gz`, with no npm tokenizer dependency.
 - `src/cli/commands/setup-and-utilities/links/model-links/*.json` provides first-class `Models` sections across curated provider manifests.
 - `docs/commands/setup-and-utilities/links/links.md` documents selection modes, `models`, `--refresh`, `--refresh-only`, sidecar paths, aggregate counts, and reference tokenizer semantics.
 
 ## API / Type Impact
 
 - `links` accepts `--refresh` and `--refresh-only` as command-specific boolean flags.
-- `parseLinksArgv(argv)` returns `refresh: boolean` and `refreshOnly: boolean` alongside selection fields.
+- `parseLinksArgv(argv)` returns `refresh: boolean` alongside selection fields, plus `refreshOnly: true` when `--refresh-only` is passed.
 - `runLinksWithArgv(argv, { outputPath, fetchImpl })` returns `refreshMetadataPath` when refresh is requested.
-- `getLinksRefreshMetadataPath(outputPath)` derives the sidecar path by replacing `.md` with `.refresh.json`.
-- `ReferenceTokenizerMetadata` records tokenizer name (`o200k_base`), package name (`tiktoken`), and package version.
+- `getLinksRefreshMetadataPath(outputPath)` derives the sidecar path by replacing a `.md`, `.markdown`, or `.txt` extension with `.refresh.json`, and appending `.refresh.json` when the output path carries no such extension.
+- `ReferenceTokenizerMetadata` records tokenizer name (`o200k_base`), implementation (`in-repository-bpe`), and the SHA-256 of the vendored rank data.
 - Provider manifests expose `models` as a global section and provider-scoped section where model-reference URLs exist.
 
 The refresh sidecar schema (`schemaVersion: 1`) records:
@@ -98,7 +98,7 @@ The refresh sidecar schema (`schemaVersion: 1`) records:
 - Tokenizer metadata.
 - Per-link `sourceUrl`, `fetchUrl`, `finalUrl` when available, fetch status, change status, token count, tokenizer metadata, SHA-256 content hash, byte count, character count, `lastRefreshAt`, `lastSuccessfulRefreshAt`, previous hash and token count when available, and failure reason when applicable.
 
-Under `--refresh-only`, `markdownWritten` is `false` and the command warns when remote content has drifted from the existing bundle.
+Under `--refresh-only`, `markdownWritten` is `false` when a bundle already exists and the command warns if remote content has drifted from it; when no bundle exists yet, the markdown is written and `markdownWritten` is `true`.
 
 ## Consequences
 
@@ -112,9 +112,9 @@ Positive outcomes:
 
 Negative outcomes:
 
-- Refresh runs can be slow because curated `bun autoshow links --refresh` fetches the full selected registry.
+- Refresh runs can be slow because curated `bun autoshow links --refresh` fetches the full selected registry, even though fetches run concurrently at the shared CLI concurrency limit.
 - The CLI gains command-specific flags and a metadata schema that must stay backward-compatible as it evolves.
-- `tiktoken` adds runtime dependency surface and versioning responsibility, and its counts are reference estimates rather than exact billable counts for any specific provider or model.
+- The vendored `o200k_base` rank table adds roughly 1.7 MB of committed repository data and an ongoing parity responsibility against upstream `tiktoken`, and its counts are reference estimates rather than exact billable counts for any specific provider or model.
 - Sidecar files add another artifact that docs and cleanup workflows need to account for.
 - The provider link registry and selector fixture tests churn more broadly when model docs move between categories.
 
@@ -148,11 +148,12 @@ Run default verification (`bun run check`) and local, no-cost contract validatio
 bun run check
 bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-refresh-metadata.test.ts
 bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-input-modes.test.ts
-bun test test/test-cases/validation/cli/cli-help-contracts.test.ts test/test-cases/validation/cli/cli-usage-errors.test.ts test/test-cases/validation/cli/native-cli-parser-contracts.test.ts
+bun test test/test-cases/validation/runtime-contracts/reference-tokenizer-contracts.test.ts
+bun test test/test-cases/validation/cli/cli-help-contracts.test.ts test/test-cases/validation/cli/cli-usage-errors/ test/test-cases/validation/cli/native-cli-parser-contracts.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
-The refresh metadata tests cover first refresh, unchanged second refresh, token-count change, same-token hash change, `--refresh-only` preserving an existing bundle, failed fetch preserving previous successful metadata, direct URL mode, input file mode, and deduped curated links. No paid-provider, smoke, or e2e tests were run.
+The refresh metadata tests cover first refresh, unchanged second refresh, token-count change, same-token hash change, `--refresh-only` preserving an existing bundle, failed fetch preserving previous successful metadata, bounded-concurrency fetching with preserved output order and failures, input-file selections with deduped URLs, and deduped curated links; the input-mode tests cover direct URL mode and input file mode. No paid-provider, smoke, or e2e tests were run.
 
 ## References
 
@@ -165,6 +166,7 @@ The refresh metadata tests cover first refresh, unchanged second refresh, token-
 - `src/cli/commands/setup-and-utilities/links/model-links/`
 - `src/types/cli-surface/define-links-command-types.ts`
 - `src/utils/reference-tokenizer.ts`
+- `src/tools/o200k-base-ranks.tiktoken.gz`
 - `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-input-modes.test.ts`
 - `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-refresh-metadata.test.ts`
 - `test/test-cases/validation/cli/native-cli-parser-contracts.test.ts`

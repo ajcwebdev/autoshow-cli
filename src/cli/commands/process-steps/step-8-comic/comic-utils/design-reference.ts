@@ -1,5 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
-import { copyFile, mkdir } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
@@ -7,6 +6,7 @@ import type { DesignReferenceSnapshotManifest, PanelPrimaryReferenceInput, Resol
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getDesignReferencesDirectory, getSceneAssetsDirectory, getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 import { atomicWriteJson } from '~/utils/filesystem'
+import { copyFileExact } from '~/utils/bun-file-io'
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const DesignReferenceSnapshotItemSchema = v.strictObject({ key: v.string(), usage: v.string(), sourcePath: v.string(), path: v.string(), sha256: v.string() })
@@ -14,7 +14,7 @@ export const DesignReferenceSnapshotManifestSchema = v.strictObject({ schemaVers
 
 const getDesignReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'design-references.json')
 
-const checksum = async (path: string): Promise<string> => createHash('sha256').update(Buffer.from(await Bun.file(path).arrayBuffer())).digest('hex')
+const checksum = async (path: string): Promise<string> => new Bun.CryptoHasher('sha256').update(Buffer.from(await Bun.file(path).arrayBuffer())).digest('hex')
 const resolveSafeSource = (sourcePath: string): string => {
   if (!sourcePath.startsWith('input/') || sourcePath.includes('\\') || sourcePath.split('/').includes('..')) throw ValidationError(`Unsafe design reference source path "${sourcePath}"`, { stage: 'comic:design-reference' })
   const projectRoot = resolve(process.cwd())
@@ -36,12 +36,12 @@ export const createDesignReferenceSnapshot = async (runDirectory: string, refere
     if (!(await Bun.file(source).exists())) throw InfraError(`Design reference source is missing: ${reference.sourcePath}`, { stage: 'comic:design-reference' })
     return { reference, source }
   }))
-  const snapshotId = `${Date.now()}-${createHash('sha256').update(`${[...byKey.keys()].join(',')}:${randomUUID()}`).digest('hex').slice(0, 12)}`
+  const snapshotId = `${Date.now()}-${new Bun.CryptoHasher('sha256').update(`${[...byKey.keys()].join(',')}:${crypto.randomUUID()}`).digest('hex').slice(0, 12)}`
   const designs: DesignReferenceSnapshotManifest['designs'] = []
   for (const { reference, source } of prepared) {
     const destination = join(getDesignReferencesDirectory(runDirectory), snapshotId, `${reference.key}${extname(source).toLowerCase()}`)
     await mkdir(dirname(destination), { recursive: true })
-    await copyFile(source, destination)
+    await copyFileExact(source, destination)
     designs.push({ key: reference.key, usage: reference.usage, sourcePath: reference.sourcePath, path: relative(runDirectory, destination).replace(/\\/g, '/'), sha256: await checksum(destination) })
   }
   const manifest: DesignReferenceSnapshotManifest = { schemaVersion: 1, snapshotId, createdAt: new Date().toISOString(), designs }
@@ -71,7 +71,7 @@ export const resolveDesignReferencesAcrossPanels = (panels: PanelPrimaryReferenc
     const rel = relative(resolve(runDirectory), asset)
     if (rel.startsWith('..') || rel === '') throw ValidationError(`Unsafe design snapshot path "${design.path}"`, { stage: 'comic:design-reference' })
     if (!existsSync(asset)) throw InfraError(`Design snapshot asset is missing: ${design.path}`, { stage: 'comic:design-reference' })
-    const actual = createHash('sha256').update(readFileSync(asset)).digest('hex')
+    const actual = new Bun.CryptoHasher('sha256').update(readFileSync(asset)).digest('hex')
     if (actual !== design.sha256) throw ValidationError(`Design snapshot asset was modified: ${design.path}`, { stage: 'comic:design-reference' })
     seen.add(key)
     ordered.push({ key, usage: design.usage, path: asset })

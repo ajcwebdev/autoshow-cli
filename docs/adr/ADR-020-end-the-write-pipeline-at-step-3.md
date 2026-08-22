@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-17
-- **Date Updated:** 2026-08-17
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -57,7 +57,7 @@ Relationship to existing ADRs:
 
 - **[ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md):** The six resume domains (`extract`, `write`, `tts`, `image`, `video`, `music`) remain intact. Generation resume was already keyed to standalone manifests, so narrowing `write`'s execution surface to LLM preserves the rule that every model selectable by an execution command is resume-selectable, while eliminating dead write-generation resume code paths.
 - **[ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md):** `WriteRuntimeOptions`, `ExpectedOutputOptions`, and `ProcessingOptions` are narrowed to reflect actual runtime consumption, dropping generation option intersections.
-- **`config` and `resume`:** Retain their prefixed generation flags and step selectors (`--tts`, `--image`, `--video`, `--music`) to support configuring defaults and resuming standalone runs.
+- **`config` and `resume`:** Retain their generation option flags. `config` keeps the prefixed generation flags and the step selectors (`--tts`, `--image`, `--video`, `--music`) that persist defaults for the standalone commands, while `resume` keeps provider-neutral generation options and selects providers through repeatable `--provider provider[=model]`.
 
 ## Rationale
 
@@ -94,7 +94,7 @@ Negative outcomes:
 
 Implemented across five phases:
 
-1. Severed generation stage runners, resource gating, and post-generation pricing branches from the write runtime (`single/process-video.ts`, `single/run-text-write.ts`, `aggregate-pricing.ts`).
+1. Severed generation stage runners, resource gating, and post-generation pricing branches from the write runtime (`single/process-video.ts`, `step-3-write/run-text-write.ts`, `aggregate-pricing.ts`).
 2. Removed write generation flags, step selectors (`--tts`, `--image`, `--video`, `--music`), and TTS normalization from `write-flags.ts` and the step-selector normalizer (`service-selector-normalization/step-selectors.ts`, which now exposes separate write and config entry points), while preserving selectors on `config-flags.ts`.
 3. Narrowed `WriteRuntimeOptions`, `ExpectedOutputOptions`, and `ProcessingOptions`, and swept dead runner types in `src/types/`.
 4. Reconciled test catalogs, price registries, and budget preflight contracts.

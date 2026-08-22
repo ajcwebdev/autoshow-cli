@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, extname } from 'node:path'
 import * as v from 'valibot'
 import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'

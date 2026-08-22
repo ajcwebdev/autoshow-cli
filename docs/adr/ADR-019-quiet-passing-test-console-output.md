@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-15
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -21,7 +21,7 @@ Why now: a full `bun t --budget` run made the inverted console policy the domina
 
 - **Option:** Preload harness that buffers `console.*` per test and flushes only on failure
 - **Pros:** Works for `bun test` and `bun t`; keeps Bun's `✓`/`✗` lines; captures in-process logger tables
-- **Cons:** Extra preload; wrapping `expect` adds a harness frame on assertion stacks
+- **Cons:** Extra preload; wrapping `expect` and the test registrars adds a harness frame on failure stacks
 - **Quantitative Notes:** One preload, one fixture contract, no per-file import rewrite
 
 **Option 2**
@@ -56,7 +56,7 @@ Why now: a full `bun t --budget` run made the inverted console policy the domina
 
 Passing tests emit only Bun's result line (`✓`, name, duration). Failing tests keep that `✗` line and also print every `console` write from that test. Capture happens inside the Bun test process via `bunfig.toml` preload of `test/test-utils/test-console-harness.ts`.
 
-The harness intercepts `console.log` / `warn` / `error` / `info` / `debug`, wraps `expect` through `mock.module('bun:test')`, and buffers writes in a per-test variable reset from `beforeEach`. Assertion failures mark the buffer failed and `afterEach` flushes it. The harness does not wrap `test` / `it`, so `test.skip` and `test.each` stay intact. JUnit remains the additive machine-readable summary for `report.json`. Budget preflight keeps its start line, summary table, skip list, and failed variants, and no longer lists every runnable key.
+The harness intercepts `console.log` / `warn` / `error` / `info` / `debug` and, through `mock.module('bun:test')`, wraps `expect` plus the `test` and `it` registrars. Each test callback runs inside an `AsyncLocalStorage` buffer, so writes accumulate per test instead of streaming. A failed matcher marks the buffer failed and the wrapped callback flushes it, as does any error thrown out of the callback. The registrars are Proxies that forward property access to the originals, so `test.skip`, `test.each`, and `test.concurrent` stay intact. JUnit remains the additive machine-readable summary for `report.json`. Budget preflight keeps its start line, summary table, skip list, and failed variants, and no longer lists every runnable key.
 
 This applies to:
 
@@ -87,15 +87,15 @@ Positive outcomes:
 
 Negative outcomes:
 
-- Assertion stacks include a harness frame.
-- A synchronous `throw` that never passes through `expect` does not flush buffered logs; the thrown error remains visible.
+- Failure stacks include a harness frame.
+- Writes outside a test callback — module top level, `beforeAll` / `beforeEach` and their `after` counterparts — have no buffer to land in and print unconditionally, including on pass.
 
 ## Trade-offs
 
 **Trade-off 1**
 
 - **Gain:** Quiet passes and grouped failure logs
-- **Sacrifice:** A Bun preload and `expect` wrap
+- **Sacrifice:** A Bun preload and an `expect` plus registrar wrap
 
 **Trade-off 2**
 
@@ -119,7 +119,7 @@ bun test test/test-cases/validation/runtime-contracts/test-runner-contracts/
 bun test test/test-cases/validation/providers/tts-provider-contracts/openai-grok-groq.test.ts
 ```
 
-1. The harness contract spawns the noisy fixture and asserts the passing log is absent while the failing log and test name remain.
+1. The harness contract spawns the noisy sequential and `test.concurrent` fixtures and asserts each passing log is absent while the failing log and test name remain.
 2. `lineHasTimedOutputPrefix` accepts stamped lines and rejects bare result lines.
 3. A previously noisy in-process TTS file stays at result-line volume on pass.
 

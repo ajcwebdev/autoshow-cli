@@ -1,4 +1,4 @@
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
@@ -255,7 +255,7 @@ const buildGridInventory = (
   }))
 }
 
-const listPanelDirectories = (entries: readonly Dirent[]): PanelDirectoryInventory[] => {
+const listPanelDirectories = (entries: readonly DirectoryEntry[]): PanelDirectoryInventory[] => {
   return entries
     .filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name))
     .map(entry => ({

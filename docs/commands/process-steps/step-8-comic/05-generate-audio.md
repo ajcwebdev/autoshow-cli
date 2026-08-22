@@ -21,6 +21,8 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--sfx-provider <provider=model>`      | Select the dedicated authored sound-effect target; accepts `elevenlabs=eleven_text_to_sound_v2`, `replicate=sepal/audiogen@<pinned-version>`, or `stability=stable-audio-3` | none            |
 | `--sfx-license-use <classification>`   | Declare intended use for license-restricted SFX targets: `noncommercial`, `commercial`, or `unknown`; required for AudioGen and never inferred from model selection         | none            |
 | `--sfx-concurrency <count>`            | Bound parallel sound-effect requests independently from dialogue generation                                                                                                 | `2`             |
+| `--provider-concurrency <count>`       | Max hosted provider/model targets rendering in parallel; chunk fan-out uses its own limit                                                                                   | `7`             |
+| `--tts-chunk-concurrency <count>`      | Hosted TTS chunk starts allowed in parallel per provider across the run                                                                                                     | `30`            |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted dialogue and sound-effect caps from one request per provider/account lane (`ramp`) or start at the configured caps (`immediate`)                            | `ramp`          |
 | `--soundscape-timing-policy <policy>`  | Resolve inline text offsets with exact evidence (`strict`) or recorded canonical-offset interpolation (`proportional`)                                                      | `strict`        |
 | `--all-providers`                      | Select every hosted TTS target                                                                                                                                              | `false`         |
@@ -31,6 +33,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--max-generation-slots <count>`       | Admit at most this many unresolved segmented-render slots, persist a resumable checkpoint, and exit without publishing a final WAV                                          | none            |
 | `--allow-ambiguous-redispatch`         | Explicitly authorize resuming — and so possibly repurchasing — an unresolved slot whose provider admission cannot be reconciled to retained audio                           | `false`         |
 | `--role <label=subject>`               | Resolve an uncatalogued or compound label to `role:key` or `voice:key`; repeatable                                                                                          | none            |
+| `--slideshow`                          | Render the synchronized still-panel MP4 automatically once audio completes                                                                                                  | `false`         |
 | `--price`                              | Plan source identity, casting, strategy, generation slots, and cost without calls or writes                                                                                 | `false`         |
 
 ### Examples
@@ -48,7 +51,7 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 
 ### Behavior
 
-- With `--output-dir`, the command validates that exact existing directory. Without it, the command scans matching timestamped scene directories newest-first and finds an exact source-path, source-byte, manifest, structured-script, and checksum match.
+- With `--output-dir`, the command uses that exact directory: a populated directory must already match the source path, source bytes, manifest, structured script, and checksums, while a missing or empty directory is initialized as a fresh scene workspace. Without it, the command scans matching timestamped scene directories newest-first and finds an exact source-path, source-byte, manifest, structured-script, and checksum match.
 - Every speakable source segment becomes one provider-neutral dialogue node. Inline authored timing is retained as a turn cue. The `loose-comedy` profile maps `beat`, `pause`/`moment`, and `long`/`heavy` cues to deterministic silences and adds a short interturn gap, recorded in the mix ledger and final timeline. Compound speech remains an explicit overlap unless `--role` casts the label to one subject.
 - Casting is all-target and profile-qualified. Every speaking subject must have one approved registration for each selected provider/model/profile in an aggregate immutable scene snapshot. Once created, corrective invocations may select any contained subset of targets without recasting.
 - The shared TTS subsystem manages provider readiness, plans, generation slots, admission evidence, render results, audio runs, timing, mix/transform ledgers, final timelines, and resume safety. Comic writes provider projections under `comicAudio`.
@@ -64,5 +67,6 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 - Scenes with zero speakable turns complete locally with an empty dialogue plan.
 - Final mastering produces a 48 kHz stereo 24-bit PCM WAV.
 - On success, dialogue compact writes `audio/<target-key>/render.json`, `audio/<target-key>/timeline.json`, and `audio/slots/<slotHash>.wav`, then hardlinks `audio/final/<target-key>.wav`.
+- `--slideshow` validates reviewed panels, dialogue ownership, and FFmpeg H.264 encoder availability before any provider dispatch, then runs [generate-slideshow](./06-generate-slideshow.md) once audio completes. A `--price` plan or a `--max-generation-slots` checkpoint returns before that render.
 
 Next: [generate-slideshow](./06-generate-slideshow.md).

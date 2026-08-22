@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -174,7 +174,7 @@ ADR-018 consumes the immutable `AudioRun`, final dialogue output, and original `
 Every comic scene run owns exactly one canonical, unversioned `<scene-run>/manifest.json`. A scene run uses `command: 'comic'`, `scope: 'single'`, and one item whose `input` is the normalized canonical script path. Comic drafting, image generation, and audio generation update that item through the serialized atomic writer in `pipeline-manifest.ts`. Audio render directories are provider artifact directories inside the scene run, not independent run roots, and never contain another file named `manifest.json`.
 
 - **Canonical Manifest Binding:** Item `metadata.comic` records `schemaVersion: 1`, stages, and references for structured script, dialogue/snapshot IDs, selected per-target audio runs, mix, final timeline, and final checksums. Provider `metadata.comicAudio` records sanitized count, format, timing, current-composition/closing-attempt/cumulative cost summaries, and the aggregate render result checksum. In-flight manifests track `activeWork`, completed slot hashes, and the journal path; after compact, `result.comicAudio` holds selected-success pointers only (`render.json`, timeline, published finals, slot count, checksums).
-- **Domain Artifacts:** Domain records are referenced by relative path and SHA-256 checksum (`provider-render-result.json`, `voice-reference-snapshot.json`, `provider-render-plan.json`, `audio-run.json`). Bare `manifest.json` and `result.json` remain reserved canonical names.
+- **Domain Artifacts:** Domain records are referenced by relative path and SHA-256 checksum (`provider-render-result.json`, `voice-reference-snapshot.json`, `render-plan.json`, `audio-run.json`). Bare `manifest.json` and `result.json` remain reserved canonical names.
 - **Protected Voice Store:** Kept realpath-disjoint from output roots, storing assets, consent policies, and work attempt journals under owner-only permissions. Visual character schemas remain strictly unchanged (version 3) without embedded voice fields.
 
 ### Voice Provisioning and Capability Lifecycle
@@ -187,8 +187,8 @@ Preflight has three named phases:
 3. Provisioning and synthesis (explicitly selected provider-mutating phases).
 
 Runtime options and voice lifecycles are segregated by authority:
-- `TtsSynthesisRuntimeOptions`: Governs synthesis and dialogue controls only; cannot express resource creation or lifecycle operations.
-- `VoiceManagementRuntimeOptions`: Governs creation, clone, design, import, consent, and lifecycle inputs accepted only by `voice` and `comic reference-voice` management commands.
+- `TtsRuntimeOptions`: Governs synthesis and dialogue controls only; cannot express resource creation or lifecycle operations.
+- The voice-management flag surfaces: Govern creation, clone, design, import, consent, and lifecycle inputs accepted only by `voice` and `comic reference-voice` management commands.
 - `comic generate-audio`: Consumes approved registrations and never creates or deletes voices implicitly. Voice design is two-phase (`materializeCandidate` remotely, `approveRegistration` locally). Cloning requires recorded provenance and consent records. Remote provisioning is crash-safe with write-ahead attempt journals, lock leases, idempotency keys, and explicit reconciliation on ambiguous outcomes. Remote deletion requires an explicit management action and valid deletion eligibility.
 
 ### Comic Dialogue Plan
@@ -335,7 +335,7 @@ When a target publishes selected success:
 
 - **Provider:** DeepInfra
 - **Portable Baseline:** Segmented model-qualified synthesis
-- **Advanced Capabilities / Adapter Commitment:** Reliable hosted single-voice inference; model-specific dialogue, design, clone, and protected-reference facets remain gated by ADR-017
+- **Advanced Capabilities / Adapter Commitment:** Reliable hosted single-voice inference; model-specific design, clone, and protected-reference facets are delivered under ADR-017 and stay off the `voice` management surface; native dialogue is truthfully unsupported
 
 **Provider 14: Replicate**
 
@@ -416,8 +416,8 @@ Negative outcomes:
 - Extend `PROCESS_COMMANDS` with `comic` using the unversioned `PipelineManifest` envelope.
 - Extend `PipelineProviderState` with top-level `operation`, `targetKey`, and `transport`.
 - Replace service/model-only target key derivation with `canonicalTargetKey(operation, service, model, transport)` and introduce voice-aware `renderIdentity`.
-- Segregate `TtsSynthesisRuntimeOptions` from `VoiceManagementRuntimeOptions`.
-- Replace single `voice: string` speaker maps with `ProviderQualifiedCast` and immutable snapshot bindings.
+- Segregate `TtsRuntimeOptions` synthesis controls from the voice-management flag surfaces owned by `voice` and `comic reference-voice`.
+- Replace single `voice: string` speaker maps with `ResolvedVoiceBinding` and immutable snapshot bindings.
 - Add strict domain schemas for `ComicSourceIdentity`, `CharacterVoiceBrief`, `ProviderRenderPlan`, `ProviderRenderResult`, compact `render.json` / `sfx.json` / `mix.json` / `presentation.json`, and `AudioRun`.
 - Add bounded dialogue work selector integrating with provider concurrency lanes.
 - Replace snapshot admission journals with content-addressed `audio/slots/<slotHash>.wav` plus `journal.jsonl`.
@@ -439,7 +439,7 @@ Run the default repository verification together with the named local, no-cost c
 bun run check
 bun test test/test-cases/validation/resume-manifests/canonical-manifest-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/no-legacy-persistence-contracts.test.ts
-bun test test/test-cases/validation/resume-manifests/resume-additive-provider-contracts.test.ts
+bun test test/test-cases/validation/resume-manifests/resume-additive-*.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/tts-resume-batch-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/tts-resume-canonical-contracts.test.ts
@@ -462,14 +462,14 @@ bun test test/test-cases/validation/comic/comic-workspace-doc-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-source-coverage-contracts.test.ts
 bun test test/test-cases/validation/comic/character-handling-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-voice-reference-artifacts.test.ts
-bun test test/test-cases/validation/comic/comic-audio-phase-2-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-audio-{planning-identity,readiness,execution-publication,snapshot-pipeline}-contracts.test.ts
 bun test test/test-cases/validation/providers/tts-provider-contracts/openai-grok-groq.test.ts
 bun test test/test-cases/validation/providers/tts-provider-contracts/mistral-elevenlabs.test.ts
 bun test test/test-cases/validation/providers/tts-provider-contracts/deepgram-minimax.test.ts
 bun test test/test-cases/validation/providers/tts-provider-contracts/speechify.test.ts
 bun test test/test-cases/validation/providers/tts-provider-contracts/hume-cartesia.test.ts
 bun test test/test-cases/validation/cli/cli-help-contracts.test.ts
-bun test test/test-cases/validation/cli/cli-usage-errors.test.ts
+bun test test/test-cases/validation/cli/cli-usage-errors/
 git diff --check
 ```
 
@@ -483,7 +483,7 @@ Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — hosted TTS provider lanes and bounded turn selector
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related report: [2026 Hosted-Model Refresh Report: TTS](../models/05-tts-model-report.md) — TTS catalog refresh history
-- Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — later Inworld, DeepInfra, Replicate, and Fish provider phases
+- Related ADR: [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md) — Inworld, DeepInfra, Replicate, and Fish provider phases
 - Related ADR: [ADR-018](ADR-018-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
 - `src/types/tts-workflow/tts-types.ts`
 - `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts`

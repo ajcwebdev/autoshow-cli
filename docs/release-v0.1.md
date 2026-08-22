@@ -2,7 +2,7 @@
 
 This release note explains what AutoShow is, what ships in v0.1, and how to start using the Bun CLI.
 
-This is a historical release snapshot. Provider selectors and examples reflect v0.1 and may no longer be accepted by the current CLI; use the command documentation and `--help` for current models.
+Provider selectors and examples track the current CLI. Model catalogs are refreshed often, so use the command documentation and `--help` for the authoritative model list.
 
 Current CLI help in this repo reports `bun autoshow v0.1.0`; this document uses `v0.1` as the release label.
 
@@ -19,12 +19,12 @@ Current CLI help in this repo reports `bun autoshow v0.1.0`; this document uses 
   - [Step 6: video](#step-6-video)
   - [Step 7: music](#step-7-music)
   - [Step 8: comic](#step-8-comic)
+  - [Step 9: voice](#step-9-voice)
 - [setup-and-utilities](#setup-and-utilities)
   - [setup](#setup)
   - [config](#config)
   - [links](#links)
   - [resume](#resume)
-  - [voice](#voice)
   - [help and version](#help-and-version)
 - [Shared Runtime Behavior](#shared-runtime-behavior)
 - [Manifests And Output Layout](#manifests-and-output-layout)
@@ -39,8 +39,8 @@ bun autoshow <command> [input] [flags]
 
 AutoShow currently exposes 14 named commands, plus built-in `help` and `version`. The named commands are split into two groups:
 
-- `process-steps`: the ordered pipeline commands, Step 0 through Step 8.
-- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, voice management, and CLI discovery.
+- `process-steps`: the ordered pipeline commands, Step 0 through Step 9.
+- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, and CLI discovery.
 
 Use the [command overview](./commands.md) for the full command map and selection guide.
 
@@ -61,8 +61,8 @@ Process-step commands are ordered by pipeline step number. Each section below su
   - local `.html` / `.htm`, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, directories, RSS/podcast feeds, and YouTube channels
 - Key outputs:
   - terminal JSON metadata by default, or Markdown frontmatter YAML with `--markdown`
-  - saved `output/YYYY-MM-DD_HH-MM-SS_title/manifest.json` with `--save`
-  - saved `output/YYYY-MM-DD_HH-MM-SS_title/metadata.md` with `--save --markdown`
+  - saved `output/YYYY-MM-DD_HH-MM-SS-mmm_title/manifest.json` with `--save`
+  - saved `output/YYYY-MM-DD_HH-MM-SS-mmm_title/metadata.md` with `--save --markdown`
   - target classification details and source metadata in the displayed or saved metadata
 
 Example:
@@ -103,9 +103,9 @@ bun autoshow download input/examples/document/1-document.pdf
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz` through OCR
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
-  - media STT runs under `output/YYYY-MM-DD_HH-MM-SS_title/` with `transcription.txt`, a raw domain `result.json`, and `manifest.json`; multi-provider results use `providers/<service>-<model>/`
+  - media STT runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_title/` with `transcription.txt`, a raw domain `result.json`, and `manifest.json`; multi-provider results use `providers/<service>-<model>/`
   - document/image OCR runs under the timestamped output directory with `extraction.txt` or a raw domain `result.json`, `manifest.json`, and optional `chapters/` or `chunks/`
-  - article extraction runs under `output/YYYY-MM-DD_HH-MM-SS_article/` with `extraction.txt`, a raw domain `result.json`, `extraction.tsv`, or `extraction.hocr`, plus `manifest.json`
+  - article extraction runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_title/` with `extraction.txt` or a raw domain `result.json`, plus `manifest.json`; `--all-providers` writes per-backend artifacts under `providers/<backend>/`
   - X Space runs under the timestamped output directory with a raw domain `result.json`, `extraction.md`, and `manifest.json`
   - transcript-video renders with `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.json`
   - comparison/consensus flows can add `consensus-extraction.txt`, `provider-comparison-report.md`, and `provider-comparison-report.json`
@@ -175,7 +175,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2
 Example:
 
 ```bash
-bun autoshow image "a premium product photo of a mountain observatory brochure" --provider recraft=recraftv4_1 --aspect-ratio 1:1
+bun autoshow image "a premium product photo of a mountain observatory brochure" --provider bfl=flux-2-klein-4b --size 1024x1024
 ```
 
 ### Step 6: video
@@ -188,7 +188,7 @@ bun autoshow image "a premium product photo of a mountain observatory brochure" 
   - input `.mp4` video files or URLs for extend and edit modes
   - hosted video providers
 - Key outputs:
-  - default run directory `output/YYYY-MM-DD_HH-mm-ss_video-gen/`, or the exact directory passed with `--output-dir`
+  - default run directory `output/YYYY-MM-DD_HH-MM-SS-mmm_video-gen/`, or the exact directory passed with `--output-dir`
   - single-provider video as `generated-video.mp4`
   - multi-provider videos named like `generated-video-<provider>-<model>.mp4`
   - `manifest.json` with video, cost, and timing data in the canonical item's metadata
@@ -207,13 +207,13 @@ bun autoshow video "animate the product on a slow turntable" --provider ltx=ltx-
   - text prompts for hosted music generation
   - optional hosted-generation lyrics files such as `.md` or `.txt`
   - local lyric-video audio files: `.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, and `.aac`
-  - optional caption inputs such as `.vtt` for lyric-video rerenders
+  - optional caption inputs such as `.vtt` or `.srt` for lyric-video rerenders
   - hosted music providers plus local Whisper captions and ffmpeg for lyric videos
 - Key outputs:
-  - hosted runs under `output/YYYY-MM-DD_HH-mm-ss_music-gen/` with `generated-music.mp3` and `manifest.json`
+  - hosted runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_music-gen/` with `generated-music.mp3` and `manifest.json`
   - multi-provider hosted runs with `generated-music-<provider>-<model>.mp3` files plus `manifest.json`
-  - lyric-video runs under `output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-<stem>/` with `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`
-  - lyric-video batch runs under `output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-batch/` with `manifest.json` and per-song directories
+  - lyric-video runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_music-lyrics-<label>/` with `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.json`
+  - lyric-video batch runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_music-lyrics-batch/` with `manifest.json` and per-song directories
 
 Examples:
 
@@ -229,20 +229,23 @@ bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=ly
 - Primary inputs/providers:
   - episode script Markdown files under `input/scripts/NN-script/*.md`, or strict episode-scene shorthands such as `02-01`
   - character source images under `input/characters/`, typically `.png`, `.jpg`, `.jpeg`, or `.webp`
-  - configured writing and image providers for staged comic generation
+  - configured writing, image, and voice providers, plus local FFmpeg for slideshow rendering
   - reusable character sketches and panel prompt bundles
 - Key outputs:
   - a timestamped `output/<timestamp>_<scene-slug>/` run directory with drafting artifacts under `metadata/` and immutable reference indexes and snapshots under `assets/`
   - review sketches, final panel images, and grouped page `.png` images under that run directory's `sketches/`, `panels/`, and `pages/` subdirectories
+  - manifest-backed dialogue and soundscape audio under `audio/`, and synchronized still-panel slideshows under `presentation/`
   - reusable character and location reference images and their registration catalogs under `input/characters/` and `input/locations/`
 
 ```text
 output/<timestamp>_<scene-slug>/
+  manifest.json
   metadata/
     structured-script.json
     draft-prompt.md
     scene.json
     scene.invalid.json               # only when validation preserves invalid model output
+    dialogue-plans/
     panel-prompts/
       source-coverage.json
       panel-NN/<bundle>.md
@@ -257,6 +260,20 @@ output/<timestamp>_<scene-slug>/
     design-references.json           # only when reviewed panels declare design references
     design-references/
       <snapshot-id>/
+    voice-references/
+      <snapshot-id>/
+  audio/
+    slots/
+    <target-key>/
+      render.json
+      timeline.json
+    sound-effects/
+    soundscape/
+    final/
+  presentation/
+    presentation.json
+    inputs/
+    final/
   panels/
   pages/
   sketches/
@@ -266,6 +283,24 @@ Example:
 
 ```bash
 bun autoshow comic draft-scenes 05-01
+```
+
+### Step 9: voice
+
+[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) manages durable provider voice registrations separately from speech synthesis. `comic reference-voice` delegates to the same implementation and protected store.
+
+- Primary inputs/providers:
+  - authored character voice briefs in `input/characters/character-voices.json`
+  - provider catalog discovery, voice design, instant/professional cloning reference audio, and consent records
+  - supported voice providers: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`
+- Key outputs:
+  - durable voice registrations and current selections under `input/characters/`
+  - protected voice audition audio, candidate metadata, and consent records in the protected store
+
+Example:
+
+```bash
+bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting
 ```
 
 ## setup-and-utilities
@@ -301,6 +336,7 @@ bun autoshow setup --models base
   - batch and concurrency controls
   - generation options for text, speech, image, video, and music
   - pricing thresholds
+  - cookie authentication for authenticated downloads
 - Key outputs:
   - JSON defaults written to `config/autoshow.json`
   - terminal JSON/config display with `--show`
@@ -310,7 +346,7 @@ Examples:
 ```bash
 bun autoshow config --show
 bun autoshow config --llm openai=gpt-5.4-mini --stt whisper=base
-bun autoshow config --image recraft=recraftv4_1 --image-size 1024x1024 --image-count 2
+bun autoshow config --image openai=gpt-image-2 --image-size 1024x1024 --image-count 2
 bun autoshow config --max-cents 50
 bun autoshow config --reset
 ```
@@ -350,24 +386,6 @@ Example:
 bun autoshow resume ./output/<run-or-batch-dir> --provider deepinfra
 ```
 
-### voice
-
-[`voice`](./commands/process-steps/step-9-voice/00-voice-overview.md) manages durable provider voice registrations separately from speech synthesis.
-
-- Primary inputs/providers:
-  - authored character voice briefs in `input/characters/character-voices.json`
-  - provider catalog discovery, voice design, instant/professional cloning reference audio, and consent records
-  - supported voice providers: ElevenLabs, Hume, MiniMax, Cartesia, Speechify, Mistral, and OpenAI
-- Key outputs:
-  - durable voice registrations and current selections under `input/characters/`
-  - protected voice audition audio, candidate metadata, and consent records in the protected store
-
-Example:
-
-```bash
-bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --provenance-ref project:casting
-```
-
 ### help and version
 
 Built-in discovery commands show command help or print the current CLI version.
@@ -392,7 +410,7 @@ Shared runtime behavior applies across multiple process steps:
 - Per-step provider/local concurrency controls provider fan-out.
 - Flag and config resolution project into STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing option slices. Standalone generation, pricing, and resume consumers receive only their domain slice plus named shared controls; the media/document write path uses its own narrowed `ProcessingOptions` boundary covering steps 0–3.
 
-Root help also exposes shared controls for config paths, verbosity, JSON output, and cookies.
+Root help also exposes shared controls for config and output paths, external tool binaries, verbosity, and JSON output.
 
 See [Pricing Preflight](./commands.md#pricing-preflight) and the individual command docs for provider-specific pricing behavior.
 

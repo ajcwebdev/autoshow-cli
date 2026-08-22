@@ -24,13 +24,13 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 
 ## Local Coverage
 
-- `test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ocr-options.test.ts` covers core local OCR validation and routing.
+- `test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ocr-options.test.ts` covers local Tesseract OCR for PDF and image input, EPUB text extraction, chapter and chunk export flags, `--format json` output, local `--url-provider defuddle` article extraction, and the manifest/metadata routing those runs write.
 
 ## Service Coverage
 
 - Model-level service files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction for Anthropic, DeepInfra, FAL, Gemini, GLM, Grok, Kimi, Mistral, OpenAI, and Replicate using `defineOCRServiceTest`.
 - Dedicated URL extraction files (`ocr-firecrawl.test.ts`, `ocr-glm-reader.test.ts`, `ocr-supadata.test.ts`) cover remote article extraction with `--url-provider` (Firecrawl, GLM Reader, Supadata), writing `extraction.txt` and canonical provider metadata.
-- Zero-cost validation and contract coverage lives in `test/test-cases/validation/extract-ocr/` (EPUB and page pool contracts) and `test/test-cases/validation/ingest/` (input and HTML/URL backend contracts).
+- Zero-cost validation and contract coverage lives in `test/test-cases/validation/extract-ocr/` (EPUB contracts, page pool and hosted OCR resilience contracts, resume contracts, input adapter and image normalization contracts, and batch diagnostics) and `test/test-cases/validation/ingest/` (input and HTML/URL backend contracts).
 
 ## Price Preflight
 

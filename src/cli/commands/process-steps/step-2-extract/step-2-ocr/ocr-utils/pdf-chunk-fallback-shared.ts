@@ -1,5 +1,5 @@
-import { stat } from 'node:fs/promises'
 import type { OcrPdfChunkRange } from '~/types'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { collectErrorChain, InfraError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { stripAnsi } from '../ocr-run-state'

@@ -6,11 +6,17 @@ import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { getConfiguredBinDir, PROJECT_ROOT } from '~/utils/runtime-paths'
 import { pathExists } from '~/utils/filesystem'
+import { childEnv } from '~/utils/child-env'
 
 const DEFUDDLE_CLI_VERSION = '0.17.0'
 
 const RUNTIME = join(PROJECT_ROOT, 'runtime')
 let defuddleCliSetupPromise: Promise<void> | undefined
+const DEFUDDLE_TEST_CHILD_ENV_KEYS = [
+  'AUTOSHOW_DEFUDDLE_ARGS_LOG',
+  'AUTOSHOW_FAKE_DEFUDDLE_MODE',
+  'AUTOSHOW_FAKE_DEFUDDLE_STDERR'
+] as const
 
 export const defuddleRuntimeDir = join(RUNTIME, 'defuddle')
 const defuddleRuntimeBinaryPath = join(
@@ -19,9 +25,6 @@ const defuddleRuntimeBinaryPath = join(
   '.bin',
   process.platform === 'win32' ? 'defuddle.cmd' : 'defuddle'
 )
-
-const mergeEnv = (env?: Record<string, string | undefined>): Record<string, string | undefined> =>
-  env ? { ...(process.env as Record<string, string | undefined>), ...env } : process.env as Record<string, string | undefined>
 
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
   stream ? await new Response(stream).text() : ''
@@ -33,7 +36,7 @@ const runCapture = async (
 ): Promise<RunResult> => {
   const proc = Bun.spawn([command, ...args], {
     ...(options.cwd ? { cwd: options.cwd } : {}),
-    env: mergeEnv(options.env),
+    env: childEnv({ allow: DEFUDDLE_TEST_CHILD_ENV_KEYS, set: options.env }),
     stdout: 'pipe',
     stderr: 'pipe'
   })

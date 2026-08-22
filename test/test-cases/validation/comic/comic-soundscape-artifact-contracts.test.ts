@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { randomUUID } from 'node:crypto'
 import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CharacterCatalogService, LocationReferenceCatalog } from '~/types'
@@ -31,7 +30,7 @@ describe('ADR-017 canonical soundscape artifact workflow', () => {
   test('reuses one mocked ElevenLabs generation result across dialogue targets and resumes without redispatch', async () => {
     const root = await makeTempDir('autoshow-soundscape-artifacts-')
     try {
-      const unique = randomUUID()
+      const unique = crypto.randomUUID()
       const source = ['# Episode', '', '## Scene: "Hangar"', '', '**INT. HANGAR**', '', '**AMBIENCE:**', '', `OPTIONAL ventilation ${unique}`, '', '**SFX:**', '', `airlock closes ${unique}`].join('\n')
       const provisional = parseScriptMarkdownToStructuredData(source, 'input/soundscape-only.md', { characterCatalog: characters, locationCatalog: locations })
       const structured = parseScriptMarkdownToStructuredData(source, 'input/soundscape-only.md', { sourceIdentity: provisional.sourceIdentity, characterCatalog: characters, locationCatalog: locations })

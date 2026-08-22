@@ -88,14 +88,14 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 | `--concurrency-mode <ramp\|immediate>`                              | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--prompt <name...>`                                                | Select prompt presets                                                                                                                                                             |
 | `--text-input`                                                      | Treat local `.md` / `.txt` files and directories as raw source text                                                                                                               |
-
-Without `--text-input`, `write` inspects a `.md` / `.txt` target to decide how to treat it: when at least half of its non-empty, non-`#` lines resolve to URLs, X Space ids, or existing local file paths it runs as a newline-delimited batch input list, and otherwise it runs as raw source text automatically. Pass `--text-input` to force text mode for a file the detection would treat as a list.
 | `--prompt-file <file>`                                              | Prepend instructions from a local text file before named prompt presets                                                                                                           |
 | `--rendered-text`                                                   | Save rendered step-3 markdown output inside the run directory                                                                                                                     |
 | `--rendered-out-dir <dir>`                                          | Also write rendered step-3 markdown files to this directory                                                                                                                       |
 | `--track-list <file>`                                               | Optional `tracks.md` file used to prepend track-number headers on saved rendered text                                                                                             |
 | `--prompt-md`                                                       | Save a second prompt file (`prompt-md.md`) with markdown examples alongside the JSON prompt                                                                                       |
 | `--price`                                                           | Show the aggregated estimate and exit                                                                                                                                             |
+
+Without `--text-input`, `write` inspects a `.md` / `.txt` target to decide how to treat it: when at least half of its non-empty, non-`#` lines resolve to URLs, X Space ids, or existing local file paths it runs as a newline-delimited batch input list, and otherwise it runs as raw source text automatically. Pass `--text-input` to force text mode for a file the detection would treat as a list.
 
 See [Provider Capabilities](#provider-capabilities) for the per-model release date, reasoning, context, and structured-output matrix.
 
@@ -107,7 +107,7 @@ bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
 ```
 
-Write price preflight uses the model registry's input/output token rates and local token-count heuristics for the selected prompt/source text. The human `Cost Estimate` table is limited to `step`, `provider`, `model`, and `cost`; use `--json` to inspect the structured token estimates and rates.
+Write price preflight uses the model registry's input/output token rates and local token-count heuristics for the selected prompt/source text. The human `Cost Estimate` table shows `step`, `provider`, `model`, estimated `input` tokens, `cost`, and `estimated` processing time; use `--json` to inspect the structured token estimates and rates.
 
 ## Write Services
 
@@ -379,36 +379,38 @@ With a single `--llm` target the rendered file is `text.md`; multiple targets wr
 
 Marks match the [TTS capability tables](../step-4-tts/text-to-speech-and-voice.md#provider-capabilities): ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or snapshot dates. Recency marks follow the TTS convention: current-year GA is ✅, older still-current snapshots are ⚠️, and pre-2026 engines are ❌. Rows are newest first. Context uses ✅ 1M or more, ⚠️ 200K to under 1M, and ❌ under 200K or unpublished. Pricing is the AutoShow registry rate per 1M tokens (input / output). Cost rank orders models cheapest-first (1 = cheapest) by the sum of the input and output prices, the same blend cheapest-model selection uses, and ties share a rank.
 
-| Provider                        | Released      | Reasoning                     | Context        | Structured output         | Pricing                       | Cost rank |
-| ------------------------------- | ------------- | ----------------------------- | -------------- | ------------------------- | ----------------------------- | --------- |
-| OpenAI `gpt-5.6-terra`          | ✅ 2026-08    | ✅ Optional through max       | ❌ Unpublished | ✅ Native                 | $2.00 / $12.00 per 1M tokens  | 20/28     |
-| OpenAI `gpt-5.6-luna`           | ✅ 2026-08    | ✅ Optional through max       | ❌ Unpublished | ✅ Native                 | $0.20 / $1.20 per 1M tokens   | 4/28      |
-| Gemini `gemini-3.5-flash-lite`  | ✅ 2026-08    | ✅ Optional including minimal | ❌ Unpublished | ✅ Native                 | $0.30 / $2.50 per 1M tokens   | 6/28      |
-| OpenAI `gpt-5.6-sol`            | ✅ 2026-07    | ✅ Optional through max       | ❌ Unpublished | ✅ Native                 | $5.00 / $30.00 per 1M tokens  | 26/28     |
-| Anthropic `claude-sonnet-5`     | ✅ 2026-07    | ✅ Optional through max       | ❌ Unpublished | ✅ Native                 | $2.00 / $10.00 per 1M tokens  | 19/28     |
-| Anthropic `claude-opus-5`       | ✅ 2026-07    | ✅ Optional through max       | ✅ 1M          | ✅ Native                 | $5.00 / $25.00 per 1M tokens  | 24/28     |
-| Gemini `gemini-3.6-flash`       | ✅ 2026-07    | ✅ Optional including minimal | ❌ Unpublished | ✅ Native                 | $1.50 / $7.50 per 1M tokens   | 17/28     |
-| Grok `grok-4.5`                 | ✅ 2026-07    | ✅ Required                   | ⚠️ 500K        | ✅ Native                 | $2.00 / $6.00 per 1M tokens   | 16/28     |
-| Kimi `kimi-k3`                  | ✅ 2026-07    | ✅ Required effort            | ✅ 1M          | ✅ Native                 | $3.00 / $15.00 per 1M tokens  | 22/28     |
-| Anthropic `claude-fable-5`      | ✅ 2026-06-09 | ✅ Required adaptive thinking | ❌ Unpublished | ✅ Native                 | $10.00 / $50.00 per 1M tokens | 28/28     |
-| Gemini `gemini-3.5-flash`       | ✅ 2026-06    | ✅ Optional including minimal | ❌ Unpublished | ✅ Native                 | $1.50 / $9.00 per 1M tokens   | 18/28     |
-| Anthropic `claude-opus-4-8`     | ✅ 2026-05    | ✅ Optional through max       | ❌ Unpublished | ✅ Native                 | $5.00 / $25.00 per 1M tokens  | 24/28     |
-| Grok `grok-4.3`                 | ✅ 2026-05    | ❌ Unsupported                | ❌ Unpublished | ✅ Native                 | $1.25 / $2.50 per 1M tokens   | 8/28      |
-| OpenAI `gpt-5.5`                | ✅ 2026-04-23 | ✅ Optional through high      | ❌ Unpublished | ✅ Native                 | $5.00 / $30.00 per 1M tokens  | 26/28     |
-| OpenAI `gpt-5.4-mini`           | ✅ 2026-03-17 | ✅ Optional through high      | ❌ Unpublished | ✅ Native                 | $0.75 / $4.50 per 1M tokens   | 11/28     |
-| OpenAI `gpt-5.4-nano`           | ✅ 2026-03-17 | ✅ Optional through high      | ❌ Unpublished | ✅ Native                 | $0.20 / $1.25 per 1M tokens   | 5/28      |
-| Anthropic `claude-sonnet-4-6`   | ✅ 2026-02    | ✅ Optional through max       | ❌ Unpublished | ✅ Native                 | $3.00 / $15.00 per 1M tokens  | 22/28     |
-| Kimi `kimi-k2.6`                | ⚠️ 2026-01    | ⚠️ Optional thinking          | ⚠️ 256K        | ✅ Native                 | $0.95 / $4.00 per 1M tokens   | 9/28      |
-| Together `kimi-k2.6`            | ⚠️ 2026-01    | ⚠️ Optional thinking          | ⚠️ 262K        | ✅ Native                 | $1.20 / $4.50 per 1M tokens   | 12/28     |
-| MiniMax `MiniMax-M3`            | ✅ 2026       | ❌ Unsupported                | ✅ 1M          | ❌ Compatibility fallback | $0.60 / $2.40 per 1M tokens   | 7/28      |
-| GLM `glm-5.1`                   | ✅ 2026       | ⚠️ Optional                   | ⚠️ 200K        | ✅ Native                 | $1.40 / $4.40 per 1M tokens   | 13/28     |
-| Together `glm-5.1`              | ✅ 2026       | ⚠️ Optional                   | ⚠️ 202K        | ✅ Native                 | $1.40 / $4.40 per 1M tokens   | 13/28     |
-| Gemini `gemini-3.1-pro-preview` | ⚠️ 2025-12    | ✅ Optional through high      | ❌ Unpublished | ✅ Native                 | $2.00 / $12.00 per 1M tokens  | 20/28     |
-| Cerebras `zai-glm-4.7`          | ⚠️ 2025-12    | ❌ Unsupported                | ❌ 131K        | ⚠️ Strict-mode normalized | $2.25 / $2.75 per 1M tokens   | 10/28     |
-| Anthropic `claude-haiku-4-5`    | ⚠️ 2025-10-01 | ❌ Unsupported                | ❌ Unpublished | ✅ Native                 | $1.00 / $5.00 per 1M tokens   | 15/28     |
-| Groq `openai/gpt-oss-20b`       | ❌ 2025-08-05 | ✅ Optional through high      | ❌ Unpublished | ✅ Native                 | $0.075 / $0.30 per 1M tokens  | 1/28      |
-| Groq `openai/gpt-oss-120b`      | ❌ 2025-08-05 | ✅ Optional through high      | ❌ Unpublished | ✅ Native                 | $0.15 / $0.60 per 1M tokens   | 2/28      |
-| Cerebras `gpt-oss-120b`         | ❌ 2025-08-05 | ❌ Unsupported                | ❌ 131K        | ⚠️ Strict-mode normalized | $0.35 / $0.75 per 1M tokens   | 3/28      |
+| Provider                        | Released      | Reasoning                    | Context       | Structured output         | Pricing                       | Cost rank |
+| ------------------------------- | ------------- | ---------------------------- | ------------- | ------------------------- | ----------------------------- | --------- |
+| Grok `grok-4.6`                 | ✅ 2026-08     | ✅ Required                   | ⚠️ 500K       | ✅ Native                  | $2.00 / $6.00 per 1M tokens   | 16/30     |
+| Gemini `gemini-3.7-flash`       | ✅ 2026-08     | ✅ Optional through high      | ✅ 1M          | ✅ Native                  | $1.50 / $7.50 per 1M tokens   | 18/30     |
+| OpenAI `gpt-5.6-terra`          | ✅ 2026-08     | ✅ Optional through max       | ❌ Unpublished | ✅ Native                  | $2.00 / $12.00 per 1M tokens  | 22/30     |
+| OpenAI `gpt-5.6-luna`           | ✅ 2026-08     | ✅ Optional through max       | ❌ Unpublished | ✅ Native                  | $0.20 / $1.20 per 1M tokens   | 4/30      |
+| Gemini `gemini-3.5-flash-lite`  | ✅ 2026-08     | ✅ Optional including minimal | ❌ Unpublished | ✅ Native                  | $0.30 / $2.50 per 1M tokens   | 6/30      |
+| OpenAI `gpt-5.6-sol`            | ✅ 2026-07     | ✅ Optional through max       | ❌ Unpublished | ✅ Native                  | $5.00 / $30.00 per 1M tokens  | 28/30     |
+| Anthropic `claude-sonnet-5`     | ✅ 2026-07     | ✅ Optional through max       | ❌ Unpublished | ✅ Native                  | $2.00 / $10.00 per 1M tokens  | 21/30     |
+| Anthropic `claude-opus-5`       | ✅ 2026-07     | ✅ Optional through max       | ✅ 1M          | ✅ Native                  | $5.00 / $25.00 per 1M tokens  | 26/30     |
+| Gemini `gemini-3.6-flash`       | ✅ 2026-07     | ✅ Optional including minimal | ❌ Unpublished | ✅ Native                  | $1.50 / $7.50 per 1M tokens   | 18/30     |
+| Grok `grok-4.5`                 | ✅ 2026-07     | ✅ Required                   | ⚠️ 500K       | ✅ Native                  | $2.00 / $6.00 per 1M tokens   | 16/30     |
+| Kimi `kimi-k3`                  | ✅ 2026-07     | ✅ Required effort            | ✅ 1M          | ✅ Native                  | $3.00 / $15.00 per 1M tokens  | 24/30     |
+| Anthropic `claude-fable-5`      | ✅ 2026-06-09  | ✅ Required adaptive thinking | ❌ Unpublished | ✅ Native                  | $10.00 / $50.00 per 1M tokens | 30/30     |
+| Gemini `gemini-3.5-flash`       | ✅ 2026-06     | ✅ Optional including minimal | ❌ Unpublished | ✅ Native                  | $1.50 / $9.00 per 1M tokens   | 20/30     |
+| Anthropic `claude-opus-4-8`     | ✅ 2026-05     | ✅ Optional through max       | ❌ Unpublished | ✅ Native                  | $5.00 / $25.00 per 1M tokens  | 26/30     |
+| Grok `grok-4.3`                 | ✅ 2026-05     | ❌ Unsupported                | ❌ Unpublished | ✅ Native                  | $1.25 / $2.50 per 1M tokens   | 8/30      |
+| OpenAI `gpt-5.5`                | ✅ 2026-04-23  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $5.00 / $30.00 per 1M tokens  | 28/30     |
+| OpenAI `gpt-5.4-mini`           | ✅ 2026-03-17  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.75 / $4.50 per 1M tokens   | 11/30     |
+| OpenAI `gpt-5.4-nano`           | ✅ 2026-03-17  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.20 / $1.25 per 1M tokens   | 5/30      |
+| Anthropic `claude-sonnet-4-6`   | ✅ 2026-02     | ✅ Optional through max       | ❌ Unpublished | ✅ Native                  | $3.00 / $15.00 per 1M tokens  | 24/30     |
+| Kimi `kimi-k2.6`                | ⚠️ 2026-01    | ⚠️ Optional thinking         | ⚠️ 256K       | ✅ Native                  | $0.95 / $4.00 per 1M tokens   | 9/30      |
+| Together `kimi-k2.6`            | ⚠️ 2026-01    | ⚠️ Optional thinking         | ⚠️ 262K       | ✅ Native                  | $1.20 / $4.50 per 1M tokens   | 12/30     |
+| MiniMax `MiniMax-M3`            | ✅ 2026        | ❌ Unsupported                | ✅ 1M          | ❌ Compatibility fallback  | $0.60 / $2.40 per 1M tokens   | 7/30      |
+| GLM `glm-5.1`                   | ✅ 2026        | ⚠️ Optional                  | ⚠️ 200K       | ✅ Native                  | $1.40 / $4.40 per 1M tokens   | 13/30     |
+| Together `glm-5.1`              | ✅ 2026        | ⚠️ Optional                  | ⚠️ 202K       | ✅ Native                  | $1.40 / $4.40 per 1M tokens   | 13/30     |
+| Gemini `gemini-3.1-pro-preview` | ⚠️ 2025-12    | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $2.00 / $12.00 per 1M tokens  | 22/30     |
+| Cerebras `zai-glm-4.7`          | ⚠️ 2025-12    | ❌ Unsupported                | ❌ 131K        | ⚠️ Strict-mode normalized | $2.25 / $2.75 per 1M tokens   | 10/30     |
+| Anthropic `claude-haiku-4-5`    | ⚠️ 2025-10-01 | ❌ Unsupported                | ❌ Unpublished | ✅ Native                  | $1.00 / $5.00 per 1M tokens   | 15/30     |
+| Groq `openai/gpt-oss-20b`       | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.075 / $0.30 per 1M tokens  | 1/30      |
+| Groq `openai/gpt-oss-120b`      | ❌ 2025-08-05  | ✅ Optional through high      | ❌ Unpublished | ✅ Native                  | $0.15 / $0.60 per 1M tokens   | 2/30      |
+| Cerebras `gpt-oss-120b`         | ❌ 2025-08-05  | ❌ Unsupported                | ❌ 131K        | ⚠️ Strict-mode normalized | $0.35 / $0.75 per 1M tokens   | 3/30      |
 
 Claude Fable 5 requires 30-day data retention and is unavailable under ZDR. MiniMax M3 has no `response_format` / `json_schema` support, so AutoShow uses the schema-guided fallback. Cerebras structured output is normalized into strict mode while JSON is validated against the full local schema. Kimi K3 thinking is on by default; `--reasoning-effort` can change it.
 

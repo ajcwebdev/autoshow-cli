@@ -1,6 +1,6 @@
 import { constants } from 'node:fs'
-import { chmod, link, lstat, mkdir, open, readFile, realpath, rm, unlink } from 'node:fs/promises'
-import { createHash, randomUUID } from 'node:crypto'
+import { chmod, link, lstat, mkdir, open, readFile, realpath, rm } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { join, resolve } from 'node:path'
 import type { MaterializedProtectedVoiceAsset, PlannedProtectedVoiceAsset, ProtectedAssetRef, ProtectedVoiceAssetPolicy, ProtectedVoiceAssetStore, ProtectedVoiceAssetStoreConfig, ReadReferenceInput, ReadyStore, TtsCliReferenceInput, VoiceConsentRevocation } from '~/types'
 import { AppValidationError, hasErrorCode, ValidationError } from '~/utils/error-handler'
@@ -172,7 +172,7 @@ const readAuthorizedReferenceInput = async (input: TtsCliReferenceInput): Promis
     return {
       bytes,
       byteLength: bytes.byteLength,
-      sha256: createHash('sha256').update(bytes).digest('hex')
+      sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
     }
   } catch (error) {
     if (error instanceof AppValidationError) throw error
@@ -245,7 +245,7 @@ const assertStoredAsset = async (
   } catch {
     throw ValidationError('Unable to read the protected asset.', { stage: 'tts:protected-assets' })
   }
-  const actualSha256 = createHash('sha256').update(bytes).digest('hex')
+  const actualSha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   if (actualSha256 !== expectedSha256) {
     throw ValidationError('Protected asset checksum does not match its content address.', { stage: 'tts:protected-assets' })
   }
@@ -262,7 +262,7 @@ const atomicallyStoreBytes = async (
     throw ValidationError('Protected asset path escapes its registered store.', { stage: 'tts:protected-assets' })
   }
 
-  const temporaryPath = join(canonicalAssetsRoot, `.ingest-${randomUUID()}`)
+  const temporaryPath = join(canonicalAssetsRoot, `.ingest-${crypto.randomUUID()}`)
   let temporaryCreated = false
   try {
     const handle = await open(temporaryPath, 'wx', FILE_MODE)
@@ -365,7 +365,7 @@ const writePolicy = async (
   const policyHash = hashCanonicalTtsValue(policy)
   const destination = join(canonicalPolicyRoot, `${policyHash}.json`)
   const bytes = `${canonicalTtsJson(policy)}\n`
-  const temporary = join(canonicalPolicyRoot, `.policy-${randomUUID()}`)
+  const temporary = join(canonicalPolicyRoot, `.policy-${crypto.randomUUID()}`)
   try {
     const handle = await open(temporary, 'wx', FILE_MODE)
     try {
@@ -420,7 +420,7 @@ const storeManagedProtectedVoiceBytes = async (
 ): Promise<ProtectedAssetRef> => {
   if (bytes.byteLength === 0) throw ValidationError('Protected voice asset cannot be empty.', { stage: 'tts:protected-assets' })
   validateProtectedVoiceAssetPolicy(policy)
-  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const sha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   if (expectedSha256 !== undefined && expectedSha256 !== sha256) {
     throw ValidationError('Protected voice asset bytes do not match the expected checksum.', { stage: 'tts:protected-assets' })
   }
@@ -531,7 +531,7 @@ const recordProtectedVoiceConsentRevocation = async (
     throw ValidationError('Protected consent record already has a different revocation marker.', { stage: 'tts:protected-assets' })
   }
   const destination = join(policyRoot, `consent-revocation-${revocation.revocationId}.json`)
-  const temporary = join(policyRoot, `.consent-revocation-${randomUUID()}`)
+  const temporary = join(policyRoot, `.consent-revocation-${crypto.randomUUID()}`)
   const bytes = `${canonicalTtsJson(revocation)}\n`
   try {
     const handle = await open(temporary, 'wx', FILE_MODE)

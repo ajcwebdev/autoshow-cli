@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { mkdir, rename, rm } from 'node:fs/promises'
 import { dirname, relative } from 'node:path'
 import { InfraError } from '~/utils/error-handler'
@@ -117,7 +116,7 @@ const prepareLocationPromotionTransaction = async (
   nextManifest: LocationSketchManifest,
   targetImage: string,
 ): Promise<LocationPromotionTransactionRecord> => {
-  const id = `${input.generationId}-${randomUUID()}`
+  const id = `${input.generationId}-${crypto.randomUUID()}`
   const catalogPath = getLocationReferencePath()
   const manifestPath = getLocationSketchManifestPath()
   const catalogTemporary = `${catalogPath}.tmp-${id}`

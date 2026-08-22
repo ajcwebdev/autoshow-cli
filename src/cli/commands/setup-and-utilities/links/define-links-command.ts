@@ -1,7 +1,5 @@
 import { httpResponseError, isRecord } from '~/utils/rest-client'
-import { createHash } from 'node:crypto'
 import { basename, extname, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
 import { runFirecrawlUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/firecrawl/run-firecrawl-url'
 import { defineCliCommand } from '~/cli/native/native-types'
@@ -20,7 +18,7 @@ import modelLinks from './model-links'
 import { formatErrorMessage } from '~/utils/value-helpers'
 
 const data = modelLinks as ModelLinksData
-const LINKS_OUTPUT_DIR = pathToFileURL(`${resolve(PROJECT_ROOT, 'project/links')}/`)
+const LINKS_OUTPUT_DIR = Bun.pathToFileURL(`${resolve(PROJECT_ROOT, 'project/links')}/`)
 const HTML_MIME_HINTS = ['text/html', 'application/xhtml+xml'] as const
 const normalizeTokens = (tokens: string[]): string[] => [...new Set(tokens.map(token => token.toLowerCase()))].sort()
 const isHtmlContentType = (contentType: string): boolean =>
@@ -40,7 +38,7 @@ const normalizeMarkdownForRefresh = (content: string): string =>
     .replace(/[ \t]+\n/g, '\n')
     .trim()
 const hashRefreshContent = (content: string): string =>
-  createHash('sha256').update(content, 'utf8').digest('hex')
+  new Bun.CryptoHasher('sha256').update(content, 'utf8').digest('hex')
 const countCharacters = (content: string): number =>
   Array.from(content).length
 const createHttpFetchError = (response: Response): Error =>

@@ -1,6 +1,5 @@
 import { rename, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { randomUUID } from 'node:crypto'
 import type {
   ExtractRoute,
   InputFamily,
@@ -13,6 +12,7 @@ import type {
   ProcessCommand
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { writeFileExact } from '~/utils/bun-file-io'
 import { isRecord } from '~/utils/rest-client'
 import {
   isExtractRoute,
@@ -96,9 +96,9 @@ const writeManifestUnlocked = async (
   }
   if (previous) assertAppendOnlyManifestAudioState(previous, parsed)
 
-  const tempPath = join(rootDir, `.${PIPELINE_MANIFEST_FILE}.${process.pid}.${randomUUID()}.tmp`)
+  const tempPath = join(rootDir, `.${PIPELINE_MANIFEST_FILE}.${process.pid}.${crypto.randomUUID()}.tmp`)
   try {
-    await Bun.write(tempPath, `${JSON.stringify(parsed, null, 2)}\n`)
+    await writeFileExact(tempPath, `${JSON.stringify(parsed, null, 2)}\n`)
     await rename(tempPath, manifestPath)
   } finally {
     await rm(tempPath, { force: true }).catch(() => undefined)

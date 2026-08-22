@@ -1,5 +1,5 @@
 import { isRecord } from '~/utils/rest-client'
-import { stat } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename } from 'node:path'
 import type { DocumentMetadata, HostedOcrImageResult, HostedOcrRun, PageResult } from '~/types'
 import { ValidationError } from '~/utils/error-handler'

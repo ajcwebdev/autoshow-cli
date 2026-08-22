@@ -1,4 +1,6 @@
 import { AppUsageError, extractErrorMetadata, hintsForMissingEnv } from '~/utils/error-handler'
+import { findHostedProviderCredential, findHostedProviderCredentialByEnvVar } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import type { HostedProviderEnvCheck } from '~/types'
 
 export const readEnv = (key: string): string | undefined => {
   const val = process.env[key]?.trim()
@@ -24,12 +26,95 @@ const missingCredentialError = (envVar: string, stage: string, description?: str
     { stage, retryable: false, metadata: { missingEnvVar: envVar } }
   )
 
-export const requireApiKey = (envVar: string, stage: string, description?: string): string => {
-  const value = readEnv(envVar)
-  if (!value) {
-    throw missingCredentialError(envVar, stage, description)
+export type CredentialObservation = {
+  providerId: string
+  envVar: string
+  label: string
+  hintUrl: string
+  stages: readonly string[]
+  available: boolean
+  value?: string | undefined
+  message: string
+  hints: string[]
+}
+
+type CredentialResolutionOptions = {
+  stage?: string | undefined
+  description?: string | undefined
+  env?: Record<string, string | undefined> | undefined
+  providedValue?: string | undefined
+  useProvidedValue?: boolean | undefined
+}
+
+const requireKnownCredential = (providerId: string): HostedProviderEnvCheck => {
+  const spec = findHostedProviderCredential(providerId)
+  if (!spec) throw new TypeError(`Unknown hosted provider credential: ${providerId}`)
+  return spec
+}
+
+const observeCredentialSpec = (
+  spec: HostedProviderEnvCheck,
+  options: CredentialResolutionOptions = {}
+): CredentialObservation => {
+  const rawValue = options.useProvidedValue
+    ? options.providedValue
+    : (options.env ?? process.env)[spec.envVar]
+  const value = rawValue?.trim() || undefined
+  const description = options.description ?? spec.label
+  return {
+    providerId: spec.providerId,
+    envVar: spec.envVar,
+    label: spec.label,
+    hintUrl: spec.hintUrl,
+    stages: spec.stages,
+    available: value !== undefined,
+    ...(value ? { value } : {}),
+    message: `${spec.envVar} environment variable is required for ${description}`,
+    hints: hintsForMissingEnv(spec.envVar)
   }
-  return value
+}
+
+export function resolveCredential (
+  providerId: string,
+  mode: 'observe',
+  options?: CredentialResolutionOptions
+): CredentialObservation
+export function resolveCredential (
+  providerId: string,
+  mode: 'require',
+  options: CredentialResolutionOptions & { stage: string }
+): string
+export function resolveCredential (
+  providerId: string,
+  mode: 'observe' | 'require',
+  options: CredentialResolutionOptions = {}
+): CredentialObservation | string {
+  const observation = observeCredentialSpec(requireKnownCredential(providerId), options)
+  if (mode === 'observe') return observation
+  if (!observation.value) {
+    throw missingCredentialError(observation.envVar, options.stage ?? 'credential', options.description ?? observation.label)
+  }
+  return observation.value
+}
+
+export const requireProviderKey = (
+  providerId: string,
+  stage: string,
+  description?: string
+): string => resolveCredential(providerId, 'require', { stage, ...(description ? { description } : {}) })
+
+export const ensureProvider = (
+  providerId: string,
+  stage: string,
+  description?: string
+): () => Promise<void> => async () => {
+  requireProviderKey(providerId, stage, description)
+}
+
+export const requireApiKey = (envVar: string, stage: string, description?: string): string => {
+  const spec = findHostedProviderCredentialByEnvVar(envVar)
+  if (!spec) throw new TypeError(`Unknown hosted provider credential environment variable: ${envVar}`)
+  return resolveCredential(spec.providerId, 'require', { stage, ...(description ? { description } : {}) })
 }
 
 /**
@@ -43,11 +128,14 @@ export const requireProvidedApiKey = (
   stage: string,
   description?: string
 ): string => {
-  const trimmed = value?.trim()
-  if (!trimmed) {
-    throw missingCredentialError(envVar, stage, description)
-  }
-  return trimmed
+  const spec = findHostedProviderCredentialByEnvVar(envVar)
+  if (!spec) throw new TypeError(`Unknown hosted provider credential environment variable: ${envVar}`)
+  return resolveCredential(spec.providerId, 'require', {
+    stage,
+    providedValue: value,
+    useProvidedValue: true,
+    ...(description ? { description } : {})
+  })
 }
 
 /** True when `error` (or any cause) is a missing-credential failure from `requireApiKey`. */
@@ -55,8 +143,3 @@ export const missingCredentialEnvVar = (error: unknown): string | undefined => {
   const value = extractErrorMetadata(error)['missingEnvVar']
   return typeof value === 'string' ? value : undefined
 }
-
-// Explicitly () => Promise<void>: bootstrap-broker `ensure` entries require void, and a
-// () => Promise<string> factory would not be assignable there.
-export const ensureApiKeySetup = (envVar: string, stage: string, description?: string): () => Promise<void> =>
-  async () => { requireApiKey(envVar, stage, description) }

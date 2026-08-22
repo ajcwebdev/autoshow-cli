@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureGrokSttSetup = ensureApiKeySetup('XAI_API_KEY', 'stt:grok', 'Grok STT')
+export const ensureGrokSttSetup = ensureProvider('grok', 'stt:grok', 'Grok STT')

@@ -15,7 +15,7 @@ Safety: these `bun t` commands document human service/e2e coverage and may call 
 ## Quick Start
 
 ```bash
-# local file input coverage
+# local-file input suite coverage
 bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts
 
 # network-backed coverage
@@ -27,7 +27,7 @@ bun t \
 
 ## Local Coverage
 
-- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts` covers local input paths without network access.
+- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts` covers the local document input path plus the shared hosted example audio URL.
 
 ## Service Coverage
 

@@ -14,6 +14,7 @@ import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-no
 import type { AggregatedPriceEstimate, CliRawParsed, ExtractSelectorInputRoutes, ProcessCommand, ProcessPlanningOptions, ResolvedProcessTargetDoubleDash } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { fileExists } from '~/utils/cli-utils'
+import { childEnv } from '~/utils/child-env'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { runPreflight } from '~/cli/commands/pricing-orchestration/preflight'
@@ -81,6 +82,7 @@ const runRawYtDlp = async (args: string[]): Promise<void> => {
   }
 
   const proc = Bun.spawn([getYtDlpBinary(), ...args], {
+    env: childEnv(),
     stdin: 'inherit',
     stdout: 'inherit',
     stderr: 'inherit'
@@ -158,47 +160,41 @@ const resolveDirectExtractSelectorInputRoutes = async (
   return routes
 }
 
-export const handleProcessTarget = async (
-  command: ProcessCommand,
-  target: string | undefined,
-  rawFlags: Record<string, unknown>,
-  rawParsed: Pick<CliRawParsed, 'doubleDash' | 'explicitFlags' | 'flagOccurrences'>
-): Promise<void> => {
-  const doubleDash = rawParsed.doubleDash
-  const resolvedDoubleDash = resolveProcessTargetDoubleDash(command, target, doubleDash)
-  if (resolvedDoubleDash.kind === 'raw-yt-dlp') {
-    await runRawYtDlp(resolvedDoubleDash.ytDlpPassthroughArgs)
-    return
-  }
+type BuiltProcessOptions = ReturnType<typeof buildOptsFromFlags> & { configPath: string }
+type ProcessTargetPlan = Awaited<ReturnType<typeof resolveProcessTargetPlan>>
 
-  const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
+const resolveNormalizedProcessOptions = async (input: {
+  command: ProcessCommand
+  resolvedTarget: string
+  rawFlags: Record<string, unknown>
+  rawParsed: Pick<CliRawParsed, 'explicitFlags' | 'flagOccurrences'>
+}): Promise<{
+  options: BuiltProcessOptions
+  explicitFlags: Set<string>
+  selectorPlan?: ProcessTargetPlan | undefined
+  config: Awaited<ReturnType<typeof loadConfig>>
+}> => {
+  const configPathOverride = typeof input.rawFlags['config-path'] === 'string' ? input.rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
   const config = await loadConfig(resolvedConfigPath)
-  const configExplicitFlags = rawParsed.explicitFlags
-  const mergedFlags = mergeConfigIntoRawFlags(rawFlags, config, configExplicitFlags)
+  const configExplicitFlags = input.rawParsed.explicitFlags
+  const mergedFlags = mergeConfigIntoRawFlags(input.rawFlags, config, configExplicitFlags)
   let optionFlags = mergedFlags
   let explicitFlags = configExplicitFlags
-  let optionOccurrences = rawParsed.flagOccurrences
-  let selectorPlan: Awaited<ReturnType<typeof resolveProcessTargetPlan>> | undefined
-
-  if (isExtractCommand(command) && hasExtractGenericSelectorOccurrences(optionOccurrences)) {
+  let optionOccurrences = input.rawParsed.flagOccurrences
+  let selectorPlan: ProcessTargetPlan | undefined
+  if (isExtractCommand(input.command) && hasExtractGenericSelectorOccurrences(optionOccurrences)) {
     const preliminaryFlags = stripExtractGenericSelectorFlags(mergedFlags)
     const preliminaryOccurrences = stripExtractGenericSelectorOccurrences(optionOccurrences)
-    const preliminaryExplicitFlags = new Set(preliminaryOccurrences.map((occurrence) => occurrence.name))
+    const preliminaryExplicitFlags = new Set(preliminaryOccurrences.map(occurrence => occurrence.name))
     const preliminaryOpts = {
-      ...buildOptsFromFlags(
-        true,
-        preliminaryFlags,
-        {},
-        preliminaryExplicitFlags,
-        preliminaryOccurrences
-      ),
-      configPath: resolvedConfigPath
+      ...buildOptsFromFlags(true, preliminaryFlags, {}, preliminaryExplicitFlags, preliminaryOccurrences),
+      configPath: resolvedConfigPath,
     }
-    const selectorRoutes = await resolveDirectExtractSelectorInputRoutes(command, resolvedDoubleDash.resolvedTarget, preliminaryOpts)
+    const selectorRoutes = await resolveDirectExtractSelectorInputRoutes(input.command, input.resolvedTarget, preliminaryOpts)
       ?? await (async (): Promise<ExtractSelectorInputRoutes> => {
-        selectorPlan = await resolveProcessTargetPlan(command, resolvedDoubleDash.resolvedTarget, preliminaryOpts)
-        return await resolveExtractSelectorInputRoutes(command, selectorPlan, preliminaryOpts, resolvedDoubleDash.resolvedTarget)
+        selectorPlan = await resolveProcessTargetPlan(input.command, input.resolvedTarget, preliminaryOpts)
+        return await resolveExtractSelectorInputRoutes(input.command, selectorPlan, preliminaryOpts, input.resolvedTarget)
       })()
     const normalized = normalizeExtractGenericSelectorFlags(mergedFlags, configExplicitFlags, optionOccurrences, selectorRoutes)
     optionFlags = normalized.flags
@@ -206,164 +202,151 @@ export const handleProcessTarget = async (
     optionOccurrences = normalized.flagOccurrences
     selectorPlan = undefined
   }
-
-  if (command === 'write') {
-    const selectorNormalized = normalizeWriteStepSelectorFlags(optionFlags, explicitFlags, optionOccurrences)
-    optionFlags = selectorNormalized.flags
-    explicitFlags = selectorNormalized.explicitFlags
-    optionOccurrences = selectorNormalized.flagOccurrences
+  if (input.command === 'write') {
+    const normalized = normalizeWriteStepSelectorFlags(optionFlags, explicitFlags, optionOccurrences)
+    optionFlags = normalized.flags
+    explicitFlags = normalized.explicitFlags
+    optionOccurrences = normalized.flagOccurrences
   }
-
-  const opts = {
-    ...buildOptsFromFlags(
-      isExtractCommand(command) || command === 'download' || command === 'metadata',
-      optionFlags,
-      {},
-      explicitFlags,
-      optionOccurrences
-    ),
-    configPath: resolvedConfigPath
+  return {
+    options: {
+      ...buildOptsFromFlags(isExtractCommand(input.command) || input.command === 'download' || input.command === 'metadata', optionFlags, {}, explicitFlags, optionOccurrences),
+      configPath: resolvedConfigPath,
+    },
+    explicitFlags,
+    selectorPlan,
+    config,
   }
+}
 
-  const maxCents = resolveMaxCents(config.pricing)
-
-  const resolvedTarget = resolvedDoubleDash.resolvedTarget
-  if (resolvedDoubleDash.ytDlpPassthroughArgs && resolvedDoubleDash.ytDlpPassthroughArgs.length > 0) {
-    opts.ytDlpPassthroughArgs = resolvedDoubleDash.ytDlpPassthroughArgs
-    l.write('info', `Forwarding ${resolvedDoubleDash.ytDlpPassthroughArgs.length} passthrough arg(s) to yt-dlp`, {
-      category: 'pipeline',
-      metadata: { passthroughArgCount: resolvedDoubleDash.ytDlpPassthroughArgs.length }
-    })
-  }
-
-  const writeProjectDefaults = command === 'write'
-    ? await resolveWriteTextProjectDefaults(resolvedTarget, opts, explicitFlags)
+const resolveWriteInputPhase = async (input: {
+  command: ProcessCommand
+  resolvedTarget: string
+  options: BuiltProcessOptions
+  explicitFlags: Set<string>
+}) => {
+  const writeProjectDefaults = input.command === 'write'
+    ? await resolveWriteTextProjectDefaults(input.resolvedTarget, input.options, input.explicitFlags)
     : undefined
-  const writeAutoTextInput = command === 'write' && !writeProjectDefaults && !opts.textInput
-    ? await shouldTreatWriteTargetAsTextInput(resolvedTarget)
+  const writeAutoTextInput = input.command === 'write' && !writeProjectDefaults && !input.options.textInput
+    ? await shouldTreatWriteTargetAsTextInput(input.resolvedTarget)
     : false
   if (writeAutoTextInput) {
-    l.write('info', `Detected prose content in ${resolvedTarget}; running write in text-input mode. Use one URL or file path per line for batch mode.`, {
-      category: 'pipeline',
-      metadata: { target: resolvedTarget, mode: 'text-input' }
-    })
+    l.write('info', `Detected prose content in ${input.resolvedTarget}; running write in text-input mode. Use one URL or file path per line for batch mode.`, { category: 'pipeline', metadata: { target: input.resolvedTarget, mode: 'text-input' } })
   }
-  const effectiveOpts = writeProjectDefaults
-    ? {
-        ...opts,
-        textInput: true,
-        promptFile: writeProjectDefaults.promptFile,
-        renderedOutDir: writeProjectDefaults.renderedOutDir,
-        trackList: writeProjectDefaults.trackList
-      }
-    : writeAutoTextInput
-      ? { ...opts, textInput: true }
-      : opts
-
-  if (writeProjectDefaults && !explicitFlags.has('prompt-file')) {
+  const effectiveOptions: BuiltProcessOptions = writeProjectDefaults
+    ? { ...input.options, textInput: true, promptFile: writeProjectDefaults.promptFile, renderedOutDir: writeProjectDefaults.renderedOutDir, trackList: writeProjectDefaults.trackList }
+    : writeAutoTextInput ? { ...input.options, textInput: true } : input.options
+  if (writeProjectDefaults && !input.explicitFlags.has('prompt-file')) {
     await readPromptFileText(writeProjectDefaults.promptFile).catch((error: unknown) => {
-      throw CLIUsageError(
-        `write project mode requires ${writeProjectDefaults.projectDir}/prompt.md or an explicit --prompt-file`,
-        undefined,
-        error instanceof Error ? { cause: error } : {}
-      )
+      throw CLIUsageError(`write project mode requires ${writeProjectDefaults.projectDir}/prompt.md or an explicit --prompt-file`, undefined, error instanceof Error ? { cause: error } : {})
     })
   }
+  validateWriteStep2ProviderSelection(input.command, effectiveOptions)
+  return { effectiveOptions, writeProjectDefaults }
+}
 
-  validateWriteStep2ProviderSelection(command, effectiveOpts)
-
-  const plan = selectorPlan ?? await resolveProcessTargetPlan(command, resolvedTarget, effectiveOpts)
-  const singleRouting = plan.kind === 'single' && isExtractCommand(command)
-    ? await resolveInputRoutingForCommand(command, plan.target, effectiveOpts)
-    : undefined
-
-  if (singleRouting?.family === 'unsupported') {
-    throw CLIUsageError(buildUnsupportedExtractInputMessage(resolvedTarget))
-  }
-
-  // Preflight and --price otherwise estimate nonexistent local targets from generic
-  // heuristics; fail here with the same error the single-target runner throws at
-  // execution time, keeping its X Space raw-id escape hatch.
+const planTargetExecutionPhase = async (input: {
+  command: ProcessCommand
+  resolvedTarget: string
+  options: BuiltProcessOptions
+  selectorPlan?: ProcessTargetPlan | undefined
+}) => {
+  const plan = input.selectorPlan ?? await resolveProcessTargetPlan(input.command, input.resolvedTarget, input.options)
+  const singleRouting = plan.kind === 'single' && isExtractCommand(input.command) ? await resolveInputRoutingForCommand(input.command, plan.target, input.options) : undefined
+  if (singleRouting?.family === 'unsupported') throw CLIUsageError(buildUnsupportedExtractInputMessage(input.resolvedTarget))
   if (plan.kind === 'single' && !isLikelyUrl(plan.target) && !(await fileExists(plan.target))) {
     const { extractSpaceIdsFromText } = await import('~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/x-spaces/input')
-    if (!extractSpaceIdsFromText(plan.target).includes(plan.target.trim())) {
-      throw CLIUsageError(`Input does not exist: ${plan.target}. Run: bun autoshow help ${command}`)
-    }
+    if (!extractSpaceIdsFromText(plan.target).includes(plan.target.trim())) throw CLIUsageError(`Input does not exist: ${plan.target}. Run: bun autoshow help ${input.command}`)
   }
+  const batchPlan = await planProcessTargetBatchExecution(plan, input.command, input.options, input.resolvedTarget)
+  const preflightTargets = batchPlan ? batchPlan.items : plan.kind === 'single' ? [plan.target] : []
+  return { plan, batchPlan, preflightTargets }
+}
 
-  const batchPlan = await planProcessTargetBatchExecution(plan, command, effectiveOpts, resolvedTarget)
-  const preflightTargets = batchPlan
-    ? batchPlan.items
-    : plan.kind === 'single'
-      ? [plan.target]
-      : []
-  const shouldRunPreflight = shouldRunCommandPreflight(effectiveOpts, maxCents)
+type PreflightPhaseResult =
+  | { kind: 'reported' }
+  | { kind: 'continue', singleEstimate?: AggregatedPriceEstimate | undefined }
 
-  if (effectiveOpts.price) {
-    if (preflightTargets.length === 0) {
-      return
-    }
-
+const runPriceAndBudgetPhase = async (input: {
+  command: ProcessCommand
+  options: BuiltProcessOptions
+  preflightTargets: string[]
+  maxCents?: number | undefined
+  writeProjectDefaults: Awaited<ReturnType<typeof resolveWriteTextProjectDefaults>>
+}): Promise<PreflightPhaseResult> => {
+  const { command, options, preflightTargets } = input
+  if (options.price) {
+    if (preflightTargets.length === 0) return { kind: 'reported' }
     if (preflightTargets.length === 1) {
-      const estimate = await buildAggregatedPriceEstimate(command, preflightTargets[0] as string, effectiveOpts, undefined)
+      const target = preflightTargets[0] as string
+      const estimate = await buildAggregatedPriceEstimate(command, target, options, undefined)
       l.report.estimate(estimate)
-      if (typeof preflightTargets[0] === 'string' && await isHtmlArticleTarget(preflightTargets[0] as string, effectiveOpts) && hasConfiguredOcrProviderSelection(effectiveOpts)) {
-        l.warn(`${HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING.slice(0, -1)} during extraction pricing and execution.`, { category: 'pipeline' })
-      }
-      l.report.expectedOutput('./output/<timestamp>_<label>/', await buildExpectedFilesList(command, effectiveOpts, preflightTargets[0] as string))
+      if (await isHtmlArticleTarget(target, options) && hasConfiguredOcrProviderSelection(options)) l.warn(`${HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING.slice(0, -1)} during extraction pricing and execution.`, { category: 'pipeline' })
+      l.report.expectedOutput('./output/<timestamp>_<label>/', await buildExpectedFilesList(command, options, target))
+      return { kind: 'reported' }
+    }
+    await reportSuitePriceEstimate(command, preflightTargets, options)
+    if (input.writeProjectDefaults) l.report.expectedOutput('./output/<timestamp>_text/', await buildBatchExpectedFilesList(command, options, preflightTargets[0] as string))
+    return { kind: 'reported' }
+  }
+  if (!shouldRunCommandPreflight(options, input.maxCents)) return { kind: 'continue' }
+  if (preflightTargets.length === 1) {
+    const { estimate, shouldExit } = await runPreflight(command, preflightTargets[0] as string, options, input.maxCents, undefined)
+    return shouldExit ? { kind: 'reported' } : { kind: 'continue', singleEstimate: estimate }
+  }
+  if (preflightTargets.length > 1) {
+    const suiteCost = await reportSuitePriceEstimate(command, preflightTargets, options)
+    if (input.maxCents !== undefined && suiteCost > input.maxCents) {
+      if (!options.allowOverBudget) throw CLIUsageError(`Estimated suite cost ${formatCents(suiteCost)} exceeds configured budget ${formatCents(input.maxCents)}. Use --allow-over-budget to proceed.`)
+      l.warn(`Estimated suite cost ${formatCents(suiteCost)} exceeds budget ${formatCents(input.maxCents)} — continuing because --allow-over-budget is set.`, { category: 'pricing', metadata: { estimatedCostCents: suiteCost, budgetCents: input.maxCents, allowOverBudget: true } })
+    }
+  }
+  return { kind: 'continue' }
+}
+
+const dispatchTargetExecutionPhase = async (input: {
+  command: ProcessCommand
+  resolvedTarget: string
+  options: BuiltProcessOptions
+  plan: ProcessTargetPlan
+  batchPlan: Awaited<ReturnType<typeof planProcessTargetBatchExecution>>
+  singleEstimate?: AggregatedPriceEstimate | undefined
+}): Promise<void> => {
+  if (input.plan.kind !== 'single' && !input.batchPlan) return
+  if (input.batchPlan) {
+    if (input.plan.kind === 'directory' && input.batchPlan.initialRecords.length === 0) {
+      l.warn(`No inputs found in ${input.resolvedTarget}`, { category: 'pipeline', metadata: { target: input.resolvedTarget } })
       return
     }
-
-    await reportSuitePriceEstimate(command, preflightTargets, effectiveOpts)
-    if (writeProjectDefaults) {
-      l.report.expectedOutput(
-        './output/<timestamp>_text/',
-        await buildBatchExpectedFilesList(command, effectiveOpts, preflightTargets[0] as string)
-      )
+    if (input.plan.kind === 'youtube_collection') {
+      l.write('info', `Detected YouTube collection URL, processing ${input.batchPlan.initialRecords.length} videos`, { category: 'pipeline', metadata: { target: input.resolvedTarget, itemCount: input.batchPlan.initialRecords.length } })
     }
+    await executeBatchPlan(input.command, input.options, input.batchPlan)
     return
   }
+  await handleSingleTarget(input.resolvedTarget, input.command, input.options, input.singleEstimate)
+}
 
-  let singleEstimate: AggregatedPriceEstimate | undefined
-  if (shouldRunPreflight) {
-    if (preflightTargets.length === 1) {
-      const { estimate, shouldExit } = await runPreflight(command, preflightTargets[0] as string, effectiveOpts, maxCents, undefined)
-      singleEstimate = estimate
-      if (shouldExit) return
-    } else if (preflightTargets.length > 1) {
-      const suiteTotalEstimatedCost = await reportSuitePriceEstimate(command, preflightTargets, effectiveOpts)
-      if (maxCents !== undefined && suiteTotalEstimatedCost > maxCents) {
-        if (!effectiveOpts.allowOverBudget) {
-          throw CLIUsageError(
-            `Estimated suite cost ${formatCents(suiteTotalEstimatedCost)} exceeds configured budget ${formatCents(maxCents)}. Use --allow-over-budget to proceed.`
-          )
-        }
-        l.warn(`Estimated suite cost ${formatCents(suiteTotalEstimatedCost)} exceeds budget ${formatCents(maxCents)} — continuing because --allow-over-budget is set.`, {
-        category: 'pricing',
-        metadata: { estimatedCostCents: suiteTotalEstimatedCost, budgetCents: maxCents, allowOverBudget: true }
-      })
-      }
-    }
-  }
-
-  if (plan.kind !== 'single' && !batchPlan) {
+export const handleProcessTarget = async (
+  command: ProcessCommand,
+  target: string | undefined,
+  rawFlags: Record<string, unknown>,
+  rawParsed: Pick<CliRawParsed, 'doubleDash' | 'explicitFlags' | 'flagOccurrences'>
+): Promise<void> => {
+  const doubleDash = resolveProcessTargetDoubleDash(command, target, rawParsed.doubleDash)
+  if (doubleDash.kind === 'raw-yt-dlp') {
+    await runRawYtDlp(doubleDash.ytDlpPassthroughArgs)
     return
   }
-
-  if (batchPlan) {
-    if (plan.kind === 'directory' && batchPlan.initialRecords.length === 0) {
-      l.warn(`No inputs found in ${resolvedTarget}`, { category: 'pipeline', metadata: { target: resolvedTarget } })
-      return
-    }
-    if (plan.kind === 'youtube_collection') {
-      l.write('info', `Detected YouTube collection URL, processing ${batchPlan.initialRecords.length} videos`, {
-      category: 'pipeline',
-      metadata: { target: resolvedTarget, itemCount: batchPlan.initialRecords.length }
-    })
-    }
-    await executeBatchPlan(command, effectiveOpts, batchPlan)
-    return
+  const normalized = await resolveNormalizedProcessOptions({ command, resolvedTarget: doubleDash.resolvedTarget, rawFlags, rawParsed })
+  if (doubleDash.ytDlpPassthroughArgs?.length) {
+    normalized.options.ytDlpPassthroughArgs = doubleDash.ytDlpPassthroughArgs
+    l.write('info', `Forwarding ${doubleDash.ytDlpPassthroughArgs.length} passthrough arg(s) to yt-dlp`, { category: 'pipeline', metadata: { passthroughArgCount: doubleDash.ytDlpPassthroughArgs.length } })
   }
-
-  await handleSingleTarget(resolvedTarget, command, effectiveOpts, singleEstimate)
+  const writeInput = await resolveWriteInputPhase({ command, resolvedTarget: doubleDash.resolvedTarget, options: normalized.options, explicitFlags: normalized.explicitFlags })
+  const planned = await planTargetExecutionPhase({ command, resolvedTarget: doubleDash.resolvedTarget, options: writeInput.effectiveOptions, selectorPlan: normalized.selectorPlan })
+  const preflight = await runPriceAndBudgetPhase({ command, options: writeInput.effectiveOptions, preflightTargets: planned.preflightTargets, maxCents: resolveMaxCents(normalized.config.pricing), writeProjectDefaults: writeInput.writeProjectDefaults })
+  if (preflight.kind === 'reported') return
+  await dispatchTargetExecutionPhase({ command, resolvedTarget: doubleDash.resolvedTarget, options: writeInput.effectiveOptions, plan: planned.plan, batchPlan: planned.batchPlan, singleEstimate: preflight.singleEstimate })
 }

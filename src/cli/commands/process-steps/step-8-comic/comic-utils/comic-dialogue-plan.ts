@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type {
@@ -174,7 +173,7 @@ export const writeComicDialoguePlan = async (
   const prior = entries.find(entry => entry.dialoguePlanId === plan.dialoguePlanId)
   if (prior && canonicalTtsJson(prior) !== canonicalTtsJson(nextEntry)) throw CLIUsageError('Comic dialogue plan index contains conflicting append-only identity.')
   if (!prior) {
-    const temporary = `${indexPath}.tmp-${randomUUID()}`
+    const temporary = `${indexPath}.tmp-${crypto.randomUUID()}`
     await mkdir(dirname(indexPath), { recursive: true })
     try {
       await Bun.write(temporary, `${JSON.stringify({ schemaVersion: 1, entries: [...entries, nextEntry] }, null, 2)}\n`)

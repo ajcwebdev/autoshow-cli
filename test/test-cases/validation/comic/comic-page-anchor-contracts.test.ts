@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { generateComicPages } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/generate-comic-pages'
@@ -19,7 +18,7 @@ import { makeTempDir } from '../../../test-utils/temp-dirs'
 
 const temporaryDirectories: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
-const sha = createHash('sha256').update(tinyPng).digest('hex')
+const sha = new Bun.CryptoHasher('sha256').update(tinyPng).digest('hex')
 
 const cargoBayLocation = { key: 'cargo-bay', raw: 'cargo-bay' }
 

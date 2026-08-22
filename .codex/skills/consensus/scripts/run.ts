@@ -1,10 +1,9 @@
 #!/usr/bin/env bun
 
-import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 import { type ConsensusCategory, rewriteComparisonReports } from "./shared/report_surfaces.ts";
+import { runSyncCommand } from "../../../../src/utils/sync-subprocess.ts";
 
 type CommandName = "build-packet" | "build-report" | "compact-results" | "build-combined-report";
 
@@ -81,7 +80,7 @@ const CONFIG: Record<ConsensusCategory, CategoryConfig> = {
   },
 };
 
-const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const SCRIPT_DIR = import.meta.dir;
 
 function rootHelp(): string {
   return [
@@ -179,15 +178,12 @@ function flagString(flags: Map<string, string | true>, flag: string): string | n
 
 function runScript(script: string, args: string[]): void {
   const scriptPath = resolve(SCRIPT_DIR, script);
-  const result = spawnSync("bun", [scriptPath, ...args], {
+  const result = runSyncCommand("bun", [scriptPath, ...args], {
     stdio: "inherit",
   });
 
-  if (result.error) {
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    throw new Error(`Command failed with exit code ${result.status}: bun ${scriptPath} ${args.join(" ")}`);
+  if (result.exitCode !== 0) {
+    throw new Error(`Command failed with exit code ${result.exitCode}: bun ${scriptPath} ${args.join(" ")}`);
   }
 }
 

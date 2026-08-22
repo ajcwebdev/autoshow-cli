@@ -4,6 +4,7 @@ import type { AssStyle, AssTheme, CaptionCue, LyricsRenderSummary, LyricsVideoOv
 import { commandExists, exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
+import { childEnv } from '~/utils/child-env'
 
 export const FIXED_RENDER_WIDTH = 1920
 export const FIXED_RENDER_HEIGHT = 1080
@@ -753,6 +754,7 @@ export const renderLyricsVideo = async (options: {
 
   const proc = Bun.spawn([getFfmpegBinary(), ...finalArgs], {
     cwd: workingDirectory,
+    env: childEnv(),
     stdout: 'pipe',
     stderr: 'pipe'
   })

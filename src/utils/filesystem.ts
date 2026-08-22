@@ -1,7 +1,7 @@
-import { randomUUID } from 'node:crypto'
-import { chmod, readdir, rename, mkdir, stat } from 'node:fs/promises'
+import { chmod, readdir, rename, mkdir } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 import type { WalkPathKind, WalkPathsOptions } from '~/types'
+import { statPath as stat, writeFileExact } from '~/utils/bun-file-io'
 
 const normalizeMaxDepth = (maxDepth: number | undefined): number => {
   if (maxDepth === undefined) return Number.POSITIVE_INFINITY
@@ -42,8 +42,8 @@ export const isContainedPath = (root: string, candidate: string): boolean => {
  */
 export const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
   await mkdir(dirname(path), { recursive: true })
-  const temporary = `${path}.tmp-${randomUUID()}`
-  await Bun.write(temporary, `${JSON.stringify(value, null, 2)}\n`)
+  const temporary = `${path}.tmp-${crypto.randomUUID()}`
+  await writeFileExact(temporary, `${JSON.stringify(value, null, 2)}\n`)
   await rename(temporary, path)
 }
 

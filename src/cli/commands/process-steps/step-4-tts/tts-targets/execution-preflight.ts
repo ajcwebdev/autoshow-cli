@@ -1,28 +1,11 @@
-import type { SanitizedProviderError, TtsExecutionReadinessObservation, TtsProvider, TtsTarget } from '~/types'
+import type { SanitizedProviderError, TtsExecutionReadinessObservation, TtsTarget } from '~/types'
 import { CLIUsageError, extractErrorMetadata, ProviderError, ValidationError } from '~/utils/error-handler'
-import { readEnv } from '~/utils/validate/env-utils'
+import { resolveCredential } from '~/utils/validate/env-utils'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
+import { findHostedTtsCredential } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import { childEnv } from '~/utils/child-env'
 import { parseHumeVoiceCatalogEnvelope } from '../tts-services/hume/hume-advanced-provider'
-
-const HOSTED_TTS_CREDENTIALS = {
-  elevenlabs: { env: 'ELEVENLABS_API_KEY', label: 'ElevenLabs TTS' },
-  minimax: { env: 'MINIMAX_API_KEY', label: 'MiniMax TTS' },
-  groq: { env: 'GROQ_API_KEY', label: 'Groq TTS' },
-  grok: { env: 'XAI_API_KEY', label: 'Grok TTS' },
-  mistral: { env: 'MISTRAL_API_KEY', label: 'Mistral TTS' },
-  openai: { env: 'OPENAI_API_KEY', label: 'OpenAI TTS' },
-  gemini: { env: 'GEMINI_API_KEY', label: 'Gemini TTS' },
-  deepgram: { env: 'DEEPGRAM_API_KEY', label: 'Deepgram TTS' },
-  speechify: { env: 'SPEECHIFY_API_KEY', label: 'Speechify TTS' },
-  hume: { env: 'HUME_API_KEY', label: 'Hume TTS' },
-  cartesia: { env: 'CARTESIA_API_KEY', label: 'Cartesia TTS' },
-  fish: { env: 'FISH_API_KEY', label: 'Fish Audio TTS' },
-  inworld: { env: 'INWORLD_API_KEY', label: 'Inworld AI TTS' },
-  deepinfra: { env: 'DEEPINFRA_API_KEY', label: 'DeepInfra TTS' },
-  replicate: { env: 'REPLICATE_API_TOKEN', label: 'Replicate TTS' },
-  fal: { env: 'FAL_API_KEY', label: 'fal.ai TTS' }
-} as const satisfies Record<TtsProvider, { env: string, label: string }>
 
 /**
  * A blocked pre-ingest observation stays authoritative because protected capabilities were not
@@ -63,7 +46,7 @@ const missingCredentialObservation = (
 
 const probeRuntimeTool = async (binary: string): Promise<boolean> => {
   try {
-    const process = Bun.spawn([binary, '-version'], { stdout: 'ignore', stderr: 'ignore' })
+    const process = Bun.spawn([binary, '-version'], { env: childEnv(), stdout: 'ignore', stderr: 'ignore' })
     return await process.exited === 0
   } catch {
     return false
@@ -302,8 +285,17 @@ export const validateTtsTargetsForExecution = (
     const humeReadinessByVoiceSet = new Map<string, Promise<TtsExecutionReadinessObservation>>()
 
     return await Promise.all(targets.map(async (target): Promise<TtsExecutionReadinessObservation> => {
-      const credential = HOSTED_TTS_CREDENTIALS[target.service]
-      const apiKey = readEnv(credential.env)
+      const credential = findHostedTtsCredential(target.service)
+      if (!credential?.ttsPreflight) {
+        throw ValidationError(`TTS provider ${target.service} has no credential specification.`, {
+          stage: 'tts:readiness',
+          retryable: false
+        })
+      }
+      const observation = resolveCredential(credential.providerId, 'observe', {
+        description: credential.ttsPreflight.label
+      })
+      const apiKey = observation.value
       if (apiKey && target.service === 'hume' && (target.readinessVoiceIds?.length ?? 0) > 0) {
         const voiceSetKey = [...new Set(target.readinessVoiceIds)].sort().join('\0')
         let probe = humeReadinessByVoiceSet.get(voiceSetKey)
@@ -316,7 +308,7 @@ export const validateTtsTargetsForExecution = (
       }
       return apiKey
         ? await checkAdvancedVoiceReadiness(target, apiKey)
-        : missingCredentialObservation(target.targetKey as string, credential.env, credential.label)
+        : missingCredentialObservation(target.targetKey as string, observation.envVar, credential.ttsPreflight.label)
     }))
   })()
 }

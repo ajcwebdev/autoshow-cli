@@ -1,7 +1,8 @@
-import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { tmpdir } from 'node:os'
 import { extname, isAbsolute, join } from 'node:path'
-import type { DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, OcrBatchRunContext, OcrPoolAttemptUsage, OcrPoolLedger, OcrPoolTargetState, OcrProviderFailureSummary, OcrTarget, ProcessDocumentOutput } from '~/types'
+import type { DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, OcrBatchRunContext, OcrPoolAttemptUsage, OcrPoolLedger, OcrPoolTargetState, OcrProviderFailureSummary, OcrTarget, ProcessDocumentOutput, RunOcrPagePoolOptions } from '~/types'
 import { ExtractionMetadataSchema } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { CLIUsageError, extractErrorMetadata, serializeDiagnosticError } from '~/utils/error-handler'
@@ -401,27 +402,33 @@ const mergeHostedSchedulerTelemetry = (
   }
 }
 
-export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
+type PooledOcrContext = OcrBatchRunContext & {
   restoredLedger?: OcrPoolLedger | undefined
   reenabledTargets?: OcrTarget[] | undefined
-}): Promise<ProcessDocumentOutput> => {
-  assertOcrPoolCompatible(ctx)
-  const startedAtMs = Date.now()
-  const pageInputPromises = new Map<number, Promise<{ path: string, metadata: typeof ctx.step1Metadata }>>()
-  const pageWorkspace = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pool-'))
-  try {
+}
+
+type PreparedPageInput = { path: string, metadata: OcrBatchRunContext['step1Metadata'] }
+
+type PooledPageInputProvider = {
+  totalPages: number
+  preparePage: (pageNumber: number) => Promise<PreparedPageInput>
+}
+
+const normalizedImageFormat = (path: string): DocumentMetadata['format'] => {
+  const extension = extname(path).slice(1).toLowerCase()
+  if (extension === 'jpeg') return 'jpg'
+  if (extension === 'tiff') return 'tif'
+  return extension as DocumentMetadata['format']
+}
+
+const createPooledPageInputProvider = async (
+  ctx: PooledOcrContext,
+  pageWorkspace: string
+): Promise<PooledPageInputProvider> => {
   const cbzImages = ctx.step1Metadata.format === 'cbz'
     ? await extractCbzImages(ctx.extractFilePath, join(pageWorkspace, 'cbz-pages'))
     : undefined
-  if (cbzImages && cbzImages.length === 0) {
-    throw CLIUsageError('--ocr-provider-mode pool requires the CBZ input to contain at least one supported image page.')
-  }
-  const normalizedImageFormat = (path: string): DocumentMetadata['format'] => {
-    const extension = extname(path).slice(1).toLowerCase()
-    if (extension === 'jpeg') return 'jpg'
-    if (extension === 'tiff') return 'tif'
-    return extension as DocumentMetadata['format']
-  }
+  if (cbzImages?.length === 0) throw CLIUsageError('--ocr-provider-mode pool requires the CBZ input to contain at least one supported image page.')
   if (cbzImages) {
     for (const imagePath of cbzImages) {
       const imageFormat = normalizedImageFormat(imagePath)
@@ -432,42 +439,18 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
       }
     }
   }
-  const totalPages = cbzImages?.length ?? Math.max(1, ctx.step1Metadata.pageCount)
-  const resolvedStep2 = resolveRecordedOcrStep2(
-    ctx.step1Metadata.format,
-    ctx.effectiveOpts,
-    ctx.documentSource,
-    ctx.requestedTargets,
-    ctx.preparedMarkdown
-  )
-
-  for (const target of ctx.requestedTargets) {
-    if (!isLocalOcrTarget(target)) {
-      resolveReasoningPolicy({
-        step: 'extract',
-        service: target.service,
-        model: target.model,
-        requestedReasoningEffort: ctx.effectiveOpts.reasoningEffort
-      })
-    }
-  }
-
-  const preparePage = (pageNumber: number): Promise<{ path: string, metadata: typeof ctx.step1Metadata }> => {
-    const existing = pageInputPromises.get(pageNumber)
+  const promises = new Map<number, Promise<PreparedPageInput>>()
+  const preparePage = (pageNumber: number): Promise<PreparedPageInput> => {
+    const existing = promises.get(pageNumber)
     if (existing) return existing
-    const promise = (async () => {
+    const promise = (async (): Promise<PreparedPageInput> => {
       if (cbzImages) {
         const imagePath = cbzImages[pageNumber - 1]
         if (!imagePath) throw CLIUsageError(`CBZ pooled OCR page ${pageNumber} does not exist.`)
         const imageStats = await stat(imagePath)
-        return {
-          path: imagePath,
-          metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: imageStats.size, format: normalizedImageFormat(imagePath) }
-        }
+        return { path: imagePath, metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: imageStats.size, format: normalizedImageFormat(imagePath) } }
       }
-      if (ctx.step1Metadata.format !== 'pdf') {
-        return { path: ctx.extractFilePath, metadata: { ...ctx.step1Metadata, pageCount: 1 } }
-      }
+      if (ctx.step1Metadata.format !== 'pdf') return { path: ctx.extractFilePath, metadata: { ...ctx.step1Metadata, pageCount: 1 } }
       const pageDir = join(pageWorkspace, 'page-inputs')
       await mkdir(pageDir, { recursive: true })
       const pagePath = join(pageDir, `page-${String(pageNumber).padStart(6, '0')}.pdf`)
@@ -478,24 +461,24 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
         password: ctx.effectiveOpts.password,
         dpi: ctx.effectiveOpts.dpi,
         splitLogMode: 'debug',
-        logLabel: 'pooled OCR page preparation'
+        logLabel: 'pooled OCR page preparation',
       })
       const pageStats = await stat(pagePath)
-      return {
-        path: pagePath,
-        metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: pageStats.size, format: 'pdf' as const }
-      }
+      return { path: pagePath, metadata: { ...ctx.step1Metadata, pageCount: 1, fileSize: pageStats.size, format: 'pdf' } }
     })()
-    pageInputPromises.set(pageNumber, promise)
+    promises.set(pageNumber, promise)
     promise.catch(() => {
-      if (pageInputPromises.get(pageNumber) === promise) pageInputPromises.delete(pageNumber)
+      if (promises.get(pageNumber) === promise) promises.delete(pageNumber)
     })
     return promise
   }
+  return { totalPages: cbzImages?.length ?? Math.max(1, ctx.step1Metadata.pageCount), preparePage }
+}
 
-  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+const preflightPooledPageInputs = async (provider: PooledPageInputProvider): Promise<void> => {
+  for (let pageNumber = 1; pageNumber <= provider.totalPages; pageNumber++) {
     try {
-      await preparePage(pageNumber)
+      await provider.preparePage(pageNumber)
     } catch (error) {
       const detail = error instanceof Error && error.message.trim().length > 0 ? error.message.trim() : String(error)
       throw CLIUsageError(
@@ -505,158 +488,105 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
       )
     }
   }
+}
 
-  const writeCheckpoint = async (ledger: OcrPoolLedger): Promise<void> => {
-    mergeHostedSchedulerTelemetry(ctx, ledger)
-    const composite = buildCompositeOutput(ctx, ledger, startedAtMs)
-    const providerStates = targetProviderStates(ledger)
-    const retiredTargets = ledger.targets.filter((target) => target.status === 'retired')
-    const payload = buildDocumentMetadataPayload(ctx.step1Metadata, composite.metadata, {
-      web: ctx.web,
-      source: ctx.documentSource,
-      completionStatus: ledger.status === 'full' ? 'full' : 'incomplete',
-      resolvedStep2,
-      requestedProviders: ctx.requestedTargets.map(toRequestedProvider),
-      providerStates,
-      missingProviders: [],
-      blockedProviders: retiredTargets.map((target) => ({ service: target.service, model: target.model })),
-      preflightEstimate: ctx.preflightEstimate,
-      ocrConcurrency: ctx.opts.ocrConcurrency,
-      ocrConcurrencyMode: ctx.opts.ocrConcurrencyMode,
-      concurrencyMode: ctx.opts.concurrencyMode,
-      ocrProviderConcurrency: ctx.opts.ocrProviderConcurrency,
-      ocrLocalConcurrency: ctx.opts.ocrLocalConcurrency,
-      hostedOcrScheduler: ctx.hostedOcrScheduler.snapshot()
-    })
-    await writeExtractionArtifact(ctx.outputDir, composite.result, ctx.opts.outputFormat ?? 'text', 'result.json')
-    await writePipelineItemRecords(ctx.outputDir, 'extract', 'single', [{
-      ...payload,
-      ocrProviderMode: 'pool',
-      ocrPool: ledger
-    }], { extractRoute: 'document' })
+const validatePooledReasoningPolicies = (ctx: PooledOcrContext): void => {
+  for (const target of ctx.requestedTargets) {
+    if (isLocalOcrTarget(target)) continue
+    resolveReasoningPolicy({ step: 'extract', service: target.service, model: target.model, requestedReasoningEffort: ctx.effectiveOpts.reasoningEffort })
   }
+}
 
-  const ledger = await runOcrPagePool({
-    totalPages,
-    requestedTargets: ctx.requestedTargets,
-    targetsToRun: ctx.targetsToRun,
-    providerConcurrency: ctx.opts.ocrProviderConcurrency,
-    localConcurrency: ctx.opts.ocrLocalConcurrency,
-    restoredLedger: ctx.restoredLedger,
-    reenabledTargets: ctx.reenabledTargets,
-    getLaneKey: defaultOcrPoolLaneKey,
-    getTargetConcurrency: (target) => isLocalOcrTarget(target)
-      ? ctx.opts.ocrConcurrency ?? 10
-      : ctx.hostedOcrScheduler.getMaxConcurrency({
-          service: target.service as import('~/types').HostedOcrService,
-          model: target.model,
-          targetKey: getOcrTargetKey(target),
-          pageCount: 1,
-          documentPageCount: ctx.step1Metadata.pageCount
-        }),
-    getAttemptArtifactDir: attemptRelativeDir,
-    onCheckpoint: writeCheckpoint,
-    processPage: async ({ pageNumber, target, attempt, artifactDir }) => {
-      const prepared = await preparePage(pageNumber)
-      const absoluteArtifactDir = join(ctx.outputDir, artifactDir)
-      await mkdir(absoluteArtifactDir, { recursive: true })
-      const providerOpts = buildExtractionOptionsForTarget({
-        ...ctx.effectiveOpts,
-        outputDir: absoluteArtifactDir,
-        chapterFiles: false,
-        chapterChunkLimitChars: undefined,
-        pdfChapterMode: 'local',
-        ocrProviderMode: 'pool',
-        ocrPoolDocumentPageNumber: pageNumber,
-        ocrPreparationCache: ctx.ocrPreparationCache
-      }, target)
-      try {
-        const extracted = await runWithLogContext({
-          step: 'step-2-ocr',
-          provider: getOcrTargetDirectoryName(target),
-          page: pageNumber,
-          attempt
-        }, async () => await runOcr(prepared.path, prepared.metadata, providerOpts))
-        const resultPage = extracted.result.pages[0]
-        if (!resultPage) {
-          throw CLIUsageError(`${target.service}/${target.model} returned no page result for pooled OCR page ${pageNumber}.`)
-        }
-        await writeProviderArtifacts(
-          absoluteArtifactDir,
-          extracted.result,
-          ctx.opts.outputFormat ?? 'text',
-          extracted.artifactFiles
-        )
-        await writeFile(join(absoluteArtifactDir, 'usage.json'), `${JSON.stringify({
-          providerMode: 'pool',
-          pageNumber,
-          attempt,
-          provider: target.service,
-          model: target.model,
-          ...usageFromMetadata(extracted.step2Metadata)
-        }, null, 2)}\n`)
-        return {
-          result: { ...resultPage, pageNumber },
-          ...usageFromMetadata(extracted.step2Metadata),
-          ...(extracted.step2Metadata.requestedReasoningEffort ? { requestedReasoningEffort: extracted.step2Metadata.requestedReasoningEffort } : {}),
-          ...(extracted.step2Metadata.effectiveReasoningEffort ? { effectiveReasoningEffort: extracted.step2Metadata.effectiveReasoningEffort } : {})
-        }
-      } catch (error) {
-        // If writing the failure diagnostics itself fails, say so: silently swallowing it
-        // leaves an artifact directory that looks complete but has no error record.
-        await writeOcrProviderError(absoluteArtifactDir, error, classifyOcrProviderFailure(error))
-          .catch((writeError: unknown) => {
-            l.warn(`Could not write OCR failure diagnostics to ${absoluteArtifactDir}`, {
-              category: 'artifact',
-              metadata: { artifactDir: absoluteArtifactDir, error: serializeDiagnosticError(writeError) }
-            })
-          })
-        const failedUsage = usageFromError(error)
-        await writeFile(join(absoluteArtifactDir, 'usage.json'), `${JSON.stringify({
-          providerMode: 'pool',
-          pageNumber,
-          attempt,
-          provider: target.service,
-          model: target.model,
-          accepted: false,
-          ...failedUsage
-        }, null, 2)}\n`)
-        throw error
-      }
-    },
-    classifyFailure: (error, target) => {
-      const failure = classifyOcrProviderFailure(error)
-      const usage = usageFromError(error)
-      const reasoning = isLocalOcrTarget(target)
-        ? undefined
-        : resolveReasoningPolicy({
-            step: 'extract',
-            service: target.service,
-            model: target.model,
-            requestedReasoningEffort: ctx.effectiveOpts.reasoningEffort
-          })
-      const scope = failure.providerWide
-        ? 'lane'
-        : failure.retryable === false ? 'target' : 'page'
-      return {
-        scope,
-        ambiguous: failure.category === 'network' || failure.category === 'timeout',
-        failure: {
-          service: target.service,
-          model: target.model,
-          ...failure
-        },
-        ...(reasoning?.requested ? { requestedReasoningEffort: reasoning.requested } : {}),
-        ...(reasoning ? { effectiveReasoningEffort: reasoning.effective } : {}),
-        ...usage
-      }
-    }
-  })
-
+const createPooledCheckpointWriter = (
+  ctx: PooledOcrContext,
+  startedAtMs: number,
+  resolvedStep2: ReturnType<typeof resolveRecordedOcrStep2>
+): ((ledger: OcrPoolLedger) => Promise<void>) => async ledger => {
   mergeHostedSchedulerTelemetry(ctx, ledger)
-  await writeCheckpoint(ledger)
   const composite = buildCompositeOutput(ctx, ledger, startedAtMs)
-  const failures: NonNullable<ProcessDocumentOutput['step2Errors']> = ledger.targets.flatMap((target) => {
+  const retiredTargets = ledger.targets.filter(target => target.status === 'retired')
+  const payload = buildDocumentMetadataPayload(ctx.step1Metadata, composite.metadata, {
+    web: ctx.web,
+    source: ctx.documentSource,
+    completionStatus: ledger.status === 'full' ? 'full' : 'incomplete',
+    resolvedStep2,
+    requestedProviders: ctx.requestedTargets.map(toRequestedProvider),
+    providerStates: targetProviderStates(ledger),
+    missingProviders: [],
+    blockedProviders: retiredTargets.map(target => ({ service: target.service, model: target.model })),
+    preflightEstimate: ctx.preflightEstimate,
+    ocrConcurrency: ctx.opts.ocrConcurrency,
+    ocrConcurrencyMode: ctx.opts.ocrConcurrencyMode,
+    concurrencyMode: ctx.opts.concurrencyMode,
+    ocrProviderConcurrency: ctx.opts.ocrProviderConcurrency,
+    ocrLocalConcurrency: ctx.opts.ocrLocalConcurrency,
+    hostedOcrScheduler: ctx.hostedOcrScheduler.snapshot(),
+  })
+  await writeExtractionArtifact(ctx.outputDir, composite.result, ctx.opts.outputFormat ?? 'text', 'result.json')
+  await writePipelineItemRecords(ctx.outputDir, 'extract', 'single', [{ ...payload, ocrProviderMode: 'pool', ocrPool: ledger }], { extractRoute: 'document' })
+}
+
+const createPooledPageAttemptRunner = (
+  ctx: PooledOcrContext,
+  pageInputs: PooledPageInputProvider
+): RunOcrPagePoolOptions['processPage'] => async ({ pageNumber, target, attempt, artifactDir }) => {
+  const prepared = await pageInputs.preparePage(pageNumber)
+  const absoluteArtifactDir = join(ctx.outputDir, artifactDir)
+  await mkdir(absoluteArtifactDir, { recursive: true })
+  const providerOpts = buildExtractionOptionsForTarget({
+    ...ctx.effectiveOpts,
+    outputDir: absoluteArtifactDir,
+    chapterFiles: false,
+    chapterChunkLimitChars: undefined,
+    pdfChapterMode: 'local',
+    ocrProviderMode: 'pool',
+    ocrPoolDocumentPageNumber: pageNumber,
+    ocrPreparationCache: ctx.ocrPreparationCache,
+  }, target)
+  try {
+    const extracted = await runWithLogContext({ step: 'step-2-ocr', provider: getOcrTargetDirectoryName(target), page: pageNumber, attempt }, async () => await runOcr(prepared.path, prepared.metadata, providerOpts))
+    const resultPage = extracted.result.pages[0]
+    if (!resultPage) throw CLIUsageError(`${target.service}/${target.model} returned no page result for pooled OCR page ${pageNumber}.`)
+    await writeProviderArtifacts(absoluteArtifactDir, extracted.result, ctx.opts.outputFormat ?? 'text', extracted.artifactFiles)
+    await writeFile(join(absoluteArtifactDir, 'usage.json'), `${JSON.stringify({ providerMode: 'pool', pageNumber, attempt, provider: target.service, model: target.model, ...usageFromMetadata(extracted.step2Metadata) }, null, 2)}\n`)
+    return {
+      result: { ...resultPage, pageNumber },
+      ...usageFromMetadata(extracted.step2Metadata),
+      ...(extracted.step2Metadata.requestedReasoningEffort ? { requestedReasoningEffort: extracted.step2Metadata.requestedReasoningEffort } : {}),
+      ...(extracted.step2Metadata.effectiveReasoningEffort ? { effectiveReasoningEffort: extracted.step2Metadata.effectiveReasoningEffort } : {}),
+    }
+  } catch (error) {
+    await writeOcrProviderError(absoluteArtifactDir, error, classifyOcrProviderFailure(error)).catch((writeError: unknown) => {
+      l.warn(`Could not write OCR failure diagnostics to ${absoluteArtifactDir}`, { category: 'artifact', metadata: { artifactDir: absoluteArtifactDir, error: serializeDiagnosticError(writeError) } })
+    })
+    const failedUsage = usageFromError(error)
+    await writeFile(join(absoluteArtifactDir, 'usage.json'), `${JSON.stringify({ providerMode: 'pool', pageNumber, attempt, provider: target.service, model: target.model, accepted: false, ...failedUsage }, null, 2)}\n`)
+    throw error
+  }
+}
+
+const classifyPooledPageFailure: (
+  ctx: PooledOcrContext
+) => RunOcrPagePoolOptions['classifyFailure'] = ctx => (error, target) => {
+  const failure = classifyOcrProviderFailure(error)
+  const reasoning = isLocalOcrTarget(target) ? undefined : resolveReasoningPolicy({ step: 'extract', service: target.service, model: target.model, requestedReasoningEffort: ctx.effectiveOpts.reasoningEffort })
+  return {
+    scope: failure.providerWide ? 'lane' : failure.retryable === false ? 'target' : 'page',
+    ambiguous: failure.category === 'network' || failure.category === 'timeout',
+    failure: { service: target.service, model: target.model, ...failure },
+    ...(reasoning?.requested ? { requestedReasoningEffort: reasoning.requested } : {}),
+    ...(reasoning ? { effectiveReasoningEffort: reasoning.effective } : {}),
+    ...usageFromError(error),
+  }
+}
+
+const projectPooledOcrResult = (
+  ctx: PooledOcrContext,
+  ledger: OcrPoolLedger,
+  startedAtMs: number
+): ProcessDocumentOutput => {
+  const composite = buildCompositeOutput(ctx, ledger, startedAtMs)
+  const failures: NonNullable<ProcessDocumentOutput['step2Errors']> = ledger.targets.flatMap(target => {
     const failure = targetFailure(target)
     return failure ? [{
       service: target.service,
@@ -669,14 +599,13 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
       ...(failure.providerWide === true ? { providerWide: true } : {}),
       ...(failure.blockedReason ? { blockedReason: failure.blockedReason } : {}),
       ...(typeof failure.attemptsMade === 'number' ? { attemptsMade: failure.attemptsMade } : {}),
-      ...(failure.errorFile ? { errorFile: failure.errorFile } : {})
+      ...(failure.errorFile ? { errorFile: failure.errorFile } : {}),
     }] : []
   })
   l.write(ledger.status === 'full' ? 'info' : 'warn', `Pooled OCR ${ledger.status}: ${ledger.telemetry.acceptedPages}/${ledger.totalPages} pages accepted`, {
     category: 'pipeline',
-    metadata: { status: ledger.status, acceptedPages: ledger.telemetry.acceptedPages, totalPages: ledger.totalPages }
+    metadata: { status: ledger.status, acceptedPages: ledger.telemetry.acceptedPages, totalPages: ledger.totalPages },
   })
-
   return {
     result: composite.result,
     step1Metadata: ctx.step1Metadata,
@@ -685,13 +614,45 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
     requestedProviders: ctx.requestedTargets.map(toRequestedProvider),
     providerStates: targetProviderStates(ledger),
     missingProviders: [],
-    blockedProviders: ledger.targets.filter((target) => target.status === 'retired').map((target) => toRequestedProvider(target)),
+    blockedProviders: ledger.targets.filter(target => target.status === 'retired').map(target => toRequestedProvider(target)),
     ocrProviderMode: 'pool',
     ocrPool: ledger,
     ...(ctx.web ? { web: ctx.web } : {}),
     ...(failures.length > 0 ? { step2Errors: failures } : {}),
-    outputDir: ctx.outputDir
+    outputDir: ctx.outputDir,
   }
+}
+
+export const runOcrPooledBatch = async (ctx: PooledOcrContext): Promise<ProcessDocumentOutput> => {
+  assertOcrPoolCompatible(ctx)
+  const startedAtMs = Date.now()
+  const pageWorkspace = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pool-'))
+  try {
+    const pageInputs = await createPooledPageInputProvider(ctx, pageWorkspace)
+    const resolvedStep2 = resolveRecordedOcrStep2(ctx.step1Metadata.format, ctx.effectiveOpts, ctx.documentSource, ctx.requestedTargets, ctx.preparedMarkdown)
+    validatePooledReasoningPolicies(ctx)
+    await preflightPooledPageInputs(pageInputs)
+    const writeCheckpoint = createPooledCheckpointWriter(ctx, startedAtMs, resolvedStep2)
+    const ledger = await runOcrPagePool({
+      totalPages: pageInputs.totalPages,
+      requestedTargets: ctx.requestedTargets,
+      targetsToRun: ctx.targetsToRun,
+      providerConcurrency: ctx.opts.ocrProviderConcurrency,
+      localConcurrency: ctx.opts.ocrLocalConcurrency,
+      restoredLedger: ctx.restoredLedger,
+      reenabledTargets: ctx.reenabledTargets,
+      getLaneKey: defaultOcrPoolLaneKey,
+      getTargetConcurrency: target => isLocalOcrTarget(target)
+        ? ctx.opts.ocrConcurrency ?? 10
+        : ctx.hostedOcrScheduler.getMaxConcurrency({ service: target.service as import('~/types').HostedOcrService, model: target.model, targetKey: getOcrTargetKey(target), pageCount: 1, documentPageCount: ctx.step1Metadata.pageCount }),
+      getAttemptArtifactDir: attemptRelativeDir,
+      onCheckpoint: writeCheckpoint,
+      processPage: createPooledPageAttemptRunner(ctx, pageInputs),
+      classifyFailure: classifyPooledPageFailure(ctx),
+    })
+    mergeHostedSchedulerTelemetry(ctx, ledger)
+    await writeCheckpoint(ledger)
+    return projectPooledOcrResult(ctx, ledger, startedAtMs)
   } finally {
     await rm(pageWorkspace, { recursive: true, force: true })
   }

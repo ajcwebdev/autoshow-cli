@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import * as v from 'valibot'
@@ -623,7 +622,7 @@ export const validateManagedArtifact = async (
 }
 
 export const createManagedToolStagingDirectory = async (toolDir: string): Promise<string> => {
-  const stagingDir = join(dirname(toolDir), `.${basename(toolDir)}.staging-${randomUUID()}`)
+  const stagingDir = join(dirname(toolDir), `.${basename(toolDir)}.staging-${crypto.randomUUID()}`)
   await mkdir(stagingDir, { recursive: false })
   return stagingDir
 }
@@ -635,7 +634,7 @@ export const promoteManagedToolDirectory = async (options: {
   activate?: () => Promise<void>
   rollbackActivation?: (hadPreviousInstall: boolean) => Promise<void>
 }): Promise<void> => {
-  const backupDir = `${options.destinationDir}.backup-${randomUUID()}`
+  const backupDir = `${options.destinationDir}.backup-${crypto.randomUUID()}`
   const hadPreviousInstall = await pathExists(options.destinationDir)
   let previousMoved = false
   let stagingPromoted = false

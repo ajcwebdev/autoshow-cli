@@ -16,7 +16,7 @@ bun autoshow voice list [registration-id] [flags]
 
 `list` has three read modes. With no arguments it prints the append-preserved registration catalog and the current approved pointer for each `(subject, provider, provider model, profile)`. That local dump never calls a provider.
 
-With a registration id it inspects that generation. `--generation-id` is optional unless more than one generation could match. `--live` opts into a read-only provider readiness check for a ready resource. `--price` stays static-only and never implies `--live`. If that registration has an unambiguous Fish provisioning journal, `list <id>` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--allow-ambiguous-redispatch`. Bare `voice list` never completes a journal.
+With a registration id it inspects that generation. `--generation-id` is optional unless more than one generation could match. `--live` opts into a read-only provider readiness check for a ready resource. `--price` keeps the read static even when `--live` is set, and never completes a journal. If that registration has an unambiguous Fish provisioning journal, `list <id>` completes it without recreating the voice. Ambiguous journals refuse until you pass `--reconcile`, matching TTS `--allow-ambiguous-redispatch`. Bare `voice list` never completes a journal.
 
 With `--provider` it pages a provider or account catalog. `--provider` cannot be combined with a registration id. `--price` validates the catalog operation and reports the dated capability fixture without reading the provider.
 
@@ -29,7 +29,7 @@ With `--provider` it pages a provider or account catalog. `--provider` cannot be
 | `--generation-id <sha256>` | Optional unless more than one generation could match |
 | `--live` | Opt-in provider readiness check for one registration |
 | `--provider <name>` | Voice provider: `elevenlabs`, `inworld`, `fish`, `cartesia`, or `speechify` |
-| `--source <source>` | Catalog source: `account`, `provider-library`, or `shared-library` |
+| `--source <source>` | Catalog source: `account`, `provider-library`, or `shared-library`; default `account` |
 | `--cursor <cursor>` | Opaque provider pagination cursor |
 | `--reconcile` | Complete an ambiguous Fish provisioning journal without recreating the voice |
 | `--price` | Validate and estimate without provider calls or artifact writes |

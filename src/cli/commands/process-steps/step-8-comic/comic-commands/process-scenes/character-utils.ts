@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
@@ -29,7 +28,7 @@ export const CharacterSketchManifestSchema = v.strictObject({
 })
 
 export const checksumFile = async (path: string): Promise<string> => {
-  const hash = createHash('sha256')
+  const hash = new Bun.CryptoHasher('sha256')
   hash.update(Buffer.from(await Bun.file(path).arrayBuffer()))
   return hash.digest('hex')
 }

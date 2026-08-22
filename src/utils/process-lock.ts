@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
 import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
@@ -100,7 +100,7 @@ const writeProcessLockOwner = async (
   owner: ActiveProcessLockOwner
 ): Promise<void> => {
   const ownerPath = getLockOwnerPath(lockDir)
-  const tempOwnerPath = join(lockDir, `${LOCK_OWNER_FILE}.${owner.ownerId}.${randomUUID()}.tmp`)
+  const tempOwnerPath = join(lockDir, `${LOCK_OWNER_FILE}.${owner.ownerId}.${crypto.randomUUID()}.tmp`)
   await writeFile(tempOwnerPath, JSON.stringify(owner, null, 2))
   await rename(tempOwnerPath, ownerPath)
 }
@@ -187,7 +187,7 @@ const removeStaleProcessLock = async (
     return false
   }
 
-  const reapDir = `${lockDir}.reap-${randomUUID()}`
+  const reapDir = `${lockDir}.reap-${crypto.randomUUID()}`
   try {
     await rename(lockDir, reapDir)
   } catch (error) {
@@ -284,7 +284,7 @@ export const withProcessLock = async <T,>(
       await mkdir(lockDir)
       const now = new Date().toISOString()
       const acquiredOwner: ActiveProcessLockOwner = {
-        ownerId: randomUUID(),
+        ownerId: crypto.randomUUID(),
         lockName,
         pid: process.pid,
         hostname: CURRENT_HOSTNAME,

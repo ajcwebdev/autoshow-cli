@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import type {
@@ -297,7 +296,7 @@ export const provisionAdvancedVoiceClone = async (input: {
     if (!evidence) throw CLIUsageError('Instant voice cloning requires at least one protected sample.')
     const initial: VoiceProvisioningAttempt = {
       schemaVersion: 1, attemptId, registrationDraftId: registrationId, operation: 'clone', accountScopeHash: input.provider.accountScopeHash,
-      lockLeaseId: `lease_${randomUUID().replace(/-/gu, '')}`,
+      lockLeaseId: `lease_${crypto.randomUUID().replace(/-/gu, '')}`,
       requestFingerprint: planAdvancedClone({ ...input.request, localAttemptId: attemptId }).requestFingerprint,
       protectedRequestEvidence: evidence,
       ...(input.provider.provider === 'fish' ? { reconciliation: { strategy: 'provider-search' as const, providerHandle: input.request.desiredName, protectedLookupEvidence: evidence } } : {}),

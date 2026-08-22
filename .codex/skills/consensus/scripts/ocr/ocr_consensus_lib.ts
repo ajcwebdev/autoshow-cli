@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 import type { PipelineProviderState } from "../shared/pipeline_manifest";
+import { runSyncCommand } from "../../../../../src/utils/sync-subprocess.ts";
 
 export interface OcrPage {
   pageNumber: number;
@@ -384,16 +384,16 @@ function gitDiffBreakdown(reference: string[], candidate: string[]): WerBreakdow
     writeFileSync(referencePath, `${reference.join("\n")}\n`);
     writeFileSync(candidatePath, `${candidate.join("\n")}\n`);
 
-    const diff = spawnSync(
+    const diff = runSyncCommand(
       "git",
       ["diff", "--no-index", "--no-renames", "--unified=0", "--", referencePath, candidatePath],
-      { encoding: "utf8", maxBuffer: 1024 * 1024 * 64 },
+      { maxBuffer: 1024 * 1024 * 64 },
     );
 
-    if (diff.status === 0) {
+    if (diff.exitCode === 0) {
       return { distance: 0, substitutions: 0, deletions: 0, insertions: 0 };
     }
-    if (diff.status !== 1) {
+    if (diff.exitCode !== 1) {
       throw new Error((diff.stderr || diff.stdout || "git diff failed").trim());
     }
 

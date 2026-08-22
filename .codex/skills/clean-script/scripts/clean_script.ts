@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
-import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { extname, relative, resolve } from "node:path";
+import { statPath as stat } from "../../../../src/utils/bun-file-io.ts";
 
 type Mode = "check" | "write";
 

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-11
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 - **Supersession:** Absorbs OCR architecture, ordinal-first chapter filenames, and URL extraction contracts from former individual records. Source identity belongs to [ADR-001](ADR-001-source-ingestion-and-normalization.md); pipeline state and resume belong to [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
@@ -240,7 +240,7 @@ The architecture is implemented. Tesseract is the sole local engine; source-spec
 
 Scheduler telemetry records lane activity, cap changes, pause/retry pressure, throughput, target shares, and likely gating targets. Timing metadata separates wall-clock/gating time from summed provider processing time. Full clean target samples may inform throughput profiles, while failed or incomplete targets remain ineligible as healthy samples. Partial failed-provider artifacts and usage remain reportable without being treated as successful extraction.
 
-Pooled OCR orchestration is implemented in `ocr-pooled-batch.ts` over the shared selector in `ocr-provider-pool.ts`. Page inputs are prepared once per page where possible, every attempt uses a contained page/attempt directory, successful commits checkpoint the canonical ledger atomically, and final assembly writes one top-level artifact. Fan-out continues through `ocr-multi-provider-batch.ts` without changing its provider directories or primary-result rules.
+Pooled OCR orchestration is implemented in `ocr-pooled-batch.ts` over the shared selector composed by `ocr-provider-pool.ts`, which builds `runOcrPagePool` from the queue and ledger state in `ocr-page-pool-state.ts`, the worker admission and claim execution in `ocr-page-pool-workers.ts`, and the local/hosted lane classification in `ocr-pool-scheduling.ts`. Page inputs are prepared once per page where possible, every attempt uses a contained page/attempt directory, successful commits checkpoint the canonical ledger atomically, and final assembly writes one top-level artifact. Fan-out continues through `ocr-multi-provider-batch.ts` without changing its provider directories or primary-result rules.
 
 Pool diagnostics and target usage are derived from the canonical ledger. Pooled estimate allocation lives in `extract-pricing/build-extract-estimates.ts`; actual target usage is consumed by command pricing orchestration. Hosted cache identity is enforced by `hosted-ocr.ts` and `ocr-utils/pdf-chunk-fallback-state.ts`. Pool runs do not persist fan-out-qualified throughput or token profiles as healthy samples.
 
@@ -274,8 +274,7 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 
 - [ ] Maintain provider error classifiers and billed-component normalizers as hosted response formats drift — Ongoing
 - [ ] Keep every direct chapter producer on the shared ordinal/source-locator helper — Ongoing guardrail
-- [ ] Collect reasoning-qualified token samples so registry shapes can become promotion-eligible — Pending
-  Requires explicit approval for paid provider runs.
+- [ ] Collect reasoning-qualified token samples so registry shapes can become promotion-eligible — Pending, and requires explicit approval for paid provider runs
 
 ## Test Plan
 
@@ -304,7 +303,7 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 - Resume command documentation: [`docs/commands/setup-and-utilities/resume/resume.md`](../commands/setup-and-utilities/resume/resume.md)
 - URL runtime: `src/cli/commands/process-steps/step-2-extract/step-2-url/`
 - OCR stage: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
-- Pooled OCR orchestration: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`
+- Pooled OCR orchestration: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`, `ocr-page-pool-state.ts`, `ocr-page-pool-workers.ts`, `ocr-pool-scheduling.ts`
 - OCR estimate orchestration: `src/cli/commands/process-steps/step-2-extract/extract-pricing/`
 - Command pricing orchestration: `src/cli/commands/pricing-orchestration/`
 - Pure pricing primitives: `src/utils/pricing/`

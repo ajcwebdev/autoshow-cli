@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureMistralSttSetup = ensureApiKeySetup('MISTRAL_API_KEY', 'stt:mistral', 'Mistral transcription')
+export const ensureMistralSttSetup = ensureProvider('mistral', 'stt:mistral', 'Mistral transcription')

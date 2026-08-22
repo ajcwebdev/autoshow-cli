@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
-import { rm, stat, utimes, writeFile } from 'node:fs/promises'
+import { rm, utimes, writeFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, join } from 'node:path'
 import { readInputList } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection'
 import { parseStoredHostedOcrPageCache } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback-state'

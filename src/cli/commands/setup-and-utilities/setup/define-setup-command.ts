@@ -12,6 +12,7 @@ const VALID_SETUP_STEPS: SetupStepId[] = ['yt-dlp', 'defuddle', 'whisper-binary'
 const FOCUSED_SETUP_CONFLICT_FLAGS = [
   'models',
   'doctor',
+  'strict',
   'step',
   'force-redownload'
 ] as const
@@ -65,8 +66,12 @@ export const setupCommand = defineCliCommand({
     return
   }
 
+  if (ctx.flags['strict'] === true && !ctx.flags.doctor) {
+    throw CLIUsageError('--strict requires --doctor')
+  }
+
   if (ctx.flags.doctor) {
-    await runDoctor()
+    await runDoctor({ strict: ctx.flags['strict'] === true })
     return
   }
 

@@ -147,79 +147,126 @@ const auditSoundscapeArtifacts = async (
   return soundscapeByTarget
 }
 
+type PresentationAuditContext = {
+  comic: CanonicalComicItemMetadata
+  presentationTargets: string[]
+  soundscapeByTarget: Map<string, NonNullable<CanonicalComicItemMetadata['audio']['selectedSoundscapeRuns']>[number]>
+  discovered: Map<string, { targetKey: string, runPath: string }>
+  verifier: LineageVerifier
+}
+
+const verifyPresentationEnvelope = async (ctx: PresentationAuditContext): Promise<ArtifactRef | undefined> => {
+  const presentation = ctx.comic.presentation
+  for (const ref of [presentation.planRef, presentation.resolvedTimelineRef, presentation.runRef, ...(presentation.finalOutputRefs ?? [])]) {
+    if (ref) await ctx.verifier.verifyRef(ref, `Presentation envelope ${ref.path}`)
+  }
+  return presentation.runRef ?? (presentation.planRef?.path === PRESENTATION_ARCHIVE_PATH ? presentation.planRef : undefined)
+}
+
+const readAndValidateCompactPresentation = async (
+  ctx: PresentationAuditContext,
+  archiveRef: ArtifactRef
+): Promise<CompactPresentation | undefined> => {
+  const selectedId = ctx.comic.presentation.selectedPresentationId
+  const compact = await ctx.verifier.verifyJson<CompactPresentation>(archiveRef, `Compact presentation ${selectedId ?? archiveRef.path}`)
+  if (!compact) return undefined
+  try { validateCompactPresentation(compact) }
+  catch (error) {
+    ctx.verifier.fail({ code: 'invalid-identity', message: `Compact presentation is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
+  }
+  if (selectedId && compact.presentationId !== selectedId) {
+    ctx.verifier.fail({ code: 'missing-binding', message: `selectedPresentationId ${selectedId} is not bound by presentation.json.`, path: archiveRef.path })
+  }
+  try { validateComicPresentationPlan(compact.plan) }
+  catch (error) {
+    ctx.verifier.fail({ code: 'invalid-identity', message: `ComicPresentationPlan ${compact.plan.presentationId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
+  }
+  try { validateResolvedPanelTimeline(compact.timeline) }
+  catch (error) {
+    ctx.verifier.fail({ code: 'invalid-identity', message: `ResolvedPanelTimeline ${compact.timeline.timelineId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
+  }
+  if (compact.timeline.presentationId !== compact.plan.presentationId) {
+    ctx.verifier.fail({ code: 'missing-binding', message: `ResolvedPanelTimeline ${compact.timeline.timelineId} does not bind presentation ${compact.plan.presentationId}.`, path: archiveRef.path })
+  }
+  return compact
+}
+
+const auditPresentationIdentityBindings = (
+  ctx: PresentationAuditContext,
+  compact: CompactPresentation,
+  archiveRef: ArtifactRef
+): void => {
+  const plan = compact.plan
+  const targetKey = plan.inputs.audioTarget.targetKey
+  ctx.presentationTargets.push(targetKey)
+  ctx.discovered.set(targetKey, { targetKey, runPath: archiveRef.path })
+  if (plan.inputs.audioTarget.kind !== 'soundscape') return
+  const soundscape = ctx.soundscapeByTarget.get(targetKey)
+  if (!soundscape) {
+    ctx.verifier.fail({ code: 'missing-binding', message: `Presentation ${plan.presentationId} binds missing selected soundscape ${targetKey}.`, path: archiveRef.path, targetKey })
+  } else if (plan.inputs.soundscapeAudioRun && (plan.inputs.soundscapeAudioRun.path !== soundscape.audioRunRef || plan.inputs.soundscapeAudioRun.sha256 !== soundscape.audioRunSha256 || plan.inputs.soundscapeAudioRun.audioRunId !== soundscape.soundscapeAudioRunId)) {
+    ctx.verifier.fail({ code: 'missing-binding', message: `Presentation ${plan.presentationId} does not bind the selected soundscape mix.`, path: archiveRef.path, targetKey })
+  }
+}
+
+const auditPresentationInputs = async (ctx: PresentationAuditContext, compact: CompactPresentation): Promise<void> => {
+  const plan = compact.plan
+  const targetKey = plan.inputs.audioTarget.targetKey
+  for (const panel of plan.inputs.panels) await ctx.verifier.verifyRef(panel, `Presentation panel ${panel.panelNumber}`, targetKey)
+  await ctx.verifier.verifyRef(plan.inputs.reviewedScene, 'Presentation reviewed scene', targetKey)
+  await ctx.verifier.verifyRef(plan.inputs.structuredScript, 'Presentation structured script', targetKey)
+  await ctx.verifier.verifyRef(plan.inputs.dialoguePlan, 'Presentation dialogue plan', targetKey)
+  await ctx.verifier.verifyRef(plan.inputs.dialogueAudioRun, 'Presentation dialogue AudioRun', targetKey)
+  await ctx.verifier.verifyRef(plan.inputs.dialogueTimeline, 'Presentation dialogue timeline', targetKey)
+  await ctx.verifier.verifyRef(plan.inputs.dialogueAudio, 'Presentation dialogue audio', targetKey)
+  if (plan.inputs.soundscapeAudioRun) await ctx.verifier.verifyRef(plan.inputs.soundscapeAudioRun, 'Presentation soundscape mix', targetKey)
+  if (plan.inputs.soundscapePlan) await ctx.verifier.verifyRef(plan.inputs.soundscapePlan, 'Presentation SoundscapePlan', targetKey)
+  if (plan.inputs.soundEffectRenderResult) await ctx.verifier.verifyRef(plan.inputs.soundEffectRenderResult, 'Presentation sound-effect result', targetKey)
+  if (plan.inputs.soundscapeTimeline) await ctx.verifier.verifyRef(plan.inputs.soundscapeTimeline, 'Presentation soundscape timeline', targetKey)
+  for (const binding of plan.soundBindings) await ctx.verifier.verifyRef(binding.sourceAudio, `Presentation sound binding ${binding.cueId}`, targetKey)
+  for (const bed of plan.ambience) await ctx.verifier.verifyRef(bed.sourceAudio, `Presentation ambience ${bed.cueId}`, targetKey)
+}
+
+const auditPresentationOutputs = async (ctx: PresentationAuditContext, compact: CompactPresentation): Promise<void> => {
+  await ctx.verifier.verifyRef(compact.outputs.wav, `Presentation WAV ${compact.outputs.wav.path}`)
+  await ctx.verifier.verifyRef(compact.outputs.mp4, `Presentation MP4 ${compact.outputs.mp4.path}`)
+  for (const transform of compact.audioTransforms) {
+    if (transform.sourceRef) await ctx.verifier.verifyRef(transform.sourceRef, `Presentation transform ${transform.transformId}`)
+  }
+}
+
+const auditPublishedPresentationStage = (
+  ctx: PresentationAuditContext,
+  archiveRef: ArtifactRef | undefined
+): void => {
+  const stage = ctx.comic.stages.presentation
+  if (stage.requirement === 'not-requested' || stage.status !== 'full') return
+  if (!archiveRef || ctx.discovered.size === 0) {
+    ctx.verifier.fail({ code: 'missing-presentation', message: 'Published comic presentation stage has no compact presentation.json archive.', path: PRESENTATION_ARCHIVE_PATH })
+  }
+  const selectedId = ctx.comic.presentation.selectedPresentationId
+  if (selectedId && !archiveRef) {
+    ctx.verifier.fail({ code: 'missing-binding', message: `selectedPresentationId ${selectedId} is not bound by presentation.json.`, path: PRESENTATION_ARCHIVE_PATH })
+  }
+}
+
 const auditPresentationArtifacts = async (
   comic: CanonicalComicItemMetadata,
   presentationTargets: string[],
   soundscapeByTarget: Map<string, NonNullable<typeof comic.audio.selectedSoundscapeRuns>[number]>,
   verifier: LineageVerifier
 ): Promise<void> => {
-  const presentation = comic.presentation
-  for (const ref of [presentation.planRef, presentation.resolvedTimelineRef, presentation.runRef, ...(presentation.finalOutputRefs ?? [])]) {
-    if (ref) await verifier.verifyRef(ref, `Presentation envelope ${ref.path}`)
-  }
-
-  const discovered = new Map<string, { targetKey: string, runPath: string }>()
-  const archiveRef = presentation.runRef ?? (presentation.planRef?.path === PRESENTATION_ARCHIVE_PATH ? presentation.planRef : undefined)
+  const ctx: PresentationAuditContext = { comic, presentationTargets, soundscapeByTarget, discovered: new Map(), verifier }
+  const archiveRef = await verifyPresentationEnvelope(ctx)
   if (archiveRef) {
-    const compact = await verifier.verifyJson<CompactPresentation>(archiveRef, `Compact presentation ${presentation.selectedPresentationId ?? archiveRef.path}`)
+    const compact = await readAndValidateCompactPresentation(ctx, archiveRef)
     if (compact) {
-      try { validateCompactPresentation(compact) }
-      catch (error) {
-        verifier.fail({ code: 'invalid-identity', message: `Compact presentation is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
-      }
-      if (presentation.selectedPresentationId && compact.presentationId !== presentation.selectedPresentationId) {
-        verifier.fail({ code: 'missing-binding', message: `selectedPresentationId ${presentation.selectedPresentationId} is not bound by presentation.json.`, path: archiveRef.path })
-      }
-      const plan = compact.plan
-      try { validateComicPresentationPlan(plan) }
-      catch (error) {
-        verifier.fail({ code: 'invalid-identity', message: `ComicPresentationPlan ${plan.presentationId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
-      }
-      try { validateResolvedPanelTimeline(compact.timeline) }
-      catch (error) {
-        verifier.fail({ code: 'invalid-identity', message: `ResolvedPanelTimeline ${compact.timeline.timelineId} is invalid: ${error instanceof Error ? error.message : String(error)}`, path: archiveRef.path })
-      }
-      if (compact.timeline.presentationId !== plan.presentationId) {
-        verifier.fail({ code: 'missing-binding', message: `ResolvedPanelTimeline ${compact.timeline.timelineId} does not bind presentation ${plan.presentationId}.`, path: archiveRef.path })
-      }
-      presentationTargets.push(plan.inputs.audioTarget.targetKey)
-      discovered.set(plan.inputs.audioTarget.targetKey, { targetKey: plan.inputs.audioTarget.targetKey, runPath: archiveRef.path })
-      const soundscape = soundscapeByTarget.get(plan.inputs.audioTarget.targetKey)
-      if (plan.inputs.audioTarget.kind === 'soundscape') {
-        if (!soundscape) verifier.fail({ code: 'missing-binding', message: `Presentation ${plan.presentationId} binds missing selected soundscape ${plan.inputs.audioTarget.targetKey}.`, path: archiveRef.path, targetKey: plan.inputs.audioTarget.targetKey })
-        else if (plan.inputs.soundscapeAudioRun && (plan.inputs.soundscapeAudioRun.path !== soundscape.audioRunRef || plan.inputs.soundscapeAudioRun.sha256 !== soundscape.audioRunSha256 || plan.inputs.soundscapeAudioRun.audioRunId !== soundscape.soundscapeAudioRunId)) {
-          verifier.fail({ code: 'missing-binding', message: `Presentation ${plan.presentationId} does not bind the selected soundscape mix.`, path: archiveRef.path, targetKey: plan.inputs.audioTarget.targetKey })
-        }
-      }
-      for (const panel of plan.inputs.panels) await verifier.verifyRef(panel, `Presentation panel ${panel.panelNumber}`, plan.inputs.audioTarget.targetKey)
-      await verifier.verifyRef(plan.inputs.reviewedScene, `Presentation reviewed scene`, plan.inputs.audioTarget.targetKey)
-      await verifier.verifyRef(plan.inputs.structuredScript, `Presentation structured script`, plan.inputs.audioTarget.targetKey)
-      await verifier.verifyRef(plan.inputs.dialoguePlan, `Presentation dialogue plan`, plan.inputs.audioTarget.targetKey)
-      await verifier.verifyRef(plan.inputs.dialogueAudioRun, `Presentation dialogue AudioRun`, plan.inputs.audioTarget.targetKey)
-      await verifier.verifyRef(plan.inputs.dialogueTimeline, `Presentation dialogue timeline`, plan.inputs.audioTarget.targetKey)
-      await verifier.verifyRef(plan.inputs.dialogueAudio, `Presentation dialogue audio`, plan.inputs.audioTarget.targetKey)
-      if (plan.inputs.soundscapeAudioRun) await verifier.verifyRef(plan.inputs.soundscapeAudioRun, `Presentation soundscape mix`, plan.inputs.audioTarget.targetKey)
-      if (plan.inputs.soundscapePlan) await verifier.verifyRef(plan.inputs.soundscapePlan, `Presentation SoundscapePlan`, plan.inputs.audioTarget.targetKey)
-      if (plan.inputs.soundEffectRenderResult) await verifier.verifyRef(plan.inputs.soundEffectRenderResult, `Presentation sound-effect result`, plan.inputs.audioTarget.targetKey)
-      if (plan.inputs.soundscapeTimeline) await verifier.verifyRef(plan.inputs.soundscapeTimeline, `Presentation soundscape timeline`, plan.inputs.audioTarget.targetKey)
-      for (const binding of plan.soundBindings) await verifier.verifyRef(binding.sourceAudio, `Presentation sound binding ${binding.cueId}`, plan.inputs.audioTarget.targetKey)
-      for (const bed of plan.ambience) await verifier.verifyRef(bed.sourceAudio, `Presentation ambience ${bed.cueId}`, plan.inputs.audioTarget.targetKey)
-      await verifier.verifyRef(compact.outputs.wav, `Presentation WAV ${compact.outputs.wav.path}`)
-      await verifier.verifyRef(compact.outputs.mp4, `Presentation MP4 ${compact.outputs.mp4.path}`)
-      for (const transform of compact.audioTransforms) {
-        if (transform.sourceRef) await verifier.verifyRef(transform.sourceRef, `Presentation transform ${transform.transformId}`)
-      }
+      auditPresentationIdentityBindings(ctx, compact, archiveRef)
+      await auditPresentationInputs(ctx, compact)
+      await auditPresentationOutputs(ctx, compact)
     }
   }
-
-  if (comic.stages.presentation.requirement !== 'not-requested' && comic.stages.presentation.status === 'full') {
-    if (!archiveRef || discovered.size === 0) {
-      verifier.fail({ code: 'missing-presentation', message: 'Published comic presentation stage has no compact presentation.json archive.', path: PRESENTATION_ARCHIVE_PATH })
-    }
-    if (presentation.selectedPresentationId && !archiveRef) {
-      verifier.fail({ code: 'missing-binding', message: `selectedPresentationId ${presentation.selectedPresentationId} is not bound by presentation.json.`, path: PRESENTATION_ARCHIVE_PATH })
-    }
-  }
+  auditPublishedPresentationStage(ctx, archiveRef)
 }
 
 export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promise<ComicArtifactLineageAudit> => {
@@ -320,4 +367,3 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
     errors,
   }
 }
-

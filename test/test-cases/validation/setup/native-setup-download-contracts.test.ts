@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { chmod, lstat, mkdir, readlink, stat } from 'node:fs/promises'
+import { chmod, lstat, mkdir, readlink } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { join } from 'node:path'
 import { extractTarGzBuffer } from '~/cli/commands/setup-and-utilities/setup/setup-download/tar-gz'
 import { downloadFile, resolveDownloadTimeouts } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'

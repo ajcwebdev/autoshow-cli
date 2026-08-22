@@ -294,7 +294,7 @@ bun as links --help
 
 ## Pricing Preflight
 
-Most hosted or mixed-provider runtime commands support `--price` to print estimated cost and exit. The human Cost Estimate table is intentionally compact and always uses `step`, `provider`, `model`, and `cost` columns, adding `input`, `setup`, and `estimatedTime` columns only when those values are available; the `--json` dry-run result keeps the structured pricing basis fields such as token counts, page counts, character counts, and registry rates. `music --audio` and `music --batch` are local lyric-video modes and reject `--price`:
+Most hosted or mixed-provider runtime commands support `--price` to print estimated cost and exit. The human Cost Estimate table is intentionally compact and always uses `step`, `provider`, `model`, and `cost` columns, adding `input`, `setup`, and `estimatedTime` columns only when those values are available; the `--json` dry-run result keeps the structured pricing basis fields such as token counts, page counts, character counts, and registry rates. `music --audio` and `music --batch` are local lyric-video modes, so their `--price` output reports a free estimate and the expected render files instead of a provider cost:
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider mistral=voxtral-mini-2602 --price

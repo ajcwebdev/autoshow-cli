@@ -20,12 +20,12 @@ bun t test/test-cases/e2e/service/step-6-video-gen-e2e/
 
 ## Provider Env Vars
 
-Live video generation tests run only when their provider key is configured: `FAL_API_KEY`, `GEMINI_API_KEY`, `LTXV_API_KEY`, `LUMA_AGENTS_API_KEY`, `REPLICATE_API_TOKEN`, or `XAI_API_KEY`.
+Live video generation tests run only when their provider key is configured: `FAL_API_KEY`, `GEMINI_API_KEY`, `LTXV_API_KEY`, `REPLICATE_API_TOKEN`, or `XAI_API_KEY`.
 
 ## Current Coverage
 
-- Model-level service files under `test/test-cases/e2e/service/step-6-video-gen-e2e/` cover fal.ai, Gemini, Grok, LTX, and Replicate using `defineVideoServiceTest` for model/provider rejection, option validation, and live generation.
-- Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/video-provider-contracts/` (mocked Gemini, Grok, LTX, Luma Labs, and Replicate requests), `test/test-cases/validation/providers/fal-provider-contracts.test.ts`, and `test/test-cases/validation/providers/provider-selection-contracts/`.
+- Model-level service files under `test/test-cases/e2e/service/step-6-video-gen-e2e/` cover fal.ai, Gemini, Grok, LTX, and Replicate using `defineVideoServiceTest`, which runs live generation and asserts the rendered `generated-video.mp4` artifact plus its manifest metadata.
+- Zero-cost validation and contract coverage lives in `test/test-cases/validation/providers/video-provider-contracts/` (mocked Gemini, Grok, LTX, Luma Labs, and Replicate requests), `test/test-cases/validation/providers/fal-provider-contracts.test.ts`, `test/test-cases/validation/providers/provider-selection-contracts/`, and `test/test-cases/validation/cli/option-resolution-contracts/video-options.test.ts` for model/provider rejection and option validation.
 - Focused `--price` validation lives in `test/test-cases/price-flag/video-price.test.ts`.
 
 ## Price Preflight

@@ -1,11 +1,9 @@
-import { stat } from 'node:fs/promises'
-import { createReadStream } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { basename, extname, join } from 'node:path'
 import { getExtractLimits } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { HOSTED_OCR_ADAPTERS, hostedOcrAdapterForEngine, hostedOcrAdapterForService } from './hosted-ocr-adapters'
 import { GEMINI_FILE_UPLOAD_BYTES, GEMINI_PDF_PAGE_COUNT_LIMIT } from './ocr-services/gemini-ocr/gemini-ocr'
@@ -262,13 +260,14 @@ const runChunkableHostedPdfOcr = async (
     model: identity.ocrModel,
     requestedReasoningEffort: opts.reasoningEffort
   })
-  const inputSha256 = await new Promise<string>((resolve, reject) => {
-    const hash = createHash('sha256')
-    const stream = createReadStream(filePath)
-    stream.on('error', reject)
-    stream.on('data', (chunk) => hash.update(chunk))
-    stream.on('end', () => resolve(hash.digest('hex')))
-  })
+  const inputHasher = new Bun.CryptoHasher('sha256')
+  const inputReader = Bun.file(filePath).stream().getReader()
+  for (;;) {
+    const { done, value } = await inputReader.read()
+    if (done) break
+    if (value) inputHasher.update(value)
+  }
+  const inputSha256 = inputHasher.digest('hex')
   const reasoningIdentity: HostedOcrIdentity = {
     ...identity,
     ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),

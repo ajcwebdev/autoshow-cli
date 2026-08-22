@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import type { OcrPoolAttemptUsage, OcrPoolClaim, OcrPoolClassifiedFailure, OcrPoolLaneState, OcrPoolLedger, OcrPoolPageAttempt, OcrPoolPageLedgerEntry, OcrPoolProcessedPage, OcrPoolState, OcrPoolTargetState, OcrTarget, RunOcrPagePoolOptions } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { getOcrTargetKey } from './ocr-run-state'
@@ -258,7 +257,7 @@ export const createOcrPoolState = (options: RunOcrPagePoolOptions): OcrPoolState
     acceptedThisRun: new Map(),
     startedAtMs,
     now,
-    createClaimId: options.createClaimId ?? randomUUID,
+    createClaimId: options.createClaimId ?? (() => crypto.randomUUID()),
     getAttemptArtifactDir: options.getAttemptArtifactDir
   }
   for (const key of state.reenabledKeys) reenableOcrPoolTarget(state, key)

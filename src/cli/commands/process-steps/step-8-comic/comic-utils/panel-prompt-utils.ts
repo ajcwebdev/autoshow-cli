@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto'
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as v from 'valibot'
@@ -36,7 +35,7 @@ export const extractPanelBundleData = (content: string): PanelBundleData => {
   }
 }
 
-export const getPromptBundleFilename = (panelDirectory: string, entries: Dirent[]): string => {
+export const getPromptBundleFilename = (panelDirectory: string, entries: DirectoryEntry[]): string => {
   const files = entries.filter(entry => entry.isFile() && entry.name.endsWith('.md')).map(entry => entry.name).sort()
   if (files.length !== 1 || !files[0]) throw ValidationError(`Expected exactly 1 markdown prompt bundle in ${panelDirectory}, found ${files.length}`, { stage: 'comic:panel-prompt' })
   return files[0]
@@ -69,7 +68,7 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
   }
 }
 
-export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
+export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
   resolvePrimaryCharacterReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
 
 export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
@@ -100,7 +99,7 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
     if (seen.has(snapshotId)) continue
     const sheetPath = resolve(runDirectory, snapshot.sheet.path)
     if (!existsSync(sheetPath)) throw InfraError(`Location snapshot asset is missing: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
-    const actual = createHash('sha256').update(readFileSync(sheetPath)).digest('hex')
+    const actual = new Bun.CryptoHasher('sha256').update(readFileSync(sheetPath)).digest('hex')
     if (actual !== snapshot.sheet.sha256) throw ValidationError(`Location snapshot asset was modified: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
     seen.add(snapshotId)
     ordered.push({ key: snapshot.locationKey, snapshotId, specification: snapshot.specification, path: sheetPath })
@@ -171,7 +170,7 @@ export const findMissingReferenceImageFiles = async (paths: string[]): Promise<s
 }
 
 export const resolveReferenceImages = (
-  panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData, model: ImageGenerationModel
+  panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData, model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const primary = resolvePrimaryCharacterReferences(panelDirectory, entries, bundleData)
   const prior: string[] = []
@@ -188,7 +187,7 @@ export const resolveReferenceImages = (
   }
 }
 
-export const resolveScenePanelDirectories = (entries: Dirent[], sceneDirectory: string, requested?: number): Dirent[] => {
+export const resolveScenePanelDirectories = (entries: DirectoryEntry[], sceneDirectory: string, requested?: number): DirectoryEntry[] => {
   const panels = entries.filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name)).sort((a, b) => (getPanelNumberFromName(a.name) ?? 0) - (getPanelNumberFromName(b.name) ?? 0))
   if (panels.length === 0) throw ValidationError(`No panel directories were found in ${sceneDirectory}`, { stage: 'comic:panel-prompt' })
   if (!requested) return panels

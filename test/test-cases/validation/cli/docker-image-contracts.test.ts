@@ -27,7 +27,7 @@ test('Docker yt-dlp pin matches resolved native setup metadata in both direction
   }).toEqual({ missing: [], extra: [] })
   expect(dockerArgs).toEqual(expectedArgs)
 
-  const downloadIndex = dockerfile.indexOf('curl -fsSL "${YT_DLP_URL}" -o /usr/local/bin/yt-dlp')
+  const downloadIndex = dockerfile.indexOf("const response = await fetch(url)")
   const checksumIndex = dockerfile.indexOf('"${YT_DLP_SHA256}" /usr/local/bin/yt-dlp | sha256sum -c -')
   const chmodIndex = dockerfile.indexOf('chmod 0755 /usr/local/bin/yt-dlp')
 
@@ -35,7 +35,10 @@ test('Docker yt-dlp pin matches resolved native setup metadata in both direction
   expect(checksumIndex).toBeGreaterThan(downloadIndex)
   expect(chmodIndex).toBeGreaterThan(checksumIndex)
 
+  const fetchStage = dockerfile.slice(dockerfile.indexOf('AS fetch'), dockerfile.indexOf('AS runtime'))
   const runtimeStage = dockerfile.slice(dockerfile.indexOf('AS runtime'))
+  expect(fetchStage).toContain('for await (const chunk of response.body) writer.write(chunk)')
+  expect(fetchStage).not.toContain('curl')
   expect(runtimeStage).not.toContain('curl')
   expect(runtimeStage).toContain('COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp')
 })

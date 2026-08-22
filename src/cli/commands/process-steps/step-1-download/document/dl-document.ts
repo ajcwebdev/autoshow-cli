@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
@@ -10,6 +10,7 @@ import { calibreBin } from '~/cli/commands/setup-and-utilities/setup/setup-downl
 import type { BatchChildRunContext, DocFormat, EbookConvertCommandOptions, PreparedDocument, PreparedDocumentMetadata, Step1SourceRef } from '~/types'
 import { DocumentMetadataSchema } from '~/types'
 import { ensureDirectory, exec } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import * as l from '~/utils/app-logger/app-logger'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'

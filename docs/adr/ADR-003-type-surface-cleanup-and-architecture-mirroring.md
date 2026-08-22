@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -74,7 +74,7 @@ Clean up single-use type declarations across two phases by removing inference-re
 
 1. **Phase 1 — exported strict single-use cleanup:** Remove declarations whose single use is safely handled by TypeScript inference while keeping `bun run check` clean; inline remaining single-use declarations into their consuming site. Exported base types extended within their own file remain.
 2. **Phase 2 — non-exported single-parent cleanup:** Fold private one-reference declarations into their parent types by merging composition interfaces or inlining nested shapes.
-3. **Phase 3 — subsystem ownership restructuring:** Reorganize `src/types` by subsystem and workflow domain rather than strict 1:1 file mirroring. Retire `src/types/migrated/` entirely with no deep-path compatibility shims, retaining broad shared contracts at the root only when genuinely cross-cutting.
+3. **Phase 3 — subsystem ownership restructuring:** Reorganize `src/types` by subsystem and workflow domain rather than strict 1:1 file mirroring. Retire `src/types/migrated/` entirely with no deep-path compatibility shims, keeping broad cross-cutting contracts in shared subsystem directories such as `pipeline-core/` and `runtime-core/` rather than at the root.
 
 This applies to:
 
@@ -100,7 +100,7 @@ It does not apply to:
 - Exported strict single-use declarations were removed or inlined across `src/types/`, retaining extended in-file base types, with `bun run check` passing throughout.
 - Private single-parent declarations were inlined or merged into their containing parent interfaces.
 - All 106 legacy files were moved out of `src/types/migrated/` into subsystem and workflow directories (such as `pipeline-core/`, `provider-core/`, `runtime-core/`, `cli-surface/`, and workflow-specific folders), retiring `src/types/migrated/` with zero deep-path compatibility shims.
-- `src/types/index.ts` was updated to export all subsystem types from their final paths as the sole public `~/types` barrel.
+- `src/types/index.ts` was updated to export all subsystem types from their final paths as the sole public `~/types` barrel, leaving it as the only file at the `src/types` root.
 
 ## API / Type Impact
 
@@ -117,7 +117,7 @@ Positive outcomes:
 Negative outcomes:
 
 - Removing exported names can break out-of-tree imports; large inline shapes can reduce readability; careful batching needed as unused imports/declarations surface.
-- Phase 3 import/export churn is substantial; barrel order and duplicate-export conflicts need care; some cross-cutting files remain at the root by judgment; git history for moved files is noisier unless reviewed as a batch.
+- Phase 3 import/export churn is substantial; barrel order and duplicate-export conflicts need care; placing genuinely cross-cutting contracts in a shared subsystem directory is a judgment call; git history for moved files is noisier unless reviewed as a batch.
 
 ## Trade-offs
 
@@ -134,7 +134,7 @@ Negative outcomes:
 **Trade-off 3**
 
 - **Gain:** Type ownership follows subsystem boundaries; `migrated/` retired; subsystem-scoped future cleanup
-- **Sacrifice:** Substantial phase-3 import/export churn; barrel-conflict handling; root-file judgment
+- **Sacrifice:** Substantial phase-3 import/export churn; barrel-conflict handling; cross-cutting placement judgment
 
 ## Follow-up Actions
 

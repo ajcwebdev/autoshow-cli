@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 - **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to the 2026 hosted-model refresh reports under `docs/reports/`; paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
@@ -116,7 +116,7 @@ Hosted registry schemas accept typed, static lifecycle metadata:
 
 Entries without lifecycle metadata resolve as active and eligible. Deprecated entries require dated source evidence; dates must be valid ISO calendar dates; replacements must be concrete models in the same service; and moving aliases cannot be replacements. Selection never consults the current date. Maintainers advance lifecycle state through a reviewed repository change after rechecking evidence, so a given commit always resolves the same target.
 
-Bare-provider selection uses the cheapest active `defaultEligible` model unless a documented provider policy deliberately chooses one representative target, such as Deepgram TTS's one-default expansion. `--all-*` preserves stable registry order after filtering `allExpansionEligible`; an explicit selector remains independently additive only while it is active or deliberately supported during a transition.
+Bare-provider selection uses the cheapest active `defaultEligible` model unless a documented provider policy deliberately pins one representative target, as most hosted TTS provider flags and several OCR and LLM provider flags do. `--all-*` preserves stable registry order after filtering `allExpansionEligible`; an explicit selector remains independently additive only while it is active or deliberately supported during a transition.
 
 Retired selectors are rejected for new runs and absent from defaults, help, current config, and all-provider expansion. Direct selection returns replacement-aware guidance when a concrete successor exists and never silently substitutes it. Completed manifests and benchmark artifacts keep their stored model identity. An unfinished retired target cannot dispatch under that identity; selecting a successor creates a distinct additive target rather than rewriting canonical state.
 
@@ -208,7 +208,7 @@ Negative outcomes:
 
 The policy is implemented across the model registries and loaders under `src/cli/commands/setup-and-utilities/models/`, provider adapters, option resolution, pricing orchestration, resume handlers, and workflow metadata:
 
-- `ReasoningCapabilitiesSchema` and `reasoning-resolver.ts` define `NORMALIZED_REASONING_EFFORTS`, `parseReasoningEffort`, `getReasoningCapabilities`, and `resolveReasoningPolicy`. Hosted write and OCR dispatch validate every selected target before price calculation or execution, preserving omitted versus explicit-default behavior and mapping native provider payloads without coercion.
+- `ReasoningCapabilitiesSchema` and `reasoning-resolver.ts` define `NORMALIZED_REASONING_EFFORTS`, `parseReasoningEffort`, `getReasoningCapabilities`, `getAdapterDefaultReasoningEffort`, and `resolveReasoningPolicy`, while `reasoning-request-mappers.ts` holds the shared OpenAI Responses and Anthropic payload mappers. Hosted write and OCR dispatch validate every selected target before price calculation or execution, preserving omitted versus explicit-default behavior and mapping native provider payloads without coercion.
 - `model-lifecycle.ts` and `model-loader-schemas.ts` validate evidence dates and concrete same-service replacements, filter cheapest defaults and all-provider expansion, and ensure model resolution remains independent of the current date.
 - `provider-targets.ts` defines canonical generation selection descriptors used by write, TTS, image, video, and music resume. `extract-selectors.ts` derives route-aware public provider inventories from canonical STT/OCR maps. Bidirectional contract tests verify parity between execution flags and resume handlers across all registered providers.
 
@@ -255,6 +255,7 @@ The policy is implemented across the model registries and loaders under `src/cli
 - `src/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates.ts`
 - `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
 - `src/cli/commands/setup-and-utilities/models/reasoning-resolver.ts`
+- `src/cli/commands/setup-and-utilities/models/reasoning-request-mappers.ts`
 - `src/cli/options/option-resolution/model-flag-selection.ts`
 - `src/cli/flags/service-selector-normalization/provider-targets.ts`
 - `src/cli/flags/service-selector-normalization/extract-selectors.ts`

@@ -17,15 +17,14 @@ import {
   resolveDeepinfraTtsRequestControls,
   resolveDeepinfraTtsVoiceField,
 } from './deepinfra-tts-request'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 export const runDeepinfraTts = async (
   text: string,
   outputDir: string,
   options: RunDeepinfraTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (!options.apiKey.trim()) {
-    throw ValidationError('DeepInfra API key is required', { stage: 'tts:deepinfra' })
-  }
+  const apiKey = requireProvidedApiKey(options.apiKey, 'DEEPINFRA_API_KEY', 'tts:deepinfra', 'DeepInfra TTS')
   const voice = validateDeepinfraTtsVoice(options.voiceId?.trim() || resolveDeepinfraTtsDefaultVoice(options.model))
   const providerText = prepareDeepinfraTtsText(options.model, text)
   const chunks = splitTextIntoChunks(providerText, resolveTtsChunkCharacterLimit('deepinfra', options.model) ?? 2000)
@@ -81,7 +80,7 @@ export const runDeepinfraTts = async (
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${options.apiKey}`
+            'Authorization': `Bearer ${apiKey}`
           },
           body: JSON.stringify(body),
           ...(signal ? { signal } : {})

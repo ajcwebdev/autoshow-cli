@@ -1,5 +1,4 @@
 import { stripAnsi } from '~/utils/terminal-colors'
-import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
@@ -239,7 +238,7 @@ export const acquireAdaptiveProviderLease = async (
     }
   }
 
-  const leaseId = randomUUID()
+  const leaseId = crypto.randomUUID()
 
   while (true) {
     const acquired = await withStateLock(config, async (state) => {

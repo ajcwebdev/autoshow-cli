@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
@@ -196,7 +196,7 @@ structured-script.json v5
   -> canonical source normalization
   -> dialogue / vocal-reaction / action-SFX / ambience buses
   -> deterministic stem transforms and final mix
-  -> stems + master + resolved timeline + AudioRun
+  -> stems + master + compact mix record
 ```
 
 A source-segment edge anchor resolves from the selected final dialogue timeline, after pauses, overlaps, repairs, and provider timing normalization. A text-offset anchor resolves only from retained provider timing that has been mapped through `PreparedProviderText` and the audio transform ledger to the final canonical clock. If exact mapping is unavailable, the default strict timing policy fails before mastering and names the cue and missing evidence. The explicit `proportional` policy linearly maps the canonical Unicode scalar offset across the exact retained turn range; every such resolution records algorithm `canonical-offset-linear-v1`, a hash of its input evidence, and a worst-case error bound in the resolved timeline, and the policy participates in soundscape plan and mix identity.
@@ -205,7 +205,7 @@ Negative offsets are allowed relative to source anchors. If a resolved clip woul
 
 ### Provider Target and Generation Contract
 
-Sound effects are a distinct target modality. `--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. Phase 1 permits ElevenLabs; Phase 7 adds the pinned Replicate AudioGen target. Cartesia, Hume, MiniMax, Inworld, DeepInfra, Replicate speech, and Fish are not accepted by this selector unless a later ADR records a documented non-speech endpoint. Dialogue `--provider` selection remains independent. A fresh v5 render with prompt-based action-SFX or ambience intent requires an explicit SFX target. Resume may reuse the exact target pinned by a compatible retained render plan; it may not search every provider cache or infer a target from credentials. If neither source of target identity exists, static validation fails with an actionable message. A scene with empty sound intent performs no SFX target setup.
+Sound effects are a distinct target modality. `--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. Phase 1 permits ElevenLabs, Phase 7 adds the pinned Replicate AudioGen target, and Stability `stable-audio-3` was accepted as a third target after Phase 7. Cartesia, Hume, MiniMax, Inworld, DeepInfra, Replicate speech, and Fish are not accepted by this selector unless a later ADR records a documented non-speech endpoint. Dialogue `--provider` selection remains independent. A fresh v5 render with prompt-based action-SFX or ambience intent requires an explicit SFX target. Resume may reuse the exact target pinned by a compatible retained render plan; it may not search every provider cache or infer a target from credentials. If neither source of target identity exists, static validation fails with an actionable message. A scene with empty sound intent performs no SFX target setup.
 
 Vocal reactions are a separate routing case because they may require character identity. Phase 1 can render them through the ElevenLabs sound-effect target. Starting in Phase 2, a dialogue target may render an authored vocal reaction through its own TTS adapter only when its capability fixture supports the requested delivery and preserves the selected character voice. Such results are qualified by the dialogue target and are not reused across incompatible voice targets. If neither the selected voice target nor the explicit SFX target supports a required vocal reaction, static validation fails rather than silently converting it to dialogue text or generic foley.
 
@@ -247,9 +247,9 @@ All source audio is decoded and normalized to a canonical intermediate format be
 
 ### Artifacts, Identity, Resume, and Failure Semantics
 
-The scene run retains exactly one canonical `manifest.json`. Soundscape domain artifacts use descriptive versioned names and checksummed references, including `soundscape-plan.json`, `sound-effect-render-plan.json`, `sound-effect-render-result.json`, `resolved-soundscape-timeline.json`, stem WAVs, and the extended `audio-run.json`. No soundscape directory may contain another `manifest.json` or bare `result.json`.
+The scene run retains exactly one canonical `manifest.json`. Soundscape domain artifacts use descriptive versioned names and checksummed references, including `soundscape-plan.json`, `sound-effect-render-plan.json`, the compact `sfx.json` sound-effect archive, a `sound-effect-render-result.json` record for a render that failed a required cue, stem WAVs, and one compact `mix.json` per mix. No soundscape directory may contain another `manifest.json` or bare `result.json`.
 
-Provider generation artifacts are stored independently of dialogue target artifacts. Final mix artifacts bind one selected dialogue `AudioRun`, the `SoundscapePlan`, selected sound-effect generation results or cache materializations, the mix-profile hash, the resolved timeline, all stem checksums, and the final master checksum. This separation lets several dialogue targets share one set of SFX results while retaining distinct final mixes.
+Provider generation artifacts are stored independently of dialogue target artifacts. Final mix artifacts bind one selected dialogue `AudioRun`, the `SoundscapePlan`, selected sound-effect generation results or cache materializations, the mix-profile hash, the resolved timeline summary, all stem checksums, and the final master checksum. This separation lets several dialogue targets share one set of SFX results while retaining distinct final mixes.
 
 Soundscape masters publish beside preserved dialogue outputs as `audio/final/<dialogue-target-key>.soundscape.wav`. This keeps the dialogue provider projection checksum-valid while making the selected master explicit through `selectedSoundscapeRuns` and `finalOutputRefs`.
 
@@ -271,14 +271,16 @@ A failed required cue fails the soundscape render and prevents publication of th
 The seven delivery phases are implemented in the codebase as follows:
 
 - **Phase 1 (Complete ElevenLabs Vertical Slice):** Implemented in `src/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/soundscape-directives.ts`, `src/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner.ts`, `src/cli/commands/process-steps/step-4-tts/soundscape/elevenlabs-sfx-adapter.ts`, and `src/cli/commands/process-steps/step-4-tts/soundscape/soundscape-mixer.ts`. Pins `eleven_text_to_sound_v2` (`POST /v1/sound-generation`), `structured-script.json` v5 schema, four-bus mixing, stem generation, calibrated `comic-soundscape-v1` mastering profile, and shared typed cache materialization.
-- **Phase 2 (Existing Provider Capabilities):** Implemented capability-scoped vocal routing in `src/cli/commands/process-steps/step-4-tts/soundscape/soundscape-routing.ts` for Cartesia Sonic (nonverbal `[laughter]`), Hume Octave (acting descriptions), and MiniMax T2A (interjection tags), preserving character voice identity without treating speech endpoints as general SFX targets.
-- **Phase 3 (First-Party Inworld AI):** Steerable TTS-2 / TTS-2 Flash REST adapter (`InworldHttpTTSService`), WORD/viseme timing alignment, injectable WebSocket protocol adapter (`InworldTTSService`), instant clone, and prompt-driven voice design candidate materialization.
+- **Phase 2 (Existing Provider Capabilities):** Cartesia, Hume, and MiniMax dialogue targets participate through the shared comic-audio planning, readiness, and segmented-render paths, and their authored expressiveness stays inside each provider's own TTS adapter (Cartesia transcript performance tags, Hume acting descriptions and Octave 2 native utterances, MiniMax segmented rendering). `src/cli/commands/process-steps/step-4-tts/soundscape/soundscape-routing.ts` records a per-cue routing decision against the selected dedicated SFX target and fails a required vocal reaction that target cannot render, so speech endpoints are never treated as general SFX targets.
+- **Phase 3 (First-Party Inworld AI):** Steerable `realtime-tts-2` REST adapter (`runInworldTts`, `POST /tts/v1/voice`), WORD/viseme timing alignment, injectable WebSocket protocol adapter (`synthesizeInworldWebSocket`), instant clone, and prompt-driven voice design candidate materialization.
 - **Phase 4 (DeepInfra Hosted Speech Suite):** Model-specific serializers and decoders for ResembleAI Chatterbox Turbo (`$1.00/1M`), Xiaomi MiMo V2.5 (`$0.00/1M`), and Alibaba Qwen3-TTS (`$20.00/1M`), plus consent-gated zero-shot cloning.
 - **Phase 5 (Replicate Version-Pinned Kokoro):** Pinned `jaaari/kokoro-82m` stock-voice adapter (`POST /v1/predictions`), immediate local output capture to prevent remote expiration, and rejection of unverified/deferred community models.
 - **Phase 6 (Fish Audio):** `s2.1-pro` TTS, native multi-speaker dialogue planning with `<|speaker:N|>` tags, timestamped SSE `chunk_seq` reduction, stateless `voice-design-1` candidate materialization via `POST /model`, CLI clone parity, and reconcile without blind recreation.
 - **Phase 7 (Meta AudioGen via Replicate):** Second dedicated SFX target (`--sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8`) under CC BY-NC 4.0 license governance, noncommercial-use enforcement, deterministic local ambience looping, and historical manifest readability.
 
-Public types are exported from `src/types/soundscape-workflow/soundscape-types.ts` via `src/types/index.ts`.
+A third dedicated SFX target followed the phased plan: Stability `stable-audio-3` (`POST /v2beta/audio/stable-audio-3/text-to-audio`) in `src/cli/commands/process-steps/step-4-tts/soundscape/stability-stable-audio-adapter.ts`. Like AudioGen it renders action SFX and ambience only and refuses vocal reactions, which stay on the ElevenLabs target.
+
+Public types live in `src/types/soundscape-workflow/` — `soundscape-types.ts` plus the execution, timeline, mixer, and per-adapter modules — and are exported only through `src/types/index.ts`.
 
 ## Consequences
 
@@ -348,7 +350,7 @@ bun test test/test-cases/validation/comic/soundscape-schema-contracts.test.ts
 bun test test/test-cases/validation/comic/soundscape-timeline-contracts.test.ts
 bun test test/test-cases/validation/comic/soundscape-mixer-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-soundscape-artifact-contracts.test.ts
-bun test test/test-cases/validation/comic/comic-audio-phase-2-contracts.test.ts
+bun test test/test-cases/validation/comic/comic-audio-{planning-identity,readiness,execution-publication,snapshot-pipeline}-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-audio-inworld-phase-3-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-audio-deepinfra-phase-4-contracts.test.ts
 bun test test/test-cases/validation/comic/comic-audio-replicate-phase-5-contracts.test.ts
@@ -363,6 +365,7 @@ bun test test/test-cases/validation/media-generation/inworld-tts-timing-contract
 bun test test/test-cases/validation/media-generation/inworld-tts-websocket-adapter.test.ts
 bun test test/test-cases/validation/media-generation/elevenlabs-sfx-adapter-contracts.test.ts
 bun test test/test-cases/validation/media-generation/replicate-audiogen-adapter-contracts.test.ts
+bun test test/test-cases/validation/media-generation/stability-stable-audio-adapter-contracts.test.ts
 bun test test/test-cases/validation/media-generation/voice-clone-phase-1-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/tts-resume-batch-contracts.test.ts
@@ -399,3 +402,4 @@ The offline test suite verifies:
   - Replicate: [HTTP Prediction API](https://replicate.com/docs/reference/http#create-a-prediction) and [Kokoro API](https://replicate.com/jaaari/kokoro-82m/api)
   - Fish Audio: [API Reference](https://docs.fish.audio/api-reference/introduction) and [OpenAPI Specification](https://api.fish.audio/openapi.json)
   - Meta AudioGen on Replicate: [Pinned AudioGen Version](https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api) and [AudioCraft AudioGen Documentation](https://github.com/facebookresearch/audiocraft/blob/main/docs/AUDIOGEN.md)
+  - Stability AI: [API Reference](https://platform.stability.ai/docs/api-reference) and [Authentication](https://platform.stability.ai/docs/getting-started/authentication)

@@ -5,6 +5,7 @@ import { readBoundedTextStream } from '~/utils/bounded-capture'
 import { extractErrorMetadata, hasErrorCode, InfraError } from '~/utils/error-handler'
 import { withRetry } from '~/utils/retries'
 import * as l from './app-logger/app-logger'
+import { childEnv } from './child-env'
 
 const DEFAULT_LINE_BUFFER_CHARS = 64 * 1024
 
@@ -72,11 +73,10 @@ const execOnce = async (
   opts?: ExecOptions
 ): Promise<ExecResult> => {
   opts?.signal?.throwIfAborted()
-  const env = opts?.env ? { ...process.env, ...opts.env } : undefined
   const proc = Bun.spawn([command, ...args], {
     stdout: 'pipe',
     stderr: 'pipe',
-    ...(env ? { env: env as Record<string, string | undefined> } : {})
+    env: childEnv({ set: opts?.env })
   })
   const onAbort = (): void => {
     try {

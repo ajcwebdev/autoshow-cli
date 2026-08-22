@@ -22,7 +22,7 @@ Clone is instant clone only. Providers without an instant API use the provider c
 
 | Flag | Description |
 | --- | --- |
-| `--provider <name>` | Voice provider |
+| `--provider <name>` | Voice provider: `elevenlabs`, `inworld`, `fish`, `cartesia`, or `speechify` |
 | `--model <model>` | Provider TTS model used by this registration |
 | `--profile <key>` | Casting profile key |
 | `--voice-name <name>` | Desired provider account voice name |
@@ -44,6 +44,7 @@ Clone is instant clone only. Providers without an instant API use the provider c
 bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --voice-name HeroClone --sample input/voices/hero.wav --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
 bun autoshow voice clone hero --provider cartesia --model sonic-3.5-2026-05-04 --voice-name HeroClone --sample input/voices/hero.wav --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
 bun autoshow voice clone hero --provider speechify --model simba-3.2 --voice-name HeroClone --sample input/voices/hero.wav --consent-name "Authorized Speaker" --consent-email speaker@example.com --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
+bun autoshow voice clone hero --provider fish --model s2.1-pro --voice-name HeroClone --sample input/voices/hero.wav --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
 ```
 
 Next: [audition](./06-audition.md).

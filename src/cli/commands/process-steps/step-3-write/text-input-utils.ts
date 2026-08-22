@@ -1,10 +1,10 @@
-import type { Dirent } from 'node:fs'
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { LeafPromptSchema } from '~/prompts/prompt-loader'
-import type { LeafPrompt, PromptFileResult, RenderedTextArtifactResult, Step3Metadata, StructuredRunResult, TextInputTrackResolution, WriteTextProjectDefaults } from '~/types'
+import type { DirectoryEntry, LeafPrompt, PromptFileResult, RenderedTextArtifactResult, Step3Metadata, StructuredRunResult, TextInputTrackResolution, WriteTextProjectDefaults } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
@@ -266,7 +266,7 @@ const resolveSequentialTrackNumber = async (
   trackListPath: string | undefined
 ): Promise<string | undefined> => {
   const inputDir = dirname(inputPath)
-  let entries: Dirent[]
+  let entries: DirectoryEntry[]
   try {
     entries = await readdir(inputDir, { withFileTypes: true })
   } catch {

@@ -1,36 +1,8 @@
-import { ensureAssemblyAiSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/assemblyai/assemblyai'
-import { ensureDeepgramSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-deepgram/deepgram-stt'
-import { ensureDeepinfraSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/deepinfra/deepinfra'
-import { ensureGladiaSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gladia/gladia'
-import { ensureGrokSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-grok/grok-stt'
-import { ensureGroqSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-groq/groq-stt'
-import { ensureHappyScribeSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/happyscribe/happyscribe'
-import { ensureMistralSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-mistral/mistral-stt'
-import { ensureGeminiSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gemini-stt/gemini-stt'
-import { ensureTogetherSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/together/together'
-import { ensureRevSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/rev/rev'
-import { ensureSonioxSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/soniox/soniox'
-import { ensureSupadataSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-supadata/supadata'
-import { ensureScrapeCreatorsSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/scrapecreators/scrapecreators'
-import { ensureSpeechmaticsSttSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/speechmatics/speechmatics'
 import { ensureWhisperReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
 import { ensureWhisperfileReady } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
-import { ensureGlmOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/glm-ocr/glm'
-import { ensureKimiOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/kimi'
-import { ensureGeminiOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/gemini-ocr'
-import { ensureGrokOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/grok-ocr/grok-ocr'
-import { ensureMistralOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/mistral-ocr/mistral-ocr'
-import { ensureOpenAIOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/openai-ocr/openai-ocr'
-import { ensureAnthropicOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/anthropic-ocr/anthropic-ocr'
-import { ensureDeepinfraOcrSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/deepinfra-ocr/deepinfra-ocr'
-import { ensureTesseractSetup } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/tesseract-utils'
-import { ensureDeepgramTtsSetup } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepgram/deepgram-tts'
-import { ensureHumeTtsSetup } from '~/cli/commands/process-steps/step-4-tts/tts-services/hume/hume-tts'
-import { ensureCartesiaTtsSetup } from '~/cli/commands/process-steps/step-4-tts/tts-services/cartesia/cartesia-tts'
-import { ensureGrokTtsSetup } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-grok/grok-tts'
-import { ensureMistralTtsSetup } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-mistral/mistral-tts'
 import type { BootstrapHandler } from '~/types'
 import { InternalError } from '~/utils/error-handler'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
 const DEFAULT_WHISPER_MODEL = 'tiny'
 const cache = new Map<string, Promise<void>>()
@@ -65,91 +37,49 @@ const handlers: Record<string, BootstrapHandler> = {
     ensure: async (model) => await ensureWhisperfileReady(model ?? DEFAULT_WHISPER_MODEL)
   },
   'deepgram-stt': {
-    ensure: async () => await ensureDeepgramSttSetup()
+    ensure: ensureProvider('deepgram', 'stt:deepgram', 'Deepgram transcription')
   },
   'deepinfra-stt': {
-    ensure: async () => await ensureDeepinfraSttSetup()
+    ensure: ensureProvider('deepinfra', 'stt:deepinfra', 'DeepInfra transcription')
   },
   'soniox-stt': {
-    ensure: async () => await ensureSonioxSttSetup()
+    ensure: ensureProvider('soniox', 'stt:soniox', 'Soniox transcription')
   },
   'speechmatics-stt': {
-    ensure: async () => await ensureSpeechmaticsSttSetup()
+    ensure: ensureProvider('speechmatics', 'stt:speechmatics', 'Speechmatics transcription')
   },
   'rev-stt': {
-    ensure: async () => await ensureRevSttSetup()
+    ensure: ensureProvider('rev', 'stt:rev', 'Rev transcription')
   },
   'groq-stt': {
-    ensure: async () => await ensureGroqSttSetup()
+    ensure: ensureProvider('groq', 'stt:groq', 'Groq transcription')
   },
   'grok-stt': {
-    ensure: async () => await ensureGrokSttSetup()
+    ensure: ensureProvider('grok', 'stt:grok', 'Grok transcription')
   },
   'mistral-stt': {
-    ensure: async () => await ensureMistralSttSetup()
+    ensure: ensureProvider('mistral', 'stt:mistral', 'Mistral transcription')
   },
   'assemblyai-stt': {
-    ensure: async () => await ensureAssemblyAiSttSetup()
+    ensure: ensureProvider('assemblyai', 'stt:assemblyai', 'AssemblyAI transcription')
   },
   'gladia-stt': {
-    ensure: async () => await ensureGladiaSttSetup()
+    ensure: ensureProvider('gladia', 'stt:gladia', 'Gladia transcription')
   },
   'happyscribe-stt': {
-    ensure: async () => await ensureHappyScribeSttSetup()
+    ensure: ensureProvider('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription')
   },
   'supadata-stt': {
-    ensure: async () => await ensureSupadataSttSetup()
+    ensure: ensureProvider('supadata', 'stt:supadata', 'Supadata transcription')
   },
   'scrapecreators-stt': {
-    ensure: async () => await ensureScrapeCreatorsSttSetup()
+    ensure: ensureProvider('scrapecreators', 'stt:scrapecreators', 'ScrapeCreators transcript retrieval')
   },
   'gemini-stt': {
-    ensure: async () => await ensureGeminiSttSetup()
+    ensure: ensureProvider('gemini', 'stt:gemini', 'Gemini transcription')
   },
   'together-stt': {
-    ensure: async () => await ensureTogetherSttSetup()
-  },
-  tesseract: {
-    ensure: async () => await ensureTesseractSetup()
-  },
-  'mistral-ocr': {
-    ensure: async () => await ensureMistralOcrSetup()
-  },
-  'glm-ocr': {
-    ensure: async () => await ensureGlmOcrSetup()
-  },
-  'kimi-ocr': {
-    ensure: async () => await ensureKimiOcrSetup()
-  },
-  'openai-ocr': {
-    ensure: async () => await ensureOpenAIOcrSetup()
-  },
-  'grok-ocr': {
-    ensure: async () => await ensureGrokOcrSetup()
-  },
-  'anthropic-ocr': {
-    ensure: async () => await ensureAnthropicOcrSetup()
-  },
-  'gemini-ocr': {
-    ensure: async () => await ensureGeminiOcrSetup()
-  },
-  'deepinfra-ocr': {
-    ensure: async () => await ensureDeepinfraOcrSetup()
-  },
-  'deepgram-tts': {
-    ensure: async () => await ensureDeepgramTtsSetup()
-  },
-  'hume-tts': {
-    ensure: async () => await ensureHumeTtsSetup()
-  },
-  'cartesia-tts': {
-    ensure: async () => await ensureCartesiaTtsSetup()
-  },
-  'grok-tts': {
-    ensure: async () => await ensureGrokTtsSetup()
-  },
-  'mistral-tts': {
-    ensure: async () => await ensureMistralTtsSetup()
+    ensure: ensureProvider('together', 'stt:together', 'Together transcription')
   },
 }
 

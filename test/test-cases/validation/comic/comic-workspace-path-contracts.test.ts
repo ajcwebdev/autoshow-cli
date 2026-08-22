@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
@@ -27,7 +26,7 @@ const createSnapshotFixture = async (options: SnapshotFixtureOptions = {}) => {
   const canonicalPath = join(workspace, 'assets', 'character-references', 'snapshot', 'hero', 'reference.png')
   await mkdir(join(workspace, 'assets', 'character-references', 'snapshot', 'hero'), { recursive: true })
   await Bun.write(canonicalPath, bytes)
-  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const sha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   const assetPath = typeof options.assetPath === 'function'
     ? options.assetPath(canonicalPath)
     : options.assetPath ?? 'assets/character-references/snapshot/hero/reference.png'

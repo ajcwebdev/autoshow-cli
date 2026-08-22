@@ -1,5 +1,4 @@
 import { mkdir, rm } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
 import { dirname, join, posix } from 'node:path'
 import type {
   AudioRun,
@@ -41,7 +40,7 @@ export const createLocalSilentDialogueRun = async (input: {
   const renderIdentity = hashCanonicalTtsValue({ operation: 'comic-audio', targetKey, dialoguePlanId: input.plan.dialoguePlanId, outputProfileHash: input.plan.mixProfileHash })
   const renderPlanId = hashCanonicalTtsValue({ renderIdentity, strategy: 'local-silence' })
   const root = `audio/local-dialogue/${renderIdentity}`
-  const work = join(input.rootDir, 'audio', `.local-silence-${randomUUID()}`)
+  const work = join(input.rootDir, 'audio', `.local-silence-${crypto.randomUUID()}`)
   await mkdir(work, { recursive: true })
   try {
     const temporary = join(work, 'silence.wav')

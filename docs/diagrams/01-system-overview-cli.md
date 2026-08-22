@@ -55,10 +55,10 @@ apply global runtime settings
         +--> --output-dir                 -> pinned run directory for this invocation
         +--> --characters-root            -> comic/voice character reference directory
         +--> --bin-dir                    -> external tool binary lookup
-         +--> --color / --no-color         -> ANSI color handling
-         +--> config auth.cookies / auth.cookiesFromBrowser -> yt-dlp auth
-         |
-         v
+        +--> --color / --no-color          -> ANSI color handling
+        +--> config auth.cookies / auth.cookiesFromBrowser -> yt-dlp auth
+        |
+        v
 run command handler under log context
         |
         v
@@ -73,7 +73,7 @@ Global flags:
 | `--version`, `-v`       | Print CLI version.                                                                                                                                                                                                                                                                                      |
 | `--config-path`         | Use a config file other than `config/autoshow.json`.                                                                                                                                                                                                                                                    |
 | `--output-root`         | Base output directory under which per-step subdirectories are created.                                                                                                                                                                                                                                  |
-| `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, and `resume`, which do not create run directories. |
+| `--output-dir`          | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, `resume`, `voice`, and `comic reference-voice`, which do not create run directories. |
 | `--characters-root`     | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only.                                                                                                                                                                                    |
 | `--bin-dir`             | Directory of external tool binaries checked before the managed install and PATH.                                                                                                                                                                                                                        |
 | `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget. Accepted on priced pipeline and generation commands only; rejected on unbudgeted commands (`config`, `setup`, `links`, `voice`, `comic reference-voice`). |
@@ -129,7 +129,6 @@ standalone generation
   --provider provider[=model]
   --all-providers
   --provider-concurrency N
-  --local-concurrency N
 
 write pipeline
   --stt provider[=model]
@@ -146,8 +145,6 @@ config pipeline defaults
   --image provider[=model]
   --video provider[=model]
   --music provider[=model]
-  --all-providers stt|ocr|url|llm|tts|image|video|music
-  --all-local stt|ocr|url
 ```
 
 Flag/config resolution is command-neutral, but processing is not built around an all-command option bag. STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing consumers accept their own option slices plus explicitly named shared controls. Write composes the STT/OCR/URL/LLM slices it actually runs, while standalone generation commands consume their respective generation option slices.
@@ -166,7 +163,7 @@ Current selector families:
 | LLM         | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`.                                                                                                                                                                |
 | TTS         | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`.                                                                                          |
 | Image       | `gemini`, `openai`, `grok`, `bfl`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                                                                |
-| Video       | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is fully retired; `--provider minimax` is rejected, and a model-qualified selector still reports its fal.ai `minimax/h3` replacement.                                                                                         |
+| Video       | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`. MiniMax video is fully retired; `--provider minimax` is rejected, and a model-qualified selector such as `--provider minimax=MiniMax-Hailuo-2.3` still reports its `MiniMax-H3` retired-model replacement.                                                                                         |
 | Music       | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                                                                                |
 
 Command-to-flag mapping:
@@ -179,6 +176,6 @@ Command-to-flag mapping:
 | `write`                       | Step selectors for STT/OCR/URL/LLM, prompt/text-input flags, rendered text flags, batch flags, pricing flags.                          |
 | `resume`                      | target-aware provider selectors for missing or failed providers.                                                                       |
 | `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors.                                                                                    |
-| `voice`                       | standalone voice registration, audition, approval, consent, discovery, and deletion flags.                                             |
+| `voice`                       | standalone voice registration, audition, approval, consent, listing, retirement, and deletion flags.                                             |
 | `comic`                       | comic drafting, panel image generation, audio rendering, local slideshow presentation, and reference flags.                            |
 | `config`                      | persisted defaults for supported selectors and options; runtime-only flags are ignored.                                                |

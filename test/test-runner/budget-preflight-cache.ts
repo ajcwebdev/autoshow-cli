@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto'
-import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { resolve } from 'node:path'
 import type { BudgetPreflightCacheFile, PriceCommandSpec } from '~/types'
 import { MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader/paths'
@@ -79,7 +79,7 @@ const hashFileContents = async (paths: readonly string[]): Promise<string> => {
       return 'missing'
     }
   }))
-  const hasher = createHash('sha256')
+  const hasher = new Bun.CryptoHasher('sha256')
   for (const [index, path] of paths.entries()) {
     hasher.update(path)
     hasher.update('\0')

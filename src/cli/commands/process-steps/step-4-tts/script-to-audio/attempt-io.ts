@@ -1,5 +1,5 @@
-import { rename, unlink } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
+import { rename } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import type { CanonicalAudioProviderProjection, CurrentTtsRecoveredGenerationSlot, ObservedAudioFormat, WrittenJson } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -7,6 +7,7 @@ import { getFfprobeBinary } from '~/utils/runtime-paths'
 import { hasErrorCode } from '~/utils/error-handler'
 import { canonicalTtsJson, sha256Bytes } from './contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from './safe-artifact-store'
+import { childEnv } from '~/utils/child-env'
 // Canonical definition lives in error-handler; re-exported so the existing sibling
 // imports in this directory keep working.
 export { hasErrorCode }
@@ -34,7 +35,7 @@ export const writeJsonReplace = async <T>(rootDir: string, path: string, value: 
   } catch (error) {
     if (!hasErrorCode(error, 'ENOENT')) throw error
   }
-  const temporaryRef = join(dirname(destinationRef), `.archive-${randomUUID()}.tmp`)
+  const temporaryRef = join(dirname(destinationRef), `.archive-${crypto.randomUUID()}.tmp`)
   const temporary = await writeImmutableArtifactFile(rootDir, temporaryRef, bytes)
   try {
     await rename(temporary.path, resolve(rootDir, destinationRef))
@@ -80,7 +81,7 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
     '-show_entries', 'format=format_name,duration,bit_rate:stream=codec_name,sample_rate,channels,bit_rate',
     '-of', 'json',
     path
-  ], { stdout: 'pipe', stderr: 'pipe' })
+  ], { env: childEnv(), stdout: 'pipe', stderr: 'pipe' })
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(probe.stdout).text(),
     new Response(probe.stderr).text(),
@@ -155,7 +156,7 @@ export const publishReportedOutput = async (
     if (!hasErrorCode(error, 'ENOENT')) throw error
   }
 
-  const temporaryRef = join(dirname(destinationRef), `.reported-output-${randomUUID()}.tmp`)
+  const temporaryRef = join(dirname(destinationRef), `.reported-output-${crypto.randomUUID()}.tmp`)
   const temporary = await writeImmutableArtifactFile(rootDir, temporaryRef, sourceFile.bytes)
   try {
     await rename(temporary.path, resolve(rootDir, destinationRef))

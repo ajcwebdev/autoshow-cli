@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureGeminiImageGenSetup = ensureApiKeySetup('GEMINI_API_KEY', 'image:gemini', 'Gemini image generation')
+export const ensureGeminiImageGenSetup = ensureProvider('gemini', 'image:gemini', 'Gemini image generation')

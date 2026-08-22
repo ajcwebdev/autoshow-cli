@@ -1,4 +1,4 @@
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '~/types'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { err, comicLog } from '../../comic-utils/comic-logger'
@@ -41,7 +41,7 @@ import { generateWithQaRepair } from './panel-qa-pipeline'
 import { runComicImageWorkItems } from './comic-image-work-items'
 
 const renderSinglePanel = async (
-  panelEntry: Dirent,
+  panelEntry: DirectoryEntry,
   ctx: PanelRenderContext
 ): Promise<PanelRenderResult> => {
   const resultStats = createImageRunStats()

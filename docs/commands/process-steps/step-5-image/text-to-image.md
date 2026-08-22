@@ -64,7 +64,7 @@ The standalone `image` command uses `--size` instead of `--image-size` (which ca
 | `--quality <q>`                        | OpenAI quality: `low`, `medium`, `high`, or `auto`                                                                                                                                |
 | `--format <fmt>`                       | Output format: `png`, `jpeg`, or `webp` depending on provider                                                                                                                     |
 | `--background <bg>`                    | OpenAI background mode: `transparent`, `opaque`, or `auto`                                                                                                                        |
-| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Replicate/fal.ai: `1-4`)                                                                                                      |
+| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, Replicate Wan/fal.ai: `1-4`)                                                                                                   |
 | `--input <path-or-url>`                | Repeatable source/reference image for edits or image-to-image workflows                                                                                                           |
 | `--mask <path>`                        | OpenAI mask image for inpainting                                                                                                                                                  |
 | `--compression <0-100>`                | OpenAI JPEG/WebP output compression                                                                                                                                               |
@@ -151,15 +151,15 @@ bun autoshow image "place the subject in a cozy cabin kitchen" --provider bfl=fl
 
 ### Replicate
 
-| Option       | Value                                                                                                                                                                                                                                                                                                                                                 |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Selector     | `--provider replicate[=<model>]`                                                                                                                                                                                                                                                                                                                      |
-| Models       | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image`                                                                                                        |
-| Size         | Model-family dependent (`1K`/`2K`/`3K`/`4K`/`WIDTHxHEIGHT` for Seedream and Wan)                                                                                                                                                                                                                                                                       |
-| Aspect ratio | Seedream and Qwen models only                                                                                                                                                                                                                                                                                                                         |
-| Count        | `--count 1-4` (Wan models); 1 image per request for others                                                                                                                                                                                                                                                                                            |
-| Format       | `--format png\|jpeg` (Seedream 5 models)                                                                                                                                                                                                                                                                                                              |
-| References   | Repeatable `--input` (up to 14 for Seedream 4.5/5-Lite, 10 for Seedream 5-Pro, 1 for Qwen, 9 for Wan)                                                                                                                                                                                                                                                 |
+| Option       | Value                                                                                                                                                                                                      |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Selector     | `--provider replicate[=<model>]`                                                                                                                                                                           |
+| Models       | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image`                  |
+| Size         | Seedream 4.5 `2K`/`4K`/`WIDTHxHEIGHT`; Seedream 5 Lite `2K`/`3K`; Seedream 5 Pro `1K`/`2K`; Wan `1K`/`2K`/`WIDTHxHEIGHT` (`4K` on `wan-video/wan-2.7-image-pro` text-to-image only); not supported by Qwen |
+| Aspect ratio | Seedream and Qwen models only                                                                                                                                                                              |
+| Count        | `--count 1-4` (Wan models); 1 image per request for others                                                                                                                                                 |
+| Format       | `--format png\|jpeg` (Seedream 5 models)                                                                                                                                                                   |
+| References   | Repeatable `--input` (up to 14 for Seedream 4.5/5-Lite, 10 for Seedream 5-Pro, 1 for Qwen, 9 for Wan)                                                                                                      |
 
 ```bash
 bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2
@@ -184,13 +184,13 @@ bun autoshow image "make the subject matte black and keep the same camera angle"
 
 ### fal.ai
 
-| Option     | Value                                                                                                                   |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Selector   | `--provider fal[=<model>]`                                                                                              |
-| Models     | `fal-ai/hidream-o1-image`, `alibaba/qwen-image-3`, `reve/2.1`                                                     |
-| Count      | `--count 1-4`; default `1`                                                                                              |
-| Format     | `--format png\|jpeg\|webp`; default `png`                                                                               |
-| References | HiDream (up to 9), Qwen (up to 3), Reve (1)                                                                            |
+| Option     | Value                                                         |
+| ---------- | ------------------------------------------------------------- |
+| Selector   | `--provider fal[=<model>]`                                    |
+| Models     | `fal-ai/hidream-o1-image`, `alibaba/qwen-image-3`, `reve/2.1` |
+| Count      | `--count 1-4`; default `1`                                    |
+| Format     | `--format png\|jpeg\|webp`; default `png`                     |
+| References | HiDream (up to 9), Qwen (up to 3), Reve (1)                   |
 
 ```bash
 bun autoshow image "a technical cutaway illustration of a lunar greenhouse" --provider fal=fal-ai/hidream-o1-image --size 1024x1024

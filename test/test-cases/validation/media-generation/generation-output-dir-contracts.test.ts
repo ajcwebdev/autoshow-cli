@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { basename, join } from 'node:path'
 import { createGenerationOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'

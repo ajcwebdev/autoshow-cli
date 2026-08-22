@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -168,7 +167,7 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     schemaVersion: 3,
     root,
     configPath,
-    hash: createHash('sha256').update(raw).digest('hex'),
+    hash: new Bun.CryptoHasher('sha256').update(raw).digest('hex'),
     characters,
     characterKeys,
     get(key) {

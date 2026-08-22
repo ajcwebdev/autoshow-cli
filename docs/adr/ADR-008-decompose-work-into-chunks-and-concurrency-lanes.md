@@ -4,12 +4,12 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-10
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Passed
 
 ## Context
 
-AutoShow splits pipeline work into smaller units in ten distinct ways and bounds concurrent execution with nine separate controls. `--batch-concurrency` governs batch-capable commands, `--ocr-concurrency` drives an adaptive page scheduler, `--split` produces STT time segments bounded by `--stt-segment-concurrency`, while `--provider-concurrency` and `--local-concurrency` manage target fan-out across providers. Each control is documented on its own command page, but the cross-cutting relationships between them were previously undocumented.
+AutoShow splits pipeline work into smaller units in eleven distinct ways and bounds concurrent execution with nine separate controls. `--batch-concurrency` governs batch-capable commands, `--ocr-concurrency` drives an adaptive page scheduler, `--split` produces STT time segments bounded by `--stt-segment-concurrency`, while `--provider-concurrency` and `--local-concurrency` manage target fan-out across providers. Each control is documented on its own command page, but the cross-cutting relationships between them were previously undocumented.
 
 These controls **nest and multiply**. A command combining `--batch-concurrency 10`, `--provider-concurrency 10`, and an OCR page cap of 32 can produce far more concurrent remote requests than any single number indicates. Unbounded nesting previously caused severe head-of-line blocking: on 2026-07-10, `bun autoshow tts "input/text" --provider grok` over 16 inputs (721 chunks, batch concurrency 10, hosted TTS chunk concurrency 30) took 14m 45s against a 4m 57s estimate. Small 3-chunk and 5-chunk files took nearly 14 minutes to complete because early large files dominated the shared provider gate and later files waited for entire file jobs to finish.
 
@@ -94,7 +94,7 @@ The records below catalog every mechanism that decomposes work into smaller exec
 - **Mechanism:** Batch item fan-out
 - **Unit Produced:** Single input file/URL through full pipeline
 - **Control:** `--batch-concurrency`
-- **Default:** `10`
+- **Default:** `7`
 - **Implementation:** `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`
 
 **Mechanism 2: Provider target fan-out**
@@ -102,7 +102,7 @@ The records below catalog every mechanism that decomposes work into smaller exec
 - **Mechanism:** Provider target fan-out
 - **Unit Produced:** One `(service, model)` target per item
 - **Control:** `--provider-concurrency`, `--local-concurrency`
-- **Default:** `10` / `10`
+- **Default:** `7` / `7`
 - **Implementation:** `src/cli/commands/process-steps/provider-target-scheduler.ts`
 
 **Mechanism 3: STT audio splitting**
@@ -118,7 +118,7 @@ The records below catalog every mechanism that decomposes work into smaller exec
 - **Mechanism:** STT segment execution
 - **Unit Produced:** Single audio segment request
 - **Control:** `--stt-segment-concurrency`
-- **Default:** `10` (local and Mistral clamp to `1`)
+- **Default:** `7` (local and Mistral clamp to `1`)
 - **Implementation:** `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts`
 
 **Mechanism 5: Hosted TTS text chunking**
@@ -166,15 +166,15 @@ The records below catalog every mechanism that decomposes work into smaller exec
 - **Mechanism:** Comic panel grouping
 - **Unit Produced:** N panels per generated image
 - **Control:** `--panels-per-image`, comic `--concurrency`
-- **Default:** `10`
+- **Default:** Panels per image `1` final / `6` sketch; comic concurrency `7`
 - **Implementation:** `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils.ts`
 
 **Mechanism 11: Multi-speaker TTS turns**
 
 - **Mechanism:** Multi-speaker TTS turns
 - **Unit Produced:** Single dialogue turn
-- **Control:** `--tts-chunk-concurrency` (hosted) / `--local-concurrency` (local)
-- **Default:** `30` / `10`
+- **Control:** `--tts-chunk-concurrency`
+- **Default:** `30`
 - **Implementation:** `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`, `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`
 
 Output ordering and failure semantics differ deliberately per mechanism:
@@ -228,7 +228,7 @@ Output ordering and failure semantics differ deliberately per mechanism:
 The controls nest from outermost to innermost:
 
 ```text
---batch-concurrency            items in flight              processBatch / runWithSemaphore
+--batch-concurrency            items in flight              processBatch / createResourceGate
   └─ --provider-concurrency    hosted targets per item      runProviderTargetScheduler (hosted pool)
      --local-concurrency       local targets per item       runProviderTargetScheduler (local pool)
         └─ pooled OCR shared page queue   one claim per page  runOcrPagePool
@@ -236,7 +236,7 @@ The controls nest from outermost to innermost:
            ├─ independent OCR lane B      up to lane cap      adaptive/fixed hosted scheduler
            └─ same-account models         share one lane cap  service:scopeLabel identity
         └─ generation resource gate  cross-step 4/5/6/7 cap  createResourceGate (FIFO semaphore)
-           ├─ dialogue turn selector    hosted/local turn cap  runDialogueWorkSelector
+           ├─ dialogue turn selector    tts chunk cap per turn  runDialogueWorkSelector
            ├─ --tts-chunk-concurrency   class cap; shared hosted lane        HostedTtsBatchCoordinatorImpl
            ├─ --ocr-concurrency         auto/fixed cap; shared hosted lane   HostedOcrSchedulerImpl
            ├─ STT slot profiles         launch 1-4, poll min(8, batchConc)  SttBatchCoordinator
@@ -263,8 +263,8 @@ All hosted network requests governed by concurrency controls pass through the ru
 
 The hosted TTS coordinator (`HostedTtsBatchCoordinatorImpl`) decouples chunk dispatch from whole-file batch lifecycles:
 
-- **Dynamic Fair-Share Window:** For each dispatch, the coordinator computes `ceil(currentLimit / runnableJobs)`. A job reaching its window is paused while other runnable jobs remain below theirs.
-- **Starvation Prevention:** Jobs denied scheduling accumulate integer dispatch debt. When a job's debt reaches the runnable-job count, it is scheduled ahead of standard comparator ordering, ensuring deterministic progress without wall-clock drift.
+- **Registration Barrier:** The batch runner creates the coordinator with dispatch held, waits for every expected chunk job to register, then releases it. Slots are therefore refilled per chunk against the full known work set rather than per whole-file job.
+- **Deterministic Dispatch Order:** Each free slot goes to the runnable job with the lowest `originalOrder`, falling back to registration order. An optional per-job active-chunk ceiling (`maxActiveChunksPerJob`) is available to callers that want to cap one file's share; the CLI leaves it unset, so dispatch order alone decides allocation.
 - **Immutable Admission Tokens:** Each chunk receives a unique token containing lane ID, internal job ID, and chunk index, ensuring retries and rate-limit events attribute exactly to the responsible file.
 - **Chunk Limits:** Character-based chunking uses a 2000-character ceiling (200 for Groq), splitting on newlines or spaces.
 
@@ -279,12 +279,12 @@ In `--ocr-provider-mode pool` (ADR-015), OCR targets do not process whole docume
 #### STT and Multi-Speaker Dialogue Selectors
 
 - **STT Splitting and Offsetting:** `--split` defaults to 30-minute segments, dynamically reduced based on provider attachment/duration budgets. If rejected, adaptive halving passes reduce segment length down to a 60-second floor. Timestamp offsetting occurs inside provider adapters; diarization speaker identities remain per-segment.
-- **Multi-Speaker Dialogue Turns:** `runDialogueWorkSelector` manages turn execution with bounded concurrency (`--tts-chunk-concurrency` for hosted). It assigns isolated `.work-*` workspaces per turn, preserves source ordering upon completion, and aborts and cleans workspaces immediately on error.
+- **Multi-Speaker Dialogue Turns:** `runDialogueWorkSelector` manages turn execution with bounded concurrency, sized by `--tts-chunk-concurrency` for hosted and local targets alike. It assigns isolated `.work-*` workspaces per turn, preserves source ordering upon completion, and aborts and cleans workspaces immediately on error.
 
 ## Rationale
 
 - **Concurrency Layers Multiply:** Documenting controls in isolation conceals exponential multiplication (e.g., batch concurrency × provider concurrency × page cap). A centralized inventory and layer model makes interactions explicit.
-- **Decoupling Safety from Fairness:** Provider-wide caps prevent remote rate-limit violations, but FIFO waiter queues allow large files to dominate capacity. Dynamic fair-share windows ensure small jobs complete promptly while keeping provider capacity saturated.
+- **Decoupling Safety from Work Selection:** Provider-wide caps prevent remote rate-limit violations, but queueing whole files behind one gate let an early large file hold capacity for its entire lifetime. Queueing individual chunks keeps the lane saturated while letting each file settle on its own completion instead of the batch's.
 - **Global Work Visibility:** Pre-chunking all batch inputs allows the scheduler to avoid head-of-line bias and produce accurate wall-time estimates from actual queued work.
 - **Domain-Specific Adaptation:** TTS, OCR, and STT require fundamentally different ordering, failure, and backfill semantics; sharing a lane vocabulary and admission coordinator provides safety without forcing artificial algorithmic unification.
 
@@ -302,9 +302,9 @@ In `--ocr-provider-mode pool` (ADR-015), OCR targets do not process whole docume
 
 Positive outcomes:
 
-- Eliminates head-of-line blocking: small files complete in seconds rather than waiting behind large batch jobs.
+- Eliminates whole-file head-of-line blocking: a file settles as soon as its own chunks finish instead of waiting for other files' jobs to drain.
 - Hosted providers are protected by run-scoped concurrency caps and adaptive 429 backoff.
-- Large jobs retain high throughput by utilizing idle lane capacity when other jobs are satisfied.
+- Large jobs retain high throughput because any free lane slot is refilled by the next runnable chunk rather than held for a specific file.
 - Accurate wall-time estimates reflect total queued chunks, provider throughput profiles, and ramp dynamics.
 - Clear documentation of nested concurrency interactions prevents accidental over-concurrency.
 - Exact admission tokens allow provider retries and rate limits to be attributed precisely to specific jobs and chunks.
@@ -326,8 +326,8 @@ Negative outcomes:
 
 **Trade-off 2**
 
-- **Gain:** Fast completion times for small files
-- **Sacrifice:** Slightly reduced raw burst priority for the initial large file
+- **Gain:** Files settle independently as soon as their own chunks finish
+- **Sacrifice:** Dispatch order still favors earlier-registered inputs while a lane is saturated
 
 **Trade-off 3**
 
@@ -352,10 +352,10 @@ Negative outcomes:
 ## Implementation Note
 
 - `src/cli/commands/process-steps/hosted-concurrency-coordinator.ts` implements shared admission, 5-second ramping, exact-request pressure attribution, bounded recovery, and telemetry. `src/utils/hosted-concurrency-estimator.ts` provides the clean-ramp estimator for price planning.
-- `src/cli/commands/process-steps/step-4-tts/tts-batch-summary.ts` simulates the fair work selector to produce wall-time estimates, and `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts` emits scheduler summaries after batch runs.
+- `src/cli/commands/process-steps/step-4-tts/tts-batch-summary.ts` simulates the hosted work queue to produce wall-time estimates, and `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts` emits scheduler summaries after batch runs.
 - `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts` and `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts` implement bounded multi-speaker turn fan-out with isolated workspaces.
 - `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/batch-executor.ts` initializes the run-scoped OCR coordinator with per-document queue adapters for batch extract/write.
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts` and `ocr-pooled-batch.ts` implement pooled OCR page claims, attempt tracking, and canonical checkpoints.
+- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`, `ocr-page-pool-state.ts`, `ocr-page-pool-workers.ts`, and `ocr-pooled-batch.ts` implement pooled OCR page claims, attempt tracking, and canonical checkpoints.
 - `src/cli/commands/process-steps/provider-lane-contract.ts` and `src/types/generation-core/provider-lane-contract-types.ts` provide the scheduler-neutral contract consumed by domain adapters.
 
 ## Test Plan
@@ -367,10 +367,10 @@ bun run check
 bun test test/test-cases/validation/cli/option-resolution-contracts/
 ```
 
-- **Fair Work Selector Unit Tests:**
-  - Verify same-lane jobs under a fixed cap receive equal initial chunk allocations.
-  - Verify short files (1–3 chunks) complete before concurrent large files.
-  - Verify long files make deterministic progress under continuous short-file arrival.
+- **Hosted TTS Work Queue Unit Tests:**
+  - Verify every expected chunk job registers before dispatch is released.
+  - Verify same-lane jobs dispatch in registered input order and concatenate chunks in chunk order.
+  - Verify concurrent chunked runs against one provider share a single hosted scheduler.
   - Verify active requests never exceed `--tts-chunk-concurrency`.
 - **Pressure and Recovery Unit Tests:**
   - Verify 429 responses halve active lane capacity down to 1.
@@ -391,7 +391,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
   - `git diff --check`
   - Targeted test suites under `test/test-cases/validation/providers/tts-provider-contracts/` and `test/test-cases/validation/cli/`
 
-Verification evidence recorded on 2026-08-14 using `bun run check`, `bun t --price`, option-resolution test suites, local scheduler contract suites, and `git diff --check`. No paid or quota-limited network calls are used in verification.
+Verification evidence recorded on 2026-08-21 using `bun run check`, `bun t --price`, option-resolution test suites, local scheduler contract suites, and `git diff --check`. No paid or quota-limited network calls are used in verification.
 
 ## References
 
@@ -410,5 +410,5 @@ Verification evidence recorded on 2026-08-14 using `bun run check`, `bun t --pri
 - Provider lane contract: `src/cli/commands/process-steps/provider-lane-contract.ts`, `src/types/generation-core/provider-lane-contract-types.ts`
 - Hosted TTS coordinator: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`, `hosted-tts-retry.ts`
 - Multi-speaker dialogue selector: `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts`, `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`
-- Hosted OCR scheduler & pooled batch: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`, `ocr-provider-pool.ts`, `ocr-pooled-batch.ts`
+- Hosted OCR scheduler & pooled batch: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`, `ocr-provider-pool.ts`, `ocr-page-pool-state.ts`, `ocr-page-pool-workers.ts`, `ocr-pooled-batch.ts`
 - STT batch coordinator & splitting: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-coordinator.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `split-execution.ts`

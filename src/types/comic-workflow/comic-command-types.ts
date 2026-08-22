@@ -1,4 +1,4 @@
-import type { Dirent } from 'node:fs'
+import type { DirectoryEntry } from '../runtime-core/filesystem-types'
 import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, PageQaEntry, PageQaRequest, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, StructuredScriptData } from '~/types'
 
 type ComicHostedConcurrencyOptions = {
@@ -140,7 +140,7 @@ export type GenerateComicGridPagesOptions = Pick<ComicImageRunOptionsBase, 'mode
 
 export type ComicPanelSource = {
   panelDirectory: string
-  panelEntries: Dirent[]
+  panelEntries: DirectoryEntry[]
   panelNumber: number
   bundleData: PanelBundleData
 }

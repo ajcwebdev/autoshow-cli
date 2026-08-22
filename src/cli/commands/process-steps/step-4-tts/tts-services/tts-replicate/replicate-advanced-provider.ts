@@ -1,10 +1,10 @@
 import type { AnyCapabilityRecord, CreateReplicateAdvancedProviderOptions, TtsVoiceProvider } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
 import {
   buildAdvancedCapabilityFixture,
   buildCapabilityDocumentationEvidence,
   providerAccountScopeHash,
 } from '../../script-to-audio/advanced-provider-contracts'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const DOCS = {
   kokoro: 'https://replicate.com/jaaari/kokoro-82m',
@@ -27,8 +27,7 @@ export const REPLICATE_ADVANCED_CAPABILITY_FIXTURE = buildAdvancedCapabilityFixt
 export const createReplicateAdvancedProvider = (
   options: CreateReplicateAdvancedProviderOptions
 ): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
-  const apiKey = options.apiKey.trim()
-  if (!apiKey) throw CLIUsageError('Replicate API token is required for capability inspection.')
+  const apiKey = requireProvidedApiKey(options.apiKey, 'REPLICATE_API_TOKEN', 'voice:replicate', 'Replicate capability inspection')
   return {
     provider: 'replicate',
     accountScopeHash: providerAccountScopeHash('replicate', apiKey),

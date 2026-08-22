@@ -76,7 +76,7 @@ single provider:
   manifest.json              # canonical command/scope/items shape
 
 multi-provider:
-  providers/<provider-model>/
+  providers/<service>-<model>/
     transcription.txt
     result.json              # raw transcription payload
   prompt.md
@@ -137,10 +137,10 @@ single provider/native route:
   manifest.json
 
 multi-provider OCR:
-  providers/<provider-model>/
+  providers/<service>-<model>/
     extraction.txt
     result.json              # raw OCR/domain payload
-  extraction.<format>         # primary provider output when --primary-ocr is set
+  extraction.txt | result.json  # primary provider output when --primary-ocr is set
   manifest.json
 ```
 
@@ -158,7 +158,7 @@ all URL backends:
   manifest.json
 ```
 
-Article items record route evidence, `web`, source, cost, timing, and errors in `metadata`, plus canonical item and provider statuses. Local HTML uses Defuddle. Remote single-backend Defuddle can fall back to Firecrawl when configured.
+Article items record route evidence, `web`, source, cost, timing, and errors in `metadata`, plus canonical item and provider statuses. Local HTML uses Defuddle. Remote single-backend Defuddle automatically retries with Firecrawl when the Defuddle attempt fails.
 
 Document extract items record `extractRoute: "document"`, Step 1 and route evidence, primary-provider data, cost, timing, web/source data when applicable, and optional errors. Provider identity, attempts, status, options, metadata, result, and error live once in the item's `providers` entries.
 
@@ -225,16 +225,16 @@ Manual mode requires `--audio` plus exactly one of `--transcript-result` or `--t
 
 ## Music Lyric-Video Pipeline
 
-Hosted music generation is a normal Step 7 provider run. The local lyric-video path is separate and is selected by `music --audio`, `music --captions`, or `music --batch`.
+Hosted music generation is a normal Step 7 provider run. The local lyric-video path is separate and is selected by any lyric-video flag (`--audio`, `--captions`, `--batch`, `--model`, `--font`), and requires either `--audio` or `--batch`.
 
 ```
 music lyric-video mode
   |
-  +--> validate audio/caption paths stay inside allowed input/output roots
+  +--> resolve audio/caption paths against the project root and require them to exist
   |
   +--> caption source:
   |      --captions -> parse VTT/SRT
-  |      no captions -> run local Whisper large-v3-turbo and create lyric cues
+  |      no captions -> run local whisper.cpp (--model, default large-v3-turbo) and create lyric cues
   |
   +--> render:
          ffmpeg + ass subtitle rendering

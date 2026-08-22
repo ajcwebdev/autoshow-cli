@@ -88,14 +88,13 @@ const expectBranchOnlyFailure = async (
 }
 
 const withHostedCredentials = async <T>(
-  values: Partial<Record<'OPENAI_API_KEY' | 'GROQ_API_KEY' | 'MISTRAL_API_KEY' | 'HF_HOME', string | undefined>>,
+  values: Partial<Record<'OPENAI_API_KEY' | 'GROQ_API_KEY' | 'MISTRAL_API_KEY', string | undefined>>,
   operation: () => Promise<T>
 ): Promise<T> => {
   const prior = {
     OPENAI_API_KEY: process.env['OPENAI_API_KEY'],
     GROQ_API_KEY: process.env['GROQ_API_KEY'],
-    MISTRAL_API_KEY: process.env['MISTRAL_API_KEY'],
-    HF_HOME: process.env['HF_HOME']
+    MISTRAL_API_KEY: process.env['MISTRAL_API_KEY']
   }
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined) delete process.env[key]

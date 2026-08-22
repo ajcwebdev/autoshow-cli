@@ -1,8 +1,8 @@
-# Setup Service Tests
+# Setup Tests
 
-Setup coverage for model downloads and service-adjacent runtime bootstrap checks.
+Setup coverage for managed downloads, doctor checks, progress output, and runtime bootstrap artifacts.
 
-Safety: these `bun t` commands document human service/e2e coverage and may call paid or quota-limited providers. Do not run them for agent verification without explicit approval for that exact run.
+Safety: this suite is local and no-cost. Downloads are mocked against fixture URLs, so nothing here calls a paid or quota-limited provider.
 
 ## Outline
 
@@ -14,12 +14,12 @@ Safety: these `bun t` commands document human service/e2e coverage and may call 
 ## Quick Start
 
 ```bash
-bun t test/test-cases/validation/setup/
+bun test test/test-cases/validation/setup/
 ```
 
 ## Current Coverage
 
-- No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts`, `setup-doctor-contracts.test.ts`, `setup-progress-contracts.test.ts`, `native-setup-download-contracts.test.ts`, `managed-artifact-contracts.test.ts`, `retired-toolchain-contracts.test.ts`, and `setup-performance-contracts.test.ts`).
+- No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts`, `setup-doctor-contracts.test.ts`, `setup-progress-contracts.test.ts`, `native-setup-download-contracts.test.ts`, `managed-artifact-contracts.test.ts`, `retired-toolchain-contracts.test.ts`, `env-example-drift-contracts.test.ts`, and `setup-performance-contracts.test.ts`).
 
 ## Price Preflight
 

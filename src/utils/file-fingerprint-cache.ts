@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto'
-import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { rename, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
+import { readTextFile, statPath as stat, writeFileExact } from '~/utils/bun-file-io'
 import type { FileFingerprint } from '~/types'
 
 export const getFileFingerprint = async (filePath: string): Promise<FileFingerprint | undefined> => {
@@ -34,7 +34,7 @@ export const fileFingerprintsMatch = (
 
 export const readJsonCacheMap = async <T>(cachePath: string): Promise<Record<string, T>> => {
   try {
-    const parsed = JSON.parse(await readFile(cachePath, 'utf-8')) as unknown
+    const parsed = JSON.parse(await readTextFile(cachePath)) as unknown
     return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
       ? parsed as Record<string, T>
       : {}
@@ -55,12 +55,9 @@ export const writeJsonCacheEntry = async <T>(options: {
     const cache = await readJsonCacheMap<T>(options.cachePath)
     cache[options.key] = options.value
 
-    const tempPath = `${options.cachePath}.${process.pid}.${randomUUID()}.tmp`
+    const tempPath = `${options.cachePath}.${process.pid}.${crypto.randomUUID()}.tmp`
     try {
-      await writeFile(tempPath, JSON.stringify(cache, null, 2), {
-        encoding: 'utf-8',
-        mode: 0o600
-      })
+      await writeFileExact(tempPath, JSON.stringify(cache, null, 2), { mode: 0o600 })
       await rename(tempPath, options.cachePath)
     } finally {
       await rm(tempPath, { force: true })

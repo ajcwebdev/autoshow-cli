@@ -58,7 +58,7 @@ test('Supadata URL backend rejects missing API key', async () => {
 
   await expect(
     runSupadataUrl('https://article.test/no-key', 'https://article.test/no-key')
-  ).rejects.toThrow('SUPADATA_API_KEY is required')
+  ).rejects.toThrow('SUPADATA_API_KEY environment variable is required for --url-provider supadata')
 })
 
 test('Supadata URL backend reports provider HTTP errors with message/details', async () => {

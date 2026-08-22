@@ -34,7 +34,7 @@ describe('DeepInfra Phase 4 Contracts', () => {
     await expect(runDeepinfraTts('Hello from DeepInfra Chatterbox test', 'test-out', {
       model: 'ResembleAI/chatterbox-turbo',
       apiKey: '',
-    })).rejects.toThrow('DeepInfra API key is required')
+    })).rejects.toThrow('DEEPINFRA_API_KEY environment variable is required for DeepInfra TTS')
   })
 
   test('normalizes Chatterbox ellipses to provider-safe comma pauses without changing canonical text', () => {

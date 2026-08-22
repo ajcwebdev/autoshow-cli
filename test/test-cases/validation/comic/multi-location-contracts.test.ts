@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
@@ -104,12 +103,12 @@ describe('multi-location comic contracts', () => {
       await Bun.write(join(locations, sheet), bytes)
       sketches.push({
         locationKey: entry.key,
-        specificationSha256: createHash('sha256').update(entry.specification).digest('hex'),
+        specificationSha256: new Bun.CryptoHasher('sha256').update(entry.specification).digest('hex'),
         views: [{
           view: 'establishing',
           generationId: `generation-${entry.key}`,
           image: sheet,
-          imageSha256: createHash('sha256').update(bytes).digest('hex'),
+          imageSha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex'),
           model: 'fixture',
           createdAt: '2026-01-01T00:00:00.000Z',
         }],
@@ -174,10 +173,10 @@ describe('multi-location comic contracts', () => {
     await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify({ ...catalog, locations: [location] }))
     await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{
       locationKey: location.key,
-      specificationSha256: createHash('sha256').update(location.specification).digest('hex'),
+      specificationSha256: new Bun.CryptoHasher('sha256').update(location.specification).digest('hex'),
       views: [
-        { view: 'establishing', generationId: 'establishing-generation', image: 'quarters--reference.png', imageSha256: createHash('sha256').update(await bytes(establishing)).digest('hex'), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' },
-        { view: 'reverse', generationId: 'reverse-generation', image: 'quarters--reference-reverse.png', imageSha256: createHash('sha256').update(await bytes(reverse)).digest('hex'), model: 'fixture', createdAt: '2026-01-02T00:00:00.000Z' },
+        { view: 'establishing', generationId: 'establishing-generation', image: 'quarters--reference.png', imageSha256: new Bun.CryptoHasher('sha256').update(await bytes(establishing)).digest('hex'), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' },
+        { view: 'reverse', generationId: 'reverse-generation', image: 'quarters--reference-reverse.png', imageSha256: new Bun.CryptoHasher('sha256').update(await bytes(reverse)).digest('hex'), model: 'fixture', createdAt: '2026-01-02T00:00:00.000Z' },
       ],
     }] }))
     const run = join(root, 'run')

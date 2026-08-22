@@ -1,9 +1,9 @@
 import { CLIUsageError } from '~/utils/error-handler'
-import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { extname } from 'node:path'
 import ts from 'typescript'
 import type { AnalysisScope, CallableMetric, FileMetric, ScopeAnalysis } from '~/types'
+import { runSyncCommandOrThrow } from '~/utils/sync-subprocess'
 
 const EXECUTABLE_EXTENSIONS = new Set([
   '.cjs',
@@ -65,10 +65,9 @@ const comparePaths = (left: string, right: string): number =>
 
 const listRepositoryFiles = (scope: AnalysisScope): string[] =>
   [...new Set(
-    execFileSync(
+    runSyncCommandOrThrow(
       'git',
-      ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', scope],
-      { encoding: 'utf8' }
+      ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', scope]
     )
       .split('\0')
       .filter(Boolean)

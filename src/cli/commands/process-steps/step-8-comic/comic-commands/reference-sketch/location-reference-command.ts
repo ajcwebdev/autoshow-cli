@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import * as v from 'valibot'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -202,7 +201,7 @@ const runLocationViewGeneration = async (
   dependencies: LocationReferenceCommandDependencies = {},
 ): Promise<LocationViewGeneration> => {
   const { key, view, model, size, quality } = request
-  const generationId = dependencies.generationId?.() ?? `${Date.now()}-${randomUUID().slice(0, 8)}`
+  const generationId = dependencies.generationId?.() ?? `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
   const attemptsRoot = join(getLocationsRoot(), '.attempts', key, generationId)
   await mkdir(attemptsRoot, { recursive: true })
   const requestImage = dependencies.requestImage ?? createImage

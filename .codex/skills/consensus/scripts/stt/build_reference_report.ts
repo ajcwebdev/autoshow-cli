@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
 import {
@@ -198,7 +197,7 @@ function rawGeminiLatestEndSeconds(rawResponse: unknown): number | null {
 }
 
 function normalizedTextHash(text: string): string {
-  return createHash("sha256").update(normalizeText(text)).digest("hex").slice(0, 16);
+  return new Bun.CryptoHasher("sha256").update(normalizeText(text)).digest("hex").slice(0, 16);
 }
 
 interface DuplicateGroup {

@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { randomUUID } from 'node:crypto'
 import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CharacterCatalogService, ComicPresentationPlan, CompactPresentation, LocationReferenceCatalog, ResolvedPanelTimeline } from '~/types'
@@ -106,7 +105,7 @@ const writePresentation = async (input: {
 }
 
 const buildSoundscapeScene = async (root: string) => {
-  const unique = randomUUID()
+  const unique = crypto.randomUUID()
   const source = ['# Episode', '', '## Scene: "Hangar"', '', '**INT. HANGAR**', '', '**AMBIENCE:**', '', `OPTIONAL ventilation ${unique}`, '', '**SFX:**', '', `airlock closes ${unique}`].join('\n')
   const provisional = parseScriptMarkdownToStructuredData(source, 'input/soundscape-only.md', { characterCatalog: characters, locationCatalog: locations })
   const structured = parseScriptMarkdownToStructuredData(source, 'input/soundscape-only.md', { sourceIdentity: provisional.sourceIdentity, characterCatalog: characters, locationCatalog: locations })

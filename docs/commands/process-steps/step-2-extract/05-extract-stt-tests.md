@@ -30,9 +30,9 @@ bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/
 
 ## Service Coverage
 
-- The shared `defineSTTServiceTest` helper covers invalid model rejection and real transcription when the required API key is configured. `--price` output coverage lives separately in `test/test-cases/price-flag/stt-price.test.ts` via the `defineSTTServicePriceTests` helper.
+- The shared `defineSTTServiceTest` helper (`test/test-utils/define-stt-service-test.ts`) runs real transcription per model when the required API key is configured, and the URL transcript files use `defineUrlTranscriptServiceTest` from the same `stt-services/` directory. Invalid model rejection is covered by the CLI validation suites rather than these e2e files. `--price` output coverage lives separately in `test/test-cases/price-flag/stt-price.test.ts`, and the mapped price commands behind `bun t --price` are declared in `test/test-runner/price-commands/registry/stt.ts`.
 - Service STT coverage is split into model and scenario files per provider target under `test/test-cases/e2e/service/step-2-stt-e2e/stt-services/`, covering AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Groq, Mistral, Rev, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including URL transcript scenarios.
-- Zero-cost routing, YouTube caption-first fallback, transcript parsing, and media acquisition validation live in `test/test-cases/validation/extract-stt/` and shared option/provider validation suites (`input-contracts.test.ts`, `option-resolution-contracts/`, `provider-selection-contracts/`, `price-mode-contracts/`, and `resume-setup-contracts.test.ts`).
+- Async STT lifecycle adoption and resume, transcript parsing and normalization, cue timing, split resilience, retry metrics, media acquisition, and the ScrapeCreators/Supadata provider contracts live in `test/test-cases/validation/extract-stt/`, alongside shared option/provider validation suites (`validation/ingest/input-contracts.test.ts`, `validation/cli/option-resolution-contracts/`, `validation/providers/provider-selection-contracts/`, `validation/reports-pricing/price-mode-contracts/`, and `validation/resume-manifests/resume-setup-contracts.test.ts`).
 
 ## Price Preflight
 

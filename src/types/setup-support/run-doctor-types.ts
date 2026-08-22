@@ -34,5 +34,6 @@ export type DoctorProbes = {
 export type DoctorReport = {
   sections: DoctorSection[]
   hasWarnings: boolean
+  missingConfiguredCredentialEnvVars: string[]
   nextSteps: string[]
 }

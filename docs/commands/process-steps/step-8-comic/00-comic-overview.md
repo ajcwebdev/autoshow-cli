@@ -49,14 +49,14 @@ XAI_API_KEY=...
 - `OPENAI_API_KEY` is required for OpenAI text and image models.
 - `GEMINI_API_KEY` is required for Gemini text and image models.
 - `XAI_API_KEY` is required for Grok text and image models.
-- Text and image models resolve against central registries, so any other centrally registered provider you select (e.g. BFL, Replicate, Luma Labs, fal.ai for images) requires its respective provider key. See [Supported Models](#supported-models) for the full list.
+- Text and image models resolve against central registries, so any other centrally registered provider you select (e.g. BFL, Replicate, or Luma Labs for images) requires its respective provider key. See [Supported Models](#supported-models) for the full list.
 - `--price` is side-effect-free and does not call image or LLM generation APIs. `comic generate-audio --price` performs static source, casting, strategy, and cost planning without provider calls or artifact writes; `comic generate-slideshow --price` reports `$0.00` without writes.
 
 Hosted comic LLM, image, QA, dialogue, and sound-effect work defaults to `--concurrency-mode ramp`. Each provider/account lane starts one request immediately and adds one slot every five seconds while demand is queued, up to the applicable command cap; independent providers ramp independently. `--concurrency-mode immediate` begins at those caps. Price mode simulates a clean ramp with no rate-limit events.
 
 ### Character and Location Catalogs
 
-Every comic command requires `input/characters/characters-reference.json`, or the equivalent file under `--characters-root`. The catalog defines character keys, relative `image` and `outlineSheet` paths, per-character aliases, optional group aliases, and optional per-character `sceneTextRules`. A rule declares `kind` (`required` or `forbidden`), a regular-expression `pattern`, and a human-readable `description`. Scene drafting validates panels against catalog descriptions and rules. A character with one canonical reference image sets `image` and `outlineSheet` to the same relative path. A prose-defined character may declare an existing root-relative `generationReference` (for style context) and optional `generationInstructions`.
+`draft-scenes` and `reference-sketch` require `input/characters/characters-reference.json`, or the equivalent file under `--characters-root`. The catalog defines character keys, relative `image` and `outlineSheet` paths, per-character aliases, a required `groupAliases` list that may be empty, and optional per-character `sceneTextRules`. A rule declares `kind` (`required` or `forbidden`), a regular-expression `pattern`, and a human-readable `description`. Scene drafting validates panels against catalog descriptions and rules. A character with one canonical reference image sets `image` and `outlineSheet` to the same relative path. A prose-defined character may declare an existing root-relative `generationReference` (for style context) and optional `generationInstructions`.
 
 Character paths must stay within the character root and use PNG/WebP/JPG/JPEG files. Canonical source images must exist when the catalog loads, except when bootstrap generation creates a new character using `generationReference`. Character revisions and panel-prompt creation require a matching checksummed registration in `character-sketches.json`.
 
@@ -245,7 +245,7 @@ Reviewed panels may optionally declare `designReferences` entries with `key`, `s
 
 ### Image Models
 
-`--image-model` accepts any model ID from the central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`). Comic routes generation through shared image dispatch across all registered providers (OpenAI, Google Gemini, xAI Grok, BFL, Replicate, Luma Labs, fal.ai).
+`--image-model` accepts model IDs from the central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`). Comic routes generation through shared image dispatch across the providers it maps: OpenAI, Google Gemini, xAI Grok, BFL, Replicate, and Luma Labs. Registered fal.ai image models pass CLI validation but are rejected before dispatch.
 
 The default is `gpt-image-2`. Common choices:
 

@@ -16,18 +16,18 @@ bun autoshow voice import <subject-key> [flags]
 
 ### Options
 
-| Flag                         | Description                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------- |
-| `--provider <name>`          | Voice provider: `elevenlabs`, `inworld`, `fish`, `cartesia`, or `speechify` |
-| `--model <model>`            | Provider TTS model used by this registration                                |
-| `--profile <key>`            | Casting profile key; default `default`                                      |
-| `--voice-id <id>`            | Existing provider voice ID                                                  |
-| `--origin <origin>`          | Voice origin such as `provider-stock` or `saved-reference`                  |
-| `--provenance-ref <ref>`     | Opaque non-secret provenance record reference                               |
-| `--consent-ref <ref>`        | Protected consent-record reference when consent is required                 |
-| `--account-scope-hash <sha>` | Required SHA-256 account scope for account-namespaced voices                |
-| `--capability-fixture-hash <sha>` | Optional pinned local capability fixture SHA-256                       |
-| `--price`                    | Validate and estimate without provider calls or artifact writes             |
+| Flag | Description |
+| --- | --- |
+| `--provider <name>` | Voice provider: `elevenlabs`, `inworld`, `fish`, `cartesia`, or `speechify` |
+| `--model <model>` | Provider TTS model used by this registration |
+| `--profile <key>` | Casting profile key; default `default` |
+| `--voice-id <id>` | Existing provider voice ID |
+| `--origin <origin>` | Voice origin: `provider-stock`, `designed`, `remixed`, `instant-clone`, `professional-clone`, `imported-custom`, or `saved-reference`; default `provider-stock` |
+| `--provenance-ref <ref>` | Opaque non-secret provenance record reference |
+| `--consent-ref <ref>` | Protected consent-record reference when consent is required |
+| `--account-scope-hash <sha>` | Required lowercase SHA-256 account scope for every origin other than `provider-stock` |
+| `--capability-fixture-hash <sha>` | Optional pinned local capability fixture SHA-256 |
+| `--price` | Validate and estimate without provider calls or artifact writes |
 
 ### Examples
 

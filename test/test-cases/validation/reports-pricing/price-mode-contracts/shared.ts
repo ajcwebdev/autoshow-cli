@@ -2,7 +2,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CommandPricingOptions, Step2Metadata } from '~/types'
+import type { CommandPricingOptions, ExtractionMetadata, Step2Metadata } from '~/types'
 
 // One record narrowing for the suite; re-exported so the price-mode files keep their
 // local import path.
@@ -15,6 +15,25 @@ export const buildSttMetadata = (overrides: Partial<Step2Metadata> = {}): Step2M
   processingTime: 1234,
   tokenCount: 0,
   ...overrides
+})
+
+export const buildOcrTimingMetadata = (input: {
+  service: 'kimi' | 'gemini'
+  model: string
+  pageCount: number
+  preparation: NonNullable<ExtractionMetadata['pdfChunkPreparation']>
+}): ExtractionMetadata => ({
+  extractionMethod: input.service === 'kimi' ? 'pdf+kimi-ocr' : 'pdf+gemini-ocr',
+  totalPages: input.pageCount,
+  ocrPages: input.pageCount,
+  textPages: 0,
+  processingTime: 1234,
+  dpi: 300,
+  languages: 'eng',
+  tokenEstimate: 10_000,
+  ocrService: input.service,
+  ocrModel: input.model,
+  pdfChunkPreparation: input.preparation
 })
 
 export const findPricingNoteKeys = (value: unknown): string[] => {

@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureTogetherSttSetup = ensureApiKeySetup('TOGETHER_API_KEY', 'stt:together', 'Together transcription')
+export const ensureTogetherSttSetup = ensureProvider('together', 'stt:together', 'Together transcription')

@@ -7,7 +7,7 @@ import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilitie
 import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import { getHostedProviderConfiguredPaths, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
+import { getHostedProviderConfiguredPaths, getMissingConfiguredHostedProviderCredentials, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
 import { defaultWhisperModel, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
 import {
   ebookConvertManagedBinaryPath,
@@ -24,6 +24,8 @@ import {
 } from '~/utils/runtime-paths'
 import { validateManagedArtifact } from './setup-download/managed-artifact'
 import { pathExists } from '~/utils/filesystem'
+import { AppUsageError, hintsForMissingEnv } from '~/utils/error-handler'
+import { resolveCredential } from '~/utils/validate/env-utils'
 
 const listNames = async (path: string): Promise<string[]> => {
   try {
@@ -378,8 +380,7 @@ const buildHostedProviderEnvChecks = (
   config?: AutoshowConfig
 ): DoctorCheck[] =>
   HOSTED_PROVIDER_ENV_CHECKS.map((provider) => {
-    const value = env[provider.envVar]
-    const set = typeof value === 'string' && value.trim().length > 0
+    const set = resolveCredential(provider.providerId, 'observe', { env }).available
     const configuredPaths = getHostedProviderConfiguredPaths(config, provider.configPaths)
     const label = `${provider.envVar} (${provider.label})`
 
@@ -496,6 +497,10 @@ export const collectDoctorReport = async (
 ): Promise<DoctorReport> => {
   const probes = createDoctorProbes(probeOverrides)
   const configAndCookies = await collectConfigAndCookieChecks(probes)
+  const missingConfiguredCredentialEnvVars = getMissingConfiguredHostedProviderCredentials(
+    probes.env,
+    configAndCookies.config
+  ).map(provider => provider.envVar)
   const sections = [
     await collectSystemBuildToolChecks(probes),
     await collectManagedRuntimeChecks(probes),
@@ -508,6 +513,7 @@ export const collectDoctorReport = async (
   return {
     sections,
     hasWarnings,
+    missingConfiguredCredentialEnvVars,
     nextSteps: collectDoctorNextSteps(sections)
   }
 }
@@ -529,8 +535,10 @@ const logDoctorSection = (section: DoctorSection): void => {
   })
 }
 
-export const runDoctor = async (): Promise<void> => {
-  const report = await collectDoctorReport()
+export const runDoctor = async (
+  options: { strict?: boolean, probeOverrides?: Partial<DoctorProbes> } = {}
+): Promise<DoctorReport> => {
+  const report = await collectDoctorReport(options.probeOverrides)
 
   for (const section of report.sections) {
     logDoctorSection(section)
@@ -559,4 +567,19 @@ export const runDoctor = async (): Promise<void> => {
       )
     })
   }
+
+  if (options.strict && report.missingConfiguredCredentialEnvVars.length > 0) {
+    const missing = report.missingConfiguredCredentialEnvVars
+    throw new AppUsageError(
+      `Credential check failed: configured defaults require ${missing.join(', ')}.`,
+      missing.flatMap(hintsForMissingEnv),
+      {
+        stage: 'setup:doctor',
+        retryable: false,
+        metadata: { missingCredentialEnvVars: missing }
+      }
+    )
+  }
+
+  return report
 }

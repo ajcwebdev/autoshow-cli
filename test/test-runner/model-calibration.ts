@@ -1,4 +1,5 @@
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { resolve } from 'node:path'
 import { MODEL_CONFIG_FRAGMENT_PREFIXES, MODEL_CONFIG_PATHS } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type {
@@ -72,29 +73,29 @@ const normalizeStepShape = (
   }
 }
 
-const normalizeUnitValue = (
+type UnitConverter = (value: number) => number
+
+const identityUnit: UnitConverter = value => value
+const millisecondsToSeconds: UnitConverter = value => value / 1000
+
+const UNIT_NORMALIZATION_RULES = {
+  stt: { durationMs: millisecondsToSeconds, durationSeconds: identityUnit },
+  extract: { pages: identityUnit },
+  llm: { tokens: identityUnit },
+  tts: { characters: identityUnit },
+  image: { images: identityUnit },
+  video: { durationMs: millisecondsToSeconds, durationSeconds: identityUnit },
+  music: { durationMs: millisecondsToSeconds, durationSeconds: identityUnit },
+} satisfies Record<CalibrationKind, Readonly<Record<string, UnitConverter>>>
+
+export const normalizeUnitValue = (
   kind: CalibrationKind,
   metric: string | null,
   value: number | null
 ): number | null => {
-  if (value === null || value <= 0) return null
-
-  switch (kind) {
-    case 'stt':
-    case 'video':
-    case 'music':
-      if (metric === 'durationMs') return value / 1000
-      if (metric === 'durationSeconds') return value
-      return null
-    case 'extract':
-      return metric === 'pages' ? value : null
-    case 'llm':
-      return metric === 'tokens' ? value : null
-    case 'tts':
-      return metric === 'characters' ? value : null
-    case 'image':
-      return metric === 'images' ? value : null
-  }
+  if (value === null || !Number.isFinite(value) || value <= 0 || metric === null) return null
+  const rules: Readonly<Record<string, UnitConverter>> = UNIT_NORMALIZATION_RULES[kind]
+  return rules[metric]?.(value) ?? null
 }
 
 const computeObservedTimeRate = (kind: CalibrationKind, actualProcessingTimeMs: number, unitValue: number): number | null => {

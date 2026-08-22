@@ -1,5 +1,5 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { ensureApiKeySetup, requireApiKey } from '~/utils/validate/env-utils'
+import { ensureProvider, requireApiKey } from '~/utils/validate/env-utils'
 import { httpResponseError, parseJsonOrText, resolveRestPath } from '~/utils/rest-client'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
@@ -167,4 +167,4 @@ export const buildHappyScribeOrganizationResolutionError = (
   )
 }
 
-export const ensureHappyScribeSttSetup = ensureApiKeySetup('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
+export const ensureHappyScribeSttSetup = ensureProvider('happyscribe', 'stt:happyscribe', 'Happy Scribe transcription')

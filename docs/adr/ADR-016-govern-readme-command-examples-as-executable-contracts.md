@@ -4,7 +4,7 @@
 
 - **Decision Status:** Proposed
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-15
+- **Date Updated:** 2026-08-21
 - **Verification Status:** Pending
 
 ## Context
@@ -15,7 +15,7 @@ Restricting automated verification to the root `README.md` leaves over 90% of co
 
 To maintain documentation integrity safely, every shell-like command occurrence across `README.md` and `docs/` must be inventoried and classified under an explicit execution and safety policy. Non-executable, historical, paid, and stateful commands must be protected with appropriate parse-only, stubbed, or never-execute rules, while priceable workflows must execute deterministically offline at zero cost.
 
-Why now: A repository-wide documentation audit identified 1,455 shell-like candidates across 164 Markdown files, with 785 concrete AutoShow invocations. Scoping contracts to the README alone leaves the primary command-reference surface and operational documentation exposed to silent drift and execution errors.
+Why now: A repository-wide documentation audit identified 1,424 shell-like candidates across 199 Markdown files, with 803 concrete AutoShow invocations. Scoping contracts to the README alone leaves the primary command-reference surface and operational documentation exposed to silent drift and execution errors.
 
 ## Options Considered
 
@@ -24,28 +24,28 @@ Why now: A repository-wide documentation audit identified 1,455 shell-like candi
 - **Option:** Govern every command occurrence in the root `README.md` and all Markdown beneath `docs/` through one classified inventory and policy-aware harness
 - **Pros:** Matches the literal user-facing surface, catches cross-document drift, makes unsafe examples explicit, supports deduplicated execution with occurrence-based reporting, and covers generated/historical material safely
 - **Cons:** Requires a Markdown-aware extractor, a typed inventory, risk-specific policies, stable offline fixtures, and generator integration
-- **Quantitative Notes:** Covers 164 files, 1,455 candidates, and 785 concrete AutoShow occurrences
+- **Quantitative Notes:** Covers 199 files, 1,424 candidates, and 803 concrete AutoShow occurrences
 
 **Option 2**
 
 - **Option:** Govern only the root `README.md`
 - **Pros:** Smallest implementation and fastest test execution
-- **Cons:** Leaves 732 concrete AutoShow occurrences outside the contract and misses the majority of user-facing failures and option drift
-- **Quantitative Notes:** Covers only 53 of 785 concrete AutoShow occurrences
+- **Cons:** Leaves 744 concrete AutoShow occurrences outside the contract and misses the majority of user-facing failures and option drift
+- **Quantitative Notes:** Covers only 59 of 803 concrete AutoShow occurrences
 
 **Option 3**
 
 - **Option:** Govern `README.md` plus primary command references, excluding ADRs, reports, diagrams, templates, and test guides
 - **Pros:** Covers most usage docs with less initial classification work
 - **Cons:** Permits stale or unsafe commands in operational, architectural, generated, and historical documents; leaves boundaries ambiguous
-- **Quantitative Notes:** Omits 110 concrete AutoShow occurrences and 679 other shell-like candidates
+- **Quantitative Notes:** Omits 77 concrete AutoShow occurrences and 395 other shell-like candidates
 
 **Option 4**
 
 - **Option:** Parse and execute every shell-looking candidate indiscriminately
 - **Pros:** Minimal policy design and superficially broad runtime coverage
 - **Cons:** Can install unwanted software, mutate config or Git state, build containers, contact paid APIs, and mistake expected output for executable commands
-- **Quantitative Notes:** Threatens repository state with 674 non-AutoShow and 259 stateful/utility candidates
+- **Quantitative Notes:** Threatens repository state with 621 non-AutoShow and 173 stateful/utility candidates
 
 **Option 5**
 
@@ -155,6 +155,7 @@ bun test test/test-cases/validation/cli/doc-command-flags-contract.test.ts
 ```
 
 When the dedicated documentation harness is implemented:
+
 1. Run `bun test test/test-cases/validation/cli/documentation-command-examples.test.ts` to assert bidirectional exhaustiveness between extracted Markdown commands and typed inventory entries.
 2. Verify that all priceable occurrences return structured envelopes with `providerCalls: 0`, `networkCalls: 0`, and valid numeric `totalEstimatedCostCents`.
 3. Assert that stateful, external, Docker, and paid commands execute under `parse-only` or `never-execute` policies.
@@ -163,11 +164,11 @@ When the dedicated documentation harness is implemented:
 ## Follow-up Actions
 
 - [ ] Implement fail-closed provider/network guards and isolated temporary filesystem/config harnesses for documentation tests — Pending
-- [ ] Add validation rejecting `config --price` mutations before state access — Pending
+- [x] Add validation rejecting `config --price` mutations before state access — Done (`src/cli/flags/config-flags.ts` omits `price` from the config surface, so `autoshow config --price` fails as an unexpected-flag usage error before any state access)
 - [ ] Build the Markdown-aware extractor, typed occurrence inventory, and bidirectional coverage test suite — Pending
 - [ ] Standardize structured price result envelopes across all AutoShow commands — Pending
 - [ ] Commit offline fixtures for document, transcript, batch, image, video, comic, and voice workflows — Pending
-- [ ] Fix quiet-price output, end-of-options (`--`) parsing, hosted EPUB planning, and article route resolution — Pending
+- [ ] Fix quiet-price output, hosted EPUB planning, and article route resolution — Pending (end-of-options `--` passthrough landed in `src/cli/native/native-parser.ts` and is covered by `test/test-cases/validation/cli/native-cli-parser-contracts.test.ts`)
 - [ ] Define static risk and parse-only validation policies for utilities, Docker, Git, external tools, and credentials — Pending
 - [ ] Implement cross-checks validating documented flags and models against CLI parsers and model registries — Pending
 - [ ] Generate occurrence-based and deduplicated documentation cost reports — Pending
@@ -180,7 +181,8 @@ When the dedicated documentation harness is implemented:
 - [`docs/commands/testing.md`](../commands/testing.md)
 - [`docs/docker.md`](../docker.md)
 - [`docs/diagrams/`](../diagrams/)
-- [`docs/reports/`](../reports/)
+- [`docs/benchmarks/`](../benchmarks/)
+- [`docs/models/`](../models/)
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
 - Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
 - Related ADR: [ADR-006](ADR-006-unify-the-logging-and-error-handling-vocabulary.md)

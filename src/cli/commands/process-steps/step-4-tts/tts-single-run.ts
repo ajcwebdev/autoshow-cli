@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir } from '~/cli/commands/process-steps/generation-command-utils'
 import { createManifest, createPipelineItemFromRecord, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/pipeline-item-record-builder'

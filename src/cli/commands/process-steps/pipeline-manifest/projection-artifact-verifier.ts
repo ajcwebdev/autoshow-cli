@@ -1,6 +1,5 @@
-import { readFile, readdir, realpath, lstat } from 'node:fs/promises'
+import { readdir, realpath, lstat } from 'node:fs/promises'
 import { resolve, relative, isAbsolute, posix } from 'node:path'
-import { createHash } from 'node:crypto'
 import type {
   CheckedArtifact,
   PipelineProviderState,
@@ -10,6 +9,7 @@ import type {
   ProjectionVerificationRoots
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { readFileBytes } from '~/utils/bun-file-io'
 import { isRecord } from '~/utils/rest-client'
 import {
   canonicalManifestJson,
@@ -50,7 +50,7 @@ export const discoverPreviousAdmissionJournalReference = async (
     if (candidatePath === reference.path || !isStrictArtifactRelativePath(candidatePath)) continue
     const absoluteCandidate = resolve(artifactRoot, candidatePath)
     if (!await hasNoSymlinkBelowRoot(artifactRoot, absoluteCandidate)) continue
-    const bytes = await readFile(absoluteCandidate)
+    const bytes = await readFileBytes(absoluteCandidate)
     let candidate: unknown
     try {
       candidate = JSON.parse(bytes.toString('utf8')) as unknown
@@ -64,7 +64,7 @@ export const discoverPreviousAdmissionJournalReference = async (
     ) continue
     matches.push({
       path: candidatePath,
-      sha256: createHash('sha256').update(bytes).digest('hex'),
+      sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex'),
       kind: 'admission-journal',
       expectedJsonFields: {
         snapshotId: previousSnapshotId,
@@ -149,8 +149,8 @@ const loadProjectionArtifact = async (
   const canonical = await realpath(filePath)
   const fromReferenceRoot = relative(canonicalReferenceRoot, canonical)
   if (fromReferenceRoot.startsWith('..') || isAbsolute(fromReferenceRoot)) return undefined
-  const bytes = await readFile(canonical)
-  const actualSha = createHash('sha256').update(bytes).digest('hex')
+  const bytes = await readFileBytes(canonical)
+  const actualSha = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
   if (actualSha !== reference.sha256) return undefined
   const json = decodeProjectionArtifactBytes(reference, bytes)
   return { sha256: reference.sha256, ...(json ? { json } : {}) }

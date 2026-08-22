@@ -1,7 +1,5 @@
-import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { isRecord } from '~/utils/rest-client'
 import { validateComicSourceIdentity } from '../step-8-comic/comic-utils/comic-audio-contracts'
-import { aggregateComicStageStatus } from './comic-stage-status'
 import type {
   CanonicalComicItemMetadata,
   ComicSourceIdentity,
@@ -11,19 +9,15 @@ import type {
   PipelineProviderState
 } from '~/types'
 import {
-  canonicalManifestJson,
   hasOnlyKeys,
-  hasPersistedKey,
   isExtractRoute,
   isInputFamily,
   isProcessCommand,
   isSafeRelativePath,
-  isSha256,
-  isStrictArtifactRelativePath,
   ITEM_STATUS_SET,
-  PROVIDER_STATUS_SET
 } from './guards'
-import { parseAudioProjectionStatus } from './audio-projection-structure'
+import { expectedComicItemStatus } from './comic-metadata-status-parser'
+import { parseProviderState } from './provider-state-parser'
 
 const parseChildLink = (
   rootDir: string,
@@ -48,101 +42,7 @@ const parseChildLink = (
   }
 }
 
-const parseProviderState = (
-  rootDir: string,
-  value: unknown
-): PipelineProviderState | undefined => {
-  if (
-    !isRecord(value)
-    || !hasOnlyKeys(value, ['service', 'model', 'local', 'operation', 'targetKey', 'transport', 'artifactDir', 'status', 'attempts', 'options', 'metadata', 'result', 'error'])
-    || typeof value['service'] !== 'string'
-    || (value['model'] !== undefined && value['model'] !== null && typeof value['model'] !== 'string')
-    || typeof value['artifactDir'] !== 'string'
-    || !isSafeRelativePath(rootDir, value['artifactDir'])
-    || typeof value['status'] !== 'string'
-    || !PROVIDER_STATUS_SET.has(value['status'])
-    || typeof value['attempts'] !== 'number'
-    || !Number.isInteger(value['attempts'])
-    || value['attempts'] < 0
-    || !isRecord(value['options'])
-    || !isRecord(value['metadata'])
-    || (value['result'] !== undefined && !isRecord(value['result']))
-    || (value['error'] !== undefined && !isRecord(value['error']))
-    || (value['local'] !== undefined && typeof value['local'] !== 'boolean')
-  ) {
-    return undefined
-  }
-
-  const persistedAudioIdentityKeys = ['operation', 'targetKey', 'transport'].filter((key) => hasPersistedKey(value, key))
-  if (persistedAudioIdentityKeys.length !== 0 && persistedAudioIdentityKeys.length !== 3) {
-    return undefined
-  }
-  const operation = persistedAudioIdentityKeys.length === 3 ? value['operation'] : undefined
-  const targetKey = persistedAudioIdentityKeys.length === 3 ? value['targetKey'] : undefined
-  const transport = persistedAudioIdentityKeys.length === 3 ? value['transport'] : undefined
-  if (
-    persistedAudioIdentityKeys.length === 3
-    && (
-      typeof operation !== 'string'
-      || operation.trim().length === 0
-      || typeof targetKey !== 'string'
-      || targetKey.trim().length === 0
-      || typeof transport !== 'string'
-      || transport.trim().length === 0
-      || typeof value['model'] !== 'string'
-      || targetKey !== canonicalTargetKey(operation, value['service'], value['model'], transport)
-    )
-  ) {
-    return undefined
-  }
-
-  if (operation === 'tts-synthesis' || operation === 'comic-audio') {
-    const expectedNamespace = operation === 'tts-synthesis' ? 'ttsAudio' : 'comicAudio'
-    const forbiddenNamespace = operation === 'tts-synthesis' ? 'comicAudio' : 'ttsAudio'
-    const result = value['result']
-    const metadata = value['metadata']
-    if (
-      !isRecord(result)
-      || !hasOnlyKeys(result, [expectedNamespace])
-      || !isRecord(result[expectedNamespace])
-      || result[forbiddenNamespace] !== undefined
-      || !isRecord(metadata[expectedNamespace])
-      || canonicalManifestJson(result[expectedNamespace]) !== canonicalManifestJson(metadata[expectedNamespace])
-      || metadata[forbiddenNamespace] !== undefined
-      || typeof targetKey !== 'string'
-    ) {
-      return undefined
-    }
-    const projected = parseAudioProjectionStatus(result[expectedNamespace], targetKey)
-    if (!projected || projected.status !== value['status'] || projected.attempts !== value['attempts']) {
-      return undefined
-    }
-  } else if (
-    (isRecord(value['result']) && (value['result']['ttsAudio'] !== undefined || value['result']['comicAudio'] !== undefined))
-    || value['metadata']['ttsAudio'] !== undefined
-    || value['metadata']['comicAudio'] !== undefined
-  ) {
-    return undefined
-  }
-
-  return {
-    service: value['service'],
-    ...(value['model'] === null || typeof value['model'] === 'string' ? { model: value['model'] } : {}),
-    ...(typeof value['local'] === 'boolean' ? { local: value['local'] } : {}),
-    ...(typeof operation === 'string' ? { operation } : {}),
-    ...(typeof targetKey === 'string' ? { targetKey } : {}),
-    ...(typeof transport === 'string' ? { transport } : {}),
-    artifactDir: value['artifactDir'],
-    status: value['status'] as PipelineProviderState['status'],
-    attempts: value['attempts'],
-    options: value['options'],
-    metadata: value['metadata'],
-    ...(isRecord(value['result']) ? { result: value['result'] } : {}),
-    ...(isRecord(value['error']) ? { error: value['error'] } : {})
-  }
-}
-
-export const parseManifestItem = (
+ export const parseManifestItem = (
   rootDir: string,
   value: unknown
 ): PipelineManifestItem | undefined => {
@@ -208,96 +108,7 @@ export const expectedTtsItemStatus = (providers: readonly PipelineProviderState[
   return 'incomplete'
 }
 
-const parseComicStageRecord = (
-  value: unknown,
-  providers: readonly PipelineProviderState[],
-  operations: readonly string[]
-): { requirement: 'not-requested' | 'required' | 'optional', status: PipelineManifestItem['status'] } | undefined => {
-  if (!isRecord(value) || !hasOnlyKeys(value, ['requirement', 'status', 'execution', 'targetKeys', 'artifactRefs']) || !ITEM_STATUS_SET.has(value['status'] as string) || !Array.isArray(value['targetKeys']) || !Array.isArray(value['artifactRefs'])) return undefined
-  if (value['artifactRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
-  const execution = value['execution']
-  if (value['requirement'] === 'not-requested') {
-    if (value['status'] !== 'skipped' || !isRecord(execution) || !hasOnlyKeys(execution, ['kind', 'reason']) || execution['kind'] !== 'none' || execution['reason'] !== 'not-requested' || value['targetKeys'].length !== 0 || value['artifactRefs'].length !== 0) return undefined
-    return { requirement: 'not-requested', status: 'skipped' }
-  }
-  if (value['requirement'] !== 'required' && value['requirement'] !== 'optional') return undefined
-  if (!isRecord(execution)) return undefined
-  if (execution['kind'] === 'local') {
-    if (!hasOnlyKeys(execution, ['kind', 'state', 'policyReason']) || !PROVIDER_STATUS_SET.has(execution['state'] as string) || value['targetKeys'].length !== 0) return undefined
-    const state = execution['state'] as PipelineProviderState['status']
-    const expected = state === 'succeeded' ? 'full' : state === 'skipped' ? 'skipped' : state === 'failed' ? 'failed' : 'incomplete'
-    if (value['status'] !== expected || (state === 'skipped' && (typeof execution['policyReason'] !== 'string' || !execution['policyReason'].trim()))) return undefined
-  } else if (execution['kind'] === 'provider-targets') {
-    if (!hasOnlyKeys(execution, ['kind']) || value['targetKeys'].length === 0 || value['targetKeys'].some(key => typeof key !== 'string') || new Set(value['targetKeys'] as string[]).size !== value['targetKeys'].length) return undefined
-    const owned = (value['targetKeys'] as string[]).map(key => providers.filter(provider => provider.targetKey === key && provider.operation !== undefined && operations.includes(provider.operation)))
-    if (owned.some(matches => matches.length !== 1)) return undefined
-    const statuses = owned.map(matches => (matches[0] as PipelineProviderState).status)
-    const successCount = statuses.filter(status => status === 'succeeded').length
-    const expected = statuses.every(status => status === 'skipped')
-      ? 'skipped'
-      : successCount > 0 && statuses.every(status => status === 'succeeded' || status === 'skipped')
-        ? 'full'
-        : successCount === 0 && statuses.every(status => status === 'failed' || status === 'skipped') && statuses.includes('failed')
-          ? 'failed'
-          : 'incomplete'
-    if (value['status'] !== expected) return undefined
-  } else return undefined
-  return { requirement: value['requirement'], status: value['status'] as PipelineManifestItem['status'] }
-}
-
-const expectedComicItemStatus = (
-  item: PipelineManifestItem
-): PipelineManifestItem['status'] | undefined => {
-  const metadata = item.metadata['comic']
-  if (!isRecord(metadata) || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio', 'presentation']) || metadata['schemaVersion'] !== 1 || !isRecord(metadata['stages']) || !isRecord(metadata['audio']) || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio', 'presentation'])) return undefined
-  const stages = [
-    parseComicStageRecord(metadata['stages']['structure'], item.providers, ['comic-structure']),
-    parseComicStageRecord(metadata['stages']['image'], item.providers, ['comic-image']),
-    parseComicStageRecord(metadata['stages']['audio'], item.providers, ['comic-audio', 'sound-effect-generation']),
-    parseComicStageRecord(metadata['stages']['presentation'], item.providers, []),
-  ]
-  if (stages.some(stage => stage === undefined)) return undefined
-  const audio = metadata['audio']
-  if (!hasOnlyKeys(audio, ['sceneRunIdentity', 'structuredScript', 'dialoguePlanId', 'dialoguePlanRef', 'snapshotId', 'snapshotRef', 'selectedAudioRuns', 'publishedAudioRunId', 'mixPlanRef', 'finalTimelineRef', 'finalOutputRefs', 'soundscapePlanId', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef', 'selectedSoundscapeRuns'])) return undefined
-  if (audio['sceneRunIdentity'] !== undefined && !isSha256(audio['sceneRunIdentity'])) return undefined
-  if (audio['dialoguePlanId'] !== undefined && !isSha256(audio['dialoguePlanId'])) return undefined
-  if (audio['snapshotId'] !== undefined && !isSha256(audio['snapshotId'])) return undefined
-  if (audio['soundscapePlanId'] !== undefined && !isSha256(audio['soundscapePlanId'])) return undefined
-  const structured = audio['structuredScript']
-  if (structured !== undefined && (!isRecord(structured) || !hasOnlyKeys(structured, ['path', 'artifactSchemaVersion', 'sha256']) || structured['path'] !== 'metadata/structured-script.json' || structured['artifactSchemaVersion'] !== 5 || !isSha256(structured['sha256']))) return undefined
-  for (const key of ['dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
-    const ref = audio[key]
-    if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
-  }
-  if (audio['finalOutputRefs'] !== undefined && (!Array.isArray(audio['finalOutputRefs']) || audio['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
-  if (audio['selectedAudioRuns'] !== undefined && (!Array.isArray(audio['selectedAudioRuns']) || audio['selectedAudioRuns'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'renderIdentity', 'audioRunId', 'audioRunRef', 'audioRunSha256']) || !Object.values(ref).every(value => typeof value === 'string') || !isSha256(ref['audioRunSha256'])))) return undefined
-  if (audio['selectedSoundscapeRuns'] !== undefined && (!Array.isArray(audio['selectedSoundscapeRuns']) || audio['selectedSoundscapeRuns'].some(ref => {
-    if (!isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'dialogueAudioRunId', 'soundscapeAudioRunId', 'audioRunRef', 'audioRunSha256', 'masterRef'])) return true
-    if (typeof ref['targetKey'] !== 'string' || !isSha256(ref['dialogueAudioRunId']) || !isSha256(ref['soundscapeAudioRunId']) || !isStrictArtifactRelativePath(ref['audioRunRef']) || !isSha256(ref['audioRunSha256'])) return true
-    const masterRef = ref['masterRef']
-    return !isRecord(masterRef) || !hasOnlyKeys(masterRef, ['path', 'sha256']) || !isStrictArtifactRelativePath(masterRef['path']) || !isSha256(masterRef['sha256'])
-  }))) return undefined
-  const presentation = metadata['presentation'] ?? {}
-  if (!isRecord(presentation) || !hasOnlyKeys(presentation, ['selectedPresentationId', 'planRef', 'resolvedTimelineRef', 'runRef', 'finalOutputRefs'])) return undefined
-  if (presentation['selectedPresentationId'] !== undefined && !isSha256(presentation['selectedPresentationId'])) return undefined
-  for (const key of ['planRef', 'resolvedTimelineRef', 'runRef'] as const) {
-    const ref = presentation[key]
-    if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
-  }
-  if (presentation['finalOutputRefs'] !== undefined && (!Array.isArray(presentation['finalOutputRefs']) || presentation['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
-  const presentationStageValue = metadata['stages']['presentation']
-  if (metadata['presentation'] !== undefined && Object.keys(presentation).length > 0) {
-    if (!isRecord(presentationStageValue) || presentationStageValue['status'] !== 'full' || !Array.isArray(presentationStageValue['artifactRefs'])) return undefined
-    const stageRefs = presentationStageValue['artifactRefs'] as unknown[]
-    const envelopeRefs = [presentation['planRef'], presentation['resolvedTimelineRef'], presentation['runRef'], ...(Array.isArray(presentation['finalOutputRefs']) ? presentation['finalOutputRefs'] : [])]
-    if (envelopeRefs.some(ref => !isRecord(ref) || !stageRefs.some(stageRef => isRecord(stageRef) && stageRef['path'] === ref['path'] && stageRef['sha256'] === ref['sha256']))) return undefined
-  }
-  const required = stages.filter(stage => stage?.requirement === 'required') as Array<{ requirement: 'required', status: PipelineManifestItem['status'] }>
-  if (required.length === 0) return undefined
-  return aggregateComicStageStatus(required)
-}
-
-export const parseManifest = (
+ export const parseManifest = (
   rootDir: string,
   value: unknown
 ): PipelineManifest | undefined => {

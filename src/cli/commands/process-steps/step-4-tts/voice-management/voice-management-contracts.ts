@@ -301,7 +301,7 @@ export const validateVoiceAuditionManifest = (manifest: VoiceAuditionManifest): 
   return manifest
 }
 
-export const validateVoiceRegistration = (registration: VoiceRegistration): VoiceRegistration => {
+const validateVoiceRegistrationIdentity = (registration: VoiceRegistration): void => {
   assertAllowedKeys(registration, ['schemaVersion', 'registrationId', 'generationId', 'priorGenerationId', 'subjectKey', 'profileKey', 'provider', 'providerModel', 'creationModel', 'briefHash', 'provenanceRef', 'consentRecordRef', 'settingsSchema', 'synthesisSettings', 'capabilityFixtureHash', 'accountCapabilityObservationHash', 'sanitizedProviderMetadata', 'retention', 'cleanupState', 'createdAt', 'updatedAt', 'approval', 'provisioning', 'approvedAuditionId'], 'Voice registration')
   if (registration.schemaVersion !== 1) throw CLIUsageError('Voice registration requires schemaVersion 1.')
   assertSafeKey(registration.registrationId, 'Voice registration ID')
@@ -318,6 +318,9 @@ export const validateVoiceRegistration = (registration: VoiceRegistration): Voic
     assertNonSecretReference(registration.consentRecordRef, 'Voice registration consent reference')
     if (!/^protected-consent:v1:[a-z0-9][a-z0-9_-]{0,127}:sha256_[a-f0-9]{64}:[a-f0-9]{64}$/.test(registration.consentRecordRef)) throw CLIUsageError('Voice registration consent reference must be a protected consent v1 locator.')
   }
+}
+
+const validateVoiceRegistrationSettings = (registration: VoiceRegistration): void => {
   if (registration.settingsSchema !== registration.synthesisSettings.settingsSchema) throw CLIUsageError('Voice registration settings schema does not match its settings payload.')
   assertAllowedKeys(registration.synthesisSettings, ['schemaVersion', 'settingsSchema', 'values'], 'Voice registration synthesis settings')
   if (registration.synthesisSettings.schemaVersion !== 1) throw CLIUsageError('Voice registration synthesis settings require schemaVersion 1.')
@@ -329,54 +332,61 @@ export const validateVoiceRegistration = (registration: VoiceRegistration): Voic
   for (const value of Object.values(registration.sanitizedProviderMetadata)) {
     if (!(value === null || ['string', 'number', 'boolean'].includes(typeof value) || (Array.isArray(value) && value.every(entry => typeof entry === 'string')))) throw CLIUsageError('Voice registration provider metadata contains an unsupported value.')
   }
+}
+
+const validateVoiceRetentionAndCleanup = (registration: VoiceRegistration): void => {
   assertAllowedKeys(registration.retention, ['protectedAssets', 'providerResource', 'cacheAfterRevocation', 'exportAfterRevocation', 'obligationRef'], 'Voice retention policy')
   if (!['retain', 'delete-on-revocation', 'delete-after-provisioning'].includes(registration.retention.protectedAssets)
     || !['retain', 'delete-on-retirement', 'external'].includes(registration.retention.providerResource)
     || !['deny', 'allow-existing'].includes(registration.retention.cacheAfterRevocation)
-    || !['deny', 'allow-existing'].includes(registration.retention.exportAfterRevocation)) {
-    throw CLIUsageError('Voice retention policy contains an unsupported decision.')
-  }
+    || !['deny', 'allow-existing'].includes(registration.retention.exportAfterRevocation)) throw CLIUsageError('Voice retention policy contains an unsupported decision.')
   if (registration.retention.obligationRef) assertNonSecretReference(registration.retention.obligationRef, 'Voice retention obligation reference')
   const cleanupAllowed = registration.cleanupState.state === 'retained' ? ['state', 'checkedAt']
     : registration.cleanupState.state === 'deletion-required' ? ['state', 'reason', 'requiredAt']
       : registration.cleanupState.state === 'deletion-pending' ? ['state', 'requestedAt']
         : registration.cleanupState.state === 'deleted' ? ['state', 'deletedAt']
-          : registration.cleanupState.state === 'external-action-required' ? ['state', 'action', 'checkedAt']
-            : []
+          : registration.cleanupState.state === 'external-action-required' ? ['state', 'action', 'checkedAt'] : []
   if (cleanupAllowed.length === 0) throw CLIUsageError('Voice cleanup state is unsupported.')
   assertAllowedKeys(registration.cleanupState, cleanupAllowed, 'Voice cleanup state')
-  assertIsoDate(registration.createdAt, 'Voice registration createdAt')
-  assertIsoDate(registration.updatedAt, 'Voice registration updatedAt')
-  validateProvisioningState(registration.provisioning)
-  if ('providerVoice' in registration.provisioning && registration.provisioning.providerVoice && registration.provisioning.providerVoice.provider !== registration.provider) throw CLIUsageError('Voice registration provisioning provider does not match the registration provider.')
-  const approvalAllowed = registration.approval.state === 'approved' ? ['state', 'auditionId', 'approvedAt', 'approvedBy']
-    : registration.approval.state === 'draft' ? ['state']
-      : registration.approval.state === 'auditioned' ? ['state', 'auditionId']
-        : registration.approval.state === 'retired' ? ['state', 'priorAuditionId', 'retiredAt']
-          : registration.approval.state === 'revoked' ? ['state', 'priorAuditionId', 'revokedAt', 'reason']
-            : []
-  if (approvalAllowed.length === 0) throw CLIUsageError('Voice approval state is unsupported.')
-  assertAllowedKeys(registration.approval, approvalAllowed, 'Voice approval state')
   if (registration.cleanupState.state === 'retained') assertIsoDate(registration.cleanupState.checkedAt, 'Voice cleanup checkedAt')
   if (registration.cleanupState.state === 'deletion-required') assertIsoDate(registration.cleanupState.requiredAt, 'Voice cleanup requiredAt')
   if (registration.cleanupState.state === 'deletion-pending') assertIsoDate(registration.cleanupState.requestedAt, 'Voice cleanup requestedAt')
   if (registration.cleanupState.state === 'deleted') assertIsoDate(registration.cleanupState.deletedAt, 'Voice cleanup deletedAt')
   if (registration.cleanupState.state === 'external-action-required') assertIsoDate(registration.cleanupState.checkedAt, 'Voice cleanup checkedAt')
+}
+
+const validateVoiceApproval = (registration: VoiceRegistration): void => {
+  const approvalAllowed = registration.approval.state === 'approved' ? ['state', 'auditionId', 'approvedAt', 'approvedBy']
+    : registration.approval.state === 'draft' ? ['state']
+      : registration.approval.state === 'auditioned' ? ['state', 'auditionId']
+        : registration.approval.state === 'retired' ? ['state', 'priorAuditionId', 'retiredAt']
+          : registration.approval.state === 'revoked' ? ['state', 'priorAuditionId', 'revokedAt', 'reason'] : []
+  if (approvalAllowed.length === 0) throw CLIUsageError('Voice approval state is unsupported.')
+  assertAllowedKeys(registration.approval, approvalAllowed, 'Voice approval state')
   if (registration.approval.state === 'approved') {
     if (registration.provisioning.state !== 'ready') throw CLIUsageError('Approved voice registration must be provisioned and ready.')
     if (registration.approvedAuditionId !== registration.approval.auditionId) throw CLIUsageError('Approved voice registration must bind its exact approval audition.')
     assertSha256(registration.approvedAuditionId, 'Approved audition ID')
     assertIsoDate(registration.approval.approvedAt, 'Voice registration approvedAt')
     validateAuditActorRef(registration.approval.approvedBy)
-  } else if (registration.approvedAuditionId !== undefined) {
-    throw CLIUsageError('Only an approved registration may contain approvedAuditionId.')
-  }
+  } else if (registration.approvedAuditionId !== undefined) throw CLIUsageError('Only an approved registration may contain approvedAuditionId.')
   if (registration.approval.state === 'auditioned') assertSha256(registration.approval.auditionId, 'Voice audition ID')
   if (registration.approval.state === 'retired') assertIsoDate(registration.approval.retiredAt, 'Voice registration retiredAt')
   if (registration.approval.state === 'revoked') {
     assertIsoDate(registration.approval.revokedAt, 'Voice registration revokedAt')
     if (!registration.approval.reason.trim()) throw CLIUsageError('Revoked voice registration requires a reason.')
   }
+}
+
+export const validateVoiceRegistration = (registration: VoiceRegistration): VoiceRegistration => {
+  validateVoiceRegistrationIdentity(registration)
+  validateVoiceRegistrationSettings(registration)
+  validateVoiceRetentionAndCleanup(registration)
+  assertIsoDate(registration.createdAt, 'Voice registration createdAt')
+  assertIsoDate(registration.updatedAt, 'Voice registration updatedAt')
+  validateProvisioningState(registration.provisioning)
+  if ('providerVoice' in registration.provisioning && registration.provisioning.providerVoice && registration.provisioning.providerVoice.provider !== registration.provider) throw CLIUsageError('Voice registration provisioning provider does not match the registration provider.')
+  validateVoiceApproval(registration)
   return registration
 }
 

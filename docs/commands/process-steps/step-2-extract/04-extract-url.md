@@ -1,6 +1,6 @@
 # extract URL and X
 
-Remote article URLs use hosted article extraction, while X/Twitter Space inputs use the X API for metadata extraction.
+Remote article URLs default to local `defuddle` extraction and can run hosted article backends instead, while X/Twitter Space inputs use the X API for metadata extraction.
 
 ## Outline
 
@@ -41,28 +41,28 @@ Select a hosted article backend using `--url-provider <backend>` or run all host
 
 ## Article Path
 
-Remote article URLs route through hosted article extraction rather than OCR provider engines.
+Remote article URLs route through article extraction rather than OCR provider engines.
 
 | Input family        | Hosted paths                                                                 |
 | ------------------- | ---------------------------------------------------------------------------- |
-| Remote article URLs | `--url-provider <backend>`, `--provider <backend>`, or `--all-providers`    |
+| Remote article URLs | `--url-provider <backend>`, `--provider <backend>`, or `--all-providers`     |
 
 ## Shared URL Options
 
-| Flag                                  | Description                                                                                                                                                                       |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--url-provider <backend>`            | Hosted article backend for remote article URLs: `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                                                                        |
-| `--provider <backend>`                | Route-aware shorthand for a URL backend on article inputs                                                                                                                         |
-| `--all-providers`                     | For `extract`, run all hosted URL article backends: `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte`                                                                   |
-| `--provider-concurrency <n>`          | Hosted URL backends to run concurrently per item; default `7`                                                                                                                     |
-| `--concurrency-mode <ramp|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
-| `--url-request-timeout-ms <ms>`       | Per-provider URL request timeout; default `60000`                                                                                                                                 |
-| `--url-request-attempts <n>`          | Total provider request attempts, including the first try; default `3`                                                                                                             |
-| `--format <format>`                   | Output format: `text` or `json`                                                                                                                                                   |
-| `--price`                             | Show the aggregated URL extraction estimate and exit                                                                                                                              |
-| `--batch-limit <n|all>`               | Limit batch size or process all items (`all`)                                                                                                                                     |
-| `--batch-order <newest|oldest>`       | Choose batch ordering                                                                                                                                                             |
-| `--batch-concurrency <n>`             | Process batch items concurrently                                                                                                                                                  |
+| Flag                                   | Description                                                                                                                                                                       |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--url-provider <backend>`             | Article extraction backend for remote article URLs: `defuddle` (default), `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`                                              |
+| `--provider <backend>`                 | Route-aware shorthand for a URL backend on article inputs                                                                                                                         |
+| `--all-providers`                      | For `extract`, run all hosted URL article backends: `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte`                                                                   |
+| `--provider-concurrency <n>`           | Hosted URL backends to run concurrently per item; default `7`                                                                                                                     |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
+| `--url-request-timeout-ms <ms>`        | Per-provider URL request timeout; default `60000`                                                                                                                                 |
+| `--url-request-attempts <n>`           | Total provider request attempts, including the first try; default `3`                                                                                                             |
+| `--format <format>`                    | Output format: `text` or `json`                                                                                                                                                   |
+| `--price`                              | Show the aggregated URL extraction estimate and exit                                                                                                                              |
+| `--batch-limit <n\|all>`               | Limit batch size or process all items (`all`)                                                                                                                                     |
+| `--batch-order <newest\|oldest>`       | Choose batch ordering                                                                                                                                                             |
+| `--batch-concurrency <n>`              | Process batch items concurrently                                                                                                                                                  |
 
 ```bash
 bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
@@ -82,7 +82,7 @@ firecrawl, glm-reader, spider, supadata, zyte
 Hosted backends run in a pool governed by `--provider-concurrency` and the run-scoped hosted concurrency mode.
 
 Rules:
-- `--all-providers` conflicts with `--url-provider`.
+- `--all-providers` and `--all-local` conflict with `--url-provider`.
 - `write --all-providers url` runs URL extraction first, stores per-backend artifacts under `providers/<backend>/`, then passes extracted text to the LLM.
 - Each hosted backend is run independently without automatic fallback.
 
@@ -158,7 +158,7 @@ bun autoshow extract https://ajcwebdev.com --url-provider zyte
 Single-backend extraction writes top-level artifacts and `manifest.json`:
 
 ```text
-output/YYYY-MM-DD_HH-MM-SS_article/
+output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   extraction.txt      # default --format text
   result.json         # if --format json
   manifest.json
@@ -167,7 +167,7 @@ output/YYYY-MM-DD_HH-MM-SS_article/
 `--all-providers` writes per-provider artifacts under `providers/`:
 
 ```text
-output/YYYY-MM-DD_HH-MM-SS_article/
+output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   providers/
     firecrawl/
     glm-reader/

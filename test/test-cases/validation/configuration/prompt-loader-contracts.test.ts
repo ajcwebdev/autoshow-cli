@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { collectLeafPrompts, getAvailablePromptNames, resolvePromptNames } from '~/prompts/prompt-loader'
@@ -141,7 +140,7 @@ describe('prompt loader contracts', () => {
 
     for (const name of leafNames) {
       const prompt = await resolvePromptNames([name], { exampleFormat: 'markdown' })
-      const digest = createHash('sha256').update(prompt).digest('hex')
+      const digest = new Bun.CryptoHasher('sha256').update(prompt).digest('hex')
       expect(digest).toBe(MARKDOWN_PROMPT_SNAPSHOT[name as keyof typeof MARKDOWN_PROMPT_SNAPSHOT])
     }
   })

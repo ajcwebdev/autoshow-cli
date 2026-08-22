@@ -1,5 +1,4 @@
 import { mkdir, rm } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import type { CompactMix, CompactMixTimelineSummary, ObservedAudioFormat, ResolvedSoundscapeTimeline, SoundEffectRenderPlan, SoundEffectRenderResult, SoundscapeBus, SoundscapePlan, SoundscapeStemRef, SoundscapeTransform, SourcePlacement } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
@@ -252,7 +251,7 @@ export const mixSoundscape = async (input: {
     ...(sfx ? { sfxId: sfx.sfxId } : {}),
   })
   if (existing) return existing
-  const work = join(input.rootDir, 'audio', 'soundscape', `.work-${randomUUID()}`)
+  const work = join(input.rootDir, 'audio', 'soundscape', `.work-${crypto.randomUUID()}`)
   await mkdir(work, { recursive: true })
   const transforms: SoundscapeTransform[] = []
   const stems: SoundscapeStemRef[] = []

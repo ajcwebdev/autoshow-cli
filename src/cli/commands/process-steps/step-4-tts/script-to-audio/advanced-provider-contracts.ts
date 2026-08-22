@@ -10,6 +10,9 @@ import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retrie
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from './contract-identity'
 import { validateCapabilityFacetSet } from './contract-validation'
+import { deriveProviderAccountScopeHash } from '~/utils/account-scope-hash'
+import { findHostedTtsCredential } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import { requireProvidedApiKey } from '~/utils/validate/env-utils'
 
 const ADVANCED_PROVIDER_FIXTURE_CHECKED_AT = '2026-08-11T00:00:00.000Z'
 
@@ -89,9 +92,15 @@ export const buildAdvancedCapabilityFixture = <T extends readonly AnyCapabilityR
 }
 
 export const providerAccountScopeHash = (provider: TtsProvider, credential: string): string => {
-  const normalized = credential.trim()
-  if (!normalized) throw CLIUsageError(`${provider} account scope requires configured credentials.`)
-  return hashCanonicalTtsValue({ schemaVersion: 1, provider, credential: normalized })
+  const spec = findHostedTtsCredential(provider)
+  if (!spec) throw new TypeError(`TTS provider ${provider} has no credential specification.`)
+  const normalized = requireProvidedApiKey(
+    credential,
+    spec.envVar,
+    'tts:account-scope',
+    `${provider} account scope`
+  )
+  return deriveProviderAccountScopeHash(provider, normalized)
 }
 
 export const providerSecondsToMilliseconds = (seconds: number, durationMs?: number | undefined): number => {

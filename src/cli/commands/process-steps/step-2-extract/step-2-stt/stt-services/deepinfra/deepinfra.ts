@@ -1,3 +1,3 @@
-import { ensureApiKeySetup } from '~/utils/validate/env-utils'
+import { ensureProvider } from '~/utils/validate/env-utils'
 
-export const ensureDeepinfraSttSetup = ensureApiKeySetup('DEEPINFRA_API_KEY', 'stt:deepinfra', 'DeepInfra transcription')
+export const ensureDeepinfraSttSetup = ensureProvider('deepinfra', 'stt:deepinfra', 'DeepInfra transcription')

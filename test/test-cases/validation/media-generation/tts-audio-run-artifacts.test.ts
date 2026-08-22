@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, readFile, symlink, unlink } from 'node:fs/promises'
+import { mkdir, readFile, symlink } from 'node:fs/promises'
+import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, join, relative } from 'node:path'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'

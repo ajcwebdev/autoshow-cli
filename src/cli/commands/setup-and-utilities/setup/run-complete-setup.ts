@@ -1,5 +1,6 @@
-import { mkdir, readdir, rm, stat } from 'node:fs/promises'
-import type { Dirent } from 'node:fs'
+import { mkdir, readdir, rm } from 'node:fs/promises'
+import { statPath as stat } from '~/utils/bun-file-io'
+import type { DirectoryEntry } from '~/types'
 import { join } from 'node:path'
 import { setupTesseractOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-local/tesseract-setup'
 import { downloadWhisperModel, setupWhisper } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
@@ -46,6 +47,7 @@ import { listPinnedDependencies } from './dependency-metadata'
 import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
 import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-performance'
 import { pathExists } from '~/utils/filesystem'
+import { childEnv } from '~/utils/child-env'
 
 const RUNTIME = RUNTIME_DIR
 
@@ -55,9 +57,6 @@ export const whisperBuildDir = join(RUNTIME, 'build/whisper.cpp')
 export const whisperModelsDir = join(RUNTIME, 'models/whisper')
 export const whisperfileDir = join(RUNTIME, 'bin/whisperfile')
 export const whisperfileBinaryPath = (model: string): string => join(whisperfileDir, `whisper-${model}.llamafile`)
-const mergeEnv = (env?: Record<string, string | undefined>): Record<string, string | undefined> =>
-  env ? { ...(process.env as Record<string, string | undefined>), ...env } : process.env as Record<string, string | undefined>
-
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
   stream ? await new Response(stream).text() : ''
 
@@ -169,7 +168,7 @@ export const runConcurrentSetupTasks = async (tasks: readonly ConcurrentSetupTas
 export const runCapture = async (command: string, args: string[] = [], options: RunOptions = {}): Promise<RunResult> => {
   const proc = Bun.spawn([command, ...args], {
     ...(options.cwd ? { cwd: options.cwd } : {}),
-    env: mergeEnv(options.env),
+    env: childEnv({ set: options.env }),
     stdout: 'pipe',
     stderr: 'pipe'
   })
@@ -194,7 +193,7 @@ export const runInherit = async (command: string, args: string[] = [], options: 
 
   const proc = Bun.spawn([command, ...args], {
     ...(options.cwd ? { cwd: options.cwd } : {}),
-    env: mergeEnv(options.env),
+    env: childEnv({ set: options.env }),
     stdin: 'inherit', stdout: 'inherit', stderr: 'inherit'
   })
   const exitCode = await proc.exited
@@ -295,7 +294,7 @@ const formatBytes = (bytes: number): string => {
 const walkDirectorySize = async (root: string): Promise<number> => {
   let total = 0
   const walk = async (dir: string): Promise<void> => {
-    let entries: Dirent[]
+    let entries: DirectoryEntry[]
     try {
       entries = await readdir(dir, { withFileTypes: true })
     } catch {

@@ -1,6 +1,6 @@
 # Docker
 
-AutoShow ships a Debian slim local-lite Docker image recipe for users who want the CLI and common local tools without host setup. Pre-built multi-architecture images (`linux/amd64`, `linux/arm64`) are published to GitHub Container Registry (GHCR) on every push to `main`, tagged `latest` and by full commit SHA, by a workflow of plain `git`/`docker` commands (no third-party GitHub Actions) that keeps its Buildx layer cache in a GHCR `:buildcache` registry image.
+AutoShow ships a Debian slim local-lite Docker image recipe for users who want the CLI and common local tools without host setup. Pre-built multi-architecture images (`linux/amd64`, `linux/arm64`) are published to GitHub Container Registry (GHCR) on every push to `main`, tagged `latest` and by full commit SHA, by a workflow of plain `git`, `apt`, and `docker` commands (no third-party GitHub Actions) that keeps its Buildx layer cache in a GHCR `:buildcache` registry image.
 
 The image uses `oven/bun:1.3.14-slim` and installs:
 
@@ -57,7 +57,7 @@ For file-based commands, mount the current directory at `/workspace` and make it
 
 ```bash
 docker run --rm -i \
-  --mount "type=bind,src=$PWD,dst=/workspace" \
+  --mount "type=bind,src=$(pwd),dst=/workspace" \
   --workdir /workspace \
   autoshow-cli:local extract content/book/book.epub
 ```
@@ -69,19 +69,19 @@ On Linux, add `--user "$(id -u):$(id -g)"` to the direct `docker run` command wh
 ```bash
 docker run --rm -i \
   --user "$(id -u):$(id -g)" \
-  --mount "type=bind,src=$PWD,dst=/workspace" \
+  --mount "type=bind,src=$(pwd),dst=/workspace" \
   --workdir /workspace \
   autoshow-cli:local extract content/book/book.epub
 ```
 
 ### Separate input and output mounts
 
-You can instead mount input and output paths explicitly. The CLI resolves relative paths against the container workdir (`/app`), so an argument like `input/book/book.epub` reads `/app/input/book/book.epub`. If `$PWD/content` is mounted at `/app/input`, pass the in-container path under `input/`; an unmounted host path will not resolve.
+You can instead mount input and output paths explicitly. The CLI resolves relative paths against the container workdir (`/app`), so an argument like `input/book/book.epub` reads `/app/input/book/book.epub`. If `$(pwd)/content` is mounted at `/app/input`, pass the in-container path under `input/`; an unmounted host path will not resolve.
 
 ```bash
 docker run --rm \
-  -v "$PWD/content:/app/input:ro" \
-  -v "$PWD/output:/app/output" \
+  -v "$(pwd)/content:/app/input:ro" \
+  -v "$(pwd)/output:/app/output" \
   autoshow-cli:local extract input/book/book.epub
 ```
 
@@ -93,13 +93,13 @@ Hosted providers still require credentials (for example `tts --provider grok` ne
 
 - `--env-file .env` — load a whole env file for the run.
 - `-e KEY=value` — pass individual variables.
-- mount the env file to `/app/.env` — Bun auto-loads `/app/.env` at startup, so every provider key in it is available without listing them:
+- mount the env file to the container working directory's `.env` (`/app/.env` by default) — Bun auto-loads it at startup, so every provider key in it is available without listing them:
 
 ```bash
 docker run --rm \
   --env-file .env \
-  -v "$PWD/input:/app/input:ro" \
-  -v "$PWD/output:/app/output" \
+  -v "$(pwd)/input:/app/input:ro" \
+  -v "$(pwd)/output:/app/output" \
   autoshow-cli:local write input/example.md --llm openai=gpt-5.5
 ```
 
@@ -108,14 +108,14 @@ When the `.env` lives in another directory (e.g. the autoshow-cli checkout), poi
 ```bash
 docker run --rm \
   -v /path/to/autoshow-cli/.env:/app/.env:ro \
-  -v "$PWD/content:/app/input:ro" \
-  -v "$PWD/output:/app/output" \
+  -v "$(pwd)/content:/app/input:ro" \
+  -v "$(pwd)/output:/app/output" \
   autoshow-cli:local tts input/book/text/chapter-00.txt --provider grok
 ```
 
 Do not bake `.env` into the image. The default `.dockerignore` excludes it.
 
-The image sets `NODE_ENV=production`. Project code never reads it, but Bun's env loader does: with it set, Bun also auto-loads `/app/.env.production` if one is mounted. Mounting `/app/.env` is the supported path; treat `.env.production` auto-loading as a Bun side effect, not a project interface. In every case real environment variables (`-e`, `--env-file`) win over values from an auto-loaded file.
+The image sets `NODE_ENV=production`. Project code never reads it, but Bun's env loader does: with it set, Bun also auto-loads `.env.production` from that same working directory if one is mounted, and it takes precedence over `.env`. Mounting `/app/.env` is the supported path; treat `.env.production` auto-loading as a Bun side effect, not a project interface. In every case real environment variables (`-e`, `--env-file`) win over values from an auto-loaded file.
 
 ## Runtime Cache
 
@@ -123,9 +123,9 @@ The local-lite tools are baked into the image. A `runtime/` mount is optional an
 
 ```bash
 docker run --rm \
-  -v "$PWD/input:/app/input:ro" \
-  -v "$PWD/output:/app/output" \
-  -v "$PWD/runtime:/app/runtime" \
+  -v "$(pwd)/input:/app/input:ro" \
+  -v "$(pwd)/output:/app/output" \
+  -v "$(pwd)/runtime:/app/runtime" \
   autoshow-cli:local setup --doctor
 ```
 
@@ -134,9 +134,9 @@ The image runs as the non-root `bun` user. On Linux hosts, bind-mounted output o
 ```bash
 docker run --rm \
   --user "$(id -u):$(id -g)" \
-  -v "$PWD/input:/app/input:ro" \
-  -v "$PWD/output:/app/output" \
-  -v "$PWD/runtime:/app/runtime" \
+  -v "$(pwd)/input:/app/input:ro" \
+  -v "$(pwd)/output:/app/output" \
+  -v "$(pwd)/runtime:/app/runtime" \
   autoshow-cli:local --version
 ```
 

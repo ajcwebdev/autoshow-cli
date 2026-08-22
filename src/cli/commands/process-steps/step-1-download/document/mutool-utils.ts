@@ -1,5 +1,5 @@
-import { stat } from 'node:fs/promises'
 import { exec } from '~/utils/cli-utils'
+import { statPath as stat } from '~/utils/bun-file-io'
 import { setupDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/document'
 import * as l from '~/utils/app-logger/app-logger'
 import type { MutoolDocInfo, PdfChunkSplitAttempt, PdfChunkSplitOptions, PdfChunkSplitResult, PdfChunkSplitTool, ResolvedRuntimeTool } from '~/types'

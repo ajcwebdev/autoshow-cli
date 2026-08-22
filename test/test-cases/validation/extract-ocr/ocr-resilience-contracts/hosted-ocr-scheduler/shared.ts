@@ -1,6 +1,5 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { setTimeout as sleep } from 'node:timers/promises'
 import { waitFor as sharedWaitFor } from '../../../../../test-utils/wait-for'
 import type {
   Deferred,
@@ -139,4 +138,6 @@ export const buildSchedulerTelemetry = (
   ...overrides
 })
 
-export { sleep }
+export const sleep = async (milliseconds: number): Promise<void> => {
+  await Bun.sleep(milliseconds)
+}

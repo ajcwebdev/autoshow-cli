@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { mkdir, rename } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { JsonProfileStore } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import { withProcessLock } from '~/utils/process-lock'
 import { isRecord } from '~/utils/value-helpers'
+import { readTextFile, writeFileExact } from '~/utils/bun-file-io'
 
 export const createJsonProfileStore = <const TVersion extends number, TEntry>(options: {
   version: TVersion
@@ -43,7 +44,7 @@ export const createJsonProfileStore = <const TVersion extends number, TEntry>(op
 
   const readStore = async (profilePath: string): Promise<JsonProfileStore<TVersion, TEntry>> => {
     try {
-      return parseStore(JSON.parse(await readFile(profilePath, 'utf-8')) as unknown)
+      return parseStore(JSON.parse(await readTextFile(profilePath)) as unknown)
     } catch {
       return emptyStore()
     }
@@ -81,7 +82,7 @@ export const createJsonProfileStore = <const TVersion extends number, TEntry>(op
         }
         await mkdir(dirname(profilePath), { recursive: true })
         const tempPath = `${profilePath}.${process.pid}.${Date.now()}.tmp`
-        await writeFile(tempPath, JSON.stringify(nextStore, null, 2) + '\n')
+        await writeFileExact(tempPath, JSON.stringify(nextStore, null, 2) + '\n')
         await rename(tempPath, profilePath)
       })
     }
