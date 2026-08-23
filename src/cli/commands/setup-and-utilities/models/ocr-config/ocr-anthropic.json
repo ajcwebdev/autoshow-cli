@@ -78,6 +78,31 @@
           "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
+      "claude-sonnet-4-6": {
+        "description": "Claude Sonnet 4.6 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Anthropic lists Claude Sonnet 4.6 at $3/1M input tokens and $15/1M output tokens. OCR estimates multiply observed token usage by these published rates. The page heuristics are reused from Claude Sonnet 5 and are provisional until a separately approved paid calibration is available; prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 300,
+        "costPerMOutputTokensCents": 1500,
+        "limits": {
+          "imageBytes": 5242880,
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 8679,
+          "promptTokensPerPage": 1657.5,
+          "completionTokensPerPage": 474.5
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
+        }
+      },
       "claude-haiku-4-5": {
         "description": "Claude Haiku 4.5 OCR",
         "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",

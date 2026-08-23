@@ -1,5 +1,5 @@
 import type { Step2Metadata, SttDispatchContext, SttDispatcher, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
-import { InternalError } from '~/utils/error-handler'
+import { InternalError, UsageError } from '~/utils/error-handler'
 import { runWhisperTranscribe } from '../stt-local/whisper/run-whisper'
 import { runWhisperfileTranscribe } from '../stt-local/whisperfile/run-whisperfile'
 import { runAssemblyAiTranscribe } from '../stt-services/assemblyai/run-assemblyai-stt'
@@ -11,7 +11,6 @@ import { runGrokStt } from '../stt-services/stt-grok/run-grok-stt'
 import { runGroqTranscribe } from '../stt-services/stt-groq/run-whisper-groq'
 import { runHappyScribeStt } from '../stt-services/happyscribe/run-happyscribe-stt'
 import { runMistralStt } from '../stt-services/stt-mistral/run-mistral-stt'
-import { runRevStt } from '../stt-services/rev/run-rev-stt'
 import { runScrapeCreatorsStt } from '../stt-services/scrapecreators/run-scrapecreators-stt'
 import { runSonioxStt } from '../stt-services/soniox/run-soniox-stt'
 import { runSpeechmaticsStt } from '../stt-services/speechmatics/run-speechmatics-stt'
@@ -50,7 +49,9 @@ const sttDispatchers = {
   deepinfra: async context => await runDeepinfraTranscribe(context.audioPath, context.outputDir, basicOptions(context)),
   soniox: async context => await runSonioxStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
   speechmatics: async context => await runSpeechmaticsStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
-  rev: async context => await runRevStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
+  rev: async () => {
+    throw UsageError('Rev STT is retired and cannot dispatch. Start a new target with an active STT provider.')
+  },
   groq: async context => await runGroqTranscribe(context.audioPath, context.outputDir, basicOptions(context)),
   grok: async context => await runGrokStt(context.audioPath, context.outputDir, minimalOptions(context)),
   whisper: async context => await runWhisperTranscribe(context.audioPath, context.outputDir, whisperOptions(context)),

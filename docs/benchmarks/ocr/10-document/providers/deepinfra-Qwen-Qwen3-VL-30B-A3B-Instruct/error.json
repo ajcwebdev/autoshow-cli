@@ -1,0 +1,53 @@
+{
+  "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+  "category": "content_policy",
+  "failureKind": "content_policy",
+  "retryable": false,
+  "providerWide": true,
+  "blockedReason": "content_policy",
+  "stage": "openai",
+  "status": 429,
+  "rawResponseFile": "raw-response.json",
+  "error": {
+    "name": "OpenAIRestError",
+    "message": "DeepInfra OCR request failed (429): Model busy, retry later",
+    "stack": "OpenAIRestError: DeepInfra OCR request failed (429): Model busy, retry later\n    at createError (/Users/ajc/c/autoshow-cli/src/utils/openai/openai-client.ts:76:9)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/utils/rest-client.ts:90:29)\n    at processTicksAndRejections (native:7:39)",
+    "kind": "provider_http",
+    "hints": [],
+    "exitCode": 1,
+    "status": 429,
+    "headers": {
+      "connection": "keep-alive",
+      "content-length": "118",
+      "content-type": "application/json",
+      "date": "Sat, 22 Aug 2026 23:58:25 GMT",
+      "server": "uvicorn",
+      "x-request-id": "REDACTED",
+      "x-robots-tag": "noindex"
+    },
+    "stage": "openai",
+    "metadata": {},
+    "body": "{\"error\":{\"message\":\"Model busy, retry later\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"engine_overloaded\"}}",
+    "rawResponse": {
+      "error": {
+        "message": "Model busy, retry later",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "engine_overloaded"
+      }
+    },
+    "bodyBytes": 118,
+    "bodyTruncated": false,
+    "bodyPreview": "{\"error\":{\"message\":\"Model busy, retry later\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"engine_overloaded\"}}",
+    "error": {
+      "message": "Model busy, retry later",
+      "type": "invalid_request_error",
+      "param": null,
+      "code": "engine_overloaded"
+    },
+    "code": "engine_overloaded",
+    "type": "invalid_request_error",
+    "bodyRetainedBytes": 118,
+    "bodyOmittedBytes": 0
+  }
+}

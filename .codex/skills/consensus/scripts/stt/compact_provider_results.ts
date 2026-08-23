@@ -5,20 +5,21 @@ import { basename, dirname, join, resolve } from "node:path";
 
 const RAW_RESPONSE_CONSUMERS = new Set(["whisper", "gemini-stt"]);
 
-interface CompactionStat {
+export interface CompactionStat {
   directoryName: string;
   beforeBytes: number;
   afterBytes: number;
   droppedWords: boolean;
+  droppedEvidenceSegments: boolean;
   droppedRawResponse: boolean;
   keptRawResponse: boolean;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024) {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
@@ -40,29 +41,40 @@ function discoverResultPaths(runDir: string): string[] {
     .sort((left, right) => left.localeCompare(right));
 }
 
-function compactResult(resultPath: string): CompactionStat {
+export function compactResult(resultPath: string): CompactionStat {
   const beforeBytes = statSync(resultPath).size;
   const payload = JSON.parse(readFileSync(resultPath, "utf8")) as Record<string, unknown>;
   const directoryName = basename(dirname(resultPath));
 
-  const provider = typeof payload.provider === "string" ? payload.provider : "";
-  const result = isRecord(payload.result) ? payload.result : null;
-  const evidence = result && isRecord(result.evidence) ? result.evidence : null;
+  const result = isRecord(payload["result"]) ? payload["result"] : payload;
+  const evidence = isRecord(result["evidence"]) ? result["evidence"] : null;
+  const provider = typeof payload["provider"] === "string"
+    ? payload["provider"]
+    : directoryName.startsWith("gemini-stt")
+      ? "gemini-stt"
+      : directoryName.startsWith("whisper")
+        ? "whisper"
+        : "";
 
   let droppedWords = false;
+  let droppedEvidenceSegments = false;
   let droppedRawResponse = false;
   let keptRawResponse = false;
 
   if (evidence) {
     if ("words" in evidence) {
-      delete evidence.words;
+      delete evidence["words"];
       droppedWords = true;
+    }
+    if ("segments" in evidence) {
+      delete evidence["segments"];
+      droppedEvidenceSegments = true;
     }
     if ("rawResponse" in evidence) {
       if (RAW_RESPONSE_CONSUMERS.has(provider)) {
         keptRawResponse = true;
       } else {
-        delete evidence.rawResponse;
+        delete evidence["rawResponse"];
         droppedRawResponse = true;
       }
     }
@@ -71,7 +83,33 @@ function compactResult(resultPath: string): CompactionStat {
   writeFileSync(resultPath, JSON.stringify(payload));
   const afterBytes = statSync(resultPath).size;
 
-  return { directoryName, beforeBytes, afterBytes, droppedWords, droppedRawResponse, keptRawResponse };
+  return {
+    directoryName,
+    beforeBytes,
+    afterBytes,
+    droppedWords,
+    droppedEvidenceSegments,
+    droppedRawResponse,
+    keptRawResponse,
+  };
+}
+
+export function compactRunResults(runDir: string): CompactionStat[] {
+  const resultPaths: string[] = [];
+  const rootResult = join(runDir, "result.json");
+  if (existsSync(rootResult)) {
+    resultPaths.push(rootResult);
+  }
+  const providersDir = join(runDir, "providers");
+  if (existsSync(providersDir)) {
+    resultPaths.push(
+      ...readdirSync(providersDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(providersDir, entry.name, "result.json"))
+        .filter((path) => existsSync(path)),
+    );
+  }
+  return resultPaths.sort((left, right) => left.localeCompare(right)).map(compactResult);
 }
 
 function main(): number {
@@ -96,6 +134,7 @@ function main(): number {
     totalAfter += stat.afterBytes;
     const flags: string[] = [];
     if (stat.droppedWords) flags.push("dropped words");
+    if (stat.droppedEvidenceSegments) flags.push("dropped evidence.segments");
     if (stat.droppedRawResponse) flags.push("dropped rawResponse");
     if (stat.keptRawResponse) flags.push("kept rawResponse (consumer)");
     console.log(

@@ -64,6 +64,36 @@ describe('additive resume provider selection', () => {
     })
   })
 
+  test('STT resume blocks unfinished Rev targets after the provider is removed', async () => {
+    await withTempDir('autoshow-stt-retired-rev-resume-', async (dir) => {
+      const retired = { service: 'rev' as const, model: 'low_cost' }
+      await writeSingleManifestFixture(dir, 'extract', {
+        step1: { url: 'file:///tmp/historical.mp3' },
+        completionStatus: 'incomplete',
+        requestedProviders: [retired],
+        missingProviders: [retired],
+        providerStates: [{ ...retired, status: 'missing', artifactDir: 'providers/rev-low_cost', attempts: 0 }]
+      }, { extractRoute: 'media' })
+
+      const incompleteTarget: ResumeTarget = {
+        kind: 'extract',
+        extractRoute: 'media',
+        scope: 'single',
+        dir,
+        manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
+      }
+
+      await expect(priceSttTarget(
+        incompleteTarget,
+        { youtubeCaptions: false } as ResolvedFlagOptions
+      )).rejects.toThrow('Stored STT target rev/low_cost is incomplete')
+      await expect(priceSttTarget(
+        incompleteTarget,
+        { youtubeCaptions: false } as ResolvedFlagOptions
+      )).rejects.toThrow('Start a new target with an active STT provider.')
+    })
+  })
+
   test('OCR resume blocks an unfinished retired target until its replacement is selected explicitly', async () => {
     await withTempDir('autoshow-ocr-retired-model-resume-', async (dir) => {
       const retired: OcrTarget = { service: 'gemini', model: 'gemini-3.1-flash-lite' }

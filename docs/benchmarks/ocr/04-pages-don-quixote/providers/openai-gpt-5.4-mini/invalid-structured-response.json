@@ -1,0 +1,4 @@
+{
+  "error": "OpenAI OCR returned 7 pages, expected 4.",
+  "rawResponseFile": "invalid-structured-response.txt"
+}

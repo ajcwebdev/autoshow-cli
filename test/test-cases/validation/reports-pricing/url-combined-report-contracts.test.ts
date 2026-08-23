@@ -226,7 +226,7 @@ describe('URL combined-report aggregation', () => {
     const local = report.providers.find((provider) => provider.group === 'local' && provider.providerKey === 'shared')
     const service = report.providers.find((provider) => provider.group === 'service' && provider.providerKey === 'shared')
 
-    expect(report.schemaVersion).toBe(1)
+    expect(report.schemaVersion).toBe(2)
     expect(report.runCount).toBe(2)
     expect(report.providerCount).toBe(5)
     expect(report.providerRowCount).toBe(9)
@@ -481,7 +481,7 @@ describe('URL combined-report aggregation', () => {
 
     const result = buildUrlCombinedReport(root, '2026-07-18T00:00:00.000Z')
     const report = result.report as unknown as UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>
-    const presenceNote = '1 explicit human-quality row is present; URL combined schema v1 does not mix it into automated-quality rankings.'
+    const presenceNote = '1 explicit human-quality row is present; URL combined schema v2 does not mix it into automated-quality rankings.'
 
     expect(report.humanQualityRowCount).toBe(1)
     expect(report.notes).toContain(presenceNote)
@@ -498,7 +498,7 @@ describe('committed URL combined dashboard', () => {
     const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/url')
     const report = JSON.parse(readFileSync(join(artifactRoot, 'combined-comparison-report.json'), 'utf8')) as UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>
 
-    expect(report.schemaVersion).toBe(1)
+    expect(report.schemaVersion).toBe(2)
     expect(report.runCount).toBe(7)
     expect(report.providerCount).toBe(6)
     expect(report.providerRowCount).toBe(37)
@@ -507,17 +507,9 @@ describe('committed URL combined dashboard', () => {
     expect(report.runs).toHaveLength(7)
     expect(report.runs.every((run) => run.articleTitle.length > 0)).toBe(true)
     expect(report.runs.every((run) => run.sourceUrl?.startsWith('https://'))).toBe(true)
-    expect(Object.keys(report.weightedRankings['service'] ?? {}).sort()).toEqual([
-      'costSpeed',
-      'moderateCost',
-      'moderateQuality',
-      'moderateSpeed',
-      'qualityCost',
-      'strongCost',
-      'strongQuality',
-      'strongSpeed'
-    ])
-    expect(report.tiering['service']?.tiers.map((tier) => tier.count)).toEqual([2, 2, 1])
+    expect(report.weightedRankings).toBeUndefined()
+    expect(report.tiering).toBeUndefined()
+    expect(Object.keys(report.metricRankings.service).sort()).toEqual(['automatedQuality', 'price', 'speed'])
   })
 
   test('keeps the retained benchmark summary synchronized with URL aggregates', () => {
@@ -530,7 +522,7 @@ describe('committed URL combined dashboard', () => {
     const normalizedUrlSection = normalizeMarkdownTable(urlSection)
 
     expect(normalizedSummary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
-    expect(normalizedSummary).toContain('| **Total** | **38** | **610** | **5 groups** |')
+    expect(normalizedSummary).toContain('| **Total** | **41** | **545** | **5 groups** |')
     expect(urlSection).not.toContain('2/2 runs')
 
     for (const expectedRow of expectedUrlRankingRows(report)) {
@@ -541,18 +533,14 @@ describe('committed URL combined dashboard', () => {
   test('is self-contained, precomputed, and readable without JavaScript', () => {
     const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/url')
     const html = readFileSync(join(artifactRoot, 'combined-comparison-report.html'), 'utf8')
-    const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1] ?? ''
-
     expect(html).toContain('<style>')
     expect(html).not.toMatch(/<link\b/i)
-    expect(html).not.toMatch(/<script[^>]+src=/i)
+    expect(html).not.toMatch(/<script[\s>]/i)
     expect(html).not.toContain('fetch(')
     expect(html).not.toContain('XMLHttpRequest')
-    expect(script).not.toContain('weights.quality')
-    expect(script).not.toContain('subscores')
-    expect(script).toContain('row.getAttribute("data-c-" + set)')
     expect(html).toContain('<table class="providers">')
-    expect(html).toContain('All weighted rankings (rank and composite per weight set)')
+    expect(html).not.toContain('All weighted rankings')
+    expect(html).toContain('<h3>Metric rankings</h3>')
     expect(html).toContain('<h3>Per-run automated quality</h3>')
     expect(html).toContain('rel="noreferrer"')
   })

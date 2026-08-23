@@ -66,6 +66,14 @@ const normalizeExtractGenericSelectorArgs = (
 }
 
 describe('provider selection contracts', () => {
+  test('extract rejects the retired Rev STT provider', () => {
+    expect(() => normalizeExtractGenericSelectorFlags(
+      { provider: ['rev=low_cost'] },
+      new Set(['provider']),
+      { media: true, document: false, article: false }
+    )).toThrow('--provider rev does not apply to media extract inputs.')
+  })
+
   test('dedicated command generic provider selectors normalize to existing runtime option keys', () => {
     const ttsNormalized = normalizeGenericProviderSelectorFlags({
       provider: ['openai=gpt-4o-mini-tts-2025-12-15', 'elevenlabs=eleven_v3']

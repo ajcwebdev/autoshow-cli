@@ -117,15 +117,14 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'fal',
     envVar: 'FAL_API_KEY',
-    label: 'fal.ai image/video/TTS/OCR',
+    label: 'fal.ai image/video/TTS',
     hintUrl: 'https://fal.ai/dashboard/keys',
-    stages: ['image', 'video', 'tts', 'ocr'],
+    stages: ['image', 'video', 'tts'],
     ttsPreflight: { provider: 'fal', label: 'fal.ai TTS' },
     configPaths: [
       'defaults.image.falImage',
       'defaults.video.falVideo',
-      'defaults.tts.falTts',
-      'defaults.extract.ocr.falOcr'
+      'defaults.tts.falTts'
     ]
   },
   {
@@ -139,12 +138,11 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'replicate',
     envVar: 'REPLICATE_API_TOKEN',
-    label: 'Replicate OCR/image/video/TTS',
+    label: 'Replicate image/video/TTS',
     hintUrl: 'https://replicate.com/',
-    stages: ['ocr', 'image', 'video', 'tts', 'soundscape'],
+    stages: ['image', 'video', 'tts', 'soundscape'],
     ttsPreflight: { provider: 'replicate', label: 'Replicate TTS' },
     configPaths: [
-      'defaults.extract.ocr.replicateOcr',
       'defaults.image.replicateImage',
       'defaults.video.replicateVideo',
       'defaults.tts.replicateTts'
@@ -300,14 +298,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     hintUrl: 'https://portal.speechmatics.com',
     stages: ['stt'],
     configPaths: ['defaults.extract.stt.speechmaticsStt']
-  },
-  {
-    providerId: 'rev',
-    envVar: 'REVAI_ACCESS_TOKEN',
-    label: 'Rev STT',
-    hintUrl: 'https://www.rev.ai/',
-    stages: ['stt'],
-    configPaths: ['defaults.extract.stt.revStt']
   },
   {
     providerId: 'together',

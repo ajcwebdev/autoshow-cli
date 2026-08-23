@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { type ConsensusCategory, rewriteComparisonReports } from "./shared/report_surfaces.ts";
 import { runSyncCommand } from "../../../../src/utils/sync-subprocess.ts";
 
-type CommandName = "build-packet" | "build-report" | "compact-results" | "build-combined-report";
+type CommandName = "build-packet" | "build-report" | "compact-results" | "compact-archive" | "build-combined-report";
 
 interface CategoryConfig {
   packetScript: string;
@@ -87,19 +87,21 @@ function rootHelp(): string {
     "Usage:",
     "  bun scripts/run.ts <category> build-packet <run_dir> [--input-text <path>] [--out <path>]",
     "  bun scripts/run.ts <category> build-report <run_dir> [--input-text <path>] [--roundtrip-dir <path>]",
+    "  bun scripts/run.ts <category> compact-archive <root_dir>",
     "  bun scripts/run.ts stt compact-results <run_dir>",
     "  bun scripts/run.ts stt build-combined-report <root_dir>",
     "  bun scripts/run.ts ocr build-combined-report <root_dir>",
     "  bun scripts/run.ts url build-combined-report <root_dir>",
     "",
     `Categories: ${CATEGORIES.join(", ")}`,
-    "Commands: build-packet, build-report, compact-results (stt only), build-combined-report (stt, ocr, url)",
+    "Commands: build-packet, build-report, compact-archive, compact-results (stt only), build-combined-report (stt, ocr, url)",
     "",
     "Examples:",
     "  bun scripts/run.ts ocr build-packet ./runs/document --out /tmp/ocr-packet.json",
     "  bun scripts/run.ts ocr build-report ./runs/document",
     "  bun scripts/run.ts tts build-report ./runs/tts --input-text ./input.txt --roundtrip-dir ./roundtrip",
     "  bun scripts/run.ts stt compact-results ./runs/audio",
+    "  bun scripts/run.ts image compact-archive ./docs/benchmarks/image",
   ].join("\n");
 }
 
@@ -114,10 +116,12 @@ function categoryHelp(category: ConsensusCategory): string {
     `Usage for ${category}:`,
     `  bun scripts/run.ts ${category} build-packet <run_dir> [--input-text <path>] [--out <path>]`,
     `  bun scripts/run.ts ${category} build-report <run_dir> [--input-text <path>] [--roundtrip-dir <path>]`,
+    `  bun scripts/run.ts ${category} compact-archive <root_dir>`,
+    ...(category === "stt" ? [`  bun scripts/run.ts ${category} compact-results <run_dir>`] : []),
     ...(category === "ocr" || category === "stt" || category === "url" ? [`  bun scripts/run.ts ${category} build-combined-report <root_dir>`] : []),
     "",
     inputTextNote,
-    "Generated single-run reports are normalized with local and service ranking surfaces; OCR and STT use grouped full metricRankings. OCR, STT, and URL combined cross-run reports add per-group weighted composites and model tiers.",
+    "Generated single-run reports are normalized with local and service ranking surfaces; OCR and STT use grouped full metricRankings. OCR, STT, and URL combined cross-run reports rank price, speed, and quality per group.",
   ].join("\n");
 }
 
@@ -136,6 +140,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     commandRaw !== "build-packet" &&
     commandRaw !== "build-report" &&
     commandRaw !== "compact-results" &&
+    commandRaw !== "compact-archive" &&
     commandRaw !== "build-combined-report"
   ) {
     throw new Error(`Unknown command: ${commandRaw}\n\n${categoryHelp(categoryRaw as ConsensusCategory)}`);
@@ -285,6 +290,11 @@ function main(): number {
       throw new Error(`compact-results is not supported for ${parsed.category}`);
     }
     runScript(config.compactScript, [parsed.runDir]);
+    return 0;
+  }
+
+  if (parsed.command === "compact-archive") {
+    runScript("shared/compact_archive.ts", [parsed.runDir]);
     return 0;
   }
 

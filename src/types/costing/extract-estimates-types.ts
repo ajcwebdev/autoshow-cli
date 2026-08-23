@@ -1,6 +1,6 @@
 import type { ExtractStepEstimate, HostedOcrTokenReasoningPolicy, TokenPricedOcrProvider } from '~/types'
 
-export type HostedOcrPricingService = TokenPricedOcrProvider | 'mistral' | 'replicate' | 'fal'
+export type HostedOcrPricingService = TokenPricedOcrProvider | 'mistral'
 
 export type LocalOcrService = 'tesseract'
 

@@ -154,7 +154,7 @@ describe('OpenAI REST OCR contracts', () => {
     })
   })
 
-  test('Kimi K3 preserves provider defaults unless named effort is explicit', async () => {
+  test('Kimi K3 defaults omitted effort to low and sends named effort overrides', async () => {
     process.env['KIMI_API_KEY'] = 'kimi-key'
     const calls = installFetch(() => jsonResponse({
       choices: [{ message: { content: 'Kimi K3 OCR text' }, finish_reason: 'stop' }]
@@ -167,11 +167,18 @@ describe('OpenAI REST OCR contracts', () => {
         outputDir: dir,
         reasoningEffort: 'high'
       })
+      await runKimiOcr(path, metadata, 'kimi-k3', {
+        ...CHAT_OCR_OPTIONS,
+        outputDir: dir,
+        reasoningEffort: 'default'
+      })
 
       expect(calls[0]?.bodyJson).not.toHaveProperty('thinking')
-      expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning_effort')
+      expect(calls[0]?.bodyJson?.['reasoning_effort']).toBe('low')
       expect(calls[1]?.bodyJson).not.toHaveProperty('thinking')
       expect(calls[1]?.bodyJson?.['reasoning_effort']).toBe('high')
+      expect(calls[2]?.bodyJson).not.toHaveProperty('thinking')
+      expect(calls[2]?.bodyJson).not.toHaveProperty('reasoning_effort')
     })
   })
 

@@ -210,11 +210,17 @@ describe('price mode contracts', () => {
     })
   }
 
-  test('Grok 4.5 OCR pricing uses published short and long context bands', () => {
-      const rates = getExtractPricing('grok', 'grok-4.5')
-      const entry = getModelRegistry().extract['grok']?.models['grok-4.5']
+  const GROK_OCR_BAND_CASES = [
+    { model: 'grok-4.5', pricingCheckedAt: '2026-07-23', cachedInputCostPer1MCents: 30, longBandCachedInputCostPer1MCents: 60 },
+    { model: 'grok-4.6', pricingCheckedAt: '2026-08-18', cachedInputCostPer1MCents: 50, longBandCachedInputCostPer1MCents: 100 }
+  ]
+
+  for (const testCase of GROK_OCR_BAND_CASES) {
+    test(`Grok ${testCase.model.replace('grok-', '')} OCR pricing uses published short and long context bands`, () => {
+      const rates = getExtractPricing('grok', testCase.model)
+      const entry = getModelRegistry().extract['grok']?.models[testCase.model]
       if (!entry || rates.inputCostPer1MCents === undefined || rates.outputCostPer1MCents === undefined) {
-        throw new Error('Missing Grok 4.5 OCR pricing')
+        throw new Error(`Missing ${testCase.model} OCR pricing`)
       }
 
       expect(computeTokenCost({
@@ -236,16 +242,17 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: 1200
       })
       expect(entry).toMatchObject({
-        pricingCheckedAt: '2026-07-23',
+        pricingCheckedAt: testCase.pricingCheckedAt,
         costPerMInputTokensCents: 200,
-        costPerMCachedInputTokensCents: 30,
+        costPerMCachedInputTokensCents: testCase.cachedInputCostPer1MCents,
         costPerMOutputTokensCents: 600
       })
       expect(entry.tokenPricingBands?.[1]).toMatchObject({
-        cachedInputCostPer1MCents: 60
+        cachedInputCostPer1MCents: testCase.longBandCachedInputCostPer1MCents
       })
       expect(entry.higherContextPricing).toBeUndefined()
     })
+  }
 
   test('Cerebras LLM pricing uses public endpoint catalog rates', () => {
       expect(getLlmCost('cerebras', 'gpt-oss-120b')).toMatchObject({
@@ -508,6 +515,10 @@ describe('price mode contracts', () => {
     })
 
   test('current OCR additions register published rates for document extraction', () => {
+      expect(getExtractPricing('gemini', 'gemini-3.7-flash')).toMatchObject({
+        inputCostPer1MCents: 150,
+        outputCostPer1MCents: 750
+      })
       expect(getExtractPricing('gemini', 'gemini-3.6-flash')).toMatchObject({
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750
@@ -515,6 +526,10 @@ describe('price mode contracts', () => {
       expect(getExtractPricing('gemini', 'gemini-3.5-flash-lite')).toMatchObject({
         inputCostPer1MCents: 30,
         outputCostPer1MCents: 250
+      })
+      expect(getExtractPricing('anthropic', 'claude-sonnet-4-6')).toMatchObject({
+        inputCostPer1MCents: 300,
+        outputCostPer1MCents: 1500
       })
       expect(getExtractPricing('anthropic', 'claude-opus-5')).toMatchObject({
         inputCostPer1MCents: 500,

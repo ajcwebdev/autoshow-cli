@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { rm } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
+import { join } from 'node:path'
 import { buildMissingProviders, buildMissingTargetsFromEntry, buildBlockedProviders, buildMetadataErrorEntries, resolveCanonicalCompletionStatus, parseStoredRequestedTarget, readExistingOcrRun, resolveCompletionStatus } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { makeTempDir } from '../../../test-utils/temp-dirs'
@@ -103,6 +104,53 @@ describe('OCR resume contracts', () => {
         'mutool+tesseract',
         'pdf+anthropic-ocr'
       ])
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  test('existing OCR run hydrates succeeded providers from artifact result.json when the manifest omits result', async () => {
+    const tempDir = await makeTempDir('autoshow-ocr-artifact-result-')
+    try {
+      const mistralMetadata = {
+        extractionMethod: 'pdf+mistral-ocr' as const,
+        totalPages: 1,
+        ocrPages: 1,
+        textPages: 0,
+        processingTime: 10,
+        dpi: 300,
+        languages: 'eng',
+        tokenEstimate: 12,
+        ocrService: 'mistral',
+        ocrModel: 'mistral-ocr',
+        inputFamily: 'pdf'
+      }
+      const mistralResult = {
+        text: 'Mistral artifact result.',
+        pages: [{ pageNumber: 1, method: 'ocr' as const, text: 'Mistral artifact result.' }],
+        totalPages: 1,
+        ocrPages: 1,
+        textPages: 0
+      }
+      await writeSingleManifestFixture(tempDir, 'extract', {
+        source: { filePath: '/tmp/document.pdf' },
+        completionStatus: 'full',
+        requestedProviders: [mistralTarget],
+        providerStates: [
+          {
+            ...providerState(mistralTarget, 'succeeded'),
+            metadata: mistralMetadata
+          }
+        ]
+      }, { extractRoute: 'document' })
+      const artifactDir = join(tempDir, 'providers', `${mistralTarget.service}-${mistralTarget.model}`)
+      await mkdir(artifactDir, { recursive: true })
+      await Bun.write(join(artifactDir, 'result.json'), `${JSON.stringify(mistralResult)}\n`)
+
+      const existingRun = await readExistingOcrRun(tempDir, [mistralTarget])
+
+      expect(existingRun.successes.map((success) => success?.result)).toEqual([mistralResult])
+      expect(existingRun.successMetadata.map((metadata) => metadata?.ocrModel)).toEqual(['mistral-ocr'])
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }

@@ -2,33 +2,12 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { discoverCombinedRuns, type CombinedRunRef } from "../shared/combined_report_lib";
 import {
-  MISSING_DATA_POLICY,
-  TIERING_METHOD_LINES,
-  WEIGHTED_COMPOSITE_POLICY,
-  WEIGHTED_METHOD_LINES,
-  WEIGHT_SETS,
-  WEIGHT_SET_KEYS,
-  buildQualityCostTiering,
-  computeGroupSubscores,
-  computeWeightedRankings,
-  discoverCombinedRuns,
-  tierTable,
-  weightedRankingTable,
-  type CombinedProviderInput,
-  type CombinedRunRef,
-  type CombinedTiering,
-  type ProviderSubscores,
-  type WeightSetKey,
-  type WeightedRankingEntry,
-} from "../shared/combined_report_lib";
-import {
-  balancedCells,
   renderCombinedDashboard,
   type CombinedDashboardModel,
   type DashboardGroup,
   type DashboardProviderRow,
-  type DashboardWeightedCell,
 } from "../shared/combined_report_html";
 
 type GroupKey = "local" | "thirdPartyService";
@@ -423,25 +402,10 @@ function buildDashboardGroup(
   providers: AggregatedProvider[],
   runs: OcrRunRef[],
   metricRankings: Record<MetricName, RankingEntry[]>,
-  weightedRankings: Record<WeightSetKey, WeightedRankingEntry[]>,
-  tiering: CombinedTiering,
-  subscored: ProviderSubscores[],
 ): DashboardGroup {
   const qualityRank = new Map(metricRankings.qualityScore.map((entry) => [entry.providerKey, entry.rank]));
   const speedRank = new Map(metricRankings.speed.map((entry) => [entry.providerKey, entry.rank]));
   const priceRank = new Map(metricRankings.price.map((entry) => [entry.providerKey, entry.rank]));
-  const balanced = balancedCells(subscored);
-  const subscoredByKey = new Map(subscored.map((item) => [item.providerKey, item]));
-  const weightedByKey = {} as Record<WeightSetKey, Map<string, DashboardWeightedCell>>;
-  for (const key of WEIGHT_SET_KEYS) {
-    weightedByKey[key] = new Map(weightedRankings[key].map((entry) => [entry.providerKey, { rank: entry.rank, composite: entry.composite }]));
-  }
-  const tierByKey = new Map<string, number>();
-  for (const tier of tiering.tiers) {
-    for (const provider of tier.providers) {
-      tierByKey.set(provider.providerKey, tier.tier);
-    }
-  }
   const heatValues = providers.flatMap((provider) => runs.map((run) => provider.perRun[run.runName]).filter(isFiniteNumber));
   const heatMin = heatValues.length > 0 ? Math.min(...heatValues) : 0;
   const heatMax = heatValues.length > 0 ? Math.max(...heatValues) : 0;
@@ -451,16 +415,10 @@ function buildDashboardGroup(
     display: provider.providerKey,
     model: provider.model,
     coverage: `${provider.runsCovered}/${runs.length}`,
-    tier: tierByKey.get(provider.providerKey) ?? null,
     quality: { display: formatQuality(provider.avgQualityScore), rank: qualityRank.get(provider.providerKey) ?? null },
     speed: { display: formatPagesPerMinute(provider.pagesPerMinute), rank: speedRank.get(provider.providerKey) ?? null },
     cost: { display: formatCostPer100Pages(priceValue(provider)), rank: priceRank.get(provider.providerKey) ?? null },
-    balanced: balanced.get(provider.providerKey) ?? { rank: providers.length, composite: 0 },
-    weighted: Object.fromEntries(
-      WEIGHT_SET_KEYS.map((key) => [key, weightedByKey[key].get(provider.providerKey) ?? { rank: providers.length, composite: 0 }]),
-    ) as Record<WeightSetKey, DashboardWeightedCell>,
     evidence: [formatPercent(provider.weightedWER), formatPercent(provider.weightedCER), formatTime(provider.avgProcessingTimeMs)],
-    missingDimensions: subscoredByKey.get(provider.providerKey)?.missingDimensions ?? [],
     perRun: runs.map((run) => {
       const value = provider.perRun[run.runName];
       if (!isFiniteNumber(value)) {
@@ -474,16 +432,6 @@ function buildDashboardGroup(
   return {
     key: group,
     label: GROUP_LABELS[group],
-    tierCards: tiering.tiers.map((tier) => ({
-      tier: tier.tier,
-      label: tier.label,
-      description: tier.description,
-      providers: tier.providers.map((provider) => ({
-        display: provider.display ?? provider.provider,
-        qualityCostRank: provider.qualityCostRank,
-        qualityCostComposite: provider.qualityCostComposite,
-      })),
-    })),
     metricColumns: { quality: "Avg quality /100", speed: "Pages/min", cost: "$/100 pages" },
     evidenceColumns: ["Weighted WER", "Weighted CER", "Avg time/run"],
     providers: rows,
@@ -516,32 +464,9 @@ function main(): number {
     thirdPartyService: rankGroup(groupedProviders.thirdPartyService),
   };
 
-  const runNames = runs.map((run) => run.runName);
-  const weightedRankings = {} as Record<GroupKey, Record<WeightSetKey, WeightedRankingEntry[]>>;
-  const tiering = {} as Record<GroupKey, CombinedTiering>;
-  const subscoresByGroup = {} as Record<GroupKey, ProviderSubscores[]>;
-  for (const group of GROUPS) {
-    const inputs: CombinedProviderInput[] = groupedProviders[group].map((provider) => ({
-      providerKey: provider.providerKey,
-      provider: provider.provider,
-      model: provider.model,
-      display: provider.providerKey,
-      samples: (byProvider.get(provider.providerKey)?.samples ?? []).map((sample) => ({
-        runName: sample.runName,
-        quality: sample.score,
-        timeMs: sample.processingTimeMs,
-        costCents: group === "local" ? 0 : sample.costCents,
-      })),
-    }));
-    const subscored = computeGroupSubscores(inputs, runNames);
-    subscoresByGroup[group] = subscored;
-    weightedRankings[group] = computeWeightedRankings(subscored, group);
-    tiering[group] = buildQualityCostTiering(weightedRankings[group].qualityCost);
-  }
-
   const generatedAt = new Date().toISOString();
   const jsonReport = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: "ocr-combined-comparison-report",
     category: "ocr",
     rootDir,
@@ -552,28 +477,23 @@ function main(): number {
     totalPages,
     providerCount: aggregated.length,
     metricRankings,
-    weightSets: WEIGHT_SETS,
-    weightedRankings,
-    tiering,
     rankingPolicy: {
       price:
         "USD per 100 pages ascending (sum of costCents over sum of pageCount); local providers at zero; missing cost sorts last; ties break by quality descending, then pages/minute descending, then providerKey",
       speed: "aggregate pages per minute descending (sum of pageCount over sum of processing time); missing timing sorts last; ties break by providerKey",
       qualityScore: "unweighted mean quality score descending; missing score sorts last; ties break by providerKey",
-      weightedComposite: WEIGHTED_COMPOSITE_POLICY,
-      missingData: MISSING_DATA_POLICY,
     },
     notes: [
       "Each provider is aggregated by providerKey across the runs it appears in; sums and means cover present values only.",
       "Groups follow the single-run OCR contract: local, thirdPartyService; local and service providers are never ranked against each other.",
       "Weighted WER and weighted CER are evidence columns: summed breakdown errors divided by summed reference counts, so longer runs count proportionally more.",
-      "Weighted composite rankings and quality-cost tercile model tiers are emitted per group; no cross-group overall or rankingSurfaces leaderboard is emitted, and single-run reports remain tier-free.",
+      "Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.",
       "Supersedes the hand-authored 2026-06-14 combined report, which is preserved as a historical record.",
     ],
   };
 
   const jsonPath = join(rootDir, "combined-comparison-report.json");
-  writeFileSync(jsonPath, JSON.stringify(jsonReport, null, 2));
+  writeFileSync(jsonPath, JSON.stringify(jsonReport));
 
   const md: string[] = [];
   md.push("# Combined OCR Provider Comparison Report");
@@ -605,14 +525,6 @@ function main(): number {
     "- Tied ranking values break deterministically: price ties by quality descending, then pages/minute descending, then provider key; speed and quality ties by provider key.",
   );
   md.push("");
-  for (const line of WEIGHTED_METHOD_LINES) {
-    md.push(line);
-  }
-  md.push("");
-  for (const line of TIERING_METHOD_LINES) {
-    md.push(line);
-  }
-  md.push("");
   md.push("## Metric Rankings");
   md.push("");
   for (const group of GROUPS) {
@@ -630,16 +542,6 @@ function main(): number {
     md.push("");
     md.push(metricTable(metricRankings[group].qualityScore, runs.length));
     md.push("");
-    md.push("#### Weighted Rankings");
-    md.push("");
-    md.push("Q, S, and C are each provider's per-run normalized quality, speed, and cost subscores averaged across covered runs.");
-    md.push("");
-    for (const key of WEIGHT_SET_KEYS) {
-      md.push(`##### ${WEIGHT_SETS[key].label}`);
-      md.push("");
-      md.push(weightedRankingTable(weightedRankings[group][key], runs.length));
-      md.push("");
-    }
   }
   md.push("## Per-Run Quality Score");
   md.push("");
@@ -652,18 +554,6 @@ function main(): number {
     md.push(`### ${GROUP_LABELS[group]}`);
     md.push("");
     md.push(perRunMatrix(groupedProviders[group], runs));
-    md.push("");
-  }
-  md.push("## Model Tiers");
-  md.push("");
-  md.push(
-    "Tiers are `quality-cost-terciles-v1`: contiguous, near-equal slices of each group's `qualityCost` weighted ranking, with remainder models assigned to higher tiers first. Groups are never compared against each other.",
-  );
-  md.push("");
-  for (const group of GROUPS) {
-    md.push(`### ${GROUP_LABELS[group]}`);
-    md.push("");
-    md.push(tierTable(tiering[group]));
     md.push("");
   }
   md.push("## Notes");
@@ -694,13 +584,11 @@ function main(): number {
       detail: `${run.providerCount} providers, ${run.pageCount} page${run.pageCount === 1 ? "" : "s"}`,
     })),
     groups: GROUPS.map((group) =>
-      buildDashboardGroup(group, groupedProviders[group], runs, metricRankings[group], weightedRankings[group], tiering[group], subscoresByGroup[group]),
+      buildDashboardGroup(group, groupedProviders[group], runs, metricRankings[group]),
     ),
     methodParagraphs: [
       "Providers are matched by `providerKey` and aggregated across the runs they appear in; sums and means cover present values only.",
       "Quality ranks the unweighted mean `metrics.score` descending. Speed ranks aggregate pages per minute (`sum(pageCount) / sum(processingTimeMs / 60000)`) descending. Cost ranks USD per 100 pages (`sum(costCents) / sum(pageCount)`) ascending with local providers at zero. Weighted WER/CER are evidence: summed breakdown errors over summed reference counts. Missing values sort last; ties break deterministically.",
-      ...WEIGHTED_METHOD_LINES.filter((line) => line.length > 0 && !line.startsWith("|")),
-      ...TIERING_METHOD_LINES,
     ],
     notes: jsonReport.notes,
   };

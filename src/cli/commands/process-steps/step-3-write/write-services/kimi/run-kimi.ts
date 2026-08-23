@@ -26,7 +26,7 @@ export const runKimiModel = async (
       requestBody['max_completion_tokens'] = 32768
       if (policy.effective === 'disabled') {
         requestBody['thinking'] = { type: 'disabled' }
-      } else if (model === 'kimi-k3' && policy.requested !== undefined && policy.requested !== 'default') {
+      } else if (model === 'kimi-k3' && policy.effective !== 'default') {
         requestBody['reasoning_effort'] = policy.effective
       }
     },

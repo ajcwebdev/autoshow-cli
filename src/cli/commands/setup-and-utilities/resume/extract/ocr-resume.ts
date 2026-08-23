@@ -108,7 +108,7 @@ const filterRunnableStoredOcrTargets = (
   const runnable: OcrTarget[] = []
   for (const target of targets) {
     const activeModels = getStep2ActiveModelsForService('ocr', target.service)
-    if (!activeModels || activeModels.includes(target.model)) {
+    if (activeModels?.includes(target.model)) {
       runnable.push(target)
       continue
     }
@@ -123,7 +123,9 @@ const filterRunnableStoredOcrTargets = (
 
     const nextStep = replacement !== undefined
       ? `Re-run with --provider ${target.service}=${replacement} to add the replacement as a distinct target.`
-      : `Re-run with an explicit active ${target.service} model to add a distinct target.`
+      : activeModels && activeModels.length > 0
+        ? `Re-run with an explicit active ${target.service} model to add a distinct target.`
+        : 'Re-run with an explicit active OCR provider to add a distinct target.'
     throw UsageError(
       `Stored OCR target ${target.service}/${target.model} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. ${nextStep}`
     )

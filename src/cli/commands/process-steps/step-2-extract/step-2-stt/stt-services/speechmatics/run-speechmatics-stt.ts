@@ -22,7 +22,7 @@ export const buildSpeechmaticsTranscriptionConfig = (
   type: 'transcription',
   transcription_config: {
     model: modelName,
-    language: modelName === 'melia-1' ? 'multi' : 'auto',
+    language: 'multi',
     diarization: 'speaker'
   }
 })

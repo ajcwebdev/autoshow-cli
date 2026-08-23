@@ -1,0 +1,1616 @@
+[00:00:00.000] Welcome.
+[00:00:28.320] Welcome.
+[00:00:28.380] All right.
+[00:00:32.160] Yeah.
+[00:00:33.380] Yo, yo, yo.
+[00:00:35.000] Let's go.
+[00:00:36.820] There we go.
+[00:00:42.780] Welcome, everybody.
+[00:00:45.420] How's it going?
+[00:00:46.400] Welcome to JavaScript Jam Live.
+[00:00:51.560] We do this every Wednesday at 12 p.m. Pacific Standard Time.
+[00:00:58.380] yes oh yeah and we have a lot of fun we have some great people to join us regulars
+[00:01:08.260] there's jen she's one of them she's in here quite often
+[00:01:13.820] but yeah i just wanted to thank everybody for coming today i just wanted to say
+[00:01:19.660] whether you're a beginner or whether you're an advanced
+[00:01:23.160] learner because what are we we we are as engineers as developers we are lifelong learners right so
+[00:01:35.080] well there we go it went away all right sorry i was getting a phone call
+[00:01:44.400] i need to put this thing on focus mode y'all come on i think i'm new to the game
+[00:01:49.760] Told you, lifelong learner, right?
+[00:01:54.060] Lifelong learners.
+[00:01:55.040] That's what we are.
+[00:01:55.960] And so whether you're a beginner learner or an advanced learner, we just want to say thank
+[00:02:00.460] you all for coming.
+[00:02:01.300] And it doesn't matter who you are.
+[00:02:02.800] Come join us up here on the stage.
+[00:02:04.640] Just feel free to ask any questions you want, state any facts, opinions, whatever.
+[00:02:10.860] We'd love to hear it.
+[00:02:11.960] All you got to do is request to come up and we'd be more than happy to have you on.
+[00:02:14.760] But we do have today a special guest, and we're going to be discussing, I'm sure as you saw from the title there, a little bit about Qwik.
+[00:02:25.420] So, kind of excited about this one.
+[00:02:28.440] Anthony, I'm going to go ahead and make an introduction myself real quick, and then you can introduce yourself, and then me, so you can go from there, and we'll get started.
+[00:02:36.500] I'm excited.
+[00:02:37.080] So my name is Scott Steinlogge and I am the technical community manager for Egeo and co-host of JavaScript Gen here.
+[00:02:47.660] Hello, my name is Anthony Campolo. I am a developer advocate at Egeo and we are super happy to have Mishko here with us.
+[00:02:57.940] I guess it's my turn. Hi, I'm Mishko. I am a CTO at Builder.io and yeah, I'm so happy to be here.
+[00:03:05.100] so happy to chat with everybody hi jen i've been on your show before um yeah so let's talk about
+[00:03:10.360] things related to quick and web and things of that sort
+[00:03:13.000] yeah i want to give you a shout out for being on jen's show because jen is a wasn't you know
+[00:03:22.140] kind of still is getting into the industry and you went on and taught her at a right a counter
+[00:03:27.480] which was for someone of your stature is kind of funny but also shows that you're very humble and
+[00:03:35.080] willing to work with beginners, I think, really speaks a lot to your character.
+[00:03:39.920] I am new to this as well, and so I'm happy to be on the show.
+[00:03:46.640] Cool.
+[00:03:47.300] Well, yeah, we're going to be talking about Quik today and any other things you want to
+[00:03:52.400] chat about with Builder.
+[00:03:54.180] I've been kind of looking at the Builder.io blog posts and some of the topics that you
+[00:04:00.560] had recently been looking at that I thought might be interesting to get into.
+[00:04:05.660] But before we start checking those out, we should start with a little bit of your background
+[00:04:10.940] and the quick 101.
+[00:04:14.740] Yeah, sure.
+[00:04:15.400] We're happy to jump into that.
+[00:04:16.920] Background, let's see.
+[00:04:19.140] I actually have a degree in computer engineering, which is kind of weird because the thing that
+[00:04:27.040] I got my degree in is how transistors work, all the way to low level, like CPUs work and
+[00:04:34.580] the lowest possible level you can imagine.
+[00:04:37.560] And somehow over the years, I have slowly transitioned to higher and higher level because
+[00:04:43.220] computers are just a bunch of abstractions all the way to the top.
+[00:04:47.100] And so somehow I ended up in the web, which is pretty high abstraction.
+[00:04:52.440] And normally when you type A plus B or something like that inside of your web browser, you
+[00:04:56.800] You don't really think about what all the insanity happens underneath to add two numbers together.
+[00:05:02.340] So, yeah, I have kind of a strange background.
+[00:05:04.280] I actually kind of like it because I kind of joke that I'm probably the only JavaScript engineer that knows how transistors work.
+[00:05:09.160] I'm sure there's plenty of others, but it's not a common thing in this.
+[00:05:13.840] Hey, I love working on some things.
+[00:05:16.520] I have personally soldered some custom boards together with capacitors, resistors, chips.
+[00:05:25.840] Yeah, there you go.
+[00:05:26.800] Interesting thing.
+[00:05:28.400] There you go.
+[00:05:30.040] I used to have a big poster of a chip I laid out over my bed.
+[00:05:35.640] But my girlfriend, now my wife, she decided that that didn't really fit the bedroom.
+[00:05:41.660] So it's no longer there.
+[00:05:45.120] Nice.
+[00:05:46.260] But anyway, so somehow I ended up in web technologies.
+[00:05:50.120] And I actually went to work at Adobe.
+[00:05:53.020] And there I learned Flex and Flash.
+[00:05:55.420] and then I ended up at Google and you know I kind of learned that like building web apps is just like
+[00:06:01.380] a big marshalling problem of how do you get your data from the UI to the database and back to the
+[00:06:06.920] from the database back to the UI and so this is where I kind of work a little bit on Angular
+[00:06:11.300] and AngularJS and Angular and I've done that for a pretty long time and then like two years ago or
+[00:06:18.260] three years ago or something like that I was just like I just need to try something new something
+[00:06:22.100] different. Either that or I'm going to become institutionalized. And so I kind of went out and
+[00:06:27.620] looked for a bunch of other things. I ended up at Builder.io. What really spoke to me is this idea
+[00:06:32.600] of no code editor. What Builder.io does is basically, I'm sure you guys are familiar with
+[00:06:37.640] Wix. Wix allows you to kind of drag and drop editor for building websites, right? But Wix
+[00:06:43.080] forces all of that to be, you know, you have to host it with Wix. You cannot take the site and
+[00:06:49.360] like put it in a custom application or something like that.
+[00:06:52.220] And so with Builder.io, it's kind of the same exact idea as Wix, except that you can actually
+[00:06:56.180] embed it into your custom React Angular Vue, you know, quick application.
+[00:07:02.280] And I think that's kind of what's kind of unique and interesting.
+[00:07:06.180] Anyway, so while at Builder, I came to, you know, to my old habits, so to speak.
+[00:07:14.240] And I was just like, we need to make the web faster.
+[00:07:18.120] You know, what's going on is just craziness.
+[00:07:20.320] It's too slow.
+[00:07:21.980] And you know the big kind of realization is like well it relatively simple in the sense that like the performance or the startup performance of the site is just proportional to how much JavaScript the website has to execute at the beginning right
+[00:07:36.620] And so if you decrease the amount of JavaScript you execute, then your site obviously starts up faster.
+[00:07:41.260] And so QUIC kind of became this journey on how do you not ship so much JavaScript to the browser?
+[00:07:48.260] And so that's where we are today.
+[00:07:52.620] Nice. Yeah.
+[00:07:53.400] I find that this is very much in the zeitgeist right now with JavaScript.
+[00:07:58.720] A lot of people are concerned with performance,
+[00:08:01.900] both in the framework world and outside the framework world.
+[00:08:05.040] I think it's interesting you look at someone like Alex Russell.
+[00:08:08.020] He's really giving a similar message to you,
+[00:08:11.360] but he is saying less so that we should have a performance framework
+[00:08:17.480] so much as we shouldn't have a framework at all.
+[00:08:19.720] or you should build your own bespoke one for the needs of your specific project.
+[00:08:26.380] So why do you feel that we should architect these frameworks to be performing
+[00:08:32.320] instead of just using native web components?
+[00:08:36.020] I think a lot of people are coming to the same exact conclusion,
+[00:08:39.520] and the conclusion is that there is too much JavaScript, right?
+[00:08:42.900] It's kind of an obvious conclusion,
+[00:08:45.980] but it's also a conclusion that is kind of difficult to be actionable.
+[00:08:50.900] You know, I always kind of joke that when you go to Google Lighthouse score, right,
+[00:08:56.300] it tells you decrease the amount of JavaScript.
+[00:08:58.240] And it's like, yes, yes, I understand that.
+[00:08:59.740] But like, how?
+[00:09:01.000] Like, what's the magic button that I can push to get less JavaScript, right?
+[00:09:06.560] It's kind of like, you know, you go to somebody and they say,
+[00:09:09.300] well, you know, I decided that your problem is that you're poor,
+[00:09:11.880] so you just have to make more money.
+[00:09:12.900] It's like, yeah, I get it.
+[00:09:13.820] But like, how?
+[00:09:15.220] What's the magical thing to do here?
+[00:09:18.660] And so I think what Alex a lot of times talks about is this idea of like, let's just be
+[00:09:24.260] more frugal about things.
+[00:09:26.560] And I think being frugal is kind of difficult.
+[00:09:29.820] Like, yeah, I get it.
+[00:09:31.060] Like, you could be more frugal and be more careful, et cetera.
+[00:09:33.940] But on the other day, you know, we have things to deliver.
+[00:09:36.800] We have other distractions, et cetera.
+[00:09:38.500] And so we just want the tools to solve this for us.
+[00:09:41.780] And so my take on the whole thing is that our tools should be helping us.
+[00:09:46.720] And I think we're kind of in the world where the tools are somewhere between not helping and actually actively trying to sabotage us.
+[00:09:55.520] It's not intentional.
+[00:09:57.040] It's not like we intentionally designed these tools this particular way.
+[00:09:59.800] But we kind of ended up in this world because we didn't really understand the web ecosystem or the web world.
+[00:10:08.440] and we came to the web world from kind of the desktop application world, right?
+[00:10:13.100] Like a desktop application world, like the concept of lazy loading is just not much of a thing.
+[00:10:17.440] And so you don't really design your framework to kind of take this into account.
+[00:10:21.900] And if you look at most lazy loaded frameworks today, like most frameworks today, they have lazy loading.
+[00:10:27.920] It's true, they have that, but it's a kind of a, I would say, an afterthought.
+[00:10:32.620] It's not, lazy loading was never inside of version one of any of these frameworks.
+[00:10:37.700] lazy loading was something that was added later on.
+[00:10:39.780] And because it was added later on,
+[00:10:41.500] it's not like the core primitive of what these things do.
+[00:10:46.740] And so there's like all kinds of, you know,
+[00:10:48.440] I would say clever ways of lazy load the code,
+[00:10:52.200] but all of them essentially have this particular problem.
+[00:10:56.040] And that is that you can only lazy load code
+[00:10:59.100] that is currently not needed,
+[00:11:01.640] which seems kind of obvious,
+[00:11:03.220] but like what it means in practice
+[00:11:04.860] is that if you have a component,
+[00:11:07.160] that is currently on your page, you have to lazy load the code for the component, even though
+[00:11:12.760] that component might not be doing anything, might not have any behavior, or it might already be
+[00:11:16.600] rendered and it never needs to be rendered again. But just the way the existing tools work and the
+[00:11:21.880] way hydration works, that code has to be present in the client. And so, you know, the mental
+[00:11:29.960] exercise that Qlik is trying to do is to say, like, how do we delay the code as much as possible,
+[00:11:35.640] and just take it to an extreme
+[00:11:37.560] and have the tools just do it automatically.
+[00:11:41.140] So as a developer, you just don't have to think about it.
+[00:11:45.800] Awesome.
+[00:11:46.660] Well, I'll give a shout out to Raiz who just joined us.
+[00:11:50.340] You want to introduce yourself?
+[00:11:52.300] Hey.
+[00:11:53.740] Yeah, sorry.
+[00:11:55.000] My name is Raiz.
+[00:11:56.220] I am the product manager for Egeo Sites.
+[00:11:59.100] I work at Egeo with Anthony and Scott
+[00:12:02.520] and some other people here.
+[00:12:04.000] yeah
+[00:12:05.800] just listening in
+[00:12:09.260] and being inspired
+[00:12:11.420] I have a couple of
+[00:12:13.400] questions that I'll save for later though
+[00:12:15.120] yeah I'd actually
+[00:12:16.620] I told Raiz he should definitely make it
+[00:12:19.280] for this one because he's someone who actually
+[00:12:21.300] has worked quite deeply with
+[00:12:23.060] Quick and has kind of scoped it out
+[00:12:25.440] for some production
+[00:12:27.080] apps so I was like you should definitely
+[00:12:29.440] hop up here and ask some
+[00:12:31.240] questions when you have it yeah feel free to jump
+[00:12:33.340] And at any point, we're just doing kind of like the quick 101 right now.
+[00:12:37.520] And then we'll get into some deeper questions as we go.
+[00:12:40.640] So we talked about quick.
+[00:12:41.700] We've talked about kind of the problem it's meant to solve.
+[00:12:45.700] And it seems like it's aiming for a similar thing to like partial hydration.
+[00:12:51.620] How do we manage the amount of JavaScript we have?
+[00:12:54.920] Same thing with server components.
+[00:12:56.640] So a lot of different ways that we're trying to approach this problem.
+[00:13:01.280] And then there's also Quick City as well.
+[00:13:04.640] So you should talk a little bit about how Quick City fits in here.
+[00:13:08.500] Yeah, we can talk about that.
+[00:13:09.700] But first, sorry, I'm going to be a little bit of a stickler,
+[00:13:12.700] and I will try to very politely correct something that you just said.
+[00:13:17.600] You said partial hydration.
+[00:13:20.200] Well, I know it's not partial hydration.
+[00:13:21.800] I'm saying they're both the thing you're doing and the thing partial hydration
+[00:13:24.700] they're doing are trying to solve the same problem,
+[00:13:27.220] but I know they're doing it differently.
+[00:13:28.580] So you can go into that if you want.
+[00:13:30.440] No, no, no, absolutely.
+[00:13:31.280] Yeah, no, I just wanted to make it clear, like, it's a different, it solves the same problem, right?
+[00:13:35.560] The problem you're trying to solve is way too much JavaScript is being executed on initial page navigation, right?
+[00:13:41.980] That's the fundamental problem you're trying to solve.
+[00:13:44.300] And there's a lot of different approaches you could take.
+[00:13:48.460] And, you know, Quake was basically designed from ground up to delay execute the code extremely aggressively as much as possible.
+[00:13:56.940] And that's kind of its trick, right?
+[00:13:58.700] That's the thing that it's trying to do.
+[00:14:00.340] And the argument here is that if you can do that, then you can greatly lower the amount of JavaScript.
+[00:14:07.200] So, anyways.
+[00:14:08.980] So, QuickCity.
+[00:14:09.780] Yeah, let's talk about QuickCity.
+[00:14:10.960] So, you know, we built Quick.
+[00:14:13.020] And we originally didn't want to go into the business of building a meta framework.
+[00:14:17.660] We were kind of hoping that we could either reuse Next.js or Remix or, you know, one of the existing meta frameworks that are currently out there.
+[00:14:25.460] But it turns out, like, there is a lot of details that matter.
+[00:14:30.340] And so whether we liked it or not, we ended up building a meta framework that can take advantage of Quick.
+[00:14:37.960] And the one way to kind of think about it is, you know, Quick City is kind of like Next.js to React, right?
+[00:14:44.420] So Quick City is too quick in the same way.
+[00:14:47.400] But it solves, it takes the problem in a slightly different way.
+[00:14:52.380] What unique about Quick City and Quick is that the frameworks or you can really think about it together as just Quick What unique about it is that they really want to solve the whole problem end What I mean by whole problem end is how do you make the bundles How do you break up your code How do you lazy load the code How do
+[00:15:09.300] you make sure that the lazy loading is pre-cached so that you don't have hiccups on a small network
+[00:15:15.960] or intermittent network? How do you serialize the data? How do you deserialize the data on the other
+[00:15:20.520] side? How do you wake up the application? Basically, all of those pieces that are related
+[00:15:25.580] are solved as a cohesive problem set. Whereas if you look at the existing systems,
+[00:15:32.880] they solve the parts in pieces, or maybe they don't. So for example, Next.js relies on existing
+[00:15:42.200] technologies to create bundles. But because it relies on existing technologies, it means that
+[00:15:47.080] As a developer, if you want to have a lazy loaded boundary, you have to think about it. You have to put a dynamic import somewhere in your code base. And if you don't put that in, well, then, you know, that particular bit can't be lazy loaded. Whereas with Qlik, you know, you don't have to think about it. It's just automatic and natural.
+[00:16:03.060] So the problem we're trying to solve is that we would like to have an environment where the whole part of serving a web application in the fastest possible way is something that is available to you, sold out of the box.
+[00:16:17.380] You don't have to think about it as an afterthought.
+[00:16:22.180] Awesome. Welcome to the stage, Daniel.
+[00:16:25.220] Did you have a question for Michio?
+[00:16:27.000] and um if they're not here right now raiz if you want to hop in with any of your questions feel
+[00:16:35.280] free yeah so actually um as as anthony mentioned i actually built a production website a small
+[00:16:43.400] production website uh with quick and while while we were actually building that um some of the apis
+[00:16:50.840] changed and I was trying to basically see the documentation in GitHub and see what is going
+[00:16:59.420] on with the APIs. And I found out that you guys are working on the server, you know,
+[00:17:06.140] server closure, I think it's called or something. I would love to, you know, get to know what was
+[00:17:13.860] the motivation behind that. It seems like it should have been done by other people as well.
+[00:17:20.840] And, you know, are other people, other frameworks doing it as well?
+[00:17:25.240] Or is Quick City the first one to do this?
+[00:17:29.360] And what was the, you know, what was the inspiration for that?
+[00:17:33.120] Yes, I believe you're talking about server dollar sign, right?
+[00:17:35.860] Yeah, yeah.
+[00:17:36.880] Okay.
+[00:17:37.920] Yeah, so I think there is a general trend towards what I call code collocation.
+[00:17:42.840] This idea that as a developer, you know, we have some codes that runs on a server and some code that runs on the client.
+[00:17:49.420] but we don't really want to think of it as two separate things.
+[00:17:52.480] We really want to just have a single code base, right?
+[00:17:54.740] So we want to co-locate our server code together with our client code.
+[00:17:58.700] And if you look at it, like existing frameworks are going to do this.
+[00:18:00.880] If you look at Next.js, there's the get server props.
+[00:18:03.860] If you look at Remix, I forget off the top of my head what they have,
+[00:18:07.000] but they have a similar mechanism by where you can fetch data.
+[00:18:09.740] And basically all meta frameworks have a mechanism
+[00:18:12.400] by where you can essentially execute code that is server-only code,
+[00:18:18.500] meaning it talks to a database or a file system,
+[00:18:20.500] something that can never be on the client,
+[00:18:22.780] but have a way of making sure that when the bundles are created,
+[00:18:26.940] that code doesn't end up in the client, right?
+[00:18:29.680] And so this is a trend that I think already has existed for a while.
+[00:18:34.040] Nothing has changed in it.
+[00:18:35.640] And so I think what we're looking for is just a more natural way
+[00:18:39.140] of mixing server and the client code.
+[00:18:41.980] So once we get server props, you know, once that can get started,
+[00:18:46.400] But other people have kind of tried to push this idea even further.
+[00:18:50.560] So like TRPC is another example of like, hey, I have server code.
+[00:18:54.220] I have client code.
+[00:18:55.360] How do I make sure that the type information flows through it and so on?
+[00:18:59.440] Before something like TRPC, like type information wouldn't flow between the server and the client.
+[00:19:04.100] And so if you just take this idea even further, then you end up something with a server dollar sign where you can, you have a underlying system that knows how to break up your code in such a way.
+[00:19:15.940] so that you don't accidentally ship server code to the client.
+[00:19:20.980] But it's written in such a way where the semantic meaning
+[00:19:24.480] of what server-side dollar is is kind of left in the user space,
+[00:19:29.020] in the developer space, meaning that, you know,
+[00:19:30.840] I could implement server dollar sign,
+[00:19:32.400] or I can implement worker dollar sign,
+[00:19:34.680] or I could implement, you know, anyone, anyone,
+[00:19:38.540] others of these, you know, load data on a server dollar sign kind of a thing.
+[00:19:42.460] And so what Quake kind of, I think, pioneered is kind of unique to Quake is this idea that you have a marker function that can take code and break it apart so that you as a developer can decide, well, what does it mean for these two parts to do?
+[00:19:59.200] Like, do I execute the part in the same location or the location on the other side, et cetera?
+[00:20:05.040] So we call this idea code collocation and code extraction.
+[00:20:07.860] and so server dollar sign actually kind of fits an interesting niche where you know you want to
+[00:20:15.660] just make a call on a server and so you want to have a simple way of doing it but you don't
+[00:20:20.460] necessarily want to reach to something more heavyweight like trpc like trpc has other
+[00:20:25.040] advantages in that you can have kind of a different client sort of different teams working on the api
+[00:20:32.140] side and different team working on the client side there's a backwards compatibility story
+[00:20:36.720] in there saying that you have to make sure that you don't accidentally, because there's a version
+[00:20:40.380] skew between the version that's in the browser versus the version that's on a server, you want
+[00:20:45.280] to change your APIs in such a way so they're compatible, right? So, so TRPC allows you to do
+[00:20:49.980] all of these fancy things, but maybe sometimes you don't need it. Sometimes you just want something
+[00:20:53.960] quick and simple and, you know, to kind of get you moved on from it. And so something like server
+[00:20:59.440] dollar sign is an interesting stopgap measure. So what we're doing is we're making it easy
+[00:21:04.100] for people to collocate server and the client code together
+[00:21:08.120] in the same file and making it easy for us to communicate between that.
+[00:21:13.180] And we think for like 90% of the use cases is good enough.
+[00:21:17.020] And for the more complicated, 10% of the use cases,
+[00:21:19.780] well, there are other tools out there that you can kind of hop in and use.
+[00:21:26.120] And I think I see Theo is also over here,
+[00:21:28.020] and I know Theo was pretty outspoken about TRPC and how,
+[00:21:31.000] so you can probably jump in and have some opinions as well.
+[00:21:36.900] Looks like Daniel's got his hand up.
+[00:21:38.800] You want to hop in?
+[00:21:41.940] Hello, good evening.
+[00:21:43.720] Sorry, good evening from Nigeria.
+[00:21:46.140] So I have a question.
+[00:21:48.900] I write Python and I use that for artificial intelligence.
+[00:21:53.480] But is it possible for someone to write AI with JavaScript?
+[00:21:58.360] Is it really possible?
+[00:21:59.220] I know you can write it with C++.
+[00:22:01.000] and python but is it possible with javascript uh this is not my area of expertise i can answer that
+[00:22:08.600] but go go for it yeah yeah so i mean so when you're talking about like ai there's different
+[00:22:15.960] things you can kind of talk about here so there's actual training like models themselves which is
+[00:22:21.480] typically done in python but you can do some of this in javascript like there a javascript like like TensorFlow library or you can write JavaScript code that going to hit like an API like OpenAI API And with that you can
+[00:22:37.620] write a JavaScript application that will be hitting essentially the AI kind of services. So for the
+[00:22:44.600] most part, that's what you'll be doing. You won't really be coding so much direct AI stuff itself
+[00:22:50.480] in JavaScript, but you still work with AI
+[00:22:52.620] tools in the language
+[00:22:54.520] of JavaScript. Does that make sense?
+[00:22:58.280] Yeah, kind of. But, you know,
+[00:23:00.700] trying to do stuff like a convolutional
+[00:23:02.500] or a computer vision
+[00:23:04.300] project, you know, I haven't learned stuff
+[00:23:06.420] like JavaScript, and I have
+[00:23:07.700] full interest with
+[00:23:09.600] AI. I've been working with AI for quite a
+[00:23:12.420] long time, just with Python.
+[00:23:14.220] So, I don't just know.
+[00:23:16.360] I think I know of the Java
+[00:23:18.300] TensorFlow.js, but I
+[00:23:20.340] I don't know if you can do everything Python can actually do.
+[00:23:23.740] Just sounds weird.
+[00:23:25.460] I don't know.
+[00:23:28.340] Yeah.
+[00:23:29.340] Yeah, we're not really AI experts up here, unfortunately.
+[00:23:33.240] So I think that's probably about all the words of wisdom we can give you.
+[00:23:37.620] It's like Theo got your hand up.
+[00:23:40.740] Howdy.
+[00:23:41.560] I wanted to chat a bit about the TRPC stuff just because I agree with parts,
+[00:23:46.940] but not necessarily the whole.
+[00:23:48.600] I think the framing that I've grown to take on is like, what's the distance between your
+[00:23:54.100] backend and your frontend in a developer experience or way where like co-location is obviously
+[00:24:01.820] a huge, like when in that the backend code that your friend uses is right there.
+[00:24:06.600] And when you use a primitive like server dollar sign to like generate those functions, you
+[00:24:10.980] end up with a lot of the like type safe behavior that you would expect from just writing and
+[00:24:15.640] calling functions in TypeScript traditionally.
+[00:24:17.340] I find that when we look at stuff like REST and GraphQL, there is an abstraction there that makes the distance between the back end and front end code feel much greater.
+[00:24:26.980] And you have a much more mental overhead to work with when you're making those types of changes in between that relationship.
+[00:24:33.940] The benefit of that cost is that you now have a back end that can be used for multiple purposes across multiple clients.
+[00:24:39.920] And the split actually makes the team split better, too.
+[00:24:42.700] One of the points Mystico made that I don't necessarily agree with is that TRPC helps the backend and frontend teams be separate.
+[00:24:49.460] I actually think it's uniquely poor in that TRPC is a first-class backend for frontend.
+[00:24:56.260] What we're describing here with server $ is a first-class backend primitive in your frontend.
+[00:25:02.520] And I think the distance between those two things is not very great.
+[00:25:06.200] I would consider TRPC closer to a server dollar sign type thing than I would to GraphQL,
+[00:25:11.780] simply because command click go to definition works as expected.
+[00:25:16.060] And I think the magic of TRPC isn't that it's more like GraphQL or more like an RPC.
+[00:25:22.720] It's that it represents this unique in-between where you get a lot of the DX wins from both
+[00:25:27.280] and the ability to use your server across multiple platforms and clients.
+[00:25:32.760] I just want to add something.
+[00:25:34.300] I agree with everything you said.
+[00:25:37.700] Do you think it would be a good characterization
+[00:25:39.920] that you kind of have layers, right?
+[00:25:41.420] Like server dollar is by far the closest in the distance
+[00:25:44.520] and then trpc is a little further away,
+[00:25:46.400] but like still we're pretty close.
+[00:25:48.540] And then GraphQL would be like
+[00:25:49.840] kind of the furthest up there, right?
+[00:25:53.460] Exactly.
+[00:25:54.020] This is the framing I've been trying to take on more
+[00:25:55.960] and while doing it,
+[00:25:57.100] show the benefits that you get
+[00:25:58.600] as you leave like further out the circle.
+[00:26:01.500] Yeah, it's a trade-off, definitely.
+[00:26:04.300] Awesome. Looks like we got real 007 has their hand up. I think this is a first time caller.
+[00:26:11.300] Hello.
+[00:26:14.300] Hey.
+[00:26:15.300] Hey, guys. My name is Tino and I have a tricky question for Mishko, but I don't know if you can answer.
+[00:26:24.300] So my question is, as far as I know, Quick and Quick City are still in beta.
+[00:26:30.300] beta what are they waiting for in order to hit phasian 1.0 what is that one thing that they are
+[00:26:38.000] waiting for i don't know if mishko can answer this or not yeah i can definitely try um i think what
+[00:26:44.880] we're missing mainly is uh documentation uh and kind of polish you know what we want is we want
+[00:26:51.460] people to have a good experience right so if you come in and you type in a quick create project and
+[00:26:56.920] do basic operations, it should all
+[00:26:59.040] kind of work. And
+[00:27:00.860] right now, we're still getting
+[00:27:03.100] lots of feedback from the community of
+[00:27:04.840] sharp edges where things work,
+[00:27:07.040] but you've got to be watching out for this
+[00:27:08.920] and that, etc. And so, from our
+[00:27:11.120] point of view, it is not a high enough
+[00:27:13.060] standard that we have reached, but we
+[00:27:15.020] would like to get to version 1.0 pretty
+[00:27:16.700] soon. Of course, with
+[00:27:18.760] anything related to versioning
+[00:27:20.760] and guesses about the future, you're always
+[00:27:22.960] wrong about it, right? So I'm not going to pick a specific
+[00:27:24.980] date, but I'm just going to say we're getting
+[00:27:26.900] pretty close.
+[00:27:28.900] Okay, okay.
+[00:27:29.800] Thank you so much for your time.
+[00:27:35.360] Also, hello to Ellery.
+[00:27:37.920] You have any questions for the space?
+[00:27:42.340] No, nothing yet,
+[00:27:43.700] but I will definitely raise my hand
+[00:27:45.420] eventually.
+[00:27:46.840] Cool.
+[00:27:48.260] It looks like Jen's coming up.
+[00:27:50.680] Yes, since
+[00:27:51.560] Ellery is here, it reminds me
+[00:27:53.880] one of our
+[00:27:55.760] actually one of our largest clients at AGO is interested in,
+[00:28:01.920] they're very interested in trying out quick.
+[00:28:06.280] And, you know, think about their websites.
+[00:28:11.340] Some of their websites are probably some of the largest e-commerce websites
+[00:28:15.180] by revenue on the internet.
+[00:28:17.680] And one of the problems that we're running into is
+[00:28:22.340] the existing websites are built in multiple different kinds of
+[00:28:26.820] frameworks or you can say backends.
+[00:28:30.940] One would be Next.js, another is Salesforce
+[00:28:34.600] Commerce Cloud or something else. And it's just the translating
+[00:28:38.600] of all the work you've already done in Next.js
+[00:28:42.380] and React into Quake.
+[00:28:46.420] It's like a huge, basically you have to rebuild everything and
+[00:28:49.820] the advantage you have with React is there's a huge amount of community work that's available
+[00:28:57.580] that you can use and that is not available as much with Quick. So, you know, in general,
+[00:29:06.660] I'm just asking, like, how are you seeing the community work for Quick and Quick City?
+[00:29:13.860] and are you seeing any,
+[00:29:17.820] how's the trend graph going for open source components?
+[00:29:25.240] Yeah, I mean, Quik is pretty new.
+[00:29:26.980] So obviously our community is nowhere close in size to React.
+[00:29:31.160] But I think Quik offers some pretty compelling
+[00:29:34.340] value propositions in here, right?
+[00:29:36.680] And so people who really want to make sure
+[00:29:39.360] that their sites are fast
+[00:29:40.400] and places like e-commerce is a perfect example for this,
+[00:29:42.940] I think might want to explore it.
+[00:29:44.900] Now, to help with these, we do have Quick React,
+[00:29:47.940] which allows you to take existing React components
+[00:29:50.780] and wrap them in Quick.
+[00:29:52.020] Obviously, you're not going to get all the magical benefits
+[00:29:54.860] out of the box.
+[00:29:55.860] Basically, Quick React is essentially creating island architecture.
+[00:30:00.000] You delay hydrating those particular components that are quick, that are React components.
+[00:30:06.120] So it's not reasonability, but at least you can kind of work on it together.
+[00:30:10.400] When I talk about kind of advantages and disadvantages of different technologies, I like to talk about things like intrinsic and extrinsic factors.
+[00:30:18.420] And so to me, like the fact that Quix community and Quix documentation and the know-how, et cetera, are obviously not as high as somebody who's been around for much, much longer.
+[00:30:30.540] To me, these are all extrinsic factors, meaning these are things that will change over time.
+[00:30:34.840] These are not like fundamental properties of a particular technology, which is kind of what intrinsic property would be, right, of the system.
+[00:30:42.940] So, yeah, we have a, you know, if you want to use Qwik today, you kind of have to like really understand the value proposition you're going after and say like, hey, this is worth the trouble because, you know, there isn't yet this support system that we have.
+[00:31:01.380] Having said that, I think we have quite a lot of things already.
+[00:31:04.560] If you go to the Quik website, there's a showcase.
+[00:31:06.800] Actually, we're just rebuilding this to making it easier.
+[00:31:10.380] But I think we have quite a lot of existing community support.
+[00:31:16.140] I'm just chatting with people who are doing image components, who are doing form support,
+[00:31:21.520] who are trying to do existing component libraries for Quik.
+[00:31:26.100] Of course, you can just wrap material components and so on.
+[00:31:29.720] So a lot of things I think is happening.
+[00:31:32.060] Authentication with different auth providers.
+[00:31:34.560] A lot of things is happening, but it's just going to take some time, right?
+[00:31:37.660] And so we're at the beginning of the stage, right?
+[00:31:39.800] We're not even at version 1.0.
+[00:31:44.380] Yeah, I could just follow on to that.
+[00:31:48.260] So I think like Quick has probably the most correct architecture.
+[00:31:52.540] Like if you put a gun to my head and said,
+[00:31:54.080] which thing is the right way to build a website, I'd probably pick Quick.
+[00:31:57.820] One thing that we did for this particular client is they're both on Next.js, as Rayce mentioned.
+[00:32:02.940] So we said, all right, let's take some lessons learned from Quick and see what we can implement in Next.js without a full rewrite.
+[00:32:08.680] So we did a little POC recently where we said, let's try to go very aggressive with bundle splitting.
+[00:32:14.900] So let's dynamically import all of the things, basically.
+[00:32:18.740] And let's defer even downloading the JavaScript from the client until certain components have been interacted with.
+[00:32:27.340] And this had the expected impact that we anticipated for a TBT.
+[00:32:31.500] So total blocking time had a huge spike in performance.
+[00:32:35.940] But what we did see, there were some visual issues.
+[00:32:38.600] So one example was when you clicked on the hamburger menu on mobile
+[00:32:42.540] and you expect the navigation to open up,
+[00:32:45.960] you have all these fly-out menus, images that load in,
+[00:32:48.160] components, fonts, et cetera.
+[00:32:50.200] There was a visible delay.
+[00:32:52.700] I'll put it that way.
+[00:32:53.880] We aren't talking a half second,
+[00:32:55.380] but maybe 100, 200 milliseconds of delay.
+[00:32:59.780] So you would tap and you would like,
+[00:33:01.500] it was long enough that you would be like,
+[00:33:02.780] did I really tap that?
+[00:33:03.740] I'm not sure.
+[00:33:04.320] And then it would show up.
+[00:33:05.740] So I'm not sure if, you know,
+[00:33:06.820] you or other people have seen any issues
+[00:33:08.520] where like this aggressive code splitting
+[00:33:11.360] and dynamically loading JavaScript on interaction
+[00:33:13.920] has had any adverse user experience impacts.
+[00:33:18.420] Yeah, that's a good question.
+[00:33:19.600] Actually, a lot of people ask that.
+[00:33:20.720] So absolutely.
+[00:33:21.720] Absolutely. If you lazy load code on interaction, you will see that. And that's going to be a problem. This is why we actually have ways of mitigating this. And I think what you're discovering is that you're trying to take the lessons learned from Quik and trying to apply it to an existing system. And then the existing system is really not really cooperating, right? Because it wasn't designed for this particular bit.
+[00:33:47.380] So the way Qlik solves this particular problem is that we have a service worker.
+[00:33:51.320] And the service worker's job is to pre-populate the cache.
+[00:33:54.660] So when the user goes and clicks on a hamburger menu and the framework starts lazy loading the code and lazy executing the code associated with the hamburger menu, the code is already in the sitting cache.
+[00:34:08.840] And therefore, you don't have the 200 millisecond delay.
+[00:34:11.320] It's basically instant, right?
+[00:34:12.700] And so if you look at existing systems, like for example, you lazy loaded everything, you discover like, hey, now you have to solve the next problem. And the next problem is making sure that the cache has the right assets. And existing frameworks will not do anything to kind of help you in this department, right? Like it's up to you as a developer to kind of write this.
+[00:34:33.780] Whereas in Quik, we kind of thought about this problem and said, hey, you know, yes, if you start executing code lazily, you will have a problem of delay.
+[00:34:42.040] How do we make sure that that doesn't happen?
+[00:34:43.880] Well, we have to make sure that certain bundles get eagerly downloaded and placed inside of the cache so that when the user does interact, there is no delay available to them.
+[00:34:54.060] And to do that, now you're in the business of knowing, like, so which bundle contains which code and which order should the bundles be downloaded?
+[00:35:01.660] Do I download all the bundles or only some of the bundles, right?
+[00:35:04.560] And so, again, existing frameworks just have no opinion on this particular matter.
+[00:35:10.280] And this is where, like, Quik has an opinion.
+[00:35:12.700] So Quik can keep track of the usage of what the user does.
+[00:35:17.500] And based on that, you can provide statistical information to you as a developer that says, like, ah, people normally click on this button first.
+[00:35:24.300] So you make sure you download the bundle with that thing available first.
+[00:35:27.280] And all of this information as to what bundles to download, in which order, et cetera, all of that becomes just configuration information too quick that is relatively easy to kind of tweak and improve.
+[00:35:38.580] Whereas, you know, if you wanted to change the way the bundles are structured in the existing system, you actually have to go to the source code and either add more dynamic imports or remove dynamic imports, right?
+[00:35:48.740] It's not something that's just automatic.
+[00:35:50.080] So again, I think you're discovering the case of like, yes, I'm going to trick some of the ideas that Quik has, and I'm trying to implement them in existing systems that are really not designed for this.
+[00:36:00.960] And I'm running into all kinds of kind of problems or surprises.
+[00:36:04.940] And now these problems or surprises are your problem as a developer.
+[00:36:08.680] They're not the framework's problem.
+[00:36:10.620] And I think that's kind of the big difference with Quik is that with Quik, like, no, this is the framework's problem.
+[00:36:15.100] And so you don't have to think about it as a developer.
+[00:36:20.080] Hopefully that hits it.
+[00:36:23.040] No, that does answer the question.
+[00:36:24.340] I need to peruse the docs a little bit
+[00:36:26.340] and see if I can figure out the service worker magic.
+[00:36:28.640] I mean, not that I'm unfamiliar with service workers,
+[00:36:30.260] but just understanding how at compile time or runtime,
+[00:36:33.440] we're determining what bundles or scripts
+[00:36:36.360] should be loaded eagerly
+[00:36:37.560] because their user interaction will depend on them
+[00:36:40.940] and making sure that they're available.
+[00:36:42.760] Yeah, I have two of the blog posts to the top
+[00:36:46.220] that are related to this.
+[00:36:47.640] If you want to speak about this a little more, Mishko.
+[00:36:50.080] Okay, perfect. Yes, yes, yes.
+[00:36:52.080] Yeah, so we call it the speculative fetching of code.
+[00:36:55.660] In order for this to actually work, you need an interesting part,
+[00:36:58.860] which is, you know, I keep discovering that, like,
+[00:37:01.260] Quik has these concepts that don't have an analog in other frameworks.
+[00:37:05.580] So, for example, one of the concepts that we have in Quik
+[00:37:08.260] is this idea that the framework at runtime
+[00:37:11.480] understands the graph of all the objects,
+[00:37:14.620] meaning it understands what bundles exist in a system,
+[00:37:18.660] and it understands, like if I load bundle A,
+[00:37:21.120] I will also have to load bundle C.
+[00:37:23.500] And if I want to get a click listener for this particular button then I know that it going to be found in bundle whatever G or something like that right So the framework itself understands the graph
+[00:37:35.580] of kind of the bundles and the symbols
+[00:37:39.420] available inside of it.
+[00:37:40.980] And there is no equivalent like that in existing systems.
+[00:37:43.760] Like in existing systems,
+[00:37:44.500] if you take your source code
+[00:37:46.580] and you feed it through a bundling system,
+[00:37:49.660] the bundling system doesn't tell you anything
+[00:37:51.780] about like how the bundles are related,
+[00:37:53.860] what symbol ended up where, you're kind of on your own, right?
+[00:37:57.480] And it turns out that having that information, having that graph,
+[00:38:00.480] is what then enables you to do other things,
+[00:38:02.260] such as speculative loading of code,
+[00:38:04.780] so that when a user finally clicks on a button,
+[00:38:08.100] you know that the code is going to be waiting for the user in the cache,
+[00:38:12.820] and there will be no delay.
+[00:38:13.720] There will be nothing visual that is kind of annoying.
+[00:38:23.860] Yo, Jen, do you have any questions?
+[00:38:28.260] I do have to remember my question now.
+[00:38:32.660] And hello, everyone.
+[00:38:34.140] Why don't you introduce yourself real quick while you're thinking of it?
+[00:38:37.200] Yeah, I guess this is the exciting time.
+[00:38:39.800] And Mishka, thank you for being on the show eight months ago.
+[00:38:43.620] It's crazy to think about that.
+[00:38:46.100] My name is Jen Janot.
+[00:38:47.880] I am a developer advocate at IVAN, a data infrastructure company.
+[00:38:52.400] and I also have two shows one called Teach Gen Tech where I first met Anthony and Mishko
+[00:38:59.840] they have both been on the show and I also oh and I see Nick Nick's been on the show too
+[00:39:05.580] and I also have a show called Shit You Don't Want to Talk About where we talk about mental health
+[00:39:12.060] and neurodiversity and yeah it's been a I had no idea any coding back in like July 2022 so we're
+[00:39:21.860] almost to a year. We are almost there. And for those who might not have been here at the very
+[00:39:27.820] beginning of the space, Anthony was complimenting Mishko on coming on my show and teaching me what
+[00:39:36.400] quick was when I didn't know what Hacker News was. What was your impression of kind of learning
+[00:39:44.640] quick at the time? Did it seem like overwhelming or did it feel like just kind of learning another
+[00:39:49.300] thing like you like the way you learned react because i feel like with beginners you know
+[00:39:54.500] you can kind of give them any framework and start teaching them they're all going to be
+[00:39:57.840] equally confusing you know so i feel like quick might have been just like another framework for you
+[00:40:04.120] yes although i would say when we started going in to the dev tools and looking at the load times
+[00:40:16.440] to compare them, it made a lot more sense because my previous time was at GoDaddy.
+[00:40:24.080] And of course, I always heard of people like hating that their websites was were loading
+[00:40:29.840] really slow.
+[00:40:30.860] So it was really cool to see how like the website only loaded what it needed to load instead
+[00:40:39.140] of absolutely everything when that could slow down a website.
+[00:40:46.440] nice yeah that is that's the idea but I do remember my question because I was super excited
+[00:40:54.400] lately that I'm I'm building I built one website in astro and now I'm building another site in astro
+[00:40:59.820] and I was like you know I should probably try a different framework eventually and I just saw on
+[00:41:06.200] a builder that you can do quick with builder so now I'm really excited to try that one out
+[00:41:12.880] but this question is for all of you like what app would you say to anybody to
+[00:41:19.920] build their sites with or build things with to be able to test out and really see the differences
+[00:41:25.860] frameworks you know that's a hard question because like i feel like the differences between
+[00:41:34.400] frameworks don't really come to be until your application gets ridiculously large
+[00:41:39.600] like the thing is like any
+[00:41:43.020] framework when you build a hello world
+[00:41:45.340] or to-do list or movie example
+[00:41:46.960] and any of those basic ones
+[00:41:48.720] will be just fine and
+[00:41:50.840] things won't really break under pressure
+[00:41:53.380] because well there's just not a lot of it
+[00:41:54.840] just yet right it's when you build
+[00:41:57.100] a full size
+[00:41:58.340] application that has hundreds
+[00:42:00.860] or maybe even thousands of components
+[00:42:02.600] that's where the size
+[00:42:04.840] really comes into play and all these tricks
+[00:42:07.100] start to matter
+[00:42:07.820] and there used to be something called the real world app which was kind of like a clone of like
+[00:42:15.280] medium the the blogging platform so that's one that used to be really popular to be built in
+[00:42:21.180] every framework and then there was like to do mvc and now we have the the movie app is becoming a
+[00:42:27.000] big one this is always a problem was like how do we actually find something that can kind of show
+[00:42:32.760] off the capabilities of each while also finding the kind of pain points.
+[00:42:38.220] I feel like benchmarking is good for kind of finding out where they break down, but then
+[00:42:43.380] just building some sort of like usable app that has users is a good kind of exercise for
+[00:42:49.920] a developer to go through because then they have to go through all the different pieces
+[00:42:52.820] of the framework to make that happen.
+[00:42:55.580] So yeah, does that kind of answer your question, Jen?
+[00:42:57.600] Can I just add something to it?
+[00:43:00.420] Sorry for jumping from a jump.
+[00:43:02.120] I think something like 2MVC is great to discover
+[00:43:06.460] what the developer experience is for the developer, right?
+[00:43:10.840] It might not be necessarily the best thing to discover
+[00:43:13.540] when the framework will break under load,
+[00:43:16.040] but it certainly is great as a developer to kind of learn about stuff.
+[00:43:21.440] I'm thinking because, of course, I'm learning.
+[00:43:24.080] Now I'm basing everything on data infrastructure
+[00:43:27.440] and learning that from scratch.
+[00:43:29.820] So I think something that I don't know
+[00:43:32.620] if these two concepts go together,
+[00:43:35.640] like there are data sets that we can use
+[00:43:39.220] that are public that can be used
+[00:43:41.500] to be able to put into like,
+[00:43:43.600] yesterday's show was about Kafka.
+[00:43:46.180] Is there something like that
+[00:43:47.540] that could be used to test frameworks
+[00:43:50.620] or is that like putting two ideas
+[00:43:52.520] that don't go together?
+[00:43:54.000] I think it's not about the amount of data the framework has to show.
+[00:43:59.580] It's about the amount of code that's associated with that application, right?
+[00:44:03.120] So, like, you need to get an application that's complicated enough that it has sufficient amount of code, sufficient number of different developers who went through it and refactored the code in different ways.
+[00:44:14.640] And, of course, whenever you do refactoring, you always do it 80% of the way, right?
+[00:44:17.660] And the last 20% is left the other way.
+[00:44:19.260] it's only then where I think you can discover
+[00:44:22.240] how these things actually scale.
+[00:44:26.540] That makes sense. Thank you.
+[00:44:33.300] Actually, this reminds me of another problem
+[00:44:37.940] that we are seeing in a lot of enterprise e-commerce
+[00:44:42.960] and other kinds of websites that our teams are building,
+[00:44:46.520] which is that you build a pretty decent website
+[00:44:51.100] with any framework.
+[00:44:52.180] It could be Next Nuxt or any other framework And then what happens is when it deployed to production there a huge amount of mock tech like Google Analytics you know bar scripts Hotjar other kinds
+[00:45:10.060] of services, scripts that are added to the page. And that is actually where the majority
+[00:45:15.860] of the JavaScript is coming from.
+[00:45:22.040] So Misko mentioned worker dollar,
+[00:45:27.100] like something similar to server dollar primitive
+[00:45:31.060] that exists in Quikro now.
+[00:45:34.560] I know that there's this party town framework that exists,
+[00:45:42.580] but the last time we tried to use it
+[00:45:46.520] it requires a lot of manual work
+[00:45:50.120] so are you working on something
+[00:45:52.320] that would make that manual work easier
+[00:45:55.920] or reduce the amount of manual work
+[00:45:58.320] required to move that into a worker?
+[00:46:03.840] PartyTown meta framework?
+[00:46:07.220] Yeah, PartyTown is definitely
+[00:46:09.180] the answer I would give here
+[00:46:11.600] you know, for third-party code.
+[00:46:13.900] You're right.
+[00:46:14.540] It is not as streamlined as we would like it to be.
+[00:46:18.300] It is a hard problem, right?
+[00:46:19.560] Like you can't just take code and just run it in the WebWorker
+[00:46:22.420] and expect it to just kind of work out of the box.
+[00:46:24.540] So there's lots of hoops and complications there.
+[00:46:27.920] But yeah, it's the best we have so far in this particular department, right?
+[00:46:31.620] If you, you know, as you correctly observed,
+[00:46:35.840] when you build large-scale application,
+[00:46:38.780] third-party code is a huge part of it.
+[00:46:40.980] And I think Google reports that on average, websites have something like 21 different third-party domains or script tags on their page.
+[00:46:49.480] And that's a lot, right?
+[00:46:50.460] And so figuring out how to make sure that the third-party scripts can be better about the way they run is something that certainly would help.
+[00:47:00.760] And so PartyTown is the way to do it.
+[00:47:01.980] Actually, I've kind of come around in a particular point of view now, and I think many of these third-party scripts could be written in Quick, and I think they would perform better.
+[00:47:13.340] Because if you think about it, what all these third-party scripts do on initialization is they just run tons of code that registers listeners and sets this thing up and the other thing, et cetera.
+[00:47:23.040] And many of these things could be simplified if they just weren't there.
+[00:47:28.340] so the initialization right the the reasonability of the system is kind of what you would be looking
+[00:47:35.780] for and if you could do that for third-party code i think you would gain a lot of benefits
+[00:47:40.120] but that's kind of down the line right like immediately i think party town is the only
+[00:47:44.580] really option that's available to us and we have a question from the audience will worker
+[00:47:50.380] dollar sign make most third-party code that's not supported by party town finally work
+[00:47:56.060] I think those are two separate things.
+[00:47:59.380] Worker dollar sign would be like
+[00:48:00.980] the code that you have written
+[00:48:02.740] so that you want to run it on a web worker.
+[00:48:05.840] PartyTown is really
+[00:48:07.100] for code that somebody else has written
+[00:48:08.820] and you want to make it run on the web worker.
+[00:48:10.900] So it's a very different kind of use case.
+[00:48:13.220] I don't see them as overlapping.
+[00:48:19.280] I gotcha.
+[00:48:23.600] Dev, welcome to the stage.
+[00:48:26.060] Hello, hello. I can go next, but Ellery has his hand up.
+[00:48:31.060] Yeah, sounds good. Let's do that.
+[00:48:33.060] Cool. While we're talking about Party Town, I just wanted to ask, have you had any large-scale customers implement Party Town?
+[00:48:41.060] I know it's still a beta product. In my experience with it, I've found that it makes simple things faster and complicated things extremely painful.
+[00:48:51.060] If you have a couple of marketing scripts, it probably works well, but for large enterprise
+[00:48:56.580] accounts that have 20, 30 distinct marketing scripts, things that want to write directly
+[00:49:02.000] to the data layer that are third-party scripts, and now you have to intercept that and glue
+[00:49:05.740] things together, it was pretty tedious to get things going.
+[00:49:08.940] So just curious if there's any plans to expand that, include support for more third parties,
+[00:49:15.480] and maybe see it in a live production site that has a bunch of MarTech scripts running
+[00:49:19.940] on it.
+[00:49:20.940] Yeah, so the hard part about PartyTown is that you're essentially emulating the browser in a WebWorker, right?
+[00:49:27.660] The WebWorker doesn't have all the browser APIs like DOM, etc.
+[00:49:31.520] So you have to do an emulation.
+[00:49:33.520] And the thing with emulators is that it's easy to get 80% and every additional percentage point that you want to get in terms of the accuracy becomes more and more difficult.
+[00:49:44.440] and so the thing with PartyTown is that
+[00:49:47.460] it is very very difficult to get
+[00:49:51.400] I mean it's possible but it's just the amount of time you have to put into it
+[00:49:55.080] is pretty high and currently we're just
+[00:49:58.300] as a company builder has decided to put its resources
+[00:50:03.140] behind Quick right now because that's a direct
+[00:50:06.640] benefit to the customers in terms of the code they own
+[00:50:09.640] and so PartyTown is not getting as much love as
+[00:50:14.160] it would deserve. I still think it's a pretty cool technology that can go places. But it is a
+[00:50:20.400] hard thing because when things don't work, as you point out, the issue you have is that you have now
+[00:50:27.520] a third-party minified script that is throwing some exception and good luck figuring out in the
+[00:50:32.560] minified code base that is not even yours, what's going on, why this exception is being thrown,
+[00:50:38.020] what particular bit have you not emulated correctly enough that the third-party code
+[00:50:44.020] is kind of being confused about it.
+[00:50:45.880] I think that the way to get around this particular problem
+[00:50:48.920] is to almost like create a certification program
+[00:50:51.920] for third-party providers and basically say like,
+[00:50:56.820] hey, wouldn't it be great if the third-party provider
+[00:50:58.980] would test their own code with PartyTown,
+[00:51:01.660] verify that it works and there were no surprises
+[00:51:04.360] and there are either fix it in their site
+[00:51:06.560] or fix it in PartyTown while it's not minified.
+[00:51:09.580] and then that would become almost like a value add, right?
+[00:51:14.840] That you could just brag on your side,
+[00:51:16.000] like, hey, our third-party script runs in party town.
+[00:51:18.900] So, like, we made sure that the setup is easy, et cetera.
+[00:51:22.420] So I'm chatting, actually, with folks at Google about this
+[00:51:25.680] to see if we could have some kind of a certification program like that.
+[00:51:28.300] We haven't gotten very far,
+[00:51:29.320] but I think that's the way to kind of solve this
+[00:51:32.020] because solving it by just trying to brutally go through
+[00:51:37.380] every single discrepancy in behavior, it just puts a huge amount of resource drain on us.
+[00:51:44.300] And it's not a simple, straightforward thing to do.
+[00:51:47.920] Yeah, I was almost questioning at one point whether it was the right solution.
+[00:51:52.560] Just taking compute, moving it to worker threads versus something like Xeras or server-side
+[00:51:58.380] tagging, which I think Google Analytics supports.
+[00:52:02.200] I think that's probably where the future is in my mind.
+[00:52:04.940] I have one, you know, Martech script in my site that publishes events with enough data for, you know, a wide array of other third party scripts to consume from.
+[00:52:16.160] And it just fans out in the server to everyone.
+[00:52:19.980] Yeah, absolutely. There's definitely other ways of solving this problem.
+[00:52:23.640] I think PartyDown just takes it from the point of view like given the world as it is today with these things these third third scripts as they are today you know what the best we can do And so like the party time is the answer to that
+[00:52:36.520] But if you're willing to change
+[00:52:37.880] what the status quo is in the world,
+[00:52:39.740] you know, like that we just move code to the server,
+[00:52:42.300] yeah, absolutely, that would be a better solution
+[00:52:43.920] to the problem, right?
+[00:52:45.100] But we're not there yet as an ecosystem.
+[00:52:52.740] I don't know if anyone here
+[00:52:54.360] watches the show Party Down.
+[00:52:56.560] But every time now I hear Party Town,
+[00:52:58.660] it kind of makes me think of Party Down.
+[00:53:00.340] Very good show.
+[00:53:01.360] People haven't checked it out.
+[00:53:02.980] I've never heard of it.
+[00:53:03.920] I'll check it out.
+[00:53:05.180] Yeah, it just had a reboot, actually.
+[00:53:08.020] Dev, do you want to hop in here?
+[00:53:11.160] Yeah, how's it going?
+[00:53:12.680] So I had a question about Quik.
+[00:53:15.400] Mishko, you started the space by saying that Quik
+[00:53:18.880] is the performance framework,
+[00:53:20.560] and you achieve the initial bundle size, like you reduce the bundle size by basically lazy loading
+[00:53:27.880] the interactive bits and they're loaded once the user actually interacts with them, right?
+[00:53:33.280] So once they are loaded, the interactive bits, there is another dimension of performance,
+[00:53:39.840] which is when I click a button or when I open a dialog, how quickly do those things appear on
+[00:53:46.840] screen? How much work does the CPU have to do to get there? Or when new data is fetched from the
+[00:53:52.040] server, how quickly is that displayed on the UI? So I know Quake has a virtual DOM, but Quake also
+[00:53:58.600] has signals. So I was hoping to get some information about what does that interactivity look like?
+[00:54:05.880] How does it work with signals and VDOM? Yeah, good question. Yeah, so definitely there are two
+[00:54:11.960] different dimensions here, right? There's the dimension of like, how fast can we make the page
+[00:54:15.480] interactive. And a second dimension is once the page is interactive, you know, how fast can we
+[00:54:19.920] update? So in order to get the page interactive on your site as soon as possible, right,
+[00:54:29.060] Quik has to be super aggressive about lazy execution of the code. And it turns out that
+[00:54:34.940] if you want to be aggressive about lazy execution of the code, solutions that are coarse-grained
+[00:54:40.740] reactive, like for example, React or Angular, right? When you change something in React or Angular,
+[00:54:46.340] you are changing a state and the whole thing then propagates a lot of code executes.
+[00:54:51.700] And so things that are course-grade reactive do not play well with resumable systems because
+[00:54:58.100] what's happening is that even if you can get the page up and running quickly because you
+[00:55:05.300] delayed executed the code, the first interaction will likely execute 80% of your application code,
+[00:55:11.200] right? And that's kind of the problem that you're trying to avoid. So quick for that reason is
+[00:55:17.460] fine-grained reactive, right? So that when things update, we want to be surgical about what we
+[00:55:23.240] update. So we do use VDOM sometimes, but there should be a big caveat placed in there because
+[00:55:30.840] the way React uses VDOM is that it starts at a particular component, and by default,
+[00:55:38.020] you know, all child components get rendered underneath it.
+[00:55:40.780] Now, there's ways to kind of short-circuit that and, you know, make it render less, but
+[00:55:45.080] like the default behavior is that you start at the root and you kind of re-render everything
+[00:55:49.740] below it.
+[00:55:50.780] The other thing that happens oftentimes in these systems is that because you put shared
+[00:55:54.960] state in a common ancestor, oftentimes, you know, your root component or somewhere close to the root
+[00:56:02.040] component is where all of your state is. So any modifications of the state tend to like re-render
+[00:56:06.900] this whole tree for you. And so that has a negative impact on performance. Rather, the main issue there
+[00:56:14.640] is that, yes, it's slower, but the thing that we really care about is the fact that it forces you
+[00:56:21.060] to download and execute a whole bunch of code that you otherwise wouldn't have to.
+[00:56:25.820] And so while Quick does have VDOM, it is very good at basically updating just the component
+[00:56:32.420] itself.
+[00:56:33.440] So if you have a situation where you have a, let's say you have three components, a root
+[00:56:37.660] component and a child component that has a buy button and another child component that
+[00:56:41.840] has the shopping cart, right?
+[00:56:43.460] And so the shared common ancestor is the root component.
+[00:56:46.980] and then if you push the buy button,
+[00:56:48.800] you're updating state inside of the root component,
+[00:56:51.240] which then causes the shopping cart to update a common setup.
+[00:56:55.380] So in default behaving systems,
+[00:56:58.480] the way this would work is that you would re-render everything
+[00:57:00.160] from a root component.
+[00:57:01.540] In Quick, what would happen is that
+[00:57:03.340] because it's a fine-grained reactive,
+[00:57:05.660] the clicking of the buy button
+[00:57:07.380] would then directly notify the shopping cart
+[00:57:09.860] and would completely bypass the other components.
+[00:57:13.640] They wouldn't even have to download.
+[00:57:14.760] So even though Quick, in that sense,
+[00:57:16.820] has a VDOM, it really prunes the tree automatically for you,
+[00:57:24.480] and it prunes it quite aggressively.
+[00:57:26.680] But what we've been doing lately in Quick with signals
+[00:57:29.080] is actually taking it into a whole nother level,
+[00:57:31.960] which is that if you have a component that doesn't have a structural change,
+[00:57:36.700] meaning like if you have a component that has like an if statement in there
+[00:57:39.400] or show A or show B depending on some flag,
+[00:57:42.180] that's a structural change to the DOM.
+[00:57:44.080] If your component doesn't have a structural change to DOM,
+[00:57:46.280] it only has like updating a binding,
+[00:57:48.700] like current price or quantity or the total.
+[00:57:52.060] In that particular case,
+[00:57:53.880] we don't even have to download or execute the VDOM.
+[00:57:56.560] So if the change isn't structural,
+[00:57:58.840] then the whole VDOM doesn't even come into play
+[00:58:00.880] and we don't even have to download the component
+[00:58:03.060] or execute it or anything like that.
+[00:58:04.700] We can just directly go and update the DOM.
+[00:58:08.300] So I would say that, you know,
+[00:58:13.080] quick in terms of performance,
+[00:58:14.560] after you initially load the page
+[00:58:16.680] is going to be somewhere between React and SolidJS.
+[00:58:21.860] SolidJS being like the undisputed king
+[00:58:24.020] in terms of like how fast you can go.
+[00:58:27.400] And then React is kind of super popular,
+[00:58:29.100] but it kind of re-renders,
+[00:58:30.560] I would say like too much by default.
+[00:58:33.620] So that's a pretty wide band,
+[00:58:35.420] but I would say we're probably closer to the solid side
+[00:58:37.760] than we are in terms of the quick side
+[00:58:39.860] because we have signals
+[00:58:42.220] and we have this VDOM pruning that happens pretty aggressively.
+[00:58:47.560] And so for the most operations that you will see,
+[00:58:51.140] you will actually not even bring VDOM into play.
+[00:58:54.780] But having said that, I want to point out
+[00:58:56.740] that there's a lot of websites out there written in React.
+[00:59:00.400] And for the most part, once the application is up and running,
+[00:59:04.300] they're plenty fast, right?
+[00:59:06.360] And so while, yeah, it's important to kind of focus on runtime performance,
+[00:59:11.240] I'm going to kind of argue that like it's a bit of a red herring in the sense that like just about any technology you choose, usually you end up with a site that's plenty fast for you once it's up and running.
+[00:59:23.560] It's the getting it up and running part that I think we have a problem as an industry.
+[00:59:28.460] And so that's the part that really Qwik wants to focus on.
+[00:59:31.560] But having said that, again, like we're going to be still a lot faster than Qwik.
+[00:59:35.120] We're going to be probably within, you know, reaching distance of what Solid does.
+[00:59:41.240] Yeah, that's great. I have just one quick follow-up. So it's great that you mentioned
+[00:59:46.920] that the runtime performance is mostly a red herring because I think a lot of the discussion
+[00:59:52.360] around signals has mostly been about the DX. So what, just where do you stand on like
+[01:00:00.000] Do you think there are DX wins with signals just apart from the performance?
+[01:00:06.060] Yeah, absolutely. I love the DX of signals.
+[01:00:09.040] To us, the real win of signals is not necessarily the performance, although that's nice.
+[01:00:15.560] But really, it's the fact that signals allow us to not execute a whole bunch of code.
+[01:00:21.640] And the not executing code, certainly it's a performance thing that makes the code run faster.
+[01:00:26.960] But the real benefit of that is that because I don't have to execute that code, Quick doesn't have to then download the code, right?
+[01:00:34.060] And so the win to us with signals is not necessarily that they run faster.
+[01:00:38.700] It's that they allow you to not execute and therefore not download a whole bunch of unnecessary code, right?
+[01:00:44.700] And so you end up with smaller amount of code that has to get shipped to the browser.
+[01:00:51.740] Got it. Thank you.
+[01:00:56.960] Scott, we're at the hour mark.
+[01:01:02.960] You want to do a quick station break?
+[01:01:05.140] And then Mishko, how long do you have to go for?
+[01:01:08.960] I think I am free after this.
+[01:01:14.120] Well, I'm kind of just keeping those lost people have questions.
+[01:01:18.420] Great.
+[01:01:18.720] Awesome.
+[01:01:18.820] I mean, half an hour for the scheduled one, which was 1.30, right?
+[01:01:21.940] So, like, yeah, I have like an hour to go.
+[01:01:24.940] So I'm good.
+[01:01:26.460] Okay, cool.
+[01:01:26.960] nice all right thank you so much appreciate everybody uh coming up here talking mishko
+[01:01:33.320] thanks for joining us today it's been fantastic so far and i'm sure it will continue to be that
+[01:01:38.340] oh man this has been some great conversation just sitting here listening to everybody has been
+[01:01:42.600] so fulfilling so thank you for everybody uh by the way uh anybody that's up here that's come up
+[01:01:48.360] here and maybe they're not on the stage anymore but either way if you've gotten value from them
+[01:01:52.540] please click on their face there be sure to follow them because i guarantee you if you've gotten
+[01:01:56.760] value from them here, then you will probably get value from them in other places. So be sure to do
+[01:02:02.160] that. And hey, you know what, if you want to give JavaScript GM a little follow, we wouldn't mind
+[01:02:05.640] that either. By the way, if you're not already part of our JavaScript GM newsletter and receiving
+[01:02:11.300] that in your inbox and getting all that awesome value that Anthony writes up every week,
+[01:02:15.420] you're missing out. You need to go and subscribe to that guy and get that come to your inbox so
+[01:02:21.660] that you can keep up with the things going on in the world without having to,
+[01:02:25.500] in the world of web dev and JavaScript, that is,
+[01:02:28.420] without having to really search around too much,
+[01:02:32.060] we kind of send it right to you.
+[01:02:33.380] So not just that.
+[01:02:34.640] It's usually things that we'll be talking about
+[01:02:36.280] in our Wednesday talk.
+[01:02:38.340] So feel free to go there and download or subscribe,
+[01:02:44.500] and you can go from there.
+[01:02:46.440] Anyway, thank you all so much.
+[01:02:48.880] Greatly appreciate it.
+[01:02:49.880] Remember this as well.
+[01:02:51.140] If you are a beginner or you're an advanced lifelong learner up here,
+[01:02:54.900] It doesn't matter. We love to hear from everybody. So feel free to request to come up and we'll bring you up on stage. You can ask question, comment, concern, fact, statement, opinion, whatever. We'd love to hear from you. All right. Thank you all so much. And back to you, Anthony.
+[01:03:12.760] Yeah, and if people are interested in QIC, you know, these kind of frameworks, then that's really the type of stuff we cover in the newsletter.
+[01:03:21.780] Links to a bunch of Mishko's blog posts and podcast interviews and things like that.
+[01:03:28.280] We also give you a rundown of the weekly podcast episodes.
+[01:03:34.460] I think Mishko kind of dropped out and then I invited back up.
+[01:03:39.200] Back up right now.
+[01:03:42.760] Cool. Dev, I'm curious. Oh, wait, Dev actually is back down as a listener as well. So, Raiz, what's up?
+[01:03:49.980] Yeah, I was just going to bring it to Builder.io. And, you know, just for context, as I mentioned, I'm the product manager for EduSites, which is a platform for building and running JavaScript websites.
+[01:04:06.660] and one of the things we are actually considering is we have an old framework called React Storefront
+[01:04:16.640] and it was an e-commerce web development framework from a couple of years ago that hasn't been maintained yet.
+[01:04:24.620] And we are considering writing that in Quik to solve these kind of performance problems that are so common,
+[01:04:34.580] especially in e-commerce websites, large e-commerce websites,
+[01:04:38.080] and then integrating it with something like Builder.io.
+[01:04:43.340] So I'm just wondering, do you have projects like that already
+[01:04:49.920] that you are aware of that maybe we can learn something from,
+[01:04:55.800] or how does this sound to you?
+[01:04:59.580] Would you be interested in collaborating, if I plug myself in?
+[01:05:04.580] Yeah, absolutely. Actually, we do have something similar already. So first of all, we have a Discord channel and people who are actually building websites that have reached out to us and they want to collaborate like that. We actually have channels where we kind of help them out, etc.
+[01:05:20.940] there is a company that actually selling sporting goods and I can't remember the name of it right now.
+[01:05:26.520] And they're doing something very similar as you're pointing it out.
+[01:05:30.040] And they're rebuilding their e-commerce website in quick.
+[01:05:35.680] And so they're having a pretty good experience.
+[01:05:38.100] And, you know, when things arise, they reach out to us and we help them out.
+[01:05:41.460] So, yeah, reach out to me on Discord and I'm happy to set something up.
+[01:05:45.140] Excellent. Thank you.
+[01:05:50.940] yeah do you want to talk about the kind of quick community at all yeah let's talk about the
+[01:05:57.740] community um yeah so very proud of the community um they are um i think we're now the disco channel
+[01:06:04.960] is about 5 000 um strong um we have what we call quick heroes which are a bunch of people who have
+[01:06:12.720] been with us for a while and they're super helpful on going around and answering other people's
+[01:06:17.200] questions and providing feedback and building cool things.
+[01:06:21.580] So yeah, I think Discord is a good place to start.
+[01:06:24.500] And as a beginner, you can get lots of questions answered over there for us.
+[01:06:29.620] And yeah, we're trying to make it easier every day.
+[01:06:33.480] Right now we're focusing, as I said, for documentation to get it before 1.0 and kind
+[01:06:38.420] of a revamp on everything.
+[01:06:40.580] But yeah.
+[01:06:44.800] Sweet.
+[01:06:45.280] open floor right now to any of the speakers on the stage.
+[01:06:49.040] Everyone has questions. Feel free. It could be about quick or
+[01:06:52.340] anything else.
+[01:06:59.400] And if there's anything else you want to speak about, Misha,
+[01:07:01.760] we haven't talked about yet or things that are coming up you want people to know
+[01:07:05.720] about, feel free to do that as well.
+[01:07:09.060] People who don't have questions, I can definitely talk about something. One thing I
+[01:07:13.680] I find interesting, I kind of touched on it earlier,
+[01:07:16.360] is that when we talk to other folks
+[01:07:20.360] who are building websites using Nextchase, et cetera,
+[01:07:23.360] there often like this vocabulary mismatch Like for example we have these dollar signs everywhere right and so when we first try to explain it to people they like well I don have dollar signs or anything equivalent like that inside of my meta framework Like why do you need it Like it kind of hard
+[01:07:39.020] to wrap my head around it because like I was able to build sites without it. So why is this all of
+[01:07:44.160] a sudden necessary? And, you know, you can build websites without it, right? Like we've been doing
+[01:07:50.720] it for a while. But this dollar signs gives you a particular value, which is like, hey, you need to,
+[01:07:56.240] you get entry points into your system. And then people, of course, are like, well, what do you
+[01:07:59.940] mean by entry points? Like, again, it's not something that I can relate to because we don't
+[01:08:04.720] really have the equivalent in it. And so we're just kind of constantly discovering that like it
+[01:08:09.080] requires a bit of a vocabulary shift. So for example, why entry points, right? Well, if you
+[01:08:16.460] want to be resumable, or rather, let's back up a second. What's an entry point for a typical
+[01:08:21.140] application? Well, there is a, you know, if you have a React application, there is a main bundle
+[01:08:25.980] somewhere that you load. That main bundle has a function that essentially calls a render function.
+[01:08:33.580] I forget the latest API in React, but like there's a render that kind of gets invoked, right? And if
+[01:08:38.380] you think about it, that's the only entry point that's available in your system. I mean, yes,
+[01:08:43.280] if you have lazy loading or there's other entry points.
+[01:08:46.180] But for the most part,
+[01:08:47.540] the way React gets a hold of all of your application
+[01:08:50.420] is that it starts at the root
+[01:08:52.620] and then traverses all the components
+[01:08:55.080] and gets hold of the listeners, et cetera.
+[01:08:57.940] Actually, it's not true just for React.
+[01:09:00.000] It's true for any existing system, right?
+[01:09:02.540] Whether it's Angular, Vue, Solid, et cetera.
+[01:09:05.120] The way these systems get a hold of everything
+[01:09:07.400] is that they start at the root
+[01:09:08.840] and they traverse the components.
+[01:09:11.560] and so if you want to have a resumable system you realize like well my entry point cannot be
+[01:09:18.120] the the root component because if it's the root component then the only option i have
+[01:09:23.520] is well start at the root component and you know traverse all the children and look for everything
+[01:09:29.360] and so you need a way of saying like i would like to enter the system in other places not just a
+[01:09:35.400] root location. And so Quick has, needs to solve the problem of like, how do I create a system
+[01:09:41.480] where there are lots and lots of entry points? As a matter of fact, the more the better.
+[01:09:45.920] And this is where the dollar sign comes in, right? Really what a dollar sign is,
+[01:09:49.580] is a way to get more entries into the system so that when you render a simple counter with a plus
+[01:09:57.820] button and a minus button, you know, clicking on plus is a different entry into the system
+[01:10:02.860] than clicking on the minus because, you know, one, you know,
+[01:10:06.540] runs code to increment, one runs code to decrement.
+[01:10:09.640] And so you don't necessarily need to have both of them
+[01:10:11.780] at the present at the same time.
+[01:10:14.320] And so, like, we find that it's really hard to explain to people,
+[01:10:17.880] like, why we are doing this, why you need this.
+[01:10:22.180] But, like, once you understand it, like, you just come, you know,
+[01:10:25.720] you get new vocabulary that kind of is important.
+[01:10:29.400] And then with it come secondary problems like, hey,
+[01:10:32.860] You know, as you kind of pointed out, like we now need to lazy load things.
+[01:10:36.460] Well, how do we make sure that as a developer, you don't have to worry about lazy loading?
+[01:10:39.940] How do we make sure that you prefetch everything and so on?
+[01:10:43.780] And so there's a lot of concepts that just aren't available in the other frameworks.
+[01:10:48.640] And that's what makes it kind of difficult for people to wrap their head around it at the beginning.
+[01:10:55.040] Yeah, I find that there's always kind of a vocabulary gap once you start crossing over.
+[01:11:01.460] even if frameworks are ultimately building the same thing at the end of the day,
+[01:11:06.020] a website, the way they get there can be very different
+[01:11:09.700] and involve different mental models and terminology.
+[01:11:13.200] You actually wrote a blog post recently,
+[01:11:15.620] Resumability from the Ground Up.
+[01:11:18.940] How would you, do you want to kind of summarize what that blog post goes to?
+[01:11:22.360] Because I feel like this is another word that is like a vocabulary gap with Qwik.
+[01:11:27.200] Yeah, so the, I recently been writing a lot of these from ground up.
+[01:11:31.460] posts where I basically try to solve a particular problem and kind of take you, the reader,
+[01:11:38.420] through these steps as in like, well, let's say we wanted to do this.
+[01:11:41.540] I really like them.
+[01:11:43.280] There's been really good blogging on Builder.
+[01:11:45.580] Oh, thank you.
+[01:11:46.120] Thank you.
+[01:11:46.500] I appreciate that.
+[01:11:47.760] So the idea of rhythmability is what if you didn't want to execute any code at the beginning
+[01:11:53.560] of your application?
+[01:11:55.720] What kind of steps would you have to go through?
+[01:11:58.260] And so what that blockbuzzers issue goes through is like, well, the first thing you need to do is like, okay, so you click on a button.
+[01:12:04.400] And the button is a listener somewhere, right?
+[01:12:06.200] And that listener is usually buried somewhere deep inside of your JSX.
+[01:12:09.800] How do you get a hold of it?
+[01:12:11.340] You know, how do I get a hold of these listeners that's deep down?
+[01:12:15.840] And so let's say you solve that problem.
+[01:12:17.320] So the next problem you have is like, great.
+[01:12:18.640] So now you're executing this listener, but this listener has no state, right?
+[01:12:23.620] It lost all the information.
+[01:12:24.880] it's just a code without the state of the system how does it know what the current value of the
+[01:12:29.720] counter is do i add one to zero or ten or a hundred like you know what's the current state
+[01:12:34.820] and so you have to solve that particular problem and so you just kind of go through all of these
+[01:12:39.180] pieces and you kind of realize like hey you know all of these things are things that are that need
+[01:12:44.880] to be solved but there's no equivalent in other frameworks because well other frameworks solve
+[01:12:50.380] this problem by hydration and hydration just means uh just re-executing everything from the
+[01:12:55.040] beginning there is no reasonability so yeah there's a lot of vocabulary uh that has to be learned uh
+[01:13:02.420] to get there very cool yeah i've heard you give that pitch quite a few times now both interviewing
+[01:13:10.440] you and listening to other things and i think it makes sense at this point took a while but
+[01:13:15.640] seems to be there.
+[01:13:16.940] Also, sorry, I'm going to go on a tangent here.
+[01:13:18.840] I also find it interesting that a lot of people
+[01:13:21.140] confuse
+[01:13:22.760] resume mobility
+[01:13:24.600] with delayed hydration.
+[01:13:28.260] And the two are
+[01:13:29.200] really different because
+[01:13:31.300] in the case of a hydration,
+[01:13:33.580] you're still doing all the work. You're just
+[01:13:35.340] arguing about when the work gets done.
+[01:13:37.840] Is it now or a little bit later?
+[01:13:39.860] Whereas with resume mobility,
+[01:13:41.700] that work fundamentally isn't
+[01:13:43.380] there. There is no
+[01:13:45.220] hydration, right? And so like, if you, if we talk about hydration, like we need to talk about,
+[01:13:50.000] well, what do you, how do we define hydration? And a lot of people tend to define it as like,
+[01:13:54.220] just make the page interactive. But I think that kind of misses the point. The real point of
+[01:13:58.680] hydration is for the framework to recover its internal state, right? And what I mean by that is
+[01:14:04.460] for the framework needs to know where are the component boundaries, where are the listeners,
+[01:14:08.880] what is the state of the component? If I, if this state changes, what other components do I have to
+[01:14:14.020] re-render, right? This is really what's being rebuilt as part of hydration. And that's the
+[01:14:20.280] hard part. The listener part is relatively easy to solve and also to kind of get around, right?
+[01:14:28.580] Like, yes, at the end of the day, we're doing all this work to make the page interactive.
+[01:14:33.000] But really, hydration is about recovering that internal state for the framework.
+[01:14:38.000] And so the place where kind of quick, I think, is unique
+[01:14:41.580] is that the quick doesn't go about it this way.
+[01:14:45.420] Quick basically said, look, I had the state
+[01:14:47.900] when I did server-side rendering.
+[01:14:50.180] And therefore, I just need to somehow move that state
+[01:14:53.360] from the server to the client.
+[01:14:54.660] So if I can serialize my state in such a way into HTML that I don need to rerun any of the components then I can just literally resume where I left off And if you think about it
+[01:15:05.480] existing applications already have that, right?
+[01:15:07.180] Like if you look at Next.js,
+[01:15:08.880] Next.js takes the state of the application
+[01:15:10.740] and serializes it into the underscore next underscore app
+[01:15:15.940] or something like that.
+[01:15:16.600] I forget the name of the data
+[01:15:17.600] that gets serialized inside of the HTML, right?
+[01:15:20.080] That's the state of the application
+[01:15:21.980] so that your application can just continue where it left over,
+[01:15:26.360] meaning it doesn't have to re-execute fetching of the data
+[01:15:29.500] and re-execute anything like that.
+[01:15:34.200] What's missing is to do the same exact thing,
+[01:15:37.500] but for the framework, right?
+[01:15:39.700] And that's the hard part.
+[01:15:40.620] It's like you cannot reach into your rendering framework
+[01:15:44.320] and be like, give me your state so that I can serialize it
+[01:15:48.340] in such a way so that when you wake up,
+[01:15:49.840] you can just continue where you left off.
+[01:15:51.220] and that's the hard part that's the thing that I think is is unique and it requires kind of
+[01:15:57.000] getting your head around it and learning about it yeah that was the very big galaxy brain idea for
+[01:16:04.320] me the first time you explained this to me the state of your app and the state of the frameworks
+[01:16:08.600] it had never even occurred to me to to think about that before because I'm someone who has used so
+[01:16:13.780] many frameworks and for the most part can get them to work and do what I need them to do without
+[01:16:18.480] need to know too much of the internals, but eventually you have to actually learn that.
+[01:16:24.680] If you look at two different kinds of frameworks, like let's say you're in React and then you want
+[01:16:28.420] to go to Svelte, right? They fundamentally work very similarly. And so while you might need to
+[01:16:34.260] learn new concepts, it's relatively, I would say, straightforward because these concepts map one to
+[01:16:39.860] one. Like how do I get a hide or show a component? Well, in React, you use this. In Svelte, you do
+[01:16:47.100] this. And so you have like this mental mapping between the two things, right, that exist. Whereas,
+[01:16:53.820] you know, if you come to it from too quick, sure, we have the mental mapping of like, how do you
+[01:16:58.300] hide something? How do you show something? But then when you start talking about resumability,
+[01:17:01.980] it's like, I don't have an equivalent thing on the other side. And so like, what are you talking
+[01:17:07.600] about? I'm kind of confused, right? And this is the part that is hard. And so what typically
+[01:17:13.040] happens is people say like, well, I don't understand what you mean by
+[01:17:16.380] resumability, but I have this other thing called hydration.
+[01:17:18.640] So I think you just mean hydration, right?
+[01:17:20.740] And so they desperately try to like bring you back into this thing.
+[01:17:24.860] And then you're like, well, no, it's not hydration because like what
+[01:17:27.660] hydration does is essentially booting up your framework, right?
+[01:17:33.480] It's executing all the code so that you can boot up your system.
+[01:17:37.320] And that bit is the bit that's kind of skipped.
+[01:17:39.180] in digital systems.
+[01:17:41.920] We do this in tech when we compare things,
+[01:17:44.120] which is we can compare two things
+[01:17:46.080] because they're trying to solve the same problem,
+[01:17:48.240] and we can compare two things because they're actually
+[01:17:50.060] similar to each other. This happened with
+[01:17:52.140] Redwood and Blitz. Everyone would always bundle them
+[01:17:54.140] together and be like, yeah, there's two
+[01:17:56.160] full-stack frameworks with React,
+[01:17:58.440] and they're totally different how they worked
+[01:18:00.320] architecturally internally, but
+[01:18:02.160] they always got kind of bundled together.
+[01:18:04.420] And so it's like, you hear this one thing, and it triggers
+[01:18:06.140] this other idea in your brain.
+[01:18:07.420] and so but you have to actually think wait these are not the same thing they're two different things
+[01:18:11.720] so what's the difference yes yes that's right cool uh we got someone else hop up here um
+[01:18:18.760] yep yep uh hi everyone hi mishko i've had asked questions a couple of times before from mishko
+[01:18:26.440] about the quick so i have a new one in terms of the resumability i was wondering that
+[01:18:31.880] since you're serializing the closure for that matter,
+[01:18:36.840] is there any specific limitation on that serialization?
+[01:18:42.260] And like, do you care about the data types
+[01:18:45.760] that are available in the closure
+[01:18:47.600] that's supposed to be serialized and be used again
+[01:18:51.040] once the app is supposed to resume from that entry point?
+[01:18:55.380] And the other question would be,
+[01:18:57.380] is there any process like a garbage collection
+[01:19:02.640] or anything like that running in the quick
+[01:19:04.700] to sort of unhook the closures
+[01:19:08.580] that are not being used anymore?
+[01:19:11.800] Good questions.
+[01:19:13.860] So the short answer is that you,
+[01:19:16.980] the closure can close over anything
+[01:19:18.580] that the systems know how to serialize.
+[01:19:20.520] So obviously all the JSON type,
+[01:19:22.820] we know how to serialize,
+[01:19:23.500] but we can also serialize promises, maps, sets,
+[01:19:26.100] and, of course, other closures.
+[01:19:29.540] So anything that's serializable is something the closure can close over
+[01:19:34.160] and it will just work.
+[01:19:35.300] And so this is nice because closures can close over other closures,
+[01:19:38.600] which then in turn can close over other things and so on.
+[01:19:41.320] The thing that's hard about serializing closure is that you need to separate out
+[01:19:45.620] the JavaScript, the behavior, from the state, right?
+[01:19:50.460] And so these two pieces of data need to be shipped into separate locations.
+[01:19:57.520] One goes into the bundler, and the other one gets placed inside of the JSON serialized state object.
+[01:20:05.440] And then the system then needs to put everything back together.
+[01:20:08.600] And what gets even trippier is that, let's say you're using server dollar sign.
+[01:20:13.800] Well, in that case, you know what your code is.
+[01:20:18.120] That's just JavaScript that's available to you.
+[01:20:20.460] And then you know what variables you closed over.
+[01:20:23.060] But now you have to ship that information to the server.
+[01:20:26.780] Except server, you know, client is running ESM, but the server is running CJS.
+[01:20:32.900] So you can't just, like, use the same exact code that the client had because that's not going to work.
+[01:20:37.960] So you also have to do a little bit of a mapping and be like, oh, right, right.
+[01:20:40.880] So that closure is actually the equivalent CJS code over here.
+[01:20:44.420] So let me execute that code instead.
+[01:20:46.380] And then you have to put the data back into the closure, kind of make it work again.
+[01:20:49.460] So there's lots of interesting trickery that has to happen in order to make this available.
+[01:20:53.740] But I think the payback is really, really nice.
+[01:20:56.900] One of my favorite ways of kind of seeing how you get a payback is that, you know, in most frameworks, if you say like, hey, I need to listen to a scroll, let's say I need to listen to a scroll event.
+[01:21:09.840] The idea that you could set up the listener for the scroll event on a server and then execute the scroll event on the client makes no sense.
+[01:21:17.300] Like, what are you talking about?
+[01:21:18.460] Of course, I have to wait until I am on the client, and only then can I actually call the ad event listener to kind of set up a listener for the scrolling, right?
+[01:21:27.800] But what this closure trickery allows you to do is to basically say, actually, no, you can, on the server, before you even have a browser or DOM or anything,
+[01:21:37.100] you can execute the equivalent of ad event listener and set up, say, like, hey, I'm interested in listening to this thing.
+[01:21:44.080] But then on the client, you don't actually have to do that.
+[01:21:46.320] you can just continue running the execution of the listener.
+[01:21:51.400] And so I think that's the goal, the end goal that you're going after,
+[01:21:55.200] is that you can essentially skip all the ad event listeners
+[01:21:58.440] that need to happen on a client.
+[01:22:00.740] And it's interesting because it is one of the biggest gotchas
+[01:22:05.220] we actually found in Quik,
+[01:22:06.720] is that people who come to Quik from other places,
+[01:22:09.300] they immediately kind of gravitate to their old ways of doing things.
+[01:22:13.420] And so if they want to set up a scroll listener,
+[01:22:15.000] they immediately say like okay run code eagerly on the client so that i can execute add event
+[01:22:20.740] listener and register the closure and then we have to be like no no no you missing the point here you actually want to execute this code on a server and then have the closure only materialize if somebody actually does the scrolling So in this case is the compiler I guess is it looking at all the event listener calls
+[01:22:44.980] and then instructing the framework to basically invoke them when that event happens?
+[01:22:52.200] how does that actually work?
+[01:22:55.140] Yeah, yeah.
+[01:22:55.620] So this is where the quick loader comes in.
+[01:22:57.220] Actually, the answer is you cannot use ad event listener, right?
+[01:23:01.680] The ad event listener is kind of your enemy.
+[01:23:03.620] And so you need to be able to design a system without it.
+[01:23:06.680] And so the way we get around this particular problem
+[01:23:08.820] is that the only place where the listener,
+[01:23:12.260] the ad event listener exists is inside of a quick loader.
+[01:23:15.940] So quick loader is this piece of code
+[01:23:17.320] that eagerly executes at the beginning
+[01:23:18.860] and sets up a global listeners
+[01:23:20.940] and relies on the fact that browser events bubble, right?
+[01:23:25.560] So if the system notices that somebody is interested in scroll events,
+[01:23:29.620] then it kind of notifies the quick event listener,
+[01:23:32.180] the quick loader saying like, hey, by the way,
+[01:23:34.040] I need to know about the scroll events.
+[01:23:36.300] And so the quick loader sets up a global listener for all scroll events.
+[01:23:40.600] And then when the event happens, the quick loader tries to figure out,
+[01:23:44.620] so the event happened, let me go back to where the event originated from
+[01:23:49.040] and see if I can find a special attribute that tells me which closure I have to execute.
+[01:23:57.320] And if it finds that information, then it actually executes the closure.
+[01:24:00.800] So the end effect is as if you executed add event listener on the server,
+[01:24:06.780] that's kind of how it looks like to you as a developer.
+[01:24:09.580] But of course, in practice, what it just means is that we kind of just delayed it and did it on the client.
+[01:24:14.680] But we also did it in a way where we don't have to, you know, normally if you have 10 buttons and you set up 10 unclicks, then you have to call add event listener 10 times, right?
+[01:24:26.880] But with Quick and the Quick Loader, you only set up a single add event listener in the root for all click-based events for the system.
+[01:24:37.100] that's very interesting it seems like you know um you know you hear about these conspiracy
+[01:24:42.540] conspiracy theories that all the technical technological advancements are happening because
+[01:24:48.880] uh you know some government has the alien technology hidden somewhere and they're just
+[01:24:53.920] copying that alien technology well it's because it's zero interest rates
+[01:24:57.240] so you know this it seems like you you you found the perfect architecture in all of these cases and
+[01:25:06.480] you're just checking the things off the list.
+[01:25:09.600] This is the way to do that.
+[01:25:12.420] That's very inspiring.
+[01:25:14.700] The other way, this kind of reminds me of another problem
+[01:25:18.320] that I've been thinking about, and I don't understand this.
+[01:25:22.560] When you're using signals,
+[01:25:27.040] the re-rendering happens much less
+[01:25:29.340] because supposedly the way the signals change
+[01:25:35.340] change is different from the way use state changes in React. So I was just wondering,
+[01:25:43.660] there's very similar primitives in Quik as well, where you can use, there's a primitive called
+[01:25:50.600] use store, I think, and then React has a use state. And they seem to work the same way.
+[01:25:58.460] How is it that one of them can result in less amount of re-rendering and the other one doesn't?
+[01:26:07.220] Yeah.
+[01:26:07.980] So the difference is kind of subtle, but it's super important.
+[01:26:12.240] And the difference is that if you look at it the way React does it,
+[01:26:17.380] React is unable to observe where the state is being used, right?
+[01:26:23.160] Like once you call use state, the use state returns to you a value.
+[01:26:29.160] And the moment the React returns the value, React fails to have any form of observability into like, what are you going to do with it?
+[01:26:37.760] Whether you throw the value away or you pass it to a bunch of other components or you use it internally just inside of your component, there is no way for React to know that information, right?
+[01:26:49.780] That information is just forever lost.
+[01:26:51.420] And because it's lost, the React can only do the next obvious thing, which is just re-render everything.
+[01:26:59.240] That's why it's coarse-grained reactive.
+[01:27:01.880] So what signals in store, and store is kind of just a slightly different signal,
+[01:27:07.740] what they allow you to do is that when you get back the value from the used signal or used store,
+[01:27:16.280] you don't actually get back the value directly.
+[01:27:19.200] Instead, you get a wrapper.
+[01:27:20.580] and this wrapper comes either in the form of a proxy
+[01:27:23.600] or a getter and a setter.
+[01:27:25.700] There's a lot of different kind of variations
+[01:27:27.860] on this particular thing.
+[01:27:29.240] SolidJS has getters and setters.
+[01:27:32.520] MobX has proxies.
+[01:27:34.800] I think Vue has proxies as well.
+[01:27:37.960] And so what these proxies allow you to do
+[01:27:40.240] is that they basically decouple returning the proxy
+[01:27:48.060] from returning the value.
+[01:27:50.020] So now the framework knows when you're actually getting hold of the value.
+[01:27:54.900] So when you want to get a hold of the value, you have to either call a getter property or you invoke the getter or do something.
+[01:28:02.260] And that action of something is information to the framework.
+[01:28:07.500] And so the framework then is able to make a basically a subscription, basically make a mark that says,
+[01:28:13.780] aha, I know that this value has been used here, here, here, and there, right?
+[01:28:20.000] And so it stores this information in such a way that if that value changes in the future,
+[01:28:26.160] that's easy, like, you know, React knows that because you call it set state or so,
+[01:28:30.140] you know, all the other signal systems that have a similar way of kind of mutating the value.
+[01:28:34.780] So when the value mutates, now the system knows, okay, I know who to notify to update,
+[01:28:41.300] Whereas React or coarse-grained system, also Angular falls into this category as well.
+[01:28:45.840] Well, now Angular has signal.
+[01:28:47.360] But before signal is in Angular, right?
+[01:28:49.780] The framework would be just like, I have no idea.
+[01:28:52.780] The only reasonable thing to do is to re-render the whole world.
+[01:28:57.180] I see.
+[01:28:58.340] And as I understand it, so the magic is happening at the compiler looking at the usage of the value and then...
+[01:29:09.220] No, the magic happens at runtime.
+[01:29:11.300] So it's happening at the random.
+[01:29:13.060] So my question is, like, can we add signals to the React is the question.
+[01:29:22.040] Yes and no.
+[01:29:23.380] So yes, because kind of Preact already did it, right?
+[01:29:26.780] So that definitely can be added.
+[01:29:30.020] But it requires slight changes in the way you think about the problem.
+[01:29:37.100] And the question really isn't about like, can you add signals to React?
+[01:29:42.100] It's more like, if we add signals to React, are we willing to change the developer's mental model of what React is?
+[01:29:52.100] I see.
+[01:29:54.100] And so the issue isn't so much as in a technical issue, as in that doing so,
+[01:30:00.640] You are asking the developers to think about the problem differently.
+[01:30:05.180] And is that different way of thinking about it?
+[01:30:07.700] Is it React?
+[01:30:08.440] Like for React, for example, really, really prides itself on the idea of pure functions, right?
+[01:30:14.160] Like it's just a bunch of functions that you call in any order you want, and it just kind of works, right?
+[01:30:18.480] That's kind of their identity.
+[01:30:20.440] And with Signal is that identity changes slightly.
+[01:30:22.580] And so the question that becomes, like, is that the identity that the core React team, you know, wants for its goals?
+[01:30:33.300] I see, I see.
+[01:30:35.260] But signals are also kind of like I mentioned are kind of a prerequisite for resumability.
+[01:30:42.860] Because, you know, as I said, like, you could in theory resume something like React.
+[01:30:47.960] But the problem you would have is that the moment something would change, you would be forced to download and re-execute the whole application.
+[01:30:57.340] Right?
+[01:30:57.660] And so it's almost like you worked so hard to get resumability only to lose it the last inch of the way.
+[01:31:06.020] I see.
+[01:31:07.360] Because you're not shipping the closure to the front end.
+[01:31:12.220] You're just shipping the result or a kind of executed function.
+[01:31:17.960] Well, no. So, reasonability makes sense only if you can guarantee that the amount of code that you're going to have to lazy execute is not too much, right? And so, if the first interaction basically says that I need to download the whole code base and execute the whole code base, then it's like, well, why don't you do all this work to delay it? Like, you're not really gaining anything, right?
+[01:31:43.180] And so, risk mobility has a strong preference for fine-grained systems.
+[01:31:49.540] I see.
+[01:31:53.000] Yeah, thank you.
+[01:31:54.180] Thank you for that.
+[01:31:57.640] You know, you asked me, like, is this alien technology?
+[01:32:01.100] No, it's not.
+[01:32:02.760] But the way I think about this particular problem is that, you know, you set a goal for yourself.
+[01:32:08.960] And for the case of a quick, the goal is very simple, which was delay execution of the code.
+[01:32:16.480] And so then you can ask yourself, well, how aggressive do you want to be about this goal?
+[01:32:21.460] And I find that in life, a lot of times it's easier to just pick extremes because then you don't have to like have a debate about it.
+[01:32:30.380] Like you either smoke or you don't smoke.
+[01:32:33.840] Right.
+[01:32:34.220] There is very difficult to be like, I only smoke one cigarette a day.
+[01:32:38.440] Right.
+[01:32:38.960] so like it's much easier to be at the extreme so so when we were when I started working on quick
+[01:32:44.840] my philosophy was very simple which is like I want to be in a situation where the only time
+[01:32:51.200] when I download a piece of code is if I execute it so that I will essentially always be in a
+[01:32:57.640] situation that if I look at code coverage of my code base it should be pretty close to 100%
+[01:33:02.680] at all times, right?
+[01:33:05.500] It seems like a crazy extreme thing,
+[01:33:08.140] but then you just walk backwards from that
+[01:33:10.740] and you say like, okay, so how do I get there?
+[01:33:12.520] Like, what do I need to do in order to get there?
+[01:33:15.240] And so you kind of come to the conclusion of like,
+[01:33:16.760] well, you need to be able to, you know,
+[01:33:19.060] start at the listener, right?
+[01:33:20.180] Because the listener, when you click at a button,
+[01:33:23.540] the first thing that executes is the listener handler.
+[01:33:26.580] So, you know, how do you get the listener handler?
+[01:33:28.980] You know, solve that problem.
+[01:33:30.480] How does the listener get a state?
+[01:33:31.820] solve that problem and then just keep solving it until you either have a moment where like this is
+[01:33:37.460] impossible or you know you sleep on it and somehow figure out how to get over that problem and keep
+[01:33:42.380] going and so so quick is just kind of the result of that particular point of view and i'm not saying
+[01:33:49.780] that your application should only download the code when it has to execute it but i'm saying is
+[01:33:55.260] by starting at that point of view it allows you to build all of these solutions and then later you
+[01:34:01.600] can always back off on it.
+[01:34:06.500] That's very interesting.
+[01:34:07.800] I guess that might be, you know, if you had started at solving a different problem, you
+[01:34:14.460] might have, yeah, you might have arrived at a very different situation, like where instead
+[01:34:21.380] of having that problem or of only downloading the code that's going to be executed, you
+[01:34:30.460] try to optimize the way the state works or some other piece of the problem essentially
+[01:34:37.740] then you would be basically reinventing some piece of the existing as existing system rather than
+[01:34:47.280] reimagining how the system could be built from from from the ground. Yeah I think that's a good
+[01:34:54.520] way of putting it. You know, when I kind of started this, when I, I was very cognizant of
+[01:35:01.960] the fact that there are lots of different frameworks out there. And what I didn't want to do
+[01:35:06.760] is to just build, get another framework that just has a different DX. Like DX is important,
+[01:35:12.960] but I don't think it's, it's not something I basically wanted to do. And so my like very key
+[01:35:20.880] requirement at the very, very beginning was like, if I'm going to do this, it has to solve
+[01:35:25.280] a problem that others cannot solve.
+[01:35:28.040] Right.
+[01:35:29.040] It has to be something that is just a fundamentally different thing that can provide value that
+[01:35:35.220] cannot be solved in other ways.
+[01:35:37.820] And so this is basically what was the motivation for it And when I started working on this project I actually didn want to solve all of it
+[01:35:49.032] I was just like, oh, can I just reuse an existing renderer,
+[01:35:51.752] like a React or Lit or some other rendering system?
+[01:35:55.612] And I looked into it and I started building prototypes,
+[01:35:58.252] but very quickly, I just kind of realized that it just doesn't fit.
+[01:36:02.032] like this idea of being able to lazy load code anywhere and all the time is so pervasive,
+[01:36:10.572] mainly because it returns a promise to you, right?
+[01:36:14.352] That you need to have a system and a rendering pipeline, et cetera,
+[01:36:17.852] that at any point needs to be able to be handed a promise and it needs to be okay with it
+[01:36:22.452] and not kind of blow up.
+[01:36:24.212] And many existing systems are not really good at dealing with promises.
+[01:36:28.892] it's just not native to them right you can't just um when you look at the rendering apis of
+[01:36:37.392] existing systems they are all fully synchronous like when i call render it's a synchronous update
+[01:36:41.952] and yeah there are tricks like react will throw an exception to tell you like oh the promise is
+[01:36:48.652] not to resolve try again later right but you end up in the state where like you know half the stuff
+[01:36:53.372] is already rendered and the other stuff is still missing because it hasn't showed up so for example
+[01:36:57.732] quick rendering pipeline has to understand this and say like look i am collecting all the changes
+[01:37:03.792] i'm going to do to the dom but until every single bit of it is resolved i am not rendering it
+[01:37:09.012] and so it's a different kind of a paradigm and a different rendering model and so these are the
+[01:37:14.632] things that i kind of realized that like as much as i would like to reuse existing systems because
+[01:37:20.072] i don't want to build everything from scratch um it wasn't really possible to to get to the world
+[01:37:26.172] which was highly lazy loadable like I wanted to get to
+[01:37:30.372] without also solving these other bits.
+[01:37:33.412] Also, as I said at the very beginning,
+[01:37:35.172] we didn't want to build a meta framework either.
+[01:37:37.252] But it turns out if you don't build a meta framework,
+[01:37:39.992] then you cannot really show off the capabilities
+[01:37:44.192] of the framework itself.
+[01:37:47.852] Yeah, so we are very glad.
+[01:37:49.712] I'm sure all the people who are looking at Quik
+[01:37:53.432] are very glad that you made that decision.
+[01:37:56.172] And it seems like, you know, as I said, we've had, we have chat meetings and chats about this internally.
+[01:38:04.712] And it looks like the perfect, you know, if you think about the perfect architecture for building websites, it seems like Quik is doing that.
+[01:38:14.772] So thank you for that.
+[01:38:16.632] But I'm just wondering, like, what is coming down the pipeline next?
+[01:38:23.592] Like, what are some of the things that, you know, I am not imagining at the moment that could be solved or could be done differently and would provide a lot of value to the web ecosystem?
+[01:38:37.912] Yeah, good question.
+[01:38:39.052] First of all, thank you for the kind words.
+[01:38:40.472] I appreciate it.
+[01:38:41.612] I like to oftentimes say, like, we are trying to do every single performance trick that we can think of.
+[01:38:49.292] If you can think of yet another performance trick that you could do,
+[01:38:53.132] the quick isn't already doing, do let me know
+[01:38:55.212] because we'll probably integrate that one too.
+[01:38:57.792] So everything from lazy loading to prefetching
+[01:39:00.072] to lazy execution, resumability,
+[01:39:02.252] everything we can think of, it's all in there.
+[01:39:06.492] You're saying what's coming past 1.0.
+[01:39:08.612] So there are certain things that didn't make it to 1.0.
+[01:39:10.392] I'm kind of sad, but there's only so much we can do.
+[01:39:15.492] One is out-of-order streaming.
+[01:39:16.812] It is still something that we want to do, and I think we can do some amazing trickery with that.
+[01:39:22.752] That's going to come after 1.0.
+[01:39:25.232] And we are working with our friends in Cloudflare, and they're building some amazing demos with micro-fronants.
+[01:39:33.512] Unfortunately, micro-fronants have not made it into the main documentation yet.
+[01:39:38.372] So we definitely want to do stuff around micro-fronants because we think Quik is really good architecture for micro-fronants.
+[01:39:44.472] but it requires a lot more documentation, a lot more explaining, a lot more kind of changes.
+[01:39:50.232] And so we're not there yet.
+[01:39:52.632] And so that's also not part of V1.
+[01:39:54.712] So I think those are going to be the two big pieces that are going to happen after version 1.
+[01:39:59.672] That's very interesting.
+[01:40:00.652] So actually, this might be one of the things that we're considering is,
+[01:40:06.252] because we're kind of controlling the request from the browser, essentially,
+[01:40:14.472] because if you build websites on top of AGO sites,
+[01:40:20.412] there are some client-side code that's shipped to the browser
+[01:40:24.572] and that includes a service worker by AGO to kind of prefetch some things.
+[01:40:29.532] And then we're also controlling the CBN software
+[01:40:32.052] and then the backend as well because our SSR,
+[01:40:35.772] so serverless systems are rendering the website.
+[01:40:39.912] So one of the things that we're considering at the CDN level is edge size, something like edge size includes.
+[01:40:50.512] So I'm just wondering if you could specify, thinking about microfront and you could specify, oh, this is the ESI tag for header and this is the ESI tag for the shopping cart or something.
+[01:41:08.152] And then just a service worker can render that and add that into the existing response.
+[01:41:17.232] Yeah.
+[01:41:17.992] Actually, yeah, that's exactly what we're thinking about.
+[01:41:21.552] We actually have a nice demo already So there is a URL you can go try it out Is it working Oh looks like it Oh no it works So if you go to quick
+[01:41:40.384] it's exactly what you're talking about. The idea is that we want to be able to render a page
+[01:41:45.764] and server-side include different parts.
+[01:41:48.884] But the different parts we're including
+[01:41:50.424] are actually standalone applications.
+[01:41:54.244] If you think about it,
+[01:41:56.364] including stuff on a server is relatively easy,
+[01:41:59.784] but there's more to it than just that.
+[01:42:01.744] If you just include a chunk of code,
+[01:42:04.184] chunk of HTML,
+[01:42:05.664] and then the client-side framework wakes up
+[01:42:08.744] and starts doing hydration,
+[01:42:10.344] it will override the stuff that you've included.
+[01:42:13.104] It's not just about just including the HTML.
+[01:42:15.104] It's also about doing in such a way that when hydration happens, the hydration doesn't destroy the work that you have done.
+[01:42:22.644] And it turns out Quick is really good at this, the architecture of Quick.
+[01:42:25.744] And so that demo actually shows off specifically this, that we actually have the menu running on a separate web worker from the shopping cart, running on a separate web worker from the, not a web worker, edge worker, from the hero image, from the product, from the comments.
+[01:42:45.104] And then all of these things get server-side bundled together.
+[01:42:50.144] The advantage is that different parts can be cached at a different level,
+[01:42:53.924] and they all become interactive on a client.
+[01:42:56.904] You can add a button from the main page and the shopping cart updates,
+[01:43:00.904] even though shopping cart is a separate server-side include
+[01:43:04.064] from the button that adds the apply button.
+[01:43:09.564] Yeah, this is excellent.
+[01:43:10.804] This is even better than what I was thinking, but this is a realization of an idea I had.
+[01:43:20.024] Excellent.
+[01:43:20.824] Yeah.
+[01:43:21.484] So, yeah, I think there's a button over there on that side called Show Seams that actually shows you all the services that include URLs and where they're coming from, et cetera.
+[01:43:29.924] And, yeah, it is kind of the next step, I think, in evolution.
+[01:43:33.604] Like if you look at a super complicated site like Amazon, right, it might be impossible to server-side render it.
+[01:43:43.104] But if you break it up into pieces, you realize like, well, there's only so many hero images that I can show.
+[01:43:49.684] You know, it's not infinite and I can pre-render them.
+[01:43:51.884] And then all I need to know is which one to include over here.
+[01:43:55.764] And the server-side include is inexpensive.
+[01:43:57.464] And then if all of these actually works with streaming, then you can get into a situation where you send the menu and the shopping cart.
+[01:44:06.744] And let's say the shopping cart needs to talk to database to figure out what's in your shopping cart.
+[01:44:10.424] And it says, you know what, I'm going to take some time.
+[01:44:12.144] So don't wait on me.
+[01:44:13.164] Just keep rendering.
+[01:44:14.444] And so you render the other parts.
+[01:44:16.324] And then the shopping cart finally figures out what the answer is.
+[01:44:19.244] And then it sends back an update.
+[01:44:20.744] It says, OK, I know the answer is now three.
+[01:44:22.644] So go and update it to three.
+[01:44:24.404] And so initially, you would render a page that would have maybe a question mark for a shopping card.
+[01:44:28.844] And then once the database returns, it goes and updates with the actual thing.
+[01:44:32.464] So that's what we call the out-of-order streaming, and it's something that's coming.
+[01:44:35.624] And it not only would come here, but we would work in a way where it could be through server-side include, right?
+[01:44:44.844] So if I server-side include a shopping card, the inclusion needs to understand the fact that, like, oh, by the way, that shopping card is not fully done.
+[01:44:53.564] Like there's going to be an update coming down later, but don't wait up on me.
+[01:44:57.564] Go start rendering the hero in the meantime, which is a separate edge worker.
+[01:45:02.264] And so when this edge worker finally figures out what the update is, then come back and update it, right?
+[01:45:07.984] Another example of that would be, let's say you want to show somebody a product and you want to show how many items are still available in stock, right?
+[01:45:16.284] That might be a relatively expensive query.
+[01:45:18.004] And so you just want to show the item and for the stock availability, just say computing or, you know, something like that or a spinner.
+[01:45:26.004] And then, you know, a second or two later, that spinner would update with the actual number.
+[01:45:31.584] That's amazing.
+[01:45:35.184] Cool. So we're going to start wrapping up soon, but I think we have one more person who has a question. Val.
+[01:45:42.344] Hi, FSJM folks. This is Val from Waterloo, Canada.
+[01:45:45.504] I love your show, especially the opening music.
+[01:45:48.544] That's fantastic.
+[01:45:49.924] Thank you.
+[01:45:50.324] Hopefully one day.
+[01:45:51.144] It's me, actually.
+[01:45:52.404] Yeah.
+[01:45:53.764] Mishka, this is Val Niekman.
+[01:45:55.544] How are you, my friend?
+[01:45:57.244] Hey, how's it going?
+[01:45:58.424] Not bad, not bad.
+[01:45:59.604] Yesterday, I was going through the documentation and everything.
+[01:46:03.644] Tried to wrap my head around what quick is quickly.
+[01:46:08.304] And so I managed to raise the PR in the process as well.
+[01:46:12.784] Well, one thing that I noticed that a lot of people, they're getting really excited and they wanted to come and talk about the things they learn about Quik on YouTube.
+[01:46:23.564] And sometimes I realize that they have not been able to wrap their head around what Quik is.
+[01:46:29.464] And, you know, when the documentation is falling behind the development for too long, then those YouTubes, they show up, they will mislead a lot of people.
+[01:46:39.264] Now, my question is, will you be allocating some time, let's say half a day for everybody to get together and take care of the namings?
+[01:46:49.604] Because I noticed that so many names are flipping back and forth, back and forth.
+[01:46:54.564] As an example, use visibility task, which is the final name for it.
+[01:47:00.624] And so that's one question.
+[01:47:01.824] The last question is is browser is understood Is client is understood Next JS decided to call everything server site unless you specify it specifically
+[01:47:15.716] But is server on an edge function
+[01:47:17.716] that is being advertised as serverless?
+[01:47:20.816] It just doesn't make sense.
+[01:47:22.356] It might confuse the young folks.
+[01:47:25.256] So is there any way that we could remove is server
+[01:47:28.556] and just use, if not, browser?
+[01:47:31.836] Those are the questions that I have.
+[01:47:33.476] Thank you.
+[01:47:34.636] Yeah. So, yeah, I mean, you kind of are hitting the hell in the head, so to speak, why exactly we're not in version 1.0 yet. There's still a lot of polish that has to happen. And, you know, it turns out a lot of it is actually done by community. Community is helping us. There are lots of awesome people like Shai Resding who are organizing others to help with the documentation, help with the starters, improve the starters, the CLI and things of that sort.
+[01:48:02.276] So all of that stuff is just extra work that has to happen.
+[01:48:06.276] And yes, you're right.
+[01:48:07.536] We originally had the task called what's called use client effect.
+[01:48:13.596] The problem we discovered is that people came too quick with the pre-existing notion what the use effect is in React.
+[01:48:23.816] And so they started putting all kinds of stuff inside of use client effect that really wasn't fitting.
+[01:48:29.936] Like I kind of talked about the listeners and so on. And so the rename actually was kind of motivated by the fact that we wanted to actually distance ourselves from the word effect because so many people have a preconceived notion of what it is.
+[01:48:45.176] And it turns out that's not what it is exactly in Quik.
+[01:48:49.296] And so if you just come along and bring your notions and habits, then you're going to end up rebuilding application in a way that is not a performance.
+[01:48:59.756] And so that's kind of the motivation behind it.
+[01:49:01.956] So, yeah, it's a hard problem, but I think we're getting there slowly.
+[01:49:07.516] And, of course, I will encourage you to kind of help with it.
+[01:49:10.776] If you wanted to help with the documentation or anything like that, by all means, jump in and help us.
+[01:49:16.996] Absolutely.
+[01:49:17.416] I got my PR merged in yesterday, and I'm just warming up.
+[01:49:22.156] So, yeah, expect more PR from me.
+[01:49:24.076] Thank you.
+[01:49:25.176] Excellent.
+[01:49:25.776] Excellent.
+[01:49:29.296] Awesome.
+[01:49:30.256] Well, I think this is going to about wrap it up for us.
+[01:49:33.996] Thank you so much, Mishko.
+[01:49:35.296] This has been such a great conversation.
+[01:49:37.656] and thank you everyone who came up to ask questions and speak.
+[01:49:42.016] And yeah, I think you have your Twitter right here.
+[01:49:45.536] People can follow you.
+[01:49:47.356] And they can check out Builder.io and Quick.
+[01:49:50.016] Are there other links you want people to be directed to?
+[01:49:54.476] Yeah, Builder.io, Quick, and Party Town, I think,
+[01:49:56.376] are the main places to go.
+[01:49:58.876] And of course, from the Quick.Builder.io,
+[01:50:00.996] you can check out our link to our Discord.
+[01:50:03.796] And there's lots of friendly folks to help you out.
+[01:50:07.656] actually at the end I would
+[01:50:10.836] like to thank
+[01:50:13.856] Misko myself as well and thank you
+[01:50:16.236] for coming here and thank you
+[01:50:18.576] especially for the work that you're doing
+[01:50:20.796] and the
+[01:50:22.476] contribution that you're making to the
+[01:50:24.816] JavaScript ecosystem
+[01:50:26.576] and the web ecosystem in general
+[01:50:28.516] so thank you for that and
+[01:50:30.276] good luck
+[01:50:32.276] thank you for the kind words I appreciate it
+[01:50:34.936] yes everybody let's give
+[01:50:36.856] Misko a huge round of applause.
+[01:50:39.676] Woo!
+[01:50:41.016] Yeah!
+[01:50:44.036] All right.
+[01:50:45.856] Aw.
+[01:50:47.056] Oh, the applause had to stop.
+[01:50:48.916] So unfortunate.
+[01:50:51.296] I love you too.
+[01:50:55.076] Thank you so much, everybody.
+[01:50:57.516] It's been so, so good here today.
+[01:50:59.756] Misko, thank you for all this wonderful time
+[01:51:01.476] that you've given here
+[01:51:03.876] in your busy day and schedule.
+[01:51:06.356] So greatly appreciate everybody also coming in the audience there and listening in.
+[01:51:12.176] And if you come up to speak, thank you so much for that, too.
+[01:51:15.916] And just remember, we will be here every Wednesday at 12 p.m. Pacific Standard Time, as always.
+[01:51:21.276] And be sure to give us a follow on JavaScript Jam there and go subscribe to javascriptjam.com on the newsletter there.
+[01:51:27.896] So you won't be left out on any of the awesome things coming up.
+[01:51:31.416] So with that being said, I'm really excited for the future here.
+[01:51:36.356] We're going to be doing some events. In fact, one that I will announce,
+[01:51:40.636] we are going to be doing some collaboration with Remix Conference.
+[01:51:45.636] And we got more to come on that in the near future.
+[01:51:50.476] And there's a couple more events as well that we'll be talking about soon.
+[01:51:54.416] But yeah, I'm excited about the Remix Conference coming up here in the near future.
+[01:52:00.796] And we're going to be having some speakers from there come on here as well
+[01:52:04.596] and join us to just have some great conversation.
+[01:52:07.616] So keep an eye out for all that.
+[01:52:10.076] Join the newsletter for more information.
+[01:52:12.736] All right.
+[01:52:13.336] Thank you all so much.
+[01:52:14.796] Really appreciate it.
+[01:52:16.236] And we'll see you in the next one.
+[01:52:33.116] Yeah.
+[01:52:34.596] thank y'all
+[01:52:38.056] peace

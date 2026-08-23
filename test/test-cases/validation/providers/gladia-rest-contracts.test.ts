@@ -33,7 +33,7 @@ test('Gladia upload response accepts nullable or omitted audio metadata filename
 })
 
 test('Gladia create request propagates the selected model and defaults diarization on', () => {
-  for (const model of ['solaria-1', 'solaria-3']) {
+  for (const model of ['solaria-3']) {
     expect(buildGladiaCreateRequest('https://api.gladia.io/audio/uploaded', model)).toEqual({
       audio_url: 'https://api.gladia.io/audio/uploaded',
       model,

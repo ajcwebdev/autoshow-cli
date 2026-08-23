@@ -14,7 +14,7 @@ export const STT_MODEL_KEYS = [
   'deepinfraSttModels', 'groqSttModels',
   'grokSttModels', 'deepgramSttModels',
   'sonioxSttModels', 'speechmaticsSttModels',
-  'revSttModels', 'mistralSttModels',
+  'mistralSttModels',
   'assemblyaiSttModels', 'gladiaSttModels',
   'happyscribeSttModels', 'supadataSttModels',
   'scrapecreatorsSttModels', 'geminiSttModels',

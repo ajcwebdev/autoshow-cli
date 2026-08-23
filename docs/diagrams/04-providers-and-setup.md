@@ -80,9 +80,9 @@ Hosted commands require the matching environment variable:
 | `MISTRAL_API_KEY`        | Mistral STT/OCR/TTS                        |
 | `BFL_API_KEY`            | BFL image                                  |
 | `LUMA_AGENTS_API_KEY`    | Luma Labs image/video                      |
-| `FAL_API_KEY`            | fal.ai image/video/TTS/OCR                 |
+| `FAL_API_KEY`            | fal.ai image/video/TTS                     |
 | `STABILITY_API_KEY`      | Stability AI sound effects                 |
-| `REPLICATE_API_TOKEN`    | Replicate OCR/image/video/TTS              |
+| `REPLICATE_API_TOKEN`    | Replicate image/video/TTS                  |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                        |
 | `GROQ_API_KEY`           | Groq write/STT/TTS                         |
 | `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR/TTS                      |
@@ -98,7 +98,6 @@ Hosted commands require the matching environment variable:
 | `INWORLD_API_KEY`        | Inworld AI TTS                             |
 | `SONIOX_API_KEY`         | Soniox STT                                 |
 | `SPEECHMATICS_API_KEY`   | Speechmatics STT                           |
-| `REVAI_ACCESS_TOKEN`     | Rev STT                                    |
 | `TOGETHER_API_KEY`       | Together write/STT                         |
 | `HAPPYSCRIBE_API_KEY`    | Happy Scribe STT                           |
 | `SUPADATA_API_KEY`       | Supadata STT/URL                           |

@@ -144,12 +144,6 @@ export const buildExtractTimingSteps = (input: ComputeEstimatedProcessingTimesIn
         ...(input.mistralOcrModels?.[0] && typeof input.extractPageCount === 'number'
           ? [{ provider: 'mistral' as const, model: input.mistralOcrModels[0], pageCount: input.extractPageCount }]
           : []),
-        ...(input.replicateOcrModels?.[0] && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'replicate' as const, model: input.replicateOcrModels[0], pageCount: input.extractPageCount }]
-          : []),
-        ...(input.falOcrModels?.[0] && typeof input.extractPageCount === 'number'
-          ? [{ provider: 'fal' as const, model: input.falOcrModels[0], pageCount: input.extractPageCount }]
-          : []),
         ...(input.glmOcrModels?.[0] && typeof input.extractPageCount === 'number'
           ? [{ provider: 'glm' as const, model: input.glmOcrModels[0], pageCount: input.extractPageCount }]
           : []),

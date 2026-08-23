@@ -9,7 +9,6 @@ const STT_FIELD_MAP = [
   { field: 'deepgramSttModels' as const, provider: 'deepgram' },
   { field: 'sonioxSttModels' as const, provider: 'soniox' },
   { field: 'speechmaticsSttModels' as const, provider: 'speechmatics' },
-  { field: 'revSttModels' as const, provider: 'rev' },
   { field: 'groqSttModels' as const, provider: 'groq' },
   { field: 'grokSttModels' as const, provider: 'grok' },
   { field: 'mistralSttModels' as const, provider: 'mistral' },

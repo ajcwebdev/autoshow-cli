@@ -600,7 +600,7 @@
         "pricingCheckedAt": "2026-07-24",
         "pricingCurrency": "USD",
         "pricingTier": "Moonshot AI public API token pricing",
-        "pricingNotes": "Moonshot AI public pricing lists Kimi K3 at $3/1M cache-miss input tokens, $0.30/1M cache-hit input tokens, and $15/1M output tokens with flat pay-as-you-go rates and no context tiers. AutoShow uses uncached input pricing for estimates. Kimi K3 runs with always-on thinking at the provider default reasoning_effort of max, so reused Kimi K2.6 output-token and latency heuristics are optimistic until calibrated. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingNotes": "Moonshot AI public pricing lists Kimi K3 at $3/1M cache-miss input tokens, $0.30/1M cache-hit input tokens, and $15/1M output tokens with flat pay-as-you-go rates and no context tiers. AutoShow uses uncached input pricing for estimates. Kimi K3 requires thinking; AutoShow defaults omitted --reasoning-effort to low rather than the provider max, so reused Kimi K2.6 output-token and latency heuristics remain provisional until calibrated. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "inputCostPer1MCents": 300,
         "cachedInputCostPer1MCents": 30,
         "outputCostPer1MCents": 1500,

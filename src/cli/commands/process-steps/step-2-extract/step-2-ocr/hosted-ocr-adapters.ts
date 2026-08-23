@@ -6,7 +6,7 @@ import type {
   HostedExtractOcrEngine,
   HostedOcrService
 } from '~/types'
-import { hasAnthropicOcr, hasDeepinfraOcr, hasFalOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr, hasReplicateOcr } from './ocr-engine-selection'
+import { hasAnthropicOcr, hasDeepinfraOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
 import { ANTHROPIC_OCR_LIMIT_SOURCE, ensureAnthropicOcrSetup } from './ocr-services/anthropic-ocr/anthropic-ocr'
 import { runAnthropicOcr } from './ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { DEEPINFRA_OCR_LIMIT_SOURCE, ensureDeepinfraOcrSetup } from './ocr-services/deepinfra-ocr/deepinfra-ocr'
@@ -23,10 +23,6 @@ import { ensureMistralOcrSetup } from './ocr-services/mistral-ocr/mistral-ocr'
 import { runMistralOcr } from './ocr-services/mistral-ocr/run-mistral-ocr'
 import { ensureOpenAIOcrSetup } from './ocr-services/openai-ocr/openai-ocr'
 import { runOpenAIOcr } from './ocr-services/openai-ocr/run-openai-ocr'
-import { ensureReplicateOcrSetup } from './ocr-services/replicate-ocr/replicate-ocr'
-import { runReplicateOcr } from './ocr-services/replicate-ocr/run-replicate-ocr'
-import { FAL_OCR_LIMIT_SOURCE, ensureFalOcrSetup } from './ocr-services/fal-ocr/fal-ocr'
-import { runFalOcr } from './ocr-services/fal-ocr/run-fal-ocr'
 import { createRenderedPngPageChunk } from './ocr-utils/pdf-chunk-fallback'
 
 const renderedPngPages = (opts: ExtractionOptions): HostedOcrFallbackOptions => ({
@@ -241,49 +237,6 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
         ocrModel: request.ocrModel,
         totalPages: run.totalPages,
         ...tokenUsage(run)
-      }
-    },
-    fallbackOptions: renderedPngPages
-  },
-  {
-    service: 'replicate',
-    engine: 'replicate-ocr',
-    label: 'Replicate OCR',
-    limitSource: 'https://replicate.com/datalab-to/marker/api/schema',
-    directImageFormats: ['png', 'jpg', 'webp'],
-    directImageSupportError: 'The Replicate OCR provider sends PDF and PNG/JPG/WEBP images to Replicate directly. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
-    selectModel: (opts) => hasReplicateOcr(opts) ? opts.replicateOcrModel as string : undefined,
-    ensureSetup: ensureReplicateOcrSetup,
-    request: async ({ inputPath, inputMetadata, ocrModel }) => {
-      const run = await runReplicateOcr(inputPath, inputMetadata, ocrModel)
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'replicate',
-        ocrModel,
-        ...(typeof run.totalPages === 'number' ? { totalPages: run.totalPages } : {})
-      }
-    },
-    fallbackOptions: (opts, ocrModel) => ocrModel === 'lucataco/deepseek-ocr'
-      ? renderedPngPages(opts)
-      : {}
-  },
-  {
-    service: 'fal',
-    engine: 'fal-ocr',
-    label: 'fal.ai OCR',
-    limitSource: FAL_OCR_LIMIT_SOURCE,
-    directImageFormats: ['png', 'jpg', 'webp'],
-    directImageSupportError: 'The fal.ai OCR provider sends PNG/JPG/WEBP images to GOT-OCR directly and renders PDF pages to PNG. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
-    selectModel: (opts) => hasFalOcr(opts) ? opts.falOcrModel as string : undefined,
-    ensureSetup: ensureFalOcrSetup,
-    request: async ({ inputPath, ocrModel }) => {
-      const run = await runFalOcr(inputPath, ocrModel)
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'fal',
-        ocrModel
       }
     },
     fallbackOptions: renderedPngPages

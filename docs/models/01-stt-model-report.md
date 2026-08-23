@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-19
+- **Date Updated:** 2026-08-22
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [LLMs](04-llm-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md), [Video](08-video-model-report.md).
 
@@ -12,12 +12,12 @@ Durable registry, lifecycle, and capability policy belongs to [ADR-010](../adr/A
 
 ## STT refresh
 
-Standardized STT on 22 active selectors across general-purpose hosted batch models, excluding specialized, realtime, streaming, or moving products (Nova-3 Medical, Deepgram Flux, Mistral Realtime, Together streaming).
+Standardized STT on 17 active selectors across general-purpose hosted batch models, excluding specialized, realtime, streaming, or moving products (Nova-3 Medical, Deepgram Flux, Mistral Realtime, Together streaming).
 
 **Provider 1: AssemblyAI**
 
 - **Provider:** AssemblyAI
-- **Active change and retained contract:** Replaced `universal-3-pro` with `universal-3-5-pro` and `universal-2`. Bare selection defaults to cheaper Universal-2 ($0.17/hour); Universal-3.5 Pro ($0.23/hour) is retained in expansion. Async request sends singleton `speech_models`, diarization, and optional speaker count.
+- **Active change and retained contract:** Replaced `universal-3-pro` with `universal-3-5-pro`. Bare selection defaults to Universal-3.5 Pro ($0.23/hour). Async request sends singleton `speech_models`, diarization, and optional speaker count. Historical readers preserve Universal-2 ($0.17/hour).
 
 **Provider 2: Deepgram**
 
@@ -32,7 +32,7 @@ Standardized STT on 22 active selectors across general-purpose hosted batch mode
 **Provider 4: Gladia**
 
 - **Provider:** Gladia
-- **Active change and retained contract:** Replaced `default` with `solaria-1` (bare default) and `solaria-3` ($0.61/hour). Async request sends model, diarization, and optional speaker count. Segment checkpoint isolation prevents remote job cross-talk.
+- **Active change and retained contract:** Replaced `default` with `solaria-3` ($0.61/hour). Async request sends model, diarization, and optional speaker count. Segment checkpoint isolation prevents remote job cross-talk. Historical readers preserve Solaria-1 at the same hourly rate.
 
 **Provider 5: Soniox**
 
@@ -42,7 +42,7 @@ Standardized STT on 22 active selectors across general-purpose hosted batch mode
 **Provider 6: Speechmatics**
 
 - **Provider:** Speechmatics
-- **Active change and retained contract:** Retained `enhanced` ($0.40/hour) and added batch-only `melia-1` ($0.129/hour). Request uses `model` parameter; Enhanced sets `language: "auto"`, Melia sets `language: "multi"`.
+- **Active change and retained contract:** Retained batch-only `melia-1` ($0.129/hour) with `language: "multi"`. Historical readers preserve Enhanced ($0.40/hour).
 
 **Provider 7: Together**
 
@@ -50,6 +50,58 @@ Standardized STT on 22 active selectors across general-purpose hosted batch mode
 - **Active change and retained contract:** Retained `openai/whisper-large-v3` and added `nvidia/parakeet-tdt-0.6b-v3` ($0.09/hour). Parakeet enforces a 20 MiB chunk cap based on batch execution limits.
 
 Compacted STT resume prioritizes canonical `result.json` before falling back to `transcription.txt`.
+
+## 2026-08-22 speaker-aware STT refresh
+
+Implemented 2026-08-22 from the then-current speaker-aware combined report under [docs/benchmarks/stt-with-speakers](../benchmarks/stt-with-speakers/combined-comparison-report.md). Removed 5 selectors and the Rev STT service. Keep `universal-3-5-pro`, `melia-1`, and `solaria-3`. Active hosted count: 22 − 5 = 17. Direct selection of the removed IDs fails with same-service replacement guidance where the provider surface remains; `--provider rev` is an unknown provider. Historical-manifest and pricing readers retain support for the retired rates. The retired provider run artifacts were removed after this decision; the aggregate quality, cost, and speed metrics below are the retained historical benchmark record.
+
+**Provider 1: AssemblyAI `universal-2`**
+
+- **Provider:** AssemblyAI `universal-2`
+- **Mean speaker-aware quality:** 95.92
+- **Mean cost / speed:** $0.0485 / 17.03s
+- **Why retired:** 2.22 quality below retained Universal-3.5 Pro (98.14) on the same three-run speaker-aware cohort
+
+**Provider 2: Gladia `solaria-1`**
+
+- **Provider:** Gladia `solaria-1`
+- **Mean speaker-aware quality:** 95.70
+- **Mean cost / speed:** $0.1741 / 19.61s
+- **Why retired:** Same published hourly rate as retained Solaria-3, 0.47 worse quality, and no speed advantage
+
+**Provider 3: Speechmatics `enhanced`**
+
+- **Provider:** Speechmatics `enhanced`
+- **Mean speaker-aware quality:** 96.27
+- **Mean cost / speed:** $0.1142 / 55.25s
+- **Why retired:** 0.07 quality below retained Melia-1, about 3× the mean cost, and about 5× slower
+
+**Provider 4: Rev `low_cost` / `machine`**
+
+- **Provider:** Rev `low_cost` / `machine`
+- **Mean speaker-aware quality:** 93.65 / 94.08
+- **Mean cost / speed:** $0.0286 / 599.03s and $0.0571 / 127.92s
+- **Why retired:** Lowest-quality hosted diarization pair in the cohort; `low_cost` is the slowest model at 1.72× realtime. The Rev service is removed from active selection.
+
+**Remove 1: `universal-2`**
+
+- **Remove:** `universal-2`
+- **Successor:** `universal-3-5-pro`
+
+**Remove 2: `solaria-1`**
+
+- **Remove:** `solaria-1`
+- **Successor:** `solaria-3`
+
+**Remove 3: `enhanced`**
+
+- **Remove:** `enhanced`
+- **Successor:** `melia-1`
+
+**Remove 4: `low_cost`, `machine`**
+
+- **Remove:** `low_cost`, `machine`
+- **Successor:** none; the Rev provider flag is retired
 
 ## Watches and deferrals
 
@@ -59,8 +111,9 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 
 ## API / Type Impact
 
-- The active STT surface is 22 selectors.
+- The active STT surface is 17 selectors.
 - Removed selectors are excluded from active CLI help, configuration defaults, and expansion lists, while remaining parseable in historical manifests and pricing readers.
+- The Rev provider flag is removed from extract, resume, config, setup/doctor, and `--all-stt` expansion. Stored `rev` identities remain readable.
 
 ## Follow-up Actions
 
@@ -80,4 +133,5 @@ The 2026-08-16 text-catalog gap audit (recorded in the [LLM report](04-llm-model
 - Hosted model registries: `src/cli/commands/setup-and-utilities/models/`
 - STT provider adapters: `src/cli/commands/process-steps/step-2-extract/`
 - Resume handlers: `src/cli/commands/setup-and-utilities/resume/`
-- STT benchmark artifacts: `docs/benchmarks/stt/`
+- STT without-speakers benchmark artifacts: `docs/benchmarks/stt-without-speakers/`
+- STT with-speakers benchmark artifacts: `docs/benchmarks/stt-with-speakers/`

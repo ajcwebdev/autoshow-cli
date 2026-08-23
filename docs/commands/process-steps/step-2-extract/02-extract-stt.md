@@ -17,7 +17,6 @@ Media inputs are downloaded and transcribed with hosted speech-to-text engines.
   - [Groq](#groq)
   - [Happy Scribe](#happy-scribe)
   - [Mistral](#mistral)
-  - [Rev](#rev)
   - [ScrapeCreators](#scrapecreators)
   - [Soniox](#soniox)
   - [Speechmatics](#speechmatics)
@@ -49,7 +48,6 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `config`, pass
 | Groq           | `GROQ_API_KEY`           |
 | Happy Scribe   | `HAPPYSCRIBE_API_KEY`    |
 | Mistral        | `MISTRAL_API_KEY`        |
-| Rev            | `REVAI_ACCESS_TOKEN`     |
 | ScrapeCreators | `SCRAPECREATORS_API_KEY` |
 | Soniox         | `SONIOX_API_KEY`         |
 | Speechmatics   | `SPEECHMATICS_API_KEY`   |
@@ -112,7 +110,7 @@ The output contains `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.j
 | Option      | Value                                    |
 | ----------- | ---------------------------------------- |
 | Selector    | `--provider assemblyai[=<model>]`        |
-| Models      | `universal-3-5-pro`, `universal-2`       |
+| Models      | `universal-3-5-pro`                      |
 | Diarization | Supported; accepts `--speaker-count <n>` |
 
 ```bash
@@ -120,7 +118,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider a
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai=universal-3-5-pro --speaker-count 2
 ```
 
-Bare `--provider assemblyai` defaults to `universal-2`. Select `universal-3-5-pro` explicitly for the flagship model.
+Bare `--provider assemblyai` defaults to `universal-3-5-pro`.
 
 ### Deepgram
 
@@ -162,7 +160,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider g
 | Option      | Value                                    |
 | ----------- | ---------------------------------------- |
 | Selector    | `--provider gladia[=<model>]`            |
-| Models      | `solaria-1`, `solaria-3`                 |
+| Models      | `solaria-3`                              |
 | Diarization | Supported; accepts `--speaker-count <n>` |
 
 ```bash
@@ -170,7 +168,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider g
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia --speaker-count 2
 ```
 
-Bare `--provider gladia` selects `solaria-1`. `--all-providers` includes both active Solaria models. `solaria-3` is English, French, German, Spanish, and Italian only. Enterprise plans can raise duration to 4 hours 15 minutes.
+Bare `--provider gladia` selects `solaria-3`. `solaria-3` is English, French, German, Spanish, and Italian only. Enterprise plans can raise duration to 4 hours 15 minutes.
 
 ### Grok STT
 
@@ -225,18 +223,6 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider m
 
 Voxtral Mini Transcribe 2 supports up to 500 MB and ~3 hours of audio per request.
 
-### Rev
-
-| Option      | Value                      |
-| ----------- | -------------------------- |
-| Selector    | `--provider rev[=<model>]` |
-| Models      | `machine`, `low_cost`      |
-| Diarization | Enabled by default         |
-
-```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider rev=low_cost
-```
-
 ### ScrapeCreators
 
 | Option        | Value                                            |
@@ -269,15 +255,14 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider s
 | Option      | Value                               |
 | ----------- | ----------------------------------- |
 | Selector    | `--provider speechmatics[=<model>]` |
-| Models      | `melia-1`, `enhanced`               |
+| Models      | `melia-1`                           |
 | Diarization | Enabled by default                  |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider speechmatics=melia-1
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider speechmatics=enhanced
 ```
 
-Bare `--provider speechmatics` selects `melia-1` (multilingual). `enhanced` uses single-language detection for maximum per-language accuracy.
+Bare `--provider speechmatics` selects `melia-1` (multilingual).
 
 ### Supadata
 
@@ -313,7 +298,7 @@ Bare `--provider together` defaults to `nvidia/parakeet-tdt-0.6b-v3`.
 - **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
 - **Supadata**: Reference rate of `$10 / 1,000 credits` (`1.00 cent/credit`). Native transcripts estimate 1 credit per request; generated transcripts estimate ~2 credits/min. `auto` mode estimates the higher rate.
 - **ScrapeCreators**: Reference rate of `$47 / 25,000 credits` (`0.188 cents/request`), charging per retrieval request regardless of duration.
-- **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Groq, Mistral, Rev, Soniox, Speechmatics, Together): Estimated based on media duration and published provider per-hour rates.
+- **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Groq, Mistral, Soniox, Speechmatics, Together): Estimated based on media duration and published provider per-hour rates.
 - **Token-priced providers** (Gemini STT): Estimated from media duration at 32 audio tokens per second; completed runs record the token usage the API returns.
 
 ## STT Notes
@@ -336,19 +321,14 @@ Pricing is the AutoShow estimate rate. Cost rank orders models cheapest-first wi
 
 | Provider                       | Released      | Diarization            | Speaker count        | Word timestamps            | Transcript cleanup                  | Duration              | File size            | Pricing   | Cost rank |
 | ------------------------------ | ------------- | ---------------------- | -------------------- | -------------------------- | ----------------------------------- | --------------------- | -------------------- | --------- | --------- |
-| AssemblyAI `universal-3-5-pro` | ✅ 2026-07-07 | ✅ Speaker labels      | ✅ `--speaker-count` | ✅ Native words            | ❌ None                             | ✅ 10 hours           | ✅ 2.2 GiB upload    | $0.23/hr  | 8/13      |
-| Speechmatics `melia-1`         | ✅ 2026-06-17 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ⚠️ Punctuation included             | ✅ No documented cap  | ✅ 1 GiB             | $0.129/hr | 5/13      |
-| Soniox `stt-async-v5`          | ✅ 2026-06-11 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ⚠️ Smart formatting included        | ✅ 5 hours            | ⚠️ 500 MiB           | $0.10/hr  | 1/13      |
-| Gladia `solaria-3`             | ✅ 2026-06-10 | ✅ Speaker labels      | ✅ `--speaker-count` | ✅ Native words            | ❌ None                             | ⚠️ 2 hours 15 minutes | ⚠️ 1000 MiB          | $0.61/hr  | 12/13     |
-| Grok `speech-to-text`          | ✅ 2026-05    | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ✅ Formatting                       | ✅ No documented cap  | ⚠️ 500 MiB           | $0.10/hr  | 1/13      |
-| Mistral `voxtral-mini-2602`    | ✅ 2026-02-04 | ✅ Speaker diarization | ❌ Not exposed       | ⚠️ Segment timestamps only | ❌ None                             | ⚠️ ~3 hours           | ⚠️ 500 MiB           | $0.12/hr  | 4/13      |
-| Gladia `solaria-1`             | ⚠️ 2025-06    | ✅ Speaker labels      | ✅ `--speaker-count` | ✅ Native words            | ❌ None                             | ⚠️ 2 hours 15 minutes | ⚠️ 1000 MiB          | $0.61/hr  | 12/13     |
-| Deepgram `nova-3`              | ⚠️ 2025-02-12 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ✅ Punctuation and smart formatting | ✅ No documented cap  | ✅ 2 GiB             | $0.582/hr | 10/13     |
-| AssemblyAI `universal-2`       | ❌ 2024-10-30 | ✅ Speaker labels      | ✅ `--speaker-count` | ✅ Native words            | ❌ None                             | ✅ 10 hours           | ✅ 2.2 GiB upload    | $0.17/hr  | 6/13      |
-| Rev `low_cost`                 | ❌ 2023       | ✅ Speaker labels      | ❌ Not exposed       | ✅ Native words            | ✅ Disfluency removal               | ✅ 17 hours           | ✅ 2 GiB             | $0.10/hr  | 1/13      |
-| Rev `machine`                  | ❌ 2018       | ✅ Speaker labels      | ❌ Not exposed       | ✅ Native words            | ✅ Disfluency removal               | ✅ 17 hours           | ✅ 2 GiB             | $0.20/hr  | 7/13      |
-| Speechmatics `enhanced`        | ❌ 2018       | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ⚠️ Punctuation included             | ✅ No documented cap  | ✅ 1 GiB             | $0.40/hr  | 9/13      |
-| Happy Scribe `auto`            | ❌ 2017       | ✅ Speaker labels      | ❌ Not exposed       | ⚠️ Words when available    | ❌ None                             | ✅ No documented cap  | ✅ No documented cap | $0.60/hr  | 11/13     |
+| AssemblyAI `universal-3-5-pro` | ✅ 2026-07-07 | ✅ Speaker labels      | ✅ `--speaker-count` | ✅ Native words            | ❌ None                             | ✅ 10 hours           | ✅ 2.2 GiB upload    | $0.23/hr  | 5/8       |
+| Speechmatics `melia-1`         | ✅ 2026-06-17 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ⚠️ Punctuation included             | ✅ No documented cap  | ✅ 1 GiB             | $0.129/hr | 3/8       |
+| Soniox `stt-async-v5`          | ✅ 2026-06-11 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ⚠️ Smart formatting included        | ✅ 5 hours            | ⚠️ 500 MiB           | $0.10/hr  | 1/8       |
+| Gladia `solaria-3`             | ✅ 2026-06-10 | ✅ Speaker labels      | ✅ `--speaker-count` | ✅ Native words            | ❌ None                             | ⚠️ 2 hours 15 minutes | ⚠️ 1000 MiB          | $0.61/hr  | 8/8       |
+| Grok `speech-to-text`          | ✅ 2026-05    | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ✅ Formatting                       | ✅ No documented cap  | ⚠️ 500 MiB           | $0.10/hr  | 1/8       |
+| Mistral `voxtral-mini-2602`    | ✅ 2026-02-04 | ✅ Speaker diarization | ❌ Not exposed       | ⚠️ Segment timestamps only | ❌ None                             | ⚠️ ~3 hours           | ⚠️ 500 MiB           | $0.12/hr  | 2/8       |
+| Deepgram `nova-3`              | ⚠️ 2025-02-12 | ✅ Speaker diarization | ❌ Not exposed       | ✅ Native words            | ✅ Punctuation and smart formatting | ✅ No documented cap  | ✅ 2 GiB             | $0.582/hr | 6/8       |
+| Happy Scribe `auto`            | ❌ 2017       | ✅ Speaker labels      | ❌ Not exposed       | ⚠️ Words when available    | ❌ None                             | ✅ No documented cap  | ✅ No documented cap | $0.60/hr  | 7/8       |
 
 ### No Diarization
 

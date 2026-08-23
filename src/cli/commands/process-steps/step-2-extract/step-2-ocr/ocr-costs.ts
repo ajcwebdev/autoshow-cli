@@ -196,7 +196,8 @@ const hostedOcrTarget = (
   const { provider, model } = resolveExtractionProviderModel(entry)
   const pageCount = Math.max(1, entry.totalPages)
   if (provider === 'mistral') return withPdfChunkTiming(entry, { provider, model: model || opts.mistralOcrModels?.[0] || 'mistral-ocr', pageCount, estimateType: 'exact' })
-  if (provider === 'fal') return withPdfChunkTiming(entry, { provider, model: model || opts.falOcrModels?.[0] || 'fal-ai/got-ocr/v2', pageCount, estimateType: 'exact' })
+  if (provider === 'replicate') return withPdfChunkTiming(entry, { provider, model: model || 'datalab-to/ocr', pageCount, estimateType: 'exact' })
+  if (provider === 'fal') return withPdfChunkTiming(entry, { provider, model: model || 'fal-ai/got-ocr/v2', pageCount, estimateType: 'exact' })
   if (!isTokenEstimateProvider(provider)) return undefined
   const descriptor = TOKEN_OCR_ESTIMATE_DESCRIPTORS[provider]
   const target = buildTokenTarget(

@@ -104,7 +104,7 @@ describe('async STT lifecycle adoption contracts', () => {
     installMockFetch(() => jsonResponse({}))
 
     await expectProviderHttpError(async () => await runAssemblyAiTranscribe(audioPath, outputDir, {
-      model: 'universal-2',
+      model: 'universal-3-5-pro',
       segmentOffsetMinutes: 0
     }), {
       kind: 'validation',
@@ -123,7 +123,7 @@ describe('async STT lifecycle adoption contracts', () => {
       : jsonResponse({}))
 
     await expectProviderHttpError(async () => await runAssemblyAiTranscribe(audioPath, outputDir, {
-      model: 'universal-2',
+      model: 'universal-3-5-pro',
       segmentOffsetMinutes: 0
     }), {
       kind: 'validation',
@@ -137,7 +137,7 @@ describe('async STT lifecycle adoption contracts', () => {
     const audioPath = join(outputDir, 'audio.mp3')
     await Bun.write(audioPath, 'audio')
     process.env['ASSEMBLYAI_API_KEY'] = 'test-assemblyai-key'
-    const target = { service: 'assemblyai', model: 'universal-2' } as const
+    const target = { service: 'assemblyai', model: 'universal-3-5-pro' } as const
     const lifecycle = await seedAsyncProviderManifest(outputDir, target)
 
     const calls = installMockFetch((call) => {
@@ -161,14 +161,14 @@ describe('async STT lifecycle adoption contracts', () => {
     })
 
     const actual = await runAssemblyAiTranscribe(audioPath, outputDir, {
-      model: 'universal-2',
+      model: 'universal-3-5-pro',
       segmentOffsetMinutes: 0,
       lifecycle
     })
 
     await expectLifecycleArtifacts(outputDir, actual, {
       service: 'assemblyai',
-      model: 'universal-2',
+      model: 'universal-3-5-pro',
       text: 'hello assembly',
       speaker: 'speaker-A',
       remoteJobId: 'assembly-job-1',
@@ -186,7 +186,7 @@ describe('async STT lifecycle adoption contracts', () => {
     const audioPath = join(outputDir, 'audio.mp3')
     await Bun.write(audioPath, 'audio')
     process.env['GLADIA_API_KEY'] = 'test-gladia-key'
-    const target = { service: 'gladia', model: 'solaria-1' } as const
+    const target = { service: 'gladia', model: 'solaria-3' } as const
     const lifecycle = await seedAsyncProviderManifest(outputDir, target)
 
     const calls = installMockFetch((call) => {
@@ -229,14 +229,14 @@ describe('async STT lifecycle adoption contracts', () => {
     })
 
     const actual = await runGladiaStt(audioPath, outputDir, {
-      model: 'solaria-1',
+      model: 'solaria-3',
       segmentOffsetMinutes: 0,
       lifecycle
     })
 
     await expectLifecycleArtifacts(outputDir, actual, {
       service: 'gladia',
-      model: 'solaria-1',
+      model: 'solaria-3',
       text: 'hello gladia',
       speaker: 'speaker-1',
       remoteJobId: 'gladia-job-1',

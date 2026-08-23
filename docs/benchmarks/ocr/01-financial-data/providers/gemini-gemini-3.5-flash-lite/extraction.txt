@@ -1,0 +1,40 @@
+Page 1
+Nasdaq & AMEX
+Stocks in bold rose or fell 5% or more.
+USA Track your investments with our continuously
+TODAY updated stocks. Visit us on the web at
+.com money.usatoday.com
+52-week 52-week
+High Low Stock Last Change High Low Stock Last Change
+45.71 32.50 Biomet 36.71 -0.42
+2.76 1.20 Biomira 1.46 +0.03
+-A-
+9.07 5.13 BioScrip 8.05 +0.34
+68.88 50.65 Biosite 50.05 -4.57
+9.19 6.89 ABX Air n 7.52 -0.10
+212.25 131.03 Biotech T 204.66 -0.84
+33.25 12.40 ACMoore 13.58 -1.57
+8.50 1.40 BirchMt gn 6.52 -0.45
+31.38 13.51 ADA-ES 20.96 +3.16
+18.21 10.73 Blackbaud 17.90 +0.70
+27.14 12.88 ADC Tel rs 23.21 +0.13
+52.73 13.86 BluCoat 41.29 +1.30
+30.40 16.70 ADECp 27.32 +0.73
+44.35 24.15 BlueNile 40.30 -1.10
+16.45 10.47 AFC Ent s 15.40 -0.14
+26.45 19.91 BobEvn 22.99 ...
+8.37 4.50 ASE Tst 7.76 +0.40
+15.94 6.12 Bodisen n 15.45 +0.45
+19.25 12.75 ASM Intl 17.65 -0.03
+6.21 1.56 Bookham 5.94 +0.06
+20.92 13.94 ASML Hld 21.24 +0.46
+11.80 4.99 Borland 6.68 +0.14
+27.38 16.39 ASV Inc s 26.76 +0.14
+31.90 21.10 BostPrv 31.18 -0.07
+19.82 10.47 ATI Tech 17.89 +0.68
+18.62 10.01 BttmInT 11.53 +0.20
+33.62 20.53 ATMI Inc 29.95 +1.29
+14.68 7.10 BrigExp 12.10 -0.23
+39.20 16.76 ATP O&G 38.40 -0.59
+46.72 26.65 BrightHrz s 38.90 -0.80
+4.24 1.99 AVI Bio 3.62 -0.02

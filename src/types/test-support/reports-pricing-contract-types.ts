@@ -26,38 +26,18 @@ export type TtsRankingEntry = {
   label: string
 }
 
-type ArtifactRankingEntry = {
+type ArtifactMetricRankingEntry = {
   rank: number
   providerKey: string
-  provider: string
-  display?: string
-  composite: number
-}
-
-type ArtifactTierProvider = {
-  providerKey: string
-  provider: string
-  display?: string
-  qualityCostRank: number
-  qualityCostComposite: number
-}
-
-type ArtifactTiering = {
-  method: string
-  ranking: string
-  providerCount: number
-  tieBreak: string
-  tiers: Array<{
-    tier: number
-    count: number
-    providers: ArtifactTierProvider[]
-  }>
+  metric: string
+  value: number | null
 }
 
 export type ArtifactReport = {
   schemaVersion: number
-  weightedRankings: Record<string, { qualityCost: ArtifactRankingEntry[] }>
-  tiering: Record<string, ArtifactTiering>
+  metricRankings: Record<string, Record<string, ArtifactMetricRankingEntry[]>>
+  weightedRankings?: unknown
+  tiering?: unknown
 }
 
 export type RegistryModelRecord = {
@@ -101,8 +81,8 @@ export type UrlCombinedArtifact<TAggregatedProvider = unknown, TMetricRankingEnt
   }>
   providers: TAggregatedProvider[]
   metricRankings: Record<'local' | 'service', Record<'price' | 'speed' | 'automatedQuality', TMetricRankingEntry[]>>
-  weightedRankings: Record<string, Record<string, unknown[]>>
-  tiering: Record<string, { tiers: Array<{ count: number }> }>
+  weightedRankings?: Record<string, Record<string, unknown[]>>
+  tiering?: Record<string, { tiers: Array<{ count: number }> }>
   notes: string[]
 }
 

@@ -9,7 +9,6 @@ export type SttRuntimeOptions = {
   deepgramSttModels: string[] | undefined
   sonioxSttModels: string[] | undefined
   speechmaticsSttModels: string[] | undefined
-  revSttModels: string[] | undefined
   mistralSttModels: string[] | undefined
   assemblyaiSttModels: string[] | undefined
   gladiaSttModels: string[] | undefined

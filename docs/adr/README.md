@@ -86,7 +86,7 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 12: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)**
 
 - **Status:** Superseded · Passed
-- **Decision:** Owns historical benchmark evidence from primary-source refresh through local checks, price-only preflight, exact paid approval, validation, repair, compaction, and regeneration, plus self-contained JSON, Markdown, and offline HTML combined reports with weighted rankings and deterministic quality-cost terciles. Retained as historical authority after CLI `benchmark` command removal.
+- **Decision:** Owns historical benchmark evidence from primary-source refresh through local checks, price-only preflight, exact paid approval, validation, repair, compaction, and regeneration, plus self-contained JSON, Markdown, and offline HTML combined reports with per-metric cost, speed, and quality rankings. Retained as historical authority after CLI `benchmark` command removal. The later consensus-skill ranking contract dropped weighted composites and quality-cost terciles.
 - **Related ADRs:** [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-011](ADR-011-add-refresh-metadata-to-links.md), [ADR-017](ADR-017-sound-effects-and-multi-track-soundscape-pipeline.md)
 
 **ADR 13: [ADR-013](ADR-013-add-character-voice-references-and-multi-speaker-script-to-audio.md)**
@@ -200,7 +200,7 @@ Open follow-up work from ADRs and refresh reports, excluding never-ending refres
 **Item 2: [2026 Hosted-Model Refresh Report: LLMs](../models/04-llm-model-report.md)**
 
 - **Priority:** Medium
-- **Next step:** Complete P1 extract (OCR) registrations for `gemini-3.7-flash` and `grok-4.6`, then the remaining recommended selectors after adapter and pricing confirmation.
+- **Next step:** Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing.
 
 **Item 3: [2026 Hosted-Model Refresh Report: OCR](../models/02-ocr-model-report.md)**
 

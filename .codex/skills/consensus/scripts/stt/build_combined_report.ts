@@ -1,33 +1,13 @@
 #!/usr/bin/env bun
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { discoverCombinedRuns } from "../shared/combined_report_lib";
 import {
-  MISSING_DATA_POLICY,
-  TIERING_METHOD_LINES,
-  WEIGHTED_COMPOSITE_POLICY,
-  WEIGHTED_METHOD_LINES,
-  WEIGHT_SETS,
-  WEIGHT_SET_KEYS,
-  buildQualityCostTiering,
-  computeGroupSubscores,
-  computeWeightedRankings,
-  discoverCombinedRuns,
-  tierTable,
-  weightedRankingTable,
-  type CombinedProviderInput,
-  type CombinedTiering,
-  type ProviderSubscores,
-  type WeightSetKey,
-  type WeightedRankingEntry,
-} from "../shared/combined_report_lib";
-import {
-  balancedCells,
   renderCombinedDashboard,
   type CombinedDashboardModel,
   type DashboardGroup,
   type DashboardProviderRow,
-  type DashboardWeightedCell,
 } from "../shared/combined_report_html";
 
 type GroupKey = "local" | "thirdPartyServiceNonDiarization" | "thirdPartyServiceDiarization";
@@ -382,12 +362,96 @@ function benchmarkSummaryRankingTable(
   ].join("\n");
 }
 
+function sttSummaryIdentity(rootDir: string): { slug: string; heading: string } {
+  const slug = basename(rootDir);
+  if (slug === "stt-with-speakers") {
+    return { slug, heading: "STT With Speakers" };
+  }
+  if (slug === "stt-without-speakers") {
+    return { slug, heading: "STT Without Speakers" };
+  }
+  return { slug: slug || "stt", heading: "STT" };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+interface InventoryRow {
+  slug: string;
+  reports: number;
+  rows: number;
+  groups: string;
+}
+
+function parseInventoryRows(summary: string): InventoryRow[] {
+  const rows: InventoryRow[] = [];
+  const pattern = /^\| ([a-z0-9-]+) +\| +(\d+) +\| +(\d+) +\| +([^|\n]+?) +\|$/gm;
+  for (const match of summary.matchAll(pattern)) {
+    if (match[1] === "stt") {
+      continue;
+    }
+    rows.push({
+      slug: match[1],
+      reports: Number(match[2]),
+      rows: Number(match[3]),
+      groups: match[4].trim(),
+    });
+  }
+  return rows;
+}
+
+function formatInventoryTable(rows: InventoryRow[]): string {
+  const data = [...rows].sort((left, right) => left.slug.localeCompare(right.slug));
+  const totalReports = data.reduce((sum, row) => sum + row.reports, 0);
+  const totalRows = data.reduce((sum, row) => sum + row.rows, 0);
+  const groupSet = new Set(data.flatMap((row) => row.groups.split(",").map((group) => group.trim()).filter(Boolean)));
+  const categoryWidth = Math.max(8, ...data.map((row) => row.slug.length));
+  const header = `| ${"Category".padEnd(categoryWidth)} | Reports | Provider rows | Groups present |`;
+  const divider = `| ${"-".repeat(categoryWidth)} | ------: | ------------: | --- |`;
+  const body = data.map((row) =>
+    `| ${row.slug.padEnd(categoryWidth)} | ${String(row.reports).padStart(7)} | ${String(row.rows).padStart(13)} | ${row.groups} |`
+  );
+  const total = `| ${"**Total**".padEnd(categoryWidth)} | **${totalReports}** | **${totalRows}** | **${groupSet.size} groups** |`;
+  return [header, divider, ...body, total].join("\n");
+}
+
+function upsertInventoryRow(summary: string, row: InventoryRow): string {
+  const rows = parseInventoryRows(summary);
+  const existing = rows.find((candidate) => candidate.slug === row.slug);
+  if (existing) {
+    existing.reports = row.reports;
+    existing.rows = row.rows;
+    existing.groups = row.groups;
+  } else {
+    rows.push(row);
+  }
+  return summary.replace(
+    /\|\s*Category[\s\S]*?\|\s*\*\*Total\*\*\s*\|[^\n]+\|\n/,
+    `${formatInventoryTable(rows)}\n`,
+  );
+}
+
+function replaceOrInsertHeadingSection(summary: string, heading: string, body: string): string {
+  const headingPattern = new RegExp(`## ${escapeRegExp(heading)}\\n[\\s\\S]*?(?=\\n## )`);
+  if (headingPattern.test(summary)) {
+    return summary.replace(headingPattern, `${body}\n\n`);
+  }
+  summary = summary.replace(/## STT\n[\s\S]*?(?=\n## )/, "");
+  const before = heading === "STT With Speakers" && summary.includes("## STT Without Speakers\n")
+    ? "STT Without Speakers"
+    : "TTS";
+  return summary.replace(`\n## ${before}\n`, `\n${body}\n\n## ${before}\n`);
+}
+
 function benchmarkSttSection(
+  heading: string,
+  slug: string,
   metricRankings: Record<GroupKey, Record<MetricName, RankingEntry[]>>,
   groupedProviders: Record<GroupKey, AggregatedProvider[]>,
   totalRuns: number,
 ): string {
-  const lines = ["## STT", ""];
+  const lines = [`## ${heading}`, ""];
   for (const group of GROUPS) {
     lines.push(`### ${group}`, "", "#### Cost Ranking", "");
     lines.push(benchmarkSummaryRankingTable(metricRankings[group].price, (entry) => formatPrice(entry.value), totalRuns));
@@ -406,7 +470,7 @@ function benchmarkSttSection(
     lines.push("", "#### Auto-Quality Ranking", "");
     lines.push(benchmarkSummaryRankingTable(metricRankings[group].qualityScore, (entry) => formatQuality(entry.value), totalRuns));
     lines.push("", "#### Human Quality Ranking", "");
-    lines.push(`_Unavailable: no humanQuality entries are present for \`stt/${group}\` in the current report files._`, "");
+    lines.push(`_Unavailable: no humanQuality entries are present for \`${slug}/${group}\` in the current report files._`, "");
   }
   return lines.join("\n").trimEnd();
 }
@@ -421,25 +485,17 @@ function updateBenchmarkSummary(
   if (!existsSync(summaryPath)) {
     return;
   }
-  let summary = readFileSync(summaryPath, "utf8");
-  const inventoryMatch = summary.match(/^\| stt \| (\d+) \| (\d+) \| ([^\n]+) \|$/m);
-  const totalMatch = summary.match(/^\| \*\*Total\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \| \*\*([^\n]+)\*\* \|$/m);
+  const { slug, heading } = sttSummaryIdentity(rootDir);
   const providerRows = runs.reduce((total, run) => total + run.providerCount, 0);
-  if (inventoryMatch) {
-    const previousReports = Number(inventoryMatch[1]);
-    const previousRows = Number(inventoryMatch[2]);
-    summary = summary.replace(
-      inventoryMatch[0],
-      `| stt | ${runs.length} | ${providerRows} | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |`,
-    );
-    if (totalMatch) {
-      const reports = Number(totalMatch[1]) + runs.length - previousReports;
-      const rows = Number(totalMatch[2]) + providerRows - previousRows;
-      summary = summary.replace(totalMatch[0], `| **Total** | **${reports}** | **${rows}** | **${totalMatch[3]}** |`);
-    }
-  }
-  const section = benchmarkSttSection(metricRankings, groupedProviders, runs.length);
-  summary = summary.replace(/## STT\n[\s\S]*?\n## TTS\n/, `${section}\n\n## TTS\n`);
+  let summary = readFileSync(summaryPath, "utf8");
+  summary = upsertInventoryRow(summary, {
+    slug,
+    reports: runs.length,
+    rows: providerRows,
+    groups: "local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization",
+  });
+  const section = benchmarkSttSection(heading, slug, metricRankings, groupedProviders, runs.length);
+  summary = replaceOrInsertHeadingSection(summary, heading, section);
   writeFileSync(summaryPath, summary);
   console.log(`Wrote ${summaryPath}`);
 }
@@ -474,25 +530,10 @@ function buildDashboardGroup(
   providers: AggregatedProvider[],
   runs: RunRef[],
   metricRankings: Record<MetricName, RankingEntry[]>,
-  weightedRankings: Record<WeightSetKey, WeightedRankingEntry[]>,
-  tiering: CombinedTiering,
-  subscored: ProviderSubscores[],
 ): DashboardGroup {
   const qualityRank = new Map(metricRankings.qualityScore.map((entry) => [entry.providerKey, entry.rank]));
   const speedRank = new Map(metricRankings.speed.map((entry) => [entry.providerKey, entry.rank]));
   const priceRank = new Map(metricRankings.price.map((entry) => [entry.providerKey, entry.rank]));
-  const balanced = balancedCells(subscored);
-  const subscoredByKey = new Map(subscored.map((item) => [item.providerKey, item]));
-  const weightedByKey = {} as Record<WeightSetKey, Map<string, DashboardWeightedCell>>;
-  for (const key of WEIGHT_SET_KEYS) {
-    weightedByKey[key] = new Map(weightedRankings[key].map((entry) => [entry.providerKey, { rank: entry.rank, composite: entry.composite }]));
-  }
-  const tierByKey = new Map<string, number>();
-  for (const tier of tiering.tiers) {
-    for (const provider of tier.providers) {
-      tierByKey.set(provider.providerKey, tier.tier);
-    }
-  }
   const heatValues = providers.flatMap((provider) => runs.map((run) => provider.perRun[run.runName]).filter(isFiniteNumber));
   const heatMin = heatValues.length > 0 ? Math.min(...heatValues) : 0;
   const heatMax = heatValues.length > 0 ? Math.max(...heatValues) : 0;
@@ -502,7 +543,6 @@ function buildDashboardGroup(
     display: provider.provider,
     model: provider.model,
     coverage: `${provider.runsCovered}/${runs.length}`,
-    tier: tierByKey.get(provider.providerKey) ?? null,
     quality: {
       display: provider.meanQualityScore === null ? "n/a" : provider.meanQualityScore.toFixed(2),
       rank: qualityRank.get(provider.providerKey) ?? null,
@@ -514,16 +554,11 @@ function buildDashboardGroup(
       rank: speedRank.get(provider.providerKey) ?? null,
     },
     cost: { display: formatPrice(priceValue(provider)), rank: priceRank.get(provider.providerKey) ?? null },
-    balanced: balanced.get(provider.providerKey) ?? { rank: providers.length, composite: 0 },
-    weighted: Object.fromEntries(
-      WEIGHT_SET_KEYS.map((key) => [key, weightedByKey[key].get(provider.providerKey) ?? { rank: providers.length, composite: 0 }]),
-    ) as Record<WeightSetKey, DashboardWeightedCell>,
     evidence: [
       formatPercent(provider.meanSpeakerAwareWER),
       formatPercent(provider.meanTextOnlyWER),
       diarizationLabel(provider),
     ],
-    missingDimensions: subscoredByKey.get(provider.providerKey)?.missingDimensions ?? [],
     perRun: runs.map((run) => {
       const value = provider.perRun[run.runName];
       if (!isFiniteNumber(value)) {
@@ -537,16 +572,6 @@ function buildDashboardGroup(
   return {
     key: group,
     label: GROUP_LABELS[group],
-    tierCards: tiering.tiers.map((tier) => ({
-      tier: tier.tier,
-      label: tier.label,
-      description: tier.description,
-      providers: tier.providers.map((provider) => ({
-        display: provider.display ?? provider.provider,
-        qualityCostRank: provider.qualityCostRank,
-        qualityCostComposite: provider.qualityCostComposite,
-      })),
-    })),
     metricColumns: { quality: "Quality /100", speed: "Mean time · throughput", cost: "Mean cost" },
     evidenceColumns: ["Mean SA-WER", "Mean text WER", "Diarization"],
     providers: rows,
@@ -580,31 +605,9 @@ function main(): number {
     thirdPartyServiceDiarization: rankGroup(groupedProviders.thirdPartyServiceDiarization),
   };
 
-  const runNames = runs.map((run) => run.runName);
-  const weightedRankings = {} as Record<GroupKey, Record<WeightSetKey, WeightedRankingEntry[]>>;
-  const tiering = {} as Record<GroupKey, CombinedTiering>;
-  const subscoresByGroup = {} as Record<GroupKey, ProviderSubscores[]>;
-  for (const group of GROUPS) {
-    const inputs: CombinedProviderInput[] = groupedProviders[group].map((provider) => ({
-      providerKey: provider.providerKey,
-      provider: provider.provider,
-      model: provider.model,
-      samples: (byProvider.get(provider.providerKey)?.samples ?? []).map((sample) => ({
-        runName: sample.runName,
-        quality: sample.score,
-        timeMs: sample.processingTimeMs,
-        costCents: group === "local" ? 0 : sample.costCents,
-      })),
-    }));
-    const subscored = computeGroupSubscores(inputs, runNames);
-    subscoresByGroup[group] = subscored;
-    weightedRankings[group] = computeWeightedRankings(subscored, group);
-    tiering[group] = buildQualityCostTiering(weightedRankings[group].qualityCost);
-  }
-
   const generatedAt = new Date().toISOString();
   const jsonReport = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     kind: "stt-combined-comparison-report",
     category: "stt",
     rootDir,
@@ -614,25 +617,20 @@ function main(): number {
     runs: runs.map((run) => ({ runName: run.runName, runDir: run.runDir, providerCount: run.providerCount })),
     providerCount: aggregated.length,
     metricRankings,
-    weightSets: WEIGHT_SETS,
-    weightedRankings,
-    tiering,
     rankingPolicy: {
       price: "mean per-run monetary cost ascending; local providers at zero; missing cost sorts last; ties break by quality descending then providerKey",
       speed: "mean processing time ascending; observed aggregate realtime throughput is retained as evidence; missing timing sorts last; ties break by providerKey",
       qualityScore: "mean speaker-aware WER-derived score descending; missing score sorts last; ties break by providerKey",
-      weightedComposite: WEIGHTED_COMPOSITE_POLICY,
-      missingData: MISSING_DATA_POLICY,
     },
     notes: [
       "Each provider is aggregated by providerKey across the runs it appears in; the mean is taken over present values only. Aggregate realtime throughput is total covered audio duration divided by total covered processing time.",
       "Groups follow the single-run STT contract: local, thirdPartyServiceNonDiarization, thirdPartyServiceDiarization.",
-      "Weighted composite rankings and quality-cost tercile model tiers are emitted per group; no cross-group overall or rankingSurfaces leaderboard is emitted, and single-run reports remain tier-free.",
+      "Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.",
     ],
   };
 
   const jsonPath = join(rootDir, "combined-comparison-report.json");
-  writeFileSync(jsonPath, JSON.stringify(jsonReport, null, 2));
+  writeFileSync(jsonPath, JSON.stringify(jsonReport));
 
   const md: string[] = [];
   md.push("# Combined STT Provider Comparison Report");
@@ -656,14 +654,6 @@ function main(): number {
   md.push("- Quality Score rankings use the mean speaker-aware WER-derived score descending.");
   md.push("- Tied ranking values break deterministically: price ties by quality descending then provider key; speed and quality ties by provider key.");
   md.push("");
-  for (const line of WEIGHTED_METHOD_LINES) {
-    md.push(line);
-  }
-  md.push("");
-  for (const line of TIERING_METHOD_LINES) {
-    md.push(line);
-  }
-  md.push("");
   md.push("## Metric Rankings");
   md.push("");
   for (const group of GROUPS) {
@@ -681,16 +671,6 @@ function main(): number {
     md.push("");
     md.push(metricTable(metricRankings[group].qualityScore));
     md.push("");
-    md.push("#### Weighted Rankings");
-    md.push("");
-    md.push("Q, S, and C are each provider's per-run normalized quality, speed, and cost subscores averaged across covered runs.");
-    md.push("");
-    for (const key of WEIGHT_SET_KEYS) {
-      md.push(`##### ${WEIGHT_SETS[key].label}`);
-      md.push("");
-      md.push(weightedRankingTable(weightedRankings[group][key], runs.length));
-      md.push("");
-    }
   }
   md.push("## Per-Run Quality Score");
   md.push("");
@@ -703,18 +683,6 @@ function main(): number {
     md.push(`### ${GROUP_LABELS[group]}`);
     md.push("");
     md.push(perRunMatrix(groupedProviders[group], runs));
-    md.push("");
-  }
-  md.push("## Model Tiers");
-  md.push("");
-  md.push(
-    "Tiers are `quality-cost-terciles-v1`: contiguous, near-equal slices of each group's `qualityCost` weighted ranking, with remainder models assigned to higher tiers first. Groups are never compared against each other.",
-  );
-  md.push("");
-  for (const group of GROUPS) {
-    md.push(`### ${GROUP_LABELS[group]}`);
-    md.push("");
-    md.push(tierTable(tiering[group]));
     md.push("");
   }
   md.push("## Notes");
@@ -741,13 +709,11 @@ function main(): number {
     ],
     runs: runs.map((run, index) => ({ runName: run.runName, shortLabel: `R${index + 1}`, detail: `${run.providerCount} providers` })),
     groups: GROUPS.map((group) =>
-      buildDashboardGroup(group, groupedProviders[group], runs, metricRankings[group], weightedRankings[group], tiering[group], subscoresByGroup[group]),
+      buildDashboardGroup(group, groupedProviders[group], runs, metricRankings[group]),
     ),
     methodParagraphs: [
       "Providers are matched by `providerKey` and aggregated across the runs they appear in; means are taken over present values only.",
       "Quality ranks the mean speaker-aware WER-derived score descending. Speed ranks mean processing time ascending. Cost ranks mean per-run monetary cost ascending with local providers at zero. Missing values sort last; ties break deterministically.",
-      ...WEIGHTED_METHOD_LINES.filter((line) => line.length > 0 && !line.startsWith("|")),
-      ...TIERING_METHOD_LINES,
     ],
     notes: jsonReport.notes,
   };

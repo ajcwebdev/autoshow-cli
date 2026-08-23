@@ -22,7 +22,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'deepgram-stt',
   'soniox-stt',
   'speechmatics-stt',
-  'rev-stt',
   'mistral-stt',
   'assemblyai-stt',
   'gladia-stt',
@@ -39,8 +38,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'anthropic-ocr',
   'gemini-ocr',
   'deepinfra-ocr',
-  'replicate-ocr',
-  'fal-ocr',
   'openai',
   'groq',
   'gemini',
@@ -90,7 +87,6 @@ const STT_SELECTION_PROBE = {
   deepgramSttModels: undefined,
   sonioxSttModels: undefined,
   speechmaticsSttModels: undefined,
-  revSttModels: undefined,
   groqSttModels: undefined,
   grokSttModels: undefined,
   mistralSttModels: undefined,
@@ -119,8 +115,6 @@ const OCR_SELECTION_PROBE = {
   anthropicOcrModels: undefined,
   geminiOcrModels: undefined,
   deepinfraOcrModels: undefined,
-  replicateOcrModels: undefined,
-  falOcrModels: undefined,
   step2SelectionOrigins: {}
 } satisfies OcrSelectionOptions
 

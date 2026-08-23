@@ -20,8 +20,6 @@ export type OcrRuntimeOptions = {
   anthropicOcrModels: string[] | undefined
   geminiOcrModels: string[] | undefined
   deepinfraOcrModels: string[] | undefined
-  replicateOcrModels: string[] | undefined
-  falOcrModels: string[] | undefined
   primaryOcr: string | undefined
   chapterFiles: boolean | undefined
   chapterChunkLimitChars: number | undefined

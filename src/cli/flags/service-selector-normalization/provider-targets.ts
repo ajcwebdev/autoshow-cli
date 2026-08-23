@@ -134,7 +134,6 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   deepgram: 'deepgram-stt',
   soniox: 'soniox-stt',
   speechmatics: 'speechmatics-stt',
-  rev: 'rev-stt',
   groq: 'groq-stt',
   grok: 'grok-stt',
   mistral: 'mistral-stt',
@@ -158,9 +157,7 @@ export const WRITE_OCR_PROVIDER_TARGETS = {
   grok: 'grok-ocr',
   anthropic: 'anthropic-ocr',
   gemini: 'gemini-ocr',
-  deepinfra: 'deepinfra-ocr',
-  replicate: 'replicate-ocr',
-  fal: 'fal-ocr'
+  deepinfra: 'deepinfra-ocr'
 } as const satisfies Record<string, string>
 
 export const WRITE_LLM_PROVIDER_TARGETS = {

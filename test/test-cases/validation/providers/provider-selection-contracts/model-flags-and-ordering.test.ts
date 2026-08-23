@@ -52,7 +52,6 @@ describe('provider selection contracts', () => {
       'deepgram-stt',
       'soniox-stt',
       'speechmatics-stt',
-      'rev-stt',
       'groq-stt',
       'grok-stt',
       'mistral-stt',
@@ -78,9 +77,7 @@ describe('provider selection contracts', () => {
       'grok-ocr',
       'anthropic-ocr',
       'gemini-ocr',
-      'deepinfra-ocr',
-      'replicate-ocr',
-      'fal-ocr'
+      'deepinfra-ocr'
     ])
   })
 
@@ -182,7 +179,7 @@ describe('provider selection contracts', () => {
   test('target collection preserves provider ordering and deduplicates repeated models', () => {
     const sttOpts = buildOptsFromFlags({
       'whisper-stt': ['base', 'base'],
-      'assemblyai-stt': ['universal-3-5-pro', 'universal-3-5-pro', 'universal-2']
+      'assemblyai-stt': ['universal-3-5-pro', 'universal-3-5-pro']
     })
     const ocrSpecs = collectStep2ProviderSpecs('ocr', {
       useTesseract: true,
@@ -197,7 +194,6 @@ describe('provider selection contracts', () => {
 
     expect(collectSttTargets(sttOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'assemblyai:universal-3-5-pro',
-      'assemblyai:universal-2',
       'whisper:base'
     ])
     expect(ocrSpecs).toEqual([
@@ -222,6 +218,7 @@ describe('provider selection contracts', () => {
 
     expect(services).toContain('deepgram')
     expect(services).toContain('mistral')
+    expect(services).not.toContain('rev')
     expect(services).not.toContain('reverb')
     expect(services).not.toContain('whisper')
     expect(supadataTargets).toEqual([{
@@ -232,8 +229,7 @@ describe('provider selection contracts', () => {
     expect(scrapeCreatorsTargets).toEqual([])
     expect(collectSttTargets(opts).filter((target) => target.service === 'deepgram').map((target) => target.model)).toEqual(['nova-3'])
     expect(collectSttTargets(opts).filter((target) => target.service === 'assemblyai').map((target) => target.model)).toEqual([
-      'universal-3-5-pro',
-      'universal-2'
+      'universal-3-5-pro'
     ])
     expect(collectSttTargets(opts).filter((target) => target.service === 'together').map((target) => target.model)).toEqual([
       'openai/whisper-large-v3',

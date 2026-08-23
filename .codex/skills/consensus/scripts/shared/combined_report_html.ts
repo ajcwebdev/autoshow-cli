@@ -1,21 +1,6 @@
-
-import { WEIGHT_SETS, WEIGHT_SET_KEYS, formatWeight, type ProviderSubscores, type WeightSetKey } from "./combined_report_lib";
-
 export interface DashboardMetricCell {
   display: string;
   rank: number | null;
-}
-
-export interface DashboardWeightedCell {
-  rank: number;
-  composite: number;
-}
-
-export function balancedCells(subscored: ProviderSubscores[]): Map<string, DashboardWeightedCell> {
-  const sorted = [...subscored].sort(
-    (left, right) => right.balancedComposite - left.balancedComposite || left.providerKey.localeCompare(right.providerKey),
-  );
-  return new Map(sorted.map((provider, index) => [provider.providerKey, { rank: index + 1, composite: provider.balancedComposite }]));
 }
 
 export interface DashboardProviderRow {
@@ -23,28 +8,16 @@ export interface DashboardProviderRow {
   display: string;
   model: string;
   coverage: string;
-  tier: number | null;
   quality: DashboardMetricCell;
   speed: DashboardMetricCell;
   cost: DashboardMetricCell;
-  balanced: DashboardWeightedCell;
-  weighted: Record<WeightSetKey, DashboardWeightedCell>;
   evidence: string[];
-  missingDimensions: string[];
   perRun: Array<{ display: string; heat: number | null }>;
-}
-
-export interface DashboardTierCard {
-  tier: number;
-  label: string;
-  description: string;
-  providers: Array<{ display: string; qualityCostRank: number; qualityCostComposite: number }>;
 }
 
 export interface DashboardGroup {
   key: string;
   label: string;
-  tierCards: DashboardTierCard[];
   metricColumns: { quality: string; speed: string; cost: string };
   evidenceColumns: string[];
   perRunMetricLabel?: string;
@@ -95,19 +68,6 @@ function mdInline(value: string): string {
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 }
 
-const BALANCED_KEY = "balanced";
-
-const WEIGHT_SET_SHORT: Record<WeightSetKey, string> = {
-  strongQuality: "Strong quality",
-  moderateQuality: "Moderate quality",
-  strongSpeed: "Strong speed",
-  moderateSpeed: "Moderate speed",
-  strongCost: "Strong cost",
-  moderateCost: "Moderate cost",
-  qualityCost: "Quality + cost",
-  costSpeed: "Cost + speed",
-};
-
 const CSS = `
 :root { color-scheme: light dark; }
 body {
@@ -138,24 +98,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 details { margin: 10px 0; }
 summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
 details[open] summary { margin-bottom: 8px; }
-.tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin: 0 0 16px; }
-.tier-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
-.tier-card .desc { font-size: 11px; color: var(--muted); margin-top: 8px; }
-.chip { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 8px; border-radius: 10px; font-size: 12px; background: color-mix(in srgb, var(--ink) 5%, transparent); }
-.chip .n { color: var(--muted); font-size: 11px; }
-.tbadge { display: inline-block; min-width: 2.1em; text-align: center; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.tbadge.t1 { background: color-mix(in srgb, var(--accent) 26%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
-.tbadge.t2 { background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); }
-.tbadge.t3 { background: color-mix(in srgb, var(--ink) 6%, transparent); border: 1px solid var(--border); }
-.weights { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
-.weights button {
-  font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 14px; cursor: pointer;
-  background: var(--surface); color: var(--ink-2); border: 1px solid var(--border);
-}
-.weights button[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--ink);
-}
 .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { padding: 6px 10px; text-align: left; white-space: nowrap; }
@@ -165,45 +107,39 @@ tbody tr:last-child td { border-bottom: none; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .rk { display: inline-block; min-width: 1.7em; text-align: center; border-radius: 6px; font-size: 11px; color: var(--ink-2); background: color-mix(in srgb, var(--ink) 6%, transparent); margin-left: 6px; }
 .rk.top { border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--ink); }
-.bar { width: 72px; height: 6px; border-radius: 0 4px 4px 0; background: color-mix(in srgb, var(--accent) 16%, transparent); overflow: hidden; }
-.bar > i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--accent); }
-.cellbar { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .heat { text-align: right; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--accent) calc(var(--h, 0) * 0.5%), transparent); }
-.footnotes { font-size: 12px; color: var(--muted); margin: 8px 2px; }
-.footnotes p { margin: 2px 0; }
 .empty { color: var(--muted); font-style: italic; }
 .notes { color: var(--ink-2); font-size: 12px; }
 .run-link { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .wtable td, .wtable th { font-size: 12px; }
 caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: 11px; padding: 6px 10px; }
-`;
-
-const SCRIPT = `
-for (const sec of document.querySelectorAll("section.group")) {
-  const strip = sec.querySelector(".weights");
-  const tbody = sec.querySelector("table.providers tbody");
-  if (!strip || !tbody) continue;
-  strip.hidden = false;
-  for (const btn of strip.querySelectorAll("button")) {
-    btn.addEventListener("click", () => {
-      const set = btn.dataset.set;
-      for (const other of strip.querySelectorAll("button")) {
-        other.setAttribute("aria-pressed", String(other === btn));
-      }
-      const rows = Array.from(tbody.rows);
-      rows.sort((a, b) => Number(a.getAttribute("data-r-" + set)) - Number(b.getAttribute("data-r-" + set)));
-      for (const row of rows) {
-        const composite = row.getAttribute("data-c-" + set);
-        row.querySelector(".rankcell").textContent = row.getAttribute("data-r-" + set);
-        row.querySelector(".compval").textContent = composite;
-        row.querySelector(".compfill").style.width = Math.round(Number(composite)) + "%";
-        tbody.appendChild(row);
-      }
-      const label = sec.querySelector(".comp-label");
-      if (label) label.textContent = btn.textContent;
-    });
-  }
+.provider-sort { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.provider-sort > .sort-label { font-size: 12px; color: var(--ink-2); margin-right: 2px; }
+.provider-sort > input[type="radio"] {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
+.provider-sort > .sort-opt {
+  cursor: pointer; border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 10px; font-size: 12px; color: var(--ink-2); background: var(--surface);
+}
+.provider-sort > input[type="radio"]:checked + .sort-opt {
+  border-color: var(--accent); color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.provider-sort > input[type="radio"]:focus-visible + .sort-opt {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.provider-sort > .tablewrap { flex: 1 0 100%; }
+.provider-sort > .sort-speed, .provider-sort > .sort-cost { display: none; }
+.provider-sort > input[value="speed"]:checked ~ .sort-quality,
+.provider-sort > input[value="cost"]:checked ~ .sort-quality { display: none; }
+.provider-sort > input[value="speed"]:checked ~ .sort-speed,
+.provider-sort > input[value="cost"]:checked ~ .sort-cost { display: block; }
+.provider-sort th[data-metric] label { cursor: pointer; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; }
+.provider-sort > input[value="quality"]:checked ~ .sort-quality th[data-metric="quality"],
+.provider-sort > input[value="speed"]:checked ~ .sort-speed th[data-metric="speed"],
+.provider-sort > input[value="cost"]:checked ~ .sort-cost th[data-metric="cost"] { color: var(--ink); }
 `;
 
 function rankChip(rank: number | null): string {
@@ -213,103 +149,97 @@ function rankChip(rank: number | null): string {
   return `<span class="rk${rank <= 3 ? " top" : ""}">${rank}</span>`;
 }
 
-function tierBadge(tier: number | null): string {
-  if (tier === null) {
-    return "";
-  }
-  return `<span class="tbadge t${tier}">T${tier}</span>`;
-}
-
 function metricCell(cell: DashboardMetricCell): string {
   return `<td class="num">${esc(cell.display)}${rankChip(cell.rank)}</td>`;
 }
 
-function compositeBar(composite: number): string {
-  const width = Math.max(0, Math.min(100, Math.round(composite)));
-  return `<span class="cellbar"><span class="compval">${composite.toFixed(2)}</span><span class="bar"><i class="compfill" style="width:${width}%"></i></span></span>`;
+function rankOrLast(rank: number | null): number {
+  return rank ?? Number.POSITIVE_INFINITY;
 }
 
-function tierCards(group: DashboardGroup): string {
-  const cards = group.tierCards.map((card) => {
-    const chips =
-      card.providers.length === 0
-        ? '<span class="empty">none</span>'
-        : card.providers
-            .map(
-              (provider) =>
-                `<span class="chip"><code>${esc(provider.display)}</code> <span class="n">#${provider.qualityCostRank} · ${provider.qualityCostComposite.toFixed(2)}</span></span>`,
-            )
-            .join(" ");
-    return `<div class="tier-card"><div>${tierBadge(card.tier)} <strong>${esc(card.label)}</strong></div><div>${chips}</div><div class="desc">${esc(card.description)}</div></div>`;
-  });
-  return `<div class="tiers">${cards.join("\n")}</div>`;
+type SortMetric = "quality" | "speed" | "cost";
+
+const SORT_METRICS: SortMetric[] = ["quality", "speed", "cost"];
+const SORT_LABELS: Record<SortMetric, string> = {
+  quality: "Quality",
+  speed: "Speed",
+  cost: "Cost",
+};
+
+function compareByMetric(left: DashboardProviderRow, right: DashboardProviderRow, metric: SortMetric): number {
+  const order: [SortMetric, SortMetric, SortMetric] = metric === "quality"
+    ? ["quality", "speed", "cost"]
+    : metric === "speed"
+      ? ["speed", "quality", "cost"]
+      : ["cost", "quality", "speed"];
+  return rankOrLast(left[order[0]].rank) - rankOrLast(right[order[0]].rank)
+    || rankOrLast(left[order[1]].rank) - rankOrLast(right[order[1]].rank)
+    || rankOrLast(left[order[2]].rank) - rankOrLast(right[order[2]].rank)
+    || left.providerKey.localeCompare(right.providerKey);
 }
 
-function weightStrip(): string {
-  const buttons = [
-    `<button type="button" data-set="${BALANCED_KEY}" aria-pressed="true">Balanced</button>`,
-    ...WEIGHT_SET_KEYS.map((key) => `<button type="button" data-set="${key.toLowerCase()}" aria-pressed="false">${esc(WEIGHT_SET_SHORT[key])}</button>`),
-  ];
-  return `<div class="weights" hidden role="group" aria-label="Composite weight set">${buttons.join("\n")}</div>`;
+function sortControlId(groupKey: string, metric: SortMetric): string {
+  return `sort-${groupKey}-${metric}`;
 }
 
-function providerTable(group: DashboardGroup): string {
-  const evidenceHeaders = group.evidenceColumns.map((column) => `<th class="num">${esc(column)}</th>`).join("");
-  const header =
-    `<tr><th class="num rankhead">#</th><th>Tier</th><th>Provider</th><th class="num">Coverage</th>` +
-    `<th class="num">${esc(group.metricColumns.quality)}</th><th class="num">${esc(group.metricColumns.speed)}</th><th class="num">${esc(group.metricColumns.cost)}</th>` +
-    `<th class="num">Composite (<span class="comp-label">Balanced</span>)</th>${evidenceHeaders}</tr>`;
-  const rows = [...group.providers]
-    .sort((left, right) => left.balanced.rank - right.balanced.rank)
+function providerRows(group: DashboardGroup, metric: SortMetric): string {
+  return [...group.providers]
+    .sort((left, right) => compareByMetric(left, right, metric))
     .map((row) => {
-      const dataAttrs = [
-        `data-r-${BALANCED_KEY}="${row.balanced.rank}" data-c-${BALANCED_KEY}="${row.balanced.composite.toFixed(2)}"`,
-        ...WEIGHT_SET_KEYS.map(
-          (key) => `data-r-${key.toLowerCase()}="${row.weighted[key].rank}" data-c-${key.toLowerCase()}="${row.weighted[key].composite.toFixed(2)}"`,
-        ),
-      ].join(" ");
       const evidenceCells = row.evidence.map((value) => `<td class="num">${esc(value)}</td>`).join("");
       return (
-        `<tr ${dataAttrs}>` +
-        `<td class="num rankcell">${row.balanced.rank}</td>` +
-        `<td>${tierBadge(row.tier)}</td>` +
+        `<tr>` +
         `<td><code title="${esc(row.providerKey)}">${esc(row.display)}</code></td>` +
         `<td class="num">${esc(row.coverage)}</td>` +
         metricCell(row.quality) +
         metricCell(row.speed) +
         metricCell(row.cost) +
-        `<td class="num">${compositeBar(row.balanced.composite)}</td>` +
         evidenceCells +
         `</tr>`
       );
-    });
-  const footnotes = group.providers
-    .filter((row) => row.missingDimensions.length > 0)
-    .map((row) => `<p><code>${esc(row.display)}</code> has no ${esc(row.missingDimensions.join("/"))} value in any covered run; the missing dimension scores 0.</p>`);
-  return (
-    `<div class="tablewrap"><table class="providers"><thead>${header}</thead><tbody>${rows.join("\n")}</tbody></table></div>` +
-    (footnotes.length > 0 ? `<div class="footnotes">${footnotes.join("\n")}</div>` : "")
-  );
+    })
+    .join("\n");
 }
 
-function weightedMatrix(group: DashboardGroup): string {
-  const header = `<tr><th>Provider</th>${WEIGHT_SET_KEYS.map((key) => `<th class="num">${esc(WEIGHT_SET_SHORT[key])}</th>`).join("")}</tr>`;
-  const rows = [...group.providers]
-    .sort((left, right) => (left.quality.rank ?? Number.POSITIVE_INFINITY) - (right.quality.rank ?? Number.POSITIVE_INFINITY))
-    .map((row) => {
-      const cells = WEIGHT_SET_KEYS.map((key) => {
-        const cell = row.weighted[key];
-        return `<td class="num">${cell.rank} <span class="n">(${cell.composite.toFixed(2)})</span></td>`;
-      }).join("");
-      return `<tr><td><code>${esc(row.display)}</code></td>${cells}</tr>`;
-    });
-  return `<details><summary>All weighted rankings (rank and composite per weight set)</summary><div class="tablewrap"><table class="wtable"><thead>${header}</thead><tbody>${rows.join("\n")}</tbody></table></div></details>`;
+function providerTable(group: DashboardGroup): string {
+  const evidenceHeaders = group.evidenceColumns.map((column) => `<th class="num">${esc(column)}</th>`).join("");
+  const radios = SORT_METRICS.map((metric, index) => {
+    const id = sortControlId(group.key, metric);
+    const checked = index === 0 ? " checked" : "";
+    return (
+      `<input type="radio" name="sort-${esc(group.key)}" id="${esc(id)}" value="${metric}"${checked}>` +
+      `<label class="sort-opt" for="${esc(id)}">${SORT_LABELS[metric]}</label>`
+    );
+  }).join("");
+  const tables = SORT_METRICS.map((metric) => {
+    const header =
+      `<tr><th>Provider</th><th class="num">Coverage</th>` +
+      `<th class="num" data-metric="quality"><label for="${esc(sortControlId(group.key, "quality"))}">${esc(group.metricColumns.quality)}</label></th>` +
+      `<th class="num" data-metric="speed"><label for="${esc(sortControlId(group.key, "speed"))}">${esc(group.metricColumns.speed)}</label></th>` +
+      `<th class="num" data-metric="cost"><label for="${esc(sortControlId(group.key, "cost"))}">${esc(group.metricColumns.cost)}</label></th>` +
+      `${evidenceHeaders}</tr>`;
+    return (
+      `<div class="tablewrap sort-${metric}">` +
+      `<table class="providers">` +
+      `<thead>${header}</thead>` +
+      `<tbody>${providerRows(group, metric)}</tbody>` +
+      `<caption>Sorted by ${SORT_LABELS[metric].toLowerCase()}. Click Quality, Speed, or Cost to reorder. Rank chips stay each metric's own rank.</caption>` +
+      `</table></div>`
+    );
+  }).join("");
+  return (
+    `<div class="provider-sort">` +
+    `<span class="sort-label">Sort by</span>` +
+    radios +
+    tables +
+    `</div>`
+  );
 }
 
 function perRunHeatmap(group: DashboardGroup, runs: CombinedDashboardModel["runs"]): string {
   const header = `<tr><th>Provider</th><th class="num">Mean</th>${runs.map((run) => `<th class="num" title="${esc(run.runName)}">${esc(run.shortLabel)}</th>`).join("")}</tr>`;
   const rows = [...group.providers]
-    .sort((left, right) => (left.quality.rank ?? Number.POSITIVE_INFINITY) - (right.quality.rank ?? Number.POSITIVE_INFINITY))
+    .sort((left, right) => rankOrLast(left.quality.rank) - rankOrLast(right.quality.rank) || left.providerKey.localeCompare(right.providerKey))
     .map((row) => {
       const cells = row.perRun
         .map((cell) => (cell.heat === null ? `<td class="num">${esc(cell.display)}</td>` : `<td class="heat" style="--h:${cell.heat}">${esc(cell.display)}</td>`))
@@ -324,8 +254,6 @@ function groupSection(group: DashboardGroup, model: CombinedDashboardModel): str
     return [
       `<section class="group">`,
       `<h2>${esc(group.label)}</h2>`,
-      `<h3>Quality-cost terciles</h3>`,
-      tierCards(group),
       `<p class="empty">No providers in this group.</p>`,
       `</section>`,
     ].join("\n");
@@ -333,12 +261,8 @@ function groupSection(group: DashboardGroup, model: CombinedDashboardModel): str
   return [
     `<section class="group">`,
     `<h2>${esc(group.label)}</h2>`,
-    `<h3>Quality-cost terciles</h3>`,
-    tierCards(group),
-    `<h3>Providers</h3>`,
-    weightStrip(),
+    `<h3>Metric rankings</h3>`,
     providerTable(group),
-    weightedMatrix(group),
     `<h3>${esc(group.perRunMetricLabel ?? "Per-run quality score")}</h3>`,
     perRunHeatmap(group, model.runs),
     `</section>`,
@@ -347,12 +271,7 @@ function groupSection(group: DashboardGroup, model: CombinedDashboardModel): str
 
 function methodSection(model: CombinedDashboardModel): string {
   const paragraphs = model.methodParagraphs.map((paragraph) => `<p>${mdInline(paragraph)}</p>`).join("\n");
-  const weightRows = WEIGHT_SET_KEYS.map((key) => {
-    const weights = WEIGHT_SETS[key];
-    return `<tr><td>${esc(WEIGHT_SET_SHORT[key])}</td><td class="num">${formatWeight(weights.quality)}</td><td class="num">${formatWeight(weights.speed)}</td><td class="num">${formatWeight(weights.cost)}</td></tr>`;
-  }).join("\n");
-  const weightTable = `<div class="tablewrap"><table class="wtable"><thead><tr><th>Weight set</th><th class="num">Quality</th><th class="num">Speed</th><th class="num">Cost</th></tr></thead><tbody>${weightRows}</tbody></table></div>`;
-  return `<details><summary>Method</summary>${paragraphs}\n${weightTable}</details>`;
+  return `<details><summary>Method</summary>${paragraphs}</details>`;
 }
 
 function safeHttpHref(value: string | undefined): string | null {
@@ -418,7 +337,6 @@ ${methodSection(model)}
 ${notes}
 </ul>
 </main>
-<script>${SCRIPT}</script>
 </body>
 </html>
 `;

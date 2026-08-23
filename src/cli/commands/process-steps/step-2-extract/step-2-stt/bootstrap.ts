@@ -1,5 +1,6 @@
 import type { SttTarget } from '~/types'
 import { ensureProviderReady } from '~/utils/bootstrap-broker'
+import { UsageError } from '~/utils/error-handler'
 import { getStep2BootstrapProviderId } from '../step-2-shared/provider-registry'
 
 export {
@@ -18,7 +19,6 @@ const toBootstrapProviderId = (
     case 'deepgram':
     case 'soniox':
     case 'speechmatics':
-    case 'rev':
     case 'groq':
     case 'grok':
     case 'mistral':
@@ -32,6 +32,8 @@ const toBootstrapProviderId = (
       return getStep2BootstrapProviderId('stt', target.service) ?? ''
     case 'youtube-captions':
       return ''
+    case 'rev':
+      throw UsageError('Rev STT is retired and cannot dispatch. Start a new target with an active STT provider.')
   }
 }
 

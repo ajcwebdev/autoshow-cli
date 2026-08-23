@@ -29,12 +29,15 @@ const assertStoredMissingSttTargetsAreActive = (
 ): void => {
   for (const target of targets) {
     const activeModels = getStep2ActiveModelsForService('stt', target.service)
-    if (!activeModels || activeModels.includes(target.model)) {
+    if (activeModels?.includes(target.model)) {
       continue
     }
 
+    const nextStep = activeModels && activeModels.length > 0
+      ? `Start a new target with an active ${target.service} model.`
+      : 'Start a new target with an active STT provider.'
     throw UsageError(
-      `Stored STT target ${formatSttTargetLabel(target)} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. Start a new target with an active ${target.service} model.`
+      `Stored STT target ${formatSttTargetLabel(target)} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. ${nextStep}`
     )
   }
 }

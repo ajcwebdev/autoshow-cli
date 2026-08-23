@@ -232,7 +232,7 @@ describe('test-runner contracts', () => {
 
   test('bun test flags use a 10 minute default timeout and retry only for e2e-only selections', () => {
       const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
-      const e2e = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-replicate.test.ts'
+      const e2e = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/glm-ocr.test.ts'
       expect(buildBunTestFlags([validation], ['--bail'])).toEqual([
         '--timeout',
         String(VALIDATION_TEST_TIMEOUT_MS),
@@ -252,19 +252,19 @@ describe('test-runner contracts', () => {
 
   test('orderTestFiles hoists known-slow e2e files and keeps other files stable', () => {
     const validation = 'test/test-cases/validation/cli/cli-help-contracts.test.ts'
-    const replicate = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-replicate.test.ts'
-    const other = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-mistral.test.ts'
-    expect(orderTestFiles([validation, replicate, other])).toEqual([replicate, validation, other])
+    const streaming = 'test/test-cases/e2e/service/step-1-download-e2e/download-input-types-streaming.test.ts'
+    const other = 'test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/glm-ocr.test.ts'
+    expect(orderTestFiles([validation, streaming, other])).toEqual([streaming, validation, other])
 
     const unchanged = [validation, other]
     expect(orderTestFiles(unchanged)).toEqual(unchanged)
     expect(orderTestFiles(unchanged)).toHaveLength(unchanged.length)
 
-    expect(orderTestFiles([validation, replicate, other], new Map([
+    expect(orderTestFiles([validation, streaming, other], new Map([
       [validation, 50_000],
       [other, 80_000],
-      [replicate, 10_000],
-    ]))).toEqual([other, validation, replicate])
+      [streaming, 10_000],
+    ]))).toEqual([other, validation, streaming])
   })
 
   test('path-selection labels strip the test/test-cases prefix for validation paths', () => {

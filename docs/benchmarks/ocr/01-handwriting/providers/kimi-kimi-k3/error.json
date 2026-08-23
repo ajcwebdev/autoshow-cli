@@ -1,0 +1,32 @@
+{
+  "message": "kimi-ocr input image failed after 2/2 attempts (max attempts reached, 601195ms elapsed): The operation timed out.",
+  "category": "timeout",
+  "failureKind": "timeout",
+  "retryable": true,
+  "error": {
+    "name": "AppError",
+    "message": "kimi-ocr input image failed after 2/2 attempts (max attempts reached, 601195ms elapsed)",
+    "stack": "AppError: kimi-ocr input image failed after 2/2 attempts (max attempts reached, 601195ms elapsed)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/utils/retries.ts:437:13)\n    at processTicksAndRejections (native:7:39)",
+    "kind": "retry_exhausted",
+    "hints": [],
+    "exitCode": 1,
+    "retryClass": "runtime_http_create_retriable",
+    "metadata": {
+      "code": 23,
+      "attemptsMade": 2,
+      "maxAttempts": 2,
+      "elapsedMs": 601195,
+      "stopReason": "max attempts reached",
+      "retryClass": "runtime_http_create_retriable"
+    },
+    "cause": {
+      "name": "AbortError",
+      "message": "The operation timed out.",
+      "stack": "AbortError: The operation timed out.\n    at normalizeFetchAbortError (/Users/ajc/c/autoshow-cli/src/utils/rest-client.ts:60:28)\n    at <anonymous> (/Users/ajc/c/autoshow-cli/src/utils/rest-client.ts:106:13)\n    at processTicksAndRejections (native:7:39)",
+      "cause": {
+        "name": "TimeoutError",
+        "message": "The operation timed out."
+      }
+    }
+  }
+}

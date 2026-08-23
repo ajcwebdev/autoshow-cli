@@ -5,6 +5,8 @@ import {
   getLlmCost,
   getModelRegistry,
   getMusicModelMeta,
+  getSttBilling,
+  getSttCost,
   getTtsPricing,
   getVideoModelMeta,
   hasRetiredModelRate,
@@ -176,5 +178,30 @@ describe('historical model rate contracts', () => {
     expect(getImageCost('grok', 'grok-imagine-image')).toBe(2)
     expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image')).toBe('grok-imagine-image-2.0')
     expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBe('flux-2-klein-4b')
+  })
+
+  test('retired STT selectors retain exact rates and same-service replacements', () => {
+    expect(getSttCost('assemblyai', 'universal-2')).toEqual({ costPerHourCents: 17 })
+    expect(getSttCost('gladia', 'solaria-1')).toEqual({ costPerHourCents: 61 })
+    expect(getSttCost('speechmatics', 'enhanced')).toEqual({ costPerHourCents: 40 })
+    expect(getSttCost('rev', 'machine')).toEqual({ costPerHourCents: 20 })
+    expect(getSttCost('rev', 'low_cost')).toEqual({ costPerHourCents: 10 })
+    expect(getSttBilling('rev', 'machine')).toEqual({ roundingIncrementSeconds: 1, minimumSeconds: 15 })
+    expect(getSttBilling('rev', 'low_cost')).toEqual({ roundingIncrementSeconds: 1, minimumSeconds: 15 })
+    expect(getRetiredModelReplacement('stt', 'assemblyai', 'universal-2')).toBe('universal-3-5-pro')
+    expect(getRetiredModelReplacement('stt', 'gladia', 'solaria-1')).toBe('solaria-3')
+    expect(getRetiredModelReplacement('stt', 'speechmatics', 'enhanced')).toBe('melia-1')
+    expect(getRetiredModelReplacement('stt', 'rev', 'low_cost')).toBeUndefined()
+    expect(getRetiredModelReplacement('stt', 'rev', 'machine')).toBeUndefined()
+  })
+
+  test('retired Replicate and fal OCR selectors retain exact per-1k-page rates', () => {
+    expect(getExtractPricing('replicate', 'datalab-to/ocr')).toMatchObject({ costPer1kPagesCents: 200 })
+    expect(getExtractPricing('replicate', 'datalab-to/marker')).toMatchObject({ costPer1kPagesCents: 400 })
+    expect(getExtractPricing('replicate', 'lucataco/deepseek-ocr')).toMatchObject({ costPer1kPagesCents: 330 })
+    expect(getExtractPricing('fal', 'fal-ai/got-ocr/v2')).toMatchObject({ costPer1kPagesCents: 5000 })
+    expect(getExtractPricing('fal', 'fal-ai/florence-2-large/ocr')).toMatchObject({ costPer1kPagesCents: 755 })
+    expect(getRetiredModelReplacement('extract', 'replicate', 'datalab-to/ocr')).toBeUndefined()
+    expect(getRetiredModelReplacement('extract', 'fal', 'fal-ai/got-ocr/v2')).toBeUndefined()
   })
 })

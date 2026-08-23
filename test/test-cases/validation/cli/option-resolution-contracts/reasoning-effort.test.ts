@@ -86,7 +86,15 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         model: 'kimi-k3',
         requestedReasoningEffort: undefined
       })
-      expect(kimiK3Policy.effective).toBe('max')
+      expect(kimiK3Policy.effective).toBe('low')
+
+      const kimiK3OcrPolicy = resolveReasoningPolicy({
+        step: 'extract',
+        service: 'kimi',
+        model: 'kimi-k3',
+        requestedReasoningEffort: undefined
+      })
+      expect(kimiK3OcrPolicy.effective).toBe('low')
     })
 
     it('accepts valid supported explicit effort overrides', () => {

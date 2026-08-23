@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combined STT Provider Comparison</title>
+<style>
+:root { color-scheme: light dark; }
+body {
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+  --muted: #898781; --grid: #e1e0d9; --border: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+  }
+}
+main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 17px; margin: 36px 0 12px; padding-top: 16px; border-top: 1px solid var(--grid); }
+h3 { font-size: 13px; margin: 20px 0 8px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.meta { color: var(--muted); font-size: 12px; margin: 0 0 20px; }
+.meta code { font-size: 11px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 110px; }
+.tile .v { font-size: 20px; font-weight: 600; }
+.tile .l { font-size: 12px; color: var(--ink-2); }
+details { margin: 10px 0; }
+summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+details[open] summary { margin-bottom: 8px; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 10px; text-align: left; white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--grid); }
+tbody td { border-bottom: 1px solid var(--grid); }
+tbody tr:last-child td { border-bottom: none; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.rk { display: inline-block; min-width: 1.7em; text-align: center; border-radius: 6px; font-size: 11px; color: var(--ink-2); background: color-mix(in srgb, var(--ink) 6%, transparent); margin-left: 6px; }
+.rk.top { border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--ink); }
+.heat { text-align: right; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--accent) calc(var(--h, 0) * 0.5%), transparent); }
+.empty { color: var(--muted); font-style: italic; }
+.notes { color: var(--ink-2); font-size: 12px; }
+.run-link { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.wtable td, .wtable th { font-size: 12px; }
+caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: 11px; padding: 6px 10px; }
+.provider-sort { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.provider-sort > .sort-label { font-size: 12px; color: var(--ink-2); margin-right: 2px; }
+.provider-sort > input[type="radio"] {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.provider-sort > .sort-opt {
+  cursor: pointer; border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 10px; font-size: 12px; color: var(--ink-2); background: var(--surface);
+}
+.provider-sort > input[type="radio"]:checked + .sort-opt {
+  border-color: var(--accent); color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.provider-sort > input[type="radio"]:focus-visible + .sort-opt {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.provider-sort > .tablewrap { flex: 1 0 100%; }
+.provider-sort > .sort-speed, .provider-sort > .sort-cost { display: none; }
+.provider-sort > input[value="speed"]:checked ~ .sort-quality,
+.provider-sort > input[value="cost"]:checked ~ .sort-quality { display: none; }
+.provider-sort > input[value="speed"]:checked ~ .sort-speed,
+.provider-sort > input[value="cost"]:checked ~ .sort-cost { display: block; }
+.provider-sort th[data-metric] label { cursor: pointer; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; }
+.provider-sort > input[value="quality"]:checked ~ .sort-quality th[data-metric="quality"],
+.provider-sort > input[value="speed"]:checked ~ .sort-speed th[data-metric="speed"],
+.provider-sort > input[value="cost"]:checked ~ .sort-cost th[data-metric="cost"] { color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+<h1>Combined STT Provider Comparison</h1>
+<p class="meta">Generated 2026-08-23T20:18:20.864Z &middot; <code>/Users/ajc/c/autoshow-cli/docs/benchmarks/stt-without-speakers</code></p>
+<div class="tiles">
+<div class="tile"><div class="v">4</div><div class="l">Runs</div></div>
+<div class="tile"><div class="v">7</div><div class="l">Providers</div></div>
+<div class="tile"><div class="v">7</div><div class="l">Non-diarization</div></div>
+<div class="tile"><div class="v">0</div><div class="l">Diarization</div></div>
+<div class="tile"><div class="v">0</div><div class="l">Local</div></div>
+</div>
+<details><summary>Runs (4)</summary><div class="tablewrap"><table class="wtable"><thead><tr><th>Key</th><th>Run</th><th>Detail</th></tr></thead><tbody><tr><td>R1</td><td><code>1-audio</code></td><td>7 providers</td></tr>
+<tr><td>R2</td><td><code>2022-09-30-widgets-fsjam-40-minutes</code></td><td>7 providers</td></tr>
+<tr><td>R3</td><td><code>2023-03-15-jsjam-qwik-misko-hevery</code></td><td>7 providers</td></tr>
+<tr><td>R4</td><td><code>2023-04-05-jsjam-react-miami-2023-10-minutes</code></td><td>7 providers</td></tr></tbody></table></div></details>
+<section class="group">
+<h2>Local</h2>
+<p class="empty">No providers in this group.</p>
+</section>
+<section class="group">
+<h2>Third-Party Service Non-Diarization</h2>
+<h3>Metric rankings</h3>
+<div class="provider-sort"><span class="sort-label">Sort by</span><input type="radio" name="sort-thirdPartyServiceNonDiarization" id="sort-thirdPartyServiceNonDiarization-quality" value="quality" checked><label class="sort-opt" for="sort-thirdPartyServiceNonDiarization-quality">Quality</label><input type="radio" name="sort-thirdPartyServiceNonDiarization" id="sort-thirdPartyServiceNonDiarization-speed" value="speed"><label class="sort-opt" for="sort-thirdPartyServiceNonDiarization-speed">Speed</label><input type="radio" name="sort-thirdPartyServiceNonDiarization" id="sort-thirdPartyServiceNonDiarization-cost" value="cost"><label class="sort-opt" for="sort-thirdPartyServiceNonDiarization-cost">Cost</label><div class="tablewrap sort-quality"><table class="providers"><thead><tr><th>Provider</th><th class="num">Coverage</th><th class="num" data-metric="quality"><label for="sort-thirdPartyServiceNonDiarization-quality">Quality /100</label></th><th class="num" data-metric="speed"><label for="sort-thirdPartyServiceNonDiarization-speed">Mean time · throughput</label></th><th class="num" data-metric="cost"><label for="sort-thirdPartyServiceNonDiarization-cost">Mean cost</label></th><th class="num">Mean SA-WER</th><th class="num">Mean text WER</th><th class="num">Diarization</th></tr></thead><tbody><tr><td><code title="groq/whisper-large-v3-turbo">groq-whisper-large-v3-turbo</code></td><td class="num">4/4</td><td class="num">94.57<span class="rk top">1</span></td><td class="num">21.24s · 116.00×<span class="rk">4</span></td><td class="num">$0.0274<span class="rk top">3</span></td><td class="num">5.43%</td><td class="num">4.48%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="groq/whisper-large-v3">groq-whisper-large-v3</code></td><td class="num">4/4</td><td class="num">94.50<span class="rk top">2</span></td><td class="num">24.57s · 100.26×<span class="rk">5</span></td><td class="num">$0.0760<span class="rk">6</span></td><td class="num">5.50%</td><td class="num">4.52%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="together/openai/whisper-large-v3">together-openai_whisper-large-v3</code></td><td class="num">4/4</td><td class="num">94.00<span class="rk top">3</span></td><td class="num">10.84s · 227.18×<span class="rk top">1</span></td><td class="num">$0.0616<span class="rk">4</span></td><td class="num">6.00%</td><td class="num">5.02%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="together/nvidia/parakeet-tdt-0.6b-v3">together-nvidia_parakeet-tdt-0.6b-v3</code></td><td class="num">4/4</td><td class="num">93.27<span class="rk">4</span></td><td class="num">14.21s · 173.32×<span class="rk top">3</span></td><td class="num">$0.0616<span class="rk">5</span></td><td class="num">6.73%</td><td class="num">5.79%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="deepinfra/openai/whisper-large-v3">deepinfra-openai_whisper-large-v3</code></td><td class="num">4/4</td><td class="num">89.40<span class="rk">5</span></td><td class="num">24.86s · 99.09×<span class="rk">6</span></td><td class="num">$0.0185<span class="rk top">2</span></td><td class="num">10.60%</td><td class="num">9.73%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="deepinfra/openai/whisper-large-v3-turbo">deepinfra-openai_whisper-large-v3-turbo</code></td><td class="num">4/4</td><td class="num">88.40<span class="rk">6</span></td><td class="num">13.08s · 188.41×<span class="rk top">2</span></td><td class="num">$0.0082<span class="rk top">1</span></td><td class="num">11.60%</td><td class="num">10.78%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="gemini-stt/gemini-3.6-flash">gemini-stt-gemini-3.6-flash</code></td><td class="num">4/4</td><td class="num">81.85<span class="rk">7</span></td><td class="num">169.19s · 14.56×<span class="rk">7</span></td><td class="num">$0.3973<span class="rk">7</span></td><td class="num">18.15%</td><td class="num">17.34%</td><td class="num">not-supported</td></tr></tbody><caption>Sorted by quality. Click Quality, Speed, or Cost to reorder. Rank chips stay each metric's own rank.</caption></table></div><div class="tablewrap sort-speed"><table class="providers"><thead><tr><th>Provider</th><th class="num">Coverage</th><th class="num" data-metric="quality"><label for="sort-thirdPartyServiceNonDiarization-quality">Quality /100</label></th><th class="num" data-metric="speed"><label for="sort-thirdPartyServiceNonDiarization-speed">Mean time · throughput</label></th><th class="num" data-metric="cost"><label for="sort-thirdPartyServiceNonDiarization-cost">Mean cost</label></th><th class="num">Mean SA-WER</th><th class="num">Mean text WER</th><th class="num">Diarization</th></tr></thead><tbody><tr><td><code title="together/openai/whisper-large-v3">together-openai_whisper-large-v3</code></td><td class="num">4/4</td><td class="num">94.00<span class="rk top">3</span></td><td class="num">10.84s · 227.18×<span class="rk top">1</span></td><td class="num">$0.0616<span class="rk">4</span></td><td class="num">6.00%</td><td class="num">5.02%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="deepinfra/openai/whisper-large-v3-turbo">deepinfra-openai_whisper-large-v3-turbo</code></td><td class="num">4/4</td><td class="num">88.40<span class="rk">6</span></td><td class="num">13.08s · 188.41×<span class="rk top">2</span></td><td class="num">$0.0082<span class="rk top">1</span></td><td class="num">11.60%</td><td class="num">10.78%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="together/nvidia/parakeet-tdt-0.6b-v3">together-nvidia_parakeet-tdt-0.6b-v3</code></td><td class="num">4/4</td><td class="num">93.27<span class="rk">4</span></td><td class="num">14.21s · 173.32×<span class="rk top">3</span></td><td class="num">$0.0616<span class="rk">5</span></td><td class="num">6.73%</td><td class="num">5.79%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="groq/whisper-large-v3-turbo">groq-whisper-large-v3-turbo</code></td><td class="num">4/4</td><td class="num">94.57<span class="rk top">1</span></td><td class="num">21.24s · 116.00×<span class="rk">4</span></td><td class="num">$0.0274<span class="rk top">3</span></td><td class="num">5.43%</td><td class="num">4.48%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="groq/whisper-large-v3">groq-whisper-large-v3</code></td><td class="num">4/4</td><td class="num">94.50<span class="rk top">2</span></td><td class="num">24.57s · 100.26×<span class="rk">5</span></td><td class="num">$0.0760<span class="rk">6</span></td><td class="num">5.50%</td><td class="num">4.52%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="deepinfra/openai/whisper-large-v3">deepinfra-openai_whisper-large-v3</code></td><td class="num">4/4</td><td class="num">89.40<span class="rk">5</span></td><td class="num">24.86s · 99.09×<span class="rk">6</span></td><td class="num">$0.0185<span class="rk top">2</span></td><td class="num">10.60%</td><td class="num">9.73%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="gemini-stt/gemini-3.6-flash">gemini-stt-gemini-3.6-flash</code></td><td class="num">4/4</td><td class="num">81.85<span class="rk">7</span></td><td class="num">169.19s · 14.56×<span class="rk">7</span></td><td class="num">$0.3973<span class="rk">7</span></td><td class="num">18.15%</td><td class="num">17.34%</td><td class="num">not-supported</td></tr></tbody><caption>Sorted by speed. Click Quality, Speed, or Cost to reorder. Rank chips stay each metric's own rank.</caption></table></div><div class="tablewrap sort-cost"><table class="providers"><thead><tr><th>Provider</th><th class="num">Coverage</th><th class="num" data-metric="quality"><label for="sort-thirdPartyServiceNonDiarization-quality">Quality /100</label></th><th class="num" data-metric="speed"><label for="sort-thirdPartyServiceNonDiarization-speed">Mean time · throughput</label></th><th class="num" data-metric="cost"><label for="sort-thirdPartyServiceNonDiarization-cost">Mean cost</label></th><th class="num">Mean SA-WER</th><th class="num">Mean text WER</th><th class="num">Diarization</th></tr></thead><tbody><tr><td><code title="deepinfra/openai/whisper-large-v3-turbo">deepinfra-openai_whisper-large-v3-turbo</code></td><td class="num">4/4</td><td class="num">88.40<span class="rk">6</span></td><td class="num">13.08s · 188.41×<span class="rk top">2</span></td><td class="num">$0.0082<span class="rk top">1</span></td><td class="num">11.60%</td><td class="num">10.78%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="deepinfra/openai/whisper-large-v3">deepinfra-openai_whisper-large-v3</code></td><td class="num">4/4</td><td class="num">89.40<span class="rk">5</span></td><td class="num">24.86s · 99.09×<span class="rk">6</span></td><td class="num">$0.0185<span class="rk top">2</span></td><td class="num">10.60%</td><td class="num">9.73%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="groq/whisper-large-v3-turbo">groq-whisper-large-v3-turbo</code></td><td class="num">4/4</td><td class="num">94.57<span class="rk top">1</span></td><td class="num">21.24s · 116.00×<span class="rk">4</span></td><td class="num">$0.0274<span class="rk top">3</span></td><td class="num">5.43%</td><td class="num">4.48%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="together/openai/whisper-large-v3">together-openai_whisper-large-v3</code></td><td class="num">4/4</td><td class="num">94.00<span class="rk top">3</span></td><td class="num">10.84s · 227.18×<span class="rk top">1</span></td><td class="num">$0.0616<span class="rk">4</span></td><td class="num">6.00%</td><td class="num">5.02%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="together/nvidia/parakeet-tdt-0.6b-v3">together-nvidia_parakeet-tdt-0.6b-v3</code></td><td class="num">4/4</td><td class="num">93.27<span class="rk">4</span></td><td class="num">14.21s · 173.32×<span class="rk top">3</span></td><td class="num">$0.0616<span class="rk">5</span></td><td class="num">6.73%</td><td class="num">5.79%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="groq/whisper-large-v3">groq-whisper-large-v3</code></td><td class="num">4/4</td><td class="num">94.50<span class="rk top">2</span></td><td class="num">24.57s · 100.26×<span class="rk">5</span></td><td class="num">$0.0760<span class="rk">6</span></td><td class="num">5.50%</td><td class="num">4.52%</td><td class="num">not-supported</td></tr>
+<tr><td><code title="gemini-stt/gemini-3.6-flash">gemini-stt-gemini-3.6-flash</code></td><td class="num">4/4</td><td class="num">81.85<span class="rk">7</span></td><td class="num">169.19s · 14.56×<span class="rk">7</span></td><td class="num">$0.3973<span class="rk">7</span></td><td class="num">18.15%</td><td class="num">17.34%</td><td class="num">not-supported</td></tr></tbody><caption>Sorted by cost. Click Quality, Speed, or Cost to reorder. Rank chips stay each metric's own rank.</caption></table></div></div>
+<h3>Per-run quality score</h3>
+<div class="tablewrap"><table><thead><tr><th>Provider</th><th class="num">Mean</th><th class="num" title="1-audio">R1</th><th class="num" title="2022-09-30-widgets-fsjam-40-minutes">R2</th><th class="num" title="2023-03-15-jsjam-qwik-misko-hevery">R3</th><th class="num" title="2023-04-05-jsjam-react-miami-2023-10-minutes">R4</th></tr></thead><tbody><tr><td><code>groq-whisper-large-v3-turbo</code></td><td class="num">94.57</td><td class="heat" style="--h:94">95.00</td><td class="heat" style="--h:97">96.43</td><td class="heat" style="--h:92">94.06</td><td class="heat" style="--h:90">92.80</td></tr>
+<tr><td><code>groq-whisper-large-v3</code></td><td class="num">94.50</td><td class="heat" style="--h:93">94.55</td><td class="heat" style="--h:96">96.09</td><td class="heat" style="--h:100">97.98</td><td class="heat" style="--h:83">89.38</td></tr>
+<tr><td><code>together-openai_whisper-large-v3</code></td><td class="num">94.00</td><td class="heat" style="--h:94">95.00</td><td class="heat" style="--h:94">94.68</td><td class="heat" style="--h:90">92.99</td><td class="heat" style="--h:91">93.33</td></tr>
+<tr><td><code>together-nvidia_parakeet-tdt-0.6b-v3</code></td><td class="num">93.27</td><td class="heat" style="--h:91">93.18</td><td class="heat" style="--h:96">95.70</td><td class="heat" style="--h:83">89.44</td><td class="heat" style="--h:94">94.75</td></tr>
+<tr><td><code>deepinfra-openai_whisper-large-v3</code></td><td class="num">89.40</td><td class="heat" style="--h:79">87.27</td><td class="heat" style="--h:80">87.94</td><td class="heat" style="--h:84">89.99</td><td class="heat" style="--h:89">92.39</td></tr>
+<tr><td><code>deepinfra-openai_whisper-large-v3-turbo</code></td><td class="num">88.40</td><td class="heat" style="--h:77">86.36</td><td class="heat" style="--h:79">87.27</td><td class="heat" style="--h:85">90.29</td><td class="heat" style="--h:84">89.68</td></tr>
+<tr><td><code>gemini-stt-gemini-3.6-flash</code></td><td class="num">81.85</td><td class="heat" style="--h:92">94.09</td><td class="heat" style="--h:0">47.12</td><td class="heat" style="--h:88">91.80</td><td class="heat" style="--h:93">94.40</td></tr></tbody><caption>Shading is relative within this table (stronger blue = higher score); run columns are listed under Runs above.</caption></table></div>
+</section>
+<section class="group">
+<h2>Third-Party Service Diarization</h2>
+<p class="empty">No providers in this group.</p>
+</section>
+<h2>Method &amp; notes</h2>
+<details><summary>Method</summary><p>Providers are matched by <code>providerKey</code> and aggregated across the runs they appear in; means are taken over present values only.</p>
+<p>Quality ranks the mean speaker-aware WER-derived score descending. Speed ranks mean processing time ascending. Cost ranks mean per-run monetary cost ascending with local providers at zero. Missing values sort last; ties break deterministically.</p></details>
+<ul class="notes">
+<li>Each provider is aggregated by providerKey across the runs it appears in; the mean is taken over present values only. Aggregate realtime throughput is total covered audio duration divided by total covered processing time.</li>
+<li>Groups follow the single-run STT contract: local, thirdPartyServiceNonDiarization, thirdPartyServiceDiarization.</li>
+<li>Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.</li>
+</ul>
+</main>
+</body>
+</html>

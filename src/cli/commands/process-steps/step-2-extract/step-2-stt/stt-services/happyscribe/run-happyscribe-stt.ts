@@ -63,7 +63,7 @@ const buildBillingMetadata = (
     ? order.details.totalCredits
     : undefined
 
-  if (typeof totalCost === 'number' && Number.isFinite(totalCost) && totalCost >= 0) {
+  if (typeof totalCost === 'number' && Number.isFinite(totalCost) && totalCost > 0) {
     const billing: NonNullable<Step2Metadata['billing']> = {
       totalCost,
       source: 'provider_quote',

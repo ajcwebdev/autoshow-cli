@@ -30,7 +30,7 @@ bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/
 
 ## Service Coverage
 
-- Files under `test/test-cases/e2e/service/step-2-stt-e2e/stt-services/` cover live transcription for AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Groq, Mistral, Rev, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including ScrapeCreators and Supadata URL-to-transcript scenarios.
+- Files under `test/test-cases/e2e/service/step-2-stt-e2e/stt-services/` cover live transcription for AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Groq, Mistral, ScrapeCreators, Soniox, Speechmatics, Supadata, and Together, including ScrapeCreators and Supadata URL-to-transcript scenarios.
 - Zero-cost validation lives in `test/test-cases/validation/extract-stt/`.
 
 ## Price Preflight

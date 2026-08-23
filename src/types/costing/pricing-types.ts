@@ -16,7 +16,7 @@ type ReasoningEstimateFields = {
 
 type SttModelOverrides = Partial<Pick<SttRuntimeOptions,
   | 'whisperModels' | 'whisperfileModels' | 'deepinfraSttModels' | 'groqSttModels' | 'grokSttModels' | 'deepgramSttModels'
-  | 'sonioxSttModels' | 'speechmaticsSttModels' | 'revSttModels' | 'mistralSttModels' | 'assemblyaiSttModels'
+  | 'sonioxSttModels' | 'speechmaticsSttModels' | 'mistralSttModels' | 'assemblyaiSttModels'
   | 'gladiaSttModels' | 'happyscribeSttModels' | 'supadataSttModels' | 'scrapecreatorsSttModels'
   | 'geminiSttModels' | 'togetherSttModels'
 >>

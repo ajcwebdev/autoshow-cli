@@ -10,6 +10,4 @@ export type OcrSelectionState = OcrModelOverrideOptions & {
   anthropicOcrModels?: string[] | undefined
   geminiOcrModels?: string[] | undefined
   deepinfraOcrModels?: string[] | undefined
-  replicateOcrModels?: string[] | undefined
-  falOcrModels?: string[] | undefined
 }

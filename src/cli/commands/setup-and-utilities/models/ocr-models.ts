@@ -35,7 +35,8 @@ export const validateOpenAIOcrModel = createModelValidator(SUPPORTED_OPENAI_OCR_
 export const SUPPORTED_GROK_OCR_MODELS = [
   'grok-4.3',
   'grok-4.20-0309-non-reasoning',
-  'grok-4.5'
+  'grok-4.5',
+  'grok-4.6'
 ] as const satisfies readonly string[]
 
 export const validateGrokOcrModel = createModelValidator(SUPPORTED_GROK_OCR_MODELS, 'grok-ocr')
@@ -44,6 +45,7 @@ export const SUPPORTED_ANTHROPIC_OCR_MODELS = [
   'claude-fable-5',
   'claude-opus-4-8',
   'claude-sonnet-5',
+  'claude-sonnet-4-6',
   'claude-haiku-4-5',
   'claude-opus-5'
 ] as const satisfies readonly string[]
@@ -52,6 +54,7 @@ export const validateAnthropicOcrModel = createModelValidator(SUPPORTED_ANTHROPI
 
 export const SUPPORTED_GEMINI_OCR_MODELS = [
   'gemini-3.1-pro-preview',
+  'gemini-3.7-flash',
   'gemini-3.5-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite'
@@ -70,18 +73,3 @@ export const SUPPORTED_DEEPINFRA_OCR_MODELS = [
 ] as const satisfies readonly string[]
 
 export const validateDeepinfraOcrModel = createModelValidator(SUPPORTED_DEEPINFRA_OCR_MODELS, 'deepinfra-ocr')
-
-export const SUPPORTED_REPLICATE_OCR_MODELS = [
-  'datalab-to/ocr',
-  'datalab-to/marker',
-  'lucataco/deepseek-ocr'
-] as const satisfies readonly string[]
-
-export const validateReplicateOcrModel = createModelValidator(SUPPORTED_REPLICATE_OCR_MODELS, 'replicate-ocr')
-
-export const SUPPORTED_FAL_OCR_MODELS = [
-  'fal-ai/got-ocr/v2',
-  'fal-ai/florence-2-large/ocr'
-] as const satisfies readonly string[]
-
-export const validateFalOcrModel = createModelValidator(SUPPORTED_FAL_OCR_MODELS, 'fal-ocr')

@@ -1,0 +1,45 @@
+Page 1
+Nasdaq & AMEX
+
+Stocks in bold rose or fell 5% or more.
+
+USA TODAY Track your investments with our continuously updated stocks. Visit us on the web at money.usatoday.com
+
+52-week
+High Low Stock Last Change
+
+9.19 6.89 ABX Air Inc 7.52 −0.10
+33.25 12.40 AC Moore 13.58 −1.57
+31.38 13.51 ADA- Eps 20.96 +3.16
+27.14 12.88 ADC Tel 23.21 +0.13
+30.40 16.70 ADeCP 27.32 +0.73
+10.47 10.47 AFC Ents 15.40 −0.14
+8.37 4.54 ASE TST 7.76 +0.40
+19.25 12.70 ASM E 7.85 −0.03
+20.92 13.94 ASML Hld 21.24 +0.46
+27.38 16.39 ASVC Inc 26.74 +1.74
+19.82 10.47 ATI Tech 17.89 +0.68
+33.62 20.53 ATMI Inc 29.95 +1.29
+39.20 16.76 ATP O&G 38.40 −0.59
+4.24 1.99 AVI Bio 3.62 −0.02
+
+52-week
+High Low Stock Last Change
+
+45.71 32.50 Biomet 36.71 −0.42
+2.76 1.20 Biom Bio 1.46 +0.03
+9.07 5.13 BloScrip 8.05 +0.34
+68.88 50.65 Biosite 50.05 −4.57
+212.25 131.03 BiotechT 204.66 −0.84
+8.50 1.40 BirchMt 6.52 −0.45
+18.21 10.73 Bickbaud 17.90 +0.70
+54.73 13.86 BluCobalt 41.29 +1.30
+44.35 24.13 BlueNile 40.30 −1.10
+26.45 19.91 BolDevn 22.99
+15.49 13.61 Bojenn 15.49
+6.21 1.56 Booksidem 5.94 +0.06
+11.80 4.99 Borland 6.28 +0.11
+31.90 21.10 BostPrv 31.18 −0.07
+18.62 10.01 BtImpiT 11.53 +0.20
+14.68 7.10 BrigExp 12.10 −0.23
+46.72 26.65 BrightHrzz 38.90 −0.80

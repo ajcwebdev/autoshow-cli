@@ -1,5 +1,5 @@
 import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, LocalOcrService, MappedReasoningPolicy, NormalizedReasoningEffort, OcrCostEstimate, OcrProviderMode, ResolvedStep2Execution } from '~/types'
-import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateFalOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, estimateReplicateOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
+import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
@@ -10,14 +10,6 @@ const LOCAL_OCR_NOTES = {
 const HOSTED_OCR_HANDLERS = {
   mistral: {
     estimate: estimateMistralOcrCost,
-    estimateType: 'exact'
-  },
-  replicate: {
-    estimate: estimateReplicateOcrCost,
-    estimateType: 'exact'
-  },
-  fal: {
-    estimate: estimateFalOcrCost,
     estimateType: 'exact'
   },
   glm: {

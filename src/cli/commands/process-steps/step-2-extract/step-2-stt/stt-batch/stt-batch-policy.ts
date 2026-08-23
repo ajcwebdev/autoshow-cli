@@ -18,7 +18,6 @@ const isAsyncSttBatchProvider = (
   || target.service === 'supadata'
   || target.service === 'soniox'
   || target.service === 'speechmatics'
-  || target.service === 'rev'
 
 const getDefaultProviderSlotLimit = (
   target: Pick<SttTarget, 'service' | 'local'>

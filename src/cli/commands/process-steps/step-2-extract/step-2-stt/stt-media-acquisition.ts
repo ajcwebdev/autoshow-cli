@@ -22,7 +22,6 @@ const HOSTED_STT_SHARED_SOURCE_MEDIA_SERVICES = new Set<SttTarget['service']>([
   'gladia',
   'groq',
   'mistral',
-  'rev',
   'soniox',
   'speechmatics'
 ])

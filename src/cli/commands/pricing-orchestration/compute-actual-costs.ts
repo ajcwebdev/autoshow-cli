@@ -98,7 +98,7 @@ const computeActualSttCharge = (
     }
   }
 
-  if (typeof metadata.billing?.totalCost === 'number' && Number.isFinite(metadata.billing.totalCost)) {
+  if (typeof metadata.billing?.totalCost === 'number' && Number.isFinite(metadata.billing.totalCost) && metadata.billing.totalCost > 0) {
     const inputTokens = metadata.billing.inputTokens
     const outputTokens = metadata.billing.outputTokens
     const totalTokens = metadata.billing.totalTokens

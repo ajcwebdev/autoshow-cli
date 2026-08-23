@@ -1,8 +1,10 @@
+import { resolve } from 'node:path'
 import { isRecord } from '~/utils/rest-client'
-import type { ExistingOcrRun, ExtractionMetadata, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
+import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
 import { ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
 import { UsageError, collectErrorChain, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
+import { isContainedPath } from '~/utils/filesystem'
 import { parseRetryAfterMs } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { readSinglePipelineItemRecord } from '../../pipeline-manifest'
@@ -122,6 +124,46 @@ export const getOcrTargetKey = (target: Pick<OcrTarget, 'service' | 'model'>): s
 const getOcrProviderArtifactDir = (
   target: Pick<OcrTarget, 'service' | 'model'>
 ): string => `providers/${getOcrTargetDirectoryName(target)}`
+
+const parseOcrProviderResult = (
+  value: unknown,
+  label: string
+): ExtractionResult | undefined =>
+  isRecord(value) ? validateData(ExtractionResultSchema, value, label) : undefined
+
+const readOcrProviderArtifactResult = async (
+  outputDir: string,
+  artifactDir: string
+): Promise<ExtractionResult | undefined> => {
+  const root = resolve(outputDir)
+  const resultPath = resolve(root, artifactDir, 'result.json')
+  if (!isContainedPath(root, resultPath)) {
+    return undefined
+  }
+
+  const file = Bun.file(resultPath)
+  if (!await file.exists()) {
+    return undefined
+  }
+
+  return parseOcrProviderResult(await file.json(), 'OCR provider artifact result')
+}
+
+const resolveStoredOcrProviderResult = async (
+  outputDir: string,
+  target: OcrTarget,
+  storedState: OcrProviderState
+): Promise<ExtractionResult | undefined> => {
+  const canonicalResult = parseOcrProviderResult(storedState.result, 'canonical OCR provider result')
+  if (canonicalResult) {
+    return canonicalResult
+  }
+
+  return await readOcrProviderArtifactResult(
+    outputDir,
+    storedState.artifactDir || getOcrProviderArtifactDir(target)
+  )
+}
 
 export const toRequestedProvider = (target: OcrTarget): OcrRequestedProvider => ({
   service: target.service,
@@ -338,9 +380,7 @@ export const readExistingOcrRun = async (
       throw UsageError(`Canonical OCR provider state ${target.service}/${target.model} is missing provider metadata.`)
     }
     const metadata = validateData(ExtractionMetadataSchema, storedState.metadata, 'stored OCR provider metadata')
-    const storedResult = isRecord(storedState.result)
-      ? validateData(ExtractionResultSchema, storedState.result, 'canonical OCR provider result')
-      : undefined
+    const storedResult = await resolveStoredOcrProviderResult(outputDir, target, storedState)
     if (!storedResult) {
       throw UsageError(`Canonical OCR provider state ${target.service}/${target.model} is missing a valid result.`)
     }

@@ -48,9 +48,6 @@ const handlers: Record<string, BootstrapHandler> = {
   'speechmatics-stt': {
     ensure: async (): Promise<void> => { requireProviderKey('speechmatics', 'stt:speechmatics', 'Speechmatics transcription') }
   },
-  'rev-stt': {
-    ensure: async (): Promise<void> => { requireProviderKey('rev', 'stt:rev', 'Rev transcription') }
-  },
   'groq-stt': {
     ensure: async (): Promise<void> => { requireProviderKey('groq', 'stt:groq', 'Groq transcription') }
   },

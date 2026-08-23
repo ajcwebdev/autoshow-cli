@@ -1,0 +1,4 @@
+{
+  "error": "Anthropic OCR returned malformed JSON for pages 1-4. Split the document into smaller chunks and retry.",
+  "rawResponseFile": "invalid-structured-response.txt"
+}

@@ -1,0 +1,260 @@
+[00:00:01.048] [speaker-0] All right.
+[00:00:01.869] [speaker-0] Sorry about the Twitter space kerfuffle.
+[00:00:04.891] [speaker-0] Scott got the thing working though.
+[00:00:07.914] [speaker-0] Well done,
+[00:00:08.594] [speaker-0] Scott.
+[00:00:09.775] [speaker-0] I know exactly what was happening.
+[00:00:11.537] [speaker-0] Has happened to me before.
+[00:00:13.278] [speaker-0] Sometimes when you start a space,
+[00:00:15.460] [speaker-0] it will show as starting on your phone while having not actually being started,
+[00:00:21.165] [speaker-0] where other people can see it and join it.
+[00:00:23.186] [speaker-0] But if you wait like one to two minutes,
+[00:00:27.049] [speaker-0] somehow it just works it out,
+[00:00:28.951] [speaker-0] and then all of a sudden goes.
+[00:00:30.552] [speaker-0] So patience was a virtue in that in that respect.
+[00:00:33.674] [speaker-0] So for any other Twitter Space hosts out there,
+[00:00:37.395] [speaker-0] these are the fun things we get to learn as we do this process.
+[00:00:42.377] [speaker-1] Yeah,
+[00:00:42.697] [speaker-1] thank you to the audience for for rejoining back and and for Scott for soldiering on and and Anthony for for the lesson.
+[00:00:52.902] [speaker-1] I'm reminded of that like old demotivators poster,
+[00:00:55.483] [speaker-1] which was like the Titanic,
+[00:00:56.623] [speaker-1] and it was like maybe you're.
+[00:00:58.412] [speaker-1] Your role is to be a lesson for others,
+[00:01:00.573] [speaker-1] um,
+[00:01:01.514] [speaker-1] but but welcome back everyone.
+[00:01:04.356] [speaker-1] Um,
+[00:01:04.856] [speaker-1] do we know if Scott's going to join in separately,
+[00:01:07.678] [speaker-1] Anthony?
+[00:01:09.580] [speaker-0] let's let's go ahead and just start announcing things.
+[00:01:12.201] [speaker-0] Yeah.
+[00:01:12.322] [speaker-0] Introducing ourselves.
+[00:01:13.181] [speaker-0] We'll let him work work out what he's going to do.
+[00:01:15.383] [speaker-1] Great.
+[00:01:16.283] [speaker-1] So,
+[00:01:16.703] [speaker-1] hi everyone.
+[00:01:17.284] [speaker-1] Welcome again to JavaScript Jam Live.
+[00:01:21.046] [speaker-1] JavaScript Jam Live is an open mic.
+[00:01:24.873] [speaker-1] We like to say for anything JavaScript and web development related is on topic.
+[00:01:30.718] [speaker-1] We love audience participation.
+[00:01:32.219] [speaker-1] We've got something very special for you this week and in the upcoming weeks in collaboration with React Miami.
+[00:01:39.885] [speaker-1] I am Ishanand.
+[00:01:40.966] [speaker-1] I'm VP of Product at Edgeo,
+[00:01:43.969] [speaker-1] Edge Deployment Platform,
+[00:01:45.190] [speaker-1] and I'm joined by
+[00:01:47.352] [speaker-1] Anthony and Scott.
+[00:01:48.553] [speaker-1] I'll let them introduce themselves and talk about what we're doing with
+[00:01:51.495] [speaker-1] React Miami.
+[00:01:54.112] [speaker-0] Hello,
+[00:01:54.612] [speaker-0] my name is Anthony Campolo.
+[00:01:56.313] [speaker-0] I am a developer advocate at Edgio,
+[00:01:59.495] [speaker-0] and we're going to be joined today by Dev Agarwal,
+[00:02:03.297] [speaker-0] who is also partnering with React Miami to help put together some sweet events and activities and content for you.
+[00:02:12.182] [speaker-0] And we are bringing him up right now.
+[00:02:14.463] [speaker-0] And then Scott,
+[00:02:15.284] [speaker-0] if you are able to speak,
+[00:02:16.925] [speaker-0] go ahead introduce yourself.
+[00:02:20.607] [speaker-2] Yo,
+[00:02:22.248] [speaker-2] what up?
+[00:02:22.808] [speaker-2] Up everybody!
+[00:02:24.309] [speaker-2] So hopefully you can hear me.
+[00:02:27.051] [speaker-0] Yes.
+[00:02:28.892] [speaker-2] All right,
+[00:02:29.292] [speaker-2] great.
+[00:02:29.813] [speaker-2] Wow,
+[00:02:30.793] [speaker-2] boy,
+[00:02:30.914] [speaker-2] that was fun earlier.
+[00:02:31.994] [speaker-2] I tell you what,
+[00:02:32.795] [speaker-2] you know,
+[00:02:34.076] [speaker-2] it doesn't matter if you know quite a bit about tech or not.
+[00:02:36.257] [speaker-2] Is there's always something to make you look like a fool.
+[00:02:38.379] [speaker-2] So here we are.
+[00:02:39.940] [speaker-2] Everything's good.
+[00:02:40.580] [speaker-2] Everything's working now.
+[00:02:42.281] [speaker-2] Um.
+[00:02:42.882] [speaker-2] So anyway,
+[00:02:43.862] [speaker-2] so great.
+[00:02:44.563] [speaker-2] So glad to be here.
+[00:02:45.464] [speaker-2] We're at Miami.
+[00:02:47.725] [speaker-2] I don't.
+[00:02:48.225] [speaker-2] I don't know why I said week there,
+[00:02:49.446] [speaker-2] but you know,
+[00:02:50.267] [speaker-2] in a hustle to get this up,
+[00:02:51.627] [speaker-2] that's what I put.
+[00:02:52.528] [speaker-2] But really,
+[00:02:53.168] [speaker-2] it's React Miami months,
+[00:02:55.469] [speaker-2] which I'm renaming right now,
+[00:02:57.270] [speaker-2] and
+[00:02:58.391] [speaker-2] I'm super excited because you know,
+[00:03:00.872] [speaker-2] as Anthony was hinting at,
+[00:03:01.912] [speaker-2] there we're gonna be talking about Dev today and about React Miami and many other things,
+[00:03:06.935] [speaker-2] and also you know we're we're you know doing our little collab with
+[00:03:12.237] [speaker-2] React Miami as well,
+[00:03:13.818] [speaker-2] and we're just so excited for that moving forward.
+[00:03:16.759] [speaker-2] We're gonna be having you know more speakers.
+[00:03:19.060] [speaker-2] From
+[00:03:19.601] [speaker-2] React Miami,
+[00:03:20.361] [speaker-2] speaking here about just topics that make sense with them,
+[00:03:23.424] [speaker-2] and you know we're keeping this traditional like JavaScript Jam vibe that we have rolling through all that process.
+[00:03:29.389] [speaker-2] So nothing's going to change as far as like what you guys typically are used to hearing,
+[00:03:33.792] [speaker-2] and and you know as as far as like having speakers here and all that.
+[00:03:36.635] [speaker-2] It's going to be a great time.
+[00:03:37.595] [speaker-2] So really,
+[00:03:38.956] [speaker-2] there's just more value actually from us being involved with React Miami,
+[00:03:43.600] [speaker-2] more value for you guys,
+[00:03:45.642] [speaker-2] and and some extra goodies that we're going to talk about here a little bit later.
+[00:03:49.436] [speaker-2] Really excited for.
+[00:03:50.477] [speaker-2] So,
+[00:03:51.737] [speaker-2] thank you so much.
+[00:03:52.698] [speaker-2] So glad to be here.
+[00:03:54.278] [speaker-2] Just remember,
+[00:03:54.779] [speaker-2] if you're a beginner or or an advanced user,
+[00:03:56.900] [speaker-2] whether you've been you know doing this a little bit or doing this for a very long time,
+[00:04:00.201] [speaker-2] as far as a web developer goes,
+[00:04:02.342] [speaker-2] we want to hear from everybody.
+[00:04:03.303] [speaker-2] It doesn't matter whether you're a beginner or advanced.
+[00:04:06.004] [speaker-2] Like I said,
+[00:04:06.804] [speaker-2] and so you know,
+[00:04:08.524] [speaker-2] don't don't be afraid to to request to come up and ask questions or comments or like facts,
+[00:04:14.167] [speaker-2] opinions,
+[00:04:14.627] [speaker-2] whatever it is.
+[00:04:15.647] [speaker-2] We want to hear from you.
+[00:04:16.828] [speaker-2] In fact,
+[00:04:17.188] [speaker-2] actually,
+[00:04:17.449] [speaker-2] that also helps to increase the value here for everybody listening in because when you guys get involved,
+[00:04:22.954] [speaker-2] typically there's some really great conversations that happen.
+[00:04:25.035] [speaker-2] So,
+[00:04:25.936] [speaker-2] we'd love to hear from as many people as as possibly want to come up.
+[00:04:30.260] [speaker-2] So,
+[00:04:31.221] [speaker-2] all right.
+[00:04:31.482] [speaker-2] With that being said,
+[00:04:32.102] [speaker-2] I am Scott Steinlanger,
+[00:04:33.143] [speaker-2] and I am a technical community manager at Edgio,
+[00:04:37.567] [speaker-2] and I'm ready to rock this today.
+[00:04:40.169] [speaker-2] Let's get this rolling.
+[00:04:41.730] [speaker-2] Thank you so much.
+[00:04:42.951] [speaker-2] Appreciate y'all.
+[00:04:46.400] [speaker-0] Awesome.
+[00:04:46.720] [speaker-0] We should have
+[00:04:47.882] [speaker-0] Dev introduce himself,
+[00:04:49.644] [speaker-0] and then after that,
+[00:04:50.845] [speaker-0] Michelle,
+[00:04:51.466] [speaker-0] you can introduce yourself.
+[00:04:52.727] [speaker-0] And you are one of the organizers of React Miami.
+[00:04:55.771] [speaker-0] So thank you for joining us.
+[00:04:59.498] [speaker-3] How's it going,
+[00:05:00.398] [speaker-3] everybody?
+[00:05:01.039] [speaker-3] Thank you very much for having me up here.
+[00:05:02.999] [speaker-3] Thank everyone for showing up and showing interest.
+[00:05:06.520] [speaker-3] My name is Dev,
+[00:05:07.660] [speaker-3] or you can call me Dave.
+[00:05:09.441] [speaker-3] Both work fine.
+[00:05:11.261] [speaker-3] And yeah,
+[00:05:11.902] [speaker-3] it's great to be here.
+[00:05:13.022] [speaker-3] This year,
+[00:05:13.822] [speaker-3] I am also a media partner for React Miami,
+[00:05:16.943] [speaker-3] along with along with these two great individuals,
+[00:05:20.124] [speaker-3] Anthony and Scott.
+[00:05:21.764] [speaker-3] And yeah,
+[00:05:22.804] [speaker-3] I'm very excited to show you guys what we have in store for next week,
+[00:05:26.946] [speaker-3] or talk about it a little today.
+[00:05:34.198] [speaker-3] Michelle,
+[00:05:34.539] [speaker-3] you want to go?
+[00:05:41.022] [speaker-0] If you're not currently either Mike or something,
+[00:05:44.325] [speaker-0] Dan,
+[00:05:44.925] [speaker-0] looks like you hopped up as well.
+[00:05:46.586] [speaker-0] I don't think Dan's gonna be at React Miami.
+[00:05:48.128] [speaker-4] I I wish.
+[00:05:49.728] [speaker-4] I'm having there's a company offsite for that week.
+[00:05:52.750] [speaker-4] Otherwise,
+[00:05:53.071] [speaker-4] I would have gone.
+[00:05:54.251] [speaker-4] But yeah,
+[00:05:54.791] [speaker-4] I don't think I deserved to introduce myself because I'm not a media partner at React Miami.
+[00:06:02.082] [speaker-0] Okay.
+[00:06:02.403] [speaker-0] Well,
+[00:06:02.583] [speaker-0] cool.
+[00:06:02.843] [speaker-0] Oh,
+[00:06:02.984] [speaker-0] it looks like Will showed up anyway.
+[00:06:04.443] [speaker-0] That's so funny.
+[00:06:10.826] [speaker-0] Um,
+[00:06:11.266] [speaker-0] cool.
+[00:06:11.506] [speaker-0] So I guess we can let
+[00:06:13.247] [speaker-0] Dev. Do you want to kind of talk about your game show idea?
+[00:06:17.489] [speaker-0] I thought this was pretty interesting.
+[00:06:21.651] [speaker-3] Sure.
+[00:06:21.951] [speaker-3] Yeah.
+[00:06:22.291] [speaker-3] So I have managed to rope these two people into hosting a game show with me.
+[00:06:27.373] [speaker-3] This is happening next week.
+[00:06:29.394] [speaker-3] We are calling it Miami Jam,
+[00:06:32.556] [speaker-3] and I'm very excited for this.
+[00:06:34.477] [speaker-3] But looks like Michelle is back up here as a speaker,
+[00:06:36.938] [speaker-3] so
+[00:06:39.480] [speaker-3] I think we would like to hear her hear from her first.
+[00:06:42.602] [speaker-5] Hi,
+[00:06:43.102] [speaker-5] sorry guys.
+[00:06:43.802] [speaker-5] Like the connection was like on the fritz,
+[00:06:46.244] [speaker-5] and then the microphone button wasn't working in the Twitter space.
+[00:06:48.865] [speaker-5] So now it seems like everything's working.
+[00:06:52.507] [speaker-2] Oh,
+[00:06:52.628] [speaker-2] we understand.
+[00:06:53.289] [speaker-5] But yeah,
+[00:06:55.109] [speaker-5] so that's the normal.
+[00:06:57.414] [speaker-3] Of using Twitter Spaces every day.
+[00:07:02.799] [speaker-5] Miami,
+[00:07:03.239] [speaker-5] and I'm just kind of crashing the party today.
+[00:07:05.201] [speaker-5] But I'm super excited to have Dav and
+[00:07:10.285] [speaker-5] Anthony and Scott all as media partners for React Miami this year.
+[00:07:15.349] [speaker-5] And I'm also listening in,
+[00:07:17.291] [speaker-5] just interested to see what we're gonna do because we kind of like just give them the green light to do whatever they like.
+[00:07:24.557] [speaker-5] So.
+[00:07:28.594] [speaker-0] Yes,
+[00:07:29.075] [speaker-0] we'll see whether you end up regretting it,
+[00:07:32.077] [speaker-0] but I think that will have some some cool stuff in store.
+[00:07:35.900] [speaker-0] So we probably get back to your description,
+[00:07:38.643] [speaker-0] Deb.
+[00:07:41.625] [speaker-3] Sure.
+[00:07:41.925] [speaker-3] Yeah.
+[00:07:42.606] [speaker-3] So the idea of Miami Jam is to kind of stray away from like a typical interview or panel style show where we just bring on a few speakers and ask them questions.
+[00:07:55.216] [speaker-3] Instead,
+[00:07:55.777] [speaker-3] the
+[00:07:57.078] [speaker-3] This show Miami Jam,
+[00:07:58.359] [speaker-3] which we are hosting,
+[00:07:59.920] [speaker-3] is going to be a little more like a game show,
+[00:08:02.903] [speaker-3] where instead of just straight up asking questions about their topics or their motivations,
+[00:08:08.788] [speaker-3] we are going to ask trivia style questions.
+[00:08:12.631] [speaker-3] These can be React related questions or anything about weird quirks in JavaScript or TypeScript or anything adjacent to React.
+[00:08:20.578] [speaker-3] These could be guessing what library is being used,
+[00:08:23.600] [speaker-3] or this could be a question about some.
+[00:08:26.066] [speaker-3] Some other speaker's topic,
+[00:08:28.027] [speaker-3] which the person that the question is directed to has to answer,
+[00:08:33.468] [speaker-3] and then we will use these opportunities to kind of segue into more detailed,
+[00:08:39.490] [speaker-3] more in-depth discussions on what their topics are.
+[00:08:42.871] [speaker-3] So we still get to,
+[00:08:44.011] [speaker-3] we still have to,
+[00:08:46.272] [speaker-3] or we still get to get a lot of insight from these speakers about what their topic is,
+[00:08:52.393] [speaker-3] what their motivation is behind giving this certain talk.
+[00:08:55.422] [speaker-3] Or what their experience has been like in the in this industry,
+[00:09:00.063] [speaker-3] and what kind of things that they have worked on,
+[00:09:04.304] [speaker-3] that's bringing them to like to React Miami to give this talk.
+[00:09:08.526] [speaker-3] It's just structured in a style that's more like a game show,
+[00:09:11.466] [speaker-3] so that it's more fun and it's more interactive.
+[00:09:14.067] [speaker-3] It's more collaborative.
+[00:09:15.868] [speaker-3] We are trying to get the speakers to share share experiences with each other as well,
+[00:09:21.869] [speaker-3] and we are trying to get the audience involved.
+[00:09:24.366] [speaker-3] By the way,
+[00:09:24.647] [speaker-3] I'm sorry if my phone notification is interrupting me.
+[00:09:30.310] [speaker-3] Put that on silent.
+[00:09:32.031] [speaker-3] Yeah.
+[00:09:32.271] [speaker-3] So yeah,
+[00:09:32.772] [speaker-3] that's the point.
+[00:09:33.772] [speaker-3] Trying to make it collaborative,
+[00:09:34.993] [speaker-3] trying to make it engaging.
+[00:09:37.015] [speaker-3] We're also going to have some stuff for the audience.
+[00:09:39.276] [speaker-3] So if you are in the audience there in the show,
+[00:09:42.738] [speaker-3] you will you will also get to engage with the speakers.
+[00:09:45.680] [speaker-3] You like obviously you'll get to ask your questions,
+[00:09:48.262] [speaker-3] but you might also get to engage in other ways.
+[00:09:50.584] [speaker-3] For example,
+[00:09:51.185] [speaker-3] if we ask a question,
+[00:09:52.405] [speaker-3] or if you ask them a question.
+[00:09:54.166] [speaker-3] You can decide how many points they get for answering that question,
+[00:09:57.982] [speaker-3] and if the question is about.

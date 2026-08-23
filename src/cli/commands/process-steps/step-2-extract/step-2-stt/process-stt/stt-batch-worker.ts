@@ -79,7 +79,7 @@ export const runSttProviderTargetAtIndex = async (
     await mkdir(providerDir, { recursive: true })
     await markSttProviderRunning({
       rootDir: ctx.outputDir,
-      artifactDir: providerDir,
+      artifactDir: relativeDir,
       target
     }, nextAttemptCount)
 
@@ -90,7 +90,7 @@ export const runSttProviderTargetAtIndex = async (
     let asyncJobReady = false
     const manifestLifecycle = createSttProviderProgressLifecycle({
       rootDir: ctx.outputDir,
-      artifactDir: providerDir,
+      artifactDir: relativeDir,
       target
     }, (metadata) => {
       const current = providerStateMap.get(targetKey)

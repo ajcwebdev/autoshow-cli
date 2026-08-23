@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-08-22
 - **Verification Status:** Passed
 - **Supersession:** Replaces per-modality registry and reasoning configurations. Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to the 2026 hosted-model refresh reports under `docs/models/`; paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
@@ -179,7 +179,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The policy ships in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the shared selector inventories under `src/cli/flags/service-selector-normalization/`. User-facing reasoning behavior is documented in `docs/commands/process-steps/step-3-write/write-text.md`. Dated catalogs live in the 2026 hosted-model refresh reports under `docs/models/`.
+The policy ships in the hosted registries under `src/cli/commands/setup-and-utilities/models/` and the shared selector inventories under `src/cli/flags/service-selector-normalization/`. User-facing reasoning behavior is documented in `docs/commands/process-steps/step-3-write/write-text.md`. Dated catalogs live in the 2026 hosted-model refresh reports under `docs/models/`. The 2026-08-22 speaker-aware STT catalog cut — removing Rev and retiring `universal-2`, `solaria-1`, and `enhanced` while keeping `universal-3-5-pro`, `melia-1`, and `solaria-3` — applies this retirement contract and is recorded in [the STT refresh report](../models/01-stt-model-report.md) from [docs/benchmarks/stt-with-speakers](../benchmarks/stt-with-speakers/combined-comparison-report.md).
 
 ## API / Type Impact
 

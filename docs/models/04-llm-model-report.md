@@ -4,7 +4,7 @@
 
 - **Report Status:** Current
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-19
+- **Date Updated:** 2026-08-22
 
 This report is one of eight per-modality records split on 2026-08-19 from the former consolidated 2026 hosted-model refresh ledger (retired as an ADR; the remaining ADRs were renumbered to close the gap). Sibling reports: [STT](01-stt-model-report.md), [OCR](02-ocr-model-report.md), [URL scraping](03-url-model-report.md), [TTS](05-tts-model-report.md), [Music](06-music-model-report.md), [Image](07-image-model-report.md), [Video](08-video-model-report.md).
 
@@ -209,6 +209,10 @@ Implements the two P1 write recommendations from the 2026-08-16 text-catalog gap
 - Recorded conservative Standard rates of `$1.50/$7.50` per 1M input/output tokens effective 2027-01-01 rather than the introductory `$0.75/$3.75` window through 2026-12-31, so estimates overstate cost until year-end.
 - Reasoning is optional with low/medium/high efforts only: the model page documents that `minimal` returns an error, unlike Gemini 3.6/3.5 Flash. Latency and token heuristics reuse the Gemini 3.6 Flash baseline and stay provisional until an approved ADR-012 calibration promotes them.
 
+## 2026-08-22 Gemini 3.7 Flash, Grok 4.6, and Claude Sonnet 4.6 OCR additions
+
+Closes the extract (OCR) side of the 2026-08-16 P1 write+extract recommendations for `gemini-3.7-flash` and `grok-4.6`, and adds write-only sibling `claude-sonnet-4-6` to OCR. Write selectors, expansion order, and bare `--llm` defaults are unchanged. OCR expansion inserts `gemini-3.7-flash` after `gemini-3.1-pro-preview`, `grok-4.6` after `grok-4.5`, and `claude-sonnet-4-6` after `claude-sonnet-5`. Pricing, reasoning, and page heuristics match the write registries plus the closest prior OCR sibling; see the [OCR report](02-ocr-model-report.md).
+
 ## API / Type Impact
 
 - Write and OCR unions accept concrete 2026 OpenAI, Anthropic, Grok, Gemini, and Kimi identifiers.
@@ -216,7 +220,7 @@ Implements the two P1 write recommendations from the 2026-08-16 text-catalog gap
 
 ## Follow-up Actions
 
-- [ ] Implement the 2026-08-16 P1 extract (OCR) registrations for `gemini-3.7-flash` and `grok-4.6` — Pending
+- [x] Implement the 2026-08-16 P1 extract (OCR) registrations for `gemini-3.7-flash` and `grok-4.6`, plus write-only sibling `claude-sonnet-4-6`
 - [ ] Implement the remaining 2026-08-16 recommended selectors after confirming adapter fit and published pricing — Pending
 - [ ] Record future large hosted-model refreshes in dated report sections while preserving ADR-010 policy — Ongoing guardrail
 

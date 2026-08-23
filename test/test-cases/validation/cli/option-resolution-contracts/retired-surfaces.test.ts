@@ -83,14 +83,24 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: `Invalid model "${retiredMusicFree}" for ${formatModelSelector('minimax-music')}`
   },
   {
-    flag: 'anthropic-ocr',
-    model: 'claude-sonnet-4-6',
-    message: 'claude-sonnet-4-6'
-  },
-  {
     flag: 'deepinfra-ocr',
     model: 'PaddlePaddle/PaddleOCR-VL-0.9B',
     message: 'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: google/gemma-3-27b-it, meta-llama/Llama-4-Scout-17B-16E-Instruct, mistralai/Mistral-Small-3.2-24B-Instruct-2506, Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
+  },
+  {
+    flag: 'assemblyai-stt',
+    model: 'universal-2',
+    message: 'Model "universal-2" is retired for --provider/--stt assemblyai[=model]. Use "universal-3-5-pro" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gladia-stt',
+    model: 'solaria-1',
+    message: 'Model "solaria-1" is retired for --provider/--stt gladia[=model]. Use "solaria-3" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'speechmatics-stt',
+    model: 'enhanced',
+    message: 'Model "enhanced" is retired for --provider/--stt speechmatics[=model]. Use "melia-1" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'supadata-stt',
@@ -117,6 +127,10 @@ describe('retired surfaces', () => {
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/benchmark'))).toBe(false)
     expect(existsSync(resolve('src/types/benchmarks'))).toBe(false)
     expect(existsSync(resolve('docs/commands/setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/replicate-ocr'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/fal-ocr'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-replicate.json'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-fal.json'))).toBe(false)
   })
 
   test('retired models are rejected with public selectors', () => {

@@ -1227,7 +1227,7 @@ function main(): number {
     console.error(`[warn] ${warning}`);
   }
 
-  writeFileSync(jsonOut, `${JSON.stringify(reportJson, null, 2)}\n`);
+  writeFileSync(jsonOut, JSON.stringify(reportJson));
   writeFileSync(markdownOut, markdown);
   return 0;
 }

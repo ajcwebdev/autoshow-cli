@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import { getDocumentInfo } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateFalOcrModel, validateGeminiOcrModel, validateGlmOcrModel, validateGrokOcrModel, validateKimiOcrModel, validateMistralOcrModel, validateOpenAIOcrModel, validateReplicateOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateGeminiOcrModel, validateGlmOcrModel, validateGrokOcrModel, validateKimiOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrTokenUsageEstimate, TokenEstimateMetadata, TokenOcrCostEstimate, TokenPricedOcrProvider } from '~/types'
 import { resolveHostedOcrTokenUsageEstimate } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
@@ -166,36 +166,6 @@ export const estimateMistralOcrCost = async (
     costPer1kPagesCents,
     totalCost: (pageCount / 1000) * costPer1kPagesCents
   }
-}
-
-export const estimateReplicateOcrCost = async (
-  modelRaw: string,
-  input: string
-): Promise<{ provider: 'replicate', model: string, pageCount: number, costPer1kPagesCents: number, totalCost: number }> => {
-  const model = validateReplicateOcrModel(modelRaw)
-  const pricing = getExtractPricing('replicate', model)
-  const costPer1kPagesCents = pricing.costPer1kPagesCents ?? 200
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-
-  return {
-    provider: 'replicate',
-    model,
-    pageCount,
-    costPer1kPagesCents,
-    totalCost: (pageCount / 1000) * costPer1kPagesCents
-  }
-}
-
-export const estimateFalOcrCost = async (
-  modelRaw: string,
-  input: string
-): Promise<{ provider: 'fal', model: string, pageCount: number, costPer1kPagesCents: number, totalCost: number }> => {
-  const model = validateFalOcrModel(modelRaw)
-  const pricing = getExtractPricing('fal', model)
-  const costPer1kPagesCents = pricing.costPer1kPagesCents ?? 5000
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-
-  return { provider: 'fal', model, pageCount, costPer1kPagesCents, totalCost: (pageCount / 1000) * costPer1kPagesCents }
 }
 
 const estimateTokenPricedOcrCost = async <TProvider extends TokenPricedOcrProvider>(

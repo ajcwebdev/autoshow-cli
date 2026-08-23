@@ -4,7 +4,7 @@
 
 - **Decision Status:** Superseded
 - **Date Created:** 2026-07-16
-- **Date Updated:** 2026-08-21
+- **Date Updated:** 2026-08-22
 - **Verification Status:** Passed
 - **Supersession:** The CLI `benchmark` command was removed. This record remains historical for committed `docs/benchmarks/` run data, consensus-skill combined reports, the quality-cost tier contract, paid-approval gates, calibration evidence, and artifact repair/compaction rules. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Dated model changes belong to the 2026 hosted-model refresh reports under `docs/models/`.
 
@@ -247,7 +247,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: shared ranking, ordering, terciles, and Markdown rendering in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Committed run data and generated reports live under `docs/benchmarks/`.
+The CLI `benchmark` command is gone. Combined-report generation remains in the consensus skill: run discovery in `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`, and the self-contained dashboard renderer in `.codex/skills/consensus/scripts/shared/combined_report_html.ts`. Combined reports now rank price, speed, and quality per provider group and no longer emit weighted composites or quality-cost terciles. Committed run data and generated reports live under `docs/benchmarks/`. STT combined reports are split by diarization: `docs/benchmarks/stt-without-speakers/` and `docs/benchmarks/stt-with-speakers/`. The speaker-aware cohort is the committed evidence for the 2026-08-22 STT catalog cut recorded in [the STT refresh report](../models/01-stt-model-report.md).
 
 ## Test Plan
 
@@ -255,10 +255,11 @@ The CLI `benchmark` command is gone. Combined-report generation remains in the c
 bun run check
 git diff --check
 bun test test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts
+bun test test/test-cases/validation/reports-pricing/url-combined-report-contracts.test.ts
 ```
 
 1. `bun run check` and `git diff --check` prove the ADR remains well-formed.
-2. The weighted-ranking contract test proves the eight-set registry, ordering and tie-breaks, tercile sizes, and rank/composite parity across committed JSON, Markdown, and HTML artifacts.
+2. The combined-report contract tests prove committed OCR, STT, and URL artifacts rank price, speed, and quality per group and omit weighted composites and model tiers.
 
 Do not regenerate reports from live provider calls, run the full test suite, or invoke paid APIs as part of this verification.
 

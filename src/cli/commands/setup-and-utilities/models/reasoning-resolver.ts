@@ -56,7 +56,7 @@ const getAdapterDefaultReasoningEffort = (
       return 'low'
     }
     if (service === 'kimi') {
-      return model === 'kimi-k3' ? 'max' : 'disabled'
+      return model === 'kimi-k3' ? 'low' : 'disabled'
     }
     if (service === 'glm') {
       return 'disabled'
@@ -68,7 +68,7 @@ const getAdapterDefaultReasoningEffort = (
       return 'low'
     }
     if (service === 'kimi') {
-      return model === 'kimi-k3' ? 'max' : 'disabled'
+      return model === 'kimi-k3' ? 'low' : 'disabled'
     }
   }
 

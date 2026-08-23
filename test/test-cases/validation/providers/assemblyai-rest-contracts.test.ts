@@ -16,11 +16,11 @@ describe('AssemblyAI REST contracts', () => {
   test('transcript request propagates the expected speaker count', () => {
     expect(buildAssemblyAiTranscriptRequest(
       'https://cdn.assemblyai.com/upload/example',
-      'universal-2',
+      'universal-3-5-pro',
       3
     )).toEqual({
       audio_url: 'https://cdn.assemblyai.com/upload/example',
-      speech_models: ['universal-2'],
+      speech_models: ['universal-3-5-pro'],
       speaker_labels: true,
       speakers_expected: 3
     })

@@ -73,12 +73,6 @@ export const buildOcrOutput = (
   if (typeof input.opts.deepinfraOcrModel === 'string' && input.extractionMethod.includes('deepinfra-ocr')) {
     step2MetadataPayload['ocrModel'] = input.opts.deepinfraOcrModel
   }
-  if (typeof input.opts.replicateOcrModel === 'string' && input.extractionMethod.includes('replicate-ocr')) {
-    step2MetadataPayload['ocrModel'] = input.opts.replicateOcrModel
-  }
-  if (typeof input.opts.falOcrModel === 'string' && input.extractionMethod.includes('fal-ocr')) {
-    step2MetadataPayload['ocrModel'] = input.opts.falOcrModel
-  }
   if (typeof input.providerCostCents === 'number') {
     step2MetadataPayload['providerCostCents'] = input.providerCostCents
   }
